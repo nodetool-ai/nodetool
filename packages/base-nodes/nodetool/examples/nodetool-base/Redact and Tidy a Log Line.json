@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Redact and Tidy a Log Line\n\nCleans one log line by masking the email address and IP before tidying the spacing. Redacting first matters, because normalising could reshape the text a pattern needs to match.\n\n**How it works:** \"Log line\" holds a sample entry. \"Redact email\" and \"Redact IP\" each run a regex replacement in turn. \"Collapse spaces\" squeezes runs of whitespace and sends the result to the \"redacted\" Output. \"Every number\" then pulls every number from the cleaned line into the \"numbers\" Output.\n\n**Try this:** Paste a log line from your own system into \"Log line\" and check that both redactions still catch it."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 305
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "raw",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 834
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 655
           },
           "zIndex": 0,
           "width": 280,
@@ -72,8 +91,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 639
           },
           "zIndex": 0,
           "width": 280,
@@ -102,8 +121,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 607
           },
           "zIndex": 0,
           "width": 280,
@@ -132,8 +151,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 340
+            "x": 1520,
+            "y": 385
           },
           "zIndex": 0,
           "width": 280,
@@ -162,8 +181,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 340
+            "x": 1520,
+            "y": 922
           },
           "zIndex": 0,
           "width": 280,
@@ -181,8 +200,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 340
+            "x": 1900,
+            "y": 583
           },
           "zIndex": 0,
           "width": 280,

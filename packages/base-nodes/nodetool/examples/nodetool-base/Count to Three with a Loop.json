@@ -6,7 +6,12 @@
   "name": "Count to Three with a Loop",
   "tool_name": null,
   "description": "Start at zero and add one on each pass. Stop when the result reaches three, then return the final value.",
-  "tags": ["control", "loop", "getting-started", "example"],
+  "tags": [
+    "control",
+    "loop",
+    "getting-started",
+    "example"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
@@ -15,12 +20,15 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Count to Three with a Loop\n\nThe loop starts at 0. On each pass, Code adds 1. It sends the new number to Next and sends true to Condition while that number is below 3. When Condition becomes false, Done sends 3 to the output."
+          "comment": "# Count to Three with a Loop\n\nCounts from zero to three with a Loop node. Use it to learn how a loop passes a value back to itself and decides when to stop.\n\n**How it works:** \"1 Start at 0\" begins with an initial value of 0 and allows at most 10 iterations. On each pass, \"2 Add 1 and check the result\" adds 1, sends the new number back to the loop's next input, and sends true to its condition input while that number is below 3. When the condition becomes false, the loop's done output sends 3 to \"3 Final count\". It runs locally with no model or key.\n\n**Try this:** Change the 3 in the code of \"2 Add 1 and check the result\" to 7 and confirm \"3 Final count\" shows 7."
         },
         "ui_properties": {
-          "position": { "x": 0, "y": -260 },
+          "position": {
+            "x": 0,
+            "y": 0
+          },
           "width": 600,
-          "height": 180,
+          "height": 172,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -29,9 +37,15 @@
       {
         "id": "loop",
         "type": "nodetool.control.Loop",
-        "data": { "initial": 0, "max_iterations": 10 },
+        "data": {
+          "initial": 0,
+          "max_iterations": 10
+        },
         "ui_properties": {
-          "position": { "x": 0, "y": 100 },
+          "position": {
+            "x": 0,
+            "y": 479
+          },
           "width": 300,
           "selectable": true,
           "title": "1  Start at 0"
@@ -47,25 +61,53 @@
           "packages": []
         },
         "ui_properties": {
-          "position": { "x": 420, "y": 100 },
+          "position": {
+            "x": 400,
+            "y": 252
+          },
           "width": 340,
           "selectable": true,
           "title": "2  Add 1 and check the result"
         },
-        "dynamic_properties": { "value": 0 },
-        "dynamic_inputs": { "value": { "type": { "type": "any" } } },
-        "dynamic_outputs": {
-          "next": { "type": "int", "type_args": [], "optional": false },
-          "again": { "type": "bool", "type_args": [], "optional": false }
+        "dynamic_properties": {
+          "value": 0
         },
-        "outputs": { "next": "int", "again": "bool" }
+        "dynamic_inputs": {
+          "value": {
+            "type": {
+              "type": "any"
+            }
+          }
+        },
+        "dynamic_outputs": {
+          "next": {
+            "type": "int",
+            "type_args": [],
+            "optional": false
+          },
+          "again": {
+            "type": "bool",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "outputs": {
+          "next": "int",
+          "again": "bool"
+        }
       },
       {
         "id": "final",
         "type": "nodetool.output.Output",
-        "data": { "name": "final_count", "description": "The value after the loop stops." },
+        "data": {
+          "name": "final_count",
+          "description": "The value after the loop stops."
+        },
         "ui_properties": {
-          "position": { "x": 850, "y": 100 },
+          "position": {
+            "x": 400,
+            "y": 665
+          },
           "width": 280,
           "selectable": true,
           "title": "3  Final count"
@@ -76,10 +118,34 @@
       }
     ],
     "edges": [
-      { "id": "value-to-step", "source": "loop", "sourceHandle": "value", "target": "step", "targetHandle": "value" },
-      { "id": "result-to-next", "source": "step", "sourceHandle": "next", "target": "loop", "targetHandle": "next" },
-      { "id": "decision-to-condition", "source": "step", "sourceHandle": "again", "target": "loop", "targetHandle": "condition" },
-      { "id": "done-to-output", "source": "loop", "sourceHandle": "done", "target": "final", "targetHandle": "value" }
+      {
+        "id": "value-to-step",
+        "source": "loop",
+        "sourceHandle": "value",
+        "target": "step",
+        "targetHandle": "value"
+      },
+      {
+        "id": "result-to-next",
+        "source": "step",
+        "sourceHandle": "next",
+        "target": "loop",
+        "targetHandle": "next"
+      },
+      {
+        "id": "decision-to-condition",
+        "source": "step",
+        "sourceHandle": "again",
+        "target": "loop",
+        "targetHandle": "condition"
+      },
+      {
+        "id": "done-to-output",
+        "source": "loop",
+        "sourceHandle": "done",
+        "target": "final",
+        "targetHandle": "value"
+      }
     ]
   },
   "input_schema": null,

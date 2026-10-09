@@ -24,6 +24,7 @@ import {
   ToggleGroup,
   ToggleOption,
   SPACING,
+  TYPOGRAPHY,
   getSpacingPx
 } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -119,6 +120,29 @@ const GROUPS: Group[] = [
     ]
   },
   {
+    // PreviewArea handles these on its own root, so they need the preview
+    // focused (click it or Tab to it). Fullscreen has no key.
+    title: "Preview (focused)",
+    rows: [
+      { keys: ["←"], label: "Step back one frame" },
+      { keys: ["→"], label: "Step forward one frame" },
+      { keys: ["Shift", "←"], label: "Previous clip boundary" },
+      { keys: ["Shift", "→"], label: "Next clip boundary" },
+      { keys: ["Home"], label: "Go to start" },
+      { keys: ["End"], label: "Go to end" },
+      { keys: ["Esc"], label: "Exit the expanded preview" }
+    ]
+  },
+  {
+    // TransformGizmoOverlay's own key handler, active while it has focus.
+    title: "Transform handles (focused)",
+    rows: [
+      { keys: ["Arrows"], label: "Move the clip one pixel" },
+      { keys: ["Shift", "Arrows"], label: "Move the clip ten pixels" },
+      { keys: ["."], label: "Reset the transform" }
+    ]
+  },
+  {
     title: "Keyframes & source",
     rows: [
       { action: "addKeyframe", label: "Keyframe the selected clip at the playhead" },
@@ -162,10 +186,8 @@ const rowStyles = (theme: Theme) =>
   });
 
 const groupTitleSx = {
-  color: "text.secondary",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  fontWeight: 600
+  ...TYPOGRAPHY.sans.label,
+  color: "text.secondary"
 } as const;
 
 const keysCellStyles = css({

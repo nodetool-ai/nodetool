@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Shot List from a Synopsis",
   "tool_name": null,
-  "description": "A synopsis becomes numbered shots with framing and duration \u2014 the document a generation pipeline can iterate over, where prose is not.",
+  "description": "A synopsis becomes numbered shots with framing and duration — the document a generation pipeline can iterate over, where prose is not.",
   "tags": [
     "text",
     "video",
@@ -15,6 +15,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Shot List from a Synopsis\n\nTurns a one-paragraph story into eight numbered shots with framing, subject, camera move, and duration. A shot list is something a generation pipeline can step through, where prose is not.\n\n**How it works:** \"Input\" takes the synopsis. \"Agent\" writes the shot list without dialogue, and \"Output\" returns it as text.\n\n**Try this:** Pick a model on \"Agent\", then change \"eight\" in its system prompt to twelve for a longer piece, or add a total running time it must hit."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.StringInput",
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 365
           },
           "zIndex": 0,
           "width": 300,
@@ -60,8 +79,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -79,8 +98,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

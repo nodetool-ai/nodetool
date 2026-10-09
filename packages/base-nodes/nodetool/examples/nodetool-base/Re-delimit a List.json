@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Re-delimit a List\n\nSplits text on one delimiter and joins it again with another. Use it to turn a comma list into a pipe list or into one item per line.\n\n**How it works:** \"Raw text\" holds \"alpha, beta, gamma, delta\". \"Split\" breaks it on commas into a list, and \"Join\" combines the items with a new separator. \"Result\" shows the reformatted text. It runs locally with no model or key.\n\n**Try this:** Set the separator on \"Join\" to \" | \" and the delimiter on \"Split\" to \", \" so the output has no stray spaces."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 486
           },
           "zIndex": 0,
           "width": 280,
@@ -45,8 +64,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -73,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 680,
-            "y": 180
+            "x": 760,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -106,8 +125,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1020,
-            "y": 200
+            "x": 1140,
+            "y": 499
           },
           "zIndex": 0,
           "width": 240,

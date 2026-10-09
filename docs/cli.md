@@ -1917,7 +1917,8 @@ no `finish()`) is the server `instructions` string and the first lines of the
 Two resources carry the machine-readable form: `nodetool://capabilities` (tools
 and modules) and `nodetool://sandbox` (blocked globals, unavailable bridges,
 worked examples). Prompts `sandbox-action` and `sandbox-asset` are complete
-`execute_code` bodies.
+`execute_code` bodies. Each skill the user can load is also a prompt with the
+skill's name, and it returns the skill body.
 
 The session needs a user to run as — its tools touch that user's secrets, assets, and files — so
 `createMcpServer` refuses one that is not bound to a user (`nodetool mcp serve`, the local `/mcp`

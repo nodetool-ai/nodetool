@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Cut a Product Out of Its Background\n\nRemoves the background from a product photo and softens only the cutout edge, so the product stays sharp. Use it to prepare clean PNGs for listings.\n\n**How it works:** \"Photo\" goes into \"Remove background\". \"Soften cutout edge\" blurs that result by the \"Edge softness\" radius, and \"Keep product detail\" uses the blurred copy only as the alpha channel over the unblurred cutout. \"Save finished PNG\" writes the file to the workspace and \"Result\" shows it.\n\n**Try this:** Set \"Edge softness\" to 0 for the original hard cutout, or raise it toward 3 for a softer edge on hair or fabric."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -28,7 +47,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -53,8 +72,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 441
           },
           "zIndex": 0,
           "width": 300,
@@ -72,8 +91,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1650,
-            "y": 120
+            "x": 2000,
+            "y": 468
           },
           "zIndex": 0,
           "width": 300,
@@ -95,8 +114,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 460
+            "x": 0,
+            "y": 590
           },
           "width": 300,
           "title": "Edge softness"
@@ -113,8 +132,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 300
+            "x": 800,
+            "y": 455
           },
           "width": 300,
           "title": "Soften cutout edge"
@@ -130,8 +149,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 465
           },
           "width": 300,
           "title": "Keep product detail"
@@ -148,8 +167,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 120
+            "x": 1600,
+            "y": 388
           },
           "width": 300,
           "title": "Save finished PNG"

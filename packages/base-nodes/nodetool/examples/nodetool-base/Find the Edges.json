@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Find the Edges\n\nTraces the outlines in an image with Canny edge detection. Use it for line art, masks, or as a control image for generation.\n\n**How it works:** \"Image\" passes the picture to \"Canny\". The low threshold (80) decides what counts as a weak edge and the high threshold (180) what counts as a certain one. Weak edges survive only when they connect to certain ones. \"Result\" shows the edge map. It runs locally with no model or key.\n\n**Try this:** Lower the high threshold on \"Canny\" to 100 to keep fainter outlines, or raise the low threshold to drop texture noise."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "picture",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The image to trace"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 409
           },
           "zIndex": 0,
           "width": 280,
@@ -44,8 +66,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -63,8 +85,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 417
           },
           "zIndex": 0,
           "width": 280,

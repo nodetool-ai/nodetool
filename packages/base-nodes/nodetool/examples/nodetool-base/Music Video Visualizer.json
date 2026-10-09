@@ -221,16 +221,16 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Music Video Visualizer\n\nAdd a track, choose a visual style, and set the scene count. The workflow reads the lyrics and creates a sequence of images. Each image is sized to 720p, saved as PNG, and held long enough to fill the track.\n\nChange the style for a new look. Add more scenes for faster cuts."
+          "comment": "# Music Video Visualizer\n\nTurns a track into a sequence of AI images timed to the audio. Use it for a quick lyric-driven visualizer for a song.\n\n**How it works:** \"2️⃣ Transcribe lyrics\" runs Whisper on \"1️⃣ Song audio\". \"3️⃣ Analyze mood\" reads the lyrics with \"Genre hint\" and \"Visual style\" and writes creative direction. \"4️⃣ Generate frame prompts\" writes as many prompts as \"Frame count\" (8). A \"ForEach\" sends each to \"5️⃣ Render frames\" (FLUX Schnell). \"ResizeImage\" fits each frame to 1280x720 and \"SaveImageFile\" stores it as PNG before \"Collect\" gathers them. \"Normalize\" levels the track and \"GetAudioInfo\" measures its length. A \"Code\" node divides the duration at 24 fps by the frame count, and \"RepeatValue\" holds each frame that many times. \"6️⃣ Frames to video\" builds a 24 fps video and \"7️⃣ Add audio\" lays the track under it. Pick models on \"3️⃣ Analyze mood\" and \"4️⃣ Generate frame prompts\".\n\n**Try this:** Set \"Frame count\" to 16 for faster cuts, and each image stays on screen half as long."
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": -220
+            "y": 0
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 180,
+          "width": 560,
+          "height": 423,
           "selectable": true,
           "bypassed": false
         },
@@ -250,12 +250,12 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 104
+            "x": 0,
+            "y": 506
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1\ufe0f\u20e3 Song audio",
+          "title": "1️⃣ Song audio",
           "selectable": true,
           "bypassed": false
         },
@@ -272,8 +272,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 396
+            "x": 0,
+            "y": 824
           },
           "zIndex": 0,
           "width": 280,
@@ -294,8 +294,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 642
+            "x": 0,
+            "y": 1049
           },
           "zIndex": 0,
           "width": 280,
@@ -316,8 +316,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 888
+            "x": 0,
+            "y": 1274
           },
           "zIndex": 0,
           "width": 280,
@@ -342,12 +342,12 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 255
+            "x": 380,
+            "y": 668
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2\ufe0f\u20e3 Transcribe lyrics",
+          "title": "2️⃣ Transcribe lyrics",
           "selectable": true,
           "bypassed": false
         },
@@ -362,8 +362,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 740,
-            "y": 282
+            "x": 760,
+            "y": 503
           },
           "zIndex": 0,
           "width": 280,
@@ -390,16 +390,16 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are an award-winning music-video creative director. You translate how a song feels into concrete visual language \u2014 mood, energy, color, and motion. Answer with tight, evocative direction only; never restate or acknowledge the request, and never add headings or lists unless asked."
+          "system": "You are an award-winning music-video creative director. You translate how a song feels into concrete visual language — mood, energy, color, and motion. Answer with tight, evocative direction only; never restate or acknowledge the request, and never add headings or lists unless asked."
         },
         "ui_properties": {
           "position": {
-            "x": 1050,
-            "y": 354
+            "x": 1140,
+            "y": 913
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3\ufe0f\u20e3 Analyze mood",
+          "title": "3️⃣ Analyze mood",
           "selectable": true,
           "bypassed": false
         },
@@ -414,8 +414,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1390,
-            "y": 496
+            "x": 1520,
+            "y": 770
           },
           "zIndex": 0,
           "width": 280,
@@ -447,13 +447,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1700,
-            "y": 495
+            "x": 1900,
+            "y": 1050
           },
           "zIndex": 0,
           "width": 280,
           "height": 340,
-          "title": "4\ufe0f\u20e3 Generate frame prompts",
+          "title": "4️⃣ Generate frame prompts",
           "selectable": true,
           "bypassed": false
         },
@@ -466,8 +466,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 2010,
-            "y": 613
+            "x": 2280,
+            "y": 1218
           },
           "zIndex": 0,
           "width": 280,
@@ -494,13 +494,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2320,
-            "y": 465
+            "x": 2660,
+            "y": 1051
           },
           "zIndex": 0,
           "width": 384,
           "height": 400,
-          "title": "5\ufe0f\u20e3 Render frames",
+          "title": "5️⃣ Render frames",
           "selectable": true,
           "bypassed": false
         },
@@ -513,8 +513,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 3440,
-            "y": 600
+            "x": 3904,
+            "y": 1227
           },
           "zIndex": 0,
           "width": 280,
@@ -532,13 +532,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 3780,
-            "y": 600
+            "x": 5044,
+            "y": 990
           },
           "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "6\ufe0f\u20e3 Frames to video",
+          "title": "6️⃣ Frames to video",
           "selectable": true,
           "bypassed": false
         },
@@ -554,13 +554,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 4240,
-            "y": 600
+            "x": 5560,
+            "y": 937
           },
           "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "7\ufe0f\u20e3 Add audio",
+          "title": "7️⃣ Add audio",
           "selectable": true,
           "bypassed": false
         },
@@ -576,8 +576,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 4700,
-            "y": 600
+            "x": 6076,
+            "y": 1080
           },
           "selectable": true
         }
@@ -592,8 +592,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2760,
-            "y": 600
+            "x": 3144,
+            "y": 1170
           },
           "width": 280
         },
@@ -610,8 +610,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 3100,
-            "y": 600
+            "x": 3524,
+            "y": 1132
           },
           "width": 280
         },
@@ -625,8 +625,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 1000
+            "x": 760,
+            "y": 1204
           },
           "width": 280
         },
@@ -643,8 +643,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 740,
-            "y": 1000
+            "x": 4284,
+            "y": 877
           },
           "width": 280
         },
@@ -667,8 +667,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 3440,
-            "y": 600
+            "x": 4664,
+            "y": 1191
           },
           "width": 280
         },
@@ -682,8 +682,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 3440,
-            "y": 1000
+            "x": 4284,
+            "y": 1366
           },
           "width": 280
         },
@@ -696,8 +696,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 1000
+            "x": 380,
+            "y": 985
           },
           "width": 280
         },

@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Translate Marketing Copy to German\n\nTranslates marketing copy into German for effect rather than word for word. The agent also states whether it used Sie or du, the choice that most often gets a translation rejected.\n\n**How it works:** Paste the copy into \"1 Input\". \"2 Agent\" translates it, defaults to Sie unless the source is clearly informal, and explains its choice at the end. \"3 Output\" returns the German text.\n\n**Try this:** Pick a model on \"2 Agent\" and paste a casual social post to see whether it switches to du."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 385
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -78,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 398
           },
           "zIndex": 0,
           "width": 300,

@@ -46,8 +46,10 @@ import {
   Text,
   ToolbarIconButton,
   BORDER_RADIUS,
-  MOTION
+  MOTION,
+  getSpacingPx
 } from "../ui_primitives";
+import { isElectron, isLocalhost } from "../../lib/env";
 import ReportBugButton from "../support/ReportBugButton";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -56,6 +58,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
 
 import { TopBar } from "./TopBar";
 import { TopBarPrompt } from "./TopBarPrompt";
@@ -128,6 +131,36 @@ const TOUCH_HANDLE_HEIGHT_PX = 20;
 const DEFAULT_TRACKS_HEIGHT_PX = 240;
 const MIN_TRACKS_HEIGHT_PX = 80;
 const MAX_TRACKS_HEIGHT_PX = 600;
+/** The preview row never shrinks below this while the tracks panel grows. */
+const MIN_PREVIEW_HEIGHT_PX = 160;
+const TRACKS_HEIGHT_STORAGE_KEY = "nodetool.timeline.tracksHeight";
+
+const clampTracksHeight = (height: number): number =>
+  Math.min(MAX_TRACKS_HEIGHT_PX, Math.max(MIN_TRACKS_HEIGHT_PX, height));
+
+function readStoredTracksHeight(): number {
+  try {
+    const raw = localStorage.getItem(TRACKS_HEIGHT_STORAGE_KEY);
+    const value = raw == null ? NaN : Number(raw);
+    return Number.isFinite(value)
+      ? clampTracksHeight(value)
+      : DEFAULT_TRACKS_HEIGHT_PX;
+  } catch {
+    return DEFAULT_TRACKS_HEIGHT_PX;
+  }
+}
+
+function writeStoredTracksHeight(height: number): void {
+  try {
+    localStorage.setItem(TRACKS_HEIGHT_STORAGE_KEY, String(Math.round(height)));
+  } catch {
+    /* ignore quota / private-mode */
+  }
+}
+
+/** Where the backend runs, for the status bar's Local / Cloud indicator. */
+const ENVIRONMENT_MODE: "local" | "cloud" =
+  isLocalhost || isElectron ? "local" : "cloud";
 /** Arrow-key step for keyboard resizing (px) */
 const KEYBOARD_RESIZE_STEP_PX = 20;
 /**
@@ -200,8 +233,8 @@ const dragHandleStyles = (theme: Theme, tall: boolean) =>
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: 36,
-            height: 3,
+            width: getSpacingPx(SPACING.xxxl),
+            height: getSpacingPx(SPACING.micro),
             borderRadius: BORDER_RADIUS.sm,
             backgroundColor: theme.vars.palette.text.disabled
           }
@@ -212,7 +245,8 @@ const dragHandleStyles = (theme: Theme, tall: boolean) =>
     },
     "&:focus-visible": {
       backgroundColor: theme.vars.palette.primary.main,
-      boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: 0
     }
   });
 
@@ -328,7 +362,7 @@ type InspectorTab = "inspector" | "source" | "instrument" | "agent" | "history" 
 
 const INSPECTOR_TABS = [
   { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon fontSize="small" /> },
-  { value: "instrument", label: "Instruments", icon: <TuneOutlinedIcon fontSize="small" /> },
+  { value: "instrument", label: "Instruments", icon: <PianoOutlinedIcon fontSize="small" /> },
   { value: "source", label: "Source", icon: <MovieFilterOutlinedIcon fontSize="small" /> },
   { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon fontSize="small" /> },
   { value: "history", label: "History", icon: <HistoryOutlinedIcon fontSize="small" /> }
@@ -529,7 +563,7 @@ const TimelineStatusBar: React.FC<{ actionSlot?: React.ReactNode }> = memo(
 
   return (
     <BottomStatusBar
-      mode="local"
+      mode={ENVIRONMENT_MODE}
       zoom={zoom}
       onZoomChange={handleZoomChange}
       generatingCount={generatingCount}
@@ -696,7 +730,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     }
   }, [flushAutosave, sequenceId, sequence?.name]);
 
-  // "Save as Asset" — anchor the folder chooser to the TopBar button, then
+  // "Save as asset" — anchor the folder chooser to the TopBar button, then
   // render the timeline into a new asset in the chosen folder.
   const [saveAssetAnchor, setSaveAssetAnchor] = useState<HTMLElement | null>(
     null
@@ -718,7 +752,37 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const activitySlot = useMemo(() => <ActivityIndicator />, []);
 
   // Tracks resize ─────────────────────────────────────────────────────────
-  const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
+  // The stored height is the user's choice; the rendered height is clamped so
+  // the preview row above keeps MIN_PREVIEW_HEIGHT_PX in a short window.
+  const [tracksHeight, setTracksHeight] = useState(readStoredTracksHeight);
+  const editorColumnRef = useRef<HTMLDivElement>(null);
+  const [maxTracksHeight, setMaxTracksHeight] = useState(MAX_TRACKS_HEIGHT_PX);
+  useEffect(() => {
+    const column = editorColumnRef.current;
+    if (!column) return;
+    const update = () => {
+      const columnHeight = column.clientHeight;
+      // An unlaid-out column (hidden tab, jsdom) measures 0: keep the cap.
+      if (columnHeight <= 0) return;
+      const composerHeight = composerRef.current?.offsetHeight ?? 0;
+      const available =
+        columnHeight - composerHeight - MIN_PREVIEW_HEIGHT_PX - TOUCH_HANDLE_HEIGHT_PX;
+      setMaxTracksHeight(
+        Math.max(MIN_TRACKS_HEIGHT_PX, Math.min(MAX_TRACKS_HEIGHT_PX, available))
+      );
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(column);
+    return () => observer.disconnect();
+  }, []);
+  const effectiveTracksHeight = Math.min(tracksHeight, maxTracksHeight);
+  /** Apply and remember a height the user chose (drag, keys, reset). */
+  const commitTracksHeight = useCallback((height: number) => {
+    const next = clampTracksHeight(height);
+    setTracksHeight(next);
+    writeStoredTracksHeight(next);
+  }, []);
   const expandedInstrumentTrackId = useTimelineUIStore((s) => s.expandedInstrumentTrackId);
   useEffect(() => {
     if (expandedInstrumentTrackId && !pianoRollOpen) setTracksHeight((height) => Math.max(height, 420));
@@ -739,10 +803,10 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     (e: React.PointerEvent<HTMLDivElement>) => {
       e.preventDefault();
       dragStartYRef.current = e.clientY;
-      dragStartHeightRef.current = tracksHeight;
+      dragStartHeightRef.current = effectiveTracksHeight;
       setIsDragging(true);
     },
-    [tracksHeight]
+    [effectiveTracksHeight]
   );
 
   /**
@@ -785,9 +849,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
 
     const onPointerMove = (ev: PointerEvent) => {
       const deltaY = dragStartYRef.current - ev.clientY; // drag up → taller
-      pendingHeightRef.current = Math.min(
-        MAX_TRACKS_HEIGHT_PX,
-        Math.max(MIN_TRACKS_HEIGHT_PX, dragStartHeightRef.current + deltaY)
+      pendingHeightRef.current = clampTracksHeight(
+        dragStartHeightRef.current + deltaY
       );
       if (resizeRafIdRef.current === null) {
         resizeRafIdRef.current = requestAnimationFrame(flushPendingHeight);
@@ -802,7 +865,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       // Flush the final position synchronously so a mouseup landing between
       // animation frames doesn't leave the panel at a stale height.
       if (pendingHeightRef.current !== null) {
-        setTracksHeight(pendingHeightRef.current);
+        commitTracksHeight(pendingHeightRef.current);
         pendingHeightRef.current = null;
       }
       setIsDragging(false);
@@ -823,24 +886,28 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       document.body.style.userSelect = "";
       handleEl?.classList.remove("dragging");
     };
-  }, [isDragging]);
+  }, [isDragging, commitTracksHeight]);
 
   /** Keyboard resize: ↑ enlarges, ↓ shrinks the tracks panel. */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        setTracksHeight((h) =>
-          Math.min(MAX_TRACKS_HEIGHT_PX, h + KEYBOARD_RESIZE_STEP_PX)
+        commitTracksHeight(
+          Math.min(maxTracksHeight, effectiveTracksHeight + KEYBOARD_RESIZE_STEP_PX)
         );
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        setTracksHeight((h) =>
-          Math.max(MIN_TRACKS_HEIGHT_PX, h - KEYBOARD_RESIZE_STEP_PX)
-        );
+        commitTracksHeight(effectiveTracksHeight - KEYBOARD_RESIZE_STEP_PX);
       }
     },
-    []
+    [commitTracksHeight, effectiveTracksHeight, maxTracksHeight]
+  );
+
+  /** Double-click the grip to return the tracks panel to its default height. */
+  const handleResetTracksHeight = useCallback(
+    () => commitTracksHeight(DEFAULT_TRACKS_HEIGHT_PX),
+    [commitTracksHeight]
   );
 
   /** Query finished without a usable row (disabled id, error, or empty). */
@@ -905,6 +972,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         activitySlot={activitySlot}
         hasCode={!sequenceUnavailable && hasCode}
         onOpenCode={handleOpenCode}
+        sequenceId={sequenceUnavailable ? undefined : sequenceId}
       />
     ),
     [
@@ -920,6 +988,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       isExporting,
       isExportingBundle,
       isSaving,
+      sequenceId,
       sequenceUnavailable
     ]
   );
@@ -991,7 +1060,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       />
 
       <FlexRow fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-      <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+      <FlexColumn ref={editorColumnRef} sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
       {/* ── Middle: assets + preview ──────────────────────────────── */}
       {/* Basis 0 (not `auto`): the middle row absorbs all leftover height via
        *  flex-grow, but its *content* never contributes to the column's size.
@@ -1038,12 +1107,13 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           role="separator"
           aria-orientation="horizontal"
           aria-label="Resize tracks panel"
-          aria-valuenow={tracksHeight}
+          aria-valuenow={effectiveTracksHeight}
           aria-valuemin={MIN_TRACKS_HEIGHT_PX}
-          aria-valuemax={MAX_TRACKS_HEIGHT_PX}
+          aria-valuemax={maxTracksHeight}
           tabIndex={0}
           css={dragHandleStyles(theme, isMobile)}
           onPointerDown={handlePointerDown}
+          onDoubleClick={handleResetTracksHeight}
           onKeyDown={handleKeyDown}
         />
       )}
@@ -1051,7 +1121,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       {/* ── Tracks ────────────────────────────────────────────────── */}
       {/* A phone has no room to stack a clip editor under the tracks, so the
        *  piano roll replaces them and carries a Back control of its own. */}
-      {!pianoRollFullScreen && <TracksRegion heightPx={tracksHeight} />}
+      {!pianoRollFullScreen && <TracksRegion heightPx={effectiveTracksHeight} />}
 
       {/* ── Clip editor (piano roll) ──────────────────────────────── */}
       <PianoRollPanel fullHeight={pianoRollFullScreen} />
@@ -1138,7 +1208,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
             />
           </FlexColumn>
         ) : (
-          <FlexColumn gap={1} sx={{ minWidth: 360, py: 1 }}>
+          <FlexColumn gap={1} sx={{ py: 1 }}>
             <ProgressBar
               value={Math.round((exportProgress?.ratio ?? 0) * 100)}
               progressVariant={

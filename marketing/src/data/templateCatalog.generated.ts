@@ -253,7 +253,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "image-enhance",
         "name": "Image Enhance",
-        "description": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
+        "description": "A live photo editor: four GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
         "tags": [
           "image"
         ]
@@ -337,7 +337,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "product-mockup-generator",
         "name": "Product Mockup Generator",
-        "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+        "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then Nano Banana composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
         "tags": [
           "product-mockup",
           "mockup",
@@ -400,7 +400,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "research-a-brand-from-its-website",
         "name": "Research a Brand from Its Website",
-        "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. Uses Claude Sonnet 5 with browser and web search tools, and GPT-5 mini for extraction.",
+        "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses Claude Sonnet 5 with browser and web search tools. Pick any language model for the extractor.",
         "tags": [
           "brand-asset",
           "branding",
@@ -1312,7 +1312,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "workflow-as-a-tool",
         "name": "Workflow As A Tool",
-        "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+        "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager, on a model you pick, decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
         "tags": [
           "agents",
           "composition",
@@ -1401,7 +1401,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "conditional-logic-engine",
         "name": "Conditional Logic Engine",
-        "description": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
+        "description": "Routes one number to a low, medium or high output with two Code comparisons and If nodes. Teaches branching and how two If nodes chained on their false handles form an else branch. No model runs.",
         "tags": [
           "boolean"
         ]

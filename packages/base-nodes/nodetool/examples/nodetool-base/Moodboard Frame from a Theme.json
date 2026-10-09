@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Moodboard Frame from a Theme\n\nGenerates one square moodboard image from a written art direction. Run it several times and keep the frames that fit.\n\n**How it works:** \"Prompt\" holds the direction: muted earth palette, soft north light, matte finish and negative space. \"Generate\" turns it into a 1:1 image at 1K resolution, and \"Image\" shows the frame.\n\n**Try this:** Pick a model on \"Generate\", then rewrite \"Prompt\" for your own theme, such as \"high-contrast street photography, neon reflections, wet asphalt\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "p",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 381
           },
           "zIndex": 0,
           "width": 300,
@@ -53,8 +72,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -72,8 +91,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 359
           },
           "zIndex": 0,
           "width": 300,

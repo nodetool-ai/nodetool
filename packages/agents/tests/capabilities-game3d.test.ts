@@ -10,6 +10,7 @@ import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { inputFrames3D } from "../src/capabilities/game3d.js";
+import { GAME_ASSET_NODE_RUNNER_CONTEXT_KEY } from "../src/capabilities/game-asset-source.js";
 
 const USER = "game3d-owner";
 const PROJECT = "game3d-project";
@@ -102,6 +103,18 @@ describe("native game tools in 3D", () => {
     expect(installed.document.assets.character).toMatchObject({ mediaKind: "model", nodeIds: ["node:0", "node:1"] });
     expect(installed.document.assets.character.assetId).toHaveLength(32);
     expect(await run.invoke("generate_game_asset", { game_id: created.document.id, slot: "character", kind: "model", input_file: "../private.glb" })).toMatchObject({ error: expect.stringContaining("workspace-relative") });
+  });
+
+  it("stages the model_3d ref a TextTo3D node returns", async () => {
+    const { workspace } = await agent();
+    const runner = async () => ({ output: { type: "model_3d", data: closedGlb() } });
+    const context = { userId: USER, workspace, assetStorage: new InMemoryStorageAdapter(), resolveAssetBytes: async () => ({ bytes: null }),
+      get: (key: string) => (key === GAME_ASSET_NODE_RUNNER_CONTEXT_KEY ? runner : undefined) } as unknown as ProcessingContext;
+    const run = createCapabilityRun({ context, gate: UNGATED });
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Generated model", dimension: "3d" }));
+    const candidate = readRecord(await run.invoke("generate_game_asset", { game_id: created.document.id, slot: "crate", kind: "model",
+      node_type: "nodetool.model3d.TextTo3D", params: { prompt: "a wooden crate" } }));
+    expect(candidate).toMatchObject({ installed: false, binding: { mediaKind: "model" } });
   });
 
   it("refuses an HDRI candidate whose bytes and dimensions no preparation verified", async () => {

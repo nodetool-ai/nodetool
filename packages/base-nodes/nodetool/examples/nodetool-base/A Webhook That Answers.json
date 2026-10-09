@@ -17,13 +17,32 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# A Webhook That Answers\n\nReceives an HTTP POST and replies with a one-sentence summary of the event. Use it to turn raw webhook payloads into a line a person can act on.\n\n**How it works:** \"1 Webhook\" hands its request body to \"2 Body as text\", a Code node that converts it to a JSON string. \"3 Summarize\" is an Agent that states what happened and whether it needs attention. \"4 Summary\" shows the sentence.\n\n**Try this:** Pick a model on \"3 Summarize\", register the workflow to get a delivery URL, then POST a sample body from your payment or CI service."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "hook",
         "type": "nodetool.triggers.WebhookTrigger",
         "data": {},
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 508
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 240,
@@ -85,8 +104,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 620,
-            "y": 120
+            "x": 720,
+            "y": 447
           },
           "zIndex": 0,
           "width": 300,
@@ -106,8 +125,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 970,
-            "y": 120
+            "x": 1120,
+            "y": 478
           },
           "zIndex": 0,
           "width": 240,

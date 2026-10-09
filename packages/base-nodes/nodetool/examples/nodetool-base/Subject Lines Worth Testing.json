@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Subject Lines Worth Testing",
   "tool_name": null,
-  "description": "Eight subject lines split between curiosity and clarity \u2014 the two strategies that behave differently enough to be worth an A/B, unlike eight variations on one.",
+  "description": "Eight subject lines split between curiosity and clarity — the two strategies that behave differently enough to be worth an A/B, unlike eight variations on one.",
   "tags": [
     "text",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Subject Lines Worth Testing\n\nWrites eight email subject lines, four curiosity-led and four clarity-led. The two groups differ enough to make an A/B test informative.\n\n**How it works:** \"Input\" takes a short description of the email. \"Agent\" writes the subject lines under 50 characters, grouped and labelled, and \"Output\" returns them.\n\n**Try this:** Pick a model on \"Agent\", then add your brand voice to its system prompt, for example \"no exclamation marks, no questions\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.StringInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 327
           },
           "zIndex": 0,
           "width": 300,
@@ -78,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 358
           },
           "zIndex": 0,
           "width": 300,

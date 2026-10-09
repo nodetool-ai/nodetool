@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Themes Across Customer Feedback\n\nGroups raw customer feedback into named themes with a rough count and one representative quote each. The quote lets a reader check the theme instead of taking it on trust.\n\n**How it works:** Paste comments into \"1 Input\". \"2 Agent\" clusters them by its system prompt and orders the themes by frequency, and \"3 Output\" returns the list.\n\n**Try this:** Pick a model on \"2 Agent\", then paste a week of support tickets or survey answers into \"1 Input\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 365
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -78,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

@@ -1,5 +1,7 @@
 import {
   bindingKeys,
+  formatActionShortcut,
+  withActionShortcut,
   resolveTimelineAction,
   TIMELINE_KEYMAPS,
   TIMELINE_KEYBOARD_PRESETS,
@@ -132,6 +134,21 @@ describe("physical-key matching (macOS and US layouts)", () => {
   it("still matches on key when the event has no code", () => {
     expect(resolveTimelineAction(ev("t", { altKey: true }), "nodetool")).toBe(
       "applyFades"
+    );
+  });
+});
+
+describe("formatActionShortcut", () => {
+  it("names the key the preset binds, so tooltips match the keymap", () => {
+    expect(formatActionShortcut("nodetool", "stepFrameBack")).toBe("Alt+←");
+    expect(formatActionShortcut("premiere", "stepFrameBack")).toBe("←");
+    expect(formatActionShortcut("fcp", "selectTool")).toBe("A");
+    expect(formatActionShortcut("premiere", "toggleSnap")).toBe("S");
+  });
+
+  it("appends the shortcut to a label only when the action is bound", () => {
+    expect(withActionShortcut("Next clip boundary", "nodetool", "nextCut")).toBe(
+      "Next clip boundary (↓)"
     );
   });
 });

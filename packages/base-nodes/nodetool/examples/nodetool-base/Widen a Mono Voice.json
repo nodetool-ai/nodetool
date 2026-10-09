@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Widen a Mono Voice\n\nSpeaks a line and places the mono voice in a stereo field. Most text-to-speech returns mono, and a stereo mix needs both channels.\n\n**How it works:** \"1 Line\" holds the text. \"2 Speak\" turns it into speech, \"3 Mono to stereo\" copies the voice onto both channels, and \"4 Audio\" returns the stereo track.\n\n**Try this:** Pick a model and voice on \"2 Speak\", then replace the text in \"1 Line\" with your own sentence."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "t",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 375
           },
           "zIndex": 0,
           "width": 280,
@@ -58,8 +77,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -75,8 +94,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 369
           },
           "zIndex": 0,
           "width": 280,
@@ -94,8 +113,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 353
           },
           "zIndex": 0,
           "width": 280,

@@ -226,6 +226,7 @@ export const ClipTimeRemapSection: React.FC<ClipTimeRemapProps> = memo(
                         <InspectorPillInput
                           value={keyframe.easing ?? ""}
                           placeholder="linear"
+                          allowEmpty
                           minWidth={96}
                           onCommit={(raw) => {
                             const easing = raw.trim();

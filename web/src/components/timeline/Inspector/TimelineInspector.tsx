@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
-import { useTheme, type Theme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
@@ -21,6 +21,7 @@ import { findClipById } from "../../../stores/timeline/clipLookup";
 import { usePersistedFold } from "./usePersistedFold";
 import {
   Button,
+  Caption,
   CollapsibleSection,
   EmptyState,
   FlexColumn,
@@ -41,10 +42,12 @@ import {
   InspectorSelect,
   InspectorSliderRow,
   InspectorStaticValue,
-  InspectorToggleRow
+  InspectorToggleRow,
+  sectionContentStyles
 } from "./InspectorPrimitives";
 import {
   formatTimecode,
+  parseFiniteNumber,
   parseSeconds,
   parseTimecode
 } from "./InspectorPrimitives.helpers";
@@ -83,12 +86,6 @@ const containerStyles = css({
   padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
   overflow: "auto"
 });
-
-const sectionContentStyles = (theme: Theme) =>
-  css({
-    gap: getSpacingPx(SPACING.micro),
-    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md, SPACING.xxxl)
-  });
 
 const inspectorPanelSx = {
   height: "100%",
@@ -167,6 +164,11 @@ const TimelineInspectorContent: React.FC = memo(() => {
   const history = useTimelineHistoryBatch();
   const sourceDurationMs = useClipSourceDuration(clip ?? undefined);
   const timingLocked = !!clip?.locked || !!track?.locked;
+  const timingLockHint = clip?.locked
+    ? "Unlock the clip to edit timing"
+    : track?.locked
+      ? "Unlock the track to edit timing"
+      : undefined;
 
   /**
    * Wrap the selection in a group clip (D4): one clip with
@@ -216,8 +218,8 @@ const TimelineInspectorContent: React.FC = memo(() => {
   const onPatchNumber = useCallback(
     (field: string, raw: string, min?: number, max?: number) => {
       if (!clipId) return;
-      const parsed = Number(raw);
-      if (!Number.isFinite(parsed)) return;
+      const parsed = parseFiniteNumber(raw);
+      if (parsed === null) return;
       const value =
         min != null && max != null ? clamp(parsed, min, max) : parsed;
       patchClip(clipId, { [field]: value });
@@ -388,7 +390,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
         sx={inspectorPanelSx}
       >
         <InspectorHeader
-          eyebrow={`${selectedCount} Clips`}
+          eyebrow={`${selectedCount} clips`}
           actions={[
             {
               icon: <DeleteOutlineOutlinedIcon />,
@@ -421,9 +423,11 @@ const TimelineInspectorContent: React.FC = memo(() => {
   const isMidi = clip.mediaType === "midi";
   const aiEditSection = (
     <>
-      <AIEditClipPanel key={`ai-edit-${clip.id}`} clipId={clip.id} />
       {clip.mediaType === "video" && (
-        <ExtendClipPanel key={`extend-${clip.id}`} clipId={clip.id} />
+        <>
+          <AIEditClipPanel key={`ai-edit-${clip.id}`} clipId={clip.id} />
+          <ExtendClipPanel key={`extend-${clip.id}`} clipId={clip.id} />
+        </>
       )}
       {clip.mediaType === "image" && (
         <ImageToVideoPanel
@@ -505,6 +509,9 @@ const TimelineInspectorContent: React.FC = memo(() => {
                 ariaLabel="Duration in seconds"
               />
             </InspectorRow>
+            {timingLockHint && (
+              <Caption color="muted">{timingLockHint}</Caption>
+            )}
             <InspectorToggleRow
               label="Hidden"
               checked={!!clip.hidden}
@@ -535,6 +542,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
               value={clip.opacity ?? 1}
               display={`${Math.round((clip.opacity ?? 1) * 100)}%`}
               onChange={handleAdjustmentOpacityChange}
+              resetValue={1}
             />
           </FlexColumn>
         </CollapsibleSection>
@@ -725,6 +733,9 @@ const TimelineInspectorContent: React.FC = memo(() => {
               ariaLabel="Duration in seconds"
             />
           </InspectorRow>
+          {timingLockHint && (
+            <Caption color="muted">{timingLockHint}</Caption>
+          )}
           {!isMidi && (
             <>
               <InspectorRow label="Speed">

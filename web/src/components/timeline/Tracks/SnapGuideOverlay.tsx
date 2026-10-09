@@ -2,7 +2,7 @@
 /**
  * SnapGuideOverlay
  *
- * A 1px vertical line at the position a drag or trim gesture is snapped to.
+ * A 2px vertical line at the position a drag or trim gesture is snapped to.
  * Renders in the lanes container so it spans every track, like the
  * rubber-band marquee.
  */
@@ -20,8 +20,12 @@ const guideStyles = (theme: Theme) =>
     position: "absolute",
     top: 0,
     bottom: 0,
-    width: 1,
-    backgroundColor: theme.vars.palette.secondary.main,
+    width: 2,
+    // Centre the 2px line on the snapped time.
+    transform: "translateX(-50%)",
+    // Warning, not secondary: the playhead and selection already use
+    // secondary, and the guide has to read as a third thing.
+    backgroundColor: theme.vars.palette.warning.main,
     pointerEvents: "none",
     zIndex: Z_INDEX.sticky
   });

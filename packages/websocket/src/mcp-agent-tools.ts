@@ -94,6 +94,7 @@ import {
 import type { McpServerOptions } from "./mcp-server.js";
 import type { FrontendRendererService } from "./frontend-renderer-registry.js";
 import { isRecord, isString } from "./lib/wire-values.js";
+import { registerSkillPrompts } from "./mcp-skill-prompts.js";
 
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
 const execFile = promisify(execFileCallback);
@@ -1376,6 +1377,12 @@ export function registerAgentMcpTools(
       })
     );
   }
+
+  void registerSkillPrompts(
+    server,
+    scope.userId,
+    new Set(MCP_SANDBOX_PROMPTS.map((prompt) => prompt.name))
+  );
 
   log.info("Registered agent MCP tools", {
     userId: scope.userId,

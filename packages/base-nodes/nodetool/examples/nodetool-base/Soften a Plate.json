@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Soften a Plate\n\nBlurs a clip so it can sit behind titles or a picture-in-picture inset without drawing the eye. It runs locally through ffmpeg with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Soften\" applies a blur at strength 6, and \"Result\" returns the softened plate.\n\n**Try this:** Raise the strength on \"Soften\" to 12 when white title text still competes with detail in the background."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "The clip to process"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -44,8 +66,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 351
           },
           "zIndex": 0,
           "width": 280,
@@ -63,8 +85,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 335
           },
           "zIndex": 0,
           "width": 240,

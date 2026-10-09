@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# A Campaign Concept from a Brief\n\nTurns a campaign brief into a campaign line, a visual concept and three channel executions. Use it to test whether an idea holds up across out of home, social and a 15-second film.\n\n**How it works:** Type the brief into \"1 Input\". The \"2 Agent\" node acts as a creative director and writes the line, the concept paragraph and the three executions. \"3 Output\" shows the result as text.\n\n**Try this:** Pick a model on the Agent and edit its system prompt to swap one channel, for example radio instead of out of home."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 385
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -78,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 398
           },
           "zIndex": 0,
           "width": 300,

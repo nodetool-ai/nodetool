@@ -27,7 +27,13 @@ import type { TimelineMarker } from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { BORDER_RADIUS, FONT_SIZE_MONO } from "../../ui_primitives";
+import {
+  BORDER_RADIUS,
+  FONT_SIZE_MONO,
+  SPACING,
+  TYPOGRAPHY,
+  getSpacingPx
+} from "../../ui_primitives";
 import { computeBarRulerTicks } from "./tempoGrid";
 
 interface RulerColors {
@@ -60,6 +66,10 @@ function pickRulerColors(theme: Theme, mode: "light" | "dark"): RulerColors {
 
 const RULER_HEIGHT_PX = 28;
 const MIN_LABEL_GAP_PX = 60;
+/** Visible height of a marker flag. */
+const MARKER_FLAG_HEIGHT_PX = 14;
+/** Minimum pointer target for a marker flag; the extra height is invisible. */
+const MARKER_HIT_HEIGHT_PX = 20;
 
 const rulerStyles = (theme: Theme) =>
   css({
@@ -88,21 +98,42 @@ const markerFlagStyles = (theme: Theme) =>
     transform: "translateX(-1px)",
     display: "flex",
     alignItems: "center",
-    gap: 2,
-    height: 14,
+    gap: getSpacingPx(SPACING.micro),
+    height: MARKER_FLAG_HEIGHT_PX,
     maxWidth: 140,
     padding: theme.spacing(0, 1),
     borderRadius: `0 ${BORDER_RADIUS.xs} ${BORDER_RADIUS.xs} 0`,
-    fontSize: FONT_SIZE_MONO.caption,
-    lineHeight: "14px",
+    ...TYPOGRAPHY.mono.caption,
+    lineHeight: `${MARKER_FLAG_HEIGHT_PX}px`,
     whiteSpace: "nowrap",
     color: theme.vars.palette.primary.contrastText,
     backgroundColor: theme.vars.palette.primary.main,
-    cursor: "pointer",
     pointerEvents: "auto",
-    "& .marker-label": {
+    "& .marker-seek": {
+      position: "relative",
+      minWidth: 0,
+      border: "none",
+      background: "transparent",
+      color: "inherit",
+      font: "inherit",
+      padding: 0,
+      margin: 0,
+      cursor: "pointer",
       overflow: "hidden",
-      textOverflow: "ellipsis"
+      textOverflow: "ellipsis",
+      // Extend the pointer target below the flag without drawing it taller.
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: MARKER_HIT_HEIGHT_PX
+      }
+    },
+    "& .marker-seek:focus-visible, & .marker-delete:focus-visible": {
+      outline: `2px solid ${theme.vars.palette.primary.contrastText}`,
+      outlineOffset: 1
     },
     "& .marker-delete": {
       display: "none",
@@ -112,13 +143,18 @@ const markerFlagStyles = (theme: Theme) =>
       cursor: "pointer",
       padding: 0,
       margin: 0,
-      fontSize: "var(--fontSizeSmaller)",
+      fontSize: FONT_SIZE_MONO.caption,
       lineHeight: 1
     },
-    "&:hover .marker-delete": { display: "inline" }
+    "&:hover .marker-delete, &:focus-within .marker-delete": {
+      display: "inline"
+    }
   });
 
 const canvasStyles = css({
+  // The draw pass reads the resolved size and family back through
+  // getComputedStyle: canvas 2D cannot parse the CSS variables directly.
+  ...TYPOGRAPHY.mono.caption,
   display: "block",
   width: "100%",
   height: "100%"
@@ -181,15 +217,21 @@ const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
             key={m.id}
             css={flagCss}
             style={{ left: contentPx, backgroundColor: m.color || undefined }}
-            title={`${m.label || "Marker"} — click to seek`}
-            data-testid="timeline-marker"
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSeek(m.timeMs);
-            }}
           >
-            <span className="marker-label">{m.label || "Marker"}</span>
+            <button
+              type="button"
+              className="marker-seek"
+              data-testid="timeline-marker"
+              aria-label={`${m.label || "Marker"} at ${formatTimecode(m.timeMs, 500)}`}
+              title={`${m.label || "Marker"} — click to seek`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSeek(m.timeMs);
+              }}
+            >
+              {m.label || "Marker"}
+            </button>
             <button
               type="button"
               className="marker-delete"
@@ -431,7 +473,8 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       // First tick time (floor to minorMs boundary)
       const firstTickMs = Math.floor(visibleStartMs / minorMs) * minorMs;
 
-      ctx.font = `10px ${th.typography.fontFamily ?? "sans-serif"}`;
+      const canvasStyle = getComputedStyle(canvas);
+      ctx.font = `${canvasStyle.fontSize} ${canvasStyle.fontFamily}`;
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
 

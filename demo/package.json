@@ -78,7 +78,9 @@
     "still:tutorials:all": "tsx scripts/render-tutorials.ts --stills-only",
     "inspect:tutorials": "tsx scripts/render-tutorials.ts --inspect",
     "test": "tsx --test src/__tests__/*.test.ts",
-    "render:heroflow": "remotion render src/heroflow/index.tsx HeroFlow out/heroflow.mp4"
+    "render:heroflow": "remotion render src/heroflow/index.tsx HeroFlow out/heroflow.mp4",
+    "studio:nodeshero": "remotion studio src/nodeshero/index.tsx",
+    "render:nodeshero": "remotion render src/nodeshero/index.tsx NodesHero out/nodes-hero.mp4 --concurrency=4 --crf=16"
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.481",

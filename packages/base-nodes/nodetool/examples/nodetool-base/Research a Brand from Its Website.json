@@ -5,7 +5,7 @@
   "updated_at": "2026-10-03T00:00:00.000000",
   "name": "Research a Brand from Its Website",
   "tool_name": null,
-  "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. Uses Claude Sonnet 5 with browser and web search tools, and GPT-5 mini for extraction.",
+  "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses Claude Sonnet 5 with browser and web search tools. Pick any language model for the extractor.",
   "tags": [
     "brand-asset",
     "branding",
@@ -21,17 +21,18 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🔎 Research a Brand from Its Website\n\nPaste a website. An agent opens it, searches for what the site leaves out, and writes research notes with sources. An extractor then turns the notes into the five fields a brand kit needs: name, audience, voice, one-line description and tagline.\n\n**Agentic step:** the agent decides which pages to open and what to search for. It reports what it could not confirm instead of inventing it.\n\n**Try this:** point it at your own site, then edit any field before you generate assets from it."
+          "comment": "# 🔎 Research a Brand from Its Website\n\nPaste a website and get research notes plus the five fields a brand kit needs: name, audience, voice, one-line description and tagline. Use it to start a brand kit from a site you do not know well.\n\n**How it works:** \"Website\" fills the \"Research brief\" prompt. \"Research agent (browser + web search)\" runs Claude Sonnet 5 with the browser and web_search tools, capped at 12 turns and $1.00. It opens the site, searches for what the site leaves out, and writes notes with sources that go to \"Research notes\". \"Brand profile fields\", an Extractor, reads the notes and fills \"Brand name\", \"Audience\", \"Voice\", \"Brand description\" and \"Tagline\", leaving a field empty when the notes mark it unconfirmed. The agent needs an Anthropic key, and you pick a model on the extractor.\n\n**Try this:** Point \"Website\" at your own site, then edit any field before you generate assets from it."
         },
         "ui_properties": {
           "position": {
-            "x": 40,
-            "y": -300
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "height": 403
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -46,8 +47,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 60
+            "x": 0,
+            "y": 1014
           },
           "zIndex": 0,
           "width": 300,
@@ -66,8 +67,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 430,
-            "y": 60
+            "x": 400,
+            "y": 898
           },
           "zIndex": 0,
           "width": 320,
@@ -127,8 +128,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 830,
-            "y": 60
+            "x": 820,
+            "y": 870
           },
           "zIndex": 0,
           "width": 340,
@@ -172,8 +173,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1250,
-            "y": 60
+            "x": 1260,
+            "y": 802
           },
           "zIndex": 0,
           "width": 320,
@@ -218,8 +219,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1250,
-            "y": 460
+            "x": 1260,
+            "y": 1091
           },
           "zIndex": 0,
           "width": 300,
@@ -238,8 +239,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1650,
-            "y": 60
+            "x": 1680,
+            "y": 483
           },
           "zIndex": 0,
           "width": 280,
@@ -258,8 +259,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1650,
-            "y": 200
+            "x": 1680,
+            "y": 683
           },
           "zIndex": 0,
           "width": 280,
@@ -278,8 +279,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1650,
-            "y": 340
+            "x": 1680,
+            "y": 883
           },
           "zIndex": 0,
           "width": 280,
@@ -298,8 +299,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1650,
-            "y": 480
+            "x": 1680,
+            "y": 1083
           },
           "zIndex": 0,
           "width": 280,
@@ -318,8 +319,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1650,
-            "y": 620
+            "x": 1680,
+            "y": 1283
           },
           "zIndex": 0,
           "width": 280,

@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Fill a Template\n\nSubstitutes input values into a text template. Keep prompt wording in one Template node instead of spreading it across several prompt fields.\n\n**How it works:** \"Subject\" holds the text \"the winter release\". \"Template\" inserts it where {{ subject }} appears and adds a line asking for launch copy. \"Filled\" shows the finished text. It runs locally with no model or key.\n\n**Try this:** Add a second placeholder such as {{ audience }} to \"Template\", connect a new String Input to it, and see both values filled in."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -44,8 +63,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 364
           },
           "zIndex": 0,
           "width": 320,
@@ -63,8 +82,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 800,
+            "y": 358
           },
           "zIndex": 0,
           "width": 240,

@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Explainer Clip from a Paragraph\n\nTurns a paragraph into a short narrated video. An agent writes the shot description from the same text, so the picture matches the narration.\n\n**How it works:** \"Topic\" goes to two places. \"Shot description\" turns it into one literal, filmable sentence, which \"Footage\" renders as a six-second 16:9 clip. \"Narration\" reads the original text aloud. \"Combine\" lays the narration over the footage, and \"Clip\" shows the result. Pick a model on each of the three generation nodes.\n\n**Try this:** Write a two-sentence explanation in \"Topic\", such as how a lock works, and raise the \"Footage\" duration if the narration runs long."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 514
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -95,8 +114,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 400,
+            "y": 629
           },
           "zIndex": 0,
           "width": 300,
@@ -127,8 +146,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 800,
+            "y": 470
           },
           "zIndex": 0,
           "width": 300,
@@ -147,8 +166,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 1200,
+            "y": 569
           },
           "zIndex": 0,
           "width": 300,
@@ -166,8 +185,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 330
+            "x": 1600,
+            "y": 563
           },
           "zIndex": 0,
           "width": 300,

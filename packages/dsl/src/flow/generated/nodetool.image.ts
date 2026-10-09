@@ -375,7 +375,7 @@ export type ImageToImageInputs = {
   image?: ImageRef[];
   prompt?: string;
   negative_prompt?: string;
-  entities?: Record<string, unknown>[];
+  entities?: Entity[];
   strength?: number;
   aspect_ratio?: string;
   resolution?: string;

@@ -48,6 +48,29 @@ storyboardShots.stream = function (inputs: StoryboardShotsInputs): AsyncIterable
   return streamNode<Partial<StoryboardShotsOutputs>>("nodetool.storyboard.StoryboardShots", inputs);
 };
 
+// Create Storyboard — nodetool.storyboard.CreateStoryboard
+export type CreateStoryboardInputs = {
+  screenplay?: Record<string, unknown>;
+  name?: string;
+  brief?: string;
+  cast?: Entity[];
+  image_model?: unknown;
+  video_model?: unknown;
+  project?: string;
+  reuse_existing?: boolean;
+};
+
+export interface CreateStoryboardOutputs {
+  storyboard: StoryboardRef;
+  shots: Record<string, unknown>[];
+  shot_count: number;
+  created: boolean;
+}
+
+export function createStoryboard(inputs: CreateStoryboardInputs): Promise<CreateStoryboardOutputs> {
+  return callNode<CreateStoryboardOutputs>("nodetool.storyboard.CreateStoryboard", inputs);
+}
+
 // Recast Storyboard — nodetool.storyboard.RecastStoryboard
 export type RecastStoryboardInputs = {
   storyboard?: StoryboardRef;

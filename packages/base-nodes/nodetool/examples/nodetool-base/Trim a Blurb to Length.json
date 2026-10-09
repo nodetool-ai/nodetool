@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Trim a Blurb to Length\n\nCaps text at a character budget and marks the cut with an ellipsis. Use it for a card or preview that must not overflow.\n\n**How it works:** \"1 Blurb\" holds a sample sentence. \"2 Truncate to 60\" returns the text unchanged if it fits, otherwise it slices it short and appends the ellipsis. \"3 Result\" shows the trimmed blurb. It runs locally with no model or key.\n\n**Try this:** Replace the text in \"1 Blurb\" with a short sentence and confirm it passes through unchanged."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "s",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 512
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -71,8 +90,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 490
           },
           "zIndex": 0,
           "width": 280,

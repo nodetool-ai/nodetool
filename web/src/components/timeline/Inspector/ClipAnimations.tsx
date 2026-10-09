@@ -36,7 +36,8 @@ import {
   InspectorSectionTitle,
   InspectorSelect,
   InspectorSliderRow,
-  InspectorToggleRow
+  InspectorToggleRow,
+  INSPECTOR_ROW_BUTTON_SX
 } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
 import { ClipCustomCurves, makeCustomAnimation } from "./ClipCustomCurves";
@@ -331,7 +332,6 @@ const EDITOR_SX = {
   borderTop: (theme: Theme) => `1px solid ${theme.vars.palette.divider}`,
   pt: SPACING.md
 };
-const DELETE_SX = { width: 24, height: 24 };
 
 const CHOOSE_SHAPE_CLIP = "";
 
@@ -583,7 +583,7 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
           tooltip={`Remove ${ROLE_LABELS[animation.role]} animation`}
           ariaLabel={`Remove ${ROLE_LABELS[animation.role]} animation`}
           iconVariant="clear"
-          sx={DELETE_SX}
+          sx={INSPECTOR_ROW_BUTTON_SX}
         />
       </FlexRow>
 
@@ -678,7 +678,7 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
                 />
               </InspectorRow>
               {staggerOverrun !== null && (
-                <Caption color="muted">
+                <Caption color="warning">
                   {`Staggered over ${staggerUnits} ${stagger.unit}s this runs ${Math.round(staggerOverrun)}ms, past the clip's ${clipDurationMs}ms. The last units are cut off.`}
                 </Caption>
               )}
@@ -831,7 +831,7 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
           </FlexRow>
 
           {inOutOverruns && (
-            <Caption color="muted">
+            <Caption color="warning">
               {`In and out together run ${inOutSpan}ms, past the clip's ${clip.durationMs}ms. They overlap in the middle.`}
             </Caption>
           )}

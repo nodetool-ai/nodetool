@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Pull the Quotable Lines Out of an Interview",
   "tool_name": null,
-  "description": "Five verbatim quotes, chosen for standing alone. Insisting on verbatim is what makes the output usable \u2014 a paraphrased quote is worse than none.",
+  "description": "Five verbatim quotes, chosen for standing alone. Insisting on verbatim is what makes the output usable — a paraphrased quote is worse than none.",
   "tags": [
     "audio",
     "text",
@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Pull the Quotable Lines Out of an Interview\n\nPicks up to five verbatim quotes from a recorded interview that make sense on their own. Exact wording matters, because a paraphrased quote cannot be published.\n\n**How it works:** The \"Recording\" input goes to \"Extract audio\", and \"Transcribe\" converts the speech to English text. \"Agent\" selects quotes that stand alone without changing a word, and gives fewer than five if fewer qualify. \"Output\" lists them.\n\n**Try this:** Pick models on \"Transcribe\" and \"Agent\", then edit the system prompt on \"Agent\" to ask for three quotes under 20 words each."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "recording",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/meeting.mp4"
+          },
           "description": "The recording to work from"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 370
           },
           "zIndex": 0,
           "width": 300,
@@ -42,8 +64,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 394
           },
           "zIndex": 0,
           "width": 300,
@@ -70,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 364
           },
           "zIndex": 0,
           "width": 300,
@@ -105,8 +127,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -124,8 +146,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 1600,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

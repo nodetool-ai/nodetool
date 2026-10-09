@@ -411,7 +411,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       <MediaControlChip
         ref={videoModelAnchorRef}
         icon={<MovieIcon fontSize="small" />}
-        label={selectedModel?.name || "Select Model"}
+        label={selectedModel?.name || "Select model"}
         active={videoModelOpen}
         onClick={() => setVideoModelOpen(true)}
         truncate
@@ -470,7 +470,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
         anchorEl={resolutionAnchor}
         open={!!resolutionAnchor}
         onClose={() => setResolutionAnchor(null)}
-        header="Video Resolution"
+        header="Video resolution"
         value={resolution}
         options={resolutionOptions}
         onChange={(r) => setResolution(r)}
@@ -568,7 +568,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
         label={`${musicDuration} Sec`}
-        header="Target Duration"
+        header="Target duration"
         title={`Target duration: ${musicDuration} seconds. The model may adjust or ignore this.`}
         value={musicDuration}
         options={MUSIC_DURATIONS.map((id) => ({ id, label: `${id} Sec` }))}

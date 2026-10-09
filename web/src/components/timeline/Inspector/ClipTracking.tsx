@@ -16,8 +16,7 @@ import {
   Caption,
   CollapsibleSection,
   EditorButton,
-  FlexColumn,
-  SPACING
+  FlexColumn
 } from "../../ui_primitives";
 import { useTrackingSelection } from "../preview/useTrackingSelection";
 import { usePersistedFold } from "./usePersistedFold";
@@ -27,7 +26,8 @@ import {
   InspectorRow,
   InspectorSectionTitle,
   InspectorSelect,
-  InspectorSliderRow
+  InspectorSliderRow,
+  INSPECTOR_SECTION_CONTENT_SX
 } from "./InspectorPrimitives";
 
 const BIND_MODE_OPTIONS = [
@@ -93,7 +93,7 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
         onToggle={setOpen}
         unmountOnExit
       >
-        <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+        <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
           <EditorButton
             fullWidth
             onClick={startSelection}
@@ -282,7 +282,7 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
           onToggle={setOpen}
           unmountOnExit
         >
-          <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+          <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
             <Caption color="muted">
               Track id — from list_tracks, or the track_object result once a
               provider is wired up.
@@ -345,6 +345,7 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
                     max={4}
                     step={0.01}
                     onChange={handleScale}
+                    origin={1}
                   />
                 )}
                 <InspectorSliderRow
@@ -355,6 +356,7 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
                   max={1}
                   step={0.01}
                   onChange={handleSmoothing}
+                  origin={0}
                 />
                 <EditorButton
                   fullWidth

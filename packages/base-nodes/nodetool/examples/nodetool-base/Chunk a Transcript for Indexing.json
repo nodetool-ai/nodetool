@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Chunk a Transcript for Indexing\n\nSplits a passage into overlapping word windows, as a RAG ingest step would, and counts the chunks. Overlap keeps a sentence that crosses a boundary intact in at least one chunk.\n\n**How it works:** \"1 Transcript\" holds a short passage. \"2 12 words, 3 overlap\" is a Code node that cuts it into 12-word chunks sharing 3 words. One \"Output\" shows the chunks. \"3 Fan out\" streams them to \"4 How many\", and the second \"Output\" shows the count. It runs locally with no model or key.\n\n**Try this:** Change length or overlap on the Code node, remembering both count words, not characters."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 305
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "t",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 672
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 503
           },
           "zIndex": 0,
           "width": 280,
@@ -69,8 +88,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 385
           },
           "zIndex": 0,
           "width": 280,
@@ -86,8 +105,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 555
           },
           "zIndex": 0,
           "width": 280,
@@ -105,8 +124,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 340
+            "x": 760,
+            "y": 801
           },
           "zIndex": 0,
           "width": 280,
@@ -124,8 +143,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 340
+            "x": 1520,
+            "y": 560
           },
           "zIndex": 0,
           "width": 280,
