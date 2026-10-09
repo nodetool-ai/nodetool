@@ -22,7 +22,7 @@ const EXTENSIONS: Readonly<Record<string, string>> = {
 export function gameOutline3D(document: GameDocument3D): Record<string, unknown> {
   return { settings: { dimension: document.dimension, schemaVersion: document.schemaVersion, engineVersion: document.engineVersion,
     entrySceneId: document.entrySceneId, presentation: document.presentation, inputActions: document.inputActions,
-    inputAxes: document.inputAxes, collisionLayers: document.collisionLayers },
+    inputAxes: document.inputAxes, collisionLayers: document.collisionLayers, audio: document.audio },
   scenes: document.scenes.map((scene) => ({ id: scene.id, name: scene.name, activeCameraId: scene.activeCameraId, gravity: scene.gravity,
     environment: scene.environment, entities: scene.entities.map((entity) => ({ id: entity.id, name: entity.name, parentId: entity.parentId,
       position: entity.transform3d.position, modelSlot: entity.model?.assetId, primitive: entity.primitive?.kind, body: entity.body3d?.type,
