@@ -7,6 +7,7 @@
 // config
 export const getDefaultDbPath = (): string => ":memory:";
 export const getDefaultAssetsPath = (): string => "/tmp/nodetool-assets-stub";
+export const getHfHubCacheDir = (): string => "/tmp/nodetool-hf-cache-stub";
 
 // deploy
 export class AdminHTTPClient {
