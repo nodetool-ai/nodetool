@@ -121,8 +121,9 @@ const HighlightedModelName = memo<{
       return { parts: [{ text: name, isMatch: false }] };
     }
 
-    // Split the name by search term, creating a RegExp only when searchTerm changes
-    const parts = name.split(new RegExp(`(${searchTerm})`, "gi"));
+    // Escape the term: typed text such as "gpt (" is not a valid pattern.
+    const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const parts = name.split(new RegExp(`(${escapedTerm})`, "gi"));
     return {
       parts: parts.map((part) => ({
         text: part,

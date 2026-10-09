@@ -1,4 +1,5 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
+import type { Asset } from "../../../stores/ApiTypes";
 import { useFileDrop } from "../useFileDrop";
 
 const mockAddNotification = jest.fn();
@@ -20,7 +21,9 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
 jest.mock("../../../lib/dragdrop", () => ({
   deserializeDragData: jest.fn(),
   hasExternalFiles: jest.fn(() => false),
-  extractFiles: jest.fn(() => [])
+  extractFiles: jest.fn(() => []),
+  resolveAssetsMultiple: jest.requireActual("../../../lib/dragdrop/serialization")
+    .resolveAssetsMultiple
 }));
 
 import {
@@ -437,5 +440,62 @@ describe("useFileDrop", () => {
     expect(mockUploadAsset).not.toHaveBeenCalled();
     expect(mockAddNotification).not.toHaveBeenCalled();
     expect(result.current.filename).toBe("");
+  });
+
+  it("uses the first accepted asset of a multi-selection drag", () => {
+    const onChange = jest.fn();
+    const onChangeAsset = jest.fn();
+    mockDeserialize.mockReturnValue({
+      type: "assets-multiple",
+      payload: ["doc", "img-1", "img-2"],
+      metadata: {
+        count: 3,
+        assets: [
+          { id: "img-2", content_type: "image/png", get_url: "/img-2.png" },
+          { id: "doc", content_type: "application/pdf", get_url: "/doc.pdf" },
+          { id: "img-1", content_type: "image/jpeg", get_url: "/img-1.jpg" }
+        ] as unknown as Asset[]
+      }
+    });
+
+    const { result } = renderHook(() =>
+      useFileDrop({ type: "image", onChange, onChangeAsset })
+    );
+    act(() => {
+      result.current.onDrop(createMockDragEvent());
+    });
+
+    expect(onChangeAsset).toHaveBeenCalledTimes(1);
+    expect(onChangeAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "img-1" })
+    );
+    expect(onChange).toHaveBeenCalledWith("/img-1.jpg");
+    expect(mockAddNotification).not.toHaveBeenCalled();
+  });
+
+  it("rejects a multi-selection drag with no accepted asset", () => {
+    const onChangeAsset = jest.fn();
+    mockDeserialize.mockReturnValue({
+      type: "assets-multiple",
+      payload: ["doc"],
+      metadata: {
+        count: 1,
+        assets: [
+          { id: "doc", content_type: "application/pdf", get_url: "/doc.pdf" }
+        ] as unknown as Asset[]
+      }
+    });
+
+    const { result } = renderHook(() =>
+      useFileDrop({ type: "image", onChangeAsset })
+    );
+    act(() => {
+      result.current.onDrop(createMockDragEvent());
+    });
+
+    expect(onChangeAsset).not.toHaveBeenCalled();
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" })
+    );
   });
 });

@@ -34,7 +34,7 @@ const rootStyles = (theme: Theme) =>
     ".json-action-buttons": {
       position: "absolute",
       right: 0,
-      top: "-3px",
+      top: `-${getSpacingPx(SPACING.micro)}`,
       opacity: 0.8,
       zIndex: Z_INDEX.dropdown
     },
@@ -97,6 +97,15 @@ const JSONProperty = (props: PropertyProps<JSONValue | null>) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+
+  // Follow external writes (reset, undo/redo, agent edits) while the user is
+  // not typing, so blur never writes stale text back.
+  const storeValue = props.value?.data ?? "";
+  useEffect(() => {
+    if (!isFocused && storeValue !== value) {
+      setValue(storeValue);
+    }
+  }, [storeValue, isFocused, value]);
 
   const {
     MonacoEditor,
