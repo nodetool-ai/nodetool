@@ -470,6 +470,21 @@ export function verifyBackendBundle(bundleDir) {
     const absent = [...new Set(files)].filter(
       (file) => !existsSync(path.join(packDir, ...file.split("/")))
     );
+    // A guest pack names an npm library the sandbox compiler bundles on first
+    // import. It resolves upward from _sandbox/ to the staged modules, which
+    // afterPack promotes to backend/node_modules.
+    const npmNames = declared
+      .filter((module) => module?.kind === "js" && typeof module.npm === "string")
+      .map((module) => module.npm);
+    const unstagedNpm = npmNames.filter(
+      (name) => !readPackageVersion(path.join(bundleDir, "_modules", ...name.split("/")))
+    );
+    if (unstagedNpm.length > 0) {
+      errors.push(
+        `_sandbox/${pack} compiles npm module(s) not staged under _modules/: ` +
+          `${unstagedNpm.join(", ")}. The packaged sandbox could not import the pack.`
+      );
+    }
     if (absent.length > 0) {
       errors.push(
         `_sandbox/${pack} declares file(s) that are not staged: ${absent.join(", ")}.`
