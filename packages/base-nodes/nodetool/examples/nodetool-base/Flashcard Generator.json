@@ -22,7 +22,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI writes each card as a structured front/back/category object (not a markdown blob). Because they are rows and not prose, a Code node can then compute on them: drop repeated questions, deal one card from each category in turn so a run never asks four questions about the same sub-topic back to back, and stamp each card with its Leitner review days.\n\n**Pipeline:** Topic + card count → build prompt → generate card objects → one script that dedupes, orders and schedules them\n\n**Try this:** compare the two outputs — the raw rows the model wrote, and the same cards in study order."
+          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic and get study flashcards as structured front, back and category rows, plus the same deck in study order with a review schedule.\n\n**How it works:** \"Topic\" and \"Card count\" (5 by default, 3 to 15) fill \"Build prompt\". \"Generate flashcards\" is a DataGenerator that returns rows with front, back and category columns, shown raw in \"Flashcards\". The Code node \"Turn the cards into a study plan\" drops repeated questions, deals one card from each category in turn, and stamps each card with Leitner review days 0, 2 and 5. \"The deck in study order\" shows the result. The Code step runs locally, but \"Generate flashcards\" needs a language model picked.\n\n**Try this:** Set \"Card count\" to 12 and compare the two outputs. \"Flashcards\" keeps the model's order, while \"The deck in study order\" alternates categories and drops any duplicate fronts."
         },
         "ui_properties": {
           "selected": false,
@@ -32,7 +32,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 305,
+          "height": 382,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -51,7 +51,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 704
+            "y": 781
           },
           "zIndex": 0,
           "width": 280,
@@ -76,7 +76,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 929
+            "y": 1006
           },
           "zIndex": 0,
           "width": 280,
@@ -97,7 +97,7 @@
           "selected": false,
           "position": {
             "x": 380,
-            "y": 590
+            "y": 667
           },
           "zIndex": 0,
           "width": 280,
@@ -146,7 +146,7 @@
           "selected": false,
           "position": {
             "x": 760,
-            "y": 764
+            "y": 841
           },
           "zIndex": 0,
           "width": 280,
@@ -172,7 +172,7 @@
           "selected": false,
           "position": {
             "x": 1140,
-            "y": 385
+            "y": 462
           },
           "zIndex": 0,
           "width": 320,
@@ -199,7 +199,7 @@
         "ui_properties": {
           "position": {
             "x": 1140,
-            "y": 942
+            "y": 1019
           },
           "zIndex": 0,
           "width": 260,
@@ -221,7 +221,7 @@
           "selected": false,
           "position": {
             "x": 1560,
-            "y": 593
+            "y": 670
           },
           "zIndex": 0,
           "width": 280,

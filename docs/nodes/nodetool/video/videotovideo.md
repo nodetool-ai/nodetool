@@ -23,6 +23,7 @@ Restyle or edit an existing video with a text prompt using any supported video p
 | prompt | `str` | Text prompt describing the desired transformation | `` |
 | negative_prompt | `str` | Text prompt describing what to avoid | `` |
 | strength | `float` | How much to transform the input video | `0.6` |
+| entities | `list[entity]` | Consistency entities whose descriptors are injected into the prompt and whose reference images guide the edit | `[]` |
 
 ## Outputs
 

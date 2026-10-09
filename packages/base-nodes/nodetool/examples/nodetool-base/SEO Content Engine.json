@@ -222,7 +222,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📈 SEO Content Engine\n\nOne topic in, a keyword-targeted article batch out — each article comes back as separate title, meta description, keyword list, and body fields (not one markdown blob), ready to drop into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.\n\n**Pipeline:** Business + Seed topics → Strategist → Briefs → Articles (typed fields) + Hero images\n\n**Try this:** pick the language and image models, then raise the article count or point the seed topics at the next cluster."
+          "comment": "# 📈 SEO Content Engine\n\nOne topic in, a keyword-targeted article batch out. Each article comes back as separate title, meta description, keyword list and body fields, ready to drop into a CMS, with an editorial hero image per article.\n\n**How it works:** \"Business & site\", \"Audience & seed topics\" and \"Article count\" (4) fill \"Build strategist prompt\". \"Plan the keyword cluster\" writes a content plan, shown in \"Content plan\". \"Build briefs prompt\" asks \"Generate article briefs\" for one brief per line, and it emits them one at a time. For each brief, \"Build writer prompt\" feeds \"Write the articles\", an agent whose typed outputs land in \"Article titles\", \"Meta descriptions\", \"Keywords\" and \"Article bodies\". In parallel, \"Build hero-image prompt\" feeds \"Render hero images\" (FLUX schnell on fal, 16:9), shown in \"Hero images\". Pick a language model on the strategist, brief generator and writer. The image step needs a fal key.\n\n**Try this:** Raise \"Article count\" from 4 to 6 and confirm six titles and six hero images appear."
         },
         "ui_properties": {
           "position": {
@@ -231,7 +231,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 305,
+          "height": 423,
           "selectable": true,
           "bypassed": false
         },
@@ -249,7 +249,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 879
+            "y": 997
           },
           "zIndex": 0,
           "width": 280,
@@ -271,7 +271,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1104
+            "y": 1222
           },
           "zIndex": 0,
           "width": 280,
@@ -295,7 +295,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1329
+            "y": 1447
           },
           "zIndex": 0,
           "width": 280,
@@ -315,7 +315,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 942
+            "y": 1060
           },
           "zIndex": 0,
           "width": 300,
@@ -357,7 +357,7 @@
         "ui_properties": {
           "position": {
             "x": 780,
-            "y": 1005
+            "y": 1123
           },
           "zIndex": 0,
           "width": 330,
@@ -378,7 +378,7 @@
         "ui_properties": {
           "position": {
             "x": 1210,
-            "y": 937
+            "y": 1055
           },
           "zIndex": 0,
           "width": 300,
@@ -399,7 +399,7 @@
         "ui_properties": {
           "position": {
             "x": 1210,
-            "y": 1207
+            "y": 1325
           },
           "zIndex": 0,
           "width": 340,
@@ -432,7 +432,7 @@
         "ui_properties": {
           "position": {
             "x": 1650,
-            "y": 1136
+            "y": 1254
           },
           "zIndex": 0,
           "width": 330,
@@ -453,7 +453,7 @@
         "ui_properties": {
           "position": {
             "x": 2080,
-            "y": 772
+            "y": 890
           },
           "zIndex": 0,
           "width": 360,
@@ -494,7 +494,7 @@
         "ui_properties": {
           "position": {
             "x": 2540,
-            "y": 778
+            "y": 896
           },
           "zIndex": 0,
           "width": 330,
@@ -542,7 +542,7 @@
         "ui_properties": {
           "position": {
             "x": 2970,
-            "y": 1045
+            "y": 1163
           },
           "zIndex": 0,
           "width": 320,
@@ -563,7 +563,7 @@
         "ui_properties": {
           "position": {
             "x": 2970,
-            "y": 1205
+            "y": 1323
           },
           "zIndex": 0,
           "width": 320,
@@ -584,7 +584,7 @@
         "ui_properties": {
           "position": {
             "x": 2970,
-            "y": 855
+            "y": 973
           },
           "zIndex": 0,
           "width": 320,
@@ -605,7 +605,7 @@
         "ui_properties": {
           "position": {
             "x": 2970,
-            "y": 385
+            "y": 503
           },
           "zIndex": 0,
           "width": 380,
@@ -626,7 +626,7 @@
         "ui_properties": {
           "position": {
             "x": 2080,
-            "y": 1268
+            "y": 1386
           },
           "zIndex": 0,
           "width": 340,
@@ -659,7 +659,7 @@
         "ui_properties": {
           "position": {
             "x": 2540,
-            "y": 1317
+            "y": 1435
           },
           "zIndex": 0,
           "width": 320,
@@ -680,7 +680,7 @@
         "ui_properties": {
           "position": {
             "x": 2970,
-            "y": 1365
+            "y": 1483
           },
           "zIndex": 0,
           "width": 360,

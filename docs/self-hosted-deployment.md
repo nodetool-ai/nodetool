@@ -122,7 +122,8 @@ origin.
 >   `0.0.0.0/0` on a public IP.**
 > - Putting NodeTool on a public address or sharing it with untrusted users?
 >   **Enable Supabase mode** (above) so every request needs a real login, and
->   terminate TLS in front of the server.
+>   terminate TLS in front of the server or give it a certificate
+  ([Serving the Web UI and TLS](configuration.md#serving-the-web-ui-and-tls)).
 
 > Serving the web UI from a **different origin** (e.g. a CDN)? Point the frontend
 > at the backend with the build-time `VITE_API_URL`, and add that origin to the
@@ -345,6 +346,12 @@ from `NODETOOL_ADMIN_TOKEN`, else from an interactive prompt — with no TTY and
 neither set, the command exits with
 `Admin token required. Provide --token or set NODETOOL_ADMIN_TOKEN.`
 
+The deployment's `server_auth_token` (in `deployment.yaml`) is that admin
+token. `apply` passes it to the container as `SERVER_AUTH_TOKEN`, and a
+Local-mode server accepts it as `Authorization: Bearer <token>` for user `1`.
+A Supabase-mode server ignores it. The tokens `users-add` prints are stored in
+`USERS_FILE`, but the server does not accept them as credentials.
+
 - `users-add <deployment> <username>` — create a user and print its token.
   `--role <admin|user>` defaults to `user`; any other value is refused. The
   token is printed once and never again.
@@ -426,7 +433,7 @@ The Python bridge refuses to connect in production. The flag lifts that:
 ```yaml
 environment:
   NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION: "1"
-  NODETOOL_PYTHON: "/opt/conda/envs/nodetool/bin/python"
+  NODETOOL_PYTHON: "/opt/venv/bin/python"
 ```
 
 **The published image ships no Python worker.** `ghcr.io/nodetool-ai/nodetool`
@@ -436,8 +443,11 @@ the error you get. To run Python nodes, derive an image that installs
 
 ```dockerfile
 FROM ghcr.io/nodetool-ai/nodetool:latest
-RUN pip install --no-cache-dir nodetool-core
-ENV NODETOOL_PYTHON=/usr/local/bin/python3 \
+# The image runs as `node`, and /opt/venv belongs to root.
+USER root
+RUN /opt/venv/bin/pip install --no-cache-dir nodetool-core
+USER node
+ENV NODETOOL_PYTHON=/opt/venv/bin/python \
     NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1
 ```
 

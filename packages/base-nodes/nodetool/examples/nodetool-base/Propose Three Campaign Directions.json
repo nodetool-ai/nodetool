@@ -19,7 +19,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Propose Three Campaign Directions\n\nValidate the product brief and reference assignment, ask one language model for directions A, B, and C, then validate its JSON into a readable review and captured plan. No image model runs here."
+          "comment": "# Propose Three Campaign Directions\n\nValidates one product brief and an optional role-labelled reference, then proposes exactly three written campaign directions. Use it to agree on a direction before any image generation. No image model runs here.\n\n**How it works:** Ten inputs feed \"Validate and capture brief\", a Code node that rejects empty or overlong fields and a \"Reference role\" outside none, composition, palette, material or lighting. It requires \"Product image\", and \"Visual reference\" only when the role is not none. It outputs a prompt, the image list and the captured brief. \"Propose A, B, and C\" is an Agent that returns JSON for directions A, B and C. \"Validate directions\" checks there are exactly three, in order, with every field filled. It writes a Markdown review to \"Directions\", the brief plus directions to \"Captured plan\", and \"directions_ready\" to \"Ready phase\". Pick a language model on \"Propose A, B, and C\".\n\n**Try this:** Set \"Reference role\" to \"palette\" without adding a \"Visual reference\" and run it to see the brief validator stop with \"reference image is required\"."
         },
         "ui_properties": {
           "position": {
@@ -27,7 +27,7 @@
             "y": 0
           },
           "width": 560,
-          "height": 172,
+          "height": 423,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -39,14 +39,14 @@
           "name": "product_image",
           "value": {
             "type": "image",
-            "uri": ""
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
           },
           "description": "Required product identity reference."
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 2052
+            "y": 2303
           },
           "width": 260,
           "title": "Product image"
@@ -59,13 +59,13 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "product_name",
-          "value": "",
+          "value": "House Blend Coffee",
           "description": "Product name."
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 252
+            "y": 503
           },
           "width": 260,
           "title": "Product name"
@@ -78,7 +78,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "campaign_message",
-          "value": "",
+          "value": "A small-batch house blend, roasted every week and shipped within two days of roasting.",
           "description": "What the campaign should communicate.",
           "line_mode": "multi_line",
           "max_length": 600
@@ -86,7 +86,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 477
+            "y": 728
           },
           "width": 260,
           "title": "Campaign message"
@@ -99,7 +99,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "audience",
-          "value": "",
+          "value": "Home coffee drinkers who grind their own beans.",
           "description": "Intended audience.",
           "line_mode": "multi_line",
           "max_length": 300
@@ -107,7 +107,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 702
+            "y": 953
           },
           "width": 260,
           "title": "Audience"
@@ -120,7 +120,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "headline",
-          "value": "",
+          "value": "Roasted this week, brewed this morning",
           "description": "Exact approved headline.",
           "line_mode": "multi_line",
           "max_length": 120
@@ -128,7 +128,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 927
+            "y": 1178
           },
           "width": 260,
           "title": "Headline"
@@ -141,14 +141,14 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "cta",
-          "value": "",
+          "value": "Order a bag",
           "description": "Exact approved call to action.",
           "max_length": 80
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1152
+            "y": 1403
           },
           "width": 260,
           "title": "CTA"
@@ -170,7 +170,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 2268
+            "y": 2519
           },
           "width": 260,
           "title": "Visual reference"
@@ -189,7 +189,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1377
+            "y": 1628
           },
           "width": 260,
           "title": "Reference role"
@@ -210,7 +210,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1602
+            "y": 1853
           },
           "width": 260,
           "title": "Use from reference"
@@ -231,7 +231,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1827
+            "y": 2078
           },
           "width": 260,
           "title": "Ignore from reference"
@@ -248,7 +248,7 @@
         "ui_properties": {
           "position": {
             "x": 360,
-            "y": 1005
+            "y": 1256
           },
           "width": 420,
           "title": "Validate and capture brief"
@@ -373,7 +373,7 @@
         "ui_properties": {
           "position": {
             "x": 880,
-            "y": 1244
+            "y": 1495
           },
           "width": 320,
           "title": "Propose A, B, and C"
@@ -391,7 +391,7 @@
         "ui_properties": {
           "position": {
             "x": 1300,
-            "y": 1157
+            "y": 1408
           },
           "width": 420,
           "title": "Validate directions"
@@ -440,7 +440,7 @@
         "ui_properties": {
           "position": {
             "x": 1820,
-            "y": 1075
+            "y": 1326
           },
           "width": 260,
           "title": "Directions"
@@ -457,7 +457,7 @@
         "ui_properties": {
           "position": {
             "x": 1820,
-            "y": 1275
+            "y": 1526
           },
           "width": 260,
           "title": "Captured plan"
@@ -474,7 +474,7 @@
         "ui_properties": {
           "position": {
             "x": 1820,
-            "y": 1475
+            "y": 1726
           },
           "width": 260,
           "title": "Ready phase"

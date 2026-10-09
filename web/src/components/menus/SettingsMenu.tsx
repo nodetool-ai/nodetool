@@ -21,7 +21,7 @@ import {
   Box,
   TabGroup,
   SPACING,
-  DocsHelpLink, getSpacingPx
+  DocsHelpLink
 } from "../ui_primitives";
 import type { DocsTopic } from "../../config/docsLinks";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -64,6 +64,18 @@ import {
   settingsTabLabel,
   tabHasMatches
 } from "./settingsSearch";
+
+/** False when the element or an ancestor is `display: none`. */
+const isRendered = (element: HTMLElement): boolean =>
+  isFunction(element.checkVisibility) ? element.checkVisibility() : true;
+
+const sameIds = (
+  prev: ReadonlySet<string> | null,
+  next: string[] | null
+): boolean =>
+  prev === null || next === null
+    ? prev === next
+    : prev.size === next.length && next.every((id) => prev.has(id));
 
 const settingsDocsTopic = (section: SettingsSection): DocsTopic =>
   section === "providers" ? "providers" : "configuration";
@@ -196,6 +208,10 @@ function SettingsPage() {
   );
 
   const [activeSection, setActiveSection] = useState("editor");
+  // Section ids still visible under the current search, so the sidebar only
+  // lists sections the content panel actually shows. Null when not searching.
+  const [visibleSectionIds, setVisibleSectionIds] =
+    useState<ReadonlySet<string> | null>(null);
   const skipScrollSpyUntilRef = useRef(0);
   const [, setSecretsUpdated] = useState(0);
   const settingsContentRef = useRef<HTMLDivElement | null>(null);
@@ -392,7 +408,7 @@ function SettingsPage() {
         addNotification({
           type: "info",
           alert: true,
-          content: "Nodetool API Token copied to Clipboard!"
+          content: "Nodetool API token copied to clipboard"
         });
       } catch (error) {
         console.error("Failed to copy to clipboard:", error);
@@ -454,13 +470,13 @@ function SettingsPage() {
       category: "Workflow",
       items: [
         { id: "execution", label: "Execution" },
-        { id: "canvas-navigation", label: "Canvas" },
+        { id: "canvas-navigation", label: "Canvas & Navigation" },
         { id: "default-models", label: "Default Models" }
       ]
     },
     {
       category: "History",
-      items: [{ id: "autosave", label: "Autosave" }]
+      items: [{ id: "autosave", label: "Autosave & Version History" }]
     }
   ];
 
@@ -490,7 +506,7 @@ function SettingsPage() {
             {
               category: "Servers",
               items: [
-                { id: "mcp-integration", label: "MCP Servers" },
+                { id: "mcp-integration", label: "MCP Integration" },
                 { id: "browser-extension", label: "Browser Extension" }
               ]
             }
@@ -501,7 +517,7 @@ function SettingsPage() {
             {
               category: "Credentials",
               items: [
-                { id: "nodetool-api-token", label: "Nodetool API Token" }
+                { id: "nodetool-api-token", label: "Nodetool API" }
               ]
             }
           ]
@@ -509,7 +525,7 @@ function SettingsPage() {
     ];
   }, [remoteSettings, session?.access_token]);
 
-  const sidebarSections =
+  const allSidebarSections =
     section === "general"
       ? generalSidebarSections
       : section === "integrations"
@@ -517,6 +533,14 @@ function SettingsPage() {
         : section === "about"
           ? getAboutSidebarSections()
           : [];
+  const sidebarSections = visibleSectionIds
+    ? allSidebarSections
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => visibleSectionIds.has(item.id))
+        }))
+        .filter((group) => group.items.length > 0)
+    : allSidebarSections;
 
   useEffect(() => {
     const container = settingsContentRef.current;
@@ -527,9 +551,15 @@ function SettingsPage() {
     if (!panel) {
       return;
     }
+    // A General section whose rows all miss the search is still in the DOM
+    // but hidden by CSS, so filter on rendered visibility.
     const headings = [
       ...panel.querySelectorAll<HTMLElement>(".settings-heading[id]")
-    ];
+    ].filter((heading) => isRendered(heading));
+    const ids = search ? headings.map((heading) => heading.id) : null;
+    setVisibleSectionIds((prev) =>
+      sameIds(prev, ids) ? prev : ids && new Set(ids)
+    );
     if (headings.length === 0) {
       return;
     }
@@ -556,7 +586,7 @@ function SettingsPage() {
     );
     headings.forEach((heading) => observer.observe(heading));
     return () => observer.disconnect();
-  }, [section, search]);
+  }, [section, search, remoteSettings]);
 
   const matchingOtherTabs = otherMatchingTabs(section, searchTerm);
   const currentTabHasMatches = tabHasMatches(section, searchTerm);
@@ -656,6 +686,9 @@ function SettingsPage() {
                 )}
                 {/* Tab 0: General */}
                 <TabPanel section="general" current={section}>
+                  <Caption className="settings-autosave-note">
+                    Changes on this tab apply immediately.
+                  </Caption>
                   <div className="general-settings">
                     <div className="settings-section">
                       <Text size="big" id="editor" className="settings-heading">
@@ -749,10 +782,11 @@ function SettingsPage() {
                             <br />
                             <b>Ask Every Time:</b> Shows a dialog with options.
                             <br />
-                            <b>Quit:</b> Closes the application completely.
+                            <b>Quit Application:</b> Closes the application
+                            completely.
                             <br />
-                            <b>Background:</b> Keeps the app running in the system
-                            tray.
+                            <b>Keep Running in Background:</b> Keeps the app
+                            running in the system tray.
                           </Text>
                         </SearchItem>
                       </div>
@@ -1135,43 +1169,18 @@ function SettingsPage() {
                       >
                         Nodetool API
                       </Text>
-                      <Text
-                        className="explanation"
-                        sx={{ margin: `0 0 ${getSpacingPx(SPACING.xl)} 0` }}
-                      >
-                        Use the Nodetool API to execute workflows
-                        programmatically.
-                        <br />
-                        <br />
-                        <a
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          href="https://github.com/nodetool-ai/nodetool#using-the-workflow-api-"
-                        >
-                          API documentation on GitHub <br />
-                        </a>
-                      </Text>
-                      <div
-                        className="settings-section"
-                        style={{
-                          border:
-                            "1px solid" + theme.vars.palette.warning.main,
-                          borderRight:
-                            "1px solid" + theme.vars.palette.warning.main
-                        }}
-                      >
-                        <Text
-                          sx={{
-                            fontSize: "var(--fontSizeNormal)",
-                            color: theme.palette.text.primary
-                          }}
-                        >
-                          Nodetool API Token
-                        </Text>
-                        <div className="description">
+                      <div className="settings-section">
+                        <div className="settings-item">
                           <Text>
-                            This token is used to authenticate your account
-                            with the Nodetool API.
+                            Use the Nodetool API to execute workflows
+                            programmatically.{" "}
+                            <TextLink
+                              href="https://github.com/nodetool-ai/nodetool#using-the-workflow-api-"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              API documentation on GitHub
+                            </TextLink>
                           </Text>
                           <div className="secrets">
                             <WarningIcon
@@ -1181,22 +1190,23 @@ function SettingsPage() {
                               }}
                             />
                             <Text component="span">
-                              Keep this token secure and do not share it
-                              publicly
+                              This token authenticates your account. Keep it
+                              secure and do not share it publicly.
                             </Text>
                           </div>
+                          <Box>
+                            <Tooltip title="Copy to clipboard">
+                              <EditorButton
+                                size="small"
+                                variant="outlined"
+                                startIcon={<ContentCopyIcon />}
+                                onClick={copyAuthToken}
+                              >
+                                Copy Token
+                              </EditorButton>
+                            </Tooltip>
+                          </Box>
                         </div>
-                        <Tooltip title="Copy to clipboard">
-                          <EditorButton
-                            style={{ margin: `${getSpacingPx(SPACING.md)} 0` }}
-                            size="small"
-                            variant="outlined"
-                            startIcon={<ContentCopyIcon />}
-                            onClick={copyAuthToken}
-                          >
-                            Copy Token
-                          </EditorButton>
-                        </Tooltip>
                       </div>
                     </>
                   )}

@@ -20,7 +20,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Count to Three with a Loop\n\nThe loop starts at 0. On each pass, Code adds 1. It sends the new number to Next and sends true to Condition while that number is below 3. When Condition becomes false, Done sends 3 to the output."
+          "comment": "# Count to Three with a Loop\n\nCounts from zero to three with a Loop node. Use it to learn how a loop passes a value back to itself and decides when to stop.\n\n**How it works:** \"1 Start at 0\" begins with an initial value of 0 and allows at most 10 iterations. On each pass, \"2 Add 1 and check the result\" adds 1, sends the new number back to the loop's next input, and sends true to its condition input while that number is below 3. When the condition becomes false, the loop's done output sends 3 to \"3 Final count\". It runs locally with no model or key.\n\n**Try this:** Change the 3 in the code of \"2 Add 1 and check the result\" to 7 and confirm \"3 Final count\" shows 7."
         },
         "ui_properties": {
           "position": {

@@ -22,7 +22,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Dungeon and Ruins Starter Pack\n\nLow-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips. Run to expose each GLB as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z and bottom-level origins. Floors, walls, corners, stairs and spike traps fit a 2 m grid. Floor tops are Y 0.16 m. Place wall bases on top of floors. Add colliders, triggers, damage, loot and lights in the game. Download a model output and upload it to your project before importing it into a 3D game."
+          "comment": "# Dungeon and Ruins Starter Pack\n\nLow-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips.\n\n**How it works:** Each of the 16 \"Model3D\" constants, such as \"Dungeon floor\", \"Iron portcullis\" and \"Treasure urn\", points at a packaged GLB file and connects to its own output, such as \"Dungeon floor output\". Running the graph exposes every model as a named output. It runs locally with no provider or API key. Models use meters, Y up, forward -Z and bottom-level origins. Floors, walls, corners, stairs and spike traps fit a 2 m grid, and floor tops sit at Y 0.16 m, so place wall bases on top of floors. Add colliders, triggers, damage, loot and lights in the game.\n\n**Try this:** Run the graph, download \"Wall torch output\", and upload it to your project. Import it into a 3D game and place it on a wall next to a \"Dungeon wall\" piece."
         },
         "ui_properties": {
           "position": {

@@ -164,7 +164,8 @@ describe("PersistentPathsSchema", () => {
     const result = PersistentPathsSchema.parse({});
     expect(result.users_file).toBe("/workspace/users.yaml");
     expect(result.db_path).toBe("/workspace/nodetool.db");
-    expect(result.chroma_path).toBe("/workspace/chroma");
+    expect(result.vectorstore_db_path).toBe("/workspace/vectorstore.db");
+    expect(result.chroma_path).toBeUndefined();
     expect(result.hf_cache).toBe("/workspace/hf-cache");
     expect(result.asset_bucket).toBe("/workspace/assets");
     expect(result.logs_path).toBe("/workspace/logs");

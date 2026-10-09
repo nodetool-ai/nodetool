@@ -19,7 +19,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Revise an Accepted Campaign Hero\n\nThe accepted hero is the only editing source. Capture Change, Preserve, and Allow to respond in a child contract, make one image edit, and wait for its result before opening revision review."
+          "comment": "# Revise an Accepted Campaign Hero\n\nMakes one bounded edit to an accepted campaign hero and records exactly what changed. Use it when a hero is approved but needs a single adjustment, such as a new time of day.\n\n**How it works:** \"Accepted hero\" passes through \"Normalize app image\", which turns an app value into an image reference. \"Capture revision request\" reads that image, the \"Accepted contract\", and the \"Change\", \"Preserve\" and \"Allow to respond\" texts, checks their length limits, and writes a prompt plus a child contract that keeps the parent. \"Make one revision\" edits the hero with Nano Banana Edit on fal at strength 0.45 and 16:9, with a negative prompt against added text or a changed product. \"Finalize revision candidate\" waits for the image, then emits \"Revision candidate\", \"Revision contract\" and \"Review phase\". The edit step needs a fal key.\n\n**Try this:** Set \"Change\" to \"Add light rain on the stone surface\" and keep \"Preserve\" as it is. The candidate should change the weather and leave the cup and composition alone."
         },
         "ui_properties": {
           "position": {
@@ -27,7 +27,7 @@
             "y": 0
           },
           "width": 560,
-          "height": 172,
+          "height": 423,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -46,7 +46,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 252
+            "y": 503
           },
           "width": 280,
           "title": "Accepted hero"
@@ -66,7 +66,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 508
+            "y": 759
           },
           "width": 280,
           "title": "Accepted contract"
@@ -87,7 +87,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 733
+            "y": 984
           },
           "width": 280,
           "title": "Change"
@@ -108,7 +108,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 958
+            "y": 1209
           },
           "width": 280,
           "title": "Preserve"
@@ -129,7 +129,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1183
+            "y": 1434
           },
           "width": 280,
           "title": "Allow to respond"
@@ -146,7 +146,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 424
+            "y": 675
           },
           "width": 320,
           "title": "Normalize app image"
@@ -179,7 +179,7 @@
         "ui_properties": {
           "position": {
             "x": 800,
-            "y": 636
+            "y": 887
           },
           "width": 440,
           "title": "Capture revision request"
@@ -270,7 +270,7 @@
         "ui_properties": {
           "position": {
             "x": 1340,
-            "y": 774
+            "y": 1025
           },
           "width": 320,
           "title": "Make one revision"
@@ -288,7 +288,7 @@
         "ui_properties": {
           "position": {
             "x": 1760,
-            "y": 638
+            "y": 889
           },
           "width": 380,
           "title": "Finalize revision candidate"
@@ -340,7 +340,7 @@
         "ui_properties": {
           "position": {
             "x": 2240,
-            "y": 583
+            "y": 834
           },
           "width": 250,
           "title": "Revision candidate"
@@ -357,7 +357,7 @@
         "ui_properties": {
           "position": {
             "x": 2240,
-            "y": 783
+            "y": 1034
           },
           "width": 250,
           "title": "Revision contract"
@@ -374,7 +374,7 @@
         "ui_properties": {
           "position": {
             "x": 2240,
-            "y": 983
+            "y": 1234
           },
           "width": 250,
           "title": "Review phase"

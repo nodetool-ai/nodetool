@@ -30,7 +30,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { isHandleConnected } from "../../hooks/nodes/edgeIndex";
 import { colorForType } from "../../config/data_types";
-import { editorClassNames, cn } from "../editor_ui";
+import { NodeTextPreview, editorClassNames, cn } from "../editor_ui";
 import HandleTooltip from "../HandleTooltip";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import {
@@ -39,6 +39,8 @@ import {
 } from "../../styles/collapsedNodeTokens";
 
 const MAX_AUTO_HEIGHT = 600;
+
+const NO_ACTIVATE = (): void => {};
 
 const styles = (theme: Theme) =>
   css({
@@ -140,6 +142,9 @@ const styles = (theme: Theme) =>
         cursor: "default"
       }
     },
+    ".node-text-preview.constant-string-textarea": {
+      overflowY: "hidden"
+    },
     "&.collapsed": {
       ...NODE_COLLAPSED_LAYOUT,
       height: NODE_COLLAPSED_BODY_HEIGHT_WIN,
@@ -153,9 +158,14 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected } = props;
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+  // The text area exists only while editing; a static preview stands in
+  // for it otherwise, so the body never catches a pan or a zoom.
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textElRef = useRef<HTMLElement | null>(null);
+  const caretRef = useRef<number | null>(null);
   const lastEmittedHeight = useRef<number>(0);
   const [isFocused, setIsFocused] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { updateNodeData, updateNode } = useNodes(
@@ -221,7 +231,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     if (data.collapsed) {
       return;
     }
-    const textarea = textareaRef.current;
+    const textarea = textElRef.current;
     if (!textarea) {
       return;
     }
@@ -250,7 +260,35 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       lastEmittedHeight.current = desiredNodeH;
       updateNode(id, { height: desiredNodeH });
     }
-  }, [localValue, id, updateNode, data.collapsed]);
+  }, [localValue, id, updateNode, data.collapsed, isEditing]);
+
+  const startEditing = useCallback((caretOffset: number | null) => {
+    caretRef.current = caretOffset;
+    setIsEditing(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!isEditing || !textarea) {
+      return;
+    }
+    const caret = caretRef.current ?? textarea.value.length;
+    textarea.focus();
+    textarea.setSelectionRange(caret, caret);
+  }, [isEditing]);
+
+  const setTextareaRef = useCallback((el: HTMLTextAreaElement | null) => {
+    textareaRef.current = el;
+    if (el) {
+      textElRef.current = el;
+    }
+  }, []);
+
+  const setPreviewRef = useCallback((el: HTMLDivElement | null) => {
+    if (el) {
+      textElRef.current = el;
+    }
+  }, []);
 
   const headerColor = useMemo(() => {
     const firstOutputType = metadata?.outputs?.[0]?.type?.type as
@@ -338,27 +376,45 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </div>
       </div>
 
-      {/* Textarea body — nodrag prevents dragging when selecting text.
-          nowheel (when focused) lets mouse wheel scroll the textarea
-          instead of zooming the canvas. */}
-      <div
-        className={cn(
-          "constant-string-body nodrag nopan",
-          isFocused && editorClassNames.nowheel
-        )}
-      >
-        <textarea
-          ref={textareaRef}
-          className="constant-string-textarea"
-          aria-label="String value"
-          value={localValue}
-          onChange={handleChange}
-          readOnly={isConnected}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          spellCheck={false}
-        />
-      </div>
+      {isEditing && !isConnected ? (
+        /* nodrag keeps text selection from dragging the node. nowheel (when
+           focused) lets the wheel scroll the text area. */
+        <div
+          className={cn(
+            "constant-string-body nodrag nopan",
+            isFocused && editorClassNames.nowheel
+          )}
+        >
+          <textarea
+            ref={setTextareaRef}
+            className="constant-string-textarea"
+            aria-label="String value"
+            value={localValue}
+            onChange={handleChange}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => {
+              setIsFocused(false);
+              setIsEditing(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.currentTarget.blur();
+              }
+            }}
+            spellCheck={false}
+          />
+        </div>
+      ) : (
+        <div className="constant-string-body">
+          <NodeTextPreview
+            ref={setPreviewRef}
+            className="constant-string-textarea"
+            value={localValue}
+            onActivate={isConnected ? NO_ACTIVATE : startEditing}
+            ariaLabel="Edit string value"
+          />
+        </div>
+      )}
 
       <div className="node-content-container">
         <NodeOutputs id={id} outputs={metadata.outputs} />

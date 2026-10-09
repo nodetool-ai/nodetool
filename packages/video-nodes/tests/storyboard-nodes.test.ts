@@ -40,6 +40,7 @@ import {
 
 import {
   AssembleTimelineNode,
+  CreateStoryboardNode,
   LoadStoryboardNode,
   RecastStoryboardNode,
   RenderClipsNode,
@@ -1259,5 +1260,84 @@ describe("AssembleTimelineNode and the approved cut", () => {
     expect(held).toMatchObject({ startMs: 4000, durationMs: 2000 });
     expect(held?.currentAssetId).toBeUndefined();
     expect(result.skipped_shots).toEqual(["shot-2"]);
+  });
+});
+
+// ── CreateStoryboard ────────────────────────────────────────────────────────
+
+describe("CreateStoryboardNode", () => {
+  const screenplay = {
+    title: "Pier at Dusk",
+    logline: "A courier waits for a boat",
+    style_bible: "noir, wet streets",
+    aspect_ratio: "9:16",
+    shots: [
+      { action: "Nova waits on the pier", camera: { framing: "wide" } },
+      { action: "Nova checks the parcel", camera: { framing: "close-up" } }
+    ]
+  };
+  const imageModel = { type: "image_model", provider: "fal_ai", id: "flux" };
+
+  it("saves the screenplay as a board a render node may write", async () => {
+    h.withBoardListing();
+    const node = new CreateStoryboardNode();
+    node.assign({ screenplay, cast: [HERO], image_model: imageModel });
+
+    const out = await node.process(h.context);
+
+    expect(out.created).toBe(true);
+    expect(out.storyboard).toMatchObject({ type: "storyboard", writable: true });
+    expect(out.shot_count).toBe(2);
+    const row = h.boards.get(out.storyboard.id!)!;
+    expect(row.name).toBe("Pier at Dusk");
+    expect(row.document.shots.map((entry) => entry.index)).toEqual([0, 1]);
+    expect(row.document.style).toBe("noir, wet streets");
+    expect(row.document.aspectRatio).toBe("9:16");
+    expect(row.document.entityIds).toEqual([HERO.id]);
+    expect(row.document.imageModel).toMatchObject({ provider: "fal_ai", id: "flux" });
+    expect(row.document.videoModel).toBeNull();
+
+    const stills = new RenderStillsNode();
+    stills.assign({ storyboard: out.storyboard });
+    await stills.process(h.context);
+    expect(h.generations.map((g) => g.capability)).toEqual([
+      "text_to_image",
+      "text_to_image"
+    ]);
+  });
+
+  it("returns the board it made last run instead of creating a second", async () => {
+    h.withBoardListing();
+    const first = new CreateStoryboardNode();
+    first.assign({ screenplay, name: "Pier" });
+    const made = await first.process(h.context);
+
+    const again = new CreateStoryboardNode();
+    again.assign({ screenplay, name: "Pier" });
+    const reused = await again.process(h.context);
+
+    expect(reused.created).toBe(false);
+    expect(reused.storyboard.id).toBe(made.storyboard.id);
+    expect(h.boards.size).toBe(1);
+  });
+
+  it("never hands out a hand-made board that shares the name", async () => {
+    h.withBoardListing();
+    seedBoard(h, "board-hand", boardDocument(), { name: "Pier", projectId: "default" });
+    const node = new CreateStoryboardNode();
+    node.assign({ screenplay, name: "Pier" });
+
+    const out = await node.process(h.context);
+
+    expect(out.created).toBe(true);
+    expect(out.storyboard.id).not.toBe("board-hand");
+  });
+
+  it("refuses a screenplay with no shots", async () => {
+    const node = new CreateStoryboardNode();
+    node.assign({ screenplay: { title: "Empty", shots: [] }, reuse_existing: false });
+
+    await expect(node.process(h.context)).rejects.toThrow(/Director/);
+    expect(h.boards.size).toBe(0);
   });
 });

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sketch Editor Perf Harness</title>
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #111;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Counts which components rendered in each React commit, and their own
+      // render time. Installed before React loads, the way React DevTools
+      // hooks in: a fiber with the PerformedWork flag (1) ran its render in
+      // that commit.
+      (function () {
+        var renders = new Map();
+        var selfMs = new Map();
+        window.__sketchPerfFiberRenders = renders;
+        window.__sketchPerfFiberSelfMs = selfMs;
+        function nameOf(fiber) {
+          var t = fiber.type;
+          if (!t) return null;
+          if (typeof t === "function") return t.displayName || t.name || null;
+          if (typeof t === "object") {
+            var inner = t.render || t.type;
+            return (
+              t.displayName ||
+              (inner && (inner.displayName || inner.name)) ||
+              null
+            );
+          }
+          return null;
+        }
+        function walk(fiber) {
+          var stack = [fiber];
+          while (stack.length) {
+            var f = stack.pop();
+            if (!f) continue;
+            // Function, class, forwardRef, memo and simple-memo components.
+            var tag = f.tag;
+            if (
+              (tag === 0 || tag === 1 || tag === 11 || tag === 14 || tag === 15) &&
+              (f.flags & 1) === 1
+            ) {
+              var name = nameOf(f);
+              if (name) {
+                renders.set(name, (renders.get(name) || 0) + 1);
+                // Development builds time each fiber's own render.
+                selfMs.set(name, (selfMs.get(name) || 0) + (f.selfBaseDuration || 0));
+              }
+            }
+            if (f.sibling) stack.push(f.sibling);
+            // A skipped subtree keeps last commit's fibers (and their stale
+            // flags): React did not clone its children.
+            var skipped = f.alternate && f.alternate.child === f.child;
+            if (f.child && !skipped) stack.push(f.child);
+          }
+        }
+        window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+          renderers: new Map(),
+          supportsFiber: true,
+          inject: function () {
+            return 1;
+          },
+          onScheduleFiberRoot: function () {},
+          onCommitFiberRoot: function (_id, root) {
+            walk(root.current.child);
+          },
+          onCommitFiberUnmount: function () {},
+          onPostCommitFiberRoot: function () {},
+          checkDCE: function () {}
+        };
+      })();
+    </script>
+    <script type="module" src="/src/perf/sketchPerfHarness.tsx"></script>
+  </body>
+</html>

@@ -19,6 +19,7 @@ type NavItem = { name: string; href: string; external?: boolean };
 const NAV: NavItem[] = [
   { name: "Studio", href: "/studio" },
   { name: EDITIONS.cloud.navLabel, href: "/cloud" },
+  { name: "Nodes", href: "/node-based-workflows" },
   { name: "Agents", href: "/agents" },
   { name: "Developers", href: "/developers" },
   { name: "Marketing", href: "/marketing" },

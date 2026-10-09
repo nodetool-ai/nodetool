@@ -203,6 +203,8 @@ jobs:
 
       - name: Set up Node, install deps, build packages
         uses: ./.github/actions/setup-build
+        with:
+          extra-apt: mesa-vulkan-drivers ffmpeg
 
       - name: Run shipped-workflow execution tests
         run: npm run test:integration

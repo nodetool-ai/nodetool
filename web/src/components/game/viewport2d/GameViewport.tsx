@@ -5,6 +5,7 @@ import { projectedCamera } from "@nodetool-ai/game-renderer";
 
 import { Box, EditorButton, FlexRow, SPACING, Z_INDEX } from "../../ui_primitives";
 import { isMac } from "../../../utils/platform";
+import { useGameCommandHandlers, useGameCommandShortcut } from "../shell/useGameCommands";
 import { selectionDescendants, localTransform, selectionRoots, worldTransforms, hitEntityIcons, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "./viewportGeometry";
 
 interface GameViewportProps {
@@ -78,6 +79,8 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
   const palette = theme.colorSchemes?.[colorMode]?.palette ?? theme.palette;
   const [showGrid, setShowGrid] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(true);
+  useGameCommandHandlers({ "view.toggleSnap": { run: () => setSnapToGrid((value) => !value), enabled: !playing } });
+  const snapShortcut = useGameCommandShortcut("view.toggleSnap");
   const [showSelection, setShowSelection] = useState(true);
   const [panTool, setPanTool] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
@@ -457,7 +460,8 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
             onClick={() => setPanTool((value) => !value)}>Pan</EditorButton>
           <EditorButton variant={showSelection ? "contained" : "text"} onClick={() => setShowSelection((value) => !value)}>Selection</EditorButton>
           <EditorButton variant={showGrid ? "contained" : "text"} onClick={() => setShowGrid((value) => !value)}>Grid</EditorButton>
-          <EditorButton variant={snapToGrid ? "contained" : "text"} onClick={() => setSnapToGrid((value) => !value)}>Snap</EditorButton>
+          <EditorButton variant={snapToGrid ? "contained" : "text"} title={snapShortcut ? `Toggle snapping (${snapShortcut.join("+")})` : "Toggle snapping"}
+            onClick={() => setSnapToGrid((value) => !value)}>Snap</EditorButton>
           <EditorButton variant={showColliders ? "contained" : "text"} onClick={() => setShowColliders((value) => !value)}>Colliders</EditorButton>
           <EditorButton variant={showLights ? "contained" : "text"} onClick={() => setShowLights((value) => !value)}>Lights</EditorButton>
           <EditorButton variant={showBackgrounds ? "contained" : "text"} onClick={() => setShowBackgrounds((value) => !value)}>Backgrounds</EditorButton>
@@ -466,7 +470,6 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
         <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label="Game viewport" role="group" tabIndex={0}
           onKeyDown={(event) => {
             if (!playing && event.code === "Space") { event.preventDefault(); spaceHeldRef.current = true; }
-            if (!playing && event.code === "KeyG" && !event.repeat) { event.preventDefault(); setSnapToGrid((value) => !value); }
             onKeyDown(event);
           }}
           onKeyUp={(event) => { if (event.code === "Space") spaceHeldRef.current = false; onKeyUp(event); }}

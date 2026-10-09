@@ -19,7 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Video Restyle Studio\n\nRestyle a clip without re-shooting or re-animating it.\n\nMotion, timing and framing come from the source video. Only the look changes.\n\nStrength is the dial to turn: 0.3-0.5 keeps faces and text legible, 0.7+ commits to the style and will drift."
+          "comment": "# Video Restyle Studio\n\nRestyles a clip without re-shooting or re-animating it. Motion, timing and framing come from the source video, and only the look changes.\n\n**How it works:** \"Target style\" and \"Preserve\" fill the \"Restyle brief\" prompt, which asks for a uniform look and no change to camera or subject motion. \"Restyle\" applies the brief to \"Source clip\" with Lucy Edit 2 on Replicate at strength 0.45, with a negative prompt against flicker, warping and unreadable text. \"Restyled clip\" shows the result. Strength is the dial to turn: 0.3 to 0.5 keeps faces and text legible, and 0.7 or higher commits to the style and will drift. The restyle step needs a Replicate key, and you supply your own clip.\n\n**Try this:** Raise \"strength\" on \"Restyle\" from 0.45 to 0.75 and compare how far faces and text drift from the source."
         },
         "ui_properties": {
           "position": {
@@ -29,7 +29,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 208
+          "height": 362
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -39,13 +39,16 @@
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "source_video",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "The clip to restyle"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 288
+            "y": 442
           },
           "zIndex": 0,
           "width": 280,
@@ -66,7 +69,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 504
+            "y": 658
           },
           "zIndex": 0,
           "width": 280,
@@ -87,7 +90,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 729
+            "y": 883
           },
           "zIndex": 0,
           "width": 280,
@@ -106,7 +109,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 434
+            "y": 588
           },
           "zIndex": 0,
           "width": 320,
@@ -134,7 +137,7 @@
         "ui_properties": {
           "position": {
             "x": 800,
-            "y": 416
+            "y": 570
           },
           "zIndex": 0,
           "width": 280,
@@ -153,7 +156,7 @@
         "ui_properties": {
           "position": {
             "x": 1180,
-            "y": 430
+            "y": 584
           },
           "zIndex": 0,
           "width": 240,

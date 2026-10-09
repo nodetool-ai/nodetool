@@ -122,7 +122,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an autonomous agent researches them on the web, then drafts a personalized cold email that opens with a real, specific detail.\n\n**Pipeline:** Prospect + your offer → build objective → Research agent (search + browse) → structured draft\n\nThe agent returns `subject`, `body`, and `follow_up` as separate typed fields (not one prose blob), so each piece can be previewed, edited, or piped into a CRM/email tool on its own.\n\n**Try this:** change the prospect, paste your real offer, or tell the agent the tone to use. Pick a model on the agent first."
+          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an agent researches them on the web, then drafts a personalized cold email that opens with a real, specific detail. The pieces come back as separate fields, ready for a CRM or email tool.\n\n**How it works:** \"3 Build research objective\" puts \"1 Prospect\" and \"2 Your offer\" into a task brief. \"4 Research + write outreach\" is an Agent with the google_search and browser tools, set to Claude Sonnet. It returns company_summary, pain_points, subject, body and follow_up as typed outputs, each shown in its own Preview (\"Company summary\", \"Pain points\", \"Subject line\", \"Email body\", \"Follow-up\"). \"Agent thinking (live)\" streams its progress. The agent needs a language model and search access.\n\n**Try this:** Change \"1 Prospect\" to a company you know well and check whether the opening line of \"Email body\" cites a detail you recognize."
         },
         "ui_properties": {
           "position": {
@@ -131,7 +131,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 313,
+          "height": 382,
           "selectable": true,
           "bypassed": false
         },
@@ -150,7 +150,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 1197
+            "y": 1266
           },
           "zIndex": 0,
           "width": 280,
@@ -172,7 +172,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1422
+            "y": 1491
           },
           "zIndex": 0,
           "width": 280,
@@ -192,7 +192,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 1144
+            "y": 1213
           },
           "zIndex": 0,
           "width": 340,
@@ -234,7 +234,7 @@
           "selected": false,
           "position": {
             "x": 820,
-            "y": 1141
+            "y": 1210
           },
           "zIndex": 0,
           "width": 316,
@@ -288,7 +288,7 @@
           "selected": false,
           "position": {
             "x": 1236,
-            "y": 1503
+            "y": 1572
           },
           "zIndex": 0,
           "width": 403,
@@ -309,7 +309,7 @@
         "ui_properties": {
           "position": {
             "x": 1236,
-            "y": 393
+            "y": 462
           },
           "zIndex": 0,
           "width": 565,
@@ -331,7 +331,7 @@
           "selected": false,
           "position": {
             "x": 1236,
-            "y": 2008
+            "y": 2077
           },
           "zIndex": 0,
           "width": 530,
@@ -353,7 +353,7 @@
           "selected": false,
           "position": {
             "x": 1236,
-            "y": 1153
+            "y": 1222
           },
           "zIndex": 0,
           "width": 530,
@@ -375,7 +375,7 @@
           "selected": false,
           "position": {
             "x": 1236,
-            "y": 1778
+            "y": 1847
           },
           "zIndex": 0,
           "width": 530,
@@ -396,7 +396,7 @@
         "ui_properties": {
           "position": {
             "x": 1236,
-            "y": 803
+            "y": 872
           },
           "zIndex": 0,
           "width": 400,

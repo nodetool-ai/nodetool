@@ -27,11 +27,15 @@ export const APP_ENV_PORT = 8000;
 interface PersistentPaths {
   usersFile: string;
   dbPath: string;
-  chromaPath: string;
+  vectorstoreDbPath: string;
   hfCache: string;
+  /** Asset directory inside the container, exported as `ASSET_FOLDER`. */
   assetBucket: string;
   logsPath?: string;
 }
+
+/** Container path the host Hugging Face hub cache is mounted at. */
+const HF_HUB_CACHE_MOUNT = "/hf-cache";
 
 /** Paths on the remote server. */
 interface ServerPaths {
@@ -183,9 +187,9 @@ export class DockerRunGenerator {
 
     const persistentPaths = this.deployment.persistentPaths;
     if (persistentPaths) {
-      volumes.push(`${this.deployment.paths.hfCache}:/hf-cache`);
+      volumes.push(`${this.deployment.paths.hfCache}:${HF_HUB_CACHE_MOUNT}`);
     } else {
-      volumes.push(`${this.deployment.paths.hfCache}:/hf-cache:ro`);
+      volumes.push(`${this.deployment.paths.hfCache}:${HF_HUB_CACHE_MOUNT}:ro`);
     }
 
     return volumes.map(safeShellQuote);
@@ -200,22 +204,25 @@ export class DockerRunGenerator {
     // and the health check. NODETOOL_API_URL is read inside the container.
     env["PORT"] = String(INTERNAL_API_PORT);
     env["NODETOOL_API_URL"] = `http://localhost:${INTERNAL_API_PORT}`;
-    env["NODETOOL_SERVER_MODE"] = "private";
 
+    // The mount holds the host's hub cache (the `hub/` directory itself), so
+    // it is HF_HUB_CACHE. HF_HOME would make the server look in /hf-cache/hub.
+    env["HF_HUB_CACHE"] = HF_HUB_CACHE_MOUNT;
+
+    // Keep every store on the /workspace mount. The server reads ASSET_FOLDER
+    // and VECTORSTORE_DB_PATH; without them assets and the vector store land
+    // in the container's home directory and vanish when it is recreated.
     const persistentPaths = this.deployment.persistentPaths;
     if (persistentPaths) {
       env["USERS_FILE"] = persistentPaths.usersFile;
       env["DB_PATH"] = persistentPaths.dbPath;
-      env["CHROMA_PATH"] = persistentPaths.chromaPath;
+      env["VECTORSTORE_DB_PATH"] = persistentPaths.vectorstoreDbPath;
       env["HF_HOME"] = persistentPaths.hfCache;
-      env["ASSET_BUCKET"] = persistentPaths.assetBucket;
-      env["AUTH_PROVIDER"] = "multi_user";
+      env["ASSET_FOLDER"] = persistentPaths.assetBucket;
     } else {
       env["DB_PATH"] = "/workspace/nodetool.db";
-      env["HF_HOME"] = "/hf-cache";
-      if (!env["AUTH_PROVIDER"]) {
-        env["AUTH_PROVIDER"] = "static";
-      }
+      env["VECTORSTORE_DB_PATH"] = "/workspace/vectorstore.db";
+      env["ASSET_FOLDER"] = "/workspace/assets";
     }
 
     if (this.deployment.serverAuthToken) {

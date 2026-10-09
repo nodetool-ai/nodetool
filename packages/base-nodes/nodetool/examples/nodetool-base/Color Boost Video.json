@@ -18,7 +18,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎨 Color Boost Video\n\nGrade a clip frame-by-frame, then reassemble it. Each frame gets an exposure and saturation pass; the Grading Intensity input feeds the saturation strength so it can be bound to a slider in the app view.\n\n**Pipeline:** Video → Split frames → Exposure → Saturation (driven by Grading intensity) → Reassemble\n\n**Try this:** drag Grading intensity, tweak the exposure settings, or set a start/end frame range."
+          "comment": "# 🎨 Color Boost Video\n\nGrades a clip frame by frame, then reassembles it. Use it to see how per-frame image adjustments apply to video, with one input driving the saturation strength.\n\n**How it works:** \"2 Split into frames\" extracts frames 0 to 2 of \"1 Source video\" (three frames) and reports the frame rate. Each frame goes through \"3 Exposure & contrast\" (exposure 0.2, contrast 0.1, highlights -0.1, shadows 0.1) and \"4 Saturation & vibrance\" (vibrance 0.4). \"Grading intensity\" (0.5) sets that node's saturation, where 0 means no change and -1 drains most of the color. \"5 Reassemble video\" rebuilds the clip at the source frame rate for \"6 Graded output\". It runs locally with no model or key.\n\n**Try this:** Set \"end\" on \"2 Split into frames\" to -1 to grade the whole clip, then set \"Grading intensity\" to -1 to see the color drain out."
         },
         "ui_properties": {
           "selected": false,
@@ -28,7 +28,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 266,
+          "height": 362,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -42,15 +42,14 @@
           "description": "The clip to color-grade. Defaults to a short demo clip so Run works immediately.",
           "value": {
             "type": "video",
-            "asset_id": "727208e4dbe811ef97c1000071d82eaa",
-            "uri": "http://127.0.0.1:8000/api/storage/727208e4dbe811ef97c1000071d82eaa.mp4"
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
           }
         },
         "ui_properties": {
           "title": "1️⃣ Source video",
           "position": {
             "x": 0,
-            "y": 346
+            "y": 442
           },
           "zIndex": 0,
           "width": 280,
@@ -64,7 +63,7 @@
         "type": "nodetool.input.FloatInput",
         "data": {
           "name": "grading_intensity",
-          "description": "How strong the saturation pass is. 0 = grayscale, 0.5 = the default boost, 1 = maximum, fully saturated look.",
+          "description": "How strong the saturation pass is. 0 leaves saturation unchanged, 0.5 is the default boost, 1 is the strongest, and -1 drains most of the color.",
           "value": 0.5,
           "min": -1,
           "max": 1
@@ -73,7 +72,7 @@
           "title": "Grading intensity",
           "position": {
             "x": 0,
-            "y": 712
+            "y": 808
           },
           "zIndex": 0,
           "width": 280,
@@ -93,7 +92,7 @@
           "title": "2️⃣ Split into frames",
           "position": {
             "x": 380,
-            "y": 507
+            "y": 603
           },
           "zIndex": 0,
           "width": 280,
@@ -115,7 +114,7 @@
           "title": "3️⃣ Exposure & contrast",
           "position": {
             "x": 760,
-            "y": 461
+            "y": 557
           },
           "zIndex": 0,
           "width": 280,
@@ -134,7 +133,7 @@
           "title": "4️⃣ Saturation & vibrance",
           "position": {
             "x": 1140,
-            "y": 562
+            "y": 658
           },
           "zIndex": 0,
           "width": 280,
@@ -151,7 +150,7 @@
           "title": "5️⃣ Reassemble video",
           "position": {
             "x": 1520,
-            "y": 437
+            "y": 533
           },
           "zIndex": 0,
           "width": 416,
@@ -171,7 +170,7 @@
           "title": "6️⃣ Graded output",
           "position": {
             "x": 2036,
-            "y": 566
+            "y": 662
           },
           "zIndex": 0,
           "width": 280,

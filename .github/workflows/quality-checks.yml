@@ -277,7 +277,7 @@ jobs:
               "check": "typecheck",
               "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check",
               "mobile-deps": "true",
-              "extra-apt": "",
+              "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "false",
               "fetch-depth": "1",
               "when": "always",

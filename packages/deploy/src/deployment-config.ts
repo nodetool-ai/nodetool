@@ -105,8 +105,12 @@ export type ServerPaths = z.infer<typeof ServerPathsSchema>;
 export const PersistentPathsSchema = z.object({
   users_file: z.string().default("/workspace/users.yaml"),
   db_path: z.string().default("/workspace/nodetool.db"),
-  chroma_path: z.string().default("/workspace/chroma"),
+  vectorstore_db_path: z.string().default("/workspace/vectorstore.db"),
+  /** Unused: the server keeps vectors in `vectorstore_db_path`. Kept so
+   *  existing configs still parse. */
+  chroma_path: z.string().optional(),
   hf_cache: z.string().default("/workspace/hf-cache"),
+  /** Asset directory inside the container (`ASSET_FOLDER`). */
   asset_bucket: z.string().default("/workspace/assets"),
   logs_path: z.string().optional().default("/workspace/logs")
 });
