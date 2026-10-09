@@ -166,10 +166,24 @@ With nothing open, the workspace is a chat composer and a few sample prompts.
 `Ctrl+K` / `⌘+K` on any view, then start typing. It switches between your open
 tabs and projects, opens app pages (Projects, Assets, Model Manager, Settings,
 Studio, and the rest), creates new documents, opens your workflows by name, and
-offers Keyboard Shortcuts and Report a Bug. While a workflow is open it also runs
-workflow actions (Run Entire Workflow, Save, Auto Layout, import and export as
-JSON or bundle), edit and align commands, view and zoom commands, and panel
-toggles.
+offers Keyboard Shortcuts and Report a Bug.
+
+The view on screen adds its own group after your open tabs:
+
+| View | Commands |
+|---|---|
+| Workflow | Run Entire Workflow, Save, Auto Layout, import and export as JSON or bundle, edit and align, view and zoom, panel toggles |
+| Sketch | Every sketch action and tool, with its shortcut |
+| Timeline | Every timeline shortcut for the active keyboard preset |
+| Game | The game editor's commands for the current dimension and play state |
+| 3D model | Undo, Redo, Save, transform tools, selection, and view commands |
+| Storyboard | Undo, Redo, Assemble Timeline, Show or Hide Assistant |
+| Script | Undo, Redo, Send to Timeline, Export Subtitles |
+| JS script | Undo, Redo, Run Script, Run Tests |
+| Text file | Save, Undo, Redo, word wrap |
+| Chat | New Chat, Stop Generating |
+
+The shortcut also opens the menu while the cursor is in a code editor.
 
 ---
 

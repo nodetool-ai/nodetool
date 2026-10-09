@@ -6,6 +6,7 @@ import { Command, CommandInput } from "cmdk";
 import { useCommandMenuStore } from "../../stores/CommandMenuStore";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { Dialog } from "../ui_primitives";
+import ContextCommandGroups from "./ContextCommandGroups";
 import GlobalCommandGroups, { SwitchTabCommands } from "./GlobalCommandGroups";
 
 const styles = css({
@@ -19,13 +20,13 @@ const styles = css({
 });
 
 interface CommandPaletteProps {
-  /** Commands of the view that renders the palette, listed after open tabs. */
+  /** Commands of the view that renders the palette, after registered ones. */
   children?: React.ReactNode;
 }
 
 /**
- * The Cmd+K dialog. Open tabs come first, then the rendering view's own
- * commands, then the commands that work everywhere.
+ * The Cmd+K dialog. Open tabs come first, then the active view's commands,
+ * then the commands that work everywhere.
  */
 const CommandPalette: React.FC<CommandPaletteProps> = ({ children }) => {
   const open = useCommandMenuStore((state) => state.open);
@@ -59,6 +60,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ children }) => {
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
           <SwitchTabCommands />
+          <ContextCommandGroups />
           {children}
           <GlobalCommandGroups />
         </Command.List>

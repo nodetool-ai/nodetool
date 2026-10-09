@@ -7,6 +7,8 @@ import { useCommandMenuStore } from "../../../stores/CommandMenuStore";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { initKeyListeners } from "../../../stores/KeyPressedStore";
 import { navigateTo } from "../../../lib/appNavigation";
+import { useContextCommands } from "../../../hooks/useContextCommands";
+import type { ContextCommand } from "../../../stores/CommandMenuStore";
 
 const mockOpenProject = jest.fn();
 const mockCreateWorkflow = jest.fn();
@@ -64,7 +66,7 @@ afterAll(() => releaseKeys());
 beforeEach(() => {
   jest.clearAllMocks();
   window.history.replaceState(null, "", "/workspace");
-  useCommandMenuStore.setState({ open: false, editorClaims: 0 });
+  useCommandMenuStore.setState({ open: false, editorClaims: 0, contextGroups: [] });
   useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null, activeProjectId: "a", projectSessions: {} });
   const store = useWorkspaceTabsStore.getState();
   store.openTab({ type: "text", ref: "notes", projectId: "a", title: "Notes" });
@@ -136,7 +138,10 @@ it("switches project and creates documents", async () => {
 
 it("leaves the menu to an active node editor that claims it", () => {
   renderHost();
-  const release = useCommandMenuStore.getState().claimForEditor();
+  let release = () => {};
+  act(() => {
+    release = useCommandMenuStore.getState().claimForEditor();
+  });
   pressCommandK();
   expect(useCommandMenuStore.getState().open).toBe(true);
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -150,4 +155,48 @@ it("toggles closed on a second Ctrl+K", async () => {
   expect(await screen.findByRole("dialog")).toBeInTheDocument();
   pressCommandK();
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+});
+
+const ViewCommands = ({
+  heading,
+  commands,
+  active
+}: {
+  heading: string;
+  commands: readonly ContextCommand[];
+  active: boolean;
+}) => {
+  useContextCommands(heading, commands, active);
+  return null;
+};
+
+it("lists the active view's commands, merges a heading, and drops them when the view goes inactive", async () => {
+  const assemble = jest.fn();
+  const undo = jest.fn();
+  const surface = [{ id: "undo", label: "Undo", run: undo, shortcut: "Ctrl+Z" }];
+  const pane = [{ id: "assemble", label: "Assemble Timeline", run: assemble }];
+  const view = (active: boolean) => (
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <CommandMenuHost />
+      <ViewCommands heading="Storyboard" commands={surface} active={active} />
+      <ViewCommands heading="Storyboard" commands={pane} active={active} />
+    </QueryClientProvider>
+  );
+  const { rerender } = render(view(true));
+  pressCommandK();
+  const group = await screen.findByRole("group", { name: "Storyboard" });
+  expect(group).toHaveTextContent("UndoCtrl+Z");
+  expect(group).toHaveTextContent("Assemble Timeline");
+  expect(screen.getAllByRole("group", { name: "Storyboard" })).toHaveLength(1);
+
+  await userEvent.click(screen.getByRole("option", { name: "Assemble Timeline" }));
+  expect(assemble).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+  rerender(view(false));
+  pressCommandK();
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "Storyboard" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("option", { name: /Undo/ })).not.toBeInTheDocument();
+  expect(undo).not.toHaveBeenCalled();
 });
