@@ -200,6 +200,28 @@ describe("PresetTileGrid", () => {
     expect(onSelect).toHaveBeenCalledWith("noir");
   });
 
+  it("ignores a click on the sample while the step body is locked", () => {
+    const onSelect = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <fieldset disabled>
+          <PresetTileGrid
+            label="Art style"
+            presets={presets}
+            onSelect={onSelect}
+            onAddOwn={jest.fn()}
+          />
+        </fieldset>
+      </ThemeProvider>
+    );
+
+    const sample = cardOf(
+      screen.getByRole("radio", { name: /Noir/ })
+    ).querySelector("img") as HTMLElement;
+    fireEvent.click(sample);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it("selects once from a click on the select control", async () => {
     const user = userEvent.setup();
     const { onSelect } = renderGrid();

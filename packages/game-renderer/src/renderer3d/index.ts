@@ -6,6 +6,7 @@ import { releaseInstance } from "./assets/dispose.js";
 import type { RenderInstance } from "./types.js";
 import { syncGameLights, removeGameLight } from "./lights/index.js";
 import { configureGameEnvironment } from "./environment/index.js";
+import { GameSkyRenderer3D, type GameSkySources3D } from "./environment/sky.js";
 import { paintGameHud } from "./hud/paint.js";
 export { interpolateGameTransform3D } from "./scene-sync.js";
 export { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
@@ -14,6 +15,7 @@ import type { GameRenderFrame3D } from "@nodetool-ai/protocol";
 
 export { prepareGameModel, GAME_MODEL_BUDGETS } from "./preparation.js";
 export type { GameModelBudgets, GameModelDiagnostic, PreparedGameModel, PrepareGameModelResult } from "./preparation.js";
+export type { DecodeGameHdri3D, PreparedGameHdri3D } from "./assets/hdri-contract.js";
 
 export interface GameRendererCapabilities3D {
   readonly backend: "webgl2";
@@ -45,7 +47,7 @@ export interface GameModelSource3D {
   readonly bytes: Uint8Array;
   readonly digest?: string;
 }
-export interface CreateGameRenderer3DOptions {
+export interface CreateGameRenderer3DOptions extends GameSkySources3D {
   readonly canvas: HTMLCanvasElement;
   readonly resolveFont?: (logicalId: string, signal: AbortSignal) => Promise<GameModelSource3D | null>;
   readonly onDiagnostic?: (message: string) => void;
@@ -90,6 +92,7 @@ class ThreeGameRenderer implements GameRenderer3D {
   private readonly diagnostics: string[] = [];
   private readonly lights = new Map<string, THREE.Light>();
   private readonly controller = new AbortController();
+  private readonly sky: GameSkyRenderer3D;
   private readonly hudCanvas = document.createElement("canvas");
   private readonly hudScene = new THREE.Scene();
   private readonly hudCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 2);
@@ -116,13 +119,14 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.options.onContextState?.("lost");
   };
   private readonly onRestored = (): void => {
-    if (this.status !== "disposed") { this.status = "ready"; this.restoring = true; }
+    if (this.status !== "disposed") { this.status = "ready"; this.restoring = true; this.sky.reset(); }
   };
   private readonly onAbort = (): void => this.dispose();
 
   constructor(private readonly renderer: THREE.WebGLRenderer, private readonly options: CreateGameRenderer3DOptions) {
     this.modelCache = new GameModelCache3D(options, this.controller);
     this.fonts = new GameFonts3D(options, this.controller, this.diagnostics);
+    this.sky = new GameSkyRenderer3D(renderer, options, this.controller.signal, this.diagnostics);
     this.scene.add(this.ambient);
     this.hudCamera.position.z = 1;
     this.hudTexture.colorSpace = THREE.SRGBColorSpace;
@@ -247,6 +251,7 @@ class ThreeGameRenderer implements GameRenderer3D {
         if (instance.modelAssetId === slot) { releaseInstance(instance); this.instances.delete(id); }
       }
       await this.modelCache.invalidate(slot);
+      await this.sky.invalidate(slot);
     }
     this.invalidatedAssets.clear();
     this.controller.signal.throwIfAborted();
@@ -263,6 +268,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     activeCamera.updateMatrixWorld(true);
     syncGameLights(this.scene, this.lights, frame);
     configureGameEnvironment(this.scene, this.ambient, this.renderer, frame.environment);
+    await this.sky.apply(this.scene, frame);
+    this.controller.signal.throwIfAborted();
     await this.fonts.load(frame);
     this.controller.signal.throwIfAborted();
     paintGameHud(this.hudCanvas, this.hudTexture, frame);
@@ -302,6 +309,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.instances.clear();
     this.modelCache.dispose();
     this.fonts.dispose();
+    this.sky.dispose();
     this.lights.forEach((light) => removeGameLight(light));
     this.lights.clear();
     this.hudTexture.dispose();

@@ -145,7 +145,7 @@ describe("useGuidedFlowStarters", () => {
   });
 
   it("opens the entity library in the guided add flow", async () => {
-    useEntityLibraryStore.setState({ creating: false });
+    useEntityLibraryStore.setState({ createRequested: false });
     const { hook } = renderStarters();
     const entity = hook.result.current.starters.find(
       (entry) => entry.id === "entity"
@@ -155,7 +155,7 @@ describe("useGuidedFlowStarters", () => {
     });
 
     await waitFor(() => expect(openPageTab).toHaveBeenCalledWith("entities"));
-    expect(useEntityLibraryStore.getState().creating).toBe(true);
+    expect(useEntityLibraryStore.getState().createRequested).toBe(true);
     expect(createProject).not.toHaveBeenCalled();
   });
 });

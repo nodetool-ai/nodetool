@@ -335,6 +335,7 @@ export type {
   TaskPlanSpec,
   MultiTaskPlanSpec
 } from "./scripted-provider.js";
+export { sampleForSchema } from "./fake-schema-answer.js";
 export {
   registerProvider,
   getRegisteredProvider,
@@ -370,6 +371,7 @@ export {
 export {
   checkCredential,
   isCredentialVerifiable,
+  setCredentialCheckOverride,
   verifiableCredentialKeys
 } from "./credential-check.js";
 export type {

@@ -12,7 +12,7 @@
  * and is never written to.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import { rpcRequest } from "../../../lib/websocket/rpcRequest";
@@ -54,6 +54,36 @@ const uploadReference = (file: File): Promise<string> =>
     });
   });
 
+// Boards with a style save in flight. Module state rather than component
+// state, so the flow's Look button can hold until the save lands and applies
+// its style (F8).
+const savingBoards = new Set<string>();
+const savingListeners = new Set<() => void>();
+const setBoardSaving = (boardId: string, saving: boolean): void => {
+  if (saving) {
+    savingBoards.add(boardId);
+  } else {
+    savingBoards.delete(boardId);
+  }
+  for (const listener of savingListeners) {
+    listener();
+  }
+};
+const subscribeSaving = (listener: () => void): (() => void) => {
+  savingListeners.add(listener);
+  return () => {
+    savingListeners.delete(listener);
+  };
+};
+
+/** True while a custom style is being saved for this board. */
+export function useStyleSaving(boardId: string): boolean {
+  return useSyncExternalStore(
+    subscribeSaving,
+    useCallback(() => savingBoards.has(boardId), [boardId])
+  );
+}
+
 export interface CustomStyleResult {
   saving: boolean;
   error: string | null;
@@ -92,6 +122,7 @@ export function useCustomStyle(boardId: string): CustomStyleResult {
 
       inFlight.current = true;
       setSaving(true);
+      setBoardSaving(boardId, true);
       try {
         const uris = await Promise.all(references.map(readDataUri));
         const answer = await rpcRequest("generate_text", {
@@ -149,6 +180,7 @@ export function useCustomStyle(boardId: string): CustomStyleResult {
       } finally {
         inFlight.current = false;
         setSaving(false);
+        setBoardSaving(boardId, false);
       }
     },
     [boardId, entities, saveEntity]
