@@ -3,6 +3,8 @@ import { gameDocument, gameDocument3D, type AnyGameDocument, type GameDocument, 
 import { applyGameOps, applyGameOps3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
+const SCRIPT_PARAMS_EVAL_SOURCE = "(input) => ({ state: input.params, commands: [] })";
+
 /** Headless game editor bridge that exercises the production op reducer. */
 export function createGameToolBridge(initial: GameDocument): HeadlessSurfaceBridge<GameDocument> {
   let document = gameDocument.parse(initial);
@@ -124,6 +126,25 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         const { sky, ...rest } = scene.environment;
         const { sky: _initialSky, ...initialRest } = initial;
         return sky?.kind === "procedural" && sky.sunEntityId === "sun" && sky.turbidity === 4 && JSON.stringify(rest) === JSON.stringify(initialRest);
+      } }]
+  }
+}, {
+  id: "script-parameters",
+  description: "Tune a script's declared inspector parameters through set_script_params without editing its source.",
+  objective: "The player's script declares speed and target params. Set speed to 6 and target to the gem entity. Do not change the script source.",
+  createBridge: () => {
+    const base = createTopDownRoomGame("script-params-eval");
+    return createGameToolBridge(gameDocument.parse({ ...base, schemaVersion: 4, engineVersion: "3", scenes: base.scenes.map((scene) => ({ ...scene,
+      entities: scene.entities.map((entity) => entity.id === "player" ? { ...entity, behaviors: [...entity.behaviors, { kind: "script",
+        source: SCRIPT_PARAMS_EVAL_SOURCE, params: { speed: { type: "number", default: 2, minimum: 0, maximum: 10 }, target: { type: "entity" } } }] } : entity) })) }));
+  },
+  systemPrompt: "Use get_native_game and edit_native_game. set_script_params {entity_id, index, values} sets declared script params by behavior index.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerScriptParams", detail: "The player's script values or source differ from the request.",
+      test: document => {
+        const script = document.scenes[0].entities.find(entity => entity.id === "player")?.behaviors.find(behavior => behavior.kind === "script");
+        return z.object({ source: z.literal(SCRIPT_PARAMS_EVAL_SOURCE), values: z.strictObject({ speed: z.literal(6), target: z.literal("gem") }) }).safeParse(script).success;
       } }]
   }
 }];

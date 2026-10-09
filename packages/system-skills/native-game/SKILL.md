@@ -572,6 +572,34 @@ blends node translation, rotation and scale. It does not blend morph targets.
 
 ### S: Scripting and gameplay
 
+#### Script parameters
+
+Declare a script's tunables as `params` on its script behavior instead of
+constants in the source. The inspector edits them and scripts read the values
+on `input.params`. Set them with `set_script_params {entity_id, scene_id?,
+index, params?, values?}`. `params` replaces the declarations and `null`
+removes them with their values. `values` merges stored values, and a `null`
+value returns one to its default. 2D games need schema 4. 3D games accept
+params on schema 3.
+
+```json
+{"op": "set_script_params", "entity_id": "player", "index": 0,
+ "params": {"speed": {"type": "number", "default": 3, "minimum": 0, "maximum": 10},
+            "target": {"type": "entity"}, "hit": {"type": "asset", "kind": "audio"}},
+ "values": {"speed": 5, "target": "goal"}}
+```
+
+Types are `number` (`minimum`, `maximum`, `integer`), `boolean`, `color`
+(`#rrggbb`), `enum` (`options`, default the first option), `entity`, `asset`
+(optional `kind`) and `vector` (`dimensions` 2 or 3). A behavior declares at
+most 32 params with identifier names. `input.params` holds the stored value,
+else the default. An `entity` or `asset` param without either is `null`.
+Validation rejects an entity reference outside the behavior's scene, a missing
+asset slot, an asset of the wrong `kind`, and in 3D an entity reference inside
+a prefab or an undeclared prefab asset. A behavior without `params` has no
+`input.params` key. Params count once per behavior definition toward the
+64 KiB script input limit.
+
 ### U: Input and game UI
 
 ### G: Navigation and AI

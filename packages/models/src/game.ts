@@ -76,6 +76,7 @@ function summarizeOps(ops: readonly GameDocumentOp[]): string {
     remove_behavior: ["Removed behavior", "Removed behaviors"],
     move_behavior: ["Moved behavior", "Moved behaviors"],
     set_script: ["Changed script", "Changed scripts"],
+    set_script_params: ["Changed script parameters", "Changed script parameters"],
     add_scene: ["Added scene", "Added scenes"],
     update_scene: ["Changed scene", "Changed scenes"],
     remove_scene: ["Removed scene", "Removed scenes"],
