@@ -180,7 +180,6 @@ declare global {
         install: (
           location: string,
           packages: PythonPackages,
-          modelBackend?: ModelBackend,
           installLlamaCpp?: boolean,
         ) => Promise<void>;
         onLocationPrompt: (
@@ -613,8 +612,6 @@ export enum IpcChannels {
   MCP_INSTALL_BUNDLE = "mcp-install-bundle",
 }
 
-export type ModelBackend = "ollama" | "llama_cpp" | "none";
-
 /** Result of handing the bundled `.mcpb` to the OS for Claude Desktop. */
 export interface McpBundleInstallResult {
   /** The bundle existed and was either opened or revealed. */
@@ -632,7 +629,6 @@ export interface McpBundleInstallResult {
 export interface InstallToLocationData {
   location: string;
   packages: PythonPackages;
-  modelBackend?: ModelBackend;
   installLlamaCpp?: boolean;
 }
 

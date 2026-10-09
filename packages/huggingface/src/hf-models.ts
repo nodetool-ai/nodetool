@@ -20,7 +20,8 @@
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
-import * as os from "node:os";
+
+import { getLlamaCppCacheDir } from "@nodetool-ai/config";
 
 import { HfFastCache } from "./hf-cache.js";
 import { inspectPaths } from "./artifact-inspector.js";
@@ -1651,23 +1652,6 @@ export async function deleteCachedHfModel(modelId: string): Promise<boolean> {
 // Llama.cpp cache helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Resolve the llama.cpp native cache directory.
- */
-function _getLlamaCppCacheDir(): string {
-  const platform = os.platform();
-  if (platform === "darwin") {
-    return path.join(os.homedir(), "Library", "Caches", "llama.cpp");
-  }
-  if (platform === "win32") {
-    const localAppData =
-      process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local");
-    return path.join(localAppData, "llama.cpp");
-  }
-  // Linux and others
-  return path.join(os.homedir(), ".cache", "llama.cpp");
-}
-
 /** Build a lookup from flat GGUF filename to (repo_id, original_filename). */
 export function _buildManifestLookup(
   cacheDir: string
@@ -1757,7 +1741,7 @@ export function _parseGgufFlatFilename(
  * - manifest={org}={repo}={tag}.json
  */
 export async function getLlamaCppModelsFromCache(): Promise<UnifiedModel[]> {
-  const cacheDir = _getLlamaCppCacheDir();
+  const cacheDir = getLlamaCppCacheDir();
 
   try {
     const stat = await fsp.stat(cacheDir);

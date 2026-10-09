@@ -1,23 +1,17 @@
 import { readSettings, updateSetting } from "./settings";
 import { logMessage } from "./logger";
-import type { TorchruntimeDetectionResult, TorchPlatform } from "./torchruntime";
+import {
+  mapTorchPlatform,
+  torchIndexUrl,
+  type TorchBackend,
+  type TorchruntimeDetectionResult,
+} from "./torchruntime";
 
 const TORCH_PLATFORM_SETTING_KEY = "TORCH_PLATFORM_DETECTED";
 
-const VALID_TORCH_PLATFORMS: ReadonlySet<string> = new Set([
-  "cu118", "cu124", "cu128", "cu129",
-  "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
-  "mps", "cpu"
-]);
-
-function isTorchPlatform(value: string): value is TorchPlatform {
-  return VALID_TORCH_PLATFORMS.has(value);
-}
-
 interface SavedTorchData {
   platform: string;
-  indexUrl: string | null;
-  error?: string;
+  error?: unknown;
   detectedAt?: string;
 }
 
@@ -26,15 +20,17 @@ function isSavedTorchData(value: unknown): value is SavedTorchData {
     return false;
   }
   const obj = value as Record<string, unknown>;
-  return (
-    typeof obj.platform === "string" &&
-    (obj.indexUrl === null || typeof obj.indexUrl === "string")
-  );
+  return typeof obj.platform === "string" && obj.platform.length > 0;
 }
 
 /**
- * Get the saved torch platform detection result from settings
- * Returns null if no detection result is saved
+ * The last successful GPU detection, or null when none is saved.
+ *
+ * Only the platform torchruntime reported is stored. The backend and index
+ * are derived from it on every read, so a new mapping in a later app version
+ * applies without a re-detection. An entry that recorded a failed detection
+ * (older versions saved those as `cpu`) is ignored, so the next install
+ * detects again.
  */
 export function getSavedTorchPlatform(): TorchruntimeDetectionResult | null {
   try {
@@ -48,15 +44,18 @@ export function getSavedTorchPlatform(): TorchruntimeDetectionResult | null {
       return null;
     }
 
-    if (!isTorchPlatform(saved.platform)) {
-      logMessage(`Unknown torch platform "${saved.platform}" in settings, ignoring`, "warn");
+    if (saved.error) {
+      logMessage("Saved torch platform came from a failed detection, ignoring", "warn");
       return null;
     }
 
+    const { backend, warning } = mapTorchPlatform(saved.platform);
     return {
       platform: saved.platform,
-      indexUrl: saved.indexUrl,
-      error: saved.error,
+      backend,
+      indexUrl: torchIndexUrl(backend),
+      ...(warning ? { warning } : {}),
+      ...(saved.detectedAt ? { detectedAt: saved.detectedAt } : {}),
     };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -66,32 +65,31 @@ export function getSavedTorchPlatform(): TorchruntimeDetectionResult | null {
 }
 
 /**
- * Get torch index URL for package installation
- * Uses saved detection result or falls back to default based on platform
+ * The `--torch-backend` for package installs: the saved detection's backend,
+ * or null (default PyPI wheels) when nothing has been detected yet.
  */
-export function getTorchIndexUrl(): string | null {
-  const saved = getSavedTorchPlatform();
-  
-  if (saved && saved.indexUrl) {
-    logMessage(`Using saved torch index URL: ${saved.indexUrl}`);
-    return saved.indexUrl;
-  }
+export function getTorchBackend(): TorchBackend | null {
+  return getSavedTorchPlatform()?.backend ?? null;
+}
 
-  // Fallback to CPU for consistent behavior across all platforms
-  logMessage("No saved torch platform, falling back to CPU");
-  return "https://download.pytorch.org/whl/cpu";
+/** uv arguments that route torch packages to the detected PyTorch index. */
+export function torchBackendArgs(backend: TorchBackend | null): string[] {
+  return backend ? ["--torch-backend", backend] : [];
 }
 
 /**
- * Save torch platform detection result to settings
+ * Save a successful detection. A result that carries `error` is not saved:
+ * persisting a failed detection pinned CPU torch for good.
  */
 export function saveTorchPlatform(result: TorchruntimeDetectionResult): void {
+  if (result.error) {
+    logMessage(`Not saving failed torch platform detection: ${result.error}`, "warn");
+    return;
+  }
   try {
     updateSetting(TORCH_PLATFORM_SETTING_KEY, {
       platform: result.platform,
-      indexUrl: result.indexUrl,
       detectedAt: new Date().toISOString(),
-      error: result.error,
     });
     logMessage(`Saved torch platform: ${result.platform}`);
   } catch (error: unknown) {

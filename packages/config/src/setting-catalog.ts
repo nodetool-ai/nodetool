@@ -94,7 +94,7 @@ s(
 s(
   "TRANSFORMERS_JS_CACHE_DIR",
   "TransformersJs",
-  "Cache directory for Transformers.js (@huggingface/transformers) model downloads. Defaults to <data-dir>/transformers-js-cache. This is separate from the Python HuggingFace Hub cache because the on-disk layout differs."
+  "Cache directory for Transformers.js (@huggingface/transformers) model downloads. Defaults to <data-dir>/transformers-js-cache. This is separate from the Python HuggingFace Hub cache because the on-disk layout differs. Restart the backend after changing this setting."
 );
 
 s(
@@ -204,7 +204,17 @@ s(
 s(
   "VLLM_BASE_URL",
   "vLLM",
-  "Base URL for the vLLM OpenAI-compatible server (e.g., http://localhost:7777)"
+  "Base URL for the vLLM OpenAI-compatible server (e.g., http://127.0.0.1:8000, vLLM's default port)."
+);
+s(
+  "OLLAMA_API_URL",
+  "Ollama",
+  "Base URL of the Ollama server (default: http://127.0.0.1:11434). Set it when Ollama runs on another host or port, for example in WSL, Docker or on another machine."
+);
+s(
+  "OLLAMA_KEEP_ALIVE",
+  "Ollama",
+  "How long Ollama keeps a model loaded after a request, in Ollama's duration syntax (default: 10m). -1 keeps it loaded, 0 unloads it at once."
 );
 s(
   "OLLAMA_CONTEXT_LENGTH",
@@ -219,7 +229,7 @@ s(
 s(
   "LLAMA_CPP_CONTEXT_LENGTH",
   "LlamaCpp",
-  "Context window size (in tokens) for llama.cpp models. Defaults to 128000."
+  "Context size (in tokens) the llama.cpp server was started with (its -c option). The server does not report it, so NodeTool uses this value to budget prompts. Unset, the model's published context window is used."
 );
 s(
   "NODE_LLAMA_CPP_MODELS_DIR",
@@ -237,8 +247,23 @@ s(
   "LMStudio",
   "Base URL for the LM Studio OpenAI-compatible server (e.g., http://localhost:1234)"
 );
+sec(
+  "LMSTUDIO_API_KEY",
+  "LMStudio",
+  "API key for an LM Studio server that requires authentication. Leave empty for a default LM Studio install."
+);
 s("WHISPER_CPP_MODELS_DIR", "WhisperCpp", "Additional directory containing local ggml whisper.cpp and VAD model files. The Hugging Face hub cache is always scanned.");
-s("WHISPER_CPP_GPU_BACKEND", "WhisperCpp", "Backend for in-process whisper.cpp inference. 'auto' uses the default build (Metal on macOS). Restart the backend after changing this setting.", ["auto", "metal", "cuda", "vulkan", "cpu"]);
+s("WHISPER_CPP_GPU_BACKEND", "WhisperCpp", "Backend for in-process whisper.cpp inference. 'auto' uses Metal on macOS, and on Windows and Linux tries the CUDA build, then the Vulkan build, then the default CPU build. Restart the backend after changing this setting.", ["auto", "metal", "cuda", "vulkan", "cpu"]);
+s(
+  "WAN2GP_MCP_URL",
+  "Wan2GP",
+  "MCP endpoint of the Wan2GP server the Wan2GP nodes call (default: http://127.0.0.1:7866/mcp). A node's own server URL field overrides it. Restart the backend after changing this setting, because the Python worker reads it at start."
+);
+s(
+  "NODETOOL_TORCH_DEVICE",
+  "PythonNodes",
+  "Device the Python worker runs PyTorch models on: cuda, cuda:N for a specific GPU, mps, or cpu. Unset, the worker picks MPS, then CUDA, then CPU. Restart the backend after changing this setting, because the Python worker reads it at start."
+);
 s("WHISPER_CPP_SERVER_URL", "WhisperCppServer", "Base URL for a user-run whisper.cpp server (e.g., http://127.0.0.1:8080).");
 
 // NodeSupabase
