@@ -46,6 +46,9 @@ export interface ParticleView {
 
 export const DEFAULT_MAX_SCENE_PARTICLES = 8192;
 
+/** Longest interval one `step` simulates, so a long pause cannot turn into thousands of emission cycles. */
+export const MAX_PARTICLE_STEP_SECONDS = 0.25;
+
 const STRIDE = 14;
 const PX = 0, PY = 1, PZ = 2, VX = 3, VY = 4, VZ = 5, AGE = 6, LIFE = 7, SIZE = 8, ROT = 9, SPIN = 10, CR = 11, CG = 12, CB = 13;
 const SAME_TIME = 1e-9;
@@ -83,6 +86,8 @@ export class ParticleSimulator {
   readonly dimension: ParticleDimension;
   readonly maxSceneParticles: number;
   private readonly instances = new Map<string, EmitterInstance>();
+  /** Emitter ids of each entity in the last sync, in document order. */
+  private readonly emitterOrder = new Map<string, readonly string[]>();
   private total = 0;
   private readonly sample: ParticleShapeSample = { px: 0, py: 0, pz: 0, dx: 0, dy: 1, dz: 0 };
   private readonly color: ParticleColor = { r: 0, g: 0, b: 0 };
@@ -111,7 +116,9 @@ export class ParticleSimulator {
     for (const instance of this.instances.values()) {
       instance.attached = false;
     }
+    this.emitterOrder.clear();
     for (const source of sources) {
+      this.emitterOrder.set(source.entityId, source.particles.emitters.map((emitter) => emitter.id));
       for (const definition of source.particles.emitters) {
         const key = instanceKey(source.entityId, definition.id);
         let instance = this.instances.get(key);
@@ -174,11 +181,15 @@ export class ParticleSimulator {
     }
   }
 
-  /** Advances every particle by `dt` seconds, then emits new particles for the same interval. */
-  step(dt: number): void {
-    if (!(dt > 0)) {
+  /**
+   * Advances every particle, then emits new particles for the same interval. A step longer than
+   * {@link MAX_PARTICLE_STEP_SECONDS}, such as the first frame after a paused tab, is clamped to it.
+   */
+  step(seconds: number): void {
+    if (!(seconds > 0)) {
       return;
     }
+    const dt = Math.min(seconds, MAX_PARTICLE_STEP_SECONDS);
     const deaths: Death[] = [];
     for (const instance of this.instances.values()) {
       this.advance(instance, dt, deaths);
@@ -187,7 +198,9 @@ export class ParticleSimulator {
       const instance = this.instances.get(instanceKey(death.entityId, death.emitter));
       if (instance && (instance.attached || instance.definition.space === "world")) {
         for (let index = 0; index < death.count; index += 1) {
-          this.spawn(instance, death);
+          if (!this.spawn(instance, death)) {
+            break;
+          }
         }
       }
     }
@@ -245,6 +258,7 @@ export class ParticleSimulator {
   /** Removes every emitter and particle. */
   clear(): void {
     this.instances.clear();
+    this.emitterOrder.clear();
     this.total = 0;
   }
 
@@ -252,12 +266,9 @@ export class ParticleSimulator {
     if (emitterId !== undefined) {
       return this.instances.get(instanceKey(entityId, emitterId));
     }
-    for (const instance of this.instances.values()) {
-      if (instance.entityId === entityId) {
-        return instance;
-      }
-    }
-    return undefined;
+    // The first emitter in document order. Every emitter of a synced entity is attached.
+    const first = this.emitterOrder.get(entityId)?.[0];
+    return first === undefined ? undefined : this.instances.get(instanceKey(entityId, first));
   }
 
   private advance(instance: EmitterInstance, dt: number, deaths: Death[]): void {

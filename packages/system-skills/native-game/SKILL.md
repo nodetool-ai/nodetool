@@ -495,7 +495,7 @@ emitter of the same component where each particle dies. Give that emitter
 Scripts trigger emitters with `{ kind: "emitParticles", emitter?, count? }` on
 their own entity. Without `count`, the emitter restarts its cycle, which suits a
 one-shot explosion with `loop: false`. With `count`, that many particles spawn
-at once. Omitting `emitter` selects the first one. The command is a presentation
+at once. Omitting `emitter` selects the first emitter in the component's `emitters` list. The command is a presentation
 event from `takePresentationEvents()`. It never appears in gameplay events or
 snapshots. Particles cannot affect scores, physics or scripts. Prefer them over
 spawned prefabs for sparks, smoke and dust.
@@ -503,7 +503,7 @@ spawned prefabs for sparks, smoke and dust.
 The renderer simulates particles with `ParticleSimulator` from
 `@nodetool-ai/game-renderer`. Each tick, call `sync(particleSourcesFromFrame(frame))`,
 `emit(session.takePresentationEvents())` and `step(seconds)`, then read
-`forEachParticle`. Each emitter's random stream is seeded from its entity and
+`forEachParticle`. One `step` simulates at most 0.25 seconds, so a resumed tab does not replay a long pause. Each emitter's random stream is seeded from its entity and
 emitter ids, so captures repeat. The built-in players do not draw particles yet.
 
 ### P: Physics

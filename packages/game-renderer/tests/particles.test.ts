@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { gameDocument3D, gameParticles, gameInputFrame3D, type GameParticles } from "@nodetool-ai/protocol";
 import { createGameSession3D } from "@nodetool-ai/game-runtime";
 
 import {
+  MAX_PARTICLE_STEP_SECONDS,
   ParticleRandom,
   ParticleSimulator,
   evaluateParticleCurve,
@@ -129,6 +130,51 @@ describe("particle emission counts", () => {
     for (const particle of views(simulator)) {
       expect(particle).toMatchObject({ emitterId: "spark", x: 5, y: 6, z: 7 });
     }
+  });
+});
+
+describe("particle review limits", () => {
+  it("stops a death emitter's spawn loop once its cap is full", () => {
+    const simulator = new ParticleSimulator({ dimension: "2d" });
+    const sources = [source({ emitters: [
+      { id: "shell", rate: 0, loop: false, lifetime: 0.05, speed: 0, bursts: [{ count: 10 }], onDeath: [{ emitter: "spark", count: 64 }] },
+      { id: "spark", playOnStart: false, rate: 0, lifetime: 10, speed: 0, maxParticles: 1 }
+    ] })];
+    run(simulator, sources, 1);
+    const spawn = vi.spyOn(simulator as unknown as { spawn: (...args: unknown[]) => boolean }, "spawn");
+    run(simulator, sources, 5);
+    expect(simulator.countOf("torch", "spark")).toBe(1);
+    // One success, then one refused call per dying particle instead of 64.
+    expect(spawn.mock.calls.length).toBe(1 + 10);
+  });
+
+  it("clamps a long step to the documented maximum", () => {
+    const simulator = new ParticleSimulator({ dimension: "2d" });
+    const sources = [source({ emitters: [{ id: "flame", rate: 100, lifetime: 60, duration: 0.01, maxParticles: 4096,
+      bursts: [{ count: 1, cycles: 1 }] }] })];
+    simulator.sync(sources);
+    simulator.step(3600);
+    // 0.25 s of rate 100 plus one burst per 0.01 s cycle, not an hour of either.
+    expect(MAX_PARTICLE_STEP_SECONDS).toBe(0.25);
+    expect(simulator.count).toBeGreaterThanOrEqual(25 + 24);
+    expect(simulator.count).toBeLessThanOrEqual(25 + 26);
+    expect(views(simulator)[0].life).toBeCloseTo(0, 6);
+  });
+
+  it("sends an emitter-less request to the first attached emitter in document order", () => {
+    const simulator = new ParticleSimulator({ dimension: "2d" });
+    const stale = source({ emitters: [{ id: "old", rate: 0, lifetime: 10, speed: 0, bursts: [{ count: 1 }] }] });
+    run(simulator, [stale], 1);
+    expect(simulator.countOf("torch", "old")).toBe(1);
+    const current = [source({ emitters: [
+      { id: "burst", playOnStart: false, rate: 0, lifetime: 10 },
+      { id: "trail", playOnStart: false, rate: 0, lifetime: 10 }
+    ] })];
+    simulator.sync(current);
+    simulator.emit([{ kind: "particles", entityId: "torch", count: 3 }]);
+    simulator.step(TICK);
+    expect(simulator.countOf("torch", "burst")).toBe(3);
+    expect(simulator.countOf("torch", "trail")).toBe(0);
   });
 });
 
