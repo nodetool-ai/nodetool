@@ -6,7 +6,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { FlexColumn, GAP, PADDING } from "../../ui_primitives";
 import { NodeInputs } from "../../node/NodeInputs";
-import { NodeOutputs } from "../../node/NodeOutputs";
+import NodePortBand from "../../node/NodePortBand";
 import OutputRenderer from "../../node/OutputRenderer";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -73,6 +73,10 @@ const ConstantSketchBody: React.FC<ConstantSketchBodyProps> = ({
       padding={PADDING.compact}
       gap={GAP.tight}
     >
+      <NodePortBand
+        id={id}
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+      />
       <FlexColumn className="constant-sketch-body__preview" fullWidth>
         <OutputRenderer value={value} showTextActions={false} />
       </FlexColumn>
@@ -88,7 +92,6 @@ const ConstantSketchBody: React.FC<ConstantSketchBodyProps> = ({
           />
         </FlexColumn>
       )}
-      {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </FlexColumn>
   );

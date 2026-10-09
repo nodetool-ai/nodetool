@@ -16,6 +16,25 @@ import { useUpstreamValue } from "../../../../hooks/nodes/useNodeIO";
 // Media sources resolve through TanStack Query; these suites render no
 // QueryClientProvider, so use the manual mock (resolution itself is covered
 // by hooks/__tests__/useResolvedMediaUri.test.tsx).
+jest.mock("../../../../components/node/NodePortBand", () => ({
+  __esModule: true,
+  default: ({
+    properties = [],
+    outputs
+  }: {
+    properties?: Array<{ name: string }>;
+    outputs?: unknown[];
+  }) => (
+    <>
+      <div
+        data-testid="handle-column"
+        data-handles={properties.map((p) => p.name).join(",")}
+      />
+      {outputs && <div data-testid="node-outputs" />}
+    </>
+  )
+}));
+
 jest.mock("../../../../hooks/useResolvedMediaUri");
 
 const { render } = nodeStoreRenderers(
@@ -44,14 +63,6 @@ jest.mock("../../../../serverState/useAsset", () => ({
   useAsset: jest.fn(() => ({ uri: undefined }))
 }));
 
-jest.mock("../../../../components/node/HandleColumn", () => ({
-  __esModule: true,
-  default: () => null
-}));
-jest.mock("../../../../components/node/NodeOutputs", () => ({
-  __esModule: true,
-  NodeOutputs: () => null
-}));
 jest.mock("../../../../components/node/NodeProgress", () => ({
   __esModule: true,
   default: () => null

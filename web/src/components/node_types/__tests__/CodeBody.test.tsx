@@ -30,6 +30,25 @@ installGlobal("ResizeObserver", SizedResizeObserver);
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 
+jest.mock("../../node/NodePortBand", () => ({
+  __esModule: true,
+  default: ({
+    properties = [],
+    outputs
+  }: {
+    properties?: Array<{ name: string }>;
+    outputs?: unknown[];
+  }) => (
+    <>
+      <div
+        data-testid="handle-column"
+        data-handles={properties.map((p) => p.name).join(",")}
+      />
+      {outputs && <div data-testid="node-outputs" />}
+    </>
+  )
+}));
+
 jest.mock("../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: jest.fn(() => ({
     setProperty: mockSetProperty,
@@ -98,20 +117,10 @@ jest.mock("../../../hooks/editor/useMonacoEditor", () => ({
   })
 }));
 
-jest.mock("../../node/HandleColumn", () => ({
-  __esModule: true,
-  default: () => <div data-testid="handle-column" />
-}));
-
 jest.mock("../../node/NodeInputs", () => ({
   __esModule: true,
   NodeInputs: () => <div data-testid="node-inputs" />,
   default: () => <div data-testid="node-inputs" />
-}));
-
-jest.mock("../../node/NodeOutputs", () => ({
-  __esModule: true,
-  NodeOutputs: () => <div data-testid="node-outputs" />
 }));
 
 jest.mock("../../node/NodeProgress", () => ({

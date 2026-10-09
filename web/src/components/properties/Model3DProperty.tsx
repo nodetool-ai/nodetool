@@ -40,10 +40,12 @@ const styles = (theme: Theme) =>
       alignItems: "normal",
       gap: "0"
     },
+    // Inside the drop area's top-right corner: above it, the button rode up
+    // into whatever sits over the field (on a node, the labeled port rows).
     ".toggle-url-button": {
       position: "absolute",
-      top: "-15px",
-      right: "0",
+      top: theme.spacing(SPACING.xs),
+      right: theme.spacing(SPACING.xs),
       zIndex: Z_INDEX.raised,
       color: theme.vars.palette.grey[500],
       backgroundColor: "transparent",

@@ -16,9 +16,8 @@ import LinkOffIcon from "@mui/icons-material/LinkOff";
 import ImageIcon from "@mui/icons-material/Image";
 
 import { SPACING, CheckerDropzone, FlexRow, StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
-import HandleColumn from "../../node/HandleColumn";
+import NodePortBand from "../../node/NodePortBand";
 import ImageRefPreview from "../../node/ImageRefPreview";
-import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
 
@@ -55,11 +54,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      "& > .handle-column": {
-        top: theme.spacing(SPACING.micro),
-        bottom: 0,
-        left: `calc(-1 * ${theme.spacing(SPACING.micro)})`
-      },
       "& img": {
         display: "block",
         width: "100%",
@@ -89,9 +83,6 @@ const styles = (theme: Theme) =>
       flex: "1 1 50%",
       minWidth: 0
     },
-    ".outputs-row": {
-      flex: "0 0 auto"
-    }
   });
 
 const extractDims = (
@@ -216,6 +207,11 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
 
   return (
     <div css={cssStyles} className="resize-body" data-bespoke-body="Resize">
+      <NodePortBand
+        id={id}
+        properties={imageProperty}
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+      />
       <div className="preview-area">
         <ImagePreview value={previewValue} />
         {previewDims.width != null && previewDims.height != null && (
@@ -223,7 +219,6 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
             {previewDims.width} × {previewDims.height}
           </span>
         )}
-        <HandleColumn id={id} properties={imageProperty} />
       </div>
 
       <FlexRow className="controls-row" align="flex-end" gap={0.5}>
@@ -276,14 +271,6 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
         </div>
       </FlexRow>
 
-      {!isOutputNode && (
-        <div className="outputs-row">
-          <NodeOutputs
-            id={id}
-            outputs={nodeMetadata.outputs}
-          />
-        </div>
-      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

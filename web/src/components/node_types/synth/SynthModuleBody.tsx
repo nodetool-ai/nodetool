@@ -108,6 +108,11 @@ const styles = (theme: Theme) =>
     ".outputs-row": {
       flex: "0 0 auto"
     },
+    // The faceplate prints its own jack names (`.jack-labels`) beside the
+    // handles, so the generic handle labels would print them twice.
+    "& .handle-label": {
+      display: "none"
+    },
     /* Collapsed: hide the faceplate, keep handles. */
     ".node-body.collapsed &.synth-module-body": {
       padding: 0,

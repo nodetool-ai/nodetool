@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { Caption, FlexColumn, Box } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
-import { NodeOutputs } from "../NodeOutputs";
+import NodePortBand from "../NodePortBand";
 import NodeProgress from "../NodeProgress";
 import NodePropertyForm from "../NodePropertyForm";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
@@ -47,6 +47,7 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
           paddingTop: 3,
         }}
       >
+        <NodePortBand id={id} outputs={nodeMetadata.outputs} />
         <WorkflowLoader nodeId={id} data={data} />
         <FlexColumn
           className="workflow-node-inputs"
@@ -107,12 +108,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
               nodeType={nodeType}
             />
           )}
-        <Box sx={{ flexShrink: 0 }}>
-          <NodeOutputs
-            id={id}
-            outputs={nodeMetadata.outputs}
-          />
-        </Box>
         {status === "running" && (
           <NodeProgress id={id} workflowId={workflowId} />
         )}

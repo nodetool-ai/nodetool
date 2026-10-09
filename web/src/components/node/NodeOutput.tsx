@@ -8,6 +8,7 @@ import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import isEqual from "../../utils/isEqual";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
+import HandleLabel from "./HandleLabel";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findInputHandle } from "../../utils/handleUtils";
@@ -156,6 +157,11 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
           className={`${classConnectable} ${Slugify(output.type.type)}`}
         />
       </HandleTooltip>
+      <HandleLabel
+        text={displayName ?? output.name}
+        type={output.type.type}
+        side="output"
+      />
     </div>
   );
 };

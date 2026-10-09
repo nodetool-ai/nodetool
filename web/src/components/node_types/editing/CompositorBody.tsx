@@ -38,8 +38,7 @@ import { SPACING,
   FlexRow, BORDER_RADIUS } from "../../ui_primitives";
 import CompositorEditorModal from "../../compositor/CompositorEditorModal";
 import type { CompositorEditorLayer } from "../../compositor/types";
-import HandleColumn from "../../node/HandleColumn";
-import { NodeOutputs } from "../../node/NodeOutputs";
+import NodePortBand from "../../node/NodePortBand";
 import NodeProgress from "../../node/NodeProgress";
 import LayerRow from "./LayerRow";
 import {
@@ -140,9 +139,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "flex-start",
       paddingTop: theme.spacing(SPACING.micro)
-    },
-    ".outputs-row": {
-      flex: "0 0 auto"
     },
     ".empty-state": {
       padding: theme.spacing(SPACING.xs),
@@ -398,7 +394,11 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
   return (
     <div css={cssStyles} className="compositor-body" data-bespoke-body="Compositor">
-      <HandleColumn id={id} properties={handleProperties} />
+      <NodePortBand
+        id={id}
+        properties={handleProperties}
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+      />
       <div className="preview-area">
         {previewSrc ? (
           <img src={previewSrc} alt="Composited output" />
@@ -458,14 +458,6 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
         onTransformChange={onTransformChange}
       />
 
-      {!isOutputNode && (
-        <div className="outputs-row">
-          <NodeOutputs
-            id={id}
-            outputs={nodeMetadata.outputs}
-          />
-        </div>
-      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

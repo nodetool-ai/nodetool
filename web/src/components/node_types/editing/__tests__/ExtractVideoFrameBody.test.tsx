@@ -9,6 +9,25 @@ import "@testing-library/jest-dom";
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 
+jest.mock("../../../node/NodePortBand", () => ({
+  __esModule: true,
+  default: ({
+    properties = [],
+    outputs
+  }: {
+    properties?: Array<{ name: string }>;
+    outputs?: unknown[];
+  }) => (
+    <>
+      <div
+        data-testid="handle-column"
+        data-handles={properties.map((p) => p.name).join(",")}
+      />
+      {outputs && <div data-testid="node-outputs" />}
+    </>
+  )
+}));
+
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: jest.fn(() => ({
     setProperty: mockSetProperty,
@@ -30,23 +49,11 @@ jest.mock("../../../../hooks/nodes/useMediaSrc", () => ({
   useMediaSrc: () => mockSrc
 }));
 
-jest.mock("../../../node/HandleColumn", () => ({
-  __esModule: true,
-  default: ({ id }: { id: string }) => (
-    <div data-testid="handle-column">{id}</div>
-  )
-}));
-
 jest.mock("../../../inputs/NumberInput", () => ({
   __esModule: true,
   default: ({ value }: { value: number }) => (
     <div data-testid="frame-input">{value}</div>
   )
-}));
-
-jest.mock("../../../node/NodeOutputs", () => ({
-  __esModule: true,
-  NodeOutputs: () => <div data-testid="node-outputs" />
 }));
 
 jest.mock("../../../node/NodeProgress", () => ({

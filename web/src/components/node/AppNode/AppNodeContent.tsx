@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
-import { Box, FlexColumn } from "../../ui_primitives";
+import { FlexColumn } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
-import { NodeOutputs } from "../NodeOutputs";
+import NodePortBand from "../NodePortBand";
 import NodeProgress from "../NodeProgress";
 import { AppLoader } from "./AppLoader";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -41,6 +41,7 @@ export const AppNodeContent: React.FC<AppNodeContentProps> = memo(
           paddingTop: 1
         }}
       >
+        <NodePortBand id={id} outputs={nodeMetadata.outputs} />
         <AppLoader nodeId={id} data={data} />
         <FlexColumn
           className="app-node-inputs"
@@ -57,9 +58,6 @@ export const AppNodeContent: React.FC<AppNodeContentProps> = memo(
             editableDynamicInputs={false}
           />
         </FlexColumn>
-        <Box sx={{ flexShrink: 0 }}>
-          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
-        </Box>
         {status === "running" && (
           <NodeProgress id={id} workflowId={workflowId} />
         )}

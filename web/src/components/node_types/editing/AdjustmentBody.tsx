@@ -23,9 +23,8 @@ import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
 import { SPACING, CheckerDropzone, BORDER_RADIUS } from "../../ui_primitives";
-import HandleColumn from "../../node/HandleColumn";
+import NodePortBand from "../../node/NodePortBand";
 import ImageRefPreview from "../../node/ImageRefPreview";
-import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
@@ -50,11 +49,6 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
-    },
-    "& > .handle-column": {
-      top: theme.spacing(SPACING.xs),
-      bottom: theme.spacing(SPACING.xs),
-      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -82,9 +76,6 @@ const styles = (theme: Theme) =>
       rowGap: theme.spacing(SPACING.xs),
       padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.xs)}`
     },
-    ".outputs-row": {
-      flex: "0 0 auto"
-    }
   });
 
 const humanize = (name: string): string =>
@@ -171,7 +162,11 @@ const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
 
   return (
     <div css={cssStyles} className="adjustment-body" data-bespoke-body="Adjustment">
-      <HandleColumn id={id} properties={imageProps} />
+      <NodePortBand
+        id={id}
+        properties={imageProps}
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+      />
       <div className="preview-area">
         <ImageRefPreview
           value={previewValue}
@@ -200,11 +195,6 @@ const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
         })}
       </div>
 
-      {!isOutputNode && (
-        <div className="outputs-row">
-          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
-        </div>
-      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

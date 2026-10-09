@@ -15,9 +15,8 @@ import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
 import { SPACING, CheckerDropzone, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
-import HandleColumn from "../../node/HandleColumn";
+import NodePortBand from "../../node/NodePortBand";
 import ImageRefPreview from "../../node/ImageRefPreview";
-import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import ColorPicker from "../../inputs/ColorPicker";
 
@@ -52,11 +51,6 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
-    },
-    "& > .handle-column": {
-      top: theme.spacing(SPACING.xs),
-      bottom: theme.spacing(SPACING.xs),
-      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -97,9 +91,6 @@ const styles = (theme: Theme) =>
       lineHeight: 1,
       whiteSpace: "nowrap"
     },
-    ".outputs-row": {
-      flex: "0 0 auto"
-    }
   });
 
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
@@ -171,7 +162,11 @@ const DropShadowBodyInner: React.FC<DropShadowBodyProps> = ({
 
   return (
     <div css={cssStyles} className="drop-shadow-body" data-bespoke-body="DropShadow">
-      <HandleColumn id={id} properties={imageProperty} />
+      <NodePortBand
+        id={id}
+        properties={imageProperty}
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+      />
       <div className="preview-area">
         <ImagePreview value={previewValue} />
       </div>
@@ -201,11 +196,6 @@ const DropShadowBodyInner: React.FC<DropShadowBodyProps> = ({
         })}
       </div>
 
-      {!isOutputNode && (
-        <div className="outputs-row">
-          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
-        </div>
-      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

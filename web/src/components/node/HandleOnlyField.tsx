@@ -2,9 +2,9 @@
 /**
  * HandleOnlyField
  *
- * Renders a single target handle for a node property — no label, no
- * editor, no value rendering. Used by `HandleColumn` for properties
- * classified as `inputFields` (data wired from upstream).
+ * Renders a single target handle for a node property with its name beside
+ * the dot — no editor, no value rendering. Used by `HandleColumn` for
+ * properties classified as `inputFields` (data wired from upstream).
  *
  * Compare with `PropertyField`, which renders the full handle + label
  * + editor row. This component is the minimal counterpart.
@@ -21,6 +21,7 @@ import { Property } from "../../stores/ApiTypes";
 import { Slugify, isCollectType } from "../../utils/TypeHandler";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
+import HandleLabel from "./HandleLabel";
 
 const styles = css({
   position: "relative",
@@ -93,6 +94,7 @@ const HandleOnlyFieldImpl: React.FC<HandleOnlyFieldProps> = ({
           }`}
         />
       </HandleTooltip>
+      <HandleLabel text={property.name} type={property.type.type} side="input" />
     </div>
   );
 };

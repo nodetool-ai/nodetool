@@ -49,6 +49,12 @@
   ) !important;
 }
 
+/* Handle labels are unreadable at this scale. `visibility` keeps the label's
+   box, so hiding them cannot resize the node mid-zoom. */
+.react-flow.zoomed-out .react-flow__node .handle-label {
+  visibility: hidden;
+}
+
 /* PreviewNode */
 .react-flow.zoomed-out .react-flow__node .preview-node {
   backdrop-filter: none !important;

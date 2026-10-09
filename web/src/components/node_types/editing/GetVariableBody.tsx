@@ -15,11 +15,10 @@ import { shallow } from "zustand/shallow";
 
 import { SPACING, SelectField, BORDER_RADIUS } from "../../ui_primitives";
 import type { SelectOption } from "../../ui_primitives";
-import HandleColumn from "../../node/HandleColumn";
-import { NodeOutputs } from "../../node/NodeOutputs";
+import NodePortBand from "../../node/NodePortBand";
 import NodeProgress from "../../node/NodeProgress";
 
-import type { NodeMetadata } from "../../../stores/ApiTypes";
+import type { NodeMetadata, OutputSlot } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -43,11 +42,6 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
-    "& > .handle-column": {
-      top: theme.spacing(SPACING.xs),
-      bottom: theme.spacing(SPACING.xs),
-      left: theme.spacing(0)
-    },
     ".explanation": {
       flex: "0 0 auto",
       fontSize: theme.fontSizeSmaller,
@@ -63,9 +57,10 @@ const styles = (theme: Theme) =>
       lineHeight: 1.4,
       color: theme.vars.palette.text.secondary,
       padding: theme.spacing(SPACING.micro)
-    },
-    ".outputs-row": { flex: "0 0 auto" }
+    }
   });
+
+const NO_STATIC_OUTPUTS: OutputSlot[] = [];
 
 interface GetVariableBodyProps {
   id: string;
@@ -151,7 +146,14 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
 
   return (
     <div css={cssStyles} className="get-variable-body" data-bespoke-body="GetVariable">
-      <HandleColumn id={id} properties={triggerProperty} />
+      {/* The single `output` handle comes from dynamic_outputs (set above to
+          the inferred variable type); passing the static output too would
+          duplicate the handle. */}
+      <NodePortBand
+        id={id}
+        properties={triggerProperty}
+        outputs={isOutputNode ? undefined : NO_STATIC_OUTPUTS}
+      />
 
       <div className="explanation">
         Reads a variable published by any Set Variable node in this workflow. It
@@ -174,15 +176,6 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
         <div className="empty-hint">
           No variables defined yet. Add a Set Variable node to this workflow to
           choose one.
-        </div>
-      )}
-
-      {!isOutputNode && (
-        <div className="outputs-row">
-          {/* The single `output` handle is rendered from dynamic_outputs (set
-              above to the inferred variable type); passing the static output
-              too would duplicate the handle. */}
-          <NodeOutputs id={id} outputs={[]} />
         </div>
       )}
 

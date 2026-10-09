@@ -22,7 +22,7 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Box, CheckerDropzone, MOTION, SPACING, SHADOW, BORDER_RADIUS, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import { Box, CheckerDropzone, MOTION, SPACING, SPACING_PX, SHADOW, BORDER_RADIUS, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -34,6 +34,8 @@ import { NodeHeader } from "../NodeHeader";
 import EditableTitle from "../EditableTitle";
 import NodeSelectionToolbar from "../NodeSelectionToolbar";
 import NodeOutput from "../NodeOutput";
+import HandleLabel from "../HandleLabel";
+import { HANDLE_ROW_HEIGHT, HANDLE_ROW_PITCH } from "../HandleColumn";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeResizer from "../NodeResizer";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
@@ -166,7 +168,9 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       minWidth: 0,
       overflow: "visible",
       borderRadius: BORDER_RADIUS.sm,
-      "--sketch-handle-stack-gap": "10px"
+      "--sketch-handle-stack-gap": "10px",
+      // Handle labels size against the preview's width (`cqw`).
+      containerType: "inline-size"
     },
     ".sketch-input-handles": {
       position: "absolute",
@@ -188,6 +192,8 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       alignItems: "flex-end",
       gap: "var(--sketch-handle-stack-gap)"
     },
+    // Starts under the labeled port rows (`top` is set inline from the row
+    // count), so no label sits on the preview.
     ".sketch-preview-wrap": {
       position: "absolute",
       inset: 0,
@@ -276,6 +282,8 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
   });
 
 const EMPTY_ASSETS: Asset[] = [];
+/** image, mask and Layers: the outputs every sketch node has. */
+const SKETCH_STATIC_OUTPUT_COUNT = 3;
 
 const getSketchRefId = (value: unknown): string | null =>
   isObjectLike(value) && isString(value.id) && value.id.length > 0
@@ -583,6 +591,17 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       })),
     [exposedOutputLayers]
   );
+
+  // The preview starts below the taller of the two handle stacks.
+  const previewWrapStyle = useMemo(() => {
+    const rows = Math.max(
+      exposedInputLayers.length,
+      SKETCH_STATIC_OUTPUT_COUNT + exposedOutputLayerOutputs.length
+    );
+    return {
+      top: HANDLE_ROW_HEIGHT + (rows - 1) * HANDLE_ROW_PITCH + SPACING_PX.xs
+    };
+  }, [exposedInputLayers.length, exposedOutputLayerOutputs.length]);
 
   // ─── Resolve source node IDs for all image inputs ─────────────────
   // Connected values live on the SOURCE node's result, not this node's own
@@ -1315,6 +1334,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           <div className="sketch-main">
             <div
               className="sketch-preview-wrap"
+              style={previewWrapStyle}
               role="button"
               aria-label="Open sketch editor"
               tabIndex={0}
@@ -1366,6 +1386,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                     isConnectable={true}
                     className={Slugify("image")}
                   />
+                  <HandleLabel text={layer.name} type="image" side="input" />
                 </HandleTooltip>
               ))}
             </div>

@@ -41,7 +41,7 @@ import { SPACING,
   reducedMotion
 } from "../../ui_primitives";
 import { NodeInputs } from "../../node/NodeInputs";
-import { NodeOutputs } from "../../node/NodeOutputs";
+import NodePortBand from "../../node/NodePortBand";
 import NodeProgress from "../../node/NodeProgress";
 
 import type {
@@ -153,7 +153,6 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.info.main
     },
     ".dynamic-inputs": { flex: "0 0 auto" },
-    ".outputs-row": { flex: "0 0 auto" }
   });
 
 const composerTheme = {
@@ -415,6 +414,11 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
         className="prompt-composer-body node-drag-handle"
         data-bespoke-body="Prompt"
       >
+        <NodePortBand
+          id={id}
+          properties={[]}
+          outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+        />
         <LexicalComposer initialConfig={initialConfig}>
           <div
             ref={composerAreaRef}
@@ -470,11 +474,6 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
           </div>
         )}
 
-        {!isOutputNode && (
-          <div className="outputs-row">
-            <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
-          </div>
-        )}
 
         {status === "running" && (
           <NodeProgress id={id} workflowId={workflowId} />

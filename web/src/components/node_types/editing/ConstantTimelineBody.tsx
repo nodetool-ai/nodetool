@@ -6,7 +6,7 @@ import type { NodeData } from "../../../stores/NodeData";
 import ViewTimelineIcon from "@mui/icons-material/ViewTimeline";
 import { CheckerDropzone, FlexColumn, GAP, PADDING } from "../../ui_primitives";
 import { NodeInputs } from "../../node/NodeInputs";
-import { NodeOutputs } from "../../node/NodeOutputs";
+import NodePortBand from "../../node/NodePortBand";
 import OutputRenderer from "../../node/OutputRenderer";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -71,6 +71,10 @@ const ConstantTimelineBody: React.FC<ConstantTimelineBodyProps> = ({
       padding={PADDING.compact}
       gap={GAP.tight}
     >
+      <NodePortBand
+        id={id}
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+      />
       <FlexColumn className="constant-timeline-body__preview" fullWidth>
         {value === undefined || value === null ? (
           <CheckerDropzone message="Choose a timeline" icon={<ViewTimelineIcon />} />
@@ -90,7 +94,6 @@ const ConstantTimelineBody: React.FC<ConstantTimelineBodyProps> = ({
           />
         </FlexColumn>
       )}
-      {!isOutputNode && <NodeOutputs id={id} outputs={nodeMetadata.outputs} />}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </FlexColumn>
   );

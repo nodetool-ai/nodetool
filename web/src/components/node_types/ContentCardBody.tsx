@@ -14,8 +14,9 @@
  *                         node toolbar)
  *
  * Inline fields are rendered below the preview via the existing
- * `NodeInputs` infrastructure. Input fields render as handle-only ports on
- * the left edge via `HandleColumn`. Everything else stays in the Inspector.
+ * `NodeInputs` infrastructure. Input fields and outputs render as labeled
+ * port rows above the preview via `NodePortBand`. Everything else stays in
+ * the Inspector.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -44,10 +45,10 @@ import {
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
 import AddDynamicOutputButton from "../node/AddDynamicOutputButton";
-import HandleColumn from "../node/HandleColumn";
+import NodePortBand from "../node/NodePortBand";
+import NodeModelChips from "../node/NodeModelChips";
 import ImageView from "../node/ImageView";
 import OutputRenderer from "../node/OutputRenderer";
-import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
 import { getMimeTypeFromUri } from "../node/output";
 import { useMediaSrc } from "../../hooks/nodes/useMediaSrc";
@@ -105,9 +106,10 @@ const styles = (theme: Theme) =>
       padding: `${theme.spacing(1)} ${theme.spacing(0.5)} ${theme.spacing(0.5)}`,
       minHeight: 0
     },
-    // Inputs sit inside this body's own padding as well as the node's, so the
-    // handle steps back past both to center on the node edge.
-    "&.content-card-body .react-flow__handle-left": {
+    // Inline inputs sit inside this body's own padding as well as the node's,
+    // so the handle steps back past both to center on the node edge. The port
+    // band compensates for the body padding itself.
+    "&.content-card-body > :not(.node-port-band) .react-flow__handle-left": {
       left: `calc(-6px - var(--node-body-padding, 0px) - ${theme.spacing(0.5)})`
     },
     // Text variant inherits the node body color instead of the dark media
@@ -134,21 +136,11 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       minHeight: theme.spacing(6),
       borderRadius: BORDER_RADIUS.sm,
-      // Allow the handle column to extend past the preview's left edge so
-      // the handle dots align with the card's outer edge (compensates for
-      // the body's padding).
       overflow: "visible",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      // Scope the handle column to the preview area's vertical bounds so
-      // handles for `exposedInputs` never overlap inline-field rows below.
-      "& > .handle-column": {
-        top: 0,
-        bottom: 0,
-        left: `calc(${theme.spacing(0)})`
-      },
       // Video preview fills the area; its action overlay (download / save to
       // assets) reveals on hover, top-right, clear of the player's bottom bar.
       ".video-preview": {
@@ -302,11 +294,6 @@ const styles = (theme: Theme) =>
         marginTop: 0,
         marginBottom: 0
       }
-    },
-    // Input handles are rendered by <HandleColumn /> — see HandleColumn.tsx
-    // for the left-edge absolute positioning.
-    ".outputs-row": {
-      flex: "0 0 auto"
     },
     ".footer-strip": {
       flex: "0 0 auto",
@@ -831,6 +818,19 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       data-node-sized={isNodeSized ? "true" : undefined}
       data-streaming={status === "running" ? "true" : undefined}
     >
+      <NodePortBand
+        id={id}
+        properties={handleProps}
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+        connectedEdges={connectedEdges}
+      />
+      <NodeModelChips
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+      />
+
       <div className="preview-area">
         {usesHistoryNavigator ? (
           <NodeHistoryViewer
@@ -847,10 +847,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             nodeId={id}
           />
         )}
-        {/* Handle column lives inside the preview so its vertical extent
-            is bounded by the preview — keeps `exposedInputs` handles from
-            colliding with inline-field rows below. */}
-        <HandleColumn id={id} properties={handleProps} connectedEdges={connectedEdges} />
       </div>
 
       {/* Inline fields: rendered as full editors in normal flow under preview.
@@ -900,15 +896,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         data={data}
         properties={properties}
       />
-
-      {!isOutputNode && (
-        <div className="outputs-row">
-          <NodeOutputs
-            id={id}
-            outputs={nodeMetadata.outputs}
-          />
-        </div>
-      )}
 
       {(isDynamic || supportsDynamicOutputs) && (
         <FlexColumn className="footer-strip" align="flex-start" gap={0.5}>

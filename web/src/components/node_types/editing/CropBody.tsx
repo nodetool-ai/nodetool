@@ -37,8 +37,7 @@ import { SPACING,
   Select,
   type SelectChangeEvent
 } from "../../ui_primitives";
-import HandleColumn from "../../node/HandleColumn";
-import { NodeOutputs } from "../../node/NodeOutputs";
+import NodePortBand from "../../node/NodePortBand";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
 
@@ -84,11 +83,6 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
-    },
-    "& > .handle-column": {
-      top: theme.spacing(SPACING.xs),
-      bottom: theme.spacing(SPACING.xs),
-      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -215,9 +209,6 @@ const styles = (theme: Theme) =>
         fontSize: 14
       }
     },
-    ".outputs-row": {
-      flex: "0 0 auto"
-    }
   });
 
 interface ImageRefLike {
@@ -606,7 +597,11 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
 
   return (
     <div css={cssStyles} className="crop-body" data-bespoke-body="Crop">
-      <HandleColumn id={id} properties={imageProperty} />
+      <NodePortBand
+        id={id}
+        properties={imageProperty}
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+      />
       <div className="preview-area">
         <div className="image-stage" ref={stageRef}>
           {sourceSrc ? (
@@ -769,14 +764,6 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
         </button>
       </div>
 
-      {!isOutputNode && (
-        <div className="outputs-row">
-          <NodeOutputs
-            id={id}
-            outputs={nodeMetadata.outputs}
-          />
-        </div>
-      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

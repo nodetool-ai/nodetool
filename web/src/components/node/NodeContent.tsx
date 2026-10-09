@@ -1,7 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { FlexColumn } from "../ui_primitives";
 import { NodeInputs } from "./NodeInputs";
-import { NodeOutputs } from "./NodeOutputs";
 import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
@@ -9,7 +8,8 @@ import { isContentCardNode } from "../node_types/contentCardRegistry";
 import ContentCardBody from "../node_types/ContentCardBody";
 import CodeBody from "../node_types/CodeBody";
 import { getBespokeBody } from "../node_types/editing/bespokeRegistry";
-import HandleColumn from "./HandleColumn";
+import NodePortBand from "./NodePortBand";
+import NodeModelChips from "./NodeModelChips";
 import { isSnippetCodeNode, isCodeBodyNode } from "./codeNodeUi";
 import {
   resolveExposedInputNames,
@@ -146,11 +146,17 @@ const NodeContent: React.FC<NodeContentProps> = ({
       fullHeight
       sx={FLEX_COLUMN_SX}
     >
-      <HandleColumn
+      <NodePortBand
         id={id}
         properties={inputProperties}
-        layout="stacked"
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
         connectedEdges={connectedEdges}
+      />
+      <NodeModelChips
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
       />
       <NodeInputs
         id={id}
@@ -175,12 +181,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
           dynamicOutputs={data.dynamic_outputs || {}}
           onAddProperty={handleAddProperty}
           nodeType={nodeType}
-        />
-      )}
-      {!isOutputNode && (
-        <NodeOutputs
-          id={id}
-          outputs={nodeMetadata.outputs}
         />
       )}
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}

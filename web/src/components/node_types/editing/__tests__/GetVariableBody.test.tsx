@@ -15,6 +15,25 @@ const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 const mockUpdateNodeData = jest.fn();
 
+jest.mock("../../../node/NodePortBand", () => ({
+  __esModule: true,
+  default: ({
+    properties = [],
+    outputs
+  }: {
+    properties?: Array<{ name: string }>;
+    outputs?: unknown[];
+  }) => (
+    <>
+      <div
+        data-testid="handle-column"
+        data-handles={properties.map((p) => p.name).join(",")}
+      />
+      {outputs && <div data-testid="node-outputs" />}
+    </>
+  )
+}));
+
 jest.mock("../useGraphVariables", () => ({
   useGraphVariableNames: jest.fn(() => []),
   useGraphVariableTypes: jest.fn(() => new Map())
@@ -33,16 +52,6 @@ jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
     setProperties: jest.fn(),
     setPropertyComplete: mockSetPropertyComplete
   }))
-}));
-
-jest.mock("../../../node/HandleColumn", () => ({
-  __esModule: true,
-  default: () => <div data-testid="handle-column" />
-}));
-
-jest.mock("../../../node/NodeOutputs", () => ({
-  __esModule: true,
-  NodeOutputs: () => <div data-testid="node-outputs" />
 }));
 
 jest.mock("../../../node/NodeProgress", () => ({

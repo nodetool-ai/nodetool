@@ -21,7 +21,7 @@ import type { Theme } from "@mui/material/styles";
 
 import { SPACING, CheckerDropzone, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
 import ImageRefPreview from "../../node/ImageRefPreview";
-import { NodeOutputs } from "../../node/NodeOutputs";
+import NodePortBand from "../../node/NodePortBand";
 import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -111,9 +111,6 @@ const styles = (theme: Theme) =>
       rowGap: theme.spacing(SPACING.xs),
       padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.xs)}`
     },
-    ".outputs-row": {
-      flex: "0 0 auto"
-    }
   });
 
 export { GENERATOR_NODE_TYPES } from "./bespokeNodeTypes";
@@ -222,6 +219,11 @@ const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
 
   return (
     <div css={cssStyles} className="generator-body" data-bespoke-body="Generator">
+      <NodePortBand
+        id={id}
+        properties={[]}
+        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+      />
       <div className="preview-area">
         <ImageRefPreview
           value={previewValue}
@@ -270,11 +272,6 @@ const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
         })}
       </div>
 
-      {!isOutputNode && (
-        <div className="outputs-row">
-          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
-        </div>
-      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

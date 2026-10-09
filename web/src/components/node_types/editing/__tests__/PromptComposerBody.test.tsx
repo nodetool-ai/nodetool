@@ -12,6 +12,25 @@ const mockSetProperties = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 const mockAddProperty = jest.fn();
 
+jest.mock("../../../node/NodePortBand", () => ({
+  __esModule: true,
+  default: ({
+    properties = [],
+    outputs
+  }: {
+    properties?: Array<{ name: string }>;
+    outputs?: unknown[];
+  }) => (
+    <>
+      <div
+        data-testid="handle-column"
+        data-handles={properties.map((p) => p.name).join(",")}
+      />
+      {outputs && <div data-testid="node-outputs" />}
+    </>
+  )
+}));
+
 jest.mock("../useGraphVariables", () => ({
   useGraphVariableNames: jest.fn(() => [])
 }));
@@ -37,11 +56,6 @@ jest.mock("../../../../hooks/nodes/useDynamicProperty", () => ({
 jest.mock("../../../node/NodeInputs", () => ({
   __esModule: true,
   NodeInputs: () => <div data-testid="node-inputs" />
-}));
-
-jest.mock("../../../node/NodeOutputs", () => ({
-  __esModule: true,
-  NodeOutputs: () => <div data-testid="node-outputs" />
 }));
 
 // Covered by its own test; needs a NodeContext this suite does not provide.

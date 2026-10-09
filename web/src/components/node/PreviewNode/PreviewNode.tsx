@@ -47,6 +47,11 @@ import { isObjectLike } from "../../../utils/typePredicates";
 const styles = (theme: Theme) =>
   css([
     {
+      // This node pins its handles to the header row, whose title names
+      // them; a handle label there would sit on the title and its actions.
+      "& .handle-label": {
+        display: "none"
+      },
       "&": {
         display: "flex",
         flexDirection: "column",

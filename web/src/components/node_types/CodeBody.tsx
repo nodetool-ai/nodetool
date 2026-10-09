@@ -35,9 +35,8 @@ import {
   ToolbarIconButton
 } from "../ui_primitives";
 import { EditorActivationCover, editorClassNames, cn } from "../editor_ui";
-import HandleColumn from "../node/HandleColumn";
+import NodePortBand from "../node/NodePortBand";
 import { NodeInputs } from "../node/NodeInputs";
-import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
 import NodePropertyForm from "../node/NodePropertyForm";
 import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
@@ -168,9 +167,6 @@ const styles = (theme: Theme) =>
       alignItems: "flex-start",
       cursor: "text"
     },
-    ".outputs-row": {
-      flex: "0 0 auto"
-    }
   });
 
 const CodeBodyInner: React.FC<CodeBodyProps> = ({
@@ -414,7 +410,11 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
       sx={{ position: "relative", minHeight: 0 }}
     >
       <div css={cssStyles} className="code-body" data-bespoke-body="Code">
-        <HandleColumn id={id} properties={inputProperties} />
+        <NodePortBand
+          id={id}
+          properties={inputProperties}
+          outputs={isOutputNode ? undefined : nodeMetadata.outputs}
+        />
 
         {supportsCodeGen && (
           <CodeNodeScriptLink id={id} data={data} nodeType={nodeType} />
@@ -511,11 +511,6 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           />
         )}
 
-        {!isOutputNode && (
-          <div className="outputs-row">
-            <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
-          </div>
-        )}
 
         {status === "running" && (
           <NodeProgress id={id} workflowId={workflowId} />
