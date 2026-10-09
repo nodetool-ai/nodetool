@@ -11,7 +11,10 @@ import GameShortcutsDialog from "./GameShortcutsDialog";
 import { GameDockCanvas } from "./GameDockCanvas";
 import { GameLayoutMenu } from "./GameLayoutMenu";
 import { useGameDockPresentation } from "./useGameDockPresentation";
-import { dispatchGameShortcut, resolveGameBindings, type GameCommandHandlers } from "./gameCommands";
+import { dispatchGameShortcut, formatGameBinding, GAME_COMMANDS, resolveGameBindings, type GameCommandHandlers } from "./gameCommands";
+import type { ContextCommand } from "../../../stores/CommandMenuStore";
+import { useContextCommands } from "../../../hooks/useContextCommands";
+import { isMac } from "../../../utils/platform";
 import { createGameCommandRegistry, GameCommandContext } from "./useGameCommands";
 import { gamePanelRegistry, type GameDimension, type GamePanelRegistry } from "./panelRegistry";
 import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
@@ -34,10 +37,12 @@ interface GameEditorShellProps {
   readonly dialogs?: ReactNode;
   /** Handlers for registry commands. Components inside the shell can add more with `useGameCommandHandlers`. */
   readonly commands?: GameCommandHandlers;
+  /** Whether this editor's tab is the one on screen; its commands join the app's command menu while it is. */
+  readonly active?: boolean;
 }
 
 export default function GameEditorShell({ dimension, toolbar, status, panels, layoutStore, registry = gamePanelRegistry,
-  notices, mobile, dialogs, commands }: GameEditorShellProps): ReactNode {
+  notices, mobile, dialogs, commands, active = true }: GameEditorShellProps): ReactNode {
   const root = useRef<HTMLDivElement | null>(null);
   const registrations = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
   const layout = useStore(layoutStore, (state) => state.layout);
@@ -66,6 +71,21 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
   const fallback = useRef<GameCommandHandlers>({});
   useLayoutEffect(() => { fallback.current = { ...builtIn, ...commands }; });
   const [commandRegistry] = useState(() => createGameCommandRegistry(() => fallback.current));
+  const playSession = toolbar.playSession;
+  // The registry's commands in the app's command menu. A handler is looked up when the command runs,
+  // so one disabled or missing by then does nothing.
+  const menuCommands = useMemo<ContextCommand[]>(() => GAME_COMMANDS
+    .filter((entry) => entry.id !== "editor.commandPalette" && entry.dimensions.includes(dimension) && (!playSession || entry.whilePlaying))
+    .map((entry) => {
+      const binding = bindings.get(entry.id)?.[0];
+      return { id: entry.id, label: entry.title, keywords: [entry.category],
+        shortcut: binding ? formatGameBinding(binding, isMac()).join("+") : undefined,
+        run: () => {
+          const handler = commandRegistry.handler(entry.id);
+          if (handler && handler.enabled !== false) { handler.run(); }
+        } };
+    }), [bindings, commandRegistry, dimension, playSession]);
+  useContextCommands("Game", menuCommands, active);
   return <EditorUiProvider scope="inspector"><GameCommandContext.Provider value={commandRegistry}><FlexColumn ref={root} sx={GAME_EDITOR_ROOT_SX}
     onKeyDown={(event) => {
       // Dialogs render in portals, so their key presses bubble here through React without being inside the editor element.

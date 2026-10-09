@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useSketchStore } from "./state";
 import type {
   SketchTool,
@@ -10,7 +10,10 @@ import type {
   ShapeSettings,
   SelectSettings
 } from "./types";
-import { resolveAction, isInteractiveTarget, focusOwnsKey, ACTION_HANDLERS, useSpringLoadedModifiers } from "./shortcuts";
+import { resolveAction, isInteractiveTarget, focusOwnsKey, ACTION_HANDLERS, ACTION_REGISTRY, displayCombo, useSpringLoadedModifiers } from "./shortcuts";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
+import { useContextCommands } from "../../hooks/useContextCommands";
+import { isCommandMenuShortcut } from "../menus/commandMenuShortcut";
 import { offsetSelectionByDocumentDelta } from "./selection";
 
 type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
@@ -166,6 +169,10 @@ export function useEditorKeyboardShortcuts(
       if (paramsRef.current.suspendKeyboardShortcuts) {
         return;
       }
+      // The app's command menu owns Cmd/Ctrl+K on every view.
+      if (isCommandMenuShortcut(e)) {
+        return;
+      }
 
       // Prevent all sketch key events from bleeding into the node editor.
       e.stopPropagation();
@@ -259,4 +266,28 @@ export function useEditorKeyboardShortcuts(
     paramsRef.current.syncSketchOutputsNow();
     useSketchStore.getState().setTransientMoveModifierHeld(false);
   }, [params.suspendKeyboardShortcuts]);
+
+  // The same actions in the command menu. Mode-only actions (transform, crop)
+  // and the held-key ones (nudge, opacity digits) only make sense as keys.
+  const commands = useMemo<ContextCommand[]>(
+    () =>
+      ACTION_REGISTRY.filter(
+        (action) =>
+          !action.displayGroup.startsWith("Mode:") &&
+          action.id !== "tool-opacity-preset" &&
+          ACTION_HANDLERS[action.id] !== undefined
+      ).map((action) => ({
+        id: action.id,
+        label: action.displayGroup === "Tools" ? `${action.label} Tool` : action.label,
+        keywords: [action.displayGroup],
+        shortcut: displayCombo(action.id) || undefined,
+        run: () =>
+          ACTION_HANDLERS[action.id]?.(
+            new KeyboardEvent("keydown"),
+            paramsRef.current
+          )
+      })),
+    []
+  );
+  useContextCommands("Sketch", commands, !params.suspendKeyboardShortcuts);
 }

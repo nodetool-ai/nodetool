@@ -1,57 +1,42 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { Command, CommandInput } from "cmdk";
-import {
-  Workflow,
-  WorkflowGraph,
-  WorkflowList,
-  WorkflowRequest
-} from "../../stores/ApiTypes";
-import { useCallback, useEffect, useState, useRef, memo } from "react";
-import { Dialog } from "../ui_primitives";
-import { getMousePosition } from "../../utils/MousePosition";
+import React, { useCallback, useEffect, useRef, memo } from "react";
+import { Command } from "cmdk";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { shallow } from "zustand/shallow";
+import { useReactFlow } from "@xyflow/react";
+import { WorkflowGraph, WorkflowRequest } from "../../stores/ApiTypes";
+import { runCommandAndClose, useCommandMenuStore } from "../../stores/CommandMenuStore";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import isEqual from "../../utils/isEqual";
-import React from "react";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceDocumentClose } from "../../hooks/useWorkspaceDocumentClose";
-import { useNavigate } from "react-router-dom";
 import {
   exportWorkflowBundle,
   importWorkflowBundle
 } from "../../utils/workflowBundle";
-import {
-  exportApplicationBundle,
-  importApplicationBundle
-} from "../../utils/applicationBundle";
 import {
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowShareDialogStore } from "../../stores/WorkflowShareDialogStore";
 import { useNodes } from "../../contexts/NodeContext";
-import { create } from "zustand";
-import { shallow } from "zustand/shallow";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useFitView } from "../../hooks/useFitView";
-import { useReactFlow } from "@xyflow/react";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
-import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { useFindInWorkflowStore } from "../../stores/FindInWorkflowStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useCanvasChatDockStore } from "../../stores/CanvasChatDockStore";
-import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
+import CommandPalette from "./CommandPalette";
 
 // Icons — Workflow
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
@@ -75,8 +60,6 @@ import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import GroupWorkRoundedIcon from "@mui/icons-material/GroupWorkRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
-import BugReportIcon from "@mui/icons-material/BugReport";
-import { openBugReport } from "../../stores/BugReportStore";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 
 // Icons — Layout & Alignment
@@ -107,8 +90,6 @@ import PermMediaRoundedIcon from "@mui/icons-material/PermMediaRounded";
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 
-// Icons — Nodes & Workflows list
-import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
 import {
   isBoolean,
   isNumber,
@@ -117,22 +98,9 @@ import {
 } from "../../utils/typePredicates";
 
 type CommandMenuProps = {
-  open: boolean;
-  setOpen: (open: boolean) => void;
   undo: (steps?: number | undefined) => void;
   redo: (steps?: number | undefined) => void;
-  reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
 };
-
-const styles = () =>
-  css({
-    ".MuiDialog-paper": {
-      maxWidth: "800px",
-      width: "40vw",
-      background: "transparent",
-      boxShadow: "none"
-    }
-  });
 
 type WorkflowSettings = NonNullable<WorkflowRequest["settings"]>;
 
@@ -185,7 +153,6 @@ const readImportedWorkflow = (
 };
 
 const WorkflowCommands = memo(function WorkflowCommands() {
-  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   // Optimization: use shallow equality to prevent the CommandMenu from
   // re-rendering 60 times a second on unrelated node position updates
   const {
@@ -279,6 +246,8 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     }
   };
 
+  // The pickers open inside the selection's user activation and keep the
+  // menu, and with it their file inputs, mounted until a file is chosen.
   const handleImportWorkflow = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
@@ -287,6 +256,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      useCommandMenuStore.getState().setOpen(false);
       try {
         const text = await file.text();
         const parsed = readImportedWorkflow(text);
@@ -344,6 +314,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      useCommandMenuStore.getState().setOpen(false);
       try {
         const result = await importWorkflowBundle(file);
         await queryClient.invalidateQueries({ queryKey: ["workflows"] });
@@ -387,40 +358,40 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         onChange={handleBundleFileChange}
       />
     <Command.Group heading="Workflow">
-      <Command.Item onSelect={() => executeAndClose(handleRun)}>
+      <Command.Item onSelect={() => runCommandAndClose(handleRun)}>
         <PlayArrowRoundedIcon /> Run Entire Workflow
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(handleSave)}>
+      <Command.Item onSelect={() => runCommandAndClose(handleSave)}>
         <SaveRoundedIcon /> Save Workflow
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(handleNewWorkflow)}>
+      <Command.Item onSelect={() => runCommandAndClose(handleNewWorkflow)}>
         <AddRoundedIcon /> New Workflow
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(handleCloseWorkflow)}>
+      <Command.Item onSelect={() => runCommandAndClose(handleCloseWorkflow)}>
         <CloseRoundedIcon /> Close Workflow
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(downloadWorkflow)}>
+      <Command.Item onSelect={() => runCommandAndClose(downloadWorkflow)}>
         <FileDownloadRoundedIcon /> Download Workflow as JSON
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(handleImportWorkflow)}>
+      <Command.Item onSelect={handleImportWorkflow}>
         <FileUploadRoundedIcon /> Import Workflow from JSON
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(exportBundle)}>
+      <Command.Item onSelect={() => runCommandAndClose(exportBundle)}>
         <FolderZipRoundedIcon /> Export Workflow as Bundle (.nodetool)
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(shareWorkflow)}>
+      <Command.Item onSelect={() => runCommandAndClose(shareWorkflow)}>
         Share Workflow…
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(handleImportBundle)}>
+      <Command.Item onSelect={handleImportBundle}>
         <FolderZipRoundedIcon /> Import Workflow from Bundle (.nodetool)
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(copyWorkflow)}>
+      <Command.Item onSelect={() => runCommandAndClose(copyWorkflow)}>
         <ContentCopyRoundedIcon /> Copy Workflow as JSON
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(cancel)}>
+      <Command.Item onSelect={() => runCommandAndClose(cancel)}>
         <CancelRoundedIcon /> Cancel Workflow
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(autoLayout)}>
+      <Command.Item onSelect={() => runCommandAndClose(autoLayout)}>
         <AutoFixHighRoundedIcon /> Auto Layout
       </Command.Item>
     </Command.Group>
@@ -437,7 +408,6 @@ const EditCommands = memo(function EditCommands({
   undo,
   redo
 }: HistoryActions) {
-  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -466,40 +436,40 @@ const EditCommands = memo(function EditCommands({
 
   return (
     <Command.Group heading="Edit">
-      <Command.Item onSelect={() => executeAndClose(undo)}>
+      <Command.Item onSelect={() => runCommandAndClose(undo)}>
         <UndoRoundedIcon /> Undo
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(redo)}>
+      <Command.Item onSelect={() => runCommandAndClose(redo)}>
         <RedoRoundedIcon /> Redo
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(handleCopy)}>
+      <Command.Item onSelect={() => runCommandAndClose(handleCopy)}>
         <FileCopyRoundedIcon /> Copy
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(handleCut)}>
+      <Command.Item onSelect={() => runCommandAndClose(handleCut)}>
         <ContentCutRoundedIcon /> Cut
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(handlePaste)}>
+      <Command.Item onSelect={() => runCommandAndClose(handlePaste)}>
         <ContentPasteRoundedIcon /> Paste
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(selectAllNodes)}>
+      <Command.Item onSelect={() => runCommandAndClose(selectAllNodes)}>
         <SelectAllRoundedIcon /> Select All
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(selectionActions.deleteSelected)}>
+      <Command.Item onSelect={() => runCommandAndClose(selectionActions.deleteSelected)}>
         <DeleteRoundedIcon /> Delete Selected
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(duplicateNodes)}>
+      <Command.Item onSelect={() => runCommandAndClose(duplicateNodes)}>
         <ContentCopyRoundedIcon /> Duplicate
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(duplicateNodesVertical)}>
+      <Command.Item onSelect={() => runCommandAndClose(duplicateNodesVertical)}>
         <ContentCopyRoundedIcon /> Duplicate Vertical
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(handleGroup)}>
+      <Command.Item onSelect={() => runCommandAndClose(handleGroup)}>
         <GroupWorkRoundedIcon /> Group Selected
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(toggleBypassSelected)}>
+      <Command.Item onSelect={() => runCommandAndClose(toggleBypassSelected)}>
         <BlockRoundedIcon /> Disable Selected Nodes
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(openFind)}>
+      <Command.Item onSelect={() => runCommandAndClose(openFind)}>
         <SearchRoundedIcon /> Find in Workflow
       </Command.Item>
     </Command.Group>
@@ -507,7 +477,6 @@ const EditCommands = memo(function EditCommands({
 });
 
 const LayoutCommands = memo(function LayoutCommands() {
-  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const alignNodes = useAlignNodes();
   const selectionActions = useSelectionActions();
 
@@ -515,37 +484,37 @@ const LayoutCommands = memo(function LayoutCommands() {
     <Command.Group heading="Layout & Alignment">
       <Command.Item
         onSelect={() =>
-          executeAndClose(() => alignNodes({ arrangeSpacing: false }))
+          runCommandAndClose(() => alignNodes({ arrangeSpacing: false }))
         }
       >
         <AlignVerticalCenterRoundedIcon /> Align Nodes
       </Command.Item>
       <Command.Item
         onSelect={() =>
-          executeAndClose(() => alignNodes({ arrangeSpacing: true }))
+          runCommandAndClose(() => alignNodes({ arrangeSpacing: true }))
         }
       >
         <SpaceBarRoundedIcon /> Align Nodes with Spacing
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(selectionActions.alignLeft)}>
+      <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignLeft)}>
         <AlignHorizontalLeftRoundedIcon /> Align Left
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(selectionActions.alignCenter)}>
+      <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignCenter)}>
         <AlignHorizontalCenterRoundedIcon /> Align Center
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(selectionActions.alignRight)}>
+      <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignRight)}>
         <AlignHorizontalRightRoundedIcon /> Align Right
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(selectionActions.alignTop)}>
+      <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignTop)}>
         <VerticalAlignTopRoundedIcon /> Align Top
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(selectionActions.alignMiddle)}>
+      <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignMiddle)}>
         <VerticalAlignCenterRoundedIcon /> Align Middle
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(selectionActions.alignBottom)}>
+      <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignBottom)}>
         <VerticalAlignBottomRoundedIcon /> Align Bottom
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(selectionActions.distributeHorizontal)}>
+      <Command.Item onSelect={() => runCommandAndClose(selectionActions.distributeHorizontal)}>
         <ViewColumnRoundedIcon /> Distribute Horizontally
       </Command.Item>
     </Command.Group>
@@ -553,7 +522,6 @@ const LayoutCommands = memo(function LayoutCommands() {
 });
 
 const ViewCommands = memo(function ViewCommands() {
-  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const visible = useMiniMapStore((state) => state.visible);
   const toggleVisible = useMiniMapStore((state) => state.toggleVisible);
   const handleFitView = useFitView();
@@ -564,44 +532,44 @@ const ViewCommands = memo(function ViewCommands() {
   return (
     <Command.Group heading="View">
       <Command.Item
-        onSelect={() => executeAndClose(toggleVisible)}
+        onSelect={() => runCommandAndClose(toggleVisible)}
       >
         {visible ? <MapOutlinedIcon /> : <MapRoundedIcon />}
         {visible ? "Hide Mini Map" : "Show Mini Map"}
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => setSnapToGrid(!snapToGrid))}
+        onSelect={() => runCommandAndClose(() => setSnapToGrid(!snapToGrid))}
       >
         {snapToGrid ? <GridOffRoundedIcon /> : <GridOnRoundedIcon />}
         {snapToGrid ? "Turn Off Snap to Grid" : "Snap to Grid"}
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => handleFitView({ padding: 0.5 }))}
+        onSelect={() => runCommandAndClose(() => handleFitView({ padding: 0.5 }))}
       >
         <FitScreenRoundedIcon /> Fit View
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => reactFlow.zoomIn({ duration: 200 }))}
+        onSelect={() => runCommandAndClose(() => reactFlow.zoomIn({ duration: 200 }))}
       >
         <ZoomInRoundedIcon /> Zoom In
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => reactFlow.zoomOut({ duration: 200 }))}
+        onSelect={() => runCommandAndClose(() => reactFlow.zoomOut({ duration: 200 }))}
       >
         <ZoomOutRoundedIcon /> Zoom Out
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => reactFlow.zoomTo(0.5, { duration: 200 }))}
+        onSelect={() => runCommandAndClose(() => reactFlow.zoomTo(0.5, { duration: 200 }))}
       >
         <RestartAltRoundedIcon /> Reset Zoom (50%)
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => reactFlow.zoomTo(1, { duration: 200 }))}
+        onSelect={() => runCommandAndClose(() => reactFlow.zoomTo(1, { duration: 200 }))}
       >
         <ZoomInRoundedIcon /> Zoom to 100%
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => reactFlow.zoomTo(2, { duration: 200 }))}
+        onSelect={() => runCommandAndClose(() => reactFlow.zoomTo(2, { duration: 200 }))}
       >
         <ZoomInRoundedIcon /> Zoom to 200%
       </Command.Item>
@@ -610,7 +578,6 @@ const ViewCommands = memo(function ViewCommands() {
 });
 
 const PanelCommands = memo(function PanelCommands() {
-  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const rightPanelToggle = useRightPanelStore((state) => state.toggleInspector);
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
   const toggleConversation = useCanvasChatDockStore(
@@ -620,27 +587,27 @@ const PanelCommands = memo(function PanelCommands() {
   return (
     <Command.Group heading="Panels">
       <Command.Item
-        onSelect={() => executeAndClose(rightPanelToggle)}
+        onSelect={() => runCommandAndClose(rightPanelToggle)}
       >
         <InfoRoundedIcon /> Toggle Inspector
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => leftPanelToggle("settings"))}
+        onSelect={() => runCommandAndClose(() => leftPanelToggle("settings"))}
       >
         <SettingsRoundedIcon /> Toggle Workflow Settings
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => toggleConversation())}
+        onSelect={() => runCommandAndClose(() => toggleConversation())}
       >
         <ChatRoundedIcon /> Toggle Conversation
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => leftPanelToggle("assets"))}
+        onSelect={() => runCommandAndClose(() => leftPanelToggle("assets"))}
       >
         <PermMediaRoundedIcon /> Toggle Assets
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => leftPanelToggle("workflows"))}
+        onSelect={() => runCommandAndClose(() => leftPanelToggle("workflows"))}
       >
         <AccountTreeRoundedIcon /> Toggle Workflows Panel
       </Command.Item>
@@ -648,250 +615,24 @@ const PanelCommands = memo(function PanelCommands() {
   );
 });
 
-const HelpCommands = memo(function HelpCommands() {
-  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
-  const currentWorkflowId = useWorkflowManager(
-    (state) => state.currentWorkflowId
-  );
-
-  return (
-    <Command.Group heading="Help">
-      <Command.Item
-        onSelect={() =>
-          executeAndClose(() =>
-            openBugReport({
-              source: "manual",
-              workflowId: currentWorkflowId ?? undefined
-            })
-          )
-        }
-      >
-        <BugReportIcon /> Report a Bug
-      </Command.Item>
-    </Command.Group>
-  );
-});
-
 /**
- * App bundle commands, mirroring the workflow bundle ones. An app bundle is
- * one JSON file carrying the app plus the graph of every workflow it binds, so
- * export needs an app tab open and import creates both the workflows and the
- * app, then opens it.
+ * The command menu as the node editor renders it: the palette every view
+ * shows, plus the workflow, edit, layout, canvas, and panel commands that need
+ * this editor's NodeContext and ReactFlow provider. Mounted only while the
+ * editor is active, and claims the menu from the app-root host for that time.
  */
-const AppCommands = memo(function AppCommands() {
-  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
-  const queryClient = useQueryClient();
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const applicationId = useWorkspaceTabsStore((state) => {
-    const tab = state.tabs.find((t) => t.id === state.activeTabId);
-    return tab?.type === "application" ? tab.ref : null;
-  });
-  const applicationName = useWorkspaceTabsStore((state) => {
-    const tab = state.tabs.find((t) => t.id === state.activeTabId);
-    return tab?.type === "application" ? tab.title : "";
-  });
-  const appBundleInputRef = useRef<HTMLInputElement>(null);
-
-  const exportApp = useCallback(async () => {
-    if (!applicationId) return;
-    try {
-      await exportApplicationBundle(applicationId, applicationName || "app");
-    } catch (error) {
-      addNotification({
-        type: "error",
-        alert: true,
-        content: `Failed to export app bundle: ${error instanceof Error ? error.message : "Unknown error"}`
-      });
-    }
-  }, [applicationId, applicationName, addNotification]);
-
-  const pickAppBundle = useCallback(() => {
-    appBundleInputRef.current?.click();
-  }, []);
-
-  const handleAppBundleFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        const projectId = creationProjectId();
-        const app = await importApplicationBundle(file, projectId);
-        await queryClient.invalidateQueries({ queryKey: ["applications"] });
-        await queryClient.invalidateQueries({ queryKey: ["workflows"] });
-        openTab({ type: "application", ref: app.id, title: app.name, projectId });
-        addNotification({
-          type: "success",
-          alert: true,
-          content: `Imported app "${app.name}"`
-        });
-      } catch (error) {
-        addNotification({
-          type: "error",
-          alert: true,
-          content: `Failed to import app bundle: ${error instanceof Error ? error.message : "Unknown error"}`
-        });
-      }
-      if (appBundleInputRef.current) appBundleInputRef.current.value = "";
-    },
-    [queryClient, openTab, addNotification]
-  );
+const CommandMenu: React.FC<CommandMenuProps> = ({ undo, redo }) => {
+  const claimForEditor = useCommandMenuStore((state) => state.claimForEditor);
+  useEffect(() => claimForEditor(), [claimForEditor]);
 
   return (
-    <>
-      <input
-        ref={appBundleInputRef}
-        type="file"
-        accept=".json,application/json"
-        aria-label="Import app bundle file"
-        style={{ display: "none" }}
-        onChange={handleAppBundleFileChange}
-      />
-      <Command.Group heading="App">
-        {applicationId && (
-          <Command.Item onSelect={() => executeAndClose(exportApp)}>
-            <FolderZipRoundedIcon /> Export App as Bundle (.app.json)
-          </Command.Item>
-        )}
-        <Command.Item onSelect={() => executeAndClose(pickAppBundle)}>
-          <FolderZipRoundedIcon /> Import App from Bundle (.app.json)
-        </Command.Item>
-      </Command.Group>
-    </>
-  );
-});
-
-/** Matches the default page size of `WorkflowManagerStore.load`. */
-const COMMAND_MENU_WORKFLOW_LIMIT = 100;
-
-const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
-  const executeAndClose = useCommandMenu((state) => state.executeAndClose);
-  const navigate = useNavigate();
-  const load = useWorkflowManager((state) => state.load);
-
-  const { data: workflows } = useQuery<WorkflowList>({
-    queryKey: workflowListQueryKey(COMMAND_MENU_WORKFLOW_LIMIT),
-    queryFn: () => load("", COMMAND_MENU_WORKFLOW_LIMIT)
-  });
-
-  const openWorkflow = useCallback(
-    (workflow: Workflow) => {
-      navigate("/editor/" + workflow.id);
-    },
-    [navigate]
-  );
-
-  if (!workflows) { return null; }
-
-  return (
-    <Command.Group heading="Workflows">
-      {workflows.workflows.map((workflow) => (
-        <Command.Item
-          key={workflow.id}
-          onSelect={() => executeAndClose(() => openWorkflow(workflow))}
-        >
-          <FolderOpenRoundedIcon /> {workflow.name}
-        </Command.Item>
-      ))}
-    </Command.Group>
-  );
-});
-
-// Create a context/store for command menu state
-const useCommandMenu = create<{
-  executeAndClose: (action: () => void) => void;
-  reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
-}>((_set) => ({
-  executeAndClose: () => { },
-  reactFlowWrapper: { current: null }
-}));
-
-const CommandMenu: React.FC<CommandMenuProps> = ({
-  open,
-  setOpen,
-  undo,
-  redo,
-  reactFlowWrapper
-}) => {
-  const [pastePosition, setPastePosition] = useState({ x: 0, y: 0 });
-  const input = useRef<HTMLInputElement>(null);
-  const autoFocusEnabled = useAutoFocusEnabled();
-  const focusInputTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const executeAndClose = useCallback(
-    (action: () => void) => {
-      action();
-      setOpen(false);
-    },
-    [setOpen]
-  );
-
-  useEffect(() => {
-    useCommandMenu.setState({
-      executeAndClose,
-      reactFlowWrapper
-    });
-  }, [executeAndClose, reactFlowWrapper]);
-
-  // Skipped on touch, where the virtual keyboard would cover the command list.
-  useEffect(() => {
-    if (open && autoFocusEnabled) {
-      if (focusInputTimeoutRef.current) {
-        clearTimeout(focusInputTimeoutRef.current);
-      }
-      focusInputTimeoutRef.current = setTimeout(() => input.current?.focus(), 0);
-    }
-
-    return () => {
-      if (focusInputTimeoutRef.current) {
-        clearTimeout(focusInputTimeoutRef.current);
-      }
-    };
-  }, [open, autoFocusEnabled]);
-
-  useEffect(() => {
-    return () => {
-      if (focusInputTimeoutRef.current) {
-        clearTimeout(focusInputTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (open) {
-      setPastePosition(getMousePosition());
-    }
-  }, [open, pastePosition]);
-
-  return (
-    <Dialog
-      open={open}
-      onClose={() => setOpen(false)}
-      className="command-menu-dialog"
-      css={styles()}
-      aria-label="Command menu"
-    >
-      <Command label="Command Menu" className="command-menu">
-        <CommandInput
-          ref={input}
-          placeholder="Type a command or search…"
-          aria-label="Command menu search"
-        />
-        <Command.List>
-          <Command.Empty>No results found.</Command.Empty>
-          <WorkflowCommands />
-          <AppCommands />
-          <EditCommands undo={undo} redo={redo} />
-          <LayoutCommands />
-          <ViewCommands />
-          <PanelCommands />
-          <HelpCommands />
-          <OpenWorkflowCommands />
-        </Command.List>
-      </Command>
-    </Dialog>
+    <CommandPalette>
+      <WorkflowCommands />
+      <EditCommands undo={undo} redo={redo} />
+      <LayoutCommands />
+      <ViewCommands />
+      <PanelCommands />
+    </CommandPalette>
   );
 };
 

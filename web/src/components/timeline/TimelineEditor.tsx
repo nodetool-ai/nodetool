@@ -97,6 +97,7 @@ import TimelineAgentPanel from "./TimelineAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
+import { useTimelineMenuCommands } from "../../hooks/timeline/useTimelineMenuCommands";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { CodePanel } from "./CodePanel";
@@ -644,6 +645,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // Register the ui_timeline_* agent tools against this instance, addressable
   // by sequence id whether or not this editor is the focused surface.
   useTimelineAgentBridge(sequenceId ?? null);
+  useTimelineMenuCommands();
   // Clips generated while this sequence was closed still land on it (§ 8.4).
   useReattachSequenceJobs(sequenceId ?? null);
 

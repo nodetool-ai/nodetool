@@ -122,7 +122,8 @@ const NODETOOL: Keymap = {
   selectTool: [k("v")],
   cutTool: [k("c")],
   splitAtPlayhead: [k("s")],
-  cutAllTracks: [k("k", { ctrl: true })],
+  // Ctrl/Cmd+K opens the app's command menu on every view.
+  cutAllTracks: [k("k", { ctrl: true, shift: true })],
   rippleDeleteSelected: [k("Delete", { shift: true }), k("Backspace", { shift: true })],
   duplicate: [k("d", { ctrl: true })],
   duplicateWithGap: [k("d", { ctrl: true, shift: true })],
@@ -154,7 +155,9 @@ const PREMIERE: Keymap = {
   ...(COMMON as Keymap),
   selectTool: [k("v")],
   cutTool: [k("c")],
-  splitAtPlayhead: [k("k", { ctrl: true })],
+  // Premiere splits on Cmd+K, which opens the app's command menu here, so
+  // the split adds Alt.
+  splitAtPlayhead: [k("k", { ctrl: true, alt: true })],
   cutAllTracks: [k("k", { ctrl: true, shift: true })],
   rippleDeleteSelected: [k("Delete", { shift: true }), k("Backspace", { shift: true })],
   duplicate: [k("d", { alt: true })],
