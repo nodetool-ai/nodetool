@@ -31,6 +31,7 @@ import {
 } from "@nodetool-ai/timeline";
 import {
   applyTimelineOp,
+  resolveBeatTarget,
   type TimelineOp,
   type TimelineOpAsset,
   type TimelineOpContext,
@@ -290,6 +291,17 @@ export const useTimelineAgentBridge = (
     };
     let pending: Promise<unknown> = Promise.resolve();
     const editOp = (op: TimelineOp): Promise<TimelineOpResult> => {
+      // The editor can swap the document under this handler (one provider
+      // serves several routes). An op queued for one sequence must never be
+      // applied to the next one.
+      const enqueuedSequenceId = doc.getState().sequenceId;
+      const assertSameSequence = (): void => {
+        if (doc.getState().sequenceId !== enqueuedSequenceId) {
+          throw new Error(
+            "The open timeline changed before this edit could be applied. Nothing was written; call the tool again for the timeline now open."
+          );
+        }
+      };
       const task = pending.then(async () => {
         const assets = new Map<string, TimelineOpAsset | null>();
         const ids = new Map<string, string[]>();
@@ -354,13 +366,16 @@ export const useTimelineAgentBridge = (
             name: sequence.name
           });
         }
+        assertSameSequence();
         let before = doc.getState();
         let outcome = await applyTimelineOp(stateOf(), op, context);
         while (doc.getState() !== before && op.op !== "retarget_format") {
+          assertSameSequence();
           before = doc.getState();
           positions = new Map();
           outcome = await applyTimelineOp(stateOf(), op, context);
         }
+        assertSameSequence();
         if (outcome.error) {
           throw new Error(outcome.error);
         }
@@ -452,7 +467,7 @@ export const useTimelineAgentBridge = (
     /** Resolve a clip by id, case-insensitive name, or the "selected" keyword. */
     const requireClip = (target: string): TimelineClip => {
       const { clips } = doc.getState();
-      if (target === "selected") {
+      if (target.toLowerCase() === "selected") {
         const selected = [...ui.getState().selectedClipIds];
         if (selected.length !== 1) {
           throw new Error(
@@ -555,25 +570,12 @@ export const useTimelineAgentBridge = (
       return started;
     };
 
-    /** Resolve a beat by id, or by its 1-based position in the plan. */
-    const requireBeat = (target: string): TimelineBeat => {
-      const beats = doc.getState().setup?.beats ?? [];
-      const byId = beats.find((beat) => beat.id === target);
-      if (byId) {
-        return byId;
-      }
-      const position = Number.parseInt(target, 10);
-      const byPosition = beats[position - 1];
-      if (Number.isFinite(position) && byPosition) {
-        return byPosition;
-      }
-      throw new Error(
-        `No beat matches "${target}". Use a beat id or its 1-based position. ` +
-          (beats.length > 0
-            ? `This plan has ${beats.length} beats.`
-            : "This sequence has no beat plan yet; run ui_timeline_plan_beats first.")
-      );
-    };
+    /**
+     * Resolve a beat by id, unique 12-character id prefix, or digits-only
+     * 1-based position — the same rule the ops apply.
+     */
+    const requireBeat = (target: string): TimelineBeat =>
+      resolveBeatTarget(doc.getState().setup?.beats ?? [], target);
 
     const requireTrack = (target: string): TimelineTrack => {
       const { tracks } = doc.getState();
@@ -839,15 +841,13 @@ export const useTimelineAgentBridge = (
             `No clip with id "${clipId}" exists on this timeline. Call ui_timeline_get_state and pass the clip id.`
           );
         }
-        const take = (clip.versions ?? []).find(
-          (candidate) => candidate.id === takeId
-        );
+        const take = findByIdOrShortId(clip.versions ?? [], takeId, "take");
         if (!take?.mediaEdit) {
           throw new Error(
             `Take "${takeId}" is not an AI edit candidate for "${clip.name}". Apply only the candidate returned by ui_timeline_generatively_edit_clip.`
           );
         }
-        const error = doc.getState().applyTake(clip.id, takeId);
+        const error = doc.getState().applyTake(clip.id, take.id);
         if (error) {
           throw new Error(error);
         }

@@ -27,6 +27,9 @@ export interface HostOpFixture {
   result?: Record<string, unknown>;
   context?: Partial<TimelineOpContext>;
 }
+function sourceAsset(id: string, durationMs: number) {
+  return { id, name: "Source", contentType: "video/mp4", durationMs };
+}
 function linked(): TimelineOpState {
   const state = directState();
   const first = state.clips[0];
@@ -158,9 +161,31 @@ export const HOST_OP_FIXTURES: readonly HostOpFixture[] = [
       durationMs: 2000,
       inPointMs: 1500
     },
+    context: { resolveAsset: async (ref) => sourceAsset(ref, 10000) },
     clips: [
       { id: "clip_a", durationMs: 2000, inPointMs: 1500, outPointMs: 2000 }
     ]
+  },
+  {
+    name: "a trim cannot grow a clip past its known source",
+    initial: () => {
+      const s = directState();
+      Object.assign(s.clips[0], { durationMs: 1000, inPointMs: 0, outPointMs: 1000 });
+      return s;
+    },
+    op: { op: "trim_clip", target: "clip_a", durationMs: 3000 },
+    context: { resolveAsset: async (ref) => sourceAsset(ref, 2000) },
+    error: /longer than its source/i
+  },
+  {
+    name: "imported media of unknown length cannot grow past its out-point",
+    initial: () => {
+      const s = directState();
+      Object.assign(s.clips[0], { durationMs: 1000, inPointMs: 0, outPointMs: 1000 });
+      return s;
+    },
+    op: { op: "set_clip_params", target: "clip_a", patch: { durationMs: 1500 } },
+    error: /longer than its source/i
   },
   {
     name: "snap trim preserves the source in-point",
@@ -269,6 +294,7 @@ export const HOST_OP_FIXTURES: readonly HostOpFixture[] = [
     name: "duplicate clears rendered and locked state",
     initial: () => {
       const s = directState();
+      s.clips[0].sourceType = "generated";
       s.clips[0].locked = true;
       s.clips[0].lastGeneratedHash = "render";
       return s;
@@ -282,6 +308,19 @@ export const HOST_OP_FIXTURES: readonly HostOpFixture[] = [
         currentAssetId: undefined,
         lastGeneratedHash: undefined,
         versions: []
+      }
+    ]
+  },
+  {
+    name: "duplicate of imported media keeps its asset",
+    initial: directState,
+    op: { op: "duplicate_clip", target: "clip_a", gapMs: 500 },
+    clips: [
+      {
+        id: "clip_1",
+        startMs: 4500,
+        status: "generated",
+        currentAssetId: "asset_take_2"
       }
     ]
   },
