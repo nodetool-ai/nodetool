@@ -126,6 +126,9 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
             }
           }
         }
+        if (entity.renderCulling?.layer !== undefined && !Object.hasOwn(document.performance?.cullLayers ?? {}, entity.renderCulling.layer)) {
+          add("missing_cull_layer", [...entityPath, "renderCulling", "layer"], `Cull layer ${entity.renderCulling.layer} is not declared in performance.cullLayers`);
+        }
         if (entity.primitive && entity.model) { add("competing_visual", [...entityPath, "model"], "Entity must choose either primitive or model rendering"); }
         if (entity.interactionActor && !entity.collider3d) { add("missing_interaction_collider", [...entityPath, "interactionActor"], "Interaction actors require a collider"); }
         const checkAsset = (slot: string, kind: "model" | "collider" | "audio", componentPath: (string | number)[]): void => {

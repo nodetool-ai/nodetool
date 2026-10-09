@@ -97,6 +97,26 @@ it("scores a particles component authored through the public edit surface", asyn
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
 
+it("scores render culling authored through the public 3D edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="render-culling");
+  if (!candidate) { throw new Error("Render culling eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Render culling eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  expect(await edit.execute({ops:[{op:"update_entity",entity_id:"crate",set:{renderCulling:{layer:"props"}}}]})).toHaveProperty("error");
+  const result = await edit.execute({ops:[
+    {op:"set_performance",performance:{cullLayers:{props:{maxDistance:40}},budgets:{drawCalls:300}}},
+    {op:"update_entity",entity_id:"crate",set:{renderCulling:{layer:"props"}}},
+    {op:"update_entity",entity_id:"pickup",set:{renderCulling:{layer:"props"}}},
+    {op:"update_entity",entity_id:"ramp",set:{renderCulling:{maxDistance:25}}}
+  ]});
+  expect(result).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
 it("scores an input map authored through set_game input_bindings", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="input-bindings");
   if (!candidate) { throw new Error("Input binding eval case must exist"); }

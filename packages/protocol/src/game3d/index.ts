@@ -16,6 +16,7 @@ import { gameAnimator3D } from "./components/animator.js";
 import { gameAnimationGraphRuntime3D, gameAnimationGraphs3D, gameAnimationPose3D } from "./components/animation-graph.js";
 import { gameEnvironment3D } from "./components/environment.js";
 import { gameAssetBinding3D } from "./components/assets.js";
+import { gamePerformance3D, gameRenderCulling3D } from "./components/performance.js";
 import { gameAuthoring } from "../game-authoring.js";
 import { gameEmitParticlesCommand } from "../game-particles.js";
 import { gameAudioSettings } from "../game2d/components/audio.js";
@@ -30,7 +31,8 @@ const entityComponents = {
   camera3d: gameCamera3D.optional(), light3d: gameLight3D.optional(), animator3d: gameAnimator3D.optional(),
   interactionActor: gameInteractionActor3DComponent,
   audioSource: gameEntity.shape.audioSource,
-  particles: gameEntity.shape.particles
+  particles: gameEntity.shape.particles,
+  renderCulling: gameRenderCulling3D.optional()
 };
 
 export const gameEntity3D = z.strictObject({
@@ -73,7 +75,8 @@ export const gameDocument3D = z.strictObject({
   collisionLayers: z.array(id).max(16).optional(), assets: z.record(id, gameAssetBinding3D),
   prefabs: z.record(id, gamePrefab3D).default({}), scenes: z.array(gameScene3D).min(1).max(64),
   animationGraphs: gameAnimationGraphs3D.optional(),
-  audio: gameAudioSettings.optional()
+  audio: gameAudioSettings.optional(),
+  performance: gamePerformance3D.optional()
 });
 
 export type GameDocument3D = z.infer<typeof gameDocument3D>;
@@ -137,7 +140,8 @@ export const gameRenderFrame3D = z.strictObject({
   camera: z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D.optional(), projection: gameCameraProjection3D }),
   entities: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D,
     primitive: gamePrimitive3D.optional(), model: gameModel3D.optional(), animation: gameAnimationState3D.optional(), animationPose: gameAnimationPose3D.optional(), opacity: finite.min(0).max(1).optional(),
-    particles: gameEntity.shape.particles })),
+    particles: gameEntity.shape.particles,
+    cullDistance: positive.optional().describe("Camera distance beyond which the renderer hides this entity, resolved from renderCulling.") })),
   lights: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, light: gameLight3D })),
   environment: gameEnvironment3D, hud: z.array(gameHudLabel), fonts: z.record(id, gameAssetBinding3D.options[3]).optional()
 });
@@ -276,5 +280,7 @@ export {
 export { gameEnvironment3D, type GameEnvironment3D, gameSky3D, type GameSky3D } from "./components/environment.js";
 
 export { gameModelImportSettings3D, type GameModelImportSettings3D, gameAssetBinding3D, type GameAssetBinding3D, anyGameAssetBinding, type AnyGameAssetBinding } from "./components/assets.js";
+
+export { GAME_MAX_CULL_DISTANCE_3D, GAME_MAX_CULL_LAYERS_3D, gameRenderCulling3D, type GameRenderCulling3D, gameFrameBudgets, type GameFrameBudgets, gamePerformance3D, type GamePerformance3D } from "./components/performance.js";
 
 export { gamePreparedCollider3D, type GamePreparedCollider3D } from "./components/collider-geometry.js";
