@@ -8,7 +8,7 @@
  * stand in for a real login there.
  */
 
-import { createHash, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 
 /** The configured token, or null when unset or blank. */
 export function resolveServerAuthToken(
@@ -20,15 +20,15 @@ export function resolveServerAuthToken(
 
 /**
  * Constant-time comparison of a presented bearer token with the configured
- * one. Both sides are hashed first so the comparison length does not reveal
- * the configured token's length.
+ * one. A length mismatch returns early, which reveals only the length of a
+ * token that `nodetool deploy` generates at a fixed length.
  */
 export function matchesServerAuthToken(
   presented: string | null | undefined,
   configured: string | null
 ): boolean {
   if (!configured || !presented) return false;
-  const a = createHash("sha256").update(presented).digest();
-  const b = createHash("sha256").update(configured).digest();
-  return timingSafeEqual(a, b);
+  const a = Buffer.from(presented, "utf8");
+  const b = Buffer.from(configured, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
 }
