@@ -1,4 +1,5 @@
 import { formatUsd } from "@nodetool-ai/model-pricing";
+import { isModelSelected } from "@nodetool-ai/protocol";
 import {
   Caption,
   FlexColumn,
@@ -39,12 +40,14 @@ export interface GenerationEstimateLineProps extends GenerationSummaryProps {
  */
 export function GenerationEstimateLine({
   result,
-  model,
+  model: rawModel,
   brief,
   maxOutputTokens,
   noModelCall,
   hideModel = false
 }: GenerationEstimateLineProps) {
+  // The "empty" sentinel is no choice, whatever default id it carries.
+  const model = isModelSelected(rawModel) ? rawModel : null;
   const estimate = noModelCall
     ? null
     : generationEstimate(model, brief, maxOutputTokens);
@@ -90,7 +93,7 @@ export function GenerationEstimateLine({
 export default function GenerationSummary({
   result,
   next,
-  model,
+  model: rawModel,
   brief,
   maxOutputTokens,
   noModelCall,
@@ -98,6 +101,8 @@ export default function GenerationSummary({
   concise = false,
   hideTokenEstimate = false
 }: GenerationSummaryProps) {
+  // The "empty" sentinel is no choice, whatever default id it carries.
+  const model = isModelSelected(rawModel) ? rawModel : null;
   const estimate = noModelCall
     ? null
     : generationEstimate(model, brief, maxOutputTokens);

@@ -43,6 +43,7 @@ import {
 } from "../../../serverState/useStylePresets";
 import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
 import { useLastModelStore } from "../../../stores/lastModelStore";
+import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import { estimateGenerationCost } from "../../../utils/generationCostEstimate";
 import { useGenerateVariations } from "../../../hooks/sketch/useGenerateVariations";
 import { OptionCardGrid, type OptionCardItem } from "../OptionCardGrid";
@@ -282,6 +283,14 @@ export function useLookStep(): LookStepControls {
   };
 }
 
+/** Open the provider dialog filtered to providers that make images. */
+const connectImageProvider = (): void => {
+  openProviderOnboarding({
+    capability: "text_to_image",
+    reason: "Connect a provider that makes images to generate this picture."
+  });
+};
+
 /** What the grid shows in place of tiles when the query answered otherwise. */
 const ModelListState: React.FC<{
   availability: ModelAvailability;
@@ -313,9 +322,16 @@ const ModelListState: React.FC<{
   }
   if (availability === "no-provider") {
     return (
-      <AlertBanner severity="warning">
-        No image provider is connected. Add one in Settings, then try again —
-        your brief and look are saved with the document.
+      <AlertBanner
+        severity="warning"
+        action={
+          <EditorButton variant="text" onClick={connectImageProvider}>
+            Connect a provider
+          </EditorButton>
+        }
+      >
+        No image provider is connected. Connect one to generate — your brief
+        and look are saved with the document.
       </AlertBanner>
     );
   }

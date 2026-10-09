@@ -50,15 +50,19 @@ not run. An unavailable dependency is not a UX finding by itself.
 ## 2. Prepare the environment privately
 
 Read [runtime.md](references/runtime.md). Start the disposable app with
-`web/tests/agentic-qa/serveApp.ts`. It reuses the journey suite's seeded backend,
+`web/tests/agentic-qa/serveApp.ts`. It reuses the journey suite's backend,
 fake providers, and reset endpoint on separate ports. Reuse infrastructure,
-**not selectors, scripted routes, or returning-user state**.
+**not selectors, scripted routes, or returning-user state**. Use
+`--state empty` for first-time-user sessions and give the participant a test
+key in the packet's `credentials`, so provider onboarding is part of the
+journey. Run the context probe first and record its result.
 
 In particular, do not import the journey `test` fixture unchanged: it calls
 `seedReturningUser` and seeds a selected chat model. Do not dismiss onboarding,
 accept a tour, configure a model, pre-open a document, or write preference storage
 for a cold session. A reset seeded workspace is not an empty new account: label
-it `seeded-demo`. Claim `empty-new-account` only after verifying that state.
+it `seeded-demo`. Claim `empty-new-account` only for `--state empty`, after
+verifying that the first viewport shows no documents.
 
 Use separate browser contexts and separate disposable accounts/backends per
 concurrent participant. Otherwise serialize sessions. A shared reset must never
@@ -175,6 +179,11 @@ user's outcome: visible output, useful changed state, or another task-appropriat
 artifact. For persistence, leave/reopen or reload through ordinary browser use
 and inspect the result. Do not assume autosave. A backend-only success does not
 repair an unusable or invisible result.
+
+Read the fixture list in
+[runtime.md](references/runtime.md#what-the-fake-runtime-shows-a-participant)
+before judging results. Placeholder text, the fixed chat reply, and the
+gradient image are the fakes, not defects.
 
 Separate discoverability, comprehension, affordance, feedback, recovery,
 persistence, and visual hierarchy from technical breakage. A working control

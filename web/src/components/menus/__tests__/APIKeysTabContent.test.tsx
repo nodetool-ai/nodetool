@@ -38,7 +38,8 @@ const mockSecrets = [
   { key: "DATA_FOR_SEO_LOGIN", is_configured: false },
   { key: "DATA_FOR_SEO_PASSWORD", is_configured: false },
   { key: "HIGGSFIELD_API_KEY_ID", is_configured: false },
-  { key: "HIGGSFIELD_API_KEY_SECRET", is_configured: false }
+  { key: "HIGGSFIELD_API_KEY_SECRET", is_configured: false },
+  { key: "OPENROUTER_API_KEY", is_configured: false }
 ];
 jest.mock("../../../stores/SecretsStore", () => ({
   __esModule: true,
@@ -115,5 +116,23 @@ describe("APIKeysTabContent on a hosted deployment", () => {
     );
 
     expect(screen.queryByText("Connected")).not.toBeInTheDocument();
+  });
+
+  // A placeholder row and the catalog entry for the same provider both landed
+  // in its section, so every unconnected provider with a placeholder showed
+  // twice (and React warned about duplicate keys).
+  it("lists an unconnected provider once", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } }
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={mockTheme}>
+          <APIKeysTabContent />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+
+    expect(screen.getAllByText("OpenRouter")).toHaveLength(1);
   });
 });
