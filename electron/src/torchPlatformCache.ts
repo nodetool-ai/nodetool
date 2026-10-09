@@ -50,13 +50,18 @@ export function getSavedTorchPlatform(): TorchruntimeDetectionResult | null {
     }
 
     const { backend, warning } = mapTorchPlatform(saved.platform);
-    return {
+    const result: TorchruntimeDetectionResult = {
       platform: saved.platform,
       backend,
       indexUrl: torchIndexUrl(backend),
-      ...(warning ? { warning } : {}),
-      ...(saved.detectedAt ? { detectedAt: saved.detectedAt } : {}),
     };
+    if (warning) {
+      result.warning = warning;
+    }
+    if (saved.detectedAt) {
+      result.detectedAt = saved.detectedAt;
+    }
+    return result;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logMessage(`Failed to read saved torch platform: ${message}`, "warn");

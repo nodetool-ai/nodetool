@@ -347,7 +347,11 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
       emitBootMessage(warning);
     }
 
-    return { platform, backend, indexUrl, ...(warning ? { warning } : {}) };
+    const result: TorchruntimeDetectionResult = { platform, backend, indexUrl };
+    if (warning) {
+      result.warning = warning;
+    }
+    return result;
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const backend = fallbackTorchBackend();

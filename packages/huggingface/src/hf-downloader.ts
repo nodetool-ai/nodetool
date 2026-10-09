@@ -244,8 +244,8 @@ export async function dropBlobCopiedToSnapshot(
       paths: [args.path],
       revision: args.revision,
       expand: true,
-      ...(args.accessToken ? { accessToken: args.accessToken } : {}),
-      ...(args.fetch ? { fetch: args.fetch } : {})
+      accessToken: args.accessToken,
+      fetch: args.fetch
     });
     const etag = info?.lfs?.oid ?? info?.xetHash ?? info?.oid;
     if (!etag) {
