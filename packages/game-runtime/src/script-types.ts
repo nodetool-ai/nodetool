@@ -6,6 +6,7 @@ export const GAME_SCRIPT_TYPES = `
 ${gameScriptSchemaDeclaration("GameScriptCommand", gameScriptCommand)}
 
 type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
+type GameScriptParamValue = number | boolean | string | { x: number; y: number; z?: number } | null;
 type GameScriptInput = {
   tick: number;
   pressed: readonly string[];
@@ -17,6 +18,8 @@ type GameScriptInput = {
   world: readonly { id: string; source: string; x: number; y: number; tags: readonly string[]; props: Readonly<Record<string, JSONValue>>; rotation: number; active: boolean }[];
   state: unknown;
   random: () => number;
+  /** Present when the behavior declares params. Entity and asset params are IDs or null. */
+  params?: Readonly<Record<string, GameScriptParamValue>>;
 };
 
 type GameScriptResult = { state: unknown; commands: GameScriptCommand[] };

@@ -1,13 +1,14 @@
 import { z } from "zod";
 import {
   gameAssetBinding3D, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameDocument3D,
-  gameEntity3D, gameLight3D, gamePrefab3D, gameScene3D, gameTransform3D, gameVector3,
+  gameEntity3D, gameLight3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTransform3D, gameVector3,
   type AnyGameDocument, type GameDocument, type GameDocument3D, type GameEntity3D, type GamePrefab3D, type GameTransform3D
 } from "@nodetool-ai/protocol";
 import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnershipDeltaState, overrideMembershipOp, reconcileGameOwnershipDeltas } from "./ownership-ops.js";
 import { applyGameAuthoringOperation } from "./authoring-reconcile.js";
 import { applyGameOps, gameDocumentOp, GameOpError, type GameDocumentOp } from "./document-ops.js";
 import { validateGame3D } from "./validate3d.js";
+import { editScriptParams } from "./script-params.js";
 
 const id = z.string().min(1);
 const index = z.number().int().nonnegative();
@@ -49,6 +50,7 @@ export const gameDocumentOp3D = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("update_behavior"), ...target, index, behavior: z.record(z.string(), z.unknown()) }),
   z.strictObject({ op: z.literal("remove_behavior"), ...target, index }),
   z.strictObject({ op: z.literal("set_script"), ...target, index, source: z.string(), max_commands: z.number().int().optional(), max_tick_ms: z.number().int().optional() }),
+  z.strictObject({ op: z.literal("set_script_params"), ...target, index, params: gameScriptParams.nullable().optional(), values: z.record(z.string(), gameScriptParamValue.nullable()).optional() }),
   z.strictObject({ op: z.literal("add_scene"), scene_id: id, scene: gameScene3D.partial(), index: index.optional() }),
   z.strictObject({ op: z.literal("update_scene"), scene_id: id, set: preservingPatch(gameScene3D.omit({ id: true, entities: true }).partial()
     .extend({ music: gameScene3D.shape.music.nullable().optional() })) }),
@@ -233,6 +235,16 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         }
         const next = gameBehavior3D.safeParse(merge(previous, patch));
         if (!next.success) { const issue = next.error.issues[0]; fail(opIndex, ["behavior", ...pathOf(issue.path)], issue.message); }
+        entity.behaviors[op.index] = next.data;
+        break;
+      }
+      case "set_script_params": {
+        const { entity } = findEntity(op.entity_id, op.scene_id, opIndex);
+        const behavior = entity.behaviors[op.index];
+        if (!behavior) { fail(opIndex, ["index"], "Behavior index is out of range"); }
+        if (behavior.kind !== "script") { fail(opIndex, ["index"], "Behavior is not a script"); }
+        const next = gameBehavior3D.safeParse(editScriptParams(behavior, op));
+        if (!next.success) { const issue = next.error.issues[0]; fail(opIndex, pathOf(issue.path), issue.message); }
         entity.behaviors[op.index] = next.data;
         break;
       }

@@ -18,6 +18,8 @@ interface SchemaFieldsProps {
   issues?: readonly GameValidationIssue[];
   assets?: AnyGameDocument["assets"];
   collisionLayers?: readonly string[];
+  /** Entities a `game-entity` field may reference. */
+  entities?: readonly { readonly id: string; readonly name?: string }[];
   /** Render this object's nested objects as full-width component sections, as in an engine inspector. */
   componentSections?: boolean;
 }
@@ -115,7 +117,7 @@ function NumberField({ label, value, schema, degrees, error, axis, onChange }: {
   </FlexColumn>;
 }
 
-export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, componentSections = false }: SchemaFieldsProps) {
+export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, entities, componentSections = false }: SchemaFieldsProps) {
   const selected = schemaVariant(schema, value);
   if (selected !== schema) {
     const variants = schema.oneOf ?? schema.anyOf ?? [];
@@ -131,7 +133,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
               ? { ...defaults, from: 1, to: 1 } : defaults);
           }
         }} /></InspectorFieldRow>}
-      <SchemaFields schema={selected} value={value} onChange={onChange} path={path} issuePath={issuePath} issues={issues} assets={assets} collisionLayers={collisionLayers} />
+      <SchemaFields schema={selected} value={value} onChange={onChange} path={path} issuePath={issuePath} issues={issues} assets={assets} collisionLayers={collisionLayers} entities={entities} />
     </FlexColumn>;
   }
   if (schema.type === "object" || schema.properties) {
@@ -160,7 +162,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         const childValue = record[key];
         const label = path ? `${path}.${key}` : key;
         const childPath = [...issuePath, key];
-        const field = <SchemaFields schema={child} value={childValue} path={label} issuePath={childPath} issues={issues} assets={assets} collisionLayers={collisionLayers}
+        const field = <SchemaFields schema={child} value={childValue} path={label} issuePath={childPath} issues={issues} assets={assets} collisionLayers={collisionLayers} entities={entities}
           onChange={(next) => onChange({ ...record, [key]: next })} />;
         const optional = !schema.required?.includes(key);
         const remove = (): void => { const copy = { ...record }; delete copy[key]; onChange(copy); };
@@ -200,7 +202,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
           <polyline points={trackCurve(String(asRecord(item).easing ?? "linear"))} fill="none" stroke="currentColor" strokeWidth="2" />
         </svg>}
         <SchemaFields schema={schema.prefixItems?.[index] ?? schema.items ?? { type: "string" }} value={item} path={`${path}.${index}`}
-          issuePath={[...issuePath, index]} issues={issues} assets={assets} collisionLayers={collisionLayers}
+          issuePath={[...issuePath, index]} issues={issues} assets={assets} collisionLayers={collisionLayers} entities={entities}
           onChange={(next) => onChange(items.map((entry, position) => position === index ? next : entry))} />
         {!fixedLength && <FlexRow gap={SPACING.xs}>
           <EditorButton disabled={index === 0} onClick={() => {
@@ -238,6 +240,15 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
     const degrees = path.endsWith("transform2d.rotation");
     return <NumberField label={degrees ? "Rotation" : fieldLabel(path)} value={typeof value === "number" ? value : 0} schema={schema}
       degrees={degrees} error={error} onChange={onChange} />;
+  }
+  if (schema.type === "string" && schema.format) {
+    const current = typeof value === "string" ? value : "";
+    const options = schema.format === "game-entity"
+      ? (entities ?? []).map((entity) => ({ value: entity.id, label: entity.name || entity.id }))
+      : Object.entries(assets ?? {}).filter(([, binding]) => !schema.assetKind || binding.mediaKind === schema.assetKind).map(([slot]) => ({ value: slot, label: slot }));
+    if (current && !options.some((option) => option.value === current)) options.unshift({ value: current, label: current });
+    return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}><InspectorFieldRow label={fieldLabel(path)}><InspectorSelect grow label={fieldLabel(path)} value={current}
+      options={[{ value: "", label: "None" }, ...options]} onChange={onChange} /></InspectorFieldRow>{error && <Caption color="error">{error}</Caption>}</FlexColumn>;
   }
   if (schema.type === "string") {
     const kind = assetKind(path);
