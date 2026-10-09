@@ -500,6 +500,36 @@ Capture the scene to review the result.
 
 ### V: 2D rendering and visual effects
 
+Add particle effects with the `particles` component on any 2D (schema 2 or 4)
+or 3D entity. It holds up to 8 `emitters`, each with a unique `id`. An emitter
+sets `rate` (particles per second), `bursts` (`time`, `count`, `cycles`,
+`interval`), `duration`, `loop`, `playOnStart`, `maxParticles` and a `shape`:
+`point`, `circle`, `sphere`, `cone`, `box` or `edge`. Cone, box and edge emit
+along local +Y. Point, circle and sphere emit outward. Per-particle values
+`lifetime`, `speed`, `size`, `rotation` and `angularVelocity` take a number or
+`{ min, max }`. `color` takes `#rrggbb` or `{ min, max }`. The
+`sizeOverLifetime`, `speedOverLifetime` and `opacityOverLifetime` curves are
+lists of `{ t, value }` keys sorted by `t` from 0 to 1.
+`colorOverLifetime` uses `{ t, color }` keys. Add `gravity`
+(`{ x, y, z }` in units per second squared) and `drag`. `space: "local"` makes
+particles follow the entity. `onDeath: [{ emitter, count }]` fires another
+emitter of the same component where each particle dies. Give that emitter
+`playOnStart: false` and `rate: 0`.
+
+Scripts trigger emitters with `{ kind: "emitParticles", emitter?, count? }` on
+their own entity. Without `count`, the emitter restarts its cycle, which suits a
+one-shot explosion with `loop: false`. With `count`, that many particles spawn
+at once. Omitting `emitter` selects the first emitter in the component's `emitters` list. The command is a presentation
+event from `takePresentationEvents()`. It never appears in gameplay events or
+snapshots. Particles cannot affect scores, physics or scripts. Prefer them over
+spawned prefabs for sparks, smoke and dust.
+
+The renderer simulates particles with `ParticleSimulator` from
+`@nodetool-ai/game-renderer`. Each tick, call `sync(particleSourcesFromFrame(frame))`,
+`emit(session.takePresentationEvents())` and `step(seconds)`, then read
+`forEachParticle`. One `step` simulates at most 0.25 seconds, so a resumed tab does not replay a long pause. Each emitter's random stream is seeded from its entity and
+emitter ids, so captures repeat. The built-in players do not draw particles yet.
+
 ### P: Physics
 
 2D `schemaVersion: 5` with `engineVersion: "4"` is reserved for Rapier 2D

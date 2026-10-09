@@ -41,7 +41,7 @@ export const gameMergeAdapter: DocumentMergeAdapter<GameDocument> = {
       unitId: key,
       unitLabel: (unit) => `entity ${key(unit)}`,
       unitFields: ["id", "name", "parentId", "templateOnly", "transform2d", "sprite", "tilemap", "camera2d", "body2d",
-        "collider2d", "animator", "visualAnimation", "audioSource", "light2d"].map((field) => ({ field }))
+        "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "particles"].map((field) => ({ field }))
     },
     {
       kind: "behavior",

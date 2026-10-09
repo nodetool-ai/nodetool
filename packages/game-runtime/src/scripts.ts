@@ -22,7 +22,8 @@ export const gameScriptCommand = z.discriminatedUnion("kind", [
   gameNonSpatialScriptCommand.options[3],
   gameNonSpatialScriptCommand.options[4],
   gameNonSpatialScriptCommand.options[5],
-  gameNonSpatialScriptCommand.options[6]
+  gameNonSpatialScriptCommand.options[6],
+  gameNonSpatialScriptCommand.options[7]
 ]);
 
 export type GameScriptCommand = z.infer<typeof gameScriptCommand>;
