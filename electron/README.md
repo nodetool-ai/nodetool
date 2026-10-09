@@ -56,13 +56,13 @@ this workspace's Jest suite (`.github/workflows/quality-checks.yml`).
 
 ## GPU Detection
 
-Electron uses [torchruntime](https://github.com/easydiffusion/torchruntime) when a package needs a PyTorch-specific wheel index. This runs before installing or updating `nodetool-huggingface`, whose PyTorch target is 2.14.x.
+Electron uses [torchruntime](https://github.com/easydiffusion/torchruntime) to pick the PyTorch wheel index for the packs whose dependencies include torch, `nodetool-huggingface` and `nodetool-mlx`. The HuggingFace pack pins torch 2.14.x.
 
-If no torch platform is cached, the package manager:
+Before every install or update of either pack, the package manager:
 
 1. Installs `torchruntime~=2.0` into the Python environment if needed
-2. Detects the local GPU platform
-3. Saves a successful result as `TORCH_PLATFORM_DETECTED` in `~/.config/nodetool/settings.yaml` (or `%APPDATA%/nodetool/settings.yaml` on Windows). A failed detection is never saved, and detection runs again on every install of a torch pack.
+2. Detects the local GPU platform, so a new GPU or driver is picked up
+3. Saves a successful result as `TORCH_PLATFORM_DETECTED` in `~/.config/nodetool/settings.yaml` (or `%APPDATA%/nodetool/settings.yaml` on Windows). Installs that do not detect, such as the Python runtime's core install, reuse it. A failed detection is never saved.
 4. Passes `--torch-backend <backend>` to `uv pip install`. uv then takes torch packages only from `https://download.pytorch.org/whl/<backend>` and everything else from PyPI.
 
 `mapTorchPlatform` in `electron/src/torchruntime.ts` maps the detected platform to a backend:
@@ -78,9 +78,9 @@ If no torch platform is cached, the package manager:
 | `rocm6.x` | `rocm7.2` |
 | `directml`, `cu118`, `rocm` below 6, unknown | `cpu`, with a warning |
 
-When detection fails, the install uses the last saved result, else `--torch-backend auto` (no backend on macOS). Which of these indexes publish the torch version the HuggingFace pack requires was not verified here. Hardware limits for users are in [GPU requirements](../docs/installation.md#gpu-requirements).
+When detection fails, the install uses the last saved result, else `--torch-backend auto` (no backend on macOS). When the chosen GPU index has no build of the pinned torch, the install falls back to the CPU build and logs a warning, so the pack still installs and Python nodes run on the CPU. Which of these indexes publish torch 2.14 was not verified here. Hardware limits for users are in [GPU requirements](../docs/installation.md#gpu-requirements).
 
-Python packs install at their newest stable PyPI release, independent of the app version, with prereleases excluded. Each install or update resolves the requested pack together with every installed pack. Packs with a `platforms` list in `packages/protocol/src/python-packs.ts` (MLX: `darwin-arm64`) are hidden and refused elsewhere.
+Python packs install at their newest stable PyPI release, independent of the app version, with prereleases excluded. Each install or update resolves the requested pack together with every installed pack. Packs with a `platforms` list in `packages/protocol/src/python-packs.ts` are hidden and refused elsewhere: MLX runs only on `darwin-arm64`, and HuggingFace on every platform except `darwin-x64` (PyTorch 2.14 has no Intel Mac build). On a Mac, both also need macOS 14 or newer, the oldest release PyTorch 2.14 and MLX publish wheels for.
 
 **Detection logs:**
 
