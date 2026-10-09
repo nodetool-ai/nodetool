@@ -91,7 +91,7 @@
                             "props": {
                               "id": "model-beats-ag-model",
                               "binding": "op:beats/prop:ag#model",
-                              "label": "2  Agent model",
+                              "label": "Agent model",
                               "modelKind": "language_model",
                               "events": []
                             }
@@ -101,7 +101,7 @@
                             "props": {
                               "id": "model-shots-ag-model",
                               "binding": "op:shots/prop:ag#model",
-                              "label": "2  Agent model",
+                              "label": "Agent model",
                               "modelKind": "language_model",
                               "events": []
                             }
@@ -341,7 +341,7 @@
                             "props": {
                               "id": "model-score-score-model",
                               "binding": "op:score/prop:score#model",
-                              "label": "3  Write the score model",
+                              "label": "Write the score model",
                               "modelKind": "music_model",
                               "events": []
                             }
@@ -605,6 +605,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Trailer Beats from a Premise\n\nWrites the beat structure of a trailer from a one-line premise, before any footage is paid for. Each beat gets a short description and a duration.\n\n**How it works:** Type the premise into \"1 Input\". \"2 Agent\" lays out the hook, setup, escalation, turn and title card in order, and \"3 Output\" returns the beats as text.\n\n**Try this:** Pick a model on \"2 Agent\" and edit its system prompt to add a target total length, such as 60 seconds."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 247
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.StringInput",
             "data": {
@@ -615,7 +634,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -649,8 +668,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 327
               },
               "zIndex": 0,
               "width": 300,
@@ -668,8 +687,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 358
               },
               "zIndex": 0,
               "width": 300,
@@ -708,6 +727,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Shot List from a Synopsis\n\nTurns a one-paragraph story into eight numbered shots with framing, subject, camera move, and duration. A shot list is something a generation pipeline can step through, where prose is not.\n\n**How it works:** \"Input\" takes the synopsis. \"Agent\" writes the shot list without dialogue, and \"Output\" returns it as text.\n\n**Try this:** Pick a model on \"Agent\", then change \"eight\" in its system prompt to twelve for a longer piece, or add a total running time it must hit."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.StringInput",
             "data": {
@@ -718,7 +756,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 365
               },
               "zIndex": 0,
               "width": 300,
@@ -752,8 +790,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -771,8 +809,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,
@@ -923,16 +961,16 @@
             "id": "comment",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. The Director node writes the storyboard in one step — the same node the Storyboard editor runs behind its Direct button — so the screenplay, the camera direction, and one style bible applied to every shot all come out of a single node.\n\n**Pipeline:** Logline → Director (storyboard) → Screenplay Shots → Keyframes → Image-to-Video → Concat\n\n**Cost note:** the Image-to-Video step runs on Veo 3.1, billed per second of generated video — the most expensive node here. A 6-shot trailer fires 6 Veo calls, so raising Shot Count raises cost linearly.\n\n**Try this:** change the visual style or shot count, or swap the image / video model."
+              "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. Use it to pitch a film idea as a short cut of animated shots.\n\n**How it works:** \"1️⃣ Logline\", \"2️⃣ Visual style\" and \"3️⃣ Shot count\" (6) feed \"4️⃣ Direct the storyboard\", the same Director node the Storyboard editor runs behind its Direct button. It writes the screenplay, camera direction and one style bible. \"5️⃣ One prompt per shot\" emits one prompt per shot. \"6️⃣ Render keyframes\" draws each as a 16:9 2K still, and \"7️⃣ Animate each keyframe (Veo, metered per second)\" turns it into a 4-second 720p clip. \"Collect video clips\" gathers the clips and \"🎬 Final trailer\" joins them for \"8️⃣ Trailer output\". The Director uses Gemini, the keyframes use GPT Image 2 through Kie, and the animation uses Veo 3.1, which is billed per second and costs the most. A 6-shot trailer makes 6 Veo calls.\n\n**Try this:** Set \"3️⃣ Shot count\" to 3 for a cheaper test run and confirm the trailer has three clips."
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": -210
+                "x": 0,
+                "y": 0
               },
               "zIndex": 0,
-              "width": 460,
-              "height": 190,
+              "width": 560,
+              "height": 403,
               "selectable": true,
               "bypassed": false
             },
@@ -948,8 +986,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 69
+                "x": 0,
+                "y": 483
               },
               "zIndex": 0,
               "width": 280,
@@ -969,8 +1007,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 343
+                "x": 0,
+                "y": 708
               },
               "zIndex": 0,
               "width": 280,
@@ -992,8 +1030,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 619
+                "x": 0,
+                "y": 933
               },
               "zIndex": 0,
               "selectable": true,
@@ -1024,8 +1062,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 430,
-                "y": 180
+                "x": 380,
+                "y": 566
               },
               "zIndex": 0,
               "selectable": true,
@@ -1045,8 +1083,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 860,
-                "y": 300
+                "x": 840,
+                "y": 636
               },
               "zIndex": 0,
               "selectable": true,
@@ -1077,8 +1115,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1250,
-                "y": 330
+                "x": 1260,
+                "y": 595
               },
               "zIndex": 0,
               "width": 320,
@@ -1113,8 +1151,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1640,
-                "y": 400
+                "x": 1680,
+                "y": 645
               },
               "zIndex": 0,
               "width": 331,
@@ -1142,8 +1180,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 2040,
-                "y": 436
+                "x": 2111,
+                "y": 681
               },
               "zIndex": 0,
               "width": 161,
@@ -1162,8 +1200,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 2260,
-                "y": 384
+                "x": 2372,
+                "y": 626
               },
               "zIndex": 0,
               "width": 320,
@@ -1185,8 +1223,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2640,
-                "y": 384
+                "x": 2792,
+                "y": 714
               },
               "title": "8️⃣ Trailer output",
               "selectable": true
@@ -1208,8 +1246,7 @@
             "id": "comment-1",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "headline": "Score a Silent Clip",
-              "comment": "Generate a soundtrack to match your clip. Trim the music to the video length, normalise the volume, and add gentle fades before mixing."
+              "comment": "# Score a Silent Clip\n\nGenerates a soundtrack that fits your clip and mixes it under the picture. Use it to give a silent product or b-roll shot background music.\n\n**How it works:** \"Measure the clip\" reads the length of \"Clip\" and passes it to \"Write the score (fal)\" as the duration and to \"Fit music to the clip\" as the trim end. \"Write the score (fal)\" turns the \"Mood\" text into music with Stable Audio 2.5. \"Fit music to the clip\" trims it, \"Even out volume\" normalizes it, and \"Soften the start\" (0.3 s) and \"Soften the ending\" (1 s) add fades. \"Mix the soundtrack\" lays the music over the video at volume 0.35, and \"Scored clip\" shows the result. The music step needs a fal key.\n\n**Try this:** Change \"Mood\" to \"slow ambient synth pads, no drums\" and raise the volume on \"Mix the soundtrack\" to 0.6 to hear the music sit louder."
             },
             "ui_properties": {
               "position": {
@@ -1219,7 +1256,7 @@
               "zIndex": 0,
               "width": 560,
               "selectable": true,
-              "height": 170
+              "height": 362
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1238,7 +1275,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 442
               },
               "zIndex": 0,
               "width": 280,
@@ -1259,7 +1296,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 808
               },
               "zIndex": 0,
               "width": 280,
@@ -1285,8 +1322,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 700,
-                "y": 400
+                "x": 780,
+                "y": 697
               },
               "zIndex": 0,
               "width": 280,
@@ -1305,8 +1342,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2450,
-                "y": 240
+                "x": 2760,
+                "y": 599
               },
               "zIndex": 0,
               "width": 280,
@@ -1324,8 +1361,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2800,
-                "y": 240
+                "x": 3140,
+                "y": 615
               },
               "zIndex": 0,
               "width": 240,
@@ -1341,8 +1378,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 1400,
-                "y": 400
+                "x": 1560,
+                "y": 683
               },
               "width": 300,
               "title": "Even out volume"
@@ -1358,8 +1395,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1750,
-                "y": 400
+                "x": 1960,
+                "y": 663
               },
               "width": 300,
               "title": "Soften the start"
@@ -1375,8 +1412,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2100,
-                "y": 400
+                "x": 2360,
+                "y": 643
               },
               "width": 300,
               "title": "Soften the ending"
@@ -1390,8 +1427,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 350,
-                "y": 240
+                "x": 380,
+                "y": 664
               },
               "width": 300,
               "title": "Measure the clip"
@@ -1407,8 +1444,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1050,
-                "y": 400
+                "x": 1160,
+                "y": 686
               },
               "width": 300,
               "title": "Fit music to the clip"

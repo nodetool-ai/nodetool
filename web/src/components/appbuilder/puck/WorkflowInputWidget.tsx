@@ -375,7 +375,9 @@ export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
   const { getNodeType } = useAppRuntimeContext();
   const boundRef = useBindingRef(props.binding, "write");
   const boundNodeType =
-    boundRef?.kind === "nodeProperty" ? getNodeType(boundRef.nodeId) : undefined;
+    boundRef?.kind === "nodeProperty"
+      ? getNodeType(boundRef.nodeId, boundRef.operationId || undefined)
+      : undefined;
   const task = useMemo<WorkflowModelTask | undefined>(() => {
     if (props.task || !boundNodeType) return props.task;
     if (kind === "image_model") return IMAGE_TASK_BY_NODE_TYPE[boundNodeType];
