@@ -335,11 +335,10 @@ const getProcessEnv = (): ProcessEnv => {
     logMessage(`Warning: Failed to create cache directories: ${error}`, "warn");
   }
 
-  return {
+  const env: ProcessEnv = {
     ...baseEnv,
     HOME: homeDir,
     HF_HOME: hfHome,
-    ...(llamaCache ? { LLAMA_CACHE: llamaCache } : {}),
     PYTHONPATH: pythonLibPath,
     PYTHONUNBUFFERED: "1",
     PYTHONNOUSERSITE: "1",
@@ -351,6 +350,10 @@ const getProcessEnv = (): ProcessEnv => {
         ? pathSegmentsWin.filter(Boolean).join(path.delimiter)
         : pathSegmentsUnix.filter(Boolean).join(path.delimiter),
   };
+  if (llamaCache) {
+    env.LLAMA_CACHE = llamaCache;
+  }
+  return env;
 };
 
 /** How to invoke npm: the executable plus any args that must precede the npm subcommand. */
