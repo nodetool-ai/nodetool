@@ -53,7 +53,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and watch it become an image. Whisper transcribes your audio, then a text-to-image model renders it.\n\n**Pipeline:** Audio → Whisper → Text-to-Image\n\n**Try this:** swap the ASR or image model, or change aspect ratio / resolution."
+          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and watch it become an image. Use it when you would rather describe a picture out loud than type a prompt.\n\n**How it works:** \"1 Record audio\" holds a voice clip. \"2 Transcribe\" turns it into text with Whisper Large v3 on fal. That text becomes the prompt of \"3 Generate image\", which renders a 1:1, 1K image with FLUX.1 Schnell on fal, and the output node shows it. Both steps need a fal key.\n\n**Try this:** Set \"aspect_ratio\" on \"3 Generate image\" to 16:9 and record the same description to get a wide version."
         },
         "ui_properties": {
           "selected": false,
@@ -63,7 +63,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 208,
+          "height": 300,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -76,9 +76,8 @@
           "name": "description",
           "description": "Speak or upload an audio clip describing the image you want.",
           "value": {
-            "asset_id": "6cba4e9efc884854a3939f62007fd9bf",
-            "uri": "/api/storage/6cba4e9efc884854a3939f62007fd9bf.bin",
-            "type": "audio"
+            "type": "audio",
+            "uri": "package://nodetool-base/recipe-inputs/voice.wav"
           }
         },
         "ui_properties": {
@@ -86,7 +85,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 358
+            "y": 450
           },
           "zIndex": 0,
           "width": 245,
@@ -113,7 +112,7 @@
           "selected": false,
           "position": {
             "x": 345,
-            "y": 423
+            "y": 515
           },
           "zIndex": 0,
           "width": 280,
@@ -144,7 +143,7 @@
           "selected": false,
           "position": {
             "x": 725,
-            "y": 288
+            "y": 380
           },
           "zIndex": 0,
           "width": 384,
@@ -164,7 +163,7 @@
         "ui_properties": {
           "position": {
             "x": 1209,
-            "y": 436
+            "y": 528
           },
           "selectable": true
         }

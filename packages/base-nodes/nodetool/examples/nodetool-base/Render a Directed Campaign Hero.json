@@ -19,7 +19,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Render a Directed Campaign Hero\n\nChoose A, B, or C from the captured plan. The product image is always first and the optional role-labelled reference is second. The image edit creates no campaign text; the finalizer waits for the image before advancing."
+          "comment": "# Render a Directed Campaign Hero\n\nRenders one 16:9 campaign hero from a direction you pick out of a captured plan. Use it after Propose Three Campaign Directions, once you know which of A, B or C you want.\n\n**How it works:** \"Captured plan\" and \"Direction choice\" feed \"Select and capture direction\", a Code node that checks the plan is schema version 1 with three directions and finds the chosen one. It builds the edit prompt, lists the product image first and the optional role-labelled reference second, and writes a hero contract. \"Render selected hero\" edits those images with Nano Banana Edit on fal at strength 0.65 and 1K, with a negative prompt that blocks text and logo changes. \"Finalize candidate\" waits for the image, checks it and the contract, then emits \"Candidate hero\", \"Creative contract\" and \"Ready phase\". The render step needs a fal key.\n\n**Try this:** Change \"Direction choice\" from \"A\" to \"B\" and run again to see the same product placed in the second direction's setting and lighting."
         },
         "ui_properties": {
           "position": {
@@ -27,7 +27,7 @@
             "y": 0
           },
           "width": 560,
-          "height": 172,
+          "height": 423,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -44,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 327
+            "y": 578
           },
           "width": 280,
           "title": "Captured plan"
@@ -63,7 +63,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 552
+            "y": 803
           },
           "width": 280,
           "title": "Direction choice"
@@ -80,7 +80,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 334
+            "y": 585
           },
           "width": 440,
           "title": "Select and capture direction"
@@ -150,7 +150,7 @@
         "ui_properties": {
           "position": {
             "x": 920,
-            "y": 439
+            "y": 690
           },
           "width": 320,
           "title": "Render selected hero"
@@ -168,7 +168,7 @@
         "ui_properties": {
           "position": {
             "x": 1340,
-            "y": 306
+            "y": 557
           },
           "width": 380,
           "title": "Finalize candidate"
@@ -220,7 +220,7 @@
         "ui_properties": {
           "position": {
             "x": 1820,
-            "y": 252
+            "y": 503
           },
           "width": 250,
           "title": "Candidate hero"
@@ -237,7 +237,7 @@
         "ui_properties": {
           "position": {
             "x": 1820,
-            "y": 452
+            "y": 703
           },
           "width": 250,
           "title": "Creative contract"
@@ -254,7 +254,7 @@
         "ui_properties": {
           "position": {
             "x": 1820,
-            "y": 652
+            "y": 903
           },
           "width": 250,
           "title": "Ready phase"

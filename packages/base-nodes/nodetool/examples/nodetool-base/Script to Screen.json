@@ -334,7 +334,7 @@
         "id": "comment_main",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Script to Screen\n\nThe full production spine in one graph:\n\n**1. Direction** — a Director agent turns your brief into a direction document: characters with fixed descriptors, a style bible, a numbered shot list, narration, and music direction.\n**2. Storyboard** — a style frame anchors every keyframe (image-to-image), so characters and grade stay consistent. Keyframes cost cents; check them before the video spend.\n**3. Shoot** — each keyframe is animated with its shot's motion direction.\n**4. Post** — clips are cut together, then narration and music are mixed in.\n\n**Cost control:** bypass the Animate node (right-click → Bypass) to iterate on direction and storyboard cheaply. Re-enable it when the stills look right."
+          "comment": "# 🎬 Script to Screen\n\nTurns a short brief into a narrated, scored short film, with a storyboard you can check before spending on video.\n\n**How it works:** \"Brief\", \"Visual style\" and \"Shot count\" (5) fill \"Build director brief\", and the Director agent writes the direction document. \"Extract production data\" pulls out narration, a music prompt and a style frame prompt for \"Master style frame\" (FLUX schnell). \"Build shot-list prompt\" drives \"Stream the shots\", which emits one line per shot. Each shot becomes a keyframe in \"Storyboard keyframes (anchored to style frame)\", a Nano Banana edit of the style frame at strength 0.82, collected into the storyboard output. \"Animate each shot (the expensive step)\" makes 4 s Veo 3.1 clips at 720p, joined by \"Cut the shots together\". \"Narration\" (OpenAI tts-1) and \"Score\" (MusicGen, 30 s) are mixed in at volumes 1 and 0.3. Pick language models on the Director agent, \"Extract production data\" and \"Stream the shots\". Media steps need fal, Gemini, OpenAI and Replicate keys.\n\n**Try this:** Bypass \"Animate each shot (the expensive step)\" (right-click, Bypass), set \"Shot count\" to 3, and run to review a cheap three-frame storyboard before any video spend."
         },
         "ui_properties": {
           "position": {
@@ -343,7 +343,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 344,
+          "height": 464,
           "selectable": true,
           "bypassed": false
         },
@@ -360,7 +360,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1245
+            "y": 1365
           },
           "zIndex": 0,
           "width": 280,
@@ -381,7 +381,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1020
+            "y": 1140
           },
           "zIndex": 0,
           "width": 280,
@@ -402,7 +402,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1470
+            "y": 1590
           },
           "zIndex": 0,
           "width": 280,
@@ -422,7 +422,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 1053
+            "y": 1173
           },
           "zIndex": 0,
           "width": 320,
@@ -456,7 +456,7 @@
         "ui_properties": {
           "position": {
             "x": 800,
-            "y": 1077
+            "y": 1197
           },
           "zIndex": 0,
           "width": 330,
@@ -477,7 +477,7 @@
         "ui_properties": {
           "position": {
             "x": 1230,
-            "y": 1190
+            "y": 1310
           },
           "title": "📋 Direction document",
           "selectable": true
@@ -505,7 +505,7 @@
         "ui_properties": {
           "position": {
             "x": 1230,
-            "y": 794
+            "y": 914
           },
           "zIndex": 0,
           "width": 300,
@@ -552,7 +552,7 @@
         "ui_properties": {
           "position": {
             "x": 1650,
-            "y": 424
+            "y": 544
           },
           "zIndex": 0,
           "width": 300,
@@ -573,7 +573,7 @@
         "ui_properties": {
           "position": {
             "x": 1230,
-            "y": 1390
+            "y": 1510
           },
           "zIndex": 0,
           "width": 320,
@@ -605,7 +605,7 @@
         "ui_properties": {
           "position": {
             "x": 1650,
-            "y": 1492
+            "y": 1612
           },
           "zIndex": 0,
           "width": 300,
@@ -626,7 +626,7 @@
         "ui_properties": {
           "position": {
             "x": 2050,
-            "y": 965
+            "y": 1085
           },
           "zIndex": 0,
           "width": 320,
@@ -661,7 +661,7 @@
         "ui_properties": {
           "position": {
             "x": 2470,
-            "y": 799
+            "y": 919
           },
           "zIndex": 0,
           "width": 320,
@@ -681,7 +681,7 @@
         "ui_properties": {
           "position": {
             "x": 2890,
-            "y": 914
+            "y": 1034
           },
           "zIndex": 0,
           "width": 160,
@@ -701,7 +701,7 @@
         "ui_properties": {
           "position": {
             "x": 3320,
-            "y": 892
+            "y": 1012
           },
           "title": "🖼️ Storyboard — approve before video spend",
           "selectable": true
@@ -718,7 +718,7 @@
         "ui_properties": {
           "position": {
             "x": 2050,
-            "y": 1391
+            "y": 1511
           },
           "zIndex": 0,
           "width": 320,
@@ -753,7 +753,7 @@
         "ui_properties": {
           "position": {
             "x": 2890,
-            "y": 1116
+            "y": 1236
           },
           "zIndex": 0,
           "width": 330,
@@ -772,7 +772,7 @@
         "ui_properties": {
           "position": {
             "x": 3320,
-            "y": 1194
+            "y": 1314
           },
           "zIndex": 0,
           "width": 160,
@@ -790,7 +790,7 @@
         "ui_properties": {
           "position": {
             "x": 3700,
-            "y": 1103
+            "y": 1223
           },
           "zIndex": 0,
           "width": 300,
@@ -829,7 +829,7 @@
         "ui_properties": {
           "position": {
             "x": 1650,
-            "y": 1176
+            "y": 1296
           },
           "zIndex": 0,
           "width": 300,
@@ -858,7 +858,7 @@
         "ui_properties": {
           "position": {
             "x": 1650,
-            "y": 840
+            "y": 960
           },
           "zIndex": 0,
           "width": 300,
@@ -880,7 +880,7 @@
         "ui_properties": {
           "position": {
             "x": 4100,
-            "y": 1084
+            "y": 1204
           },
           "zIndex": 0,
           "width": 280,
@@ -902,7 +902,7 @@
         "ui_properties": {
           "position": {
             "x": 4480,
-            "y": 962
+            "y": 1082
           },
           "zIndex": 0,
           "width": 280,
@@ -923,7 +923,7 @@
         "ui_properties": {
           "position": {
             "x": 4860,
-            "y": 1015
+            "y": 1135
           },
           "title": "🎬 Final film",
           "selectable": true

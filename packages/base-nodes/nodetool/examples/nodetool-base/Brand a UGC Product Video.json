@@ -22,7 +22,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Brand a UGC Product Video\n\nDrop in one continuous, native-audio vertical creator clip. The workflow transcribes the clip, groups the spoken words into 3–5 word phrases, and builds a reusable editable timeline with word highlighting, stable frame-snapped phrases, a MORROW opening bug, a compact lower-left DAILY RITUAL callout, and an animated closing lockup.\n\n**Pipeline:** Creator clip → Native audio → Word timestamps → Motion-design timeline → Final reel\n\n**Style:** Ivory `#F6F4EC`, sage `#C0D28C`, forest `#14241E`. `Polished` adds a soft caption plate; `Minimal` keeps only type and outline."
+          "comment": "# Brand a UGC Product Video\n\nTurns one continuous, native-audio vertical creator clip into a branded reel with animated captions and MORROW motion graphics. The result is an editable timeline as well as a rendered video.\n\n**How it works:** \"6 Keep the native track\" pulls the audio from \"1 Creator clip\", and \"7 Derive word timings\" transcribes it with OpenAI whisper-1 and word timestamps. \"Measure the clip\" reads the duration. \"8 Build the editable motion timeline\" is a Code node that groups the words into 3 to 5 word phrases with word highlighting, then adds an opening brand bug, a DAILY RITUAL callout and a closing lockup with \"2 Brand\" and \"3 Slogan\". It caps the cut at 15.083 s. \"4 Caption style\" picks Polished (soft forest plate) or Minimal (type and outline only), and \"5 Brand accent\" colors the active word. \"9 Render the finished reel\" renders an MP4 with audio for \"10 Branded UGC reel\". Add your own clip first. Transcription needs an OpenAI key.\n\n**Try this:** Set \"4 Caption style\" to Minimal and rerun to see the captions without the background plate."
         },
         "ui_properties": {
           "position": {
@@ -43,7 +43,10 @@
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "creator_clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "One continuous 9:16 creator clip with its native audio"
         },
         "ui_properties": {
