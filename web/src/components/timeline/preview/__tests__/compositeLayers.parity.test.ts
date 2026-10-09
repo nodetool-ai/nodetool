@@ -538,4 +538,19 @@ describe("a track matte drives a layer's alpha and never draws itself", () => {
     expect(pool.taken[1].draws.map((d) => d.source)).toEqual(["keyhole"]);
     expect(ctx.draws.map((d) => d.source)).toEqual(["surface-0"]);
   });
+
+  it("marks the matte pending while its source has no pixels", () => {
+    const scene = computeActiveLayersWithHorizon([videoTrack()], clips, 500, {
+      canvas: FRAME
+    });
+    const layers = buildCompositeLayers(scene.layers, {
+      atMs: 500,
+      canvas: FRAME,
+      resolveSource: (layer) =>
+        layer.clipId === "keyhole" ? null : { source: sourceFor(layer) }
+    });
+    expect(layers).toHaveLength(1);
+    expect(layers[0].matte).toBeUndefined();
+    expect(layers[0].mattePending).toBe(true);
+  });
 });

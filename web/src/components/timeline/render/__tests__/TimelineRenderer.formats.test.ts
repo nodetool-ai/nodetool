@@ -108,6 +108,7 @@ jest.mock("../renderAudio", () => ({
 jest.mock("../../preview/textRender", () => ({
   TextRasterizer: jest.fn().mockImplementation(() => ({
     rasterize: jest.fn(() => ({ width: 32, height: 32, close: jest.fn() })),
+    windowOf: jest.fn(),
     dispose: jest.fn()
   }))
 }));
@@ -122,6 +123,7 @@ jest.mock("../../preview/captionRender", () => ({
 jest.mock("../../preview/shapeRender", () => ({
   ShapeRasterizer: jest.fn().mockImplementation(() => ({
     rasterize: jest.fn(),
+    windowOf: jest.fn(),
     dispose: jest.fn()
   }))
 }));
