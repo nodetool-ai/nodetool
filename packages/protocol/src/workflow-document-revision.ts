@@ -70,7 +70,8 @@ function dynamicInputs(value: unknown): Record<string, unknown> {
 export function workflowDocumentRevision(
   workflowId: string,
   nodes: readonly unknown[],
-  edges: readonly unknown[]
+  edges: readonly unknown[],
+  links: readonly unknown[] = []
 ): string {
   const graph = {
     workflow_id: workflowId,
@@ -110,7 +111,22 @@ export function workflowDocumentRevision(
         edge_type: edge.edge_type === "control" || edge.type === "control" || record(edge.data).edge_type === "control"
           ? "control" : "data"
       };
-    })
+    }),
+    // Omitted when empty so revisions of graphs without links are unchanged.
+    ...(links.length > 0
+      ? {
+          links: links.map((value) => {
+            const link = record(value);
+            return {
+              id: link.id,
+              source: link.source,
+              target: link.target,
+              label: link.label ?? null,
+              kind: link.kind ?? null
+            };
+          })
+        }
+      : {})
   };
   const canonical = JSON.stringify(graph, (_key, value: unknown) => {
     if (isRecord(value)) {
