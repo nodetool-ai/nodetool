@@ -20,7 +20,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Transcribe Audio\n\nDrop in an audio clip and Whisper converts the speech to text. One node, one output — the app runs itself the moment you upload.\n\n**Pipeline:** Audio → Transcribe → Transcript\n\n**Try this:** swap the ASR model, or set a language code to skip auto-detection."
+          "comment": "# 🎙️ Transcribe Audio\n\nDrop in an audio clip and get a text transcript back. Use it for a quick transcript of an interview, voice memo or meeting recording.\n\n**How it works:** \"Audio input\" passes the clip to \"Transcribe\", an Automatic Speech Recognition node set to Whisper large v3 on fal. It detects the language and returns the text, which \"Transcript\" shows. As an app, it runs as soon as you upload a file. The transcription step needs a fal key.\n\n**Try this:** Set \"Language\" on \"Transcribe\" to \"de\" for a German recording to skip auto-detection, or swap the ASR model to compare accuracy."
         },
         "ui_properties": {
           "selected": false,
@@ -30,7 +30,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 208,
+          "height": 300,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -43,13 +43,16 @@
         "data": {
           "name": "audio",
           "description": "Audio clip with speech to transcribe (any common format)",
-          "value": {}
+          "value": {
+            "type": "audio",
+            "uri": "package://nodetool-base/recipe-inputs/meeting.wav"
+          }
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 0,
-            "y": 288
+            "y": 380
           },
           "zIndex": 0,
           "width": 280,
@@ -76,7 +79,7 @@
           "selected": false,
           "position": {
             "x": 380,
-            "y": 334
+            "y": 426
           },
           "zIndex": 0,
           "width": 280,
@@ -95,7 +98,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 347
+            "y": 439
           },
           "width": 260,
           "title": "3️⃣ Transcript",

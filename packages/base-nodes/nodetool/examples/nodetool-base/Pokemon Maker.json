@@ -67,7 +67,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🐲 Pokemon Maker\n\nName a few animals, pick an art style, and get a batch of four original collectible creatures — each one a believable fusion of the animals you chose, all rendered in the same style.\n\n**Pipeline:** Animals + Style → Design brief → Creature prompts → Render → Gallery\n\n**Try this:** mix an unlikely pair (axolotl + hummingbird) and switch the style to see the whole set restyle at once."
+          "comment": "# 🐲 Pokemon Maker\n\nName a few animals, pick an art style, and get four original collectible creatures, each a fusion of the animals you chose, all rendered in the same style.\n\n**How it works:** \"1️⃣ Animal inspiration\" (lion, eagle, koi fish) and \"1️⃣ Art style\" fill \"2️⃣ Build design brief\", which asks for four creature prompts in one consistent style. \"3️⃣ Write four creature prompts\" splits the answer into four separate prompts. \"4️⃣ Render each creature\" draws each one as a 1:1 image with FLUX Schnell, and \"Creature gallery\" collects all four. Pick a language model on \"3️⃣ Write four creature prompts\". The render step needs a FAL key.\n\n**Try this:** Set \"1️⃣ Animal inspiration\" to \"axolotl, hummingbird\" and switch \"1️⃣ Art style\" to \"Retro 16-bit pixel art\" to see the whole set restyle at once."
         },
         "ui_properties": {
           "selected": false,
@@ -77,7 +77,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 247,
+          "height": 341,
           "selectable": true,
           "bypassed": false
         },
@@ -96,7 +96,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 461
+            "y": 555
           },
           "zIndex": 0,
           "width": 220,
@@ -127,7 +127,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 686
+            "y": 780
           },
           "zIndex": 0,
           "width": 220,
@@ -148,7 +148,7 @@
           "selected": false,
           "position": {
             "x": 320,
-            "y": 327
+            "y": 421
           },
           "zIndex": 0,
           "width": 351,
@@ -181,7 +181,7 @@
           "selected": false,
           "position": {
             "x": 771,
-            "y": 459
+            "y": 553
           },
           "zIndex": 0,
           "width": 291,
@@ -212,7 +212,7 @@
           "selected": false,
           "position": {
             "x": 1162,
-            "y": 429
+            "y": 523
           },
           "zIndex": 0,
           "width": 384,
@@ -233,7 +233,7 @@
         "ui_properties": {
           "position": {
             "x": 1646,
-            "y": 577
+            "y": 671
           },
           "selectable": true,
           "title": "Creature gallery"

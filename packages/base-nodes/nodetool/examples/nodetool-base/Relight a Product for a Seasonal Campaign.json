@@ -38,7 +38,10 @@
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "photo",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The photo to work on"
         },
         "ui_properties": {

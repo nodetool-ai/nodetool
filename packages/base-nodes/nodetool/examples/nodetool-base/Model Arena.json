@@ -21,7 +21,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# ⚔️ Model Arena\n\nOne brief, three frontier models, side by side. The same prompt fans out to **OpenAI GPT-5 mini**, **Anthropic Claude Sonnet 5**, and **Google Gemini 3.5 Flash** — each answers in the same structure, so you compare reasoning, not formatting.\n\n**Blind judge:** a fourth model reads the answers as A, B and C, never the model names, scores each against one rubric, and picks a winner. The scorecard is the verdict output.\n\n**Try this:** paste any decision, spec, or judgement call into the brief, then swap the model on any lane, or the judge, to build your own bracket."
+          "comment": "# ⚔️ Model Arena\n\nOne brief, three frontier models, side by side, then a fourth model judges them blind. Use it to compare how models reason on the same decision, spec, or judgement call.\n\n**How it works:** \"1️⃣ The brief\" and \"2️⃣ Audience & constraints\" fill the \"Shared prompt (one format, all lanes)\", which asks for exactly three sections: Recommendation, Why, and Strongest counterargument. Three Agent lanes answer it: \"🟢 OpenAI · GPT-5 mini\", \"🟣 Anthropic · Claude Sonnet 5\" and \"🔵 Google · Gemini 3.5 Flash\". Each answer goes to its own output and into \"Judge prompt (answers as A, B, C)\" without the model names. \"⚖️ Blind judge\" scores each answer from 1 to 5 on four criteria and names a winner in \"⚖️ Verdict\". Pick a model on the OpenAI lane before running. The other lanes and the judge come preset, and each needs its provider key.\n\n**Try this:** Paste your own decision into \"1️⃣ The brief\", then switch the model on \"⚖️ Blind judge\" to Gemini and see whether the winner changes."
         },
         "ui_properties": {
           "position": {
@@ -30,7 +30,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 286,
+          "height": 403,
           "title": null,
           "selectable": true,
           "bypassed": false
@@ -49,7 +49,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 615
+            "y": 732
           },
           "zIndex": 0,
           "width": 300,
@@ -72,7 +72,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 971
+            "y": 1088
           },
           "zIndex": 0,
           "width": 300,
@@ -93,7 +93,7 @@
         "ui_properties": {
           "position": {
             "x": 400,
-            "y": 754
+            "y": 871
           },
           "zIndex": 0,
           "width": 320,
@@ -134,7 +134,7 @@
         "ui_properties": {
           "position": {
             "x": 820,
-            "y": 366
+            "y": 483
           },
           "zIndex": 0,
           "width": 340,
@@ -172,7 +172,7 @@
         "ui_properties": {
           "position": {
             "x": 820,
-            "y": 802
+            "y": 919
           },
           "zIndex": 0,
           "width": 340,
@@ -210,7 +210,7 @@
         "ui_properties": {
           "position": {
             "x": 820,
-            "y": 1238
+            "y": 1355
           },
           "zIndex": 0,
           "width": 340,
@@ -231,7 +231,7 @@
         "ui_properties": {
           "position": {
             "x": 1260,
-            "y": 416
+            "y": 533
           },
           "zIndex": 0,
           "width": 300,
@@ -251,7 +251,7 @@
         "ui_properties": {
           "position": {
             "x": 1260,
-            "y": 1177
+            "y": 1294
           },
           "zIndex": 0,
           "width": 300,
@@ -271,7 +271,7 @@
         "ui_properties": {
           "position": {
             "x": 1260,
-            "y": 1377
+            "y": 1494
           },
           "zIndex": 0,
           "width": 300,
@@ -291,7 +291,7 @@
         "ui_properties": {
           "position": {
             "x": 1260,
-            "y": 661
+            "y": 778
           },
           "zIndex": 0,
           "width": 320,
@@ -335,7 +335,7 @@
         "ui_properties": {
           "position": {
             "x": 1680,
-            "y": 753
+            "y": 870
           },
           "zIndex": 0,
           "width": 340,
@@ -356,7 +356,7 @@
         "ui_properties": {
           "position": {
             "x": 2120,
-            "y": 891
+            "y": 1008
           },
           "zIndex": 0,
           "width": 300,

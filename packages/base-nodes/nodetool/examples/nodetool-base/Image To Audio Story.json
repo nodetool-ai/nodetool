@@ -48,7 +48,7 @@
         "id": "9f51da20-90d9-46a7-8131-c79ac63df648",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Image To Audio Story\n\nUpload a photo; a vision agent invents a short story about it, then text-to-speech narrates that story aloud.\n\n**Pipeline:** Image input → Vision agent (story) → Text-to-Speech\n\n**Try this:** swap the image, or change the agent prompt (\"write a poem\", \"a museum curator's take\"). Pick vision and TTS models first."
+          "comment": "# 🎙️ Image To Audio Story\n\nUpload a photo and a vision agent invents a short story about it, then text-to-speech narrates that story aloud.\n\n**How it works:** \"Load image\" sends the photo to \"Write a story\", an Agent told to write a 150 to 250 word story with a title line, inspired by the image rather than describing it. \"Narrate aloud\" reads the story with OpenAI tts-1 at speed 1, and the Output node plays the narration. Pick a vision-capable language model on \"Write a story\". The speech step is a paid OpenAI call.\n\n**Try this:** Change the prompt on \"Write a story\" to \"Write a short poem inspired by this image, eight lines, no title.\" The narration becomes a brief poem instead of a story."
         },
         "ui_properties": {
           "position": {
@@ -57,7 +57,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 227,
+          "height": 341,
           "selectable": true,
           "bypassed": false
         },
@@ -69,8 +69,8 @@
         "type": "nodetool.input.ImageInput",
         "data": {
           "value": {
-            "uri": "https://s.abcnews.com/images/International/tiananmen-square-anniversary-01-file-gty-jef-190529_hpMain_16x9_992.jpg?w=992",
-            "type": "image"
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
           },
           "name": "image",
           "description": "The photo the story should be about"
@@ -78,7 +78,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 353
+            "y": 467
           },
           "zIndex": 0,
           "width": 280,
@@ -109,7 +109,7 @@
           "selected": false,
           "position": {
             "x": 380,
-            "y": 334
+            "y": 448
           },
           "zIndex": 0,
           "width": 280,
@@ -145,7 +145,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 307
+            "y": 421
           },
           "zIndex": 0,
           "width": 340,
@@ -166,7 +166,7 @@
         "ui_properties": {
           "position": {
             "x": 1200,
-            "y": 365
+            "y": 479
           },
           "selectable": true
         }

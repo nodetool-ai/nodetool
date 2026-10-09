@@ -128,7 +128,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations — the thing a single image prompt can't do.\n\n**Why the graph:** an agent first commits to a coherent art direction, so every variation shares one visual language instead of drifting. The list generator then writes N distinct prompts from that direction, and each one streams into the image node — so the output fills up as a variant gallery rather than a single picture.\n\n**Pipeline:** Brief + Style + Mood → Art-director agent → N prompts → Text-to-Image (one per prompt) → gallery\n\n**Try this:** change Style or Mood for a whole new look, or bump Variations to compare more options in one run."
+          "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations. Use it to compare several directions for the same subject in one run.\n\n**How it works:** \"5 Build art-direction brief\" combines \"1 Brief\", \"2 Style\" and \"3 Mood\". \"6 Art-director agent\" turns that into one art direction, so every variation shares a visual language. \"7 Write variation prompts\" asks for \"4 Variations\" (4, range 2 to 8) prompts from that direction and the style. \"8 Generate prompt list\" emits them one at a time, and \"9 Render each variation\" renders each at 1:1 with FLUX.1 Schnell on fal into \"Concept Art\". Pick a language model on \"6 Art-director agent\" and \"8 Generate prompt list\". Images need a fal key.\n\n**Try this:** Set \"4 Variations\" to 6 and change \"3 Mood\" to \"ominous, decaying, hostile\" to get six variations in a darker direction."
         },
         "ui_properties": {
           "position": {
@@ -137,7 +137,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 333,
+          "height": 362,
           "selectable": true,
           "bypassed": false
         },
@@ -163,7 +163,7 @@
         "ui_properties": {
           "position": {
             "x": 2284,
-            "y": 629
+            "y": 658
           },
           "zIndex": 0,
           "width": 461,
@@ -194,7 +194,7 @@
         "ui_properties": {
           "position": {
             "x": 1794,
-            "y": 754
+            "y": 783
           },
           "zIndex": 0,
           "width": 390,
@@ -240,7 +240,7 @@
         "ui_properties": {
           "position": {
             "x": 857,
-            "y": 732
+            "y": 761
           },
           "zIndex": 0,
           "width": 319,
@@ -264,7 +264,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 413
+            "y": 442
           },
           "zIndex": 0,
           "width": 280,
@@ -286,7 +286,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 863
+            "y": 892
           },
           "zIndex": 0,
           "width": 280,
@@ -308,7 +308,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 638
+            "y": 667
           },
           "zIndex": 0,
           "width": 280,
@@ -333,7 +333,7 @@
         "ui_properties": {
           "position": {
             "x": 1276,
-            "y": 663
+            "y": 692
           },
           "zIndex": 0,
           "width": 418,
@@ -363,7 +363,7 @@
           "selected": false,
           "position": {
             "x": 380,
-            "y": 443
+            "y": 472
           },
           "zIndex": 0,
           "width": 377,
@@ -388,7 +388,7 @@
         "ui_properties": {
           "position": {
             "x": 2845,
-            "y": 822
+            "y": 851
           },
           "zIndex": 0,
           "width": 280,
@@ -412,7 +412,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1088
+            "y": 1117
           },
           "zIndex": 0,
           "width": 280,

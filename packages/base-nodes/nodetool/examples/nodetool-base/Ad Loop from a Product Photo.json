@@ -20,7 +20,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Ad Loop from a Product Photo\n\nOne product photo in, a looping hero shot out.\n\nKling 2.6 animates the still, then the speed pass halves playback so the loop reads as a slow, premium reveal.\n\nThe motion brief forbids redesigning the product — the model may move the camera and the light, nothing else."
+          "comment": "# Ad Loop from a Product Photo\n\nOne product photo in, a looping hero shot out. Use it for a short, slow product reveal for an ad or a landing page.\n\n**How it works:** \"Motion brief\" puts the \"2 Motion\" text into a prompt that forbids redesigning the product, so the model may move only the camera and the light. \"3 Animate (Kie)\" sends \"1 Product photo\" and that brief to Kling 2.6 for a 5 second, 16:9, 1080p clip. \"4 Half speed\" sets the speed factor to 0.5 so the loop reads as a slow reveal, and \"5 Ad loop\" shows it. Add your own photo first. The video step needs a KIE_API_KEY and is billed per generation.\n\n**Try this:** Set \"speed_factor\" on \"4 Half speed\" to 1.0 and compare the pace of the loop at its original speed."
         },
         "ui_properties": {
           "position": {
@@ -30,7 +30,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 227
+          "height": 341
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -40,13 +40,16 @@
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "product_photo",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "A clean photo of the product"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 307
+            "y": 421
           },
           "zIndex": 0,
           "width": 280,
@@ -67,7 +70,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 523
+            "y": 637
           },
           "zIndex": 0,
           "width": 280,
@@ -86,7 +89,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 346
+            "y": 460
           },
           "zIndex": 0,
           "width": 320,
@@ -117,7 +120,7 @@
         "ui_properties": {
           "position": {
             "x": 800,
-            "y": 376
+            "y": 490
           },
           "zIndex": 0,
           "width": 280,
@@ -136,7 +139,7 @@
         "ui_properties": {
           "position": {
             "x": 1180,
-            "y": 408
+            "y": 522
           },
           "zIndex": 0,
           "width": 280,
@@ -155,7 +158,7 @@
         "ui_properties": {
           "position": {
             "x": 1560,
-            "y": 397
+            "y": 511
           },
           "zIndex": 0,
           "width": 240,

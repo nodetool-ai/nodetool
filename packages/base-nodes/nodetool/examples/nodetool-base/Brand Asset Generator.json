@@ -135,7 +135,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🏷️ Brand Asset Generator\n\nFrom a brand name + vibe, produce a full social kit in one run.\n\n**Two branches fan out from the same inputs:**\n- **Images** → an art director writes 4 prompts, each rendered, stamped with the brand name (in your color) and tagline, then collected into a gallery.\n- **Brief** → a strategist writes a one-page brand guideline (voice, palette, taglines).\n\n**Try this:** change the brand color or edit the two prompt templates to shift the whole kit."
+          "comment": "# 🏷️ Brand Asset Generator\n\nFrom a brand name and vibe, produces a social kit in one run: four on-brand images with text overlays and a one-page brand brief. Use it to rough out a launch kit before design work.\n\n**How it works:** The four inputs feed two branches. In the image branch, \"5 Write image prompts\" asks for four prompts (Instagram, LinkedIn, X, product launch), and \"6 Split into 4 prompts\" emits them one at a time. \"7 Render each image\" renders each at 1:1 with FLUX.1 Schnell on fal. \"8 Stamp brand name\" writes \"1 Brand name\" in \"4 Brand color\" at size 72, \"9 Overlay tagline\" adds \"3 Tagline\" in white at size 40, and \"10 Collect gallery\" gathers the four images. In the brief branch, \"5 Write brief prompt\" feeds \"6 Draft brand brief\", which writes voice, palette and tagline options. Pick a language model on \"6 Split into 4 prompts\" and \"6 Draft brand brief\". Images need a fal key.\n\n**Try this:** Change \"4 Brand color\" to a deep red such as #B3261E and see the brand name on all four images change color."
         },
         "ui_properties": {
           "selected": false,
@@ -145,7 +145,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 272,
+          "height": 423,
           "selectable": true,
           "bypassed": false
         },
@@ -163,7 +163,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1151
+            "y": 1302
           },
           "zIndex": 0,
           "width": 280,
@@ -185,7 +185,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 926
+            "y": 1077
           },
           "zIndex": 0,
           "width": 280,
@@ -207,7 +207,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1556
+            "y": 1707
           },
           "zIndex": 0,
           "width": 280,
@@ -232,7 +232,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1376
+            "y": 1527
           },
           "zIndex": 0,
           "width": 280,
@@ -252,7 +252,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 352
+            "y": 503
           },
           "zIndex": 0,
           "width": 300,
@@ -284,7 +284,7 @@
         "ui_properties": {
           "position": {
             "x": 780,
-            "y": 779
+            "y": 930
           },
           "zIndex": 0,
           "width": 280,
@@ -314,7 +314,7 @@
         "ui_properties": {
           "position": {
             "x": 1180,
-            "y": 916
+            "y": 1067
           },
           "zIndex": 0,
           "width": 360,
@@ -349,7 +349,7 @@
         "ui_properties": {
           "position": {
             "x": 1640,
-            "y": 1204
+            "y": 1355
           },
           "zIndex": 0,
           "width": 280,
@@ -383,7 +383,7 @@
         "ui_properties": {
           "position": {
             "x": 2020,
-            "y": 1341
+            "y": 1492
           },
           "zIndex": 0,
           "width": 280,
@@ -403,7 +403,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 1344
+            "y": 1495
           },
           "zIndex": 0,
           "width": 240,
@@ -423,7 +423,7 @@
         "ui_properties": {
           "position": {
             "x": 2740,
-            "y": 1305
+            "y": 1456
           },
           "selectable": true
         }
@@ -437,7 +437,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 1301
+            "y": 1452
           },
           "zIndex": 0,
           "width": 300,
@@ -486,7 +486,7 @@
         "ui_properties": {
           "position": {
             "x": 780,
-            "y": 1500
+            "y": 1651
           },
           "zIndex": 0,
           "width": 300,
@@ -507,7 +507,7 @@
         "ui_properties": {
           "position": {
             "x": 1180,
-            "y": 1612
+            "y": 1763
           },
           "selectable": true
         }

@@ -244,7 +244,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. The episode is transcribed once; four writer branches fan out from the transcript.\n\n**Pipeline:** Episode audio → Transcript → Show notes · Newsletter · Posts · Quotes → Quote cards\n\n**Try this:** pick the ASR, language, and image models, then tune each writer's prompt to your show's voice."
+          "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images.\n\n**How it works:** \"4️⃣ Transcribe the episode\" runs Whisper once on \"1️⃣ Episode audio\". The transcript and \"2️⃣ Show context\" fill four prompt nodes, one per writer branch. \"5️⃣ Write show notes & titles\" and \"6️⃣ Draft the newsletter\" are Agents that write Markdown. \"7️⃣ Generate social posts\" splits five posts into separate items. \"8️⃣ Pull the best quotes\" pulls as many verbatim quotes as \"3️⃣ Quote-card count\" (4). Each quote fills \"Build quote-card prompt\", and \"9️⃣ Render quote cards\" draws it as a 1:1 card with FLUX Schnell. Four Preview nodes show the results. Pick a language model on the two Agents and the two list generators.\n\n**Try this:** Rewrite \"2️⃣ Show context\" for your own show and set \"3️⃣ Quote-card count\" to 6 to get six cards in your voice."
         },
         "ui_properties": {
           "position": {
@@ -253,7 +253,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 266,
+          "height": 382,
           "selectable": true,
           "bypassed": false
         },
@@ -267,14 +267,14 @@
           "name": "episode_audio",
           "value": {
             "type": "audio",
-            "uri": "https://app.nodetool.ai/examples/remove_silence.mp3"
+            "uri": "package://nodetool-base/recipe-inputs/meeting.wav"
           },
           "description": "The full episode recording (any common audio format)"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1049
+            "y": 1165
           },
           "zIndex": 0,
           "width": 280,
@@ -296,7 +296,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1404
+            "y": 1520
           },
           "zIndex": 0,
           "width": 280,
@@ -320,7 +320,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1836
+            "y": 1952
           },
           "zIndex": 0,
           "width": 280,
@@ -346,7 +346,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 1161
+            "y": 1277
           },
           "zIndex": 0,
           "width": 300,
@@ -367,7 +367,7 @@
         "ui_properties": {
           "position": {
             "x": 780,
-            "y": 465
+            "y": 581
           },
           "zIndex": 0,
           "width": 320,
@@ -408,7 +408,7 @@
         "ui_properties": {
           "position": {
             "x": 1200,
-            "y": 369
+            "y": 485
           },
           "zIndex": 0,
           "width": 330,
@@ -429,7 +429,7 @@
         "ui_properties": {
           "position": {
             "x": 1630,
-            "y": 346
+            "y": 462
           },
           "zIndex": 0,
           "width": 320,
@@ -450,7 +450,7 @@
         "ui_properties": {
           "position": {
             "x": 780,
-            "y": 921
+            "y": 1037
           },
           "zIndex": 0,
           "width": 320,
@@ -491,7 +491,7 @@
         "ui_properties": {
           "position": {
             "x": 1200,
-            "y": 825
+            "y": 941
           },
           "zIndex": 0,
           "width": 330,
@@ -512,7 +512,7 @@
         "ui_properties": {
           "position": {
             "x": 1630,
-            "y": 802
+            "y": 918
           },
           "zIndex": 0,
           "width": 320,
@@ -533,7 +533,7 @@
         "ui_properties": {
           "position": {
             "x": 780,
-            "y": 1377
+            "y": 1493
           },
           "zIndex": 0,
           "width": 320,
@@ -566,7 +566,7 @@
         "ui_properties": {
           "position": {
             "x": 1200,
-            "y": 1313
+            "y": 1429
           },
           "zIndex": 0,
           "width": 330,
@@ -587,7 +587,7 @@
         "ui_properties": {
           "position": {
             "x": 1630,
-            "y": 1268
+            "y": 1384
           },
           "zIndex": 0,
           "width": 300,
@@ -608,7 +608,7 @@
         "ui_properties": {
           "position": {
             "x": 780,
-            "y": 1813
+            "y": 1929
           },
           "zIndex": 0,
           "width": 320,
@@ -641,7 +641,7 @@
         "ui_properties": {
           "position": {
             "x": 1200,
-            "y": 1723
+            "y": 1839
           },
           "zIndex": 0,
           "width": 330,
@@ -662,7 +662,7 @@
         "ui_properties": {
           "position": {
             "x": 1630,
-            "y": 1578
+            "y": 1694
           },
           "zIndex": 0,
           "width": 340,
@@ -696,7 +696,7 @@
         "ui_properties": {
           "position": {
             "x": 2070,
-            "y": 1598
+            "y": 1714
           },
           "zIndex": 0,
           "width": 320,
@@ -717,7 +717,7 @@
         "ui_properties": {
           "position": {
             "x": 2490,
-            "y": 1606
+            "y": 1722
           },
           "zIndex": 0,
           "width": 360,
