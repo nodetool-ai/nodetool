@@ -240,6 +240,40 @@ describe("GenreStep", () => {
     expect(onShotCountChange).toHaveBeenCalledWith(10);
   });
 
+  // F15: a rewrite keeps the screenplay's own length, which the picker's
+  // list may not hold. The select still shows it.
+  it("shows a shot count the list does not offer", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <GenreFooterControls
+          boardId={BOARD}
+          shotCount={5}
+          onShotCountChange={onShotCountChange}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("combobox", { name: "Shots" })).toHaveTextContent(
+      "5 shots"
+    );
+  });
+
+  // F13: a script kept as written has its own length.
+  it("hides the shot count when asked to", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <GenreFooterControls
+          boardId={BOARD}
+          shotCount={6}
+          onShotCountChange={onShotCountChange}
+          hideShotCount
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.queryByRole("combobox", { name: "Shots" })).toBeNull();
+  });
+
   // Studio pins its own director; the beginner shell shows no LLM picker.
   it("hides the screenplay model picker in Studio", () => {
     renderInStudio();

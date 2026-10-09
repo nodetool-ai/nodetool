@@ -272,14 +272,18 @@ const getProcessEnv = (): ProcessEnv => {
   // Set HOME if not already set (needed on macOS for GUI processes)
   const homeDir = baseEnv.HOME || os.homedir();
 
-  // HuggingFace cache: Use env var if set, otherwise default to ~/.cache/huggingface
-  // This ensures consistency between Electron app and CLI usage
-  const hfHome = baseEnv.HF_HOME || path.join(homeDir, ".cache", "huggingface");
+  // HuggingFace home: the user's HF_HOME, else where huggingface_hub puts it
+  // ($XDG_CACHE_HOME/huggingface, else ~/.cache/huggingface), so the app, the
+  // CLI and a Python script outside the app share one model cache.
+  const userCacheHome = baseEnv.XDG_CACHE_HOME || path.join(homeDir, ".cache");
+  const hfHome = baseEnv.HF_HOME || path.join(userCacheHome, "huggingface");
 
-  // UV cache: store inside userData so it's writable by the Electron app
+  // UV cache: store inside userData so it's writable by the Electron app.
+  // XDG_CACHE_HOME is deliberately left as the user has it: overriding it
+  // split torch hub weights, llama.cpp downloads and other XDG caches between
+  // the app and the CLI.
   const userDataPath = app.getPath("userData");
   const uvCacheDir = path.join(userDataPath, "uv-cache");
-  const xdgCacheHome = path.join(userDataPath, "cache");
 
   // Python path for the conda environment
   const pythonLibPath =
@@ -291,7 +295,6 @@ const getProcessEnv = (): ProcessEnv => {
   try {
     fs.mkdirSync(hfHome, { recursive: true });
     fs.mkdirSync(uvCacheDir, { recursive: true });
-    fs.mkdirSync(xdgCacheHome, { recursive: true });
   } catch (error) {
     logMessage(`Warning: Failed to create cache directories: ${error}`, "warn");
   }
@@ -304,7 +307,6 @@ const getProcessEnv = (): ProcessEnv => {
     PYTHONUNBUFFERED: "1",
     PYTHONNOUSERSITE: "1",
     UV_CACHE_DIR: uvCacheDir,
-    XDG_CACHE_HOME: xdgCacheHome,
     NODETOOL_OPTIONAL_NODE_MODULES: getOptionalNodeModulesPath(),
     NODETOOL_EXTENSION_DIST: extensionDistPath,
     PATH:

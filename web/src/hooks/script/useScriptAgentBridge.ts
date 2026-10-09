@@ -8,7 +8,7 @@
  * has already been replaced.
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import {
@@ -61,11 +61,9 @@ const toSpeakerNode = (speaker: ScriptSpeaker): ScriptSpeakerNode => ({
 export const useScriptAgentBridge = (scriptId: string): void => {
   const { assemble } = useAssembleScriptTimeline();
   const { derive } = useDeriveStoryboard();
-  const { write, error: writeError } = useWriteScript();
-  // The reason a refused write gives lands in state a render later, so the
-  // handler's own closure cannot see it. Mirror it and read the mirror.
-  const writeErrorRef = useRef<string | null>(null);
-  writeErrorRef.current = writeError;
+  // `errorRef` holds a refused write's reason by the time `write` resolves.
+  // The `error` state reaches this closure only a render later.
+  const { write, errorRef: writeErrorRef } = useWriteScript();
 
   const handler = useMemo<ScriptAgentHandler>(() => {
     const store = () => useScriptStore.getState();
@@ -287,7 +285,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         };
       }
     };
-  }, [scriptId, assemble, derive, write]);
+  }, [scriptId, assemble, derive, write, writeErrorRef]);
 
   useEffect(() => {
     if (!scriptId) return;

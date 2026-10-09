@@ -288,7 +288,12 @@ describe("Watchdog: graceful stop sequence", () => {
       stderr: new EventEmitter(),
       pid: 5555,
       killed: false,
-      kill: jest.fn(),
+      // Like Node: `killed` turns true once a signal is delivered, whether or
+      // not the process exits.
+      kill: jest.fn(function (this: { killed: boolean }) {
+        this.killed = true;
+        return true;
+      }),
     });
     jest.mocked(spawn).mockReturnValue(child);
 
@@ -314,6 +319,41 @@ describe("Watchdog: graceful stop sequence", () => {
 
     expect(child.kill).toHaveBeenNthCalledWith(1, "SIGTERM");
     expect(child.kill).toHaveBeenNthCalledWith(2, "SIGKILL");
+  });
+
+  test("spawn mode: no SIGKILL when the process exits after SIGTERM", async () => {
+    const child = Object.assign(new EventEmitter(), {
+      stdout: new EventEmitter(),
+      stderr: new EventEmitter(),
+      pid: 5556,
+      killed: false,
+      kill: jest.fn(function (this: { killed: boolean }) {
+        this.killed = true;
+        return true;
+      }),
+    });
+    jest.mocked(spawn).mockReturnValue(child);
+
+    const wd = new Watchdog({
+      name: "x",
+      command: "/mock/x",
+      args: [],
+      env: {},
+      pidFilePath: "/tmp/x.pid",
+      healthUrl: "http://127.0.0.1:9000/health",
+      gracefulStopTimeoutMs: 50,
+    });
+
+    const startPromise = internals(wd).spawnChildProcess();
+    process.nextTick(() => child.emit("spawn"));
+    await startPromise;
+
+    jest.spyOn(internals(wd), "isPidAlive").mockResolvedValue(false);
+
+    await wd.stopGracefully();
+
+    expect(child.kill).toHaveBeenCalledTimes(1);
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
   });
 });
 

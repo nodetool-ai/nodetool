@@ -36,6 +36,11 @@ export interface EntitySetupHostProps {
   readonly initialAssetId?: string;
   readonly onFinish: (entity: Entity) => void;
   readonly onChangeFlow?: (descriptor: string) => void | Promise<void>;
+  /**
+   * Told while the entity is being saved or its blank reference uploads, so
+   * an exit outside the flow can wait for work it cannot stop.
+   */
+  readonly onBusyChange?: (busy: boolean) => void;
 }
 
 const tagsFromText = (value: string): string[] =>
@@ -72,7 +77,8 @@ const EntitySetupHost = ({
   initialDescriptor = "",
   initialAssetId,
   onFinish,
-  onChangeFlow
+  onChangeFlow,
+  onBusyChange
 }: EntitySetupHostProps) => {
   const recoveredDraft = useMemo(
     () => readEntitySetupDraft(draftKey ?? projectId),
@@ -303,6 +309,11 @@ const EntitySetupHost = ({
       startingBlank
     ]
   );
+
+  const busy = saveEntity.isPending || startingBlank;
+  useEffect(() => {
+    onBusyChange?.(busy);
+  }, [busy, onBusyChange]);
 
   const config: SetupFlowConfig<EntitySetupStage> = {
     labels: { title: "Entity" },

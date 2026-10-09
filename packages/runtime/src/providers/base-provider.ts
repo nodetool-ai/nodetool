@@ -82,6 +82,8 @@ import {
   peekLastUsage,
   peekLastRequest,
   createUsageSlot,
+  withSpan,
+  withSpanGen,
   type LlmUsage
 } from "../tracing-helpers.js";
 import type {
@@ -498,8 +500,17 @@ export abstract class BaseProvider {
           // images onto the source list, before the concrete provider runs.
           const args = applyEntityReferences(name, rawArgs);
           const startedAt = Date.now();
+          const call = (): Promise<ModalityResult> => original.apply(this, args);
           try {
-            const result = await original.apply(this, args);
+            // A nested call (a batch helper delegating to its singular method)
+            // stays inside the outer call's span.
+            const result = alreadyActive
+              ? await call()
+              : await withSpan(`provider.${name}`, modalitySpanAttributes(this.provider, name, args), async (span) => {
+                const value = await call();
+                if (span) { applyUsageAttributes(span, peekLastUsage()); }
+                return value;
+              });
             if (!alreadyActive) {
               this.recordModalityCall({ operation: name, args, startedAt });
             }
@@ -542,7 +553,9 @@ export abstract class BaseProvider {
       }
       const original = fn as (...args: unknown[]) => AsyncGenerator<unknown>;
       Reflect.set(this, name, (...args: unknown[]): AsyncGenerator<unknown> =>
-        wrapModalityGenerator(this, original, args, name)
+        withSpanGen(`provider.${name}`, modalitySpanAttributes(this.provider, name, args), () =>
+          wrapModalityGenerator(this, original, args, name)
+        )
       );
     }
   }
@@ -2334,6 +2347,15 @@ async function* wrapModalityGenerator(
       error: failure
     });
   }
+}
+
+/** Metadata for a non-chat modality span. The prompt and media stay out of it. */
+function modalitySpanAttributes(provider: string, operation: string, args: unknown[]): Record<string, string> {
+  return {
+    "gen_ai.system": provider,
+    "gen_ai.operation.name": operation,
+    "gen_ai.request.model": extractModelId(args)
+  };
 }
 
 /** Attach gen_ai usage attributes to a span (no-op if usage is null). */

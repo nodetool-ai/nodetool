@@ -2,17 +2,21 @@ import { z } from "zod";
 import {
   gameAssetBinding,
   gameBackgroundLayer,
+  gameAudioMixer,
   gameBehavior,
   gameDocument,
   gameEntity,
   gameRenderEffect,
   gameScene,
+  gameScriptParamValue,
+  gameScriptParams,
   type GameDocument,
   type GameEntity
 } from "@nodetool-ai/protocol";
 import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnershipDeltaState, overrideMembershipOp, reconcileGameOwnershipDeltas } from "./ownership-ops.js";
 import { applyGameAuthoringOperation } from "./authoring-reconcile.js";
 import { validateGame, type GameValidationIssue } from "./validate.js";
+import { editScriptParams } from "./script-params.js";
 
 const id = z.string().min(1);
 const index = z.number().int().nonnegative();
@@ -61,6 +65,7 @@ export const gameDocumentOp = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("remove_behavior"), ...target, index }),
   z.strictObject({ op: z.literal("move_behavior"), ...target, index, to_index: index }),
   z.strictObject({ op: z.literal("set_script"), ...target, index, source: z.string(), max_commands: z.number().int().optional(), max_tick_ms: z.number().int().optional() }),
+  z.strictObject({ op: z.literal("set_script_params"), ...target, index, params: gameScriptParams.nullable().optional(), values: z.record(z.string(), gameScriptParamValue.nullable()).optional() }),
   z.strictObject({ op: z.literal("add_scene"), scene_id: id, scene: gameScene.partial().optional(), index: index.optional() }),
   z.strictObject({ op: z.literal("update_scene"), scene_id: id, set: sceneSet }),
   z.strictObject({ op: z.literal("remove_scene"), scene_id: id }),
@@ -74,6 +79,7 @@ export const gameDocumentOp = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("move_background"), scene_id: id, id, to_index: index }),
   z.strictObject({ op: z.literal("set_effects"), effects: z.array(gameRenderEffect).max(8).nullable(), hud_effect_order: gameDocument.shape.hudEffectOrder.nullable().optional() }),
   z.strictObject({ op: z.literal("set_game"), pixels_per_unit: gameDocument.shape.pixelsPerUnit.optional(), input_actions: gameDocument.shape.inputActions.optional(), entry_scene_id: id.optional(), collision_layers: gameDocument.shape.collisionLayers.nullable().optional() }),
+  z.strictObject({ op: z.literal("set_audio"), mixer: gameAudioMixer.nullable() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding }),
   z.strictObject({ op: z.literal("unbind_asset"), slot: id })
 ]);
@@ -162,6 +168,7 @@ function responsibleOpIndex(document: GameDocument, ops: readonly GameDocumentOp
     if (scene && "scene_id" in op && op.scene_id === scene.id) { return index; }
     if (head === "assets" && "slot" in op && op.slot === position) { return index; }
     if (head === "renderEffects" && op.op === "set_effects") { return index; }
+    if (head === "audio" && op.op === "set_audio") { return index; }
     if ((head === "entrySceneId" || head === "pixelsPerUnit" || head === "inputActions" || head === "collisionLayers") && op.op === "set_game") { return index; }
   }
   return Math.max(0, ops.length - 1);
@@ -169,6 +176,7 @@ function responsibleOpIndex(document: GameDocument, ops: readonly GameDocumentOp
 
 function referencesAsset(document: GameDocument, slot: string): boolean {
   if (document.renderEffects?.some((effect) => effect.kind === "lut" && effect.assetId === slot)) { return true; }
+  if (document.audio?.mixer && slot in document.audio.mixer.assetBuses) { return true; }
   return document.scenes.some((scene) => scene.music?.assetId === slot ||
     scene.backgrounds?.some((background) => background.assetId === slot) ||
     scene.entities.some((entity) => entity.sprite?.assetId === slot || entity.tilemap?.assetId === slot || entity.audioSource?.assetId === slot));
@@ -306,6 +314,16 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         entity.behaviors[op.index] = next.data;
         break;
       }
+      case "set_script_params": {
+        const { entity } = findEntity(draft, entityIndexesByScene, op.entity_id, op.scene_id, opIndex);
+        existingIndex(entity.behaviors, op.index, opIndex, ["index"]);
+        const behavior = entity.behaviors[op.index];
+        if (behavior.kind !== "script") { fail(opIndex, ["index"], "Behavior is not a script"); }
+        const next = gameBehavior.safeParse(editScriptParams(behavior, op));
+        if (!next.success) { fail(opIndex, pathOf(next.error.issues[0].path), next.error.issues[0].message); }
+        entity.behaviors[op.index] = next.data;
+        break;
+      }
       case "add_scene": {
         if (draft.scenes.some((scene) => scene.id === op.scene_id)) fail(opIndex, ["scene_id"], `Scene ${op.scene_id} already exists`);
         const scene = gameScene.safeParse({ name: op.scene_id, entities: [], ...op.scene, id: op.scene_id });
@@ -411,6 +429,11 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         if (op.entry_scene_id !== undefined) { draft.entrySceneId = op.entry_scene_id; }
         if (op.collision_layers === null) { delete draft.collisionLayers; }
         else if (op.collision_layers !== undefined) { draft.collisionLayers = op.collision_layers; }
+        break;
+      }
+      case "set_audio": {
+        if (op.mixer === null) { delete draft.audio; }
+        else { draft.audio = { ...draft.audio, mixer: op.mixer }; }
         break;
       }
       case "bind_asset": draft.assets[op.slot] = op.binding; break;

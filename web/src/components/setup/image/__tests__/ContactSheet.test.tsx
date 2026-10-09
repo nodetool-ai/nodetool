@@ -550,3 +550,29 @@ describe("failure reasons", () => {
     expect(screen.getAllByText(/invalid api key/)).toHaveLength(1);
   });
 });
+
+describe("ContactSheet prices", () => {
+  it("shows what another batch and one regenerate cost", () => {
+    const layerIds = seedBatch();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          makeMoreDetail="4 images · about $0.16"
+          regenerateDetail="about $0.04"
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByText("4 images · about $0.16")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "Regenerate · about $0.04" })
+    ).toHaveLength(4);
+  });
+});

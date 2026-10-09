@@ -56,6 +56,7 @@ import type { PropertyProps } from "./PropertyInput.types";
 import useMetadataStore from "../../stores/MetadataStore";
 import { hasCodeProperty } from "./codeNodeUi";
 import { isString } from "../../utils/typePredicates";
+import { isModelPropertyType } from "../../utils/exposedInputs";
 
 export function getComponentForProperty(
   property: Property,
@@ -279,17 +280,5 @@ function handleListType(
 }
 
 function handleModelTypes(type: string): ComponentType<PropertyProps> {
-  const modelPrefixes = ["hf.", "tjs."];
-
-  if (type.endsWith("_model")) {
-    return ModelProperty;
-  }
-
-  for (const prefix of modelPrefixes) {
-    if (type.startsWith(prefix)) {
-      return ModelProperty;
-    }
-  }
-
-  return InputProperty;
+  return isModelPropertyType(type) ? ModelProperty : InputProperty;
 }

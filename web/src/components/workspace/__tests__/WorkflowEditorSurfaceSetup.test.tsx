@@ -142,6 +142,7 @@ jest.mock("../../../hooks/workflow/useBuildFromPlan", () => ({
     building: false,
     result: null
   }),
+  isWorkflowBuildLive: () => false,
   readWorkflowBuild: () => mockPersistedBuild,
   workflowBuildResult: () => mockBuildResult
 }));

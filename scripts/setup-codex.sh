@@ -135,13 +135,23 @@ if [[ "${SKIP_PYTHON:-0}" != "1" ]]; then
   . "${PYTHON_ENV}/bin/activate"
   python -m pip install --upgrade pip setuptools wheel
 
-  # Install editable sibling Python node packages when checked out next to this repo.
+  # Install editable sibling Python node packages when checked out next to this
+  # repo. MLX runs only on Apple Silicon Macs. One pip command resolves them
+  # together, so a pack cannot downgrade core.
   WORKSPACE_DIR="$(dirname "${ROOT_DIR}")"
-  for pkg in nodetool-core nodetool-huggingface nodetool-mlx nodetool-apple; do
+  PYTHON_PKGS=(nodetool-core nodetool-huggingface)
+  if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
+    PYTHON_PKGS+=(nodetool-mlx)
+  fi
+  EDITABLE_ARGS=()
+  for pkg in "${PYTHON_PKGS[@]}"; do
     if [[ -f "${WORKSPACE_DIR}/${pkg}/pyproject.toml" || -f "${WORKSPACE_DIR}/${pkg}/setup.py" ]]; then
-      python -m pip install -e "${WORKSPACE_DIR}/${pkg}"
+      EDITABLE_ARGS+=(-e "${WORKSPACE_DIR}/${pkg}")
     fi
   done
+  if [[ ${#EDITABLE_ARGS[@]} -gt 0 ]]; then
+    python -m pip install "${EDITABLE_ARGS[@]}"
+  fi
 
   # If no sibling checkout exists, install the core worker package from PyPI.
   if ! python -c 'import nodetool' >/dev/null 2>&1; then

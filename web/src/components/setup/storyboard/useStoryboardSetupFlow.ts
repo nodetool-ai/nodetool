@@ -97,6 +97,11 @@ const FLOW_LABELS = { title: "Storyboard" } as const;
 
 /** What the Director is allowed to answer with, for the cost estimate. */
 const DIRECTOR_MAX_OUTPUT_TOKENS = 8192;
+/**
+ * What the camera pass over a script kept as written may answer with. It
+ * mirrors `useDirectScreenplay`, which asks for this instead of a screenplay.
+ */
+const CAMERA_PASS_MAX_OUTPUT_TOKENS = 4096;
 const EMPTY_ENTITY_IDS: string[] = [];
 
 export interface StoryboardSetupFlowOptions {
@@ -125,6 +130,7 @@ export const useStoryboardSetupFlow = ({
   const stage = useStoryboardSetupStage(boardId);
   const [reviewError, setReviewError] = useState<string>();
   const [contextError, setContextError] = useState<string>();
+  const [importingFile, setImportingFile] = useState(false);
   const setSetup = useStoryboardStore((state) => state.setSetup);
   // The values a step writes before its button means anything. Read off the
   // document, so the button follows what the step actually wrote.
@@ -228,6 +234,11 @@ export const useStoryboardSetupFlow = ({
     ]
   );
   const upToDate = hasScreenplay && directedFrom === fingerprint;
+  // A script kept as written is directed shot for shot: the run adds camera
+  // work to the imported shots, so their count is the length and the picker
+  // has nothing to change (F13).
+  const cameraPass = imported?.preserveWords === true && hasScreenplay;
+  const directedShotCount = cameraPass ? (shots?.length ?? 0) : shotCount;
   const reviewKey = productionReviewFingerprint({
     brief,
     genre,
@@ -343,19 +354,25 @@ export const useStoryboardSetupFlow = ({
         primaryLabel: "Continue",
         // An imported script that is kept verbatim is the story, so the brief
         // beside it is optional (F3).
+        // A file being read lands on the brief, so Continue waits for it
+        // rather than leaving it to land on a step that has moved on (F9).
         canAdvance:
+          !importingFile &&
           !contextError &&
           (brief.trim().length > 0 || imported?.preserveWords === true),
-        blockedReason:
-          contextError ?? "Write a sentence, or bring your own script",
-        render: () =>
+        blockedReason: importingFile
+          ? "Reading your file"
+          : (contextError ?? "Write a sentence, or bring your own script"),
+        render: (context) =>
           createElement(IdeaStep, {
             boardId,
+            readOnly: context?.readOnly,
             // The blank escape hatch and the last step land in the same
             // place: stage `done` and the board (PRD § 7.1).
             onStartBlank: finish,
             onOpenTutorial: openTutorial,
-            onValidationChange: setContextError
+            onValidationChange: setContextError,
+            onImportingChange: setImportingFile
           })
       },
       {
@@ -371,7 +388,7 @@ export const useStoryboardSetupFlow = ({
         canAdvance: genre.length > 0,
         blockedReason: "Pick a genre",
         pending: directing,
-        pendingLabel: `Writing ${shotCount} shots`,
+        pendingLabel: `Writing ${directedShotCount} shots`,
         // What the run costs, in the same shape every other flow shows before
         // its planning call (F23). A run that is not going to happen — the
         // screenplay already matches these inputs — shows nothing, because it
@@ -379,11 +396,15 @@ export const useStoryboardSetupFlow = ({
         generation: upToDate
           ? undefined
           : {
-              result: `Write a ${shotCount}-shot screenplay you can edit as text`,
+              result: cameraPass
+                ? `Add camera direction to your ${directedShotCount}-shot script`
+                : `Write a ${shotCount}-shot screenplay you can edit as text`,
               next: "Review and edit the scenes and shots next. No stills are rendered until the Look step.",
               model: directorModel,
               brief,
-              maxOutputTokens: DIRECTOR_MAX_OUTPUT_TOKENS,
+              maxOutputTokens: cameraPass
+                ? CAMERA_PASS_MAX_OUTPUT_TOKENS
+                : DIRECTOR_MAX_OUTPUT_TOKENS,
               noModelCall: false
             },
         footerControls: (context) =>
@@ -391,7 +412,8 @@ export const useStoryboardSetupFlow = ({
             boardId,
             readOnly: context.readOnly,
             shotCount,
-            onShotCountChange: setShotCount
+            onShotCountChange: setShotCount,
+            hideShotCount: cameraPass
           }),
         render: (context) =>
           createElement(GenreStep, {
@@ -429,9 +451,10 @@ export const useStoryboardSetupFlow = ({
         pending: directing,
         pendingLabel: `Rewriting ${rewriteShotCount} shots`,
         onCancel: cancelRewrite,
-        render: () =>
+        render: (context) =>
           createElement(ReviewStep, {
             boardId,
+            readOnly: context?.readOnly,
             onRewrite: rewrite,
             rewriting: directing,
             error: directError,
@@ -502,6 +525,7 @@ export const useStoryboardSetupFlow = ({
     [
       acceptFallback,
       boardId,
+      cameraPass,
       cancelEntityCreation,
       cancelRewrite,
       contextError,
@@ -509,6 +533,7 @@ export const useStoryboardSetupFlow = ({
       brief,
       directError,
       directErrorRef,
+      directedShotCount,
       directing,
       directorModel,
       entityIds.length,
@@ -516,6 +541,7 @@ export const useStoryboardSetupFlow = ({
       genre,
       hasScreenplay,
       imported?.preserveWords,
+      importingFile,
       look,
       onFinish,
       onReviewed,

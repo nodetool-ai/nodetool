@@ -70,10 +70,14 @@ import StoryboardLinkControl from "./StoryboardLinkControl";
 import ScriptSaveIndicator from "./ScriptSaveIndicator";
 import { scriptWorkflowMedia } from "./scriptWorkflowMedia";
 import { SendToWorkflowButton } from "../workflows/SendToWorkflowMenu";
+import { useContextCommands } from "../../hooks/useContextCommands";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
 
 interface ScriptDocumentPaneProps {
   scriptId: string;
   readOnly: boolean;
+  /** Whether the pane's tab is on screen; lists its commands in the Cmd+K menu. */
+  active?: boolean;
 }
 
 /** A pending drop position: land the dragged line before `beforeLineId` (or at
@@ -671,7 +675,8 @@ const VoicingStrip = ({
 
 const ScriptDocumentPane = ({
   scriptId,
-  readOnly
+  readOnly,
+  active = false
 }: ScriptDocumentPaneProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -867,6 +872,39 @@ const ScriptDocumentPane = ({
   const durationLabel = voicedDurationMs > 0 ? formatDuration(voicedDurationMs) : null;
   const showAssemble = !readOnly && !inStudio;
   const workflowMedia = useMemo(() => scriptWorkflowMedia(sections), [sections]);
+
+  const menuCommands = useMemo<ContextCommand[]>(() => {
+    if (!hasVoicedLine) {
+      return [];
+    }
+    const commands: ContextCommand[] = [];
+    if (showAssemble && !assembling) {
+      commands.push({
+        id: "send-to-timeline",
+        label: storyboardId
+          ? "Assemble Video"
+          : timelineId
+            ? "Update Timeline"
+            : "Send to Timeline",
+        run: onSendToTimeline
+      });
+    }
+    commands.push({
+      id: "export-subtitles",
+      label: "Export Subtitles (SRT)",
+      run: onExportSubtitles
+    });
+    return commands;
+  }, [
+    hasVoicedLine,
+    showAssemble,
+    assembling,
+    storyboardId,
+    timelineId,
+    onSendToTimeline,
+    onExportSubtitles
+  ]);
+  useContextCommands("Script", menuCommands, active);
 
   return (
     <FlexColumn

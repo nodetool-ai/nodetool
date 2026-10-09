@@ -96,7 +96,8 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
     active,
     enabled: !readOnly && setupStage === "done",
     onUndo: useCallback(() => undo(refId), [undo, refId]),
-    onRedo: useCallback(() => redo(refId), [redo, refId])
+    onRedo: useCallback(() => redo(refId), [redo, refId]),
+    menuHeading: "Script"
   });
 
   useEffect(() => {
@@ -160,7 +161,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   }
 
   if (setupStage !== "done") {
-    return <SetupFlow config={setupConfig} />;
+    return <SetupFlow config={setupConfig} readOnly={readOnly} />;
   }
 
   // On mobile the fixed 320px side dock would crush the document, so the cast
@@ -170,7 +171,11 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
     return (
       <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
         {conflictBanner}
-        <ScriptDocumentPane scriptId={refId} readOnly={readOnly} />
+        <ScriptDocumentPane
+          scriptId={refId}
+          readOnly={readOnly}
+          active={active}
+        />
         {!readOnly && (
           <>
             <FlexRow
@@ -223,7 +228,11 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   return (
     <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
       {conflictBanner}
-      <ScriptDocumentPane scriptId={refId} readOnly={readOnly} />
+      <ScriptDocumentPane
+        scriptId={refId}
+        readOnly={readOnly}
+        active={active}
+      />
       {!readOnly && (
         <ResizableSideDock
           storageKey="script_assistant"

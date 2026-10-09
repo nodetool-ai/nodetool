@@ -559,7 +559,9 @@ describe("SetupFlow", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     finish();
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+      expect(
+        screen.getByRole("button", { name: "Back to this step" })
+      ).toBeEnabled()
     );
   });
 
@@ -713,7 +715,7 @@ describe("SetupFlow", () => {
     ).toBeDisabled();
   });
 
-  it("shows cancellation as terminal and requires an explicit retry", async () => {
+  it("returns to the unchanged step after canceling the shell's run", async () => {
     const user = userEvent.setup();
     let resolveCurrent: () => void = () => undefined;
     const onAdvance = jest.fn(
@@ -743,20 +745,69 @@ describe("SetupFlow", () => {
       screen.getByRole("heading", { name: "This step was canceled" })
     ).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("draft is unchanged");
-    expect(screen.getByRole("button", { name: "Retry" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Back to this step" })
+    ).toBeDisabled();
 
     // The canceled request may still resolve, but it cannot advance the draft.
     resolveCurrent();
     await waitFor(() => expect(onStageChange).not.toHaveBeenCalled());
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+      expect(
+        screen.getByRole("button", { name: "Back to this step" })
+      ).toBeEnabled()
     );
 
-    // Only the deliberate retry can start another operation.
-    await user.click(screen.getByRole("button", { name: "Retry" }));
+    // The way on shows the step's choices again, and nothing is re-run.
+    await user.click(screen.getByRole("button", { name: "Back to this step" }));
+    expect(screen.getByText("genre body")).toBeInTheDocument();
+    expect(onAdvance).toHaveBeenCalledTimes(1);
+    await user.click(
+      screen.getByRole("button", { name: "Review your screenplay" })
+    );
     expect(onAdvance).toHaveBeenCalledTimes(2);
     resolveCurrent();
     await waitFor(() => expect(onStageChange).toHaveBeenCalledWith("review"));
+  });
+
+  it("shows the step body again after leaving a canceled step", async () => {
+    const user = userEvent.setup();
+    let finish: () => void = () => undefined;
+    const onAdvance = () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    const onStageChange = jest.fn();
+    const config: SetupFlowConfig<Stage> = {
+      labels: { title: "Storyboard" },
+      stage: "genre",
+      onStageChange,
+      steps: steps.map((entry) =>
+        entry.stage === "genre" ? { ...entry, onAdvance } : entry
+      )
+    };
+    const { rerender } = render(flow(config));
+    await user.click(
+      screen.getByRole("button", { name: "Review your screenplay" })
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      screen.getByRole("heading", { name: "This step was canceled" })
+    ).toBeInTheDocument();
+    finish();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Back" })).toBeEnabled()
+    );
+
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(onStageChange).toHaveBeenCalledWith("idea");
+    rerender(flow({ ...config, stage: "idea" }));
+    rerender(flow({ ...config, stage: "genre" }));
+
+    expect(screen.getByText("genre body")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "This step was canceled" })
+    ).not.toBeInTheDocument();
   });
 
   it("clears canceled pending state when the document changes stage", async () => {
@@ -867,8 +918,9 @@ describe("SetupFlow", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveTextContent(
-      "comes with you to the flow you pick next"
+      "come with you to the flow you pick next"
     );
+    expect(dialog).toHaveTextContent("creative context, imported files");
     expect(dialog).toHaveTextContent("storyboard draft is discarded");
     expect(onChangeFlow).not.toHaveBeenCalled();
 

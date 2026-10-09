@@ -88,8 +88,9 @@ const seed = (): void => {
  * its rewrite (F2). This is that wiring, so the step is exercised the way the
  * flow drives it.
  */
-const Harness: React.FC<{ usedFallback?: boolean }> = ({
-  usedFallback = false
+const Harness: React.FC<{ usedFallback?: boolean; readOnly?: boolean }> = ({
+  usedFallback = false,
+  readOnly = false
 }) => {
   const { direct, directing, error, acceptFallback } = useDirectScreenplay();
   return (
@@ -107,11 +108,14 @@ const Harness: React.FC<{ usedFallback?: boolean }> = ({
       onKeepFallback={acceptFallback}
       model={{ id: "claude-sonnet-5", provider: "anthropic" }}
       maxOutputTokens={8192}
+      readOnly={readOnly}
     />
   );
 };
 
-const renderStep = (props: { usedFallback?: boolean } = {}) =>
+const renderStep = (
+  props: { usedFallback?: boolean; readOnly?: boolean } = {}
+) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <Harness {...props} />
@@ -380,6 +384,77 @@ describe("ReviewStep", () => {
     );
 
     expect(board()?.shots[0].action).toBe("The keeper climbs the stair");
+  });
+
+  // F14: the undo is for the story. Picks made on later steps the creator
+  // came back from stay as they are.
+  it("restores the story without reverting entities, style or aspect", async () => {
+    const user = userEvent.setup();
+    keepPreviousScreenplay(BOARD, {
+      ...screenplay(),
+      style_bible: "the old style",
+      aspect_ratio: "9:16",
+      entity_ids: ["e-old"]
+    });
+    const store = useStoryboardStore.getState();
+    store.updateShot(BOARD, "shot-0", { action: "Something else entirely" });
+    store.setEntityIds(BOARD, ["e-picked"]);
+    store.updateShot(BOARD, "shot-0", { entity_ids: ["e-picked"] });
+    store.setStyle(BOARD, "the picked style");
+    store.setAspectRatio(BOARD, "1:1");
+    renderStep();
+
+    await user.click(
+      screen.getByRole("button", { name: "Restore the previous screenplay" })
+    );
+
+    const restored = board();
+    expect(restored?.shots[0].action).toBe("The keeper climbs the stair");
+    expect(restored?.entityIds).toEqual(["e-picked"]);
+    expect(restored?.shots[0].entity_ids).toEqual(["e-picked"]);
+    expect(restored?.style).toBe("the picked style");
+    expect(restored?.aspectRatio).toBe("1:1");
+  });
+
+  // F14: a script kept as written is not rewritten from the brief.
+  it("names a camera pass over a kept script as directed from the script", () => {
+    setImportSource(BOARD, {
+      kind: "fdx",
+      fileName: "two-scenes.fdx",
+      importedAt: "2026-01-01T00:00:00.000Z",
+      preserveWords: true
+    });
+    keepPreviousScreenplay(BOARD, screenplay());
+    renderStep();
+
+    expect(screen.getByText("Directed from your script")).toBeInTheDocument();
+    expect(screen.queryByText("Rewritten from your brief")).toBeNull();
+  });
+
+  // F16: view mode reads the screenplay and changes nothing.
+  it("holds every field and the rewrite in view mode", async () => {
+    const user = userEvent.setup();
+    keepPreviousScreenplay(BOARD, screenplay());
+    renderStep({ readOnly: true });
+
+    const action = screen.getAllByLabelText("Shot 1 · Action")[0];
+    await user.type(action, " again");
+    await user.click(screen.getAllByLabelText("Title")[0]);
+    await user.type(screen.getAllByLabelText("Title")[0], "X");
+
+    expect(board()?.shots[0].action).toBe("The keeper climbs the stair");
+    expect(board()?.title).toBe("Dark Water");
+    expect(
+      screen.getByRole("button", { name: "Rewrite from brief" })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Restore the previous screenplay" })
+    ).toBeDisabled();
+    // Reading controls stay usable.
+    expect(
+      screen.getAllByRole("button", { name: "More options" })[0]
+    ).toBeEnabled();
+    expect(rpcRequest).not.toHaveBeenCalled();
   });
 
   it("shows a failed Re-direct instead of losing the screenplay", async () => {
