@@ -28,6 +28,7 @@ const journeys = [
   { path: "/alternatives/dreamina", source: "dreamina", starter: "movie-trailer-generator", heading: "Build a trailer from an editable brief" },
   { path: "/use-cases/movie-poster", source: "movie-poster", starter: "movie-posters", heading: "Start with the Movie Posters workflow" },
   { path: "/node-based-ai", source: "node-based-ai", starter: "generate-then-upscale-a-poster", heading: "Build along: generate and upscale a poster" },
+  { path: "/node-based-workflows", source: "node-based-workflows", starter: "movie-trailer-generator", heading: "Build along: a trailer workflow" },
 ] as const;
 
 interface RecordedEvent {

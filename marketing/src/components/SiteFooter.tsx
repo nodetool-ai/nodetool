@@ -23,6 +23,7 @@ const COLUMNS: Col[] = [
       { name: "Studio", href: "/studio" },
       { name: EDITIONS.cloud.navLabel, href: "/cloud" },
       { name: "Node-based AI", href: "/node-based-ai" },
+      { name: "Node-based workflows", href: "/node-based-workflows" },
       { name: "Templates", href: "/templates" },
       { name: "Recipes", href: "/recipes" },
       { name: "Storyboards", href: "/storyboards" },
