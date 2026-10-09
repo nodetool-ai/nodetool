@@ -163,10 +163,13 @@ With nothing open, the workspace is a chat composer and a few sample prompts.
 
 ![Command Menu](assets/screenshots/editor-command-menu.png)
 
-`Ctrl+K` / `⌘+K` while a workflow is open, then start typing. It runs workflow
-actions (Run Entire Workflow, Save, Auto Layout, import and export as JSON or
-bundle), edit and align commands, view and zoom commands, panel toggles, and
-Report a Bug, and it opens your workflows by name.
+`Ctrl+K` / `⌘+K` on any view, then start typing. It switches between your open
+tabs and projects, opens app pages (Projects, Assets, Model Manager, Settings,
+Studio, and the rest), creates new documents, opens your workflows by name, and
+offers Keyboard Shortcuts and Report a Bug. While a workflow is open it also runs
+workflow actions (Run Entire Workflow, Save, Auto Layout, import and export as
+JSON or bundle), edit and align commands, view and zoom commands, and panel
+toggles.
 
 ---
 
