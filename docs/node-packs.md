@@ -31,7 +31,11 @@ Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the
 ### Included, Python packs, Third-party, and Software
 
 - **Included** lists the packs that ship with NodeTool. Switch a pack on or off, then restart the server. The base pack is always on. Provider packs that need an API key are not listed. Their nodes appear after you add the key in **Settings > Models & Providers**.
-- **Python packs** lists the Python node packs that NodeTool offers. They install from PyPI. Use **Install**, **Update**, or **Uninstall**, or **Update all** when several have updates.
+- **Python packs** lists the Python node packs that NodeTool offers. They install from PyPI. Use **Install**, **Update**, or **Uninstall**, or **Update all** when several have updates. Installing a pack sets up Python first if it is missing.
+  - A pack installs at its newest stable release, not a version tied to the app version. Prereleases are skipped.
+  - Each install or update resolves the new pack together with every Python pack already installed, so shared dependencies such as PyTorch stay at versions all of them accept.
+  - The HuggingFace pack gets the PyTorch build that matches your graphics card. See [GPU requirements](installation.md#gpu-requirements).
+  - Apple-only packs, such as MLX, appear only on Apple Silicon Macs.
 - **Third-party** installs npm packs. Paste a package name such as `@acme/cool-nodes` or `cool-nodes@1.2.3` and click **Install**. Restart the server to load it.
 - **Software** manages runtimes such as Python and FFmpeg, in groups for languages, media, and AI.
 

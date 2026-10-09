@@ -14,7 +14,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### Ollama
 
-**Ollama** pulls and runs GGUF chat and embedding models by name. The desktop app bundles it. Models you pull appear in NodeTool automatically, and the Model Manager lists them under the `llama_model` type.
+**Ollama** pulls and runs GGUF chat and embedding models by name. It is a separate program: download it from [ollama.com](https://ollama.com) and keep it running. NodeTool does not ship or start it. NodeTool connects to `http://127.0.0.1:11434`, or to the `OLLAMA_API_URL` setting. Models you pull appear in NodeTool automatically, and the Model Manager lists them under the `llama_model` type.
 
 ### llama.cpp & GGUF Format
 
@@ -26,7 +26,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### MLX Framework (Apple Silicon)
 
-**MLX** is Apple's open-source machine learning framework, optimized for Apple Silicon's unified memory. It is Apple Silicon only and runs through the Python worker.
+**MLX** is Apple's open-source machine learning framework, optimized for Apple Silicon's unified memory. It runs through the Python worker and needs the optional MLX pack: in the desktop app, install **MLX** from **Tools → Package Manager → Python packs**, which sets up Python first if it is missing. The Package Manager offers the pack only on Apple Silicon Macs, and it needs macOS 14 or newer.
 
 **Capabilities**:
 
@@ -36,11 +36,23 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### Nunchaku (NVIDIA GPU)
 
-**Nunchaku** is an inference engine for 4-bit diffusion models on NVIDIA GPUs. It implements SVDQuant to keep visual fidelity while cutting memory use compared to BF16 models, which makes large diffusion models such as FLUX.1 practical on consumer NVIDIA GPUs.
+**Nunchaku** is an inference engine for 4-bit diffusion models on NVIDIA GPUs. It implements SVDQuant to keep visual fidelity while cutting memory use compared to BF16 models, which makes large diffusion models such as FLUX.1 practical on consumer NVIDIA GPUs. The HuggingFace pack's Nunchaku variants of Flux, SDXL, and Qwen Image use it.
+
+Nothing installs Nunchaku for you, and the Package Manager does not list it. Install it by hand into NodeTool's Python environment:
+
+1. Find the torch version in that environment: `python -c "import torch; print(torch.__version__)"`. The suffix, such as `+cu130`, is the CUDA build.
+2. From [the Nunchaku releases](https://github.com/nunchaku-ai/nunchaku/releases), pick the wheel whose name matches that torch version, CUDA build, Python version (`cp311` for 3.11), and platform.
+3. Run `pip install <wheel URL>` with that environment's Python.
+
+The PyPI package named `nunchaku` is an unrelated project. Do not install it. Each Nunchaku wheel is built against one torch release, so a torch update needs a matching wheel. Until the releases include one for the installed torch, Nunchaku variants fail with `The SVDQuant nunchaku runtime is required`, and the full-precision variants still work.
 
 ### HuggingFace Transformers
 
-**Transformers** and **Diffusers** are the Python libraries behind the optional `nodetool-huggingface` node pack, which you install from the Package Manager. They run Hub models locally on GPU, Apple Silicon, or CPU. See [HuggingFace Integration](huggingface.md).
+**Transformers** and **Diffusers** are the Python libraries behind the optional `nodetool-huggingface` node pack, which you install from the Package Manager. They run Hub models locally on GPU, Apple Silicon, or CPU on PyTorch 2.14. See [HuggingFace Integration](huggingface.md) and [GPU requirements](installation.md#gpu-requirements).
+
+### Wan2GP
+
+**Wan2GP** runs Wan video models in a server you start yourself. The optional Wan2GP pack calls it over MCP, so no model loads inside NodeTool. See [Wan2GP](wan2gp.md).
 
 ### Comparison Matrix
 
@@ -50,7 +62,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 | **llama.cpp**    | GGUF                     | CPU, GPU      | Quantized models, edge devices |
 | **Transformers.js** | ONNX                  | Any           | Small models, no Python        |
 | **MLX**          | MLX                      | Apple Silicon | Mac on-device models           |
-| **Nunchaku**     | 4-bit diffusion weights  | NVIDIA GPU    | Large diffusion models         |
+| **Nunchaku**     | 4-bit diffusion weights  | NVIDIA GPU    | Large diffusion models (manual install) |
 | **Transformers / Diffusers** | Safetensors, PyTorch | Any   | Research, flexibility          |
 
 ______________________________________________________________________
@@ -63,7 +75,7 @@ NodeTool supports a wide range of model types across different domains. Below is
 
 - **Full Precision**: Standard execution using HuggingFace Transformers/Diffusers (supports CUDA, MPS, CPU).
 - **MLX**: Optimized execution for Apple Silicon (M-series chips).
-- **Nunchaku**: High-performance 4-bit quantization for NVIDIA GPUs.
+- **Nunchaku**: 4-bit quantized weights for NVIDIA GPUs. Needs the [manual install](#nunchaku-nvidia-gpu).
 
 ### Image Generation
 

@@ -127,6 +127,8 @@
       url: "/custom-providers"
     - title: "HuggingFace"
       url: "/huggingface"
+    - title: "Wan2GP"
+      url: "/wan2gp"
     - title: "ComfyUI"
       url: "/comfyui"
     - title: "ComfyUI Setup"
