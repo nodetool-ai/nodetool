@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import { z } from "zod";
 import { logMessage } from "./logger";
 import { getPythonPath, getProcessEnv, getUVPath } from "./config";
 import { emitBootMessage } from "./events";
@@ -237,6 +238,12 @@ async function installTorchruntime(): Promise<void> {
   });
 }
 
+const detectionResultSchema = z.object({
+  platform: z.string().nullish(),
+  gpu_count: z.number().optional(),
+  error: z.string().optional()
+});
+
 async function detectPlatformWithTorchruntime(): Promise<string> {
   const pythonPath = getPythonPath();
   
@@ -292,11 +299,12 @@ except Exception as e:
       }
 
       try {
-        const result = JSON.parse(stdout.trim()) as {
-          platform?: string;
-          gpu_count?: number;
-          error?: string;
-        };
+        const parsed = detectionResultSchema.safeParse(JSON.parse(stdout.trim()));
+        if (!parsed.success) {
+          reject(new Error(`Unexpected torchruntime output: ${stdout}`));
+          return;
+        }
+        const result = parsed.data;
 
         if (result.error) {
           logMessage(`Torchruntime detection error: ${result.error}`, "error");
@@ -304,7 +312,7 @@ except Exception as e:
           return;
         }
 
-        if (typeof result.platform !== "string" || !result.platform) {
+        if (!result.platform) {
           reject(new Error(`torchruntime returned no platform: ${stdout}`));
           return;
         }

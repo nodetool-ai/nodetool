@@ -200,7 +200,7 @@ export async function asyncHfDownload(
         })
       : undefined;
 
-  const args: Parameters<typeof downloadFileToCacheDir>[0] = {
+  const args: SnapshotDownloadArgs = {
     repo: { name: repoId, type: repoType },
     path: filename,
     revision,
@@ -219,6 +219,11 @@ export async function asyncHfDownload(
   return pointerPath;
 }
 
+/** Download arguments with the repo as `{ name, type }`, never a string. */
+type SnapshotDownloadArgs = Parameters<typeof downloadFileToCacheDir>[0] & {
+  repo: { name: string; type: RepoType };
+};
+
 /**
  * Remove the blob that a symlink-less download duplicated into the snapshot.
  *
@@ -231,7 +236,7 @@ export async function asyncHfDownload(
  * an existing snapshot entry without looking at `blobs/`.
  */
 export async function dropBlobCopiedToSnapshot(
-  args: Parameters<typeof downloadFileToCacheDir>[0],
+  args: SnapshotDownloadArgs,
   pointerPath: string
 ): Promise<void> {
   try {
@@ -249,10 +254,6 @@ export async function dropBlobCopiedToSnapshot(
     });
     const etag = info?.lfs?.oid ?? info?.xetHash ?? info?.oid;
     if (!etag) {
-      return;
-    }
-    // asyncHfDownload always passes a `{ name, type }` repo.
-    if (typeof args.repo === "string") {
       return;
     }
     const blobPath = path.join(
