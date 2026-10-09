@@ -367,7 +367,7 @@ export type ImageToImageInputs = {
   image?: Connectable<ImageRef[]>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
-  entities?: Connectable<Record<string, unknown>[]>;
+  entities?: Connectable<Entity[]>;
   strength?: Connectable<number>;
   aspect_ratio?: Connectable<string>;
   resolution?: Connectable<string>;
