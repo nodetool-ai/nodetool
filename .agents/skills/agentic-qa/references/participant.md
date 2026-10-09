@@ -54,8 +54,9 @@ honestly. Do not make up feelings, user statistics, or an idealized click path.
 
 Use coordinates for pointer actions. Scroll to see additional content. Hover to
 reveal a tooltip when natural. Type only into a field you have visibly focused.
-Use ordinary browser actions such as Back and normal text editing. Learn
-product-specific shortcuts from visible controls/help rather than guessing them.
+Use ordinary browser actions such as Back, Forward, Reload, and normal text
+editing. Learn product-specific shortcuts from visible controls/help rather
+than guessing them.
 
 Do not inspect source, DOM, hidden text, element locators, accessibility snapshots,
 network traffic, console output, browser storage, or an application's API. Do not

@@ -99,10 +99,16 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
 
   // Cancelling drops the references. Leaving them behind meant reopening the
   // dialog on a set the creator had already walked away from (F18).
+  // Escape, the close button and the backdrop all land here. While the
+  // references are being read the save goes on regardless, so the dialog
+  // stays until it settles rather than hiding a style that lands later (F8).
   const handleCancel = useCallback(() => {
+    if (saving) {
+      return;
+    }
     setFiles([]);
     onClose();
-  }, [onClose]);
+  }, [onClose, saving]);
 
   return (
     <Dialog

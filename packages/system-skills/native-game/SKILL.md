@@ -474,6 +474,30 @@ for the machine-readable report.
 
 ### R: 3D rendering
 
+A 3D scene's `environment.sky` sets its background and image-based lighting.
+Omit it, or use `{ kind: "color" }`, for the solid `background` color without
+environment lighting. That is the default and renders exactly as before.
+
+`{ kind: "procedural", sunEntityId?, turbidity, rayleigh, groundColor, intensity }`
+renders a physical sky. Its sun follows `sunEntityId`, which must name a
+directional light in the same scene. Without it, the sun follows the scene's
+first directional light. Rotate that light to move the sun. `turbidity` (1 to 20,
+default 10) adds haze. `rayleigh` (0 to 4, default 2) deepens blue and sunset
+tones. `groundColor` fills the lower hemisphere.
+
+`{ kind: "hdri", assetId, rotation, intensity }` uses an `hdri` asset binding: a
+2:1 equirectangular `.hdr` or `.exr` of at most 2048×1024 and 16 MiB. `rotation`
+turns it about +Y in radians. HDRI candidates cannot be installed until HDRI
+preparation ships. A renderer without an HDRI decoder draws the background color
+and reports a diagnostic in the capture stats.
+
+`intensity` (0 to 8, default 1) scales both the sky background and its
+reflections. Metal and glossy materials reflect the sky. Ambient light still
+adds on top, so lower `ambient.intensity` when the sky lights the scene. Set the
+sky with `update_scene`. It replaces the whole `environment`, so send the
+existing `background`, `ambient`, `fog` and `shadows` with the new `sky`.
+Capture the scene to review the result.
+
 ### V: 2D rendering and visual effects
 
 Add particle effects with the `particles` component on any 2D (schema 2 or 4)

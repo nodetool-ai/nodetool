@@ -95,6 +95,7 @@ import {
   useStoryboardSetupFlow
 } from "../useStoryboardSetupFlow";
 import { productionReviewFingerprint } from "../../video/productionAuthoring";
+import { setImportSource } from "../../../../lib/storyboard/importSource";
 
 const BOARD_ID = "b1";
 
@@ -674,5 +675,101 @@ describe("useStoryboardSetupFlow", () => {
       creation?.done();
     });
     expect(entitiesStep()?.pending).toBe(false);
+  });
+  // F9: Continue waits for a file being read, which would otherwise land on
+  // a step that had moved on and be dropped.
+  it("holds the idea step while a file is read", () => {
+    seedStepValues();
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const idea = () => result.current.steps.find((step) => step.stage === "idea");
+    expect(idea()?.canAdvance).toBe(true);
+    const body = idea()?.render() as {
+      props: { onImportingChange: (importing: boolean) => void };
+    };
+
+    act(() => body.props.onImportingChange(true));
+    expect(idea()?.canAdvance).toBe(false);
+    expect(idea()?.blockedReason).toBe("Reading your file");
+
+    act(() => body.props.onImportingChange(false));
+    expect(idea()?.canAdvance).toBe(true);
+  });
+
+  // F12: a shotlist is the plan the creator wrote. Creative context typed
+  // before the import must not hold Look behind a review nobody can reach.
+  it("lands a shotlist import on Look without asking for a review", async () => {
+    const user = userEvent.setup();
+    useStoryboardStore.getState().setSetup(BOARD_ID, {
+      stage: "idea",
+      creative_context: { schema_version: 1, tone: "Direct" }
+    });
+    renderFlow();
+    const csv = "scene,description\nINT. HALL,A door opens\n";
+    const file = new File([csv], "clean.csv", { type: "text/csv" });
+    Object.defineProperty(file, "text", { value: () => Promise.resolve(csv) });
+
+    await user.upload(screen.getByLabelText("Import your shotlist"), file);
+
+    await waitFor(() => expect(stageOf()).toBe("look"));
+    expect(screen.queryByTestId("look-blocker")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Generate your storyboard" })
+    ).toBeEnabled();
+  });
+
+  // F13: a script kept as written gets a camera pass over its own shots,
+  // which asks for less and has no length to pick.
+  it("names and prices the camera pass over a kept script", () => {
+    seedStepValues();
+    useStoryboardStore.getState().setScreenplay(BOARD_ID, {
+      type: "screenplay",
+      id: `fdx-${BOARD_ID}`,
+      title: "",
+      shots: [0, 1, 2].map((index) => ({
+        type: "shot" as const,
+        id: `fdx-shot-${index}`,
+        index,
+        action: `beat ${index}`,
+        status: "planned" as const
+      }))
+    });
+    setImportSource(BOARD_ID, {
+      kind: "fdx",
+      fileName: "script.fdx",
+      importedAt: "2026-01-01T00:00:00.000Z",
+      preserveWords: true
+    });
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const genre = result.current.steps.find((step) => step.stage === "genre");
+
+    expect(genre?.pendingLabel).toBe("Writing 3 shots");
+    expect(genre?.generation?.result).toBe(
+      "Add camera direction to your 3-shot script"
+    );
+    expect(genre?.generation?.maxOutputTokens).toBe(4096);
+    const footer = genre?.footerControls?.({ readOnly: false }) as {
+      props: { hideShotCount?: boolean };
+    };
+    expect(footer.props.hideShotCount).toBe(true);
+  });
+
+  // F16: the shell no longer disables the step body in view mode, so each
+  // step holds its own fields.
+  it("hands view mode to the idea and review bodies", () => {
+    seedScreenplay();
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    for (const stage of ["idea", "genre", "review", "entities", "look"]) {
+      const step = result.current.steps.find((item) => item.stage === stage);
+      const body = step?.render({ readOnly: true }) as {
+        props: { readOnly?: boolean };
+      };
+      expect([stage, body.props.readOnly]).toEqual([stage, true]);
+    }
   });
 });

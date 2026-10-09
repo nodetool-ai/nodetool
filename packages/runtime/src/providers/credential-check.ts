@@ -150,6 +150,22 @@ export interface CheckCredentialOptions {
 
 const DEFAULT_TIMEOUT_MS = 6000;
 
+type CredentialChecker = (
+  secretKey: string,
+  value: string
+) => Promise<CredentialCheckResult>;
+
+let checkerOverride: CredentialChecker | null = null;
+
+/**
+ * Replace every {@link checkCredential} call, or restore the probes with
+ * `null`. Hermetic test hosts set it so a test key passes onboarding with no
+ * network, the same way their fake providers stand in for the real ones.
+ */
+export function setCredentialCheckOverride(checker: CredentialChecker | null): void {
+  checkerOverride = checker;
+}
+
 /**
  * Probe `value` against the provider that owns `secretKey`.
  *
@@ -161,6 +177,9 @@ export async function checkCredential(
   value: string,
   options: CheckCredentialOptions = {}
 ): Promise<CredentialCheckResult> {
+  if (checkerOverride) {
+    return checkerOverride(secretKey, value);
+  }
   const probe = PROBES[secretKey];
   if (!probe) {
     return {

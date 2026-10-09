@@ -7,11 +7,13 @@
  * touches a developer's live app on :7777/:3000. Nothing seeds the browser: no
  * onboarding dismissal, no selected model, no preference storage.
  *
- * The state is `seeded-demo`, not an empty new account. Reset it between
- * sessions with `POST /api/test/reset` on the backend port.
+ * `--state seeded-demo` (default) seeds example workflows, threads, assets, and
+ * provider keys. `--state empty` seeds nothing, as a new account starts. Reset
+ * either between sessions with `POST /api/test/reset` on the backend port.
  *
  * Usage (from web/):
- *   npx tsx tests/agentic-qa/serveApp.ts [--backend-port 7790] [--web-port 3010]
+ *   npx tsx tests/agentic-qa/serveApp.ts [--state empty|seeded-demo]
+ *     [--backend-port 7790] [--web-port 3010]
  * Stop with Ctrl+C.
  */
 
@@ -67,9 +69,14 @@ async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
       "backend-port": { type: "string", default: "7790" },
-      "web-port": { type: "string", default: "3010" }
+      "web-port": { type: "string", default: "3010" },
+      state: { type: "string", default: "seeded-demo" }
     }
   });
+  const state = values.state ?? "seeded-demo";
+  if (state !== "seeded-demo" && state !== "empty") {
+    throw new Error(`Unknown --state ${state}. Use empty or seeded-demo.`);
+  }
   const backendPort = Number(values["backend-port"]);
   const webPort = Number(values["web-port"]);
   for (const port of [backendPort, webPort]) {
@@ -91,6 +98,7 @@ async function main(): Promise<void> {
         HOST,
         SECRETS_MASTER_KEY: process.env.SECRETS_MASTER_KEY ?? TEST_MASTER_KEY,
         NODETOOL_FAKE_PROVIDERS: process.env.NODETOOL_FAKE_PROVIDERS ?? "1",
+        NODETOOL_QA_STATE: state,
         METADATA_ROOTS: ""
       },
       stdio: ["ignore", "inherit", "inherit"]
@@ -116,7 +124,7 @@ async function main(): Promise<void> {
 
   console.log(
     `[agentic-qa] App ready at http://${HOST}:${webPort}/ (backend ${HOST}:${backendPort}, ` +
-      `fake providers ${process.env.NODETOOL_FAKE_PROVIDERS ?? "1"}, state seeded-demo)`
+      `fake providers ${process.env.NODETOOL_FAKE_PROVIDERS ?? "1"}, state ${state})`
   );
   await Promise.race(
     children.map((child) => new Promise((done) => child.once("exit", done)))

@@ -36,7 +36,6 @@ import { ReviewStep } from "./ReviewStep";
 import { videoFormatById } from "./formats";
 import { toLanguageModelValue, useDirectorModel } from "./directorModel";
 import {
-  productionAuthoringBlocker,
   productionGenerationBlocker,
   productionReviewFingerprint,
   REVIEW_REQUIRED
@@ -140,8 +139,11 @@ const FLOW_LABELS = { title: "Video" } as const;
  * whether the plan on the document still answers the current inputs (F15).
  */
 export interface VideoSetupFlowOptions {
-  /** Runs after the last step writes stage `done` — the host opens the cut. */
-  onFinish?: () => void;
+  /**
+   * Runs after the last step writes stage `done` — the host opens the cut. The
+   * step stays pending until it settles, so a host can save first.
+   */
+  onFinish?: () => void | Promise<void>;
   /**
    * Hands the brief to the script flow (E3); its `Send to timeline` returns.
    * A host that cannot open a script passes nothing, and the card is offered
@@ -217,10 +219,11 @@ export const useVideoSetupFlow = ({
   );
   // The persisted fingerprint is the source of truth after reload. A missing
   // value is treated as current for legacy plans, preserving their old flow.
+  // The model is left out: switching it changes who drafts, not what the plan
+  // answers, so it must not force a paid re-plan.
   const inputsKey = videoPlanFingerprint({
     brief,
     formatId,
-    modelId: director.model?.id ?? "",
     context: planContext
   });
   const hasPlan = (beats?.length ?? 0) > 0;
@@ -279,10 +282,20 @@ export const useVideoSetupFlow = ({
     [setSetup]
   );
 
-  const finish = useCallback(() => {
+  // Jobs may already be away when this runs, so it never throws: a rejection
+  // would put a paid retry on the button.
+  const handOver = useCallback(async () => {
+    try {
+      await onFinish?.();
+    } catch {
+      // The host owns opening the cut. The document already reads `done`.
+    }
+  }, [onFinish]);
+
+  const finish = useCallback(async () => {
     setSetup({ stage: "done" });
-    onFinish?.();
-  }, [onFinish, setSetup]);
+    await handOver();
+  }, [handOver, setSetup]);
 
   const startFromScript = useCallback(
     () => onStartFromScript?.(brief),
@@ -327,6 +340,8 @@ export const useVideoSetupFlow = ({
           placedClips > 0 ? ", one per clip" : ""
         }`;
 
+  const reviewBlocker = productionGenerationBlocker(beats ?? [], false);
+
   const emptyBeats = (beats ?? []).filter(
     (beat) => beat.prompt.trim().length === 0 || !(beat.duration_ms > 0)
   ).length;
@@ -348,7 +363,7 @@ export const useVideoSetupFlow = ({
           createElement(IdeaStep, {
             // The blank escape hatch and the last step land in the same place:
             // stage `done` and the timeline (PRD § 8.1).
-            onStartBlank: finish,
+            onStartBlank: () => void finish(),
             onStartFromScript: onStartFromScript ? startFromScript : undefined,
             onValidationChange: setContextError,
             onImportingChange: setImportingMedia
@@ -374,13 +389,17 @@ export const useVideoSetupFlow = ({
             ? "Pick a video template"
             : director.loading
               ? "Loading the models that can draft the beats"
-              : "Pick a model to draft the beats",
+              : director.error
+                ? "The model list could not be read"
+                : director.noProvider
+                  ? "No provider offers a language model"
+                  : "Pick a model to draft the beats",
         generation: planIsCurrent
           ? undefined
           : {
               result: draftResult,
               next: hasPlan
-                ? "The brief or template changed. Your edited plan will guide the new beats."
+                ? "Your inputs changed since this plan was drafted. Your edited plan will guide the new beats."
                 : "Review the beats and timing. Media comes later in Look.",
               model: director.model
                 ? toLanguageModelValue(director.model)
@@ -404,14 +423,13 @@ export const useVideoSetupFlow = ({
         stage: "review",
         label: "Beats",
         primaryLabel: "Continue to look",
+        // The look step's own check, so Continue is never offered toward a
+        // Generate that refuses the plan (on-camera speech, invalid takes).
         canAdvance:
-          hasPlan &&
-          emptyBeats === 0 &&
-          !reviewError &&
-          !productionAuthoringBlocker(beats ?? []),
+          hasPlan && emptyBeats === 0 && !reviewError && !reviewBlocker,
         blockedReason:
           reviewError ??
-          productionAuthoringBlocker(beats ?? []) ??
+          reviewBlocker ??
           (hasPlan
             ? `Fill in ${emptyBeats} beat${emptyBeats === 1 ? "" : "s"}: every beat needs a description and a length`
             : "Plan the beats first — there is nothing to review yet"),
@@ -439,6 +457,9 @@ export const useVideoSetupFlow = ({
         canAdvance: !productionBlocker && look.canAdvance,
         blockedReason: productionBlocker ?? look.blockedReason,
         primaryDetail: look.primaryDetail,
+        // The placeholders are written before the first await, so a Cancel
+        // could never leave the draft unchanged.
+        cancelable: false,
         render: () =>
           createElement(LookStep, {
             voiceOn,
@@ -454,33 +475,35 @@ export const useVideoSetupFlow = ({
             throw new Error(productionBlocker);
           }
           await look.generate(operation?.signal);
-          onFinish?.();
+          await handOver();
         }
       }
     ],
     [
       brief,
-      beats,
       cancelPlan,
+      director.error,
       director.loading,
       director.model,
+      director.noProvider,
       contextError,
       draftResult,
       emptyBeats,
       finish,
       formatId,
+      handOver,
       handleMusic,
       handleVoice,
       hasPlan,
       importingMedia,
       look,
       musicOn,
-      onFinish,
       onStartFromScript,
       planIsCurrent,
       planning,
       planError,
       productionBlocker,
+      reviewBlocker,
       reviewKey,
       reviewError,
       setSetup,

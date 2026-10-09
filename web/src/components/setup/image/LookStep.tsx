@@ -43,6 +43,7 @@ import {
 } from "../../../serverState/useStylePresets";
 import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
 import { useLastModelStore } from "../../../stores/lastModelStore";
+import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import { estimateGenerationCost } from "../../../utils/generationCostEstimate";
 import { useGenerateVariations } from "../../../hooks/sketch/useGenerateVariations";
 import { OptionCardGrid, type OptionCardItem } from "../OptionCardGrid";
@@ -83,6 +84,8 @@ export interface LookStepControls {
   blockedReason: string;
   /** What the click spends, or undefined when nothing priced it. */
   primaryDetail: string | undefined;
+  /** What one more image costs: a contact sheet Regenerate. */
+  perImageDetail: string | undefined;
   /** The model list's state, and what the body renders in its place. */
   availability: ModelAvailability;
   models: readonly ImageModel[];
@@ -238,6 +241,10 @@ export function useLookStep(): LookStepControls {
           estimate.total
         )}`
       : undefined;
+  const perImageDetail =
+    estimate && estimate.total > 0
+      ? `about ${formatUsd(estimate.total / variations)}`
+      : undefined;
 
   const blockedReason =
     availability === "loading"
@@ -273,6 +280,7 @@ export function useLookStep(): LookStepControls {
       !styleLoading,
     blockedReason,
     primaryDetail,
+    perImageDetail,
     availability,
     models,
     sizePresets,
@@ -281,6 +289,14 @@ export function useLookStep(): LookStepControls {
     generate
   };
 }
+
+/** Open the provider dialog filtered to providers that make images. */
+const connectImageProvider = (): void => {
+  openProviderOnboarding({
+    capability: "text_to_image",
+    reason: "Connect a provider that makes images to generate this picture."
+  });
+};
 
 /** What the grid shows in place of tiles when the query answered otherwise. */
 const ModelListState: React.FC<{
@@ -313,9 +329,16 @@ const ModelListState: React.FC<{
   }
   if (availability === "no-provider") {
     return (
-      <AlertBanner severity="warning">
-        No image provider is connected. Add one in Settings, then try again —
-        your brief and look are saved with the document.
+      <AlertBanner
+        severity="warning"
+        action={
+          <EditorButton variant="text" onClick={connectImageProvider}>
+            Connect a provider
+          </EditorButton>
+        }
+      >
+        No image provider is connected. Connect one to generate — your brief
+        and look are saved with the document.
       </AlertBanner>
     );
   }
