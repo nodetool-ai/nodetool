@@ -52,6 +52,7 @@ const MODELS_DEV_PROVIDER: Readonly<Record<string, string>> = {
   [PROVIDER_IDS.XAI]: "xai",
   [PROVIDER_IDS.COHERE]: "cohere",
   [PROVIDER_IDS.OPENROUTER]: "openrouter",
+  [PROVIDER_IDS.OPPER]: "opper",
   [PROVIDER_IDS.TOGETHER]: "togetherai",
   [PROVIDER_IDS.ALIBABA]: "alibaba",
   [PROVIDER_IDS.CEREBRAS]: "cerebras",

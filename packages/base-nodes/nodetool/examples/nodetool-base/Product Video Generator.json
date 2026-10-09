@@ -107,7 +107,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 AI Product Launch Video Generator\n\nTurn a campaign brief and product image into a cinematic launch clip. A prompt node combines your inputs, an agent writes an image-to-video prompt, then an Image-to-Video model animates the product shot.\n\n**Pipeline:** Brief + Audience + Features + Image → Build prompt → Write video prompt (agent) → Animate video\n\n**Try this:** choose a language model and video model, then swap the product image or rewrite the agent's system prompt for a different tone.\n\n**Cost note:** the animation step runs on Veo 3.1, a paid per-second video model — each run costs noticeably more than an image-only template."
+          "comment": "# 🎬 AI Product Launch Video Generator\n\nTurns a campaign brief and product image into a cinematic 16:9 launch clip. Use it when you already have a product photo and want a short animated shot.\n\n**How it works:** \"1️⃣ Campaign brief\", \"2️⃣ Target audience\" and \"3️⃣ Key features\" fill \"5️⃣ Build prompt\". \"6️⃣ Write video prompt\" is an Agent that reads that prompt together with \"4️⃣ Product image\" and writes one image-to-video paragraph. \"7️⃣ Animate product video\" animates the same product image with that prompt for 8 seconds at 720p. Pick a language model on \"6️⃣ Write video prompt\". The animation step runs on Veo 3.1, a paid per-second video model, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"2️⃣ Target audience\" to \"retirees who walk daily\" and compare the setting and pace of the new clip."
         },
         "ui_properties": {
           "position": {
@@ -116,7 +116,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 313,
+          "height": 362,
           "selectable": true,
           "bypassed": false
         },
@@ -133,7 +133,7 @@
           "selected": false,
           "position": {
             "x": 380,
-            "y": 451
+            "y": 500
           },
           "zIndex": 0,
           "width": 486,
@@ -176,7 +176,7 @@
           "selected": false,
           "position": {
             "x": 966,
-            "y": 731
+            "y": 780
           },
           "zIndex": 0,
           "width": 457,
@@ -199,7 +199,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 393
+            "y": 442
           },
           "zIndex": 0,
           "width": 280,
@@ -221,7 +221,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 618
+            "y": 667
           },
           "zIndex": 0,
           "width": 280,
@@ -243,7 +243,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 843
+            "y": 892
           },
           "zIndex": 0,
           "width": 280,
@@ -260,15 +260,15 @@
         "data": {
           "name": "image_input_1",
           "value": {
-            "uri": "/api/storage/4a816f674eda4358b8140c50917ae78e.bin",
-            "type": "image"
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
           },
           "description": "Product photo to animate into the launch video"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1068
+            "y": 1117
           },
           "zIndex": 0,
           "width": 280,
@@ -301,7 +301,7 @@
           "selected": false,
           "position": {
             "x": 1523,
-            "y": 782
+            "y": 831
           },
           "zIndex": 0,
           "width": 739,
@@ -323,7 +323,7 @@
         "ui_properties": {
           "position": {
             "x": 2362,
-            "y": 935
+            "y": 984
           },
           "selectable": true
         }

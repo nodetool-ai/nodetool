@@ -719,7 +719,7 @@ describe("ReverseTextNode", () => {
 });
 ```
 
-For nodes that need a `ProcessingContext`, use `createFakeContext` from `@nodetool-ai/runtime`. It returns `{ context, workspaceDir, providers, cleanup }` with in-memory storage and cache, a stubbed `fetch`, and a fake provider. Pass `providers`, `secretResolver`, `fetchFn`, or `variables` to control what the node sees, and call `cleanup()` in `afterEach`:
+For nodes that need a `ProcessingContext`, use `createFakeContext` from `@nodetool-ai/runtime`. It returns `{ context, workspaceDir, providers, cleanup }` with in-memory storage and cache, in-memory asset and timeline saving, a stubbed `fetch`, and a fake provider. Pass `providers`, `secretResolver`, `fetchFn`, or `variables` to control what the node sees, and call `cleanup()` in `afterEach`:
 
 ```ts
 import { createFakeContext } from "@nodetool-ai/runtime";

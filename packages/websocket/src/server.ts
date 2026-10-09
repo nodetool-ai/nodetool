@@ -37,6 +37,10 @@ import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import { isPublicAuthExemptRoute } from "./lib/public-routes.js";
 import {
+  matchesServerAuthToken,
+  resolveServerAuthToken
+} from "./lib/server-auth-token.js";
+import {
   isWebSocketUpgrade,
   denyUnauthorized,
   denyDraining
@@ -930,6 +934,19 @@ const trustLocalNetworks = enforceAuth
   ? []
   : parseTrustedLocalNetworks(process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]);
 
+// The bearer token `nodetool deploy` starts a container with. Local mode only,
+// like the trusted networks above: Supabase mode needs a real login.
+const serverAuthToken = enforceAuth
+  ? null
+  : resolveServerAuthToken(process.env["SERVER_AUTH_TOKEN"]);
+
+if (enforceAuth && process.env["SERVER_AUTH_TOKEN"]) {
+  log.warn(
+    "SERVER_AUTH_TOKEN is set while auth is enforced (Supabase mode); it is " +
+      "ignored. Clients must sign in."
+  );
+}
+
 if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
   log.warn(
     "NODETOOL_TRUST_LOCAL_NETWORKS is set while auth is enforced (Supabase " +
@@ -1172,6 +1189,12 @@ app.addHook("onRequest", async (req, reply) => {
       return;
     }
     req.userId = result.userId ?? null;
+    req.authToken = token;
+    return;
+  }
+
+  if (matchesServerAuthToken(token, serverAuthToken)) {
+    req.userId = "1";
     req.authToken = token;
     return;
   }

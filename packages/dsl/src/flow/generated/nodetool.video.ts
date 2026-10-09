@@ -514,6 +514,7 @@ export type VideoToVideoInputs = {
   prompt?: string;
   negative_prompt?: string;
   strength?: number;
+  entities?: Entity[];
 };
 
 export interface VideoToVideoOutputs {

@@ -88,8 +88,8 @@ ENV NODE_ENV=production \
     NODETOOL_STORAGE_AUTO_CLEANUP=1 \
     HOST=0.0.0.0 \
     STATIC_FOLDER=/app/web/dist \
-    CHROMA_PATH=/workspace/chroma \
-    ASSET_BUCKET=/workspace/assets \
+    ASSET_FOLDER=/workspace/assets \
+    VECTORSTORE_DB_PATH=/workspace/vectorstore.db \
     HF_HOME=/workspace/hf-cache
 
 # Runtime-only OS packages. Key management is provided through

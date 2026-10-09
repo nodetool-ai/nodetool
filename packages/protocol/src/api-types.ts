@@ -1147,6 +1147,7 @@ export const PROVIDER_IDS = {
   COHERE: "cohere",
   OPENROUTER: "openrouter",
   REQUESTY: "requesty",
+  OPPER: "opper",
   TOGETHER: "together",
   ALIBABA: "alibaba",
   CEREBRAS: "cerebras",

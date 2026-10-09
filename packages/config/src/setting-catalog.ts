@@ -313,6 +313,11 @@ sec(
   "Requesty API key for accessing multiple AI models through one OpenAI-compatible router. Get yours at https://app.requesty.ai/api-keys"
 );
 sec(
+  "OPPER_API_KEY",
+  "Opper",
+  "Opper API key for accessing multiple AI models through one EU-hosted OpenAI-compatible gateway. Get yours at https://platform.opper.ai"
+);
+sec(
   "ANTHROPIC_API_KEY",
   "Anthropic",
   "Anthropic API key for accessing Claude models and other Anthropic services. Get yours at https://console.anthropic.com/settings/keys"

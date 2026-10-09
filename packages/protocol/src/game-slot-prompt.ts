@@ -39,8 +39,13 @@ export interface SlotPromptResult {
   height: number;
   /** The prop bag the `nodetool.game.*` checker for this kind takes. */
   checker: Record<string, unknown>;
-  /** Primary style image for an image-to-image generator. */
+  /**
+   * Primary image of the style, then of each cast member, for an
+   * image-to-image generator. Without the cast's images a character sprite
+   * holds its likeness through the descriptor text alone.
+   */
   referenceImages: NonNullable<Entity["reference_images"]>;
+  /** The style's primary image asset id. */
   referenceAssetId: string;
 }
 
@@ -278,7 +283,9 @@ export function slotPrompt(
     prompt: injected.prompt,
     ...canvas(slot),
     checker: slotCheckerProps(slot),
-    referenceImages: style?.reference_images?.slice(0, 1) ?? [],
+    referenceImages: applied.flatMap(
+      (entity) => entity.reference_images?.slice(0, 1) ?? []
+    ),
     referenceAssetId: style?.reference_images?.[0]?.asset_id ?? ""
   };
 }

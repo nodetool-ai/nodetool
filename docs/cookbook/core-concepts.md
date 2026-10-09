@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Core Concepts
+title: Workflow Concepts
 parent: NodeTool Workflow Cookbook
 nav_order: 1
 ---

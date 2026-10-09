@@ -125,7 +125,7 @@
         "id": "comment_main",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Directed Film to Timeline\n\nA brief becomes an editable rough cut in one graph:\n\n**1. Direct** — the Director agent turns your brief into a typed screenplay (shots with action, camera, and a shared style bible).\n**2. Fan out** — Screenplay Shots streams one composed prompt per shot.\n**3. Storyboard** — each prompt renders a keyframe still.\n**4. Shoot** — each keyframe is animated into a clip.\n**5. Assemble** — clips are collected, appended to a timeline sequence, and rendered to a single video.\n\nThe rendered timeline is a real editable sequence — reopen it in the timeline editor to trim, reorder, or add audio."
+          "comment": "# 🎬 Directed Film to Timeline\n\nTurns a one-line brief into an editable rough cut. Use it to see a whole short film take shape before you refine individual shots.\n\n**How it works:** \"Brief\" feeds the \"Director\", which writes a screenplay of 5 shots in a 16:9 style bible. \"Fan out one prompt per shot\" emits one shot prompt at a time. Each prompt renders a keyframe in \"Storyboard keyframes\" (FLUX schnell, 2K) and the same prompt drives \"Animate each shot\" (Veo 3.1, 4 seconds at 720p). \"Collect the clips\" gathers the clips, \"Assemble into a timeline\" appends them to a sequence named \"Directed Film\", and \"Render the rough cut\" produces the video. Pick a language model on the \"Director\". The keyframe and video steps are paid, and Veo costs the most.\n\n**Try this:** Set \"shot_count\" on the \"Director\" to 3. The rough cut drops to three clips and the run costs less. Reopen the rendered timeline in the timeline editor to trim or reorder shots."
         },
         "ui_properties": {
           "position": {
@@ -134,7 +134,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 325,
+          "height": 403,
           "selectable": true,
           "bypassed": false
         },
@@ -151,7 +151,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 500
+            "y": 578
           },
           "zIndex": 0,
           "width": 280,
@@ -183,7 +183,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 405
+            "y": 483
           },
           "zIndex": 0,
           "width": 320,
@@ -202,7 +202,7 @@
         "ui_properties": {
           "position": {
             "x": 800,
-            "y": 465
+            "y": 543
           },
           "zIndex": 0,
           "width": 280,
@@ -234,7 +234,7 @@
         "ui_properties": {
           "position": {
             "x": 1180,
-            "y": 405
+            "y": 483
           },
           "zIndex": 0,
           "width": 320,
@@ -268,7 +268,7 @@
         "ui_properties": {
           "position": {
             "x": 1600,
-            "y": 445
+            "y": 523
           },
           "zIndex": 0,
           "width": 330,
@@ -287,7 +287,7 @@
         "ui_properties": {
           "position": {
             "x": 2030,
-            "y": 486
+            "y": 564
           },
           "zIndex": 0,
           "width": 160,
@@ -314,7 +314,7 @@
         "ui_properties": {
           "position": {
             "x": 2290,
-            "y": 455
+            "y": 533
           },
           "zIndex": 0,
           "width": 300,
@@ -340,7 +340,7 @@
         "ui_properties": {
           "position": {
             "x": 2690,
-            "y": 465
+            "y": 543
           },
           "zIndex": 0,
           "width": 300,
@@ -361,7 +361,7 @@
         "ui_properties": {
           "position": {
             "x": 3090,
-            "y": 513
+            "y": 591
           },
           "title": "🎬 Rough cut",
           "selectable": true

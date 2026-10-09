@@ -501,6 +501,7 @@ export type VideoToVideoInputs = {
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
   strength?: Connectable<number>;
+  entities?: Connectable<Entity[]>;
 };
 
 export interface VideoToVideoOutputs {

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Loads the web app served by a running NodeTool container and fails if it
-// does not come up clean. Pairs with .github/workflows/docker-smoke.yml, which
-// builds the image and starts the container before calling this.
+// does not come up clean. The docker smoke job in
+// .github/workflows/quality-checks.yml builds the image and starts the
+// container before calling this.
 //
 // The container must be reachable on loopback — run it with `--network host`.
-// In `local` auth mode the server only trusts requests whose source is
-// loopback *inside* the container, so a published port (-p 7777:7777) arrives
-// from the bridge gateway and every API call answers 401.
+// In Local mode the server trusts loopback inside the container, plus any
+// NODETOOL_TRUST_LOCAL_NETWORKS range. A published port (-p 7777:7777) arrives
+// from the bridge gateway, so without that setting every API call answers 401.
 //
 // Run locally against any server:
 //   node scripts/docker-smoke.mjs http://localhost:7777
