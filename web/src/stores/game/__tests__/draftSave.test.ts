@@ -1,5 +1,8 @@
 import { expect, it, jest } from "@jest/globals";
-import { flushGameDraft, pullGameDraft, type DraftSaveFlight } from "../draftSave";
+import { applyAnyGameOps, createNative3DGame, createTopDownRoomGame, type AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
+import type { AnyGameDocument } from "@nodetool-ai/protocol";
+import { absorbServerGameDraft, flushGameDraft, pullGameDraft, type DraftSaveFlight } from "../draftSave";
+import { getGameDraftStore } from "../GameDraftStore";
 
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolve = (): void => undefined;
@@ -68,4 +71,51 @@ it("holds the save flight while pulling after two queued saves (F5)", async () =
   pullResponse.resolve();
   await Promise.all([pull, next]);
   expect(events.at(-1)).toBe("next save");
+});
+
+it.each(["2d", "3d"] as const)("keeps edits, saves and undo made while a server asset generation ran (%s)", async (dimension) => {
+  const id = `asset-generation-${dimension}`;
+  const base: AnyGameDocument = dimension === "2d" ? createTopDownRoomGame(id) : createNative3DGame(id);
+  const sceneId = dimension === "2d" ? "room" : base.entrySceneId;
+  const rename = (name: string): AnyGameDocumentOp[] => [{ op: "update_entity", scene_id: sceneId, entity_id: "player", set: { name } }];
+  const playerName = (): string | undefined => getGameDraftStore(id).getState().document?.scenes
+    .find((scene) => scene.id === sceneId)?.entities.find((entity) => entity.id === "player")?.name;
+  const bind: AnyGameDocumentOp = dimension === "2d" && base.schemaVersion !== 3
+    ? { op: "bind_asset", slot: "player", binding: { ...base.assets.player, digest: "f".repeat(64) } }
+    : { op: "bind_asset", slot: "theme", binding: { assetId: "a".repeat(32), digest: "f".repeat(64), mediaKind: "audio" } };
+  const store = getGameDraftStore(id);
+  store.getState().load(base, "t0");
+  const flight: DraftSaveFlight = { current: null };
+  const generation = deferred();
+  let server = { document: base, game: { draftUpdatedAt: "t0" } };
+
+  // The panel's server edit: the request runs for minutes, then the editor merges the saved draft in.
+  const serverEdit = (async () => {
+    await generation.promise;
+    await pullGameDraft(flight, async () => { absorbServerGameDraft(id, server); });
+  })();
+
+  store.getState().apply(rename("Saved during generation"), { label: "Rename" });
+  await flushGameDraft(flight, async () => {
+    const ops = store.getState().captureSaveOps();
+    store.getState().setSaving(ops.length);
+    server = { document: applyAnyGameOps(server.document, ops), game: { draftUpdatedAt: "t1" } };
+    store.getState().acknowledge(server.document, "t1", ops.length);
+  });
+  store.getState().apply(rename("Unsaved when generation finished"), { label: "Rename" });
+  // The server binds onto the draft current when the bytes are ready, which already holds the autosave.
+  server = { document: applyAnyGameOps(server.document, [bind]), game: { draftUpdatedAt: "t2" } };
+  generation.resolve();
+  await serverEdit;
+
+  const state = store.getState();
+  expect(state.baseUpdatedAt).toBe("t2");
+  expect(playerName()).toBe("Unsaved when generation finished");
+  expect(state.document?.assets[bind.op === "bind_asset" ? bind.slot : ""]?.digest).toBe("f".repeat(64));
+  expect(state.pendingOps.length).toBeGreaterThan(0);
+  expect(applyAnyGameOps(server.document, state.pendingOps)).toEqual(state.document);
+  expect(state.canUndo).toBe(true);
+  store.getState().undo();
+  expect(playerName()).toBe("Saved during generation");
+  expect(store.getState().document?.assets[bind.op === "bind_asset" ? bind.slot : ""]?.digest).toBe("f".repeat(64));
 });

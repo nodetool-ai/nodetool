@@ -8,7 +8,7 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
 import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutStore";
 import { anyGameMergeAdapter } from "../../stores/game/anyMerge";
-import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
+import { absorbServerGameDraft, captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
@@ -23,6 +23,7 @@ import GameHierarchy3D from "./panels/hierarchy/GameHierarchy3D";
 import GameInspector3D from "./panels/inspector/GameInspector3D";
 import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
+import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
 import GameEditorShell from "./shell/GameEditorShell";
 import GameRevisions from "./panels/revisions/GameRevisions";
 import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
@@ -239,6 +240,15 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     } catch (cause) { setOperationError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setRestoring(false); }
   };
+  // A generation runs for minutes while the user keeps editing and autosave keeps saving, so the
+  // server binds onto whatever draft is current and the result is merged in, never loaded over.
+  const serverAssetEdit = async (edit: () => Promise<unknown>): Promise<void> => {
+    await edit();
+    await pullGameDraft(savingRef, async () => {
+      absorbServerGameDraft(refId, await trpcClient.games.getDraft.query({ id: refId }));
+    });
+    await queries.games.draftChanges.invalidate({ id: refId });
+  };
   const restart = useMemo(() => host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document),
     [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
@@ -321,6 +331,9 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary} runEntityStats={diagnostics.byEntity}
           onChange={(source) => onOps([{ op: "set_script", scene_id: scriptKey.sceneId, entity_id: activeScript.id, index: scriptKey.index, source }])}
           onClose={() => { setScriptKey(null); layoutStore.getState().dispatch({ type: "hide", panelId: "scripts" }); }} /> : null },
+      { id: "assets",
+        node: <GameAssetBrowser gameId={refId} document={document} runServerEdit={serverAssetEdit} onOps={onOps}
+          onSelectEntity={(entitySceneId, entityId) => { setSceneId(entitySceneId); select(entityId); }} onAskAssistant={assistant.draft} /> },
       { id: "inspector",
         node: <>
         <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />
