@@ -906,6 +906,9 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
       [handleEditSubmit]
     );
 
+    // Thought expand state is keyed per message; a block index alone is shared
+    // by every message in the thread.
+    const thoughtKeyPrefix = message.id ?? "";
     const toggleCallbackRef = useRef(onToggleThought);
     toggleCallbackRef.current = onToggleThought;
     const [, setThoughtRenderVersion] = useState(0);
@@ -945,7 +948,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                   const parsedThought = parseThoughtContent(parsedContent);
 
                   if (parsedThought) {
-                    const key = `thought-${message.id ?? ""}-${index}-${i}`;
+                    const key = `thought-${thoughtKeyPrefix}-${index}-${i}`;
                     const isExpanded = isThoughtExpanded(key);
 
                     return (
@@ -993,7 +996,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
         const parsedThought = parseThoughtContent(parsedContent);
 
         if (parsedThought) {
-          const key = `thought-${message.id ?? ""}-${index}`;
+          const key = `thought-${thoughtKeyPrefix}-${index}`;
           const isExpanded = isThoughtExpanded(key);
 
           return (
@@ -1013,7 +1016,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
         return <ChatMarkdown content={parsedContent} onInsertCode={handler} />;
       },
       [
-        message.id,
+        thoughtKeyPrefix,
         isThoughtExpanded,
         createToggleHandler,
         onInsertCode,
