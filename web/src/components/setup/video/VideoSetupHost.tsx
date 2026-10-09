@@ -48,6 +48,12 @@ export interface VideoSetupHostProps {
    * the server copy can be a keystroke or a failed save behind.
    */
   onChangeFlow?: (brief: string) => void | Promise<void>;
+  /**
+   * Whether the host is the visible surface. A hidden workspace tab passes
+   * false so its instance does not take undo, save and generation statics
+   * from the timeline the user is looking at. Defaults to true.
+   */
+  active?: boolean;
 }
 
 const VideoSetupBody = ({
@@ -139,8 +145,8 @@ const VideoSetupBody = ({
   );
 };
 
-const VideoSetupHost = (props: VideoSetupHostProps) => (
-  <TimelineProvider>
+const VideoSetupHost = ({ active = true, ...props }: VideoSetupHostProps) => (
+  <TimelineProvider active={active}>
     <VideoSetupBody {...props} />
   </TimelineProvider>
 );

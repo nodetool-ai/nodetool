@@ -29,7 +29,9 @@ interface TimelineSurfaceProps {
  * host brings its own instance, so setup writes persist while the flow is up.
  */
 const TimelineSurface = ({ refId, mode, active }: TimelineSurfaceProps) => {
-  const [finished, setFinished] = useState(false);
+  // Keyed by sequence, so a finished flow does not carry over to another one.
+  const [finishedId, setFinishedId] = useState<string | null>(null);
+  const finished = finishedId === refId;
   // Read before the mode branch: view tabs of a mid-flow sequence stay the
   // viewer, and the query warms the cache the editor will read on switch.
   const query = trpc.timeline.get.useQuery({ id: refId });
@@ -52,13 +54,17 @@ const TimelineSurface = ({ refId, mode, active }: TimelineSurfaceProps) => {
   if (!finished && stage !== "done") {
     return (
       <VideoSetupHost
+        key={refId}
         sequenceId={refId}
-        onFinish={() => setFinished(true)}
+        active={active}
+        onFinish={() => setFinishedId(refId)}
       />
     );
   }
 
-  return <TimelineEditor sequenceId={refId} active={active} />;
+  // Keyed by sequence: switching sequences unmounts the editor, and its
+  // closing autosave flush writes the previous sequence's pending edits.
+  return <TimelineEditor key={refId} sequenceId={refId} active={active} />;
 };
 
 export default TimelineSurface;
