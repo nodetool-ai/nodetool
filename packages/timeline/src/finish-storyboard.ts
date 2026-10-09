@@ -60,6 +60,14 @@ const isInvisible = (clip: TimelineClip, track: TimelineSequence["tracks"][numbe
 const hasGenerativeSource = (clip: TimelineClip): boolean =>
   clip.sourceType !== "imported" || !!clip.bindingKind || !!clip.sourceClipId || clip.versions.some((version) => version.status === "success");
 
+const IMAGE_PROTECTION_KINDS: readonly string[] = ["product", "logo", "source_asset"];
+
+const hasExactText = (clip: TimelineClip, text: string | undefined): boolean =>
+  clip.mediaType === "text" && clip.textStyle?.text === text;
+
+const isOriginalImage = (element: GraphicsElement, clip: TimelineClip, assetId: string | undefined): boolean =>
+  element.kind === "asset" && clip.mediaType === "image" && clip.currentAssetId === assetId;
+
 const hasGlobalTransforms =(document: Pick<TimelineSequence, "camera2d" | "mediaTracks">): boolean =>
   document.camera2d != null || (document.mediaTracks != null && (!Array.isArray(document.mediaTracks) || document.mediaTracks.length > 0));
 
@@ -109,8 +117,12 @@ export function validateProducedTimeline(
       if (element.protected_input_id && !protection) {
         issue("protected_source", `Unknown protected input ${element.protected_input_id}.`);
       }
-      if (protection && ["product", "logo", "source_asset"].includes(protection.kind) && (element.kind !== "asset" || clip.mediaType !== "image" || clip.currentAssetId !== protection.asset_id)) issue("protected_source", `${protection.id} requires its original separately editable image.`);
-      if (protection?.kind === "exact_text" && (element.kind !== "text" || clip.mediaType !== "text" || clip.textStyle?.text !== protection.value)) issue("protected_value", `${protection.id} requires its exact editable text.`);
+      if (protection && IMAGE_PROTECTION_KINDS.includes(protection.kind) && !isOriginalImage(element, clip, protection.asset_id)) {
+        issue("protected_source", `${protection.id} requires its original separately editable image.`);
+      }
+      if (protection?.kind === "exact_text" && !(element.kind === "text" && hasExactText(clip, protection.value))) {
+        issue("protected_value", `${protection.id} requires its exact editable text.`);
+      }
       if (protection && track?.effects?.length) issue("forbidden_transform", `Track effects on ${protection.id} cannot be proven faithful.`);
       if (element.kind === "asset") {
         const assetId = protection?.asset_id ?? element.asset_id;
@@ -119,7 +131,7 @@ export function validateProducedTimeline(
         }
         if (hasGenerativeSource(clip)) issue("forbidden_generation", `${element.id} cannot use a generative source.`);
       }
-      if (element.kind === "text" && (clip.mediaType !== "text" || clip.textStyle?.text !== (protection?.value ?? element.text))) {
+      if (element.kind === "text" && !hasExactText(clip, protection?.value ?? element.text)) {
         issue("protected_value", `${element.id} must keep exact copy.`);
       }
       if (protection?.kind === "brand_color" && (clip.shapeStyle?.fill ?? clip.textStyle?.color) !== protection.value) {
