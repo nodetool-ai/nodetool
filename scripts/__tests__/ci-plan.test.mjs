@@ -71,8 +71,17 @@ describe("buildCiPlan", () => {
       integration: false,
       workflow_runner_e2e: false,
       tsc6: false,
-      docker: false
+      docker: false,
+      blender: false
     });
+  });
+
+  it("runs the Blender render suites only when blender-nodes itself changes", () => {
+    expect(plan(["packages/blender-nodes/src/run-job.ts"]).blender).toBe(true);
+    expect(plan(["packages/blender-nodes/blender_ops/render.py"]).blender).toBe(true);
+    expect(plan(["packages/image-nodes/src/index.ts"]).blender).toBe(false);
+    expect(plan(["packages/protocol/src/index.ts"]).blender).toBe(false);
+    expect(fullCiPlan().blender).toBe(true);
   });
 
   it("runs web's whole suite when its test setup changes", () => {
