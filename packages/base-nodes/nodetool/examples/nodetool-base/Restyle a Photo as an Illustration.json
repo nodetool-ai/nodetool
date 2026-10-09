@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Restyle a Photo as an Illustration\n\nTurns a photo into a flat vector illustration while keeping its composition. Use it to make matching artwork from existing photography.\n\n**How it works:** \"Photo\" takes your image. \"Restyle\" runs image-to-image with a prompt for bold shapes and a limited palette at a strength of 0.65, and \"Result\" shows the illustration.\n\n**Try this:** Pick a model on \"Restyle\", then move strength down to 0.4 to keep more of the photo, or up to 0.85 to redraw it more freely."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 351
           },
           "zIndex": 0,
           "width": 300,
@@ -57,8 +76,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -76,8 +95,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 359
           },
           "zIndex": 0,
           "width": 300,

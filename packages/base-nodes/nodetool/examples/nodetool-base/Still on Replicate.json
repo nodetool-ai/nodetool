@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Still on Replicate\n\nGenerates an image through Replicate. The graph has the same shape as the fal and Kie variants, so changing provider means changing the model field, not rebuilding the graph.\n\n**How it works:** \"Subject\" holds the description, a fishing boat on black sand by default. \"Render\" is a text-to-image node set to 16:9 at 1080p, and \"Image\" returns the picture.\n\n**Try this:** Pick a Replicate model on \"Render\", run it, then switch the model to another provider and compare the two results."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -54,8 +73,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 180
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -74,7 +93,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 200
+            "y": 379
           },
           "zIndex": 0,
           "width": 240,

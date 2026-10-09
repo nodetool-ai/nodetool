@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Upscale a Still\n\nEnlarges an image four times while reconstructing detail instead of blurring it as a plain resize would. Use it when a still has to hold up in print. It is billed per image.\n\n**How it works:** Drop a picture into \"1 Image\". \"2 Upscale 4x\" enlarges it with the upscaling model you pick, and \"3 Result\" returns the larger image.\n\n**Try this:** Set scale on \"2 Upscale 4x\" to 2 for a smaller, faster enlargement."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 227
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 312
           },
           "zIndex": 0,
           "width": 280,
@@ -52,8 +71,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 307
           },
           "zIndex": 0,
           "width": 280,
@@ -71,8 +90,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 320
           },
           "zIndex": 0,
           "width": 240,

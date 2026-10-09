@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Posterize to Four Bits",
   "tool_name": null,
-  "description": "Reduce the bits per channel and the image collapses into flat bands \u2014 a screenprint look, and a quick way to see banding before it bites you.",
+  "description": "Reduce the bits per channel and the image collapses into flat bands — a screenprint look, and a quick way to see banding before it bites you.",
   "tags": [
     "image",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Posterize to Four Bits\n\nReduces the number of tones per color channel so the image falls into flat bands. Use it for a screenprint look or to preview banding.\n\n**How it works:** The \"Image\" input goes to \"Posterize\", which keeps 3 bits per channel, or eight levels. \"Result\" shows the banded image. It runs locally with no model or key.\n\n**Try this:** Set bits on \"Posterize\" to 4 for the four-bit look in the title, or to 1 for a stark two-tone result."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.ImageInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 375
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +62,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -62,8 +81,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 383
           },
           "zIndex": 0,
           "width": 280,

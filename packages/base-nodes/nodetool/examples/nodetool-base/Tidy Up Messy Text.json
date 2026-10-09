@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Tidy Up Messy Text\n\nCleans a string in three steps: collapse whitespace, strip punctuation, then lowercase. The steps are separate nodes so you can see that their order matters.\n\n**How it works:** \"1 Messy\" holds a sample with extra spaces, capitals and punctuation. \"2 Collapse spaces\" squeezes runs of whitespace, \"3 Strip punctuation\" removes symbols, \"4 Lowercase\" lowercases the rest, and \"5 Result\" shows the tidy text. It runs locally with no model or key.\n\n**Try this:** Swap the positions of \"2 Collapse spaces\" and \"3 Strip punctuation\" and look at what changes in \"5 Result\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "s",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 544
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -73,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 402
           },
           "zIndex": 0,
           "width": 280,
@@ -101,8 +120,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 402
           },
           "zIndex": 0,
           "width": 280,
@@ -128,8 +147,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 340
+            "x": 1520,
+            "y": 522
           },
           "zIndex": 0,
           "width": 280,

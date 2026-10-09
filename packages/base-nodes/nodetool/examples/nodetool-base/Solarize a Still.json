@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Solarize a Still",
   "tool_name": null,
-  "description": "Invert only the tones above a threshold \u2014 the darkroom accident that became a look.",
+  "description": "Invert only the tones above a threshold — the darkroom accident that became a look.",
   "tags": [
     "image",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Solarize a Still\n\nInverts only the tones above a threshold, recreating the darkroom solarization effect. It runs locally on the image with no model or key.\n\n**How it works:** \"Image\" takes your picture. \"Solarize\" inverts every tone brighter than 110, and \"Result\" returns the solarized image.\n\n**Try this:** Lower the threshold on \"Solarize\" to 60 so more of the image inverts, or raise it to 200 to affect only the highlights."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.ImageInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 356
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +62,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -62,8 +81,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 364
           },
           "zIndex": 0,
           "width": 280,

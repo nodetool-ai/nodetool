@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Picture in Picture\n\nPlaces one video as a small inset over another, such as a webcam corner over a screen recording. The inset's audio is muted so the main track stays clean.\n\n**How it works:** \"Main clip\" and \"Inset clip\" both feed \"Composite\", which scales the inset to 28 percent and places it 40 pixels from the top-left corner. \"Result\" plays the combined video.\n\n**Try this:** Change x on \"Composite\" to move the inset toward the right edge, or raise overlay_audio_volume to 1.0 to hear the inset."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "main",
         "type": "nodetool.input.VideoInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 140
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -47,7 +66,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 320
+            "y": 562
           },
           "zIndex": 0,
           "width": 280,
@@ -68,8 +87,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 200
+            "x": 380,
+            "y": 464
           },
           "zIndex": 0,
           "width": 280,
@@ -87,8 +106,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 780,
-            "y": 220
+            "x": 760,
+            "y": 462
           },
           "zIndex": 0,
           "width": 240,

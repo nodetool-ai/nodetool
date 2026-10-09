@@ -25,12 +25,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": -421,
-            "y": 18
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
-          "width": 280,
-          "height": 373,
+          "width": 560,
+          "height": 208,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -48,8 +48,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 50,
-            "y": 50
+            "x": 0,
+            "y": 288
           },
           "zIndex": 0,
           "width": 280,
@@ -75,8 +75,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 360,
-            "y": 79
+            "x": 380,
+            "y": 334
           },
           "zIndex": 0,
           "width": 280,
@@ -94,8 +94,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 680,
-            "y": 79
+            "x": 760,
+            "y": 347
           },
           "width": 260,
           "title": "3️⃣ Transcript",

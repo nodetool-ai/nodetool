@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Narrate a Script\n\nTurns written copy into a voice track. Pair it with Score a Silent Clip to build a narrated cut from text alone. Text-to-speech providers usually bill per character.\n\n**How it works:** Type your words into \"Script\". \"Speak\" reads them aloud at the chosen speed, and \"Voice track\" plays the audio.\n\n**Try this:** Pick a model and voice on \"Speak\", then set speed to 0.9 for a calmer read."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 227
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 320
           },
           "zIndex": 0,
           "width": 280,
@@ -51,8 +70,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 180
+            "x": 380,
+            "y": 307
           },
           "zIndex": 0,
           "width": 280,
@@ -71,7 +90,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 200
+            "y": 333
           },
           "zIndex": 0,
           "width": 240,

@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Sharpen Footage\n\nAdds apparent detail back to a clip after denoising or downscaling. It runs locally through ffmpeg with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Sharpen\" applies a luma amount of 1.5 and a chroma amount of 0.5, keeping chroma low to avoid colour fringing. \"Result\" returns the sharpened clip.\n\n**Try this:** Lower the luma amount on \"Sharpen\" to 0.8 for a subtler pass on footage with visible grain or compression noise."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -45,8 +64,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 370
           },
           "zIndex": 0,
           "width": 280,
@@ -64,8 +83,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 354
           },
           "zIndex": 0,
           "width": 240,

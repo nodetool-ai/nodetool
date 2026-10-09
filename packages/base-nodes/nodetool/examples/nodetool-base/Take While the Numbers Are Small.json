@@ -14,6 +14,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Take While the Numbers Are Small\n\nKeeps items from the start of a list until the first one fails a test, then stops. A filter would keep checking the rest, so TakeWhile caps work instead of selecting from it.\n\n**How it works:** \"Numbers\" holds 1, 2, 3, 40, 5. \"Fan out\" sends the items one at a time to \"While < 10\", which checks the expression item < 10. It stops at 40, so \"Prefix\" receives 1, 2, 3 and never sees the 5.\n\n**Try this:** Change the predicate on \"While < 10\" to item < 50 and check that the 5 now gets through."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "l",
         "type": "nodetool.constant.List",
         "data": {
@@ -28,7 +47,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -46,8 +65,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 760,
+            "y": 488
           },
           "zIndex": 0,
           "width": 280,
@@ -65,8 +84,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 1140,
+            "y": 472
           },
           "zIndex": 0,
           "width": 280,
@@ -84,8 +103,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 160,
-            "y": 240
+            "x": 380,
+            "y": 364
           },
           "zIndex": 0,
           "width": 280,

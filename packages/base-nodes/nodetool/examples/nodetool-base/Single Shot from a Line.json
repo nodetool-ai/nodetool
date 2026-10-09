@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Single Shot from a Line\n\nRenders one video shot from a line of direction. It also works as a quick check that your video provider credentials work before you run a template that bills several generations.\n\n**How it works:** \"Shot\" holds the line, a rainy diner window by default. \"Prompt\" is a template that appends the house look: slow camera move, shallow depth of field, no text. \"Render\" makes a 6-second 16:9 clip at 1080p with a negative prompt against watermarks, and \"Clip\" returns it.\n\n**Try this:** Pick a model on \"Render\", then edit the camera wording in \"Prompt\" to change the look of every shot."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 305
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 386
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +62,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 404
           },
           "zIndex": 0,
           "width": 320,
@@ -74,8 +93,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 180
+            "x": 800,
+            "y": 385
           },
           "zIndex": 0,
           "width": 280,
@@ -93,8 +112,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 200
+            "x": 1180,
+            "y": 398
           },
           "zIndex": 0,
           "width": 240,

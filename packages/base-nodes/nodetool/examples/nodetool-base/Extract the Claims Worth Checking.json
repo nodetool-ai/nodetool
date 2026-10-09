@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Extract the Claims Worth Checking",
   "tool_name": null,
-  "description": "Separates the factual claims from the opinions, and rates how checkable each one is \u2014 the triage step before any verification work.",
+  "description": "Separates the factual claims from the opinions, and rates how checkable each one is — the triage step before any verification work.",
   "tags": [
     "text",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Extract the Claims Worth Checking\n\nPulls the factual claims out of a text, ignores opinions, and rates how checkable each claim is. Use it to triage before any verification work.\n\n**How it works:** \"Input\" takes the text. \"Agent\" lists each factual claim with its checkability (easy, hard or impossible) and where you would look to verify it. \"Output\" shows the list.\n\n**Try this:** Paste a news article or press release into \"Input\", pick a model on \"Agent\", and compare which claims it rates as easy against what you would check first."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.StringInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 365
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -78,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Count a List\n\nCounts the items passing through a stream. The counter works on the stream, so it behaves the same whatever produced the items. It runs in-process with no model, key or cost.\n\n**How it works:** \"1 Source list\" holds six colour names. \"Fan out\" emits them one at a time. \"2 Count\" counts the stream, and \"3 Result\" shows the total.\n\n**Try this:** Add or remove entries in \"1 Source list\" and check that \"3 Result\" changes to match."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "src",
         "type": "nodetool.constant.List",
         "data": {
@@ -31,7 +50,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -47,8 +66,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 760,
+            "y": 501
           },
           "zIndex": 0,
           "width": 280,
@@ -66,8 +85,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 1140,
+            "y": 485
           },
           "zIndex": 0,
           "width": 240,
@@ -85,8 +104,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 160,
-            "y": 300
+            "x": 380,
+            "y": 377
           },
           "zIndex": 0,
           "width": 280,

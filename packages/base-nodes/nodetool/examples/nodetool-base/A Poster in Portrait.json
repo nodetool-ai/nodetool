@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# A Poster in Portrait\n\nGenerates a 3:4 portrait poster from a text prompt. Use it as a starting point for travel posters, event posters or any print in portrait format.\n\n**How it works:** \"1 Prompt\" holds the description of a mid-century screenprint travel poster. \"2 Generate\" sends it to an image model at 3:4 and 1K resolution. \"3 Image\" shows the poster.\n\n**Try this:** Pick a model on \"2 Generate\", then rewrite the prompt with your own subject, palette and style, such as a jazz festival in two colours."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "p",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 381
           },
           "zIndex": 0,
           "width": 300,
@@ -53,8 +72,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -72,8 +91,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 359
           },
           "zIndex": 0,
           "width": 300,

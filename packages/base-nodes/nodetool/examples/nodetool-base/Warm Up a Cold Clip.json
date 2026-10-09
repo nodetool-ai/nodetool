@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T12:00:00.000Z",
   "name": "Warm Up a Cold Clip",
   "tool_name": null,
-  "description": "Per-channel colour balance \u2014 lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
+  "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
   "tags": [
     "video",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Warm Up a Cold Clip\n\nWarms a cold-looking video by lifting red and lowering blue. The grade runs through ffmpeg, so it needs no GPU.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Warm grade\" scales the red channel to 1.15, keeps green at 1.0 and drops blue to 0.85. \"3 Result\" returns the graded clip.\n\n**Try this:** Swap the values on \"2 Warm grade\" (red 0.85, blue 1.15) to cool a clip that looks too warm."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.VideoInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -45,8 +64,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 351
           },
           "zIndex": 0,
           "width": 280,
@@ -64,8 +83,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 335
           },
           "zIndex": 0,
           "width": 280,

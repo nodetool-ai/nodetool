@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Localise a Script and Revoice It\n\nTranslates an English script into Spanish and turns it into a voice track. Use it to make a foreign-language version of a short spot.\n\n**How it works:** \"Script\" holds the English copy. \"Translate\" returns spoken Spanish, which \"Voice it\" reads aloud. \"Even out volume\" normalizes the level, then \"Soften the start\" and \"Soften the ending\" add short fades. \"Audio\" plays the result.\n\n**Try this:** Pick models on \"Translate\" and \"Voice it\", then change the system prompt on \"Translate\" to another language, such as French."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 365
           },
           "zIndex": 0,
           "width": 300,
@@ -60,8 +79,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -96,8 +115,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 352
           },
           "zIndex": 0,
           "width": 300,
@@ -115,8 +134,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1980,
-            "y": 120
+            "x": 2400,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,
@@ -132,8 +151,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 394
           },
           "width": 300,
           "title": "Even out volume"
@@ -149,8 +168,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 120
+            "x": 1600,
+            "y": 394
           },
           "width": 300,
           "title": "Soften the start"
@@ -166,8 +185,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1650,
-            "y": 120
+            "x": 2000,
+            "y": 394
           },
           "width": 300,
           "title": "Soften the ending"

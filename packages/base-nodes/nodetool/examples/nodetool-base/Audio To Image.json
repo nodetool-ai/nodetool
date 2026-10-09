@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Audio To Image",
   "tool_name": null,
-  "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image \u2014 the whole pipeline runs from a single voice note.",
+  "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
   "tags": [
     "huggingface",
     "multimodal",
@@ -53,17 +53,17 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83c\udf99\ufe0f Audio To Image\n\nSpeak a description and watch it become an image. Whisper transcribes your audio, then a text-to-image model renders it.\n\n**Pipeline:** Audio \u2192 Whisper \u2192 Text-to-Image\n\n**Try this:** swap the ASR or image model, or change aspect ratio / resolution."
+          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and watch it become an image. Whisper transcribes your audio, then a text-to-image model renders it.\n\n**Pipeline:** Audio → Whisper → Text-to-Image\n\n**Try this:** swap the ASR or image model, or change aspect ratio / resolution."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": -540,
-            "y": -3
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
-          "width": 480,
-          "height": 240,
+          "width": 560,
+          "height": 208,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -82,11 +82,11 @@
           }
         },
         "ui_properties": {
-          "title": "1\ufe0f\u20e3 Record audio",
+          "title": "1️⃣ Record audio",
           "selected": false,
           "position": {
-            "x": 65,
-            "y": 67
+            "x": 0,
+            "y": 358
           },
           "zIndex": 0,
           "width": 245,
@@ -109,11 +109,11 @@
           }
         },
         "ui_properties": {
-          "title": "2\ufe0f\u20e3 Transcribe",
+          "title": "2️⃣ Transcribe",
           "selected": false,
           "position": {
-            "x": 340,
-            "y": 146
+            "x": 345,
+            "y": 423
           },
           "zIndex": 0,
           "width": 280,
@@ -140,11 +140,11 @@
           "resolution": "1K"
         },
         "ui_properties": {
-          "title": "3\ufe0f\u20e3 Generate image",
+          "title": "3️⃣ Generate image",
           "selected": false,
           "position": {
-            "x": 650,
-            "y": 86
+            "x": 725,
+            "y": 288
           },
           "zIndex": 0,
           "width": 384,
@@ -163,8 +163,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 970,
-            "y": 86
+            "x": 1209,
+            "y": 436
           },
           "selectable": true
         }

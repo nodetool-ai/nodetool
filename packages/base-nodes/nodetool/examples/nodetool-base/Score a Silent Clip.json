@@ -20,8 +20,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "Score a Silent Clip",
-          "comment": "Generate a soundtrack to match your clip. Trim the music to the video length, normalise the volume, and add gentle fades before mixing."
+          "comment": "# Score a Silent Clip\n\nGenerate a soundtrack to match your clip. Trim the music to the video length, normalise the volume, and add gentle fades before mixing."
         },
         "ui_properties": {
           "position": {
@@ -31,7 +30,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 170
+          "height": 153
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -50,7 +49,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 233
           },
           "zIndex": 0,
           "width": 280,
@@ -71,7 +70,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 599
           },
           "zIndex": 0,
           "width": 280,
@@ -97,8 +96,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 700,
-            "y": 400
+            "x": 780,
+            "y": 488
           },
           "zIndex": 0,
           "width": 280,
@@ -117,8 +116,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2450,
-            "y": 240
+            "x": 2760,
+            "y": 390
           },
           "zIndex": 0,
           "width": 280,
@@ -136,8 +135,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2800,
-            "y": 240
+            "x": 3140,
+            "y": 406
           },
           "zIndex": 0,
           "width": 240,
@@ -153,8 +152,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1400,
-            "y": 400
+            "x": 1560,
+            "y": 474
           },
           "width": 300,
           "title": "Even out volume"
@@ -170,8 +169,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1750,
-            "y": 400
+            "x": 1960,
+            "y": 454
           },
           "width": 300,
           "title": "Soften the start"
@@ -187,8 +186,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2100,
-            "y": 400
+            "x": 2360,
+            "y": 434
           },
           "width": 300,
           "title": "Soften the ending"
@@ -202,8 +201,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 350,
-            "y": 240
+            "x": 380,
+            "y": 455
           },
           "width": 300,
           "title": "Measure the clip"
@@ -219,8 +218,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1050,
-            "y": 400
+            "x": 1160,
+            "y": 477
           },
           "width": 300,
           "title": "Fit music to the clip"

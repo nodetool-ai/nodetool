@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Every Combination",
   "tool_name": null,
-  "description": "Cross product of two streams \u2014 every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
+  "description": "Cross product of two streams — every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
   "tags": [
     "example"
   ],
@@ -13,6 +13,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Every Combination\n\nPairs every item from one list with every item from another. Build this sweep before a batch of paid renders so you can see the count before you pay.\n\n**How it works:** \"Framings\" and \"Times\" each feed a \"Fan out\" node that emits their items one at a time. \"Cross\" pairs each framing with each time, producing six pairs. \"Framing\" and \"Time\" receive the two halves of every pair. It runs locally with no model or key.\n\n**Try this:** Add \"square\" to \"Framings\" and confirm the pair count rises from six to nine."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "a",
         "type": "nodetool.constant.List",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 387
           },
           "zIndex": 0,
           "width": 280,
@@ -47,8 +66,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 0,
+            "y": 790
           },
           "zIndex": 0,
           "width": 280,
@@ -64,8 +83,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 684
           },
           "zIndex": 0,
           "width": 280,
@@ -83,8 +102,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 582
           },
           "zIndex": 0,
           "width": 280,
@@ -102,8 +121,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 340
+            "x": 1140,
+            "y": 782
           },
           "zIndex": 0,
           "width": 280,
@@ -121,8 +140,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 160,
-            "y": 240
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -140,8 +159,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 480,
-            "y": 240
+            "x": 380,
+            "y": 782
           },
           "zIndex": 0,
           "width": 280,

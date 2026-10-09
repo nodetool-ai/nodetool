@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Pull a Field out of JSON Text\n\nReads one value from JSON text by following a dotted path. Use it to pull a single field out of an API response or a config string.\n\n**How it works:** \"JSON text\" holds a small user record. \"Read user.name\" parses it and walks the path one key at a time, returning \"Ada\". \"Value\" shows the result. It runs locally with no model or key.\n\n**Try this:** Set the path on \"Read user.name\" to user.role and confirm that \"Value\" shows \"engineer\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "s",
         "type": "nodetool.constant.String",
         "data": {
@@ -24,7 +43,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 500
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +62,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -71,8 +90,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 478
           },
           "zIndex": 0,
           "width": 280,

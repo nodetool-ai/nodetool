@@ -19,8 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "Lip-sync a Clip to a Voice Track",
-          "comment": "Sync your presenter clip to a voice track you already have. The audio is levelled and its edges are softened first. Lip-sync is billed per second of footage."
+          "comment": "# Lip-sync a Clip to a Voice Track\n\nSync your presenter clip to a voice track you already have. The audio is levelled and its edges are softened first. Lip-sync is billed per second of footage."
         },
         "ui_properties": {
           "position": {
@@ -30,7 +29,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 170
+          "height": 153
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -49,7 +48,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 233
           },
           "zIndex": 0,
           "width": 280,
@@ -73,7 +72,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 599
           },
           "zIndex": 0,
           "width": 280,
@@ -90,7 +89,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 380
+            "y": 614
           },
           "width": 300,
           "title": "Even out volume"
@@ -106,8 +105,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 710,
-            "y": 380
+            "x": 780,
+            "y": 538
           },
           "width": 300,
           "title": "Soften the start"
@@ -123,8 +122,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1040,
-            "y": 380
+            "x": 1180,
+            "y": 471
           },
           "width": 300,
           "title": "Soften the ending"
@@ -147,8 +146,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1420,
-            "y": 300
+            "x": 1580,
+            "y": 381
           },
           "zIndex": 0,
           "width": 280,
@@ -166,8 +165,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1780,
-            "y": 320
+            "x": 1960,
+            "y": 400
           },
           "zIndex": 0,
           "width": 240,

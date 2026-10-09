@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Relight a Product for a Seasonal Campaign\n\nChanges the lighting on an existing product photo so it fits a new season without a reshoot. The product's shape and materials stay as they are.\n\n**How it works:** \"Photo\" takes the image you upload. \"Relight\" sends it to a relighting model with a prompt that describes the new light source, and \"Result\" shows the relit photo.\n\n**Try this:** Pick a model on \"Relight\", then swap the prompt for \"cool morning light from behind, pale blue haze\" to get a spring look."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 351
           },
           "zIndex": 0,
           "width": 300,
@@ -52,8 +71,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -71,8 +90,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 359
           },
           "zIndex": 0,
           "width": 300,

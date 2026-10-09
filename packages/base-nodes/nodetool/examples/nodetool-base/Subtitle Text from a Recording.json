@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Subtitle Text from a Recording\n\nTranscribes a recording and breaks the transcript into subtitle-length captions. The line-length rule is what turns a transcript into usable subtitles.\n\n**How it works:** \"Recording\" takes a video. \"Extract audio\" pulls out the soundtrack, and \"Transcribe\" converts it to English text. \"Agent\" splits the text into numbered captions of at most two 42-character lines, and \"Output\" returns them.\n\n**Try this:** Pick models on \"Transcribe\" and \"Agent\", then set the language on \"Transcribe\" to match a recording that is not in English."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 370
           },
           "zIndex": 0,
           "width": 300,
@@ -42,8 +61,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 394
           },
           "zIndex": 0,
           "width": 300,
@@ -70,8 +89,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 364
           },
           "zIndex": 0,
           "width": 300,
@@ -105,8 +124,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -124,8 +143,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 1600,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Fit an Image\n\nScales an image to fit inside a box while keeping its aspect ratio. Use it for thumbnails, where a hard resize would distort. It runs locally with no model, no key and no cost.\n\n**How it works:** \"Image\" passes the picture to \"Fit\", which scales it to fit within 640 by 360 pixels without stretching. \"Result\" shows the fitted image.\n\n**Try this:** Set the \"Fit\" width and height to 1080 by 1080 for a square social post, then run it on a tall portrait to see how it fits."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 385
           },
           "zIndex": 0,
           "width": 280,
@@ -45,8 +64,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -64,8 +83,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 393
           },
           "zIndex": 0,
           "width": 240,

@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "SEO Title and Meta Description",
   "tool_name": null,
-  "description": "The two fields every CMS demands, written to their real limits \u2014 60 and 155 characters \u2014 so nothing is truncated in the results page.",
+  "description": "The two fields every CMS demands, written to their real limits — 60 and 155 characters — so nothing is truncated in the results page.",
   "tags": [
     "text",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# SEO Title and Meta Description\n\nWrites a page title and meta description within 60 and 155 characters, so search results do not cut them off.\n\n**How it works:** \"Input\" takes a short description of what the page covers. \"Agent\" writes the two fields on labelled lines and is told to count characters. \"Output\" returns the metadata ready to paste into your CMS.\n\n**Try this:** Pick a model on \"Agent\", then describe a real page in \"Input\" and check the returned lengths against the limits before you publish."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.StringInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 365
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -78,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

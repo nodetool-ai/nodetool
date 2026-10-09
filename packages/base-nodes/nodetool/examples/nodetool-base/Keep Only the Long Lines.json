@@ -5,7 +5,7 @@
   "updated_at": "2026-08-02T10:00:00.000Z",
   "name": "Keep Only the Long Lines",
   "tool_name": null,
-  "description": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out \u2014 a list fed straight into a stream operator arrives as one item \u2014 and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
+  "description": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out — a list fed straight into a stream operator arrives as one item — and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
   "tags": [
     "data",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Keep Only the Long Lines\n\nFilters a list down to the lines longer than 10 characters and counts them. It shows how to turn a list into a stream and back into a list.\n\n**How it works:** \"Lines\" holds four strings. \"Fan out\" sends them one at a time to \"Longer than 10\", which keeps items that pass its predicate. \"Gather\" collects the survivors into a list for the \"kept\" output, and \"How many\" counts them for the \"count\" output.\n\n**Try this:** Change the predicate on \"Longer than 10\" to item.length > 3 and watch both outputs change."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "src",
         "type": "nodetool.constant.List",
@@ -28,7 +47,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -44,8 +63,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 371
           },
           "zIndex": 0,
           "width": 280,
@@ -63,8 +82,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 495
           },
           "zIndex": 0,
           "width": 280,
@@ -80,8 +99,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 411
           },
           "zIndex": 0,
           "width": 280,
@@ -97,8 +116,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 340
+            "x": 1140,
+            "y": 579
           },
           "zIndex": 0,
           "width": 280,
@@ -116,8 +135,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 340
+            "x": 1520,
+            "y": 379
           },
           "zIndex": 0,
           "width": 280,
@@ -135,8 +154,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 340
+            "x": 1520,
+            "y": 579
           },
           "zIndex": 0,
           "width": 280,

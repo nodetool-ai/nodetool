@@ -18,6 +18,27 @@
   "graph": {
     "nodes": [
       {
+        "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI writes each card as a structured front/back/category object (not a markdown blob). Because they are rows and not prose, a Code node can then compute on them: drop repeated questions, deal one card from each category in turn so a run never asks four questions about the same sub-topic back to back, and stamp each card with its Leitner review days.\n\n**Pipeline:** Topic + card count → build prompt → generate card objects → one script that dedupes, orders and schedules them\n\n**Try this:** compare the two outputs — the raw rows the model wrote, and the same cards in study order."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "height": 305,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "topic_input",
         "parent_id": null,
         "type": "nodetool.input.StringInput",
@@ -29,8 +50,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 76,
-            "y": 171
+            "x": 0,
+            "y": 704
           },
           "zIndex": 0,
           "width": 280,
@@ -54,8 +75,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 76,
-            "y": 291
+            "x": 0,
+            "y": 929
           },
           "zIndex": 0,
           "width": 280,
@@ -75,8 +96,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 386,
-            "y": 167
+            "x": 380,
+            "y": 590
           },
           "zIndex": 0,
           "width": 280,
@@ -124,8 +145,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 776,
-            "y": 65
+            "x": 760,
+            "y": 764
           },
           "zIndex": 0,
           "width": 280,
@@ -150,8 +171,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1126,
-            "y": 400
+            "x": 1140,
+            "y": 385
           },
           "zIndex": 0,
           "width": 320,
@@ -170,27 +191,6 @@
         }
       },
       {
-        "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Comment",
-        "data": {
-          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI writes each card as a structured front/back/category object (not a markdown blob). Because they are rows and not prose, a Code node can then compute on them: drop repeated questions, deal one card from each category in turn so a run never asks four questions about the same sub-topic back to back, and stamp each card with its Leitner review days.\n\n**Pipeline:** Topic + card count → build prompt → generate card objects → one script that dedupes, orders and schedules them\n\n**Try this:** compare the two outputs — the raw rows the model wrote, and the same cards in study order."
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": -605,
-            "y": 0
-          },
-          "zIndex": 0,
-          "width": 460,
-          "height": 180,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
         "id": "flashcards_output",
         "type": "nodetool.output.Output",
         "data": {
@@ -199,7 +199,7 @@
         "ui_properties": {
           "position": {
             "x": 1140,
-            "y": 65
+            "y": 942
           },
           "zIndex": 0,
           "width": 260,
@@ -220,8 +220,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1516,
-            "y": 470
+            "x": 1560,
+            "y": 593
           },
           "zIndex": 0,
           "width": 280,

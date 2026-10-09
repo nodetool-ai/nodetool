@@ -17,6 +17,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Every Hour, On the Hour\n\nRuns on a clock with no input and no caller. Everything downstream of the trigger runs on a schedule, like a cron job.\n\n**How it works:** \"Every hour\" emits a tick every 3600 seconds and once at start. \"Tick as text\" converts the tick counter to a string for \"Tick\", and the trigger's timestamp goes straight to \"Fired at\" as an ISO time. With max events at 0 it runs until stopped.\n\n**Try this:** Set interval seconds on \"Every hour\" to 10 and max events to 3, then watch three ticks arrive and the run stop."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "every",
         "type": "nodetool.triggers.IntervalTrigger",
         "data": {
@@ -29,7 +48,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 671
           },
           "zIndex": 0,
           "width": 280,
@@ -48,8 +67,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 40
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 240,
@@ -77,8 +96,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 620,
-            "y": 40
+            "x": 720,
+            "y": 534
           },
           "zIndex": 0,
           "width": 240,
@@ -98,8 +117,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 620,
-            "y": 220
+            "x": 380,
+            "y": 835
           },
           "zIndex": 0,
           "width": 240,

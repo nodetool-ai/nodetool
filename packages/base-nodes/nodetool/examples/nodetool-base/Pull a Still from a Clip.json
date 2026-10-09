@@ -17,6 +17,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Pull a Still from a Clip\n\nGrabs one frame from a video at a chosen time. Use it to get a thumbnail or a reference still from existing footage.\n\n**How it works:** The \"Clip\" input goes to \"Grab a frame\", which extracts the frame at 2 seconds. \"Still\" shows the image. It runs locally through ffmpeg with no model or key.\n\n**Try this:** Set time on \"Grab a frame\" to the moment you want, such as 12.5 for a frame twelve and a half seconds in."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
@@ -27,7 +46,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 476
           },
           "zIndex": 0,
           "width": 280,
@@ -45,8 +64,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -64,8 +83,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 484
           },
           "zIndex": 0,
           "width": 240,
