@@ -157,7 +157,10 @@ const canvasStyles = css({
   ...TYPOGRAPHY.mono.caption,
   display: "block",
   width: "100%",
-  height: "100%"
+  height: "100%",
+  // A finger dragged along the ruler scrubs the playhead; without this the
+  // browser takes it as a pan and cancels the pointer.
+  touchAction: "none"
 });
 
 /**
@@ -302,9 +305,11 @@ export function formatTimecode(
     const fpsInt = Math.max(1, Math.round(fps));
     const totalFrames = Math.round((ms / 1000) * fps);
     const frame = totalFrames % fpsInt;
-    const wholeSec = Math.floor(totalFrames / fpsInt) % 60;
+    // Minutes come from the frame count at the nominal rate, like seconds
+    // and frames: at 29.97 the wall-clock minute runs ahead of the timecode.
+    const totalTcSec = Math.floor(totalFrames / fpsInt);
     const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-    return `${min}:${pad(wholeSec)}:${pad(frame)}`;
+    return `${Math.floor(totalTcSec / 60)}:${pad(totalTcSec % 60)}:${pad(frame)}`;
   }
   const decimals = majorMs >= 500 ? 1 : 2;
   const secText = sec.toFixed(decimals);
@@ -584,6 +589,10 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
+        // Right and middle presses must not move the playhead.
+        if (e.button !== 0) {
+          return;
+        }
         e.currentTarget.setPointerCapture(e.pointerId);
         ownsGestureRef.current = true;
         seek(pxToMs(e.clientX));
