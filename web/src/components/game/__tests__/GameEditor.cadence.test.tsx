@@ -69,7 +69,7 @@ jest.mock("@nodetool-ai/game-renderer/browser3d", () => ({
   })
 }), { virtual: true });
 jest.mock("@nodetool-ai/game-renderer/audio", () => ({
-  GameAudioPlayer: jest.fn().mockImplementation(() => ({ updateAssets: jest.fn(), preload: jest.fn(), sync: jest.fn(),
+  GameAudioPlayer: jest.fn().mockImplementation(() => ({ updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), sync: jest.fn(),
     resume: jest.fn(), pause: jest.fn(), reset: jest.fn(), handle: jest.fn(), dispose: jest.fn() }))
 }));
 jest.mock("../../../utils/resolveMediaUri", () => ({

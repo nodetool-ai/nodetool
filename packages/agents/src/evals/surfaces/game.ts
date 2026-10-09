@@ -56,6 +56,23 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<GameDocument>[] = [
       } }]
   }
 }, {
+  id: "audio-mixer-buses",
+  description: "Author the document audio mixer: a user bus, an asset route and an event-driven mixer snapshot.",
+  objective: "Add an ambience bus under sfx at volume 0.6, play the sfx.collect slot on the ui bus, and when the player wins fade music to volume 0.2 over 30 ticks with a victory mixer snapshot.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("mixer-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_audio {mixer} replaces document audio.mixer with buses, assetBuses, ducking, snapshots and transitions. Transitions use on {kind: win}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "mixer", detail: "The mixer lacks the ambience bus, the ui route or the victory transition.",
+      test: document => {
+        const mixer = document.audio?.mixer;
+        if (!mixer) { return false; }
+        const transition = mixer.transitions.find((rule) => rule.on.kind === "win");
+        return mixer.buses.ambience?.parent === "sfx" && mixer.buses.ambience.volume === 0.6 && mixer.assetBuses["sfx.collect"] === "ui" &&
+          transition?.fadeTicks === 30 && mixer.snapshots[transition.snapshot]?.buses.music?.volume === 0.2;
+        } }]
+    }
+  }, {
   id: "particle-emitter",
   description: "Author a particles component with a death sub-emitter through public edit ops.",
   objective: "Give player a particles component: a looping emitter trail at rate 20 whose particles fire 3 particles from a second emitter sparks on death. sparks does not play on start.",

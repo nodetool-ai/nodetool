@@ -10,6 +10,7 @@ import { gameBackgroundLayer } from "./components/background.js";
 import { gameEntityComponents } from "./components/entity-components.js";
 import { gameParticles } from "../game-particles.js";
 import { gameAuthoring } from "../game-authoring.js";
+import { gameAudioSettings } from "./components/audio.js";
 
 export const gameEntity = z.strictObject({
   id: z.string().min(1),
@@ -70,6 +71,7 @@ export const gameDocument = z.strictObject({
   collisionLayers: z.array(z.string().min(1)).max(32).optional(),
   renderEffects: z.array(gameRenderEffect).max(8).optional(),
   hudEffectOrder: z.enum(["beforeEffects", "afterEffects"]).optional(),
+  audio: gameAudioSettings.optional(),
   assets: z.record(z.string(), gameAssetBinding),
   scenes: z.array(gameScene).min(1)
 });
@@ -177,3 +179,5 @@ export { gameVisualTrack, type GameVisualTrack } from "./components/visual-anima
 export { gameBackgroundLayer, type GameBackgroundLayer } from "./components/background.js";
 
 export { gameEntityPropertyValue, gameEntityProps, gameEntityTags, type GameEntityProps, type GameEntityTags } from "../game-entity-metadata.js";
+
+export { GAME_AUDIO_BUILTIN_BUSES, GAME_AUDIO_BASE_SNAPSHOT, gameAudioBus, type GameAudioBus, gameAudioMixerSnapshot, type GameAudioMixerSnapshot, gameAudioMixerTransition, type GameAudioMixerTransition, gameAudioDucking, type GameAudioDucking, gameAudioMixer, type GameAudioMixer, type GameAudioMixerInput, gameAudioSettings, type GameAudioSettings } from "./components/audio.js";

@@ -229,6 +229,14 @@ it("round-trips removal of optional collision layers through JSON operations", (
   roundTrip(before, after);
 });
 
+it("round-trips adding and removing the audio mixer through JSON operations", () => {
+  const before = createNative3DGame("diff3d-audio-mixer");
+  const after = structuredClone(before);
+  after.audio = { mixer: { buses: { ambience: { parent: "sfx", volume: 0.5, muted: false, reverbSend: 0.2 } }, assetBuses: {},
+    limiter: { enabled: true, thresholdDb: -3 }, reverb: { decaySeconds: 1.8 }, ducking: [], snapshots: {}, transitions: [] } };
+  roundTrip(before, after);
+});
+
 it("round-trips adding, editing and removing a particles component", () => {
   const before = createNative3DGame("diff3d-particles");
   const withParticles = structuredClone(before);

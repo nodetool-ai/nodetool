@@ -280,6 +280,20 @@ it("simulates authored metadata commands and verifies property snapshot replay",
   } finally { session.dispose(); }
 });
 
+it("validates and simulates a document with an audio mixer and verifies replay", async () => {
+  const document = createTopDownRoomGame("a".repeat(32));
+  await writeFile(gamePath, JSON.stringify({ ...document, audio: { mixer: { buses: { ambience: { parent: "sfx", volume: 0.6 } },
+    assetBuses: { "sfx.collect": "ui" }, snapshots: { victory: { buses: { music: { volume: 0.2 } } } },
+    transitions: [{ on: { kind: "win" }, snapshot: "victory", fadeTicks: 30 }] } } }));
+  const program = new Command();
+  registerGameCommands(program);
+  await program.parseAsync(["node", "nodetool", "game", "validate", gamePath, "--json"]);
+  expect(JSON.parse(output.trim())).toMatchObject({ valid: true });
+  output = "";
+  const report = await runSimulation("--ticks", "30", "--verify-replay");
+  expect(report).toMatchObject({ ok: true, replay: { verified: true } });
+});
+
 it("simulates particle emitters and emitParticles commands with a verified replay", async () => {
   const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
   vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);

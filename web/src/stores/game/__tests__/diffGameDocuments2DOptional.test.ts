@@ -86,3 +86,13 @@ it("replaces tile child options and patrol options through their array boundarie
   delete next.behaviors[0].turnAtLedges;
   roundTrip(before, after);
 });
+
+it("round-trips adding, changing and removing the audio mixer through public JSON operations", () => {
+  const before = gameDocument.parse(createTopDownRoomGame("audio-mixer-diff"));
+  const mixed = gameDocument.parse({ ...before, audio: { mixer: { buses: { ambience: { parent: "sfx", volume: 0.6 } },
+    assetBuses: { "sfx.collect": "ui" } } } });
+  const changed = gameDocument.parse({ ...mixed, audio: { mixer: { buses: { ambience: { parent: "sfx", volume: 0.3 } },
+    transitions: [{ on: { kind: "win" }, snapshot: "base" }] } } });
+  roundTrip(before, mixed);
+  roundTrip(mixed, changed);
+});

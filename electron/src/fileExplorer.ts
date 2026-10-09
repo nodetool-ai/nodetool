@@ -5,6 +5,7 @@ import { shell } from "electron";
 
 import { logMessage, LOG_FILE } from "./logger";
 import { getCondaEnvPath, getDefaultAssetsPath } from "./config";
+import { assertSafeOpenablePath } from "./utils";
 import type { FileExplorerResult, ModelDirectory, SystemDirectory } from "./types";
 
 const DEFAULT_HF_SUBDIR = path.join(".cache", "huggingface", "hub");
@@ -198,7 +199,9 @@ export async function openPathInExplorer(
       `[fileExplorer] Opening path via shell: ${normalized}`,
       "info"
     );
-    const result = await shell.openPath(normalized);
+    // A downloaded model repo can hold scripts and executables. Open folders
+    // and documents, never something the OS would run.
+    const result = await shell.openPath(assertSafeOpenablePath(normalized));
     if (result) {
       throw new Error(result);
     }
