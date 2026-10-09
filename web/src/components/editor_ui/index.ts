@@ -42,6 +42,12 @@ export type { EditorUiScope } from "./EditorUiContext";
 export { NodeTextField } from "./NodeTextField";
 export type { NodeTextFieldProps } from "./NodeTextField";
 
+export { NodeTextPreview } from "./NodeTextPreview";
+export type { NodeTextPreviewProps } from "./NodeTextPreview";
+
+export { EditorActivationCover } from "./EditorActivationCover";
+export type { EditorActivationCoverProps } from "./EditorActivationCover";
+
 export { NodeSwitch } from "./NodeSwitch";
 export type { NodeSwitchProps } from "./NodeSwitch";
 

@@ -205,6 +205,18 @@ const mockTheme = createTheme({
   fontSizeSmaller: "11px",
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
+  // Editor control tokens — mirrors ThemeNodetool for editor_ui primitives.
+  editor: {
+    heightNode: "24px",
+    heightInspector: "32px",
+    padXNode: "8px",
+    padYNode: "4px",
+    padXInspector: "10px",
+    padYInspector: "6px",
+    controlRadius: "6px",
+    menuRadius: "8px",
+    menuShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
+  },
   // TanStack Virtual overscan — mirrors ThemeNodetool so virtualized
   // components (LogsTable, ChatThreadView) can read it under test.
   virtualScroll: {

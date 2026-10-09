@@ -16,6 +16,7 @@
 import React, {
   memo,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState
@@ -366,6 +367,47 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
 
   const promptProperties = useMemo<Property[]>(() => [], []);
 
+  // The prompt takes no canvas gestures until clicked: while idle the area has
+  // no nodrag/nowheel and a mousedown does not focus the editor, so a pan,
+  // a pinch, or a node drag passes over it. Blur returns it to idle.
+  const [isEditing, setIsEditing] = useState(false);
+  const composerAreaRef = useRef<HTMLDivElement>(null);
+
+  // Native listeners: React Flow's node drag stops mousedown before it
+  // reaches React's root listener, so a React onMouseDown never runs here.
+  // React Flow also swallows the click that ends a drag.
+  useEffect(() => {
+    const area = composerAreaRef.current;
+    if (!area || isEditing) {
+      return;
+    }
+    const keepFocusAway = (event: MouseEvent): void => {
+      event.preventDefault();
+    };
+    const startEditing = (event: MouseEvent): void => {
+      const input = area.querySelector<HTMLElement>(".composer-input");
+      if (!input) {
+        return;
+      }
+      const range = document.caretRangeFromPoint?.(
+        event.clientX,
+        event.clientY
+      );
+      input.focus();
+      if (range && input.contains(range.startContainer)) {
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+    };
+    area.addEventListener("mousedown", keepFocusAway, true);
+    area.addEventListener("click", startEditing);
+    return () => {
+      area.removeEventListener("mousedown", keepFocusAway, true);
+      area.removeEventListener("click", startEditing);
+    };
+  }, [isEditing]);
+
   return (
     <PromptComposerContext.Provider value={promptComposerContextValue}>
       <div
@@ -374,14 +416,21 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
         data-bespoke-body="Prompt"
       >
         <LexicalComposer initialConfig={initialConfig}>
-          <div className="composer-area nodrag nowheel">
+          <div
+            ref={composerAreaRef}
+            className={
+              isEditing ? "composer-area editing nodrag nowheel" : "composer-area"
+            }
+            onClick={(e) => e.stopPropagation()}
+          >
             <PlainTextPlugin
               contentEditable={
                 <ContentEditable
                   className="composer-input"
                   aria-label="Prompt"
                   spellCheck={false}
-                  onClick={(e) => e.stopPropagation()}
+                  onFocus={() => setIsEditing(true)}
+                  onBlur={() => setIsEditing(false)}
                 />
               }
               placeholder={
