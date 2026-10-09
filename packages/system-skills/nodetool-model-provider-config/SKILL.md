@@ -167,9 +167,6 @@ Python worker, and each needs its pack.
 - `NODETOOL_TORCH_DEVICE` (`cuda`, `cuda:1`, `mps`, `cpu`) picks the device.
 - Wan2GP nodes call a Wan2GP server the user runs. `WAN2GP_MCP_URL` (default
   `http://127.0.0.1:7866/mcp`) or the node's `server_url` points at it.
-- Nunchaku 4-bit variants need a manual wheel install from the
-  nunchaku-ai/nunchaku GitHub releases, matched to the installed torch and
-  CUDA. The PyPI package named `nunchaku` is unrelated.
 
 ## HuggingFace models
 
@@ -211,7 +208,6 @@ PyTorch.
 |-----------|-----------|--------|----------|
 | **llama.cpp** | Medium | Excellent | CPU, GPU |
 | **MLX** | Good | Excellent | Apple Silicon |
-| **Nunchaku** | Excellent | Excellent | NVIDIA GPU, manual install |
 | **Transformers** | Medium | Good | Any |
 
 # Provider-Agnostic Nodes

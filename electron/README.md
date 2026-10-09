@@ -56,7 +56,7 @@ this workspace's Jest suite (`.github/workflows/quality-checks.yml`).
 
 ## GPU Detection
 
-Electron uses [torchruntime](https://github.com/easydiffusion/torchruntime) when a package needs a PyTorch-specific wheel index. This runs before installing or updating `nodetool-huggingface`, whose PyTorch target is 2.14.x. Nunchaku is not installed by the app; see [Nunchaku](../docs/models.md#nunchaku-nvidia-gpu).
+Electron uses [torchruntime](https://github.com/easydiffusion/torchruntime) when a package needs a PyTorch-specific wheel index. This runs before installing or updating `nodetool-huggingface`, whose PyTorch target is 2.14.x.
 
 If no torch platform is cached, the package manager:
 

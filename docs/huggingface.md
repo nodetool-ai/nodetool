@@ -51,7 +51,7 @@ Install the **Transformers.js** runtime from the Package Manager first. Without 
 
 The optional `nodetool-huggingface` pack adds local Diffusers and Transformers nodes for image, audio, and speech models. Install it from **Package Manager → Python packs**, which sets up Python first if it is missing. It runs on PyTorch 2.14, and the desktop app installs the PyTorch build that matches your graphics card. See [GPU requirements](installation.md#gpu-requirements). Without the desktop app, see [Python nodes without the desktop app](installation.md#python-nodes-without-the-desktop-app). NodeTool does not install it by default. When the Python worker runs, its local Hugging Face provider appears as `huggingface-local`, so it does not clash with the hosted `huggingface` provider.
 
-The Model Manager recognizes the model types this pack uses, such as Flux (including Kontext, Canny, Depth, and Redux), Stable Diffusion 1.5, XL, and 3, Qwen Image and Qwen Image Edit, ControlNet, IP Adapter, and LoRA. Variants such as Nunchaku 4-bit and MLX are also detected. The pack's own node reference ships with the pack.
+The Model Manager recognizes the model types this pack uses, such as Flux (including Kontext, Canny, Depth, and Redux), Stable Diffusion 1.5, XL, and 3, Qwen Image and Qwen Image Edit, ControlNet, IP Adapter, and LoRA. MLX variants are also detected. The pack's own node reference ships with the pack.
 
 ## Authentication and gated models
 

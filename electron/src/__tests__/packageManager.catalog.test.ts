@@ -50,7 +50,6 @@ describe('package catalog', () => {
     expect(repoIds).toContain('nodetool-ai/nodetool-core');
     expect(repoIds).toContain('nodetool-ai/nodetool-wan2gp');
     expect(repoIds).not.toContain('nodetool-ai/nodetool-whispercpp');
-    expect(repoIds).not.toContain('nunchaku-tech/nunchaku');
     expect(
       packages.find((p) => p.repo_id === 'nodetool-ai/nodetool-core')?.description
     ).toContain('Essential NodeTool core nodes');

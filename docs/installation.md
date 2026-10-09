@@ -181,9 +181,7 @@ card:
 | No graphics card, CPU only | llama.cpp, Transformers.js, Ollama | Works, but slowly |
 | Anything, using an online service | The provider's servers | Every kind of task, nothing to download |
 
-[Supported Models](models.md) compares all of them. Nunchaku 4-bit image
-models on NVIDIA need a manual install. See
-[Nunchaku](models.md#nunchaku-nvidia-gpu).
+[Supported Models](models.md) compares all of them.
 
 ### GPU requirements
 
@@ -207,7 +205,6 @@ Rough VRAM (or unified memory on a Mac) per model family:
 | 7–8B language model, 4-bit GGUF or MLX | 6–8 GB |
 | SDXL | 8–12 GB |
 | Flux, full precision | 24 GB or more; less with CPU offload, but slower |
-| Flux or Qwen Image, Nunchaku 4-bit | 8–12 GB |
 | Wan video models | 8 GB and up, depending on resolution and length |
 
 The Model Manager's **Get Started** tab estimates fit for your machine. To pick

@@ -34,18 +34,6 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 - **Vision**: Multimodal models and FastVLM support.
 - **Image Gen**: FLUX models ported to MLX for faster generation.
 
-### Nunchaku (NVIDIA GPU)
-
-**Nunchaku** is an inference engine for 4-bit diffusion models on NVIDIA GPUs. It implements SVDQuant to keep visual fidelity while cutting memory use compared to BF16 models, which makes large diffusion models such as FLUX.1 practical on consumer NVIDIA GPUs. The HuggingFace pack's Nunchaku variants of Flux, SDXL, and Qwen Image use it.
-
-Nothing installs Nunchaku for you, and the Package Manager does not list it. Install it by hand into NodeTool's Python environment:
-
-1. Find the torch version in that environment: `python -c "import torch; print(torch.__version__)"`. The suffix, such as `+cu130`, is the CUDA build.
-2. From [the Nunchaku releases](https://github.com/nunchaku-ai/nunchaku/releases), pick the wheel whose name matches that torch version, CUDA build, Python version (`cp311` for 3.11), and platform.
-3. Run `pip install <wheel URL>` with that environment's Python.
-
-The PyPI package named `nunchaku` is an unrelated project. Do not install it. Each Nunchaku wheel is built against one torch release, so a torch update needs a matching wheel. Until the releases include one for the installed torch, Nunchaku variants fail with `The SVDQuant nunchaku runtime is required`, and the full-precision variants still work.
-
 ### HuggingFace Transformers
 
 **Transformers** and **Diffusers** are the Python libraries behind the optional `nodetool-huggingface` node pack, which you install from the Package Manager. They run Hub models locally on GPU, Apple Silicon, or CPU on PyTorch 2.14. See [HuggingFace Integration](huggingface.md) and [GPU requirements](installation.md#gpu-requirements).
@@ -62,7 +50,6 @@ The PyPI package named `nunchaku` is an unrelated project. Do not install it. Ea
 | **llama.cpp**    | GGUF                     | CPU, GPU      | Quantized models, edge devices |
 | **Transformers.js** | ONNX                  | Any           | Small models, no Python        |
 | **MLX**          | MLX                      | Apple Silicon | Mac on-device models           |
-| **Nunchaku**     | 4-bit diffusion weights  | NVIDIA GPU    | Large diffusion models (manual install) |
 | **Transformers / Diffusers** | Safetensors, PyTorch | Any   | Research, flexibility          |
 
 ______________________________________________________________________
@@ -75,21 +62,20 @@ NodeTool supports a wide range of model types across different domains. Below is
 
 - **Full Precision**: Standard execution using HuggingFace Transformers/Diffusers (supports CUDA, MPS, CPU).
 - **MLX**: Optimized execution for Apple Silicon (M-series chips).
-- **Nunchaku**: 4-bit quantized weights for NVIDIA GPUs. Needs the [manual install](#nunchaku-nvidia-gpu).
 
 ### Image Generation
 
 | Model Type | Description | Variants |
 | :--- | :--- | :--- |
-| **Flux** | Text-to-image generation | ✅ Full Precision<br>✅ MLX<br>✅ Nunchaku |
+| **Flux** | Text-to-image generation | ✅ Full Precision<br>✅ MLX |
 | **Flux Fill** | Inpainting/Outpainting for Flux | ✅ Full Precision<br>✅ MLX |
 | **Flux Depth** | Depth-guided generation | ✅ Full Precision<br>✅ MLX |
 | **Flux Redux** | Image variation and mixing | ✅ Full Precision<br>✅ MLX |
 | **Flux Kontext** | Context-aware generation | ✅ Full Precision<br>✅ MLX |
-| **Stable Diffusion XL** | SDXL base and refiner models | ✅ Full Precision<br>✅ Nunchaku |
+| **Stable Diffusion XL** | SDXL base and refiner models | ✅ Full Precision |
 | **Stable Diffusion 3** | Latest Stable Diffusion architecture | ✅ Full Precision |
 | **Stable Diffusion** | SD 1.5, 2.1, and variants | ✅ Full Precision |
-| **Qwen Image** | Qwen-based text-to-image | ✅ Full Precision<br>✅ MLX<br>✅ Nunchaku |
+| **Qwen Image** | Qwen-based text-to-image | ✅ Full Precision<br>✅ MLX |
 | **Qwen Image Edit** | Instruction-based image editing | ✅ Full Precision<br>✅ MLX |
 | **ControlNet** | Structural guidance (Canny, Depth, etc.) | ✅ Full Precision<br>✅ MLX (Flux) |
 | **Text to Image** | Generic text-to-image models | ✅ Full Precision |
