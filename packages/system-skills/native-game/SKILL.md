@@ -741,4 +741,27 @@ at `<source_root>/candidates/<digest>.json`. Files staged by
 
 ### D: Performance and delivery
 
+#### Distance culling and frame budgets (3D)
+
+Both are presentation only. They never change simulation, snapshots or replay.
+
+- `set_performance {performance}` replaces document `performance`. `null`
+  removes it. `cullLayers` maps a layer name to `{maxDistance}` (at most 32
+  layers). `budgets` sets `drawCalls`, `triangles`, `particles` and `voices`.
+- `update_entity` with `set: {renderCulling: {layer?, maxDistance?}}` hides
+  that entity and its children when the game camera is farther than the
+  distance from the entity's origin. The nearest setting in the parent chain
+  wins, and an entity's own `maxDistance` wins over its layer's. A layer must
+  be declared, or validation reports `missing_cull_layer`.
+- Distance is measured to the entity origin, not to its nearest surface. Cull
+  props and small decoration. Do not cull large scenery such as terrain or
+  buildings, because they disappear while the camera is still close to their
+  edges. Never cull the player or anything the player must see to win. The
+  editor camera shows every entity.
+- Budgets left out use the player defaults: 1000 draw calls, 1,000,000
+  triangles, 4096 particles and 24 voices. The standalone player warns in the
+  browser console once each time the draw call, triangle or voice budget is
+  exceeded. No player counts particles yet, so the particles budget does not
+  warn. `nodetool game capture` reports `budget.overruns` for a 3D frame.
+
 ### M: Milestone games

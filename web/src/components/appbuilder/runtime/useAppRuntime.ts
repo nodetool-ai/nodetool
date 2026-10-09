@@ -1671,28 +1671,42 @@ export const useAppRuntime = (
     ]
   );
 
-  const getNodeProperty = useCallback(
-    (nodeId: string, property: string): unknown => {
-      for (const entry of operationRuntimesRef.current.values()) {
+  // Two operations' graphs can share a node id (a `bg` node in both a cutout
+  // and a backdrop graph), so a binding's own operation is searched first.
+  const findNode = useCallback(
+    (nodeId: string, operationId?: string) => {
+      const scoped = operationId
+        ? operationRuntimesRef.current.get(operationId)
+        : undefined;
+      const entries = scoped
+        ? [scoped]
+        : operationRuntimesRef.current.values();
+      for (const entry of entries) {
         const node = entry.workflow?.graph?.nodes?.find((n) => n.id === nodeId);
-        if (!node) continue;
-        const data = (node.data ?? {}) as Record<string, unknown>;
-        if (data[property] !== undefined) return data[property];
-        const meta = useMetadataStore.getState().getMetadata(node.type);
-        return meta?.properties.find((p) => p.name === property)?.default;
+        if (node) return node;
       }
       return undefined;
     },
     []
   );
 
-  const getNodeType = useCallback((nodeId: string): string | undefined => {
-    for (const entry of operationRuntimesRef.current.values()) {
-      const node = entry.workflow?.graph?.nodes?.find((n) => n.id === nodeId);
-      if (node) return node.type;
-    }
-    return undefined;
-  }, []);
+  const getNodeProperty = useCallback(
+    (nodeId: string, property: string, operationId?: string): unknown => {
+      const node = findNode(nodeId, operationId);
+      if (!node) return undefined;
+      const data = (node.data ?? {}) as Record<string, unknown>;
+      if (data[property] !== undefined) return data[property];
+      const meta = useMetadataStore.getState().getMetadata(node.type);
+      return meta?.properties.find((p) => p.name === property)?.default;
+    },
+    [findNode]
+  );
+
+  const getNodeType = useCallback(
+    (nodeId: string, operationId?: string): string | undefined =>
+      findNode(nodeId, operationId)?.type,
+    [findNode]
+  );
 
   const selectResource = useCallback(
     (resourceBindingId: string, ref: ResourceRef | null) => {

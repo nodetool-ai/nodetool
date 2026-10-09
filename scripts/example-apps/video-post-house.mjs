@@ -18,6 +18,9 @@ export const VIDEO_POST_HOUSE_APP = {
     teaser: "Trim a Clip",
     cover: "Pull a Still from a Clip"
   },
+  // The template grades three frames as a quick demo. The app's "Grade the
+  // clip" means the whole clip.
+  propOverrides: { grade: { "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4": { end: -1 } } },
   variables: [
     { id: "sourceClip", name: "Source clip", scope: "instance", type: "video" }
   ],

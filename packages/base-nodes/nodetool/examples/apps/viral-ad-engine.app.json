@@ -132,7 +132,7 @@
                             "props": {
                               "id": "model-copy-ag-model",
                               "binding": "op:copy/prop:ag#model",
-                              "label": "2  Agent model",
+                              "label": "Agent model",
                               "modelKind": "language_model",
                               "events": []
                             }
@@ -330,7 +330,7 @@
                       "props": {
                         "id": "model-loop-animate-model",
                         "binding": "op:loop/prop:animate#model",
-                        "label": "3  Animate model",
+                        "label": "Animate model",
                         "modelKind": "video_model",
                         "events": []
                       }
@@ -584,6 +584,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Ad Copy in Three Registers\n\nWrites the same offer three ways: plain, playful and premium. Use it to settle a debate about tone by comparing finished copy side by side.\n\n**How it works:** \"1 Input\" holds the offer, a reusable water bottle that stays cold all day. \"2 Agent\" writes three labelled versions of about 40 words each. \"3 Output\" shows them as text.\n\n**Try this:** Pick a model on the Agent and replace the offer in \"1 Input\" with your own product, or add a fourth register such as urgent to the system prompt."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.StringInput",
             "data": {
@@ -594,7 +613,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 365
               },
               "zIndex": 0,
               "width": 300,
@@ -628,8 +647,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -647,8 +666,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,
@@ -824,17 +843,17 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for **each** hook, generates a matching thumbnail — color-graded for punch and collected into a gallery. A whole thumbnail pack from one run.\n\n**Why a graph, not a chat box:** the hook stream fans out. `List Generator` emits one hook at a time; each hook flows through its own prompt → image → color-grade branch, so N hooks become N finished thumbnails in parallel. A chat box can list hooks; it can't hand you the images.\n\n**Pipeline:** Topic + audience + count → hook brief → List Generator (streams hooks) → per-hook thumbnail prompt → Text-to-Image → color grade → collect gallery\n\n**Try this:** change the topic, audience, or number of hooks; tweak the thumbnail style in the prompt. Pick a text model on the List Generator and an image model on Text-to-Image first."
+              "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for each hook, a matching color-graded thumbnail, all from one run.\n\n**How it works:** \"Video topic\", \"Target audience\" and \"How many hooks\" (4 by default) fill \"Build hook brief\". \"Stream hooks\" is a List Generator that emits one hook at a time, and \"Hook ideas\" previews each one. For every hook, \"Build thumbnail prompt\" combines it with the topic, \"Generate thumbnail\" renders a 16:9 image with FLUX schnell, and \"Color grade for punch\" raises contrast to 1.18 and brightness by 0.03. \"Latest thumbnail\" previews each image and \"Collect gallery\" gathers them into \"Thumbnail gallery\". Pick a text model on \"Stream hooks\". Each thumbnail is one paid image.\n\n**Try this:** Set \"How many hooks\" to 2 for a cheaper test run, then raise \"contrast\" on \"Color grade for punch\" to 1.35 and compare how much the thumbnails pop."
             },
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": -560,
-                "y": 40
+                "x": 0,
+                "y": 0
               },
               "zIndex": 0,
-              "width": 500,
-              "height": 320,
+              "width": 560,
+              "height": 403,
               "selectable": true,
               "bypassed": false
             },
@@ -852,8 +871,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 40,
-                "y": 60
+                "x": 0,
+                "y": 655
               },
               "zIndex": 0,
               "width": 280,
@@ -875,8 +894,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 40,
-                "y": 300
+                "x": 0,
+                "y": 880
               },
               "zIndex": 0,
               "width": 280,
@@ -900,8 +919,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 40,
-                "y": 540
+                "x": 0,
+                "y": 1105
               },
               "zIndex": 0,
               "width": 280,
@@ -921,8 +940,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 420,
-                "y": 120
+                "x": 380,
+                "y": 753
               },
               "zIndex": 0,
               "width": 340,
@@ -955,8 +974,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 800,
-                "y": 120
+                "x": 820,
+                "y": 761
               },
               "zIndex": 0,
               "width": 360,
@@ -977,8 +996,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1200,
-                "y": 120
+                "x": 1280,
+                "y": 483
               },
               "zIndex": 0,
               "width": 340,
@@ -1012,8 +1031,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1580,
-                "y": 120
+                "x": 1740,
+                "y": 634
               },
               "zIndex": 0,
               "width": 320,
@@ -1035,8 +1054,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1940,
-                "y": 160
+                "x": 2160,
+                "y": 776
               },
               "zIndex": 0,
               "width": 280,
@@ -1056,8 +1075,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 2260,
-                "y": 160
+                "x": 2540,
+                "y": 1002
               },
               "zIndex": 0,
               "width": 280,
@@ -1077,8 +1096,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 2580,
-                "y": 160
+                "x": 3000,
+                "y": 964
               },
               "zIndex": 0,
               "width": 280,
@@ -1098,8 +1117,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 800,
-                "y": 600
+                "x": 1280,
+                "y": 1039
               },
               "zIndex": 0,
               "width": 360,
@@ -1120,8 +1139,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1940,
-                "y": 540
+                "x": 2540,
+                "y": 632
               },
               "zIndex": 0,
               "width": 360,
@@ -1149,12 +1168,7 @@
             "id": "comment-1",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "headline": "Ad Loop from a Product Photo",
-              "comment": [
-                "One product photo in, a looping hero shot out.\n\n",
-                "Kling 2.6 animates the still, then the speed pass halves playback so the loop reads as a slow, premium reveal.\n\n",
-                "The motion brief forbids redesigning the product — the model may move the camera and the light, nothing else."
-              ]
+              "comment": "# Ad Loop from a Product Photo\n\nOne product photo in, a looping hero shot out. Use it for a short, slow product reveal for an ad or a landing page.\n\n**How it works:** \"Motion brief\" puts the \"2 Motion\" text into a prompt that forbids redesigning the product, so the model may move only the camera and the light. \"3 Animate (Kie)\" sends \"1 Product photo\" and that brief to Kling 2.6 for a 5 second, 16:9, 1080p clip. \"4 Half speed\" sets the speed factor to 0.5 so the loop reads as a slow reveal, and \"5 Ad loop\" shows it. Add your own photo first. The video step needs a KIE_API_KEY and is billed per generation.\n\n**Try this:** Set \"speed_factor\" on \"4 Half speed\" to 1.0 and compare the pace of the loop at its original speed."
             },
             "ui_properties": {
               "position": {
@@ -1164,7 +1178,7 @@
               "zIndex": 0,
               "width": 560,
               "selectable": true,
-              "height": 170
+              "height": 341
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1174,13 +1188,16 @@
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "product_photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "A clean photo of the product"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 421
               },
               "zIndex": 0,
               "width": 280,
@@ -1201,7 +1218,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 637
               },
               "zIndex": 0,
               "width": 280,
@@ -1220,7 +1237,7 @@
             "ui_properties": {
               "position": {
                 "x": 380,
-                "y": 380
+                "y": 460
               },
               "zIndex": 0,
               "width": 320,
@@ -1250,8 +1267,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 760,
-                "y": 300
+                "x": 800,
+                "y": 490
               },
               "zIndex": 0,
               "width": 280,
@@ -1269,8 +1286,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1100,
-                "y": 340
+                "x": 1180,
+                "y": 522
               },
               "zIndex": 0,
               "width": 280,
@@ -1288,8 +1305,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1440,
-                "y": 360
+                "x": 1560,
+                "y": 511
               },
               "zIndex": 0,
               "width": 240,
@@ -1349,17 +1366,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Cut a Landscape Clip for Vertical\n\nResizes a landscape clip to a 1080 by 1920 vertical frame for channels that expect 9:16. It is the step between having footage and being able to post it.\n\n**How it works:** \"1 Clip\" takes the 16:9 video. \"2 To 9:16\" resizes it to a width of 1080 and a height of 1920. \"3 Vertical\" shows the vertical clip.\n\n**Try this:** Set width and height on \"2 To 9:16\" to 1080 by 1350 for a 4:5 feed post instead."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 247
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+              },
               "description": "The landscape clip"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 327
               },
               "zIndex": 0,
               "width": 300,
@@ -1378,8 +1417,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 351
               },
               "zIndex": 0,
               "width": 300,
@@ -1397,8 +1436,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 335
               },
               "zIndex": 0,
               "width": 300,

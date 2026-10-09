@@ -273,3 +273,13 @@ it("round-trips adding, editing and removing a particles component", () => {
   editedPlayer.particles.emitters[0].onDeath = [];
   roundTrip(withParticles, edited);
 });
+
+it("round-trips adding and removing cull layers, frame budgets and entity culling together", () => {
+  const before = createNative3DGame("diff3d-render-culling");
+  const after = structuredClone(before);
+  after.performance = { cullLayers: { props: { maxDistance: 40 } }, budgets: { drawCalls: 200, voices: 8 } };
+  const visual = after.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (!visual) { throw new Error("Fixture entity missing"); }
+  visual.renderCulling = { layer: "props" };
+  roundTrip(before, after);
+});

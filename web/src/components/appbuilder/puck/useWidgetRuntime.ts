@@ -97,7 +97,11 @@ export const useWidgetRuntime = ({
   // property value (saved data, else metadata default).
   const value =
     storedValue === undefined && boundRef?.kind === "nodeProperty"
-      ? getNodeProperty(boundRef.nodeId, boundRef.property)
+      ? getNodeProperty(
+          boundRef.nodeId,
+          boundRef.property,
+          boundRef.operationId || undefined
+        )
       : storedValue;
 
   // A widget reports on the operation its own events drive, so a button wired
