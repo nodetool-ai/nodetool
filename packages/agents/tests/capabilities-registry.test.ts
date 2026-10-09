@@ -125,6 +125,8 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   delete_storyboard: "write",
   delete_timeline: "write",
   delete_timeline_version: "write",
+  add_workflow_link: "write",
+  remove_workflow_link: "write",
   delete_workflow: "write",
   delete_workflow_version: "write",
   design_game: "write",

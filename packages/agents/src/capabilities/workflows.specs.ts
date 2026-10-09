@@ -280,6 +280,49 @@ export const updateWorkflowSpec: CapabilitySpec = {
   userMessage: (params) => `Updating workflow ${params["workflow_id"]}`
 };
 
+export const addWorkflowLinkSpec: CapabilitySpec = {
+  name: "add_workflow_link",
+  description:
+    "Draw a lineage link between two nodes of a workflow you own, for example " +
+    "'this clip comes from this shot'. A link carries no value and implies no " +
+    "execution order, so a run behaves the same with or without it. Links are " +
+    "listed in get_workflow under graph.links. Repeating the same source, " +
+    "target and kind returns the existing link.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      workflow_id: { type: "string", description: "The ID of the workflow." },
+      source: { type: "string", description: "Node id the link starts at." },
+      target: { type: "string", description: "Node id the link ends at." },
+      label: { type: "string", description: "Optional text shown on the link." },
+      kind: {
+        type: "string",
+        description: "Optional free-form category, such as 'reference'."
+      }
+    },
+    required: ["workflow_id", "source", "target"]
+  },
+  category: "write",
+  userMessage: (params) => `Linking ${params["source"]} to ${params["target"]}`
+};
+
+export const removeWorkflowLinkSpec: CapabilitySpec = {
+  name: "remove_workflow_link",
+  description:
+    "Remove one lineage link from a workflow you own, by the link id that " +
+    "add_workflow_link or get_workflow returned.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      workflow_id: { type: "string", description: "The ID of the workflow." },
+      link_id: { type: "string", description: "The ID of the link." }
+    },
+    required: ["workflow_id", "link_id"]
+  },
+  category: "write",
+  userMessage: (params) => `Removing link ${params["link_id"]}`
+};
+
 export const deleteWorkflowSpec: CapabilitySpec = {
   name: "delete_workflow",
   description:
@@ -954,6 +997,8 @@ export const workflowsSpecs: readonly CapabilitySpec[] = [
   getWorkflowSpec,
   createWorkflowSpec,
   updateWorkflowSpec,
+  addWorkflowLinkSpec,
+  removeWorkflowLinkSpec,
   deleteWorkflowSpec,
   listWorkflowVersionsSpec,
   getWorkflowVersionSpec,

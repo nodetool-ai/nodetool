@@ -6,7 +6,12 @@
  * Ported from Python: src/nodetool/types/api_graph.py
  */
 
-import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
+import type {
+  Edge,
+  GraphData,
+  GraphLink,
+  NodeDescriptor
+} from "@nodetool-ai/protocol";
 
 /** Simplified node for API serialisation (no runtime metadata). */
 export interface ApiNode {
@@ -36,6 +41,7 @@ export interface ApiEdge {
 export interface ApiGraph {
   nodes: ApiNode[];
   edges: ApiEdge[];
+  links?: GraphLink[];
 }
 
 /**
@@ -75,7 +81,8 @@ export function toApiEdge(edge: Edge): ApiEdge {
 export function toApiGraph(graph: GraphData): ApiGraph {
   return {
     nodes: graph.nodes.map(toApiNode),
-    edges: graph.edges.map(toApiEdge)
+    edges: graph.edges.map(toApiEdge),
+    ...(graph.links?.length ? { links: graph.links } : {})
   };
 }
 
@@ -108,5 +115,5 @@ export function removeConnectedSlots(graph: ApiGraph): ApiGraph {
     return { ...node, data };
   });
 
-  return { nodes, edges: graph.edges };
+  return { ...graph, nodes };
 }

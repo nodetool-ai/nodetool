@@ -21,6 +21,7 @@
  * `nodetool.workflows`".
  */
 
+import { randomUUID } from "node:crypto";
 import type { GraphValidationReport } from "@nodetool-ai/node-sdk";
 import type { Workflow as WorkflowRow } from "@nodetool-ai/models";
 import {
@@ -41,6 +42,10 @@ import {
   workflowRecord
 } from "../tools/mcp-tool-support.js";
 import {
+  addGraphLink,
+  pruneGraphLinks,
+  removeGraphLink,
+  type GraphLink,
   PLAN_CORE_NODE_TYPES,
   checkWorkflowPlan,
   planNodeShape,
@@ -93,6 +98,8 @@ import {
   getWorkflowSpec,
   createWorkflowSpec,
   updateWorkflowSpec,
+  addWorkflowLinkSpec,
+  removeWorkflowLinkSpec,
   deleteWorkflowSpec,
   listWorkflowVersionsSpec,
   getWorkflowVersionSpec,
@@ -292,7 +299,7 @@ const updateWorkflow: CapabilityExport = {
       const authored = run.nodeRegistry
         ? declareDynamicOutputsInGraph(params["graph"], run.nodeRegistry)
         : params["graph"];
-      const graph = normalizeWorkflowGraph(authored);
+      const graph = withLinksKept(normalizeWorkflowGraph(authored), existing);
       const badModels = await modelSelectionError(
         graph,
         run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
@@ -334,6 +341,107 @@ const updateWorkflow: CapabilityExport = {
       };
     }
     return { ...workflowRecord(updated as WorkflowRow), ...unselected };
+  }
+};
+
+function nodeIdsOf(graph: unknown): Set<string> {
+  const nodes = isObjectLike(graph)
+    ? (graph as { nodes?: unknown }).nodes
+    : undefined;
+  const ids = new Set<string>();
+  if (Array.isArray(nodes)) {
+    for (const node of nodes) {
+      const id = isObjectLike(node) ? (node as { id?: unknown }).id : undefined;
+      if (isString(id)) ids.add(id);
+    }
+  }
+  return ids;
+}
+
+function linksOf(graph: unknown): GraphLink[] {
+  const links = isObjectLike(graph)
+    ? (graph as { links?: unknown }).links
+    : undefined;
+  return Array.isArray(links) ? (links as GraphLink[]) : [];
+}
+
+/**
+ * A replacement graph that names no `links` keeps the stored ones, so an agent
+ * that rewrites nodes and edges does not silently erase lineage. Links to
+ * nodes the new graph no longer has are dropped either way.
+ */
+function withLinksKept(graph: unknown, existing: WorkflowRow): unknown {
+  if (!isObjectLike(graph)) return graph;
+  const record = graph as Record<string, unknown>;
+  const links = pruneGraphLinks(
+    nodeIdsOf(record),
+    "links" in record ? linksOf(record) : linksOf(existing.graph)
+  );
+  const { links: _dropped, ...rest } = record;
+  return links.length > 0 ? { ...rest, links } : rest;
+}
+
+const addWorkflowLink: CapabilityExport = {
+  spec: addWorkflowLinkSpec,
+  impl: async (run, params) => {
+    const { Workflow } = await import("@nodetool-ai/models");
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+    const graph = existing.graph as unknown as Record<string, unknown>;
+    const added = addGraphLink(
+      nodeIdsOf(graph),
+      linksOf(graph),
+      {
+        source: String(params["source"]),
+        target: String(params["target"]),
+        label: isString(params["label"]) ? params["label"] : null,
+        kind: isString(params["kind"]) ? params["kind"] : null
+      },
+      () => randomUUID().replace(/-/g, "")
+    );
+    if (!added.ok) return { error: added.error };
+    const updated = await Workflow.updateFieldsIfUnchanged(
+      id,
+      existing.updated_at,
+      { graph: { ...graph, links: added.value.links } } as Parameters<
+        typeof Workflow.updateFieldsIfUnchanged
+      >[2]
+    );
+    if (!updated) {
+      return {
+        error: `Workflow ${id} changed since you read it — read it again and retry.`
+      };
+    }
+    return { workflow_id: id, link: added.value.link };
+  }
+};
+
+const removeWorkflowLink: CapabilityExport = {
+  spec: removeWorkflowLinkSpec,
+  impl: async (run, params) => {
+    const { Workflow } = await import("@nodetool-ai/models");
+    const id = String(params["workflow_id"]);
+    const existing = await findOwnedWorkflow(run, id);
+    if (!existing) return notYours(id);
+    const graph = existing.graph as unknown as Record<string, unknown>;
+    const linkId = String(params["link_id"]);
+    const removed = removeGraphLink(linksOf(graph), linkId);
+    if (!removed.ok) return { error: removed.error };
+    const { links: _old, ...rest } = graph;
+    const updated = await Workflow.updateFieldsIfUnchanged(
+      id,
+      existing.updated_at,
+      {
+        graph: removed.value.length > 0 ? { ...rest, links: removed.value } : rest
+      } as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2]
+    );
+    if (!updated) {
+      return {
+        error: `Workflow ${id} changed since you read it — read it again and retry.`
+      };
+    }
+    return { workflow_id: id, link_id: linkId, removed: true };
   }
 };
 
@@ -1907,6 +2015,8 @@ export const WORKFLOW_CAPABILITIES: readonly CapabilityExport[] = [
   getWorkflow,
   createWorkflow,
   updateWorkflow,
+  addWorkflowLink,
+  removeWorkflowLink,
   deleteWorkflow,
   listWorkflowVersions,
   getWorkflowVersion,
@@ -1941,6 +2051,8 @@ export {
   getWorkflow,
   createWorkflow,
   updateWorkflow,
+  addWorkflowLink,
+  removeWorkflowLink,
   deleteWorkflow,
   listWorkflowVersions,
   getWorkflowVersion,
