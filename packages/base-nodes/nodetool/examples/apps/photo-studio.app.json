@@ -261,7 +261,7 @@
                               "id": "slider-batch-color-boost",
                               "binding": "op:batch/in:12",
                               "label": "Color boost",
-                              "min": 0,
+                              "min": 0.5,
                               "max": 2,
                               "step": 0.05,
                               "events": []
@@ -385,7 +385,7 @@
     {
       "key": "enhance",
       "name": "Image Enhance",
-      "description": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
+      "description": "A live photo editor: four GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
       "sourceId": "nodetool-base/Image Enhance",
       "graph": {
         "edges": [
@@ -445,17 +445,17 @@
             "id": "97876",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# ✨ Image Enhance — a live photo editor\n\nFive GPU filters in a row: **Denoise → Brightness/Contrast → Saturation → Sharpen**. Each filter exposes plain numeric properties (amount, radius, contrast…), so the mini app binds one slider to each and the preview re-renders as you drag.\n\n**Why it's a graph, not a prompt:** the whole chain runs on the GPU in the browser. No LLM, no API key, no per-run cost — which is what makes real-time slider feedback possible. Reorder the filters, add a Vignette or Hue shift, and the app picks up the new controls automatically.\n\n**Defaults** give a gentle all-round lift; push Sharpen and Contrast for punch, or raise Denoise to clean up a noisy phone shot before sharpening."
+              "comment": "# ✨ Image Enhance\n\nA live photo editor. Each filter exposes numeric properties that a mini app binds to sliders, and the preview updates as you drag.\n\n**How it works:** \"Source photo\" ships with a photo of a coffee mug. \"Denoise (radius)\" is a Gaussian blur set to radius 0, so it is off by default. \"Brightness & contrast\" applies brightness 0.05 and contrast 1.15. \"Saturation & hue\" raises saturation to 1.2. \"Sharpen (amount)\" is an unsharp mask with amount 1 and threshold 0.02. \"Enhanced image\" shows the result. The chain runs on the GPU in the browser with no model, API key or per-run cost.\n\n**Try this:** Set \"radius\" on \"Denoise (radius)\" to 2 and \"amount\" on \"Sharpen (amount)\" to 2. Noise in flat areas softens while edges stay crisp."
             },
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 11,
-                "y": -300
+                "x": 0,
+                "y": 0
               },
               "zIndex": 0,
               "width": 900,
-              "height": 250,
+              "height": 266,
               "selectable": true,
               "bypassed": false
             },
@@ -468,8 +468,7 @@
             "data": {
               "value": {
                 "type": "image",
-                "asset_id": "31cadd9e065711f1818000006beef284",
-                "uri": "/api/storage/31cadd9e065711f1818000006beef284.png"
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
               },
               "name": "image",
               "description": "The photo to enhance. Ships with a demo image so Run works immediately — drop in your own JPEG or PNG to edit it."
@@ -477,8 +476,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1,
-                "y": 71
+                "x": 0,
+                "y": 399
               },
               "zIndex": 0,
               "width": 260,
@@ -499,8 +498,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 300,
-                "y": 90
+                "x": 360,
+                "y": 360
               },
               "zIndex": 0,
               "width": 240,
@@ -521,8 +520,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 580,
-                "y": 90
+                "x": 700,
+                "y": 360
               },
               "zIndex": 0,
               "width": 240,
@@ -544,8 +543,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 860,
-                "y": 90
+                "x": 1040,
+                "y": 346
               },
               "zIndex": 0,
               "width": 240,
@@ -566,8 +565,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1140,
-                "y": 90
+                "x": 1380,
+                "y": 360
               },
               "zIndex": 0,
               "width": 240,
@@ -586,8 +585,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1420,
-                "y": 100
+                "x": 1720,
+                "y": 411
               },
               "selectable": true,
               "title": "Enhanced image"
@@ -609,17 +608,17 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhance a list of photos through a fixed retouch chain: auto-contrast, color, brightness, sharpening, and an AI polish pass.\n\n**Pipeline:** Photo list → Auto-contrast → Color/Brightness → Sharpen → AI enhance → Collect\n\n**Try this:** add a few photos and adjust the brightness and color factors to taste."
+              "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhances a list of photos through a fixed retouch chain with an AI polish at the end. Drop images into the input, with no folder path required.\n\n**How it works:** \"1️⃣ Iterate photos\" sends each image from \"Photos to enhance\" down the chain. \"2️⃣ Auto-contrast\" clips 2% at each end. \"3️⃣ Brightness/Contrast\" raises contrast by a factor of 1.1. \"4️⃣ Adjust color\" multiplies brightness by \"Brightness factor\" (1.05) and saturation by \"Color factor\" (1.2). \"5️⃣ Sharpen\" and \"6️⃣ Sharpen detail\" apply two unsharp-mask passes at amounts 1 and 1.2. \"7️⃣ AI enhance\" runs FLUX Schnell image-to-image at strength 0.3 with a cinematic-grade prompt. \"8️⃣ Collect enhanced batch\" gathers the results into one list. Every step runs locally except \"7️⃣ AI enhance\", which needs a FAL key.\n\n**Try this:** Raise \"Color factor\" to 1.6 and compare the saturation of the output with the original."
             },
             "ui_properties": {
               "selected": false,
               "position": {
                 "x": 0,
-                "y": -220
+                "y": 0
               },
               "zIndex": 0,
-              "width": 460,
-              "height": 180,
+              "width": 560,
+              "height": 382,
               "selectable": true,
               "bypassed": false
             },
@@ -634,7 +633,11 @@
               "input_item": []
             },
             "ui_properties": {
-              "title": "8️⃣ Collect enhanced batch"
+              "title": "8️⃣ Collect enhanced batch",
+              "position": {
+                "x": 3144,
+                "y": 818
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -647,8 +650,8 @@
               "model": {
                 "type": "image_model",
                 "provider": "fal_ai",
-                "id": "fal-ai/flux/schnell",
-                "name": "FLUX.1 Schnell",
+                "id": "fal-ai/nano-banana/edit",
+                "name": "Nano Banana Edit",
                 "path": null,
                 "supported_tasks": []
               },
@@ -669,7 +672,11 @@
             "ui_properties": {
               "width": 384,
               "height": 400,
-              "title": "7️⃣ AI enhance"
+              "title": "7️⃣ AI enhance",
+              "position": {
+                "x": 2660,
+                "y": 654
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -690,7 +697,11 @@
               "threshold": 0.0117647
             },
             "ui_properties": {
-              "title": "6️⃣ Sharpen detail"
+              "title": "6️⃣ Sharpen detail",
+              "position": {
+                "x": 2280,
+                "y": 751
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -710,7 +721,11 @@
               "amount": 1
             },
             "ui_properties": {
-              "title": "5️⃣ Sharpen"
+              "title": "5️⃣ Sharpen",
+              "position": {
+                "x": 1900,
+                "y": 750
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -732,7 +747,11 @@
               "brightness": 1
             },
             "ui_properties": {
-              "title": "4️⃣ Adjust color"
+              "title": "4️⃣ Adjust color",
+              "position": {
+                "x": 1520,
+                "y": 735
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -750,10 +769,14 @@
                 "metadata": null
               },
               "brightness": 0,
-              "contrast": 1
+              "contrast": 1.1
             },
             "ui_properties": {
-              "title": "3️⃣ Brightness/Contrast"
+              "title": "3️⃣ Brightness/Contrast",
+              "position": {
+                "x": 1140,
+                "y": 667
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -773,7 +796,11 @@
               "cutoff": 2
             },
             "ui_properties": {
-              "title": "2️⃣ Auto-contrast"
+              "title": "2️⃣ Auto-contrast",
+              "position": {
+                "x": 760,
+                "y": 607
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -787,7 +814,11 @@
               "limit": -1
             },
             "ui_properties": {
-              "title": "1️⃣ Iterate photos"
+              "title": "1️⃣ Iterate photos",
+              "position": {
+                "x": 380,
+                "y": 560
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -798,11 +829,20 @@
             "type": "nodetool.input.ImageListInput",
             "data": {
               "name": "photos",
-              "value": [],
+              "value": [
+                {
+                  "type": "image",
+                  "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+                }
+              ],
               "description": "Photos to enhance. Add one or more images directly — no folder path or upload step required."
             },
             "ui_properties": {
-              "title": "Photos to enhance"
+              "title": "Photos to enhance",
+              "position": {
+                "x": 0,
+                "y": 462
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -819,7 +859,11 @@
               "max": 1.5
             },
             "ui_properties": {
-              "title": "Brightness factor"
+              "title": "Brightness factor",
+              "position": {
+                "x": 0,
+                "y": 714
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -836,7 +880,11 @@
               "max": 2
             },
             "ui_properties": {
-              "title": "Color factor"
+              "title": "Color factor",
+              "position": {
+                "x": 0,
+                "y": 898
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -849,8 +897,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 320,
-                "y": 0
+                "x": 3524,
+                "y": 802
               },
               "selectable": true
             }
@@ -885,8 +933,8 @@
             "id": "4",
             "source": "11",
             "sourceHandle": "output",
-            "target": "7",
-            "targetHandle": "contrast",
+            "target": "6",
+            "targetHandle": "brightness",
             "ui_properties": null
           },
           {

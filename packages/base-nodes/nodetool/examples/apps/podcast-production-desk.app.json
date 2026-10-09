@@ -592,17 +592,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Clean Up a Rough Voice Recording\n\nRepairs a voice recording made in an ordinary room. Every step is local signal processing with no model.\n\n**How it works:** \"1 Recording\" takes the audio. \"2 Gate\" silences noise below -48 dB, \"3 Cut rumble\" removes everything under 90 Hz, \"4 Even it out\" compresses at a 3:1 ratio, and \"5 Limit\" caps peaks at -1 dB. \"6 Cleaned\" plays the result.\n\n**Try this:** If quiet words get cut off, lower threshold_db on \"2 Gate\" to -55."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 247
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.AudioInput",
             "data": {
               "name": "audio",
-              "value": null,
+              "value": {
+                "type": "audio",
+                "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+              },
               "description": "The rough recording"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 362
               },
               "zIndex": 0,
               "width": 300,
@@ -622,8 +644,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 383
               },
               "zIndex": 0,
               "width": 300,
@@ -641,8 +663,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 383
               },
               "zIndex": 0,
               "width": 300,
@@ -664,8 +686,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
-                "y": 120
+                "x": 1200,
+                "y": 327
               },
               "zIndex": 0,
               "width": 300,
@@ -685,8 +707,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 0,
-                "y": 330
+                "x": 1600,
+                "y": 369
               },
               "zIndex": 0,
               "width": 300,
@@ -704,8 +726,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 330
+                "x": 2000,
+                "y": 421
               },
               "zIndex": 0,
               "width": 300,
@@ -765,17 +787,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Master a Voice Track\n\nApplies a standard finishing chain to a recorded voice so it sounds even and never clips. The order matters, because limiting first would leave the compressor nothing to do.\n\n**How it works:** The \"Audio\" input goes to \"Compress\", which evens out peaks above -18 dB at a 3:1 ratio. \"Lift 3 dB\" raises the level, and \"Limit\" caps it at -1 dB. \"Result\" plays the mastered track. It runs locally with no model or key.\n\n**Try this:** Raise the ratio on \"Compress\" to 6 for a denser, broadcast-style sound."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.AudioInput",
             "data": {
               "name": "audio",
-              "value": null,
+              "value": {
+                "type": "audio",
+                "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+              },
               "description": "The recorded voice"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 381
               },
               "zIndex": 0,
               "width": 280,
@@ -797,8 +841,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 320,
-                "y": 120
+                "x": 380,
+                "y": 346
               },
               "zIndex": 0,
               "width": 280,
@@ -816,8 +860,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 640,
-                "y": 120
+                "x": 760,
+                "y": 402
               },
               "zIndex": 0,
               "width": 280,
@@ -837,8 +881,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 960,
-                "y": 120
+                "x": 1140,
+                "y": 388
               },
               "zIndex": 0,
               "width": 280,
@@ -856,8 +900,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 0,
-                "y": 340
+                "x": 1520,
+                "y": 440
               },
               "zIndex": 0,
               "width": 280,
@@ -1135,16 +1179,16 @@
             "id": "comment",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. The episode is transcribed once; four writer branches fan out from the transcript.\n\n**Pipeline:** Episode audio → Transcript → Show notes · Newsletter · Posts · Quotes → Quote cards\n\n**Try this:** pick the ASR, language, and image models, then tune each writer's prompt to your show's voice."
+              "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images.\n\n**How it works:** \"4️⃣ Transcribe the episode\" runs Whisper once on \"1️⃣ Episode audio\". The transcript and \"2️⃣ Show context\" fill four prompt nodes, one per writer branch. \"5️⃣ Write show notes & titles\" and \"6️⃣ Draft the newsletter\" are Agents that write Markdown. \"7️⃣ Generate social posts\" splits five posts into separate items. \"8️⃣ Pull the best quotes\" pulls as many verbatim quotes as \"3️⃣ Quote-card count\" (4). Each quote fills \"Build quote-card prompt\", and \"9️⃣ Render quote cards\" draws it as a 1:1 card with FLUX Schnell. Four Preview nodes show the results. Pick a language model on the two Agents and the two list generators.\n\n**Try this:** Rewrite \"2️⃣ Show context\" for your own show and set \"3️⃣ Quote-card count\" to 6 to get six cards in your voice."
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": -260
+                "x": 0,
+                "y": 0
               },
               "zIndex": 0,
-              "width": 480,
-              "height": 220,
+              "width": 560,
+              "height": 382,
               "selectable": true,
               "bypassed": false
             },
@@ -1158,14 +1202,14 @@
               "name": "episode_audio",
               "value": {
                 "type": "audio",
-                "uri": "https://app.nodetool.ai/examples/remove_silence.mp3"
+                "uri": "package://nodetool-base/recipe-inputs/meeting.wav"
               },
               "description": "The full episode recording (any common audio format)"
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 80
+                "x": 0,
+                "y": 1165
               },
               "zIndex": 0,
               "width": 280,
@@ -1186,8 +1230,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 330
+                "x": 0,
+                "y": 1520
               },
               "zIndex": 0,
               "width": 280,
@@ -1210,8 +1254,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 580
+                "x": 0,
+                "y": 1952
               },
               "zIndex": 0,
               "width": 280,
@@ -1236,8 +1280,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 410,
-                "y": 100
+                "x": 380,
+                "y": 1277
               },
               "zIndex": 0,
               "width": 300,
@@ -1257,8 +1301,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 790,
-                "y": -240
+                "x": 780,
+                "y": 581
               },
               "zIndex": 0,
               "width": 320,
@@ -1298,8 +1342,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1150,
-                "y": -220
+                "x": 1200,
+                "y": 485
               },
               "zIndex": 0,
               "width": 330,
@@ -1319,8 +1363,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1530,
-                "y": -200
+                "x": 1630,
+                "y": 462
               },
               "zIndex": 0,
               "width": 320,
@@ -1340,8 +1384,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 790,
-                "y": 180
+                "x": 780,
+                "y": 1037
               },
               "zIndex": 0,
               "width": 320,
@@ -1381,8 +1425,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1150,
-                "y": 200
+                "x": 1200,
+                "y": 941
               },
               "zIndex": 0,
               "width": 330,
@@ -1402,8 +1446,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1530,
-                "y": 220
+                "x": 1630,
+                "y": 918
               },
               "zIndex": 0,
               "width": 320,
@@ -1423,8 +1467,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 790,
-                "y": 600
+                "x": 780,
+                "y": 1493
               },
               "zIndex": 0,
               "width": 320,
@@ -1456,8 +1500,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1150,
-                "y": 640
+                "x": 1200,
+                "y": 1429
               },
               "zIndex": 0,
               "width": 330,
@@ -1477,8 +1521,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1530,
-                "y": 660
+                "x": 1630,
+                "y": 1384
               },
               "zIndex": 0,
               "width": 300,
@@ -1498,8 +1542,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 790,
-                "y": 1010
+                "x": 780,
+                "y": 1929
               },
               "zIndex": 0,
               "width": 320,
@@ -1531,8 +1575,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1150,
-                "y": 1050
+                "x": 1200,
+                "y": 1839
               },
               "zIndex": 0,
               "width": 330,
@@ -1552,8 +1596,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1530,
-                "y": 1080
+                "x": 1630,
+                "y": 1694
               },
               "zIndex": 0,
               "width": 340,
@@ -1586,8 +1630,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1910,
-                "y": 1100
+                "x": 2070,
+                "y": 1714
               },
               "zIndex": 0,
               "width": 320,
@@ -1607,8 +1651,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2270,
-                "y": 1090
+                "x": 2490,
+                "y": 1722
               },
               "zIndex": 0,
               "width": 360,

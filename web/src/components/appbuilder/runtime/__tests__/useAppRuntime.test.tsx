@@ -669,6 +669,37 @@ describe("useAppRuntime — multiple operations", () => {
     ).toEqual(["main", "publish"]);
   });
 
+  it("reads a node property from the binding's own operation when node ids repeat", async () => {
+    const sharedNode = (model: string) => ({
+      nodes: [
+        { id: "bg", type: "nodetool.image.RemoveBackground", data: { model } }
+      ],
+      edges: []
+    });
+    fetchWorkflow.mockImplementation(async (id: string) =>
+      id === "wf-b"
+        ? { ...workflowB, graph: sharedNode("backdrop-model") }
+        : { ...workflowA, graph: sharedNode("cutout-model") }
+    );
+    const { result } = renderRuntime(
+      { ...workflowA, graph: sharedNode("cutout-model") },
+      twoOperations
+    );
+    await waitFor(() =>
+      expect(
+        result.current.scope.operations.find((o) => o.operationId === "publish")
+          ?.nodeIds
+      ).toHaveLength(1)
+    );
+
+    expect(result.current.getNodeProperty("bg", "model", "publish")).toBe(
+      "backdrop-model"
+    );
+    expect(result.current.getNodeProperty("bg", "model", "main")).toBe(
+      "cutout-model"
+    );
+  });
+
   it("refuses a run naming an operation the app does not have", async () => {
     const { result } = renderRuntime(workflowA, twoOperations);
     await act(async () => {

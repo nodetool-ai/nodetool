@@ -196,13 +196,16 @@
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "picture",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The image to edit"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 366
               },
               "zIndex": 0,
               "width": 280,
@@ -223,7 +226,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 340
+                "y": 582
               },
               "zIndex": 0,
               "width": 280,
@@ -244,7 +247,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 500
+                "y": 807
               },
               "zIndex": 0,
               "width": 280,
@@ -262,8 +265,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1160,
-                "y": 260
+                "x": 1180,
+                "y": 508
               },
               "zIndex": 0,
               "width": 240,

@@ -2963,15 +2963,15 @@
             "id": "intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# Render a Directed Campaign Hero\n\nChoose A, B, or C from the captured plan. The product image is always first and the optional role-labelled reference is second. The image edit creates no campaign text; the finalizer waits for the image before advancing."
+              "comment": "# Render a Directed Campaign Hero\n\nRenders one 16:9 campaign hero from a direction you pick out of a captured plan. Use it after Propose Three Campaign Directions, once you know which of A, B or C you want.\n\n**How it works:** \"Captured plan\" and \"Direction choice\" feed \"Select and capture direction\", a Code node that checks the plan is schema version 1 with three directions and finds the chosen one. It builds the edit prompt, lists the product image first and the optional role-labelled reference second, and writes a hero contract. \"Render selected hero\" edits those images with Nano Banana Edit on fal at strength 0.65 and 1K, with a negative prompt that blocks text and logo changes. \"Finalize candidate\" waits for the image, checks it and the contract, then emits \"Candidate hero\", \"Creative contract\" and \"Ready phase\". The render step needs a fal key.\n\n**Try this:** Change \"Direction choice\" from \"A\" to \"B\" and run again to see the same product placed in the second direction's setting and lighting."
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": -220
+                "y": 0
               },
-              "width": 520,
-              "height": 170,
+              "width": 560,
+              "height": 423,
               "selectable": true
             },
             "dynamic_properties": {}
@@ -2988,7 +2988,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 578
               },
               "width": 280,
               "title": "Captured plan"
@@ -3007,7 +3007,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 300
+                "y": 803
               },
               "width": 280,
               "title": "Direction choice"
@@ -3023,8 +3023,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 360,
-                "y": 180
+                "x": 380,
+                "y": 585
               },
               "width": 440,
               "title": "Select and capture direction"
@@ -3093,8 +3093,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 880,
-                "y": 180
+                "x": 920,
+                "y": 690
               },
               "width": 320,
               "title": "Render selected hero"
@@ -3111,8 +3111,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1260,
-                "y": 180
+                "x": 1340,
+                "y": 557
               },
               "width": 380,
               "title": "Finalize candidate"
@@ -3163,8 +3163,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 100
+                "x": 1820,
+                "y": 503
               },
               "width": 250,
               "title": "Candidate hero"
@@ -3180,8 +3180,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 240
+                "x": 1820,
+                "y": 703
               },
               "width": 250,
               "title": "Creative contract"
@@ -3197,8 +3197,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 380
+                "x": 1820,
+                "y": 903
               },
               "width": 250,
               "title": "Ready phase"
@@ -3287,15 +3287,15 @@
             "id": "intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# Compose Directed Campaign Formats\n\nBuild 4:5 and 9:16 artboards from the same complete accepted hero. Both PNGs and self-contained SVGs share the exact text element tree. The final step waits for every artifact, preserves the original record when adding a revision, and exports directed-campaign.json."
+              "comment": "# Compose Directed Campaign Formats\n\nBuilds 4:5 (1080x1350) and 9:16 (1080x1920) artboards from one accepted hero image, as PNGs and self-contained SVGs, and exports a portable campaign record. Use it as the final layout step of a directed campaign.\n\n**How it works:** \"Normalize app image\" checks \"Accepted hero\". \"Validate copy and build elements\" parses the JSON in \"Creative contract\", checks \"Version\" (original or revision), wraps the product name, headline and CTA to fit, and builds one SVG element tree per format. \"4:5 editable SVG\", \"4:5 PNG\", \"9:16 editable SVG\" and \"9:16 PNG\" render those trees. \"Wait, snapshot, and export\" waits for all four, checks the PNG sizes, keeps \"Original record file\" unchanged when adding a revision, and writes directed-campaign.json. Its outputs feed the eight result nodes. It runs locally with no model, but needs a hero image and a valid contract.\n\n**Try this:** Run once with a hero and contract, then lengthen the headline in \"Creative contract\" and see the layout step stop with a message to shorten the copy."
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": -240
+                "y": 0
               },
               "width": 560,
-              "height": 190,
+              "height": 403,
               "selectable": true
             },
             "dynamic_properties": {}
@@ -3314,7 +3314,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 80
+                "y": 899
               },
               "width": 280,
               "title": "Accepted hero"
@@ -3334,7 +3334,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 1115
               },
               "width": 280,
               "title": "Creative contract"
@@ -3353,7 +3353,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 1340
               },
               "width": 280,
               "title": "Version"
@@ -3375,7 +3375,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 560
+                "y": 1565
               },
               "width": 280,
               "title": "Original record file"
@@ -3391,8 +3391,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 360,
-                "y": 260
+                "x": 800,
+                "y": 1111
               },
               "width": 500,
               "title": "Validate copy and build elements"
@@ -3459,8 +3459,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 940,
-                "y": 80
+                "x": 1400,
+                "y": 1394
               },
               "width": 280,
               "title": "4:5 editable SVG"
@@ -3480,8 +3480,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 940,
-                "y": 240
+                "x": 1400,
+                "y": 942
               },
               "width": 280,
               "title": "4:5 PNG"
@@ -3500,8 +3500,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 940,
-                "y": 440
+                "x": 1400,
+                "y": 1562
               },
               "width": 280,
               "title": "9:16 editable SVG"
@@ -3521,8 +3521,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 940,
-                "y": 600
+                "x": 1400,
+                "y": 1168
               },
               "width": 280,
               "title": "9:16 PNG"
@@ -3538,8 +3538,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1300,
-                "y": 300
+                "x": 1780,
+                "y": 1036
               },
               "width": 520,
               "title": "Wait, snapshot, and export"
@@ -3665,8 +3665,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 0
+                "x": 2400,
+                "y": 483
               },
               "width": 240,
               "title": "Accepted hero"
@@ -3682,8 +3682,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 120
+                "x": 2400,
+                "y": 883
               },
               "width": 240,
               "title": "4:5 PNG"
@@ -3699,8 +3699,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 240
+                "x": 2400,
+                "y": 1283
               },
               "width": 240,
               "title": "9:16 PNG"
@@ -3716,8 +3716,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 360
+                "x": 2400,
+                "y": 1683
               },
               "width": 240,
               "title": "4:5 SVG"
@@ -3733,8 +3733,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 480
+                "x": 2400,
+                "y": 2083
               },
               "width": 240,
               "title": "9:16 SVG"
@@ -3750,8 +3750,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2200,
-                "y": 0
+                "x": 2400,
+                "y": 683
               },
               "width": 240,
               "title": "Accepted contract"
@@ -3767,8 +3767,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2200,
-                "y": 120
+                "x": 2400,
+                "y": 1083
               },
               "width": 240,
               "title": "Campaign snapshot"
@@ -3784,8 +3784,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2200,
-                "y": 240
+                "x": 2400,
+                "y": 1483
               },
               "width": 240,
               "title": "Campaign record file"
@@ -3801,8 +3801,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 340,
-                "y": 80
+                "x": 380,
+                "y": 1038
               },
               "width": 320,
               "title": "Normalize app image"
@@ -3834,8 +3834,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2200,
-                "y": 360
+                "x": 2400,
+                "y": 1883
               },
               "width": 240,
               "title": "Accepted phase"
@@ -4036,15 +4036,15 @@
             "id": "intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# Revise an Accepted Campaign Hero\n\nThe accepted hero is the only editing source. Capture Change, Preserve, and Allow to respond in a child contract, make one image edit, and wait for its result before opening revision review."
+              "comment": "# Revise an Accepted Campaign Hero\n\nMakes one bounded edit to an accepted campaign hero and records exactly what changed. Use it when a hero is approved but needs a single adjustment, such as a new time of day.\n\n**How it works:** \"Accepted hero\" passes through \"Normalize app image\", which turns an app value into an image reference. \"Capture revision request\" reads that image, the \"Accepted contract\", and the \"Change\", \"Preserve\" and \"Allow to respond\" texts, checks their length limits, and writes a prompt plus a child contract that keeps the parent. \"Make one revision\" edits the hero with Nano Banana Edit on fal at strength 0.45 and 16:9, with a negative prompt against added text or a changed product. \"Finalize revision candidate\" waits for the image, then emits \"Revision candidate\", \"Revision contract\" and \"Review phase\". The edit step needs a fal key.\n\n**Try this:** Set \"Change\" to \"Add light rain on the stone surface\" and keep \"Preserve\" as it is. The candidate should change the weather and leave the cup and composition alone."
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": -220
+                "y": 0
               },
-              "width": 520,
-              "height": 165,
+              "width": 560,
+              "height": 423,
               "selectable": true
             },
             "dynamic_properties": {}
@@ -4063,7 +4063,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 80
+                "y": 503
               },
               "width": 280,
               "title": "Accepted hero"
@@ -4083,7 +4083,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 230
+                "y": 759
               },
               "width": 280,
               "title": "Accepted contract"
@@ -4104,7 +4104,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 380
+                "y": 984
               },
               "width": 280,
               "title": "Change"
@@ -4125,7 +4125,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 530
+                "y": 1209
               },
               "width": 280,
               "title": "Preserve"
@@ -4146,7 +4146,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 680
+                "y": 1434
               },
               "width": 280,
               "title": "Allow to respond"
@@ -4162,8 +4162,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 340,
-                "y": 80
+                "x": 380,
+                "y": 675
               },
               "width": 320,
               "title": "Normalize app image"
@@ -4195,8 +4195,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 360,
-                "y": 300
+                "x": 800,
+                "y": 887
               },
               "width": 440,
               "title": "Capture revision request"
@@ -4286,8 +4286,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 880,
-                "y": 300
+                "x": 1340,
+                "y": 1025
               },
               "width": 320,
               "title": "Make one revision"
@@ -4304,8 +4304,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1260,
-                "y": 300
+                "x": 1760,
+                "y": 889
               },
               "width": 380,
               "title": "Finalize revision candidate"
@@ -4356,8 +4356,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 220
+                "x": 2240,
+                "y": 834
               },
               "width": 250,
               "title": "Revision candidate"
@@ -4373,8 +4373,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 360
+                "x": 2240,
+                "y": 1034
               },
               "width": 250,
               "title": "Revision contract"
@@ -4390,8 +4390,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 500
+                "x": 2240,
+                "y": 1234
               },
               "width": 250,
               "title": "Review phase"
@@ -4508,15 +4508,15 @@
             "id": "intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# Reopen a Directed Campaign\n\nRead directed-campaign.json, validate its version, copy, direction, MIME-labelled base64 payloads, dimensions, and revision ancestry, then recreate typed media references. Validation finishes before any output is written. No provider runs."
+              "comment": "# Reopen a Directed Campaign\n\nRestores a saved campaign from its portable directed-campaign.json record, with the accepted original and the optional revision. Use it to pick up a campaign later or on another machine. No model or provider runs.\n\n**How it works:** \"Campaign record\" feeds every Code node. \"Validate complete campaign record\" checks the size limit of 16 MiB, the JSON MIME type, schema version 1, the brief, copy, selected direction and contracts. Ten \"Validate ...\" nodes then check each embedded image or SVG payload in turn, passing a gate string along the chain. Only after the last check do ten \"Restore ...\" nodes turn the base64 payloads back into the hero, 4:5, 9:16 and SVG outputs for the original and the revision. \"Finish restored campaign\" writes the contracts, \"Original record\" and \"Restored phase\", and its ready flag lets \"Release validated record\" pass the file to the \"Campaign record\" output.\n\n**Try this:** Open a copy of the record, change \"schemaVersion\" to 2 and run it. \"Validate complete campaign record\" stops the run before any output is written."
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": -220
+                "y": 0
               },
               "width": 560,
-              "height": 180,
+              "height": 423,
               "selectable": true
             },
             "dynamic_properties": {}
@@ -4535,7 +4535,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 200
+                "y": 990
               },
               "width": 300,
               "title": "Campaign record"
@@ -4551,8 +4551,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 340,
-                "y": 100
+                "x": 400,
+                "y": 934
               },
               "width": 500,
               "title": "Validate complete campaign record"
@@ -4587,8 +4587,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 880,
-                "y": -400
+                "x": 1000,
+                "y": 938
               },
               "width": 420,
               "title": "Validate original source"
@@ -4629,8 +4629,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1340,
-                "y": -400
+                "x": 1520,
+                "y": 945
               },
               "width": 420,
               "title": "Validate original portrait"
@@ -4671,8 +4671,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 880,
-                "y": -240
+                "x": 2040,
+                "y": 945
               },
               "width": 420,
               "title": "Validate original story"
@@ -4713,8 +4713,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1340,
-                "y": -240
+                "x": 2560,
+                "y": 945
               },
               "width": 420,
               "title": "Validate original portraitSvg"
@@ -4755,8 +4755,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 880,
-                "y": -80
+                "x": 3080,
+                "y": 945
               },
               "width": 420,
               "title": "Validate original storySvg"
@@ -4797,8 +4797,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1340,
-                "y": -80
+                "x": 3600,
+                "y": 945
               },
               "width": 420,
               "title": "Validate revision source"
@@ -4839,8 +4839,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 880,
-                "y": 80
+                "x": 4120,
+                "y": 945
               },
               "width": 420,
               "title": "Validate revision portrait"
@@ -4881,8 +4881,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1340,
-                "y": 80
+                "x": 4640,
+                "y": 944
               },
               "width": 420,
               "title": "Validate revision story"
@@ -4923,8 +4923,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 880,
-                "y": 240
+                "x": 5160,
+                "y": 943
               },
               "width": 420,
               "title": "Validate revision portraitSvg"
@@ -4965,8 +4965,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1340,
-                "y": 240
+                "x": 5680,
+                "y": 940
               },
               "width": 420,
               "title": "Validate revision storySvg"
@@ -5007,8 +5007,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 920,
-                "y": 40
+                "x": 6200,
+                "y": 931
               },
               "width": 420,
               "title": "Restore original hero"
@@ -5054,8 +5054,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1390,
-                "y": 40
+                "x": 6720,
+                "y": 760
               },
               "width": 420,
               "title": "Restore original 4:5"
@@ -5101,8 +5101,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 920,
-                "y": 220
+                "x": 7240,
+                "y": 643
               },
               "width": 420,
               "title": "Restore original 9:16"
@@ -5148,8 +5148,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1390,
-                "y": 220
+                "x": 7760,
+                "y": 924
               },
               "width": 420,
               "title": "Restore original 4:5 SVG"
@@ -5195,8 +5195,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 920,
-                "y": 400
+                "x": 8280,
+                "y": 751
               },
               "width": 420,
               "title": "Restore original 9:16 SVG"
@@ -5242,8 +5242,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1390,
-                "y": 400
+                "x": 8800,
+                "y": 627
               },
               "width": 420,
               "title": "Restore revision hero"
@@ -5289,8 +5289,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 920,
-                "y": 580
+                "x": 9320,
+                "y": 901
               },
               "width": 420,
               "title": "Restore revision 4:5"
@@ -5336,8 +5336,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1390,
-                "y": 580
+                "x": 9840,
+                "y": 734
               },
               "width": 420,
               "title": "Restore revision 9:16"
@@ -5383,8 +5383,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 920,
-                "y": 760
+                "x": 10360,
+                "y": 613
               },
               "width": 420,
               "title": "Restore revision 4:5 SVG"
@@ -5430,8 +5430,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1390,
-                "y": 760
+                "x": 10880,
+                "y": 887
               },
               "width": 420,
               "title": "Restore revision 9:16 SVG"
@@ -5477,8 +5477,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1420,
-                "y": 980
+                "x": 11400,
+                "y": 715
               },
               "width": 420,
               "title": "Finish restored campaign"
@@ -5540,8 +5540,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 900
+                "x": 11920,
+                "y": 1303
               },
               "width": 280,
               "title": "Release validated record"
@@ -5557,8 +5557,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 0
+                "x": 6720,
+                "y": 1197
               },
               "width": 240,
               "title": "Accepted hero"
@@ -5574,8 +5574,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 120
+                "x": 11920,
+                "y": 503
               },
               "width": 240,
               "title": "Accepted contract"
@@ -5591,8 +5591,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 240
+                "x": 7240,
+                "y": 1080
               },
               "width": 240,
               "title": "Original 4:5"
@@ -5608,8 +5608,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 360
+                "x": 7760,
+                "y": 724
               },
               "width": 240,
               "title": "Original 9:16"
@@ -5625,8 +5625,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 480
+                "x": 8280,
+                "y": 1188
               },
               "width": 240,
               "title": "Original 4:5 SVG"
@@ -5642,8 +5642,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 600
+                "x": 8800,
+                "y": 1064
               },
               "width": 240,
               "title": "Original 9:16 SVG"
@@ -5659,8 +5659,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 720
+                "x": 11920,
+                "y": 903
               },
               "width": 240,
               "title": "Original record"
@@ -5676,8 +5676,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 0
+                "x": 9320,
+                "y": 701
               },
               "width": 240,
               "title": "Revised hero"
@@ -5693,8 +5693,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 120
+                "x": 11920,
+                "y": 703
               },
               "width": 240,
               "title": "Revised contract"
@@ -5710,8 +5710,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 240
+                "x": 9840,
+                "y": 1171
               },
               "width": 240,
               "title": "Revised 4:5"
@@ -5727,8 +5727,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 360
+                "x": 10360,
+                "y": 1050
               },
               "width": 240,
               "title": "Revised 9:16"
@@ -5744,8 +5744,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 480
+                "x": 10880,
+                "y": 687
               },
               "width": 240,
               "title": "Revised 4:5 SVG"
@@ -5761,8 +5761,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 600
+                "x": 11400,
+                "y": 1152
               },
               "width": 240,
               "title": "Revised 9:16 SVG"
@@ -5778,8 +5778,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 720
+                "x": 12300,
+                "y": 1320
               },
               "width": 240,
               "title": "Campaign record"
@@ -5795,8 +5795,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 840
+                "x": 11920,
+                "y": 1103
               },
               "width": 240,
               "title": "Restored phase"

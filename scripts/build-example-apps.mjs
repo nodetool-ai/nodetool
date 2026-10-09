@@ -173,6 +173,8 @@ function idFactory() {
 const modelLabel = (node, operationName) => {
   const title = String(node.data?.title ?? node.ui_properties?.title ?? "")
     .replace(/^[^\p{L}\p{N}]*\p{N}?\uFE0F?\u20E3\s*/u, "")
+    // A plain step number ("2  Agent"), not a keycap.
+    .replace(/^\p{N}+[.)]?\s+/u, "")
     .replace(/^[^\p{L}\p{N}]+/u, "")
     .replace(/\s+[—(].*$/u, "")
     .trim();
@@ -1114,6 +1116,24 @@ function buildBundle(app, templates) {
         );
       }
       node.data.model = model;
+    }
+    for (const [nodeId, props] of Object.entries(
+      app.propOverrides?.[key] ?? {}
+    )) {
+      const node = graph.nodes.find((candidate) => candidate.id === nodeId);
+      if (!node) {
+        fail(
+          `${app.name}: prop override names unknown node "${nodeId}" in ${template.name}`
+        );
+      }
+      for (const prop of Object.keys(props)) {
+        if (!(prop in (node.data ?? {}))) {
+          fail(
+            `${app.name}: prop override sets "${prop}", which node "${nodeId}" in ${template.name} does not have`
+          );
+        }
+      }
+      Object.assign(node.data, props);
     }
     return {
       key,

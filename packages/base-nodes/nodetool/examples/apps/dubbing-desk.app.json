@@ -926,17 +926,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Transcribe a Clip\n\nPulls the spoken words out of a video as text. Use it to get a transcript for captions, notes or search.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Extract audio\" pulls the soundtrack locally, \"3 Transcribe\" runs speech recognition in English, and \"4 Transcript\" returns the text. fal and Replicate list speech-to-text models but cannot run them here, so pick one from OpenAI, Gemini, HuggingFace, MiniMax or Together.\n\n**Try this:** Change language on \"3 Transcribe\" to match a clip in another language."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+              },
               "description": "The clip to transcribe"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 351
               },
               "zIndex": 0,
               "width": 280,
@@ -952,8 +974,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 340,
-                "y": 180
+                "x": 380,
+                "y": 375
               },
               "zIndex": 0,
               "width": 280,
@@ -980,8 +1002,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 680,
-                "y": 180
+                "x": 760,
+                "y": 346
               },
               "zIndex": 0,
               "width": 280,
@@ -999,8 +1021,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1040,
-                "y": 200
+                "x": 1140,
+                "y": 359
               },
               "zIndex": 0,
               "width": 240,
@@ -1046,6 +1068,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Translate a Script for Dubbing\n\nTranslates a spoken script into the language you name, keeping each sentence close to the original length. The new voice track then fits the same footage.\n\n**How it works:** \"1 Script\" and \"2 Language\" fill the template in \"3 Prompt\". \"4 Agent\" writes the translation with the model chosen in \"Language model\", following a system prompt for natural, length-matched speech. \"5 Output\" returns only the translated script.\n\n**Try this:** Set \"2 Language\" to Japanese or German and compare sentence lengths against \"1 Script\"."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 286
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in-script",
             "type": "nodetool.input.StringInput",
             "data": {
@@ -1056,7 +1097,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 366
               },
               "zIndex": 0,
               "width": 300,
@@ -1077,7 +1118,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 300
+                "y": 591
               },
               "zIndex": 0,
               "width": 300,
@@ -1095,8 +1136,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 549
               },
               "zIndex": 0,
               "width": 300,
@@ -1123,8 +1164,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 300
+                "x": 0,
+                "y": 816
               },
               "zIndex": 0,
               "width": 280,
@@ -1158,8 +1199,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 651
               },
               "zIndex": 0,
               "width": 300,
@@ -1177,8 +1218,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
-                "y": 120
+                "x": 1200,
+                "y": 682
               },
               "zIndex": 0,
               "width": 300,
@@ -1238,6 +1279,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Narrate a Script\n\nTurns written copy into a voice track. Pair it with Score a Silent Clip to build a narrated cut from text alone. Text-to-speech providers usually bill per character.\n\n**How it works:** Type your words into \"Script\". \"Speak\" reads them aloud at the chosen speed, and \"Voice track\" plays the audio.\n\n**Try this:** Pick a model and voice on \"Speak\", then set speed to 0.9 for a calmer read."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 227
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.StringInput",
             "data": {
@@ -1248,7 +1308,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 320
               },
               "zIndex": 0,
               "width": 280,
@@ -1274,8 +1334,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 400,
-                "y": 180
+                "x": 380,
+                "y": 307
               },
               "zIndex": 0,
               "width": 280,
@@ -1294,7 +1354,7 @@
             "ui_properties": {
               "position": {
                 "x": 760,
-                "y": 200
+                "y": 333
               },
               "zIndex": 0,
               "width": 240,
@@ -1333,6 +1393,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Subtitle Lines from a Script\n\nBreaks a finished script into numbered subtitle captions of at most two lines each. Use it when you have the script text and need captions ready to time.\n\n**How it works:** \"Script\" holds the text, a short coffee ad by default. \"Language model\" chooses the model. \"Agent\" splits the text into lines of at most 42 characters at natural phrase breaks, and \"Output\" returns the captions.\n\n**Try this:** Change the 42-character limit in the system prompt on \"Agent\" to 32 for vertical video, where lines need to be shorter."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.StringInput",
             "data": {
@@ -1343,7 +1422,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -1371,7 +1450,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 300
+                "y": 571
               },
               "zIndex": 0,
               "width": 280,
@@ -1405,8 +1484,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 430
               },
               "zIndex": 0,
               "width": 300,
@@ -1424,8 +1503,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 462
               },
               "zIndex": 0,
               "width": 300,
@@ -1474,8 +1553,7 @@
             "id": "comment-1",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "headline": "Lip-sync a Clip to a Voice Track",
-              "comment": "Sync your presenter clip to a voice track you already have. The audio is levelled and its edges are softened first. Lip-sync is billed per second of footage."
+              "comment": "# Lip-sync a Clip to a Voice Track\n\nSyncs your presenter clip to a voice track you already have. Use it to re-voice footage without reshooting.\n\n**How it works:** \"Voice track\" passes through \"Even out volume\" (Normalize), then \"Soften the start\" with a 0.01 second fade-in and \"Soften the ending\" with a 0.03 second fade-out. \"Lip-sync to the voice track\" matches the mouth movement in \"Presenter clip\" to that audio with fal sync-lipsync v2 pro, and \"Re-voiced clip\" shows the result. The audio steps run locally. Lip-sync is a paid step billed per second of footage.\n\n**Try this:** Set \"duration\" on \"Soften the ending\" to 0.3. The voice fades out more gently at the end of the clip."
             },
             "ui_properties": {
               "position": {
@@ -1485,7 +1563,7 @@
               "zIndex": 0,
               "width": 560,
               "selectable": true,
-              "height": 170
+              "height": 341
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1504,7 +1582,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 421
               },
               "zIndex": 0,
               "width": 280,
@@ -1528,7 +1606,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 787
               },
               "zIndex": 0,
               "width": 280,
@@ -1545,7 +1623,7 @@
             "ui_properties": {
               "position": {
                 "x": 380,
-                "y": 380
+                "y": 802
               },
               "width": 300,
               "title": "Even out volume"
@@ -1561,8 +1639,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 710,
-                "y": 380
+                "x": 780,
+                "y": 726
               },
               "width": 300,
               "title": "Soften the start"
@@ -1578,8 +1656,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1040,
-                "y": 380
+                "x": 1180,
+                "y": 659
               },
               "width": 300,
               "title": "Soften the ending"
@@ -1602,8 +1680,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1420,
-                "y": 300
+                "x": 1580,
+                "y": 569
               },
               "zIndex": 0,
               "width": 280,
@@ -1621,8 +1699,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1780,
-                "y": 320
+                "x": 1960,
+                "y": 588
               },
               "zIndex": 0,
               "width": 240,

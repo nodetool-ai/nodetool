@@ -842,12 +842,7 @@
             "id": "comment-1",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "headline": "Video Restyle Studio",
-              "comment": [
-                "Restyle a clip without re-shooting or re-animating it.\n\n",
-                "Motion, timing and framing come from the source video. Only the look changes.\n\n",
-                "Strength is the dial to turn: 0.3-0.5 keeps faces and text legible, 0.7+ commits to the style and will drift."
-              ]
+              "comment": "# Video Restyle Studio\n\nRestyles a clip without re-shooting or re-animating it. Motion, timing and framing come from the source video, and only the look changes.\n\n**How it works:** \"Target style\" and \"Preserve\" fill the \"Restyle brief\" prompt, which asks for a uniform look and no change to camera or subject motion. \"Restyle\" applies the brief to \"Source clip\" with Lucy Edit 2 on Replicate at strength 0.45, with a negative prompt against flicker, warping and unreadable text. \"Restyled clip\" shows the result. Strength is the dial to turn: 0.3 to 0.5 keeps faces and text legible, and 0.7 or higher commits to the style and will drift. The restyle step needs a Replicate key, and you supply your own clip.\n\n**Try this:** Raise \"strength\" on \"Restyle\" from 0.45 to 0.75 and compare how far faces and text drift from the source."
             },
             "ui_properties": {
               "position": {
@@ -857,7 +852,7 @@
               "zIndex": 0,
               "width": 560,
               "selectable": true,
-              "height": 170
+              "height": 362
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -867,13 +862,16 @@
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "source_video",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+              },
               "description": "The clip to restyle"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 442
               },
               "zIndex": 0,
               "width": 280,
@@ -894,7 +892,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 658
               },
               "zIndex": 0,
               "width": 280,
@@ -915,7 +913,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 560
+                "y": 883
               },
               "zIndex": 0,
               "width": 280,
@@ -934,7 +932,7 @@
             "ui_properties": {
               "position": {
                 "x": 380,
-                "y": 420
+                "y": 588
               },
               "zIndex": 0,
               "width": 320,
@@ -961,8 +959,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 780,
-                "y": 320
+                "x": 800,
+                "y": 570
               },
               "zIndex": 0,
               "width": 280,
@@ -980,8 +978,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1140,
-                "y": 340
+                "x": 1180,
+                "y": 584
               },
               "zIndex": 0,
               "width": 240,
@@ -1044,8 +1042,7 @@
             "id": "comment-1",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "headline": "AI Spokesperson",
-              "comment": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip."
+              "comment": "# AI Spokesperson\n\nRe-voices a presenter clip with a new script and lip-syncs the face to the new words. Use it to update a spoken line without reshooting.\n\n**How it works:** \"3 Voice the script\" reads \"2 New script\" aloud at speed 1.0 with Inworld Realtime TTS on Replicate. \"Even out volume\" normalizes the speech, then \"Soften the start\" (0.01 s fade in) and \"Soften the ending\" (0.03 s fade out) remove clicks at the edges. \"4 Lip-sync to the new audio\" matches \"1 Presenter clip\" to that track with Sync Lipsync v2 Pro on fal, and \"5 Re-voiced clip\" shows the result. Both model steps need provider keys and are billed per run.\n\n**Try this:** Change \"2 New script\" to a longer line, for example add a second sentence, and watch the re-voiced clip's mouth movements follow the new words."
             },
             "ui_properties": {
               "position": {
@@ -1055,7 +1052,7 @@
               "zIndex": 0,
               "width": 560,
               "selectable": true,
-              "height": 170
+              "height": 341
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1074,7 +1071,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 421
               },
               "zIndex": 0,
               "width": 280,
@@ -1095,7 +1092,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 787
               },
               "zIndex": 0,
               "width": 280,
@@ -1122,7 +1119,7 @@
             "ui_properties": {
               "position": {
                 "x": 380,
-                "y": 380
+                "y": 716
               },
               "zIndex": 0,
               "width": 280,
@@ -1147,8 +1144,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1750,
-                "y": 300
+                "x": 1960,
+                "y": 548
               },
               "zIndex": 0,
               "width": 280,
@@ -1166,8 +1163,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2110,
-                "y": 320
+                "x": 2340,
+                "y": 564
               },
               "zIndex": 0,
               "width": 240,
@@ -1183,8 +1180,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 710,
-                "y": 380
+                "x": 760,
+                "y": 704
               },
               "width": 300,
               "title": "Even out volume"
@@ -1200,8 +1197,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1040,
-                "y": 380
+                "x": 1160,
+                "y": 661
               },
               "width": 300,
               "title": "Soften the start"
@@ -1217,8 +1214,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1370,
-                "y": 380
+                "x": 1560,
+                "y": 626
               },
               "width": 300,
               "title": "Soften the ending"
@@ -1290,6 +1287,26 @@
       "graph": {
         "nodes": [
           {
+            "id": "60677785-41d5-4795-bdba-15003d0dec86",
+            "parent_id": null,
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# 🎨 Color Boost Video\n\nGrades a clip frame by frame, then reassembles it. Use it to see how per-frame image adjustments apply to video, with one input driving the saturation strength.\n\n**How it works:** \"2 Split into frames\" extracts frames 0 to 2 of \"1 Source video\" (three frames) and reports the frame rate. Each frame goes through \"3 Exposure & contrast\" (exposure 0.2, contrast 0.1, highlights -0.1, shadows 0.1) and \"4 Saturation & vibrance\" (vibrance 0.4). \"Grading intensity\" (0.5) sets that node's saturation, where 0 means no change and -1 drains most of the color. \"5 Reassemble video\" rebuilds the clip at the source frame rate for \"6 Graded output\". It runs locally with no model or key.\n\n**Try this:** Set \"end\" on \"2 Split into frames\" to -1 to grade the whole clip, then set \"Grading intensity\" to -1 to see the color drain out."
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "height": 362,
+              "selectable": true
+            },
+            "dynamic_properties": {}
+          },
+          {
             "id": "7074f109-83b1-4864-8e37-17a89fcbf46d",
             "parent_id": null,
             "type": "nodetool.input.VideoInput",
@@ -1298,15 +1315,14 @@
               "description": "The clip to color-grade. Defaults to a short demo clip so Run works immediately.",
               "value": {
                 "type": "video",
-                "asset_id": "727208e4dbe811ef97c1000071d82eaa",
-                "uri": "http://127.0.0.1:8000/api/storage/727208e4dbe811ef97c1000071d82eaa.mp4"
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
               }
             },
             "ui_properties": {
               "title": "1️⃣ Source video",
               "position": {
-                "x": 50,
-                "y": 50
+                "x": 0,
+                "y": 442
               },
               "zIndex": 0,
               "width": 280,
@@ -1320,7 +1336,7 @@
             "type": "nodetool.input.FloatInput",
             "data": {
               "name": "grading_intensity",
-              "description": "How strong the saturation pass is. 0 = grayscale, 0.5 = the default boost, 1 = maximum, fully saturated look.",
+              "description": "How strong the saturation pass is. 0 leaves saturation unchanged, 0.5 is the default boost, 1 is the strongest, and -1 drains most of the color.",
               "value": 0.5,
               "min": -1,
               "max": 1
@@ -1328,8 +1344,8 @@
             "ui_properties": {
               "title": "Grading intensity",
               "position": {
-                "x": 680,
-                "y": 320
+                "x": 0,
+                "y": 808
               },
               "zIndex": 0,
               "width": 280,
@@ -1343,13 +1359,13 @@
             "type": "nodetool.video.ForEachFrame",
             "data": {
               "start": 0,
-              "end": 2
+              "end": -1
             },
             "ui_properties": {
               "title": "2️⃣ Split into frames",
               "position": {
-                "x": 360,
-                "y": 54
+                "x": 380,
+                "y": 603
               },
               "zIndex": 0,
               "width": 280,
@@ -1370,8 +1386,8 @@
             "ui_properties": {
               "title": "3️⃣ Exposure & contrast",
               "position": {
-                "x": 680,
-                "y": 60
+                "x": 760,
+                "y": 557
               },
               "zIndex": 0,
               "width": 280,
@@ -1389,8 +1405,8 @@
             "ui_properties": {
               "title": "4️⃣ Saturation & vibrance",
               "position": {
-                "x": 1000,
-                "y": 140
+                "x": 1140,
+                "y": 658
               },
               "zIndex": 0,
               "width": 280,
@@ -1406,33 +1422,13 @@
             "ui_properties": {
               "title": "5️⃣ Reassemble video",
               "position": {
-                "x": 1320,
-                "y": 112
+                "x": 1520,
+                "y": 533
               },
               "zIndex": 0,
               "width": 416,
               "selectable": true,
               "height": 360
-            },
-            "dynamic_properties": {}
-          },
-          {
-            "id": "60677785-41d5-4795-bdba-15003d0dec86",
-            "parent_id": null,
-            "type": "nodetool.workflows.base_node.Comment",
-            "data": {
-              "comment": "# 🎨 Color Boost Video\n\nGrade a clip frame-by-frame, then reassemble it. Each frame gets an exposure and saturation pass; the Grading Intensity input feeds the saturation strength so it can be bound to a slider in the app view.\n\n**Pipeline:** Video → Split frames → Exposure → Saturation (driven by Grading intensity) → Reassemble\n\n**Try this:** drag Grading intensity, tweak the exposure settings, or set a start/end frame range."
-            },
-            "ui_properties": {
-              "selected": false,
-              "position": {
-                "x": 48,
-                "y": -209
-              },
-              "zIndex": 0,
-              "width": 520,
-              "height": 220,
-              "selectable": true
             },
             "dynamic_properties": {}
           },
@@ -1446,8 +1442,8 @@
             "ui_properties": {
               "title": "6️⃣ Graded output",
               "position": {
-                "x": 1640,
-                "y": 112
+                "x": 2036,
+                "y": 662
               },
               "zIndex": 0,
               "width": 280,
@@ -1530,17 +1526,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Trim a Clip\n\nCuts a video down to an in point and an out point. It runs locally through ffmpeg, so there is no API key and no per-run cost.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Trim\" keeps the part from 1.0 to 5.0 seconds, with accurate turned on so the cut lands on the exact frame instead of the nearest keyframe. \"3 Result\" returns the shorter clip.\n\n**Try this:** Turn off accurate on \"2 Trim\" for a faster cut that snaps to keyframes."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 247
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+              },
               "description": "The clip to process"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 327
               },
               "zIndex": 0,
               "width": 280,
@@ -1560,8 +1578,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 360,
-                "y": 180
+                "x": 380,
+                "y": 351
               },
               "zIndex": 0,
               "width": 280,
@@ -1579,8 +1597,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 720,
-                "y": 200
+                "x": 760,
+                "y": 335
               },
               "zIndex": 0,
               "width": 240,
@@ -1619,17 +1637,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Pull a Still from a Clip\n\nGrabs one frame from a video at a chosen time. Use it to get a thumbnail or a reference still from existing footage.\n\n**How it works:** The \"Clip\" input goes to \"Grab a frame\", which extracts the frame at 2 seconds. \"Still\" shows the image. It runs locally through ffmpeg with no model or key.\n\n**Try this:** Set time on \"Grab a frame\" to the moment you want, such as 12.5 for a frame twelve and a half seconds in."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+              },
               "description": "The clip to sample"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 476
               },
               "zIndex": 0,
               "width": 280,
@@ -1647,8 +1687,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 360,
-                "y": 180
+                "x": 380,
+                "y": 346
               },
               "zIndex": 0,
               "width": 280,
@@ -1666,8 +1706,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 720,
-                "y": 200
+                "x": 760,
+                "y": 484
               },
               "zIndex": 0,
               "width": 240,

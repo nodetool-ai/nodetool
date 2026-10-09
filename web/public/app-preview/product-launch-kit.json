@@ -119,7 +119,7 @@
                         "id": "in-mockups-num-scenes",
                         "binding": "op:mockups/in:13",
                         "label": "How many scenes?",
-                        "min": 1,
+                        "min": 2,
                         "max": 6,
                         "events": []
                       }
@@ -224,16 +224,18 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-mockups-scene",
-                        "text": "Shot list",
+                        "text": "Scenes before the product goes in",
                         "level": "3"
                       }
                     },
                     {
-                      "type": "Markdown",
+                      "type": "Image",
                       "props": {
                         "id": "out-mockups-scene",
                         "binding": "op:mockups/out:output-scene",
-                        "text": ""
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
                       }
                     }
                   ]
@@ -532,17 +534,14 @@
               "name": "product_image",
               "value": {
                 "type": "image",
-                "uri": "",
-                "asset_id": null,
-                "data": null,
-                "metadata": null
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
               },
               "description": "The product image to place in scenes"
             },
             "ui_properties": {
               "position": {
-                "x": 1340,
-                "y": 509
+                "x": 0,
+                "y": 503
               },
               "zIndex": 0,
               "width": 280,
@@ -564,7 +563,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 130
+                "y": 868
               },
               "zIndex": 0,
               "width": 280,
@@ -586,7 +585,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 827
+                "y": 1093
               },
               "zIndex": 0,
               "width": 280,
@@ -608,7 +607,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 583
+                "y": 1318
               },
               "zIndex": 0,
               "width": 280,
@@ -632,7 +631,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 367
+                "y": 1543
               },
               "zIndex": 0,
               "width": 280,
@@ -651,8 +650,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2620,
-                "y": 479
+                "x": 3144,
+                "y": 847
               },
               "selectable": true
             }
@@ -665,8 +664,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2000,
-                "y": 0
+                "x": 2384,
+                "y": 1304
               },
               "selectable": true
             }
@@ -690,8 +689,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": -197
+                "x": 0,
+                "y": 442
               },
               "zIndex": 0,
               "width": 280,
@@ -712,8 +711,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 83
+                "x": 0,
+                "y": 667
               },
               "zIndex": 0,
               "width": 280,
@@ -734,8 +733,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 363
+                "x": 0,
+                "y": 892
               },
               "zIndex": 0,
               "width": 280,
@@ -752,15 +751,15 @@
             "data": {
               "name": "image_input_1",
               "value": {
-                "uri": "/api/storage/4a816f674eda4358b8140c50917ae78e.bin",
-                "type": "image"
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
               },
               "description": "Product photo to animate into the launch video"
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 643
+                "x": 0,
+                "y": 1117
               },
               "zIndex": 0,
               "width": 280,
@@ -779,8 +778,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1763,
-                "y": 357
+                "x": 2362,
+                "y": 984
               },
               "selectable": true
             }

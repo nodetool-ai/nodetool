@@ -1145,16 +1145,16 @@
             "id": "comment_main",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Script to Screen\n\nThe full production spine in one graph:\n\n**1. Direction** — a Director agent turns your brief into a direction document: characters with fixed descriptors, a style bible, a numbered shot list, narration, and music direction.\n**2. Storyboard** — a style frame anchors every keyframe (image-to-image), so characters and grade stay consistent. Keyframes cost cents; check them before the video spend.\n**3. Shoot** — each keyframe is animated with its shot's motion direction.\n**4. Post** — clips are cut together, then narration and music are mixed in.\n\n**Cost control:** bypass the Animate node (right-click → Bypass) to iterate on direction and storyboard cheaply. Re-enable it when the stills look right."
+              "comment": "# 🎬 Script to Screen\n\nTurns a short brief into a narrated, scored short film, with a storyboard you can check before spending on video.\n\n**How it works:** \"Brief\", \"Visual style\" and \"Shot count\" (5) fill \"Build director brief\", and the Director agent writes the direction document. \"Extract production data\" pulls out narration, a music prompt and a style frame prompt for \"Master style frame\" (FLUX schnell). \"Build shot-list prompt\" drives \"Stream the shots\", which emits one line per shot. Each shot becomes a keyframe in \"Storyboard keyframes (anchored to style frame)\", a Nano Banana edit of the style frame at strength 0.82, collected into the storyboard output. \"Animate each shot (the expensive step)\" makes 4 s Veo 3.1 clips at 720p, joined by \"Cut the shots together\". \"Narration\" (OpenAI tts-1) and \"Score\" (MusicGen, 30 s) are mixed in at volumes 1 and 0.3. Pick language models on the Director agent, \"Extract production data\" and \"Stream the shots\". Media steps need fal, Gemini, OpenAI and Replicate keys.\n\n**Try this:** Bypass \"Animate each shot (the expensive step)\" (right-click, Bypass), set \"Shot count\" to 3, and run to review a cheap three-frame storyboard before any video spend."
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": -260
+                "x": 0,
+                "y": 0
               },
               "zIndex": 0,
-              "width": 520,
-              "height": 260,
+              "width": 560,
+              "height": 464,
               "selectable": true,
               "bypassed": false
             },
@@ -1170,8 +1170,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": 60
+                "x": 0,
+                "y": 1365
               },
               "zIndex": 0,
               "width": 280,
@@ -1191,8 +1191,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": 320
+                "x": 0,
+                "y": 1140
               },
               "zIndex": 0,
               "width": 280,
@@ -1212,8 +1212,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": 580
+                "x": 0,
+                "y": 1590
               },
               "zIndex": 0,
               "width": 280,
@@ -1232,8 +1232,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 400,
-                "y": 60
+                "x": 380,
+                "y": 1173
               },
               "zIndex": 0,
               "width": 320,
@@ -1266,8 +1266,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 770,
-                "y": 100
+                "x": 800,
+                "y": 1197
               },
               "zIndex": 0,
               "width": 330,
@@ -1287,8 +1287,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1160,
-                "y": -60
+                "x": 1230,
+                "y": 1310
               },
               "title": "📋 Direction document",
               "selectable": true
@@ -1315,8 +1315,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1160,
-                "y": 140
+                "x": 1230,
+                "y": 914
               },
               "zIndex": 0,
               "width": 300,
@@ -1362,8 +1362,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1540,
-                "y": 480
+                "x": 1650,
+                "y": 544
               },
               "zIndex": 0,
               "width": 300,
@@ -1383,8 +1383,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1160,
-                "y": 520
+                "x": 1230,
+                "y": 1510
               },
               "zIndex": 0,
               "width": 320,
@@ -1415,8 +1415,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1540,
-                "y": 100
+                "x": 1650,
+                "y": 1612
               },
               "zIndex": 0,
               "width": 300,
@@ -1436,8 +1436,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 100
+                "x": 2050,
+                "y": 1085
               },
               "zIndex": 0,
               "width": 320,
@@ -1471,8 +1471,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2280,
-                "y": 300
+                "x": 2470,
+                "y": 919
               },
               "zIndex": 0,
               "width": 320,
@@ -1491,8 +1491,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 2660,
-                "y": 80
+                "x": 2890,
+                "y": 1034
               },
               "zIndex": 0,
               "width": 160,
@@ -1511,8 +1511,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2880,
-                "y": 80
+                "x": 3320,
+                "y": 1012
               },
               "title": "🖼️ Storyboard — approve before video spend",
               "selectable": true
@@ -1528,8 +1528,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2280,
-                "y": 700
+                "x": 2050,
+                "y": 1511
               },
               "zIndex": 0,
               "width": 320,
@@ -1563,8 +1563,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2660,
-                "y": 420
+                "x": 2890,
+                "y": 1236
               },
               "zIndex": 0,
               "width": 330,
@@ -1582,8 +1582,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 3050,
-                "y": 460
+                "x": 3320,
+                "y": 1314
               },
               "zIndex": 0,
               "width": 160,
@@ -1600,8 +1600,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 3270,
-                "y": 420
+                "x": 3700,
+                "y": 1223
               },
               "zIndex": 0,
               "width": 300,
@@ -1639,8 +1639,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 3270,
-                "y": 720
+                "x": 1650,
+                "y": 1296
               },
               "zIndex": 0,
               "width": 300,
@@ -1668,8 +1668,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 3650,
-                "y": 900
+                "x": 1650,
+                "y": 960
               },
               "zIndex": 0,
               "width": 300,
@@ -1690,8 +1690,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 3650,
-                "y": 480
+                "x": 4100,
+                "y": 1204
               },
               "zIndex": 0,
               "width": 280,
@@ -1712,8 +1712,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 4000,
-                "y": 540
+                "x": 4480,
+                "y": 1082
               },
               "zIndex": 0,
               "width": 280,
@@ -1733,8 +1733,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 4350,
-                "y": 560
+                "x": 4860,
+                "y": 1135
               },
               "title": "🎬 Final film",
               "selectable": true
@@ -1859,16 +1859,16 @@
             "id": "comment_main",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Directed Film to Timeline\n\nA brief becomes an editable rough cut in one graph:\n\n**1. Direct** — the Director agent turns your brief into a typed screenplay (shots with action, camera, and a shared style bible).\n**2. Fan out** — Screenplay Shots streams one composed prompt per shot.\n**3. Storyboard** — each prompt renders a keyframe still.\n**4. Shoot** — each keyframe is animated into a clip.\n**5. Assemble** — clips are collected, appended to a timeline sequence, and rendered to a single video.\n\nThe rendered timeline is a real editable sequence — reopen it in the timeline editor to trim, reorder, or add audio."
+              "comment": "# 🎬 Directed Film to Timeline\n\nTurns a one-line brief into an editable rough cut. Use it to see a whole short film take shape before you refine individual shots.\n\n**How it works:** \"Brief\" feeds the \"Director\", which writes a screenplay of 5 shots in a 16:9 style bible. \"Fan out one prompt per shot\" emits one shot prompt at a time. Each prompt renders a keyframe in \"Storyboard keyframes\" (FLUX schnell, 2K) and the same prompt drives \"Animate each shot\" (Veo 3.1, 4 seconds at 720p). \"Collect the clips\" gathers the clips, \"Assemble into a timeline\" appends them to a sequence named \"Directed Film\", and \"Render the rough cut\" produces the video. Pick a language model on the \"Director\". The keyframe and video steps are paid, and Veo costs the most.\n\n**Try this:** Set \"shot_count\" on the \"Director\" to 3. The rough cut drops to three clips and the run costs less. Reopen the rendered timeline in the timeline editor to trim or reorder shots."
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": -240
+                "x": 0,
+                "y": 0
               },
               "zIndex": 0,
               "width": 560,
-              "height": 240,
+              "height": 403,
               "selectable": true,
               "bypassed": false
             },
@@ -1884,8 +1884,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": 100
+                "x": 0,
+                "y": 578
               },
               "zIndex": 0,
               "width": 280,
@@ -1916,8 +1916,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 400,
-                "y": 80
+                "x": 380,
+                "y": 483
               },
               "zIndex": 0,
               "width": 320,
@@ -1935,8 +1935,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 780,
-                "y": 120
+                "x": 800,
+                "y": 543
               },
               "zIndex": 0,
               "width": 280,
@@ -1967,8 +1967,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1120,
-                "y": 80
+                "x": 1180,
+                "y": 483
               },
               "zIndex": 0,
               "width": 320,
@@ -2001,8 +2001,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1500,
-                "y": 120
+                "x": 1600,
+                "y": 523
               },
               "zIndex": 0,
               "width": 330,
@@ -2020,8 +2020,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 1890,
-                "y": 160
+                "x": 2030,
+                "y": 564
               },
               "zIndex": 0,
               "width": 160,
@@ -2047,8 +2047,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2110,
-                "y": 120
+                "x": 2290,
+                "y": 533
               },
               "zIndex": 0,
               "width": 300,
@@ -2073,8 +2073,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2470,
-                "y": 140
+                "x": 2690,
+                "y": 543
               },
               "zIndex": 0,
               "width": 300,
@@ -2094,8 +2094,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2830,
-                "y": 180
+                "x": 3090,
+                "y": 591
               },
               "title": "🎬 Rough cut",
               "selectable": true
@@ -2418,12 +2418,12 @@
             },
             "ui_properties": {
               "position": {
-                "x": 38,
-                "y": -194
+                "x": 0,
+                "y": 0
               },
               "zIndex": 0,
-              "width": 460,
-              "height": 180,
+              "width": 560,
+              "height": 266,
               "selectable": true,
               "bypassed": false
             },
@@ -2438,8 +2438,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 619,
-                "y": 123
+                "x": 380,
+                "y": 346
               },
               "zIndex": 0,
               "width": 361,
@@ -2465,8 +2465,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 279,
-                "y": 50
+                "x": 0,
+                "y": 696
               },
               "zIndex": 0,
               "width": 280,
@@ -2487,8 +2487,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 279,
-                "y": 330
+                "x": 0,
+                "y": 921
               },
               "zIndex": 0,
               "width": 280,
@@ -2509,8 +2509,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 279,
-                "y": 610
+                "x": 0,
+                "y": 471
               },
               "zIndex": 0,
               "width": 280,
@@ -2538,8 +2538,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1662,
-                "y": 237
+                "x": 1603,
+                "y": 790
               },
               "zIndex": 0,
               "width": 456,
@@ -2570,8 +2570,8 @@
             "ui_properties": {
               "selected": true,
               "position": {
-                "x": 2608,
-                "y": 187
+                "x": 2669,
+                "y": 634
               },
               "zIndex": 0,
               "width": 509,
@@ -2592,8 +2592,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 2148,
-                "y": 169
+                "x": 2159,
+                "y": 679
               },
               "zIndex": 0,
               "width": 410,
@@ -2620,8 +2620,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1352,
-                "y": 304
+                "x": 1223,
+                "y": 682
               },
               "zIndex": 0,
               "width": 280,
@@ -2657,8 +2657,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1010,
-                "y": 299
+                "x": 841,
+                "y": 767
               },
               "zIndex": 0,
               "width": 282,
@@ -2696,8 +2696,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 1231,
-                "y": 641
+                "x": 380,
+                "y": 1075
               },
               "zIndex": 0,
               "width": 280,
@@ -2713,8 +2713,8 @@
             "data": {},
             "ui_properties": {
               "position": {
-                "x": 1210,
-                "y": 591
+                "x": 380,
+                "y": 1005
               },
               "zIndex": 0,
               "width": 280,
@@ -2732,8 +2732,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 3200,
-                "y": 187
+                "x": 3278,
+                "y": 854
               },
               "zIndex": 0,
               "width": 320,

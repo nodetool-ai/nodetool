@@ -933,13 +933,16 @@
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+              },
               "description": "The clip to transcribe"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 351
               },
               "zIndex": 0,
               "width": 280,
@@ -957,8 +960,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1040,
-                "y": 200
+                "x": 1140,
+                "y": 359
               },
               "zIndex": 0,
               "width": 240,
@@ -988,7 +991,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 366
               },
               "zIndex": 0,
               "width": 300,
@@ -1009,7 +1012,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 300
+                "y": 591
               },
               "zIndex": 0,
               "width": 300,
@@ -1036,8 +1039,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 300
+                "x": 0,
+                "y": 816
               },
               "zIndex": 0,
               "width": 280,
@@ -1055,8 +1058,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
-                "y": 120
+                "x": 1200,
+                "y": 682
               },
               "zIndex": 0,
               "width": 300,
@@ -1086,7 +1089,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 320
               },
               "zIndex": 0,
               "width": 280,
@@ -1105,7 +1108,7 @@
             "ui_properties": {
               "position": {
                 "x": 760,
-                "y": 200
+                "y": 333
               },
               "zIndex": 0,
               "width": 240,
@@ -1135,7 +1138,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -1163,7 +1166,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 300
+                "y": 571
               },
               "zIndex": 0,
               "width": 280,
@@ -1181,8 +1184,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 462
               },
               "zIndex": 0,
               "width": 300,
@@ -1215,7 +1218,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 421
               },
               "zIndex": 0,
               "width": 280,
@@ -1239,7 +1242,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 787
               },
               "zIndex": 0,
               "width": 280,
@@ -1257,8 +1260,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1780,
-                "y": 320
+                "x": 1960,
+                "y": 588
               },
               "zIndex": 0,
               "width": 240,
