@@ -40,27 +40,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 385,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 366,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 398,
           "width": 300
         }
       ],
@@ -120,27 +129,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "elements",
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 380
         },
         {
           "id": "img",
           "type": "lib.svg.SVGToImage",
           "title": "SVG To Image",
-          "x": 440,
-          "y": 120,
+          "x": 480,
+          "y": 430,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 760,
-          "y": 120,
+          "x": 860,
+          "y": 444,
           "width": 280
         }
       ],
@@ -199,11 +217,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "p",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 381,
           "width": 300,
           "subtitle": "travel poster, mid-century screenprint, limited palette, strong flat shapes, dramatic diagonal composition"
         },
@@ -211,8 +238,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "gen",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -220,8 +247,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 359,
           "width": 300
         }
       ],
@@ -280,11 +307,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "p",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 381,
           "width": 300,
           "subtitle": "seamless repeating texture, hand-made paper with visible fibres, soft even lighting, tileable, no seams, top-down"
         },
@@ -292,8 +328,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "gen",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -301,8 +337,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 359,
           "width": 300
         }
       ],
@@ -358,35 +394,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "start",
           "type": "nodetool.triggers.ManualTrigger",
           "title": "Manual Trigger",
           "x": 0,
-          "y": 120,
+          "y": 554,
           "width": 280
         },
         {
           "id": "payload",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 330,
-          "y": 40,
+          "x": 380,
+          "y": 366,
           "width": 240
         },
         {
           "id": "source",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 330,
-          "y": 220,
+          "x": 380,
+          "y": 566,
           "width": 240
         },
         {
           "id": "at",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 330,
-          "y": 400,
+          "x": 380,
+          "y": 766,
           "width": 240
         }
       ],
@@ -459,35 +504,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "hook",
           "type": "nodetool.triggers.WebhookTrigger",
           "title": "Webhook Trigger",
           "x": 0,
-          "y": 120,
+          "y": 508,
           "width": 280
         },
         {
           "id": "str",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 330,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 240
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 620,
-          "y": 120,
+          "x": 720,
+          "y": 447,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 970,
-          "y": 120,
+          "x": 1120,
+          "y": 478,
           "width": 240
         }
       ],
@@ -593,7 +647,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 240,
+          "y": 233,
           "width": 280
         },
         {
@@ -601,7 +655,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 400,
+          "y": 599,
           "width": 280,
           "subtitle": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
         },
@@ -610,7 +664,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
           "x": 380,
-          "y": 380,
+          "y": 528,
           "width": 280,
           "subtitle": "inworld/realtime-tts-1.5-max"
         },
@@ -618,8 +672,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "sync",
           "type": "nodetool.video.LipSync",
           "title": "Lip Sync",
-          "x": 1750,
-          "y": 300,
+          "x": 1960,
+          "y": 360,
           "width": 280,
           "subtitle": "fal-ai/sync-lipsync/v2/pro"
         },
@@ -627,32 +681,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-clip",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2110,
-          "y": 320,
+          "x": 2340,
+          "y": 376,
           "width": 240
         },
         {
           "id": "level",
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
-          "x": 710,
-          "y": 380,
+          "x": 760,
+          "y": 516,
           "width": 300
         },
         {
           "id": "fade-in",
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
-          "x": 1040,
-          "y": 380,
+          "x": 1160,
+          "y": 473,
           "width": 300
         },
         {
           "id": "fade-out",
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
-          "x": 1370,
-          "y": 380,
+          "x": 1560,
+          "y": 438,
           "width": 300
         }
       ],
@@ -757,27 +811,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 390,
           "width": 300
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 414,
           "width": 300
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 384,
           "width": 300,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -785,16 +848,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 366,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 330,
+          "x": 1600,
+          "y": 398,
           "width": 300
         }
       ],
@@ -867,11 +930,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300,
           "subtitle": "A reusable water bottle that stays cold all day"
         },
@@ -879,16 +951,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -977,7 +1049,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 240,
+          "y": 307,
           "width": 280
         },
         {
@@ -985,7 +1057,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 400,
+          "y": 523,
           "width": 280,
           "subtitle": "Slow orbit around the product as a soft highlight travels across its surface"
         },
@@ -994,7 +1066,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 380,
+          "y": 346,
           "width": 320,
           "subtitle": "Animate this product photo into a looping hero shot. Motion: {{ motion }} Keep the product's shape, colour, materials and label exactly as…"
         },
@@ -1002,8 +1074,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "animate",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 760,
-          "y": 300,
+          "x": 800,
+          "y": 376,
           "width": 280,
           "subtitle": "kling-2.6/image-to-video"
         },
@@ -1011,16 +1083,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "slow",
           "type": "nodetool.video.SetSpeed",
           "title": "Set Speed",
-          "x": 1100,
-          "y": 340,
+          "x": 1180,
+          "y": 408,
           "width": 280
         },
         {
           "id": "output-loop",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1440,
-          "y": 360,
+          "x": 1560,
+          "y": 397,
           "width": 240
         }
       ],
@@ -1100,27 +1172,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 120,
+          "y": 367,
           "width": 280
         },
         {
           "id": "fx",
           "type": "lib.audio.Reverb",
           "title": "Reverb",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 426,
           "width": 280
         }
       ],
@@ -1179,11 +1260,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "p",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 381,
           "width": 300,
           "subtitle": "album cover art, a single stark object on a deep colour field, grainy film texture, bold and simple"
         },
@@ -1191,8 +1281,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "gen",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -1200,8 +1290,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 359,
           "width": 300
         }
       ],
@@ -1262,11 +1352,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "creator",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 80,
+          "y": 366,
           "width": 280
         },
         {
@@ -1274,23 +1373,23 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 300,
+          "y": 582,
           "width": 280
         },
         {
           "id": "overlay",
           "type": "nodetool.video.Overlay",
           "title": "Overlay",
-          "x": 400,
-          "y": 180,
+          "x": 380,
+          "y": 484,
           "width": 320
         },
         {
           "id": "video-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 820,
-          "y": 180,
+          "x": 800,
+          "y": 482,
           "width": 260
         }
       ],
@@ -1366,25 +1465,25 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -540,
-          "y": -3,
-          "width": 480,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "15",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
-          "x": 65,
-          "y": 67,
+          "x": 0,
+          "y": 358,
           "width": 245
         },
         {
           "id": "3620653b-0786-4222-9829-3183899984cd",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 340,
-          "y": 146,
+          "x": 345,
+          "y": 423,
           "width": 280,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -1392,8 +1491,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 650,
-          "y": 86,
+          "x": 725,
+          "y": 288,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -1401,8 +1500,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-image",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 970,
-          "y": 86,
+          "x": 1209,
+          "y": 436,
           "width": 280
         }
       ],
@@ -1492,7 +1591,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 240,
+          "y": 515,
           "width": 280,
           "subtitle": "A coastal roastery at first light, steam rising off the drum"
         },
@@ -1501,7 +1600,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 400,
+          "y": 740,
           "width": 280,
           "subtitle": "handheld documentary, warm morning light, 35mm, shallow depth of field"
         },
@@ -1510,7 +1609,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 280,
+          "y": 745,
           "width": 320,
           "subtitle": "Wide establishing shot. Subject: {{ subject }} Look: {{ look }} Hold the full scene in frame with a slow push-in. Natural motion only. No t…"
         },
@@ -1519,7 +1618,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 560,
+          "y": 307,
           "width": 320,
           "subtitle": "Close detail shot of the same scene. Subject: {{ subject }} Look: {{ look }} Tight on texture and material — hands, surfaces, steam. Shallo…"
         },
@@ -1527,8 +1626,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "shot-wide",
           "type": "nodetool.video.TextToVideo",
           "title": "Text To Video",
-          "x": 760,
-          "y": 260,
+          "x": 800,
+          "y": 740,
           "width": 280,
           "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
         },
@@ -1536,8 +1635,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "shot-detail",
           "type": "nodetool.video.TextToVideo",
           "title": "Text To Video",
-          "x": 760,
-          "y": 560,
+          "x": 800,
+          "y": 514,
           "width": 280,
           "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
         },
@@ -1545,16 +1644,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "cut",
           "type": "nodetool.video.Transition",
           "title": "Transition",
-          "x": 1120,
-          "y": 400,
+          "x": 1180,
+          "y": 642,
           "width": 280
         },
         {
           "id": "output-reel",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1460,
-          "y": 420,
+          "x": 1560,
+          "y": 640,
           "width": 240
         }
       ],
@@ -1668,35 +1767,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "src",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "ch",
           "type": "nodetool.control.Chunk",
           "title": "Chunk",
-          "x": 360,
-          "y": 180,
+          "x": 760,
+          "y": 514,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 1140,
+          "y": 498,
           "width": 240
         },
         {
           "id": "fanout1",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 160,
-          "y": 300,
+          "x": 380,
+          "y": 390,
           "width": 280
         }
       ],
@@ -1767,35 +1875,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 409,
           "width": 280
         },
         {
           "id": "g",
           "type": "lib.image.filter.ConvertToGrayscale",
           "title": "Convert To Grayscale",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 384,
           "width": 280
         },
         {
           "id": "t",
           "type": "lib.image.filter.Threshold",
           "title": "Threshold",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 366,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 417,
           "width": 280
         }
       ],
@@ -1861,27 +1978,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 327,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 358,
           "width": 300
         }
       ],
@@ -1946,35 +2072,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 383,
           "width": 280
         },
         {
           "id": "ch",
           "type": "nodetool.image.Channels",
           "title": "Channels",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 356,
           "width": 280
         },
         {
           "id": "bl",
           "type": "nodetool.image.Blur",
           "title": "Blur",
-          "x": 720,
-          "y": 180,
+          "x": 760,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 200,
+          "x": 1140,
+          "y": 391,
           "width": 240
         }
       ],
@@ -2041,27 +2176,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 364,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.image.Blur",
           "title": "Blur",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 327,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 372,
           "width": 240
         }
       ],
@@ -2121,27 +2265,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.video.Saturation",
           "title": "Saturation",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 370,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 354,
           "width": 240
         }
       ],
@@ -2237,8 +2390,8 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -260,
-          "width": 520,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
@@ -2246,7 +2399,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 40,
+          "y": 1151,
           "width": 280,
           "subtitle": "Aurora Labs"
         },
@@ -2255,7 +2408,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 200,
+          "y": 926,
           "width": 280,
           "subtitle": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering."
         },
@@ -2264,7 +2417,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 360,
+          "y": 1556,
           "width": 280,
           "subtitle": "Power that gives back"
         },
@@ -2273,15 +2426,15 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ColorInput",
           "title": "Color Input",
           "x": 0,
-          "y": 520,
+          "y": 1376,
           "width": 280
         },
         {
           "id": "prompt_images",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 360,
-          "y": 60,
+          "x": 380,
+          "y": 352,
           "width": 300,
           "subtitle": "You are an art director building a social-media image kit for a brand. BRAND Name: {{ brand_name }} Positioning: {{ brand_description }} TA…"
         },
@@ -2289,16 +2442,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "gen_prompts",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 720,
-          "y": 60,
+          "x": 780,
+          "y": 779,
           "width": 280
         },
         {
           "id": "txt2img",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 1040,
-          "y": 20,
+          "x": 1180,
+          "y": 916,
           "width": 360,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -2306,40 +2459,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "label",
           "type": "lib.image.draw.RenderText",
           "title": "Render Text",
-          "x": 1440,
-          "y": 40,
+          "x": 1640,
+          "y": 1204,
           "width": 280
         },
         {
           "id": "overlay",
           "type": "lib.image.draw.RenderText",
           "title": "Render Text",
-          "x": 1780,
-          "y": 60,
+          "x": 2020,
+          "y": 1341,
           "width": 280
         },
         {
           "id": "collect_assets",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 2120,
-          "y": 80,
+          "x": 2400,
+          "y": 1344,
           "width": 240
         },
         {
           "id": "out_assets",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2420,
-          "y": 100,
+          "x": 2740,
+          "y": 1305,
           "width": 280
         },
         {
           "id": "prompt_brief",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 360,
-          "y": 560,
+          "x": 380,
+          "y": 1301,
           "width": 300,
           "subtitle": "Write a one-page brand brief for the brand below. BRAND Name: {{ brand_name }} Positioning: {{ brand_description }} Working tagline: {{ tag…"
         },
@@ -2347,16 +2500,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "brief_agent",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 720,
-          "y": 560,
+          "x": 780,
+          "y": 1500,
           "width": 300
         },
         {
           "id": "out_brief",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 600,
+          "x": 1180,
+          "y": 1612,
           "width": 280
         }
       ],
@@ -2555,8 +2708,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -20,
-          "y": -210,
+          "x": 0,
+          "y": 0,
           "width": 1860,
           "isComment": true
         },
@@ -2565,7 +2718,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 40,
+          "y": 288,
           "width": 280
         },
         {
@@ -2573,7 +2726,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 250,
+          "y": 504,
           "width": 280,
           "subtitle": "MORROW"
         },
@@ -2582,7 +2735,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 450,
+          "y": 729,
           "width": 280,
           "subtitle": "Carry the calm."
         },
@@ -2591,7 +2744,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.SelectInput",
           "title": "Select Input",
           "x": 0,
-          "y": 650,
+          "y": 954,
           "width": 280,
           "subtitle": "Polished"
         },
@@ -2600,31 +2753,31 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ColorInput",
           "title": "Color Input",
           "x": 0,
-          "y": 850,
+          "y": 1142,
           "width": 280
         },
         {
           "id": "extract-audio",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 360,
-          "y": 40,
+          "x": 380,
+          "y": 451,
           "width": 280
         },
         {
           "id": "clip-info",
           "type": "nodetool.video.GetVideoInfo",
           "title": "Get Video Info",
-          "x": 360,
-          "y": 200,
+          "x": 380,
+          "y": 619,
           "width": 280
         },
         {
           "id": "transcribe",
           "type": "openai.audio.Transcribe",
           "title": "Transcribe",
-          "x": 700,
-          "y": 40,
+          "x": 760,
+          "y": 577,
           "width": 300,
           "subtitle": "Return the creator's exact spoken words. Preserve product and brand terms."
         },
@@ -2632,24 +2785,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "build-timeline",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1070,
-          "y": 330,
+          "x": 1160,
+          "y": 574,
           "width": 400
         },
         {
           "id": "render",
           "type": "nodetool.timeline.RenderTimeline",
           "title": "Render Timeline",
-          "x": 1540,
-          "y": 390,
+          "x": 1660,
+          "y": 828,
           "width": 300
         },
         {
           "id": "video-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1910,
-          "y": 390,
+          "x": 2060,
+          "y": 863,
           "width": 260
         }
       ],
@@ -2789,11 +2942,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 366,
           "width": 280
         },
         {
@@ -2801,7 +2963,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 340,
+          "y": 582,
           "width": 280,
           "subtitle": "Slow push in with a gentle parallax drift"
         },
@@ -2809,8 +2971,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tpl",
           "type": "nodetool.text.Template",
           "title": "Template",
-          "x": 400,
-          "y": 260,
+          "x": 380,
+          "y": 527,
           "width": 320
         },
         {
@@ -2818,7 +2980,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
           "x": 800,
-          "y": 200,
+          "y": 434,
           "width": 280,
           "subtitle": "fal-ai/ltx-2.3/image-to-video/fast"
         },
@@ -2826,8 +2988,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1160,
-          "y": 220,
+          "x": 1180,
+          "y": 448,
           "width": 240
         }
       ],
@@ -2900,27 +3062,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -2990,27 +3161,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 390,
           "width": 300
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 414,
           "width": 300
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 384,
           "width": 300,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -3018,16 +3198,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 366,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 330,
+          "x": 1600,
+          "y": 398,
           "width": 300
         }
       ],
@@ -3131,17 +3311,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment_intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -620,
-          "y": 40,
-          "width": 520,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "question_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 80,
+          "x": 0,
+          "y": 587,
           "width": 300,
           "subtitle": "How long does the Aurora One take to fully charge, and what does its warranty cover?"
         },
@@ -3149,8 +3329,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "search_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 240,
+          "x": 0,
+          "y": 869,
           "width": 300,
           "subtitle": "Aurora"
         },
@@ -3158,8 +3338,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "doc_specs",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 400,
+          "x": 0,
+          "y": 1137,
           "width": 300,
           "subtitle": "# Aurora One — Technical Specifications The Aurora One is a lightweight urban electric bike. It ships with a 500 Wh removable battery and a…"
         },
@@ -3167,8 +3347,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "doc_charging",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 560,
+          "x": 0,
+          "y": 1613,
           "width": 300,
           "subtitle": "# Aurora One — Battery & Charging The Aurora One battery charges from empty to full in about 4 hours with the included standard charger, or…"
         },
@@ -3176,8 +3356,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "doc_warranty",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 720,
+          "x": 0,
+          "y": 1838,
           "width": 300,
           "subtitle": "# Aurora One — Warranty & Support Every Aurora One includes a 2-year limited warranty covering the frame, motor, and battery against manufa…"
         },
@@ -3185,56 +3365,56 @@ export const templateEntries: TemplateEntry[] = [
           "id": "collection",
           "type": "vector.Collection",
           "title": "Collection",
-          "x": 400,
-          "y": 400,
+          "x": 0,
+          "y": 1362,
           "width": 280
         },
         {
           "id": "index_specs",
           "type": "vector.IndexTextChunk",
           "title": "Index Text Chunk",
-          "x": 740,
-          "y": 400,
+          "x": 400,
+          "y": 1156,
           "width": 280
         },
         {
           "id": "index_charging",
           "type": "vector.IndexTextChunk",
           "title": "Index Text Chunk",
-          "x": 740,
-          "y": 560,
+          "x": 400,
+          "y": 1459,
           "width": 280
         },
         {
           "id": "index_warranty",
           "type": "vector.IndexTextChunk",
           "title": "Index Text Chunk",
-          "x": 740,
-          "y": 720,
+          "x": 400,
+          "y": 1762,
           "width": 280
         },
         {
           "id": "retrieve",
           "type": "vector.QueryText",
           "title": "Query Text",
-          "x": 740,
-          "y": 120,
+          "x": 400,
+          "y": 922,
           "width": 280
         },
         {
           "id": "join_context",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1080,
-          "y": 120,
+          "x": 780,
+          "y": 707,
           "width": 280
         },
         {
           "id": "rag_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1420,
-          "y": 120,
+          "x": 1160,
+          "y": 538,
           "width": 300,
           "subtitle": "Context passages retrieved from the knowledge base: {{ CONTEXT }} -------------------- User question: {{ QUESTION }}"
         },
@@ -3242,24 +3422,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "answer",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 1760,
-          "y": 120,
+          "x": 1560,
+          "y": 687,
           "width": 300
         },
         {
           "id": "answer_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2100,
-          "y": 120,
+          "x": 1960,
+          "y": 744,
           "width": 260
         },
         {
           "id": "context_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1420,
-          "y": 400,
+          "x": 1160,
+          "y": 976,
           "width": 260
         }
       ],
@@ -3412,11 +3592,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "t",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 672,
           "width": 280,
           "subtitle": "The keeper climbed the stair each evening. The lamp needed winding twice a night. By the third winter the mechanism had worn, and the light…"
         },
@@ -3424,40 +3613,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ch",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 503,
           "width": 280
         },
         {
           "id": "fan",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 385,
           "width": 280
         },
         {
           "id": "n",
           "type": "nodetool.control.Count",
           "title": "Count",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 555,
           "width": 280
         },
         {
           "id": "o1",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 340,
+          "x": 760,
+          "y": 801,
           "width": 280
         },
         {
           "id": "o2",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 320,
-          "y": 340,
+          "x": 1520,
+          "y": 560,
           "width": 280
         }
       ],
@@ -3537,27 +3726,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "elements",
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 380
         },
         {
           "id": "doc",
           "type": "lib.svg.Document",
           "title": "Document",
-          "x": 440,
-          "y": 120,
+          "x": 480,
+          "y": 460,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 760,
-          "y": 120,
+          "x": 860,
+          "y": 444,
           "width": 280
         }
       ],
@@ -3631,51 +3829,60 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 120,
+          "y": 362,
           "width": 300
         },
         {
           "id": "ng",
           "type": "lib.audio.NoiseGate",
           "title": "Noise Gate",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 383,
           "width": 300
         },
         {
           "id": "hp",
           "type": "lib.audio.HighPassFilter",
           "title": "High Pass Filter",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 383,
           "width": 300
         },
         {
           "id": "cmp",
           "type": "lib.audio.Compress",
           "title": "Compress",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 327,
           "width": 300
         },
         {
           "id": "lim",
           "type": "lib.audio.Limiter",
           "title": "Limiter",
-          "x": 0,
-          "y": 330,
+          "x": 1600,
+          "y": 369,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 330,
-          "y": 330,
+          "x": 2000,
+          "y": 421,
           "width": 300
         }
       ],
@@ -3755,11 +3962,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 366,
           "width": 280,
           "subtitle": "A tram crossing an empty city square in heavy rain at night"
         },
@@ -3767,8 +3983,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "vid",
           "type": "nodetool.video.TextToVideo",
           "title": "Text To Video",
-          "x": 400,
-          "y": 180,
+          "x": 380,
+          "y": 366,
           "width": 280,
           "subtitle": "kling-2.6/text-to-video"
         },
@@ -3777,7 +3993,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 760,
-          "y": 200,
+          "y": 379,
           "width": 240
         }
       ],
@@ -3847,17 +4063,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -540,
-          "y": -262,
-          "width": 480,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "input_prospect",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 403,
+          "x": 0,
+          "y": 1197,
           "width": 280,
           "subtitle": "AtlasCloud"
         },
@@ -3865,8 +4081,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "input_offer",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 649,
+          "x": 0,
+          "y": 1422,
           "width": 280,
           "subtitle": "We build NodeTool - a Creative AI workspace."
         },
@@ -3874,8 +4090,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "objective",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 390,
-          "y": 332,
+          "x": 380,
+          "y": 1144,
           "width": 340,
           "subtitle": "Research the prospect and draft outreach. PROSPECT: {{ prospect }} MY OFFER: {{ offer }} Steps: 1. Use google_search and browser to learn w…"
         },
@@ -3883,8 +4099,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "agent",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 760,
-          "y": 329,
+          "x": 820,
+          "y": 1141,
           "width": 316,
           "subtitle": "sonnet"
         },
@@ -3892,48 +4108,48 @@ export const templateEntries: TemplateEntry[] = [
           "id": "preview_summary",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1146,
-          "y": 400,
+          "x": 1236,
+          "y": 1503,
           "width": 403
         },
         {
           "id": "preview_pain",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1146,
-          "y": 715,
+          "x": 1236,
+          "y": 393,
           "width": 565
         },
         {
           "id": "preview_subject",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1146,
-          "y": 1165,
+          "x": 1236,
+          "y": 2008,
           "width": 530
         },
         {
           "id": "preview_body",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1146,
-          "y": 1310,
+          "x": 1236,
+          "y": 1153,
           "width": 530
         },
         {
           "id": "preview_followup",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1146,
-          "y": 1635,
+          "x": 1236,
+          "y": 1778,
           "width": 530
         },
         {
           "id": "2b621362-7cda-402f-b266-11b3f6089c5f",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1146,
-          "y": 50,
+          "x": 1236,
+          "y": 803,
           "width": 400
         }
       ],
@@ -4061,68 +4277,68 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "60677785-41d5-4795-bdba-15003d0dec86",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "7074f109-83b1-4864-8e37-17a89fcbf46d",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
-          "x": 50,
-          "y": 50,
+          "x": 0,
+          "y": 346,
           "width": 280
         },
         {
           "id": "grading-intensity",
           "type": "nodetool.input.FloatInput",
           "title": "Float Input",
-          "x": 680,
-          "y": 320,
+          "x": 0,
+          "y": 712,
           "width": 280
         },
         {
           "id": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
           "type": "nodetool.video.ForEachFrame",
           "title": "For Each Frame",
-          "x": 360,
-          "y": 54,
+          "x": 380,
+          "y": 507,
           "width": 280
         },
         {
           "id": "e30d1d60-0a2a-4c28-9844-3d9a1e09c85b",
           "type": "lib.image.color_grading.Exposure",
           "title": "Exposure",
-          "x": 680,
-          "y": 60,
+          "x": 760,
+          "y": 461,
           "width": 280
         },
         {
           "id": "s41e2d70-1b3b-5d39-0955-4e0b2f1ac96c",
           "type": "lib.image.color_grading.SaturationVibrance",
           "title": "Saturation Vibrance",
-          "x": 1000,
-          "y": 140,
+          "x": 1140,
+          "y": 562,
           "width": 280
         },
         {
           "id": "4ca8874f-5caa-413c-a329-936d90358e8e",
           "type": "nodetool.video.FrameToVideo",
           "title": "Frame To Video",
-          "x": 1320,
-          "y": 112,
+          "x": 1520,
+          "y": 437,
           "width": 416
-        },
-        {
-          "id": "60677785-41d5-4795-bdba-15003d0dec86",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": 48,
-          "y": -209,
-          "width": 520,
-          "isComment": true
         },
         {
           "id": "output-graded-video",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1640,
-          "y": 112,
+          "x": 2036,
+          "y": 566,
           "width": 280
         }
       ],
@@ -4242,7 +4458,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -240,
+          "y": 0,
           "width": 560,
           "isComment": true
         },
@@ -4251,7 +4467,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 80,
+          "y": 688,
           "width": 280
         },
         {
@@ -4259,7 +4475,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 240,
+          "y": 904,
           "width": 280
         },
         {
@@ -4267,7 +4483,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 400,
+          "y": 1129,
           "width": 280,
           "subtitle": "original"
         },
@@ -4276,135 +4492,135 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.DocumentInput",
           "title": "Document Input",
           "x": 0,
-          "y": 560,
+          "y": 1354,
           "width": 280
         },
         {
           "id": "layout-elements",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 360,
-          "y": 260,
+          "x": 800,
+          "y": 900,
           "width": 500
         },
         {
           "id": "portrait-svg",
           "type": "lib.svg.Document",
           "title": "Document",
-          "x": 940,
-          "y": 80,
+          "x": 1400,
+          "y": 1183,
           "width": 280
         },
         {
           "id": "portrait-png",
           "type": "lib.svg.SVGToImage",
           "title": "SVG To Image",
-          "x": 940,
-          "y": 240,
+          "x": 1400,
+          "y": 731,
           "width": 280
         },
         {
           "id": "story-svg",
           "type": "lib.svg.Document",
           "title": "Document",
-          "x": 940,
-          "y": 440,
+          "x": 1400,
+          "y": 1351,
           "width": 280
         },
         {
           "id": "story-png",
           "type": "lib.svg.SVGToImage",
           "title": "SVG To Image",
-          "x": 940,
-          "y": 600,
+          "x": 1400,
+          "y": 957,
           "width": 280
         },
         {
           "id": "layout-finalize",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1300,
-          "y": 300,
+          "x": 1780,
+          "y": 825,
           "width": 520
         },
         {
           "id": "out-hero",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1900,
-          "y": 0,
+          "x": 2400,
+          "y": 272,
           "width": 240
         },
         {
           "id": "out-portrait",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1900,
-          "y": 120,
+          "x": 2400,
+          "y": 672,
           "width": 240
         },
         {
           "id": "out-story",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1900,
-          "y": 240,
+          "x": 2400,
+          "y": 1072,
           "width": 240
         },
         {
           "id": "out-portrait_svg",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1900,
-          "y": 360,
+          "x": 2400,
+          "y": 1472,
           "width": 240
         },
         {
           "id": "out-story_svg",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1900,
-          "y": 480,
+          "x": 2400,
+          "y": 1872,
           "width": 240
         },
         {
           "id": "out-contract",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2200,
-          "y": 0,
+          "x": 2400,
+          "y": 472,
           "width": 240
         },
         {
           "id": "out-record",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2200,
-          "y": 120,
+          "x": 2400,
+          "y": 872,
           "width": 240
         },
         {
           "id": "out-record_file",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2200,
-          "y": 240,
+          "x": 2400,
+          "y": 1272,
           "width": 240
         },
         {
           "id": "normalize-hero",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 340,
-          "y": 80,
+          "x": 380,
+          "y": 827,
           "width": 320
         },
         {
           "id": "out-phase",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2200,
-          "y": 360,
+          "x": 2400,
+          "y": 1672,
           "width": 240
         }
       ],
@@ -4648,17 +4864,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -25,
-          "y": -220,
-          "width": 460,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "4",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 2054,
-          "y": 95,
+          "x": 2284,
+          "y": 629,
           "width": 461,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -4666,24 +4882,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "5",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 1634,
-          "y": 194,
+          "x": 1794,
+          "y": 754,
           "width": 390
         },
         {
           "id": "8",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 837,
-          "y": 329,
+          "x": 857,
+          "y": 732,
           "width": 319
         },
         {
           "id": "10",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 50,
+          "x": 0,
+          "y": 413,
           "width": 280,
           "subtitle": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character…"
         },
@@ -4691,8 +4907,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "11",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 330,
+          "x": 0,
+          "y": 863,
           "width": 280,
           "subtitle": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art"
         },
@@ -4700,8 +4916,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "12",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 610,
+          "x": 0,
+          "y": 638,
           "width": 280,
           "subtitle": "mysterious, ancient, powerful, serene, sacred"
         },
@@ -4709,8 +4925,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "c1c46bfe-d52b-445b-b9d4-b0141e5bb944",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1186,
-          "y": 98,
+          "x": 1276,
+          "y": 663,
           "width": 418,
           "subtitle": "Art direction: {{ direction }} Base style: {{ style }} Task: write exactly {{ count }} distinct text-to-image prompts for concept-art varia…"
         },
@@ -4718,8 +4934,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "77560ab1-75f1-4208-aa4f-66732f56e22b",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 400,
-          "y": 297,
+          "x": 380,
+          "y": 443,
           "width": 377,
           "subtitle": "Creative brief: {{ brief }} Art style: {{ style }} Mood: {{ mood }} Task: turn the brief above into a concrete art-direction brief a concep…"
         },
@@ -4727,16 +4943,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "concept_art_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2440,
-          "y": 95,
+          "x": 2845,
+          "y": 822,
           "width": 280
         },
         {
           "id": "num_variations",
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
-          "x": 50,
-          "y": 830,
+          "x": 0,
+          "y": 1088,
           "width": 280
         }
       ],
@@ -4857,19 +5073,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "p",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 300
         },
         {
           "id": "gen",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -4877,8 +5102,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "vid",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 346,
           "width": 300,
           "subtitle": "slow push in, subtle atmospheric movement, composition holds"
         },
@@ -4886,8 +5111,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 359,
           "width": 300
         }
       ],
@@ -4966,16 +5191,16 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -260,
-          "width": 520,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "comment-branch-a",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 1120,
-          "y": 900,
+          "x": 620,
+          "y": 0,
           "width": 520,
           "isComment": true
         },
@@ -4983,8 +5208,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-branch-b",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 710,
-          "y": -260,
+          "x": 1200,
+          "y": 0,
           "width": 520,
           "isComment": true
         },
@@ -4992,8 +5217,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "2",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 2080,
-          "y": 401,
+          "x": 1900,
+          "y": 647,
           "width": 280,
           "subtitle": "## Conditional Logic Decision Result **Input Value:** {{ value }} **Condition Checks:** - Greater than 100? {{ gt_100 }} - Less than 50? {{…"
         },
@@ -5002,71 +5227,71 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 453,
+          "y": 1453,
           "width": 280
         },
         {
           "id": "pad_value",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 280,
-          "y": 560,
+          "x": 760,
+          "y": 1058,
           "width": 280
         },
         {
           "id": "cmp_low",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 610,
-          "y": 660,
+          "x": 1140,
+          "y": 1403,
           "width": 280
         },
         {
           "id": "cmp_high",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 610,
-          "y": 480,
+          "x": 1140,
+          "y": 938,
           "width": 280
         },
         {
           "id": "is_low",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 940,
-          "y": 660,
+          "x": 1520,
+          "y": 1456,
           "width": 280
         },
         {
           "id": "is_high",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 940,
-          "y": 480,
+          "x": 1520,
+          "y": 991,
           "width": 280
         },
         {
           "id": "outer_true",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 1390,
-          "y": 120,
+          "x": 1900,
+          "y": 1762,
           "width": 280
         },
         {
           "id": "outer_false",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 1390,
-          "y": 280,
+          "x": 2280,
+          "y": 1349,
           "width": 280
         },
         {
           "id": "9",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 710,
-          "y": 41,
+          "x": 380,
+          "y": 1674,
           "width": 280,
           "subtitle": "🔴 HIGH VALUE: {{ value }} is greater than 100. Priority processing engaged."
         },
@@ -5074,24 +5299,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "inner_true",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 710,
-          "y": 180,
+          "x": 1900,
+          "y": 1958,
           "width": 280
         },
         {
           "id": "inner_false",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 710,
-          "y": 340,
+          "x": 1900,
+          "y": 1566,
           "width": 280
         },
         {
           "id": "12",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 360,
-          "y": 294,
+          "x": 380,
+          "y": 2014,
           "width": 280,
           "subtitle": "🔵 LOW VALUE: {{ value }} is less than 50. Standard processing applied."
         },
@@ -5099,8 +5324,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "13",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 360,
-          "y": 0,
+          "x": 380,
+          "y": 1334,
           "width": 280,
           "subtitle": "🟡 MEDIUM VALUE: {{ value }} is between 50 and 100. Balanced processing selected."
         },
@@ -5108,40 +5333,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "result_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2460,
-          "y": 401,
+          "x": 2280,
+          "y": 1019,
           "width": 280
         },
         {
           "id": "int_to_str",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 140,
-          "y": 620,
+          "x": 380,
+          "y": 845,
           "width": 200
         },
         {
           "id": "out_high",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1710,
-          "y": 120,
+          "x": 2280,
+          "y": 1773,
           "width": 280
         },
         {
           "id": "out_low",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1030,
-          "y": 180,
+          "x": 2280,
+          "y": 1973,
           "width": 280
         },
         {
           "id": "out_medium",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1710,
-          "y": 280,
+          "x": 2660,
+          "y": 1343,
           "width": 280
         }
       ],
@@ -5367,35 +5592,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "src",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.control.Count",
           "title": "Count",
-          "x": 360,
-          "y": 180,
+          "x": 760,
+          "y": 501,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 1140,
+          "y": 485,
           "width": 240
         },
         {
           "id": "fanout1",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 160,
-          "y": 300,
+          "x": 380,
+          "y": 377,
           "width": 280
         }
       ],
@@ -5467,7 +5701,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -260,
+          "y": 0,
           "width": 600,
           "isComment": true
         },
@@ -5476,23 +5710,23 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.Loop",
           "title": "Loop",
           "x": 0,
-          "y": 100,
+          "y": 479,
           "width": 300
         },
         {
           "id": "step",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 420,
-          "y": 100,
+          "x": 400,
+          "y": 252,
           "width": 340
         },
         {
           "id": "final",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 850,
-          "y": 100,
+          "x": 400,
+          "y": 665,
           "width": 280
         }
       ],
@@ -5566,27 +5800,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 365,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.image.Crop",
           "title": "Crop",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 327,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 373,
           "width": 240
         }
       ],
@@ -5651,35 +5894,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 385,
           "width": 280
         },
         {
           "id": "cr",
           "type": "nodetool.image.Crop",
           "title": "Crop",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 347,
           "width": 280
         },
         {
           "id": "ft",
           "type": "nodetool.image.Fit",
           "title": "Fit",
-          "x": 720,
-          "y": 180,
+          "x": 760,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 200,
+          "x": 1140,
+          "y": 393,
           "width": 240
         }
       ],
@@ -5745,27 +5997,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 280
         },
         {
           "id": "bc",
           "type": "lib.audio.Bitcrush",
           "title": "Bitcrush",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 367,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 405,
           "width": 280
         }
       ],
@@ -5824,19 +6085,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 371,
           "width": 280
         },
         {
           "id": "bg",
           "type": "nodetool.image.RemoveBackground",
           "title": "Remove Background",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 366,
           "width": 280,
           "subtitle": "fal-ai/imageutils/rembg"
         },
@@ -5844,8 +6114,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 379,
           "width": 240
         }
       ],
@@ -5904,27 +6174,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 327,
           "width": 300
         },
         {
           "id": "rs",
           "type": "nodetool.video.Resize",
           "title": "Resize",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 351,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 335,
           "width": 300
         }
       ],
@@ -6003,19 +6282,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 366,
           "width": 300
         },
         {
           "id": "bg",
           "type": "nodetool.image.RemoveBackground",
           "title": "Remove Background",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 441,
           "width": 300,
           "subtitle": "fal-ai/bria/background/remove"
         },
@@ -6023,40 +6311,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1650,
-          "y": 120,
+          "x": 2000,
+          "y": 468,
           "width": 300
         },
         {
           "id": "edge-softness",
           "type": "nodetool.input.FloatInput",
           "title": "Float Input",
-          "x": 330,
-          "y": 460,
+          "x": 0,
+          "y": 590,
           "width": 300
         },
         {
           "id": "soften-alpha",
           "type": "lib.image.filter.GaussianBlur",
           "title": "Gaussian Blur",
-          "x": 660,
-          "y": 300,
+          "x": 800,
+          "y": 455,
           "width": 300
         },
         {
           "id": "refine-cutout",
           "type": "lib.image.channel.Merge",
           "title": "Merge",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 465,
           "width": 300
         },
         {
           "id": "save",
           "type": "nodetool.image.SaveImageFile",
           "title": "Save Image File",
-          "x": 1320,
-          "y": 120,
+          "x": 1600,
+          "y": 388,
           "width": 300
         }
       ],
@@ -6159,11 +6447,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "b313851f-3dc9-4372-92ba-acd96654dfd5",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "topic_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 54,
-          "y": 20,
+          "x": 0,
+          "y": 353,
           "width": 280,
           "subtitle": "fresh vegetables, each with its typical color"
         },
@@ -6171,16 +6468,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "row_count_input",
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
-          "x": 54,
-          "y": 180,
+          "x": 0,
+          "y": 578,
           "width": 280
         },
         {
           "id": "build_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 410,
-          "y": 20,
+          "x": 380,
+          "y": 307,
           "width": 280,
           "subtitle": "Generate exactly {{ROW_COUNT}} rows of data about {{TOPIC}}. Rules for every row: - Fill in accurate, realistic values for each column — no…"
         },
@@ -6188,26 +6485,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "2ed27bde-9299-4088-a169-156b1ea5552f",
           "type": "nodetool.generators.DataGenerator",
           "title": "Data Generator",
-          "x": 766,
-          "y": 20,
+          "x": 760,
+          "y": 450,
           "width": 280
         },
         {
           "id": "data_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1122,
-          "y": 20,
+          "x": 1140,
+          "y": 468,
           "width": 280
-        },
-        {
-          "id": "b313851f-3dc9-4372-92ba-acd96654dfd5",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": 45,
-          "y": -200,
-          "width": 460,
-          "isComment": true
         }
       ],
       "edges": [
@@ -6280,27 +6568,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.video.Denoise",
           "title": "Denoise",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 370,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 354,
           "width": 240
         }
       ],
@@ -6379,11 +6676,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "brief",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 560,
           "width": 300,
           "subtitle": "A lighthouse keeper's last night before the light is automated."
         },
@@ -6391,24 +6697,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "dir",
           "type": "nodetool.creative.Director",
           "title": "Director",
-          "x": 340,
-          "y": 120,
+          "x": 400,
+          "y": 546,
           "width": 300
         },
         {
           "id": "batch",
           "type": "nodetool.creative.ShotBatch",
           "title": "Shot Batch",
-          "x": 680,
-          "y": 120,
+          "x": 800,
+          "y": 785,
           "width": 300
         },
         {
           "id": "chain",
           "type": "nodetool.creative.ShotChain",
           "title": "Shot Chain",
-          "x": 1020,
-          "y": 120,
+          "x": 1200,
+          "y": 741,
           "width": 300,
           "subtitle": "kling-2.6/text-to-video"
         },
@@ -6416,40 +6722,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "cut",
           "type": "nodetool.timeline.AddClips",
           "title": "Add Clips",
-          "x": 1360,
-          "y": 120,
+          "x": 1600,
+          "y": 662,
           "width": 300
         },
         {
           "id": "render",
           "type": "nodetool.timeline.RenderTimeline",
           "title": "Render Timeline",
-          "x": 1700,
-          "y": 120,
+          "x": 2000,
+          "y": 686,
           "width": 300
         },
         {
           "id": "of",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2040,
-          "y": 60,
+          "x": 2400,
+          "y": 694,
           "width": 300
         },
         {
           "id": "ot",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2040,
-          "y": 240,
+          "x": 800,
+          "y": 385,
           "width": 300
         },
         {
           "id": "on",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2040,
-          "y": 400,
+          "x": 800,
+          "y": 585,
           "width": 300
         }
       ],
@@ -6589,8 +6895,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment_main",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 40,
-          "y": -240,
+          "x": 0,
+          "y": 0,
           "width": 560,
           "isComment": true
         },
@@ -6598,8 +6904,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "brief",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 100,
+          "x": 0,
+          "y": 500,
           "width": 280,
           "subtitle": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point…"
         },
@@ -6607,24 +6913,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "director",
           "type": "nodetool.creative.Director",
           "title": "Director",
-          "x": 400,
-          "y": 80,
+          "x": 380,
+          "y": 405,
           "width": 320
         },
         {
           "id": "shots",
           "type": "nodetool.creative.ScreenplayShots",
           "title": "Screenplay Shots",
-          "x": 780,
-          "y": 120,
+          "x": 800,
+          "y": 465,
           "width": 280
         },
         {
           "id": "keyframe",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 1120,
-          "y": 80,
+          "x": 1180,
+          "y": 405,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -6632,8 +6938,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "animate",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 1500,
-          "y": 120,
+          "x": 1600,
+          "y": 445,
           "width": 330,
           "subtitle": "Animate this scene with subtle, cinematic motion. Preserve the framing, subjects, and grade of the reference image. No jump cuts, no morphi…"
         },
@@ -6641,32 +6947,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "clips_collect",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 1890,
-          "y": 160,
+          "x": 2030,
+          "y": 486,
           "width": 160
         },
         {
           "id": "add_clips",
           "type": "nodetool.timeline.AddClips",
           "title": "Add Clips",
-          "x": 2110,
-          "y": 120,
+          "x": 2290,
+          "y": 455,
           "width": 300
         },
         {
           "id": "render",
           "type": "nodetool.timeline.RenderTimeline",
           "title": "Render Timeline",
-          "x": 2470,
-          "y": 140,
+          "x": 2690,
+          "y": 465,
           "width": 300
         },
         {
           "id": "film_out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2830,
-          "y": 180,
+          "x": 3090,
+          "y": 513,
           "width": 280
         }
       ],
@@ -6774,11 +7080,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "s",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 536,
           "width": 280,
           "subtitle": "Submissions close on the 14th; late entries are not reviewed."
         },
@@ -6786,16 +7101,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "c",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 514,
           "width": 280
         }
       ],
@@ -6854,27 +7169,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -6933,27 +7257,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "elements",
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 0,
-          "y": 120,
+          "y": 366,
           "width": 380
         },
         {
           "id": "doc",
           "type": "lib.svg.Document",
           "title": "Document",
-          "x": 440,
-          "y": 120,
+          "x": 480,
+          "y": 480,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 760,
-          "y": 120,
+          "x": 860,
+          "y": 464,
           "width": 280
         }
       ],
@@ -7018,35 +7351,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "src",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.control.Distinct",
           "title": "Distinct",
-          "x": 360,
-          "y": 180,
+          "x": 760,
+          "y": 501,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 1140,
+          "y": 485,
           "width": 240
         },
         {
           "id": "fanout1",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 160,
-          "y": 300,
+          "x": 380,
+          "y": 377,
           "width": 280
         }
       ],
@@ -7116,35 +7458,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "l",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 280
         },
         {
           "id": "d",
           "type": "nodetool.control.Drop",
           "title": "Drop",
-          "x": 320,
-          "y": 120,
+          "x": 760,
+          "y": 488,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 1140,
+          "y": 472,
           "width": 280
         },
         {
           "id": "fanout1",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 160,
-          "y": 240,
+          "x": 380,
+          "y": 364,
           "width": 280
         }
       ],
@@ -7213,7 +7564,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -420,
+          "y": 0,
           "width": 940,
           "isComment": true
         },
@@ -7222,191 +7573,191 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 0,
+          "y": 299,
           "width": 300
         },
         {
           "id": "dungeon-floor-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 0,
+          "x": 400,
+          "y": 300,
           "width": 300
         },
         {
           "id": "dungeon-wall",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 0,
+          "x": 840,
+          "y": 299,
           "width": 300
         },
         {
           "id": "dungeon-wall-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 0,
+          "x": 1240,
+          "y": 300,
           "width": 300
         },
         {
           "id": "dungeon-corner",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 0,
+          "x": 1680,
+          "y": 299,
           "width": 300
         },
         {
           "id": "dungeon-corner-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 0,
+          "x": 2080,
+          "y": 300,
           "width": 300
         },
         {
           "id": "arched-oak-door",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 0,
+          "x": 0,
+          "y": 571,
           "width": 300
         },
         {
           "id": "arched-oak-door-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 0,
+          "x": 400,
+          "y": 572,
           "width": 300
         },
         {
           "id": "iron-portcullis",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 450,
+          "x": 840,
+          "y": 571,
           "width": 300
         },
         {
           "id": "iron-portcullis-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 450,
+          "x": 1240,
+          "y": 572,
           "width": 300
         },
         {
           "id": "stone-stairs",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 450,
+          "x": 1680,
+          "y": 571,
           "width": 300
         },
         {
           "id": "stone-stairs-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 450,
+          "x": 2080,
+          "y": 572,
           "width": 300
         },
         {
           "id": "broken-column",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 450,
+          "x": 0,
+          "y": 843,
           "width": 300
         },
         {
           "id": "broken-column-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 450,
+          "x": 400,
+          "y": 844,
           "width": 300
         },
         {
           "id": "wall-torch",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 450,
+          "x": 840,
+          "y": 843,
           "width": 300
         },
         {
           "id": "wall-torch-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 450,
+          "x": 1240,
+          "y": 844,
           "width": 300
         },
         {
           "id": "spike-trap",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 900,
+          "x": 1680,
+          "y": 843,
           "width": 300
         },
         {
           "id": "spike-trap-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 900,
+          "x": 2080,
+          "y": 844,
           "width": 300
         },
         {
           "id": "rune-pressure-plate",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 900,
+          "x": 0,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "rune-pressure-plate-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 900,
+          "x": 400,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "stone-sarcophagus",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 900,
+          "x": 840,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "stone-sarcophagus-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 900,
+          "x": 1240,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "dungeon-key",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 900,
+          "x": 1680,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "dungeon-key-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 900,
+          "x": 2080,
+          "y": 1116,
           "width": 300
         },
         {
@@ -7414,63 +7765,63 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 1350,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "guardian-idol-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 1350,
+          "x": 400,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "treasure-urn",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 1350,
+          "x": 840,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "treasure-urn-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 1350,
+          "x": 1240,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "iron-brazier",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 1350,
+          "x": 1680,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "iron-brazier-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 1350,
+          "x": 2080,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "hanging-chain",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 1350,
+          "x": 0,
+          "y": 1659,
           "width": 300
         },
         {
           "id": "hanging-chain-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 1350,
+          "x": 400,
+          "y": 1660,
           "width": 300
         }
       ],
@@ -7637,11 +7988,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 366,
           "width": 280
         },
         {
@@ -7649,7 +8009,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 340,
+          "y": 582,
           "width": 280,
           "subtitle": "Make it golden hour, warm low sun raking across the subject"
         },
@@ -7658,15 +8018,15 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 500,
+          "y": 807,
           "width": 280
         },
         {
           "id": "tpl",
           "type": "nodetool.text.Template",
           "title": "Template",
-          "x": 400,
-          "y": 340,
+          "x": 380,
+          "y": 634,
           "width": 320
         },
         {
@@ -7674,7 +8034,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
           "x": 800,
-          "y": 240,
+          "y": 494,
           "width": 280,
           "subtitle": "fal-ai/nano-banana/edit"
         },
@@ -7682,8 +8042,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1160,
-          "y": 260,
+          "x": 1180,
+          "y": 508,
           "width": 240
         }
       ],
@@ -7768,11 +8128,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 366,
           "width": 280,
           "subtitle": "A lone lighthouse on a basalt cliff under moving storm light"
         },
@@ -7780,16 +8149,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tpl",
           "type": "nodetool.text.Template",
           "title": "Template",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 385,
           "width": 320
         },
         {
           "id": "img",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 720,
-          "y": 180,
+          "x": 800,
+          "y": 366,
           "width": 280,
           "subtitle": "fal-ai/flux-2/klein/9b"
         },
@@ -7797,8 +8166,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 200,
+          "x": 1180,
+          "y": 379,
           "width": 240
         }
       ],
@@ -7864,27 +8233,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 371,
           "width": 280
         },
         {
           "id": "f",
           "type": "lib.image.filter.Emboss",
           "title": "Emboss",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 366,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 379,
           "width": 280
         }
       ],
@@ -7947,59 +8325,68 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "a",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 120,
+          "y": 387,
           "width": 280
         },
         {
           "id": "b",
           "type": "nodetool.constant.List",
           "title": "List",
-          "x": 320,
-          "y": 120,
+          "x": 0,
+          "y": 790,
           "width": 280
         },
         {
           "id": "x",
           "type": "nodetool.control.Cross",
           "title": "Cross",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 684,
           "width": 280
         },
         {
           "id": "ol",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 582,
           "width": 280
         },
         {
           "id": "orr",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 340,
+          "x": 1140,
+          "y": 782,
           "width": 280
         },
         {
           "id": "fanout1",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 160,
-          "y": 240,
+          "x": 380,
+          "y": 366,
           "width": 280
         },
         {
           "id": "fanout2",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 480,
-          "y": 240,
+          "x": 380,
+          "y": 782,
           "width": 280
         }
       ],
@@ -8088,35 +8475,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "every",
           "type": "nodetool.triggers.IntervalTrigger",
           "title": "Interval Trigger",
           "x": 0,
-          "y": 120,
+          "y": 671,
           "width": 280
         },
         {
           "id": "label",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 330,
-          "y": 40,
+          "x": 380,
+          "y": 346,
           "width": 240
         },
         {
           "id": "tick",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 620,
-          "y": 40,
+          "x": 720,
+          "y": 534,
           "width": 240
         },
         {
           "id": "at",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 620,
-          "y": 220,
+          "x": 380,
+          "y": 835,
           "width": 240
         }
       ],
@@ -8182,27 +8578,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 385,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 366,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 398,
           "width": 300
         }
       ],
@@ -8276,27 +8681,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 514,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 366,
           "width": 300
         },
         {
           "id": "tts",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 660,
-          "y": 120,
+          "x": 400,
+          "y": 629,
           "width": 300,
           "subtitle": "tts-1"
         },
@@ -8304,8 +8718,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "vid",
           "type": "nodetool.video.TextToVideo",
           "title": "Text To Video",
-          "x": 990,
-          "y": 120,
+          "x": 800,
+          "y": 470,
           "width": 300,
           "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
         },
@@ -8313,16 +8727,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mix",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 0,
-          "y": 330,
+          "x": 1200,
+          "y": 569,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 330,
-          "y": 330,
+          "x": 1600,
+          "y": 563,
           "width": 300
         }
       ],
@@ -8409,27 +8823,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -8495,35 +8918,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 366,
           "width": 280
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 390,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
-          "x": 680,
-          "y": 180,
+          "x": 760,
+          "y": 390,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1020,
-          "y": 200,
+          "x": 1140,
+          "y": 374,
           "width": 240
         }
       ],
@@ -8595,35 +9027,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 370,
           "width": 280
         },
         {
           "id": "fo",
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
-          "x": 680,
-          "y": 180,
+          "x": 760,
+          "y": 370,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1020,
-          "y": 200,
+          "x": 1140,
+          "y": 354,
           "width": 240
         }
       ],
@@ -8690,11 +9131,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280,
           "subtitle": "the winter release"
         },
@@ -8702,16 +9152,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tpl",
           "type": "nodetool.text.Template",
           "title": "Template",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 364,
           "width": 320
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 800,
+          "y": 358,
           "width": 240
         }
       ],
@@ -8770,11 +9220,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "s",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 520,
           "width": 280,
           "subtitle": "Revenue rose from 12 to 47 across 3 regions."
         },
@@ -8782,16 +9241,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "fa",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 366,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 498,
           "width": 280
         }
       ],
@@ -8851,11 +9310,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280,
           "subtitle": "The quick brown fox jumps over the lazy dog"
         },
@@ -8864,7 +9332,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 340,
+          "y": 571,
           "width": 280,
           "subtitle": "lazy"
         },
@@ -8873,7 +9341,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 500,
+          "y": 796,
           "width": 280,
           "subtitle": "energetic"
         },
@@ -8881,8 +9349,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "rp",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 400,
-          "y": 300,
+          "x": 380,
+          "y": 439,
           "width": 280
         },
         {
@@ -8890,7 +9358,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 760,
-          "y": 320,
+          "y": 584,
           "width": 240
         }
       ],
@@ -8963,27 +9431,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 409,
           "width": 280
         },
         {
           "id": "f",
           "type": "lib.image.filter.Canny",
           "title": "Canny",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 366,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 417,
           "width": 280
         }
       ],
@@ -9043,27 +9520,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 385,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.image.Fit",
           "title": "Fit",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 393,
           "width": 240
         }
       ],
@@ -9122,27 +9608,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -9219,11 +9714,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "topic_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 76,
-          "y": 171,
+          "x": 0,
+          "y": 704,
           "width": 280,
           "subtitle": "Python Programming"
         },
@@ -9231,16 +9735,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "num_cards_input",
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
-          "x": 76,
-          "y": 291,
+          "x": 0,
+          "y": 929,
           "width": 280
         },
         {
           "id": "format_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 386,
-          "y": 167,
+          "x": 380,
+          "y": 590,
           "width": 280,
           "subtitle": "You are a study-flashcard writer. Create {{NUM_CARDS}} flashcards that teach {{TOPIC}} to a first-time learner. Rules for every card: - \"fr…"
         },
@@ -9248,41 +9752,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "generate_flashcards",
           "type": "nodetool.generators.DataGenerator",
           "title": "Data Generator",
-          "x": 776,
-          "y": 65,
+          "x": 760,
+          "y": 764,
           "width": 280
         },
         {
           "id": "plan_study",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1126,
-          "y": 400,
+          "x": 1140,
+          "y": 385,
           "width": 320
-        },
-        {
-          "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": -605,
-          "y": 0,
-          "width": 460,
-          "isComment": true
         },
         {
           "id": "flashcards_output",
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1140,
-          "y": 65,
+          "y": 942,
           "width": 260
         },
         {
           "id": "plan_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1516,
-          "y": 470,
+          "x": 1560,
+          "y": 593,
           "width": 280
         }
       ],
@@ -9369,27 +9864,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 120,
+          "y": 366,
           "width": 280
         },
         {
           "id": "ng",
           "type": "lib.audio.NoiseGate",
           "title": "Noise Gate",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 387,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 425,
           "width": 280
         }
       ],
@@ -9466,11 +9970,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "creator-image",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 100,
+          "y": 385,
           "width": 280
         },
         {
@@ -9478,7 +9991,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 330,
+          "y": 601,
           "width": 280
         },
         {
@@ -9486,7 +9999,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 560,
+          "y": 817,
           "width": 280,
           "subtitle": "I did not expect a travel cup to fix my mornings, but this one did. The lid never leaks in my bag, the finish feels great, and my coffee st…"
         },
@@ -9495,7 +10008,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 770,
+          "y": 1042,
           "width": 280,
           "subtitle": "Olive Travel Cup: a matte muted-olive cup with a charcoal lid"
         },
@@ -9503,16 +10016,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "prompt",
           "type": "nodetool.text.Template",
           "title": "Template",
-          "x": 390,
-          "y": 280,
+          "x": 380,
+          "y": 862,
           "width": 340
         },
         {
           "id": "references",
           "type": "nodetool.image.ImagesToList",
           "title": "Images To List",
-          "x": 390,
-          "y": 100,
+          "x": 380,
+          "y": 512,
           "width": 280
         },
         {
@@ -9520,7 +10033,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ReferenceToVideo",
           "title": "Reference To Video",
           "x": 820,
-          "y": 190,
+          "y": 708,
           "width": 320,
           "subtitle": "bytedance/seedance-2.5/reference-to-video"
         },
@@ -9529,7 +10042,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1240,
-          "y": 220,
+          "y": 722,
           "width": 260
         }
       ],
@@ -9619,19 +10132,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "sil",
           "type": "nodetool.audio.CreateSilence",
           "title": "Create Silence",
           "x": 0,
-          "y": 180,
+          "y": 375,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 360,
-          "y": 200,
+          "x": 380,
+          "y": 346,
           "width": 240
         }
       ],
@@ -9688,11 +10210,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "p",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 401,
           "width": 280,
           "subtitle": "a retro travel poster of a volcanic coastline, screenprint texture"
         },
@@ -9700,8 +10231,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "gen",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 366,
           "width": 280,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -9709,8 +10240,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "up",
           "type": "nodetool.image.Upscale",
           "title": "Upscale",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 366,
           "width": 280,
           "subtitle": "fal-ai/clarity-upscaler"
         },
@@ -9718,8 +10249,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 379,
           "width": 280
         }
       ],
@@ -9794,17 +10325,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 80,
-          "y": -200,
-          "width": 460,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "topic_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 80,
-          "y": 300,
+          "x": 0,
+          "y": 714,
           "width": 280,
           "subtitle": "AI and developer tools"
         },
@@ -9812,16 +10343,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "3",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 440,
-          "y": 80,
+          "x": 760,
+          "y": 695,
           "width": 280
         },
         {
           "id": "4",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 80,
-          "y": 80,
+          "x": 380,
+          "y": 327,
           "width": 280,
           "subtitle": "Scrape the front page of https://news.ycombinator.com/ and write a themed Markdown digest. Topic focus: {{ topic }} - Prioritize front-page…"
         },
@@ -9829,8 +10360,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-analysis",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 800,
-          "y": 80,
+          "x": 1140,
+          "y": 726,
           "width": 280
         }
       ],
@@ -9932,17 +10463,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -560,
-          "y": 40,
-          "width": 500,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "input_topic",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 60,
+          "x": 0,
+          "y": 624,
           "width": 280,
           "subtitle": "How compound interest quietly builds wealth"
         },
@@ -9950,8 +10481,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "input_audience",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 300,
+          "x": 0,
+          "y": 849,
           "width": 280,
           "subtitle": "Gen Z just starting to invest"
         },
@@ -9959,16 +10490,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "input_count",
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
-          "x": 40,
-          "y": 540,
+          "x": 0,
+          "y": 1074,
           "width": 280
         },
         {
           "id": "hook_brief",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 420,
-          "y": 120,
+          "x": 380,
+          "y": 722,
           "width": 340,
           "subtitle": "You are a short-form video strategist. Write exactly {{ count }} scroll-stopping hook lines for a video. TOPIC: {{ topic }} AUDIENCE: {{ au…"
         },
@@ -9976,16 +10507,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "hooks",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 800,
-          "y": 120,
+          "x": 820,
+          "y": 730,
           "width": 360
         },
         {
           "id": "thumb_brief",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1200,
-          "y": 120,
+          "x": 1280,
+          "y": 452,
           "width": 340,
           "subtitle": "You are an art director for viral thumbnails. Turn one hook into a single image description. VIDEO TOPIC: {{ topic }} HOOK ON SCREEN: {{ ho…"
         },
@@ -9993,8 +10524,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "thumbnail",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 1580,
-          "y": 120,
+          "x": 1740,
+          "y": 603,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -10002,40 +10533,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "punch",
           "type": "lib.image.color.BrightnessContrast",
           "title": "Brightness Contrast",
-          "x": 1940,
-          "y": 160,
+          "x": 2160,
+          "y": 745,
           "width": 280
         },
         {
           "id": "collect_thumbs",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 2260,
-          "y": 160,
+          "x": 2540,
+          "y": 971,
           "width": 280
         },
         {
           "id": "output_gallery",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2580,
-          "y": 160,
+          "x": 3000,
+          "y": 933,
           "width": 280
         },
         {
           "id": "preview_hooks",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 800,
-          "y": 600,
+          "x": 1280,
+          "y": 1008,
           "width": 360
         },
         {
           "id": "preview_thumb",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1940,
-          "y": 540,
+          "x": 2540,
+          "y": 601,
           "width": 360
         }
       ],
@@ -10175,27 +10706,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 490,
           "width": 280
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 514,
           "width": 280
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 486,
           "width": 280,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -10203,16 +10743,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ct",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 366,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 340,
+          "x": 1520,
+          "y": 498,
           "width": 280
         }
       ],
@@ -10304,8 +10844,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "97876",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 11,
-          "y": -300,
+          "x": 0,
+          "y": 0,
           "width": 900,
           "isComment": true
         },
@@ -10313,48 +10853,48 @@ export const templateEntries: TemplateEntry[] = [
           "id": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
-          "x": 1,
-          "y": 71,
+          "x": 0,
+          "y": 399,
           "width": 260
         },
         {
           "id": "denoise-node",
           "type": "lib.image.filter.GaussianBlur",
           "title": "Gaussian Blur",
-          "x": 300,
-          "y": 90,
+          "x": 360,
+          "y": 360,
           "width": 240
         },
         {
           "id": "tone-node",
           "type": "lib.image.color.BrightnessContrast",
           "title": "Brightness Contrast",
-          "x": 580,
-          "y": 90,
+          "x": 700,
+          "y": 360,
           "width": 240
         },
         {
           "id": "color-node",
           "type": "lib.image.color.HSB",
           "title": "HSB",
-          "x": 860,
-          "y": 90,
+          "x": 1040,
+          "y": 346,
           "width": 240
         },
         {
           "id": "sharpen-node",
           "type": "lib.image.filter.UnsharpMask",
           "title": "Unsharp Mask",
-          "x": 1140,
-          "y": 90,
+          "x": 1380,
+          "y": 360,
           "width": 240
         },
         {
           "id": "output-enhanced-image",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1420,
-          "y": 100,
+          "x": 1720,
+          "y": 411,
           "width": 280
         }
       ],
@@ -10440,37 +10980,37 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "9f51da20-90d9-46a7-8131-c79ac63df648",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "1",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
-          "x": 50,
-          "y": 222,
+          "x": 0,
+          "y": 353,
           "width": 280
         },
         {
           "id": "77a9cf98-c4c6-4585-930b-badbe641a662",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 360,
-          "y": 50,
+          "x": 380,
+          "y": 334,
           "width": 280,
           "subtitle": "Write a 150-250 word short story inspired by this image. Give it a clear beginning, middle, and end, and a one-line title on the first line…"
-        },
-        {
-          "id": "9f51da20-90d9-46a7-8131-c79ac63df648",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": -664,
-          "y": -3,
-          "width": 280,
-          "isComment": true
         },
         {
           "id": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 670,
-          "y": 196,
+          "x": 760,
+          "y": 307,
           "width": 340,
           "subtitle": "tts-1"
         },
@@ -10478,8 +11018,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-narration",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 990,
-          "y": 196,
+          "x": 1200,
+          "y": 365,
           "width": 280
         }
       ],
@@ -10560,16 +11100,16 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
-          "width": 460,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "2",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 1000,
-          "y": 165,
+          "x": 864,
+          "y": 779,
           "width": 416,
           "subtitle": "veo-3.1-generate-preview"
         },
@@ -10577,8 +11117,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "3",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 500,
-          "y": 510,
+          "x": 380,
+          "y": 899,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -10587,7 +11127,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 483,
+          "y": 775,
           "width": 280,
           "subtitle": "Moody twilight ocean scene with cinematic lighting"
         },
@@ -10595,8 +11135,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "5",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 580,
-          "y": 228,
+          "x": 380,
+          "y": 315,
           "width": 280,
           "subtitle": "Animate the reference still into a short cinematic clip. Scene: {{ scene }} Motion: {{ motion }} Pacing: {{ duration }} Preserve the subjec…"
         },
@@ -10604,8 +11144,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "6",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 80,
-          "y": 255,
+          "x": 0,
+          "y": 550,
           "width": 280,
           "subtitle": "Slow dolly push toward the horizon as waves shimmer with reflective highlights"
         },
@@ -10613,8 +11153,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "7",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 160,
-          "y": 39,
+          "x": 0,
+          "y": 325,
           "width": 280,
           "subtitle": "8 second dramatic reveal"
         },
@@ -10622,8 +11162,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "8",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 660,
-          "y": 0,
+          "x": 0,
+          "y": 1000,
           "width": 280,
           "subtitle": "no watermarks, no text overlays, no jump cuts, no warped anatomy"
         },
@@ -10631,8 +11171,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-animation",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1320,
-          "y": 165,
+          "x": 1380,
+          "y": 861,
           "width": 280
         }
       ],
@@ -10740,35 +11280,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 370,
           "width": 280
         },
         {
           "id": "info",
           "type": "nodetool.audio.GetAudioInfo",
           "title": "Get Audio Info",
-          "x": 680,
-          "y": 180,
+          "x": 760,
+          "y": 370,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1020,
-          "y": 200,
+          "x": 1140,
+          "y": 354,
           "width": 240
         }
       ],
@@ -10836,27 +11385,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 366,
           "width": 280
         },
         {
           "id": "info",
           "type": "nodetool.video.GetVideoInfo",
           "title": "Get Video Info",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 390,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 374,
           "width": 240
         }
       ],
@@ -10915,27 +11473,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 371,
           "width": 280
         },
         {
           "id": "f",
           "type": "lib.image.filter.Invert",
           "title": "Invert",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 379,
           "width": 280
         }
       ],
@@ -11009,59 +11576,68 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "src",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 120,
+          "y": 366,
           "width": 280
         },
         {
           "id": "fan",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 371,
           "width": 280
         },
         {
           "id": "keep",
           "type": "nodetool.control.FilterCode",
           "title": "Filter Code",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 495,
           "width": 280
         },
         {
           "id": "gather",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 411,
           "width": 280
         },
         {
           "id": "n",
           "type": "nodetool.control.Count",
           "title": "Count",
-          "x": 0,
-          "y": 340,
+          "x": 1140,
+          "y": 579,
           "width": 280
         },
         {
           "id": "o1",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 320,
-          "y": 340,
+          "x": 1520,
+          "y": 379,
           "width": 280
         },
         {
           "id": "o2",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 340,
+          "x": 1520,
+          "y": 579,
           "width": 280
         }
       ],
@@ -11152,19 +11728,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "l",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 120,
+          "y": 327,
           "width": 280
         },
         {
           "id": "f",
           "type": "nodetool.control.FilterEqual",
           "title": "Filter Equal",
-          "x": 320,
-          "y": 120,
+          "x": 760,
+          "y": 442,
           "width": 280,
           "subtitle": "ok"
         },
@@ -11172,16 +11757,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 1140,
+          "y": 440,
           "width": 280
         },
         {
           "id": "fanout1",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 160,
-          "y": 240,
+          "x": 380,
+          "y": 332,
           "width": 280
         }
       ],
@@ -11247,27 +11832,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 280
         },
         {
           "id": "ck",
           "type": "nodetool.video.ChromaKey",
           "title": "Chroma Key",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 370,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 354,
           "width": 280
         }
       ],
@@ -11330,35 +11924,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "l",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 120,
+          "y": 354,
           "width": 280
         },
         {
           "id": "z",
           "type": "nodetool.control.Last",
           "title": "Last",
-          "x": 320,
-          "y": 120,
+          "x": 760,
+          "y": 470,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 1140,
+          "y": 454,
           "width": 280
         },
         {
           "id": "fanout1",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 160,
-          "y": 240,
+          "x": 380,
+          "y": 346,
           "width": 280
         }
       ],
@@ -11458,7 +12061,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 240,
+          "y": 233,
           "width": 280
         },
         {
@@ -11466,7 +12069,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 400,
+          "y": 599,
           "width": 280
         },
         {
@@ -11474,31 +12077,31 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
           "x": 380,
-          "y": 380,
+          "y": 614,
           "width": 300
         },
         {
           "id": "fade-in",
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
-          "x": 710,
-          "y": 380,
+          "x": 780,
+          "y": 538,
           "width": 300
         },
         {
           "id": "fade-out",
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
-          "x": 1040,
-          "y": 380,
+          "x": 1180,
+          "y": 471,
           "width": 300
         },
         {
           "id": "sync",
           "type": "nodetool.video.LipSync",
           "title": "Lip Sync",
-          "x": 1420,
-          "y": 300,
+          "x": 1580,
+          "y": 381,
           "width": 280,
           "subtitle": "fal-ai/sync-lipsync/v2/pro"
         },
@@ -11506,8 +12109,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-clip",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 320,
+          "x": 1960,
+          "y": 400,
           "width": 240
         }
       ],
@@ -11594,27 +12197,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 385,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 366,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 398,
           "width": 300
         }
       ],
@@ -11694,11 +12306,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300,
           "subtitle": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
         },
@@ -11706,16 +12327,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "tts",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 352,
           "width": 300,
           "subtitle": "tts-1"
         },
@@ -11723,32 +12344,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1980,
-          "y": 120,
+          "x": 2400,
+          "y": 378,
           "width": 300
         },
         {
           "id": "level",
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 394,
           "width": 300
         },
         {
           "id": "fade-in",
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
-          "x": 1320,
-          "y": 120,
+          "x": 1600,
+          "y": 394,
           "width": 300
         },
         {
           "id": "fade-out",
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
-          "x": 1650,
-          "y": 120,
+          "x": 2000,
+          "y": 394,
           "width": 300
         }
       ],
@@ -11887,11 +12508,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "languages",
           "type": "nodetool.control.Collection",
           "title": "Collection",
           "x": 0,
-          "y": 0,
+          "y": 366,
           "width": 220
         },
         {
@@ -11899,7 +12529,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 160,
+          "y": 782,
           "width": 220
         },
         {
@@ -11907,7 +12537,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Entity",
           "title": "Entity",
           "x": 0,
-          "y": 300,
+          "y": 1007,
           "width": 240
         },
         {
@@ -11915,87 +12545,87 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Storyboard",
           "title": "Storyboard",
           "x": 0,
-          "y": 460,
+          "y": 1191,
           "width": 240
         },
         {
           "id": "script",
           "type": "nodetool.script.WriteScript",
           "title": "Write Script",
-          "x": 320,
-          "y": 120,
+          "x": 340,
+          "y": 691,
           "width": 260
         },
         {
           "id": "voice",
           "type": "nodetool.script.VoiceScript",
           "title": "Voice Script",
-          "x": 640,
-          "y": 120,
+          "x": 700,
+          "y": 805,
           "width": 240
         },
         {
           "id": "timeline",
           "type": "nodetool.script.ScriptToTimeline",
           "title": "Script To Timeline",
-          "x": 920,
-          "y": 120,
+          "x": 1040,
+          "y": 959,
           "width": 240
         },
         {
           "id": "shots",
           "type": "nodetool.storyboard.StoryboardShots",
           "title": "Storyboard Shots",
-          "x": 320,
-          "y": 460,
+          "x": 340,
+          "y": 1130,
           "width": 240
         },
         {
           "id": "stills",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 620,
-          "y": 460,
+          "x": 700,
+          "y": 1104,
           "width": 220
         },
         {
           "id": "broll",
           "type": "nodetool.timeline.AddClips",
           "title": "Add Clips",
-          "x": 1200,
-          "y": 300,
+          "x": 1380,
+          "y": 992,
           "width": 240
         },
         {
           "id": "subtitles",
           "type": "nodetool.script.ScriptToSubtitles",
           "title": "Script To Subtitles",
-          "x": 1200,
-          "y": 60,
+          "x": 1040,
+          "y": 640,
           "width": 240
         },
         {
           "id": "render",
           "type": "nodetool.timeline.RenderTimeline",
           "title": "Render Timeline",
-          "x": 1480,
-          "y": 300,
+          "x": 1720,
+          "y": 1034,
           "width": 240
         },
         {
           "id": "out_video",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1740,
-          "y": 300,
+          "x": 2060,
+          "y": 1048,
           "width": 200
         },
         {
           "id": "out_srt",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1480,
-          "y": 60,
+          "x": 1380,
+          "y": 688,
           "width": 200
         }
       ],
@@ -12134,7 +12764,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -420,
+          "y": 0,
           "width": 940,
           "isComment": true
         },
@@ -12143,191 +12773,191 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 0,
+          "y": 299,
           "width": 300
         },
         {
           "id": "woodland-ranger-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 0,
+          "x": 400,
+          "y": 300,
           "width": 300
         },
         {
           "id": "forest-slime",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 0,
+          "x": 840,
+          "y": 299,
           "width": 300
         },
         {
           "id": "forest-slime-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 0,
+          "x": 1240,
+          "y": 300,
           "width": 300
         },
         {
           "id": "pine-tree",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 0,
+          "x": 1680,
+          "y": 299,
           "width": 300
         },
         {
           "id": "pine-tree-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 0,
+          "x": 2080,
+          "y": 300,
           "width": 300
         },
         {
           "id": "broadleaf-tree",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 0,
+          "x": 0,
+          "y": 571,
           "width": 300
         },
         {
           "id": "broadleaf-tree-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 0,
+          "x": 400,
+          "y": 572,
           "width": 300
         },
         {
           "id": "rock-cluster",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 450,
+          "x": 840,
+          "y": 571,
           "width": 300
         },
         {
           "id": "rock-cluster-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 450,
+          "x": 1240,
+          "y": 572,
           "width": 300
         },
         {
           "id": "mushroom-patch",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 450,
+          "x": 1680,
+          "y": 571,
           "width": 300
         },
         {
           "id": "mushroom-patch-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 450,
+          "x": 2080,
+          "y": 572,
           "width": 300
         },
         {
           "id": "treasure-chest",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 450,
+          "x": 0,
+          "y": 843,
           "width": 300
         },
         {
           "id": "treasure-chest-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 450,
+          "x": 400,
+          "y": 844,
           "width": 300
         },
         {
           "id": "wooden-crate",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 450,
+          "x": 840,
+          "y": 843,
           "width": 300
         },
         {
           "id": "wooden-crate-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 450,
+          "x": 1240,
+          "y": 844,
           "width": 300
         },
         {
           "id": "supply-barrel",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 900,
+          "x": 1680,
+          "y": 843,
           "width": 300
         },
         {
           "id": "supply-barrel-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 900,
+          "x": 2080,
+          "y": 844,
           "width": 300
         },
         {
           "id": "campfire",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 900,
+          "x": 0,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "campfire-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 900,
+          "x": 400,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "canvas-tent",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 900,
+          "x": 840,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "canvas-tent-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 900,
+          "x": 1240,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "gold-coin",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 900,
+          "x": 1680,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "gold-coin-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 900,
+          "x": 2080,
+          "y": 1116,
           "width": 300
         },
         {
@@ -12335,63 +12965,63 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 1350,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "healing-potion-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 1350,
+          "x": 400,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "stone-arch",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 1350,
+          "x": 840,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "stone-arch-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 1350,
+          "x": 1240,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "wooden-bridge",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 1350,
+          "x": 1680,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "wooden-bridge-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 1350,
+          "x": 2080,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "trail-sign",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 1350,
+          "x": 0,
+          "y": 1659,
           "width": 300
         },
         {
           "id": "trail-sign-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 1350,
+          "x": 400,
+          "y": 1660,
           "width": 300
         }
       ],
@@ -12551,7 +13181,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -420,
+          "y": 0,
           "width": 940,
           "isComment": true
         },
@@ -12560,191 +13190,191 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 0,
+          "y": 299,
           "width": 300
         },
         {
           "id": "harbor-rowboat-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 0,
+          "x": 400,
+          "y": 300,
           "width": 300
         },
         {
           "id": "coastal-sailboat",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 0,
+          "x": 840,
+          "y": 299,
           "width": 300
         },
         {
           "id": "coastal-sailboat-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 0,
+          "x": 1240,
+          "y": 300,
           "width": 300
         },
         {
           "id": "dock-segment",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 0,
+          "x": 1680,
+          "y": 299,
           "width": 300
         },
         {
           "id": "dock-segment-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 0,
+          "x": 2080,
+          "y": 300,
           "width": 300
         },
         {
           "id": "dock-lookout",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 0,
+          "x": 0,
+          "y": 571,
           "width": 300
         },
         {
           "id": "dock-lookout-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 0,
+          "x": 400,
+          "y": 572,
           "width": 300
         },
         {
           "id": "striped-lighthouse",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 450,
+          "x": 840,
+          "y": 571,
           "width": 300
         },
         {
           "id": "striped-lighthouse-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 450,
+          "x": 1240,
+          "y": 572,
           "width": 300
         },
         {
           "id": "beach-hut",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 450,
+          "x": 1680,
+          "y": 571,
           "width": 300
         },
         {
           "id": "beach-hut-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 450,
+          "x": 2080,
+          "y": 572,
           "width": 300
         },
         {
           "id": "island-palm",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 450,
+          "x": 0,
+          "y": 843,
           "width": 300
         },
         {
           "id": "island-palm-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 450,
+          "x": 400,
+          "y": 844,
           "width": 300
         },
         {
           "id": "harbor-buoy",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 450,
+          "x": 840,
+          "y": 843,
           "width": 300
         },
         {
           "id": "harbor-buoy-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 450,
+          "x": 1240,
+          "y": 844,
           "width": 300
         },
         {
           "id": "life-ring",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 900,
+          "x": 1680,
+          "y": 843,
           "width": 300
         },
         {
           "id": "life-ring-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 900,
+          "x": 2080,
+          "y": 844,
           "width": 300
         },
         {
           "id": "iron-anchor",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 900,
+          "x": 0,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "iron-anchor-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 900,
+          "x": 400,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "fish-crate",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 900,
+          "x": 840,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "fish-crate-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 900,
+          "x": 1240,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "mooring-bollard",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 900,
+          "x": 1680,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "mooring-bollard-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 900,
+          "x": 2080,
+          "y": 1116,
           "width": 300
         },
         {
@@ -12752,63 +13382,63 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 1350,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "tidepool-rocks-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 1350,
+          "x": 400,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "shore-crab",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 1350,
+          "x": 840,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "shore-crab-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 1350,
+          "x": 1240,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "golden-starfish",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 1350,
+          "x": 1680,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "golden-starfish-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 1350,
+          "x": 2080,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "clam-shell",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 1350,
+          "x": 0,
+          "y": 1659,
           "width": 300
         },
         {
           "id": "clam-shell-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 1350,
+          "x": 400,
+          "y": 1660,
           "width": 300
         }
       ],
@@ -12975,43 +13605,52 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 120,
+          "y": 381,
           "width": 280
         },
         {
           "id": "cmp",
           "type": "lib.audio.Compress",
           "title": "Compress",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "gain",
           "type": "lib.audio.Gain",
           "title": "Gain",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 402,
           "width": 280
         },
         {
           "id": "lim",
           "type": "lib.audio.Limiter",
           "title": "Limiter",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 388,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 340,
+          "x": 1520,
+          "y": 440,
           "width": 280
         }
       ],
@@ -13118,33 +13757,33 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment_intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 30,
-          "y": -260,
-          "width": 520,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "recording_input",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
-          "x": 50,
-          "y": 40,
+          "x": 0,
+          "y": 611,
           "width": 280
         },
         {
           "id": "transcript_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 300,
+          "x": 0,
+          "y": 1010,
           "width": 280
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 400,
-          "y": 40,
+          "x": 380,
+          "y": 675,
           "width": 280,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -13152,32 +13791,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "is_transcript_empty",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 400,
-          "y": 300,
+          "x": 380,
+          "y": 901,
           "width": 280
         },
         {
           "id": "use_transcribed_audio",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 750,
-          "y": 40,
+          "x": 760,
+          "y": 817,
           "width": 280
         },
         {
           "id": "use_pasted_transcript",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 750,
-          "y": 300,
+          "x": 760,
+          "y": 1032,
           "width": 280
         },
         {
           "id": "summarizer",
           "type": "nodetool.agents.Summarizer",
           "title": "Summarizer",
-          "x": 1100,
-          "y": 40,
+          "x": 1520,
+          "y": 864,
           "width": 280,
           "subtitle": "You are an expert meeting-notes writer. You will be given a raw meeting transcript. Write a summary in Markdown with this exact structure:…"
         },
@@ -13185,8 +13824,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "action_items_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1100,
-          "y": 300,
+          "x": 1520,
+          "y": 393,
           "width": 280,
           "subtitle": "Read this meeting transcript and list every action item mentioned: {{TRANSCRIPT}} For each action item capture who owns it and any deadline…"
         },
@@ -13194,40 +13833,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "action_items_generator",
           "type": "nodetool.generators.DataGenerator",
           "title": "Data Generator",
-          "x": 1450,
-          "y": 300,
+          "x": 1900,
+          "y": 561,
           "width": 280
         },
         {
           "id": "transcript_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1100,
-          "y": 560,
+          "x": 1520,
+          "y": 1116,
           "width": 280
         },
         {
           "id": "summary_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1450,
-          "y": 40,
+          "x": 1900,
+          "y": 913,
           "width": 280
         },
         {
           "id": "action_items_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1800,
-          "y": 300,
+          "x": 2280,
+          "y": 604,
           "width": 280
         },
         {
           "id": "transcript_join",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1030,
-          "y": 40,
+          "x": 1140,
+          "y": 727,
           "width": 280
         }
       ],
@@ -13381,17 +14020,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 40,
-          "y": -280,
-          "width": 540,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "brief",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 60,
+          "x": 0,
+          "y": 615,
           "width": 300,
           "subtitle": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor…"
         },
@@ -13399,8 +14038,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "context",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 360,
+          "x": 0,
+          "y": 971,
           "width": 300,
           "subtitle": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects chu…"
         },
@@ -13408,8 +14047,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "arena_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 430,
-          "y": 80,
+          "x": 400,
+          "y": 754,
           "width": 320,
           "subtitle": "Brief: {{ BRIEF }} Audience & constraints: {{ CONTEXT }} Answer in Markdown with exactly these three sections and nothing else: ## Recommen…"
         },
@@ -13417,16 +14056,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "openai_lane",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 830,
-          "y": -60,
+          "x": 820,
+          "y": 366,
           "width": 340
         },
         {
           "id": "anthropic_lane",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 830,
-          "y": 320,
+          "x": 820,
+          "y": 802,
           "width": 340,
           "subtitle": "claude-sonnet-5"
         },
@@ -13434,8 +14073,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "gemini_lane",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 830,
-          "y": 700,
+          "x": 820,
+          "y": 1238,
           "width": 340,
           "subtitle": "gemini-3.5-flash"
         },
@@ -13443,32 +14082,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "openai_out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1250,
-          "y": -60,
+          "x": 1260,
+          "y": 416,
           "width": 300
         },
         {
           "id": "anthropic_out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1250,
-          "y": 320,
+          "x": 1260,
+          "y": 1177,
           "width": 300
         },
         {
           "id": "gemini_out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1250,
-          "y": 700,
+          "x": 1260,
+          "y": 1377,
           "width": 300
         },
         {
           "id": "judge_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1250,
-          "y": 1080,
+          "x": 1260,
+          "y": 661,
           "width": 320,
           "subtitle": "Brief: {{ BRIEF }} Audience & constraints: {{ CONTEXT }} Three anonymous analysts answered this brief. You do not know who wrote which answ…"
         },
@@ -13476,8 +14115,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "judge",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 1650,
-          "y": 1080,
+          "x": 1680,
+          "y": 753,
           "width": 340,
           "subtitle": "claude-sonnet-5"
         },
@@ -13485,8 +14124,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "verdict_out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2070,
-          "y": 1080,
+          "x": 2120,
+          "y": 891,
           "width": 300
         }
       ],
@@ -13636,11 +14275,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "p",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 381,
           "width": 300,
           "subtitle": "editorial photograph, muted earth palette, soft north light, matte finish, generous negative space"
         },
@@ -13648,8 +14296,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "gen",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -13657,8 +14305,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 359,
           "width": 300
         }
       ],
@@ -13741,9 +14389,9 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 38,
-          "y": -194,
-          "width": 460,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true,
           "subtitle": "🎬 Movie Posters From a title, genre, and visual style, design a batch of theatrical poster concepts. An art-direction agent writes the key-art brief — positioning, palette, typography — and that brief drives every post…"
         },
@@ -13751,8 +14399,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "strategy_prompt_formatter",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 619,
-          "y": 123,
+          "x": 380,
+          "y": 346,
           "width": 361,
           "subtitle": "You are the art director on a major studio's key-art team. Film brief: - Title: {{ MOVIE_TITLE }} - Genre: {{ GENRE }} - Visual style: {{ S…"
         },
@@ -13760,8 +14408,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "movie_title_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 279,
-          "y": 50,
+          "x": 0,
+          "y": 696,
           "width": 280,
           "subtitle": "Singularity"
         },
@@ -13769,8 +14417,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "genre_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 279,
-          "y": 330,
+          "x": 0,
+          "y": 921,
           "width": 280,
           "subtitle": "Sci-Fi Thriller"
         },
@@ -13778,8 +14426,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "style_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 279,
-          "y": 610,
+          "x": 0,
+          "y": 471,
           "width": 280,
           "subtitle": "Neo-noir, high-contrast, cinematic"
         },
@@ -13787,16 +14435,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "prompt_list_generator",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 1662,
-          "y": 237,
+          "x": 1603,
+          "y": 790,
           "width": 456
         },
         {
           "id": "0276f606-d899-4487-be65-4615564507cc",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 2608,
-          "y": 187,
+          "x": 2669,
+          "y": 634,
           "width": 509,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -13804,8 +14452,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 2148,
-          "y": 169,
+          "x": 2159,
+          "y": 679,
           "width": 410,
           "subtitle": "Cinematic {{ genre }} movie poster, theatrical one-sheet. Scene: {{ scene }} Core visual concept: {{ core_visual_concept }} Art direction:…"
         },
@@ -13813,8 +14461,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1352,
-          "y": 304,
+          "x": 1223,
+          "y": 682,
           "width": 280,
           "subtitle": "You are pitching poster concepts for the film \"{{ title }}\" ({{ genre }}). Positioning: {{ positioning }} Audience insight: {{ audience_ins…"
         },
@@ -13822,8 +14470,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
           "type": "nodetool.generators.StructuredOutputGenerator",
           "title": "Structured Output Generator",
-          "x": 1010,
-          "y": 299,
+          "x": 841,
+          "y": 767,
           "width": 282,
           "subtitle": "You are a film key-art director turning a creative brief into structured fields. Goal - Read <INSTRUCTIONS> (the art-direction brief) and a…"
         },
@@ -13831,24 +14479,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
           "type": "nodetool.control.Reroute",
           "title": "Reroute",
-          "x": 1231,
-          "y": 641,
+          "x": 380,
+          "y": 1075,
           "width": 280
         },
         {
           "id": "dd61b3bb-e050-4598-83e9-effbd91478ae",
           "type": "nodetool.control.Reroute",
           "title": "Reroute",
-          "x": 1210,
-          "y": 591,
+          "x": 380,
+          "y": 1005,
           "width": 280
         },
         {
           "id": "poster_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 3200,
-          "y": 187,
+          "x": 3278,
+          "y": 854,
           "width": 320
         }
       ],
@@ -14058,17 +14706,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 40,
-          "y": -210,
-          "width": 460,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "logline",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 69,
+          "x": 0,
+          "y": 413,
           "width": 280,
           "subtitle": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap."
         },
@@ -14076,8 +14724,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "style",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 343,
+          "x": 0,
+          "y": 638,
           "width": 280,
           "subtitle": "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, har…"
         },
@@ -14085,16 +14733,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "shot_count",
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
-          "x": 50,
-          "y": 619,
+          "x": 0,
+          "y": 863,
           "width": 280
         },
         {
           "id": "director",
           "type": "nodetool.creative.Director",
           "title": "Director",
-          "x": 430,
-          "y": 180,
+          "x": 380,
+          "y": 496,
           "width": 360,
           "subtitle": "gemini-3.1-pro-preview"
         },
@@ -14102,16 +14750,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "shots",
           "type": "nodetool.creative.ScreenplayShots",
           "title": "Screenplay Shots",
-          "x": 860,
-          "y": 300,
+          "x": 840,
+          "y": 566,
           "width": 320
         },
         {
           "id": "keyframe",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 1250,
-          "y": 330,
+          "x": 1260,
+          "y": 525,
           "width": 320,
           "subtitle": "gpt-image-2-text-to-image"
         },
@@ -14119,8 +14767,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "animate",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 1640,
-          "y": 400,
+          "x": 1680,
+          "y": 575,
           "width": 331,
           "subtitle": "veo-3.1-generate-preview"
         },
@@ -14128,24 +14776,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "collect",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 2040,
-          "y": 436,
+          "x": 2111,
+          "y": 611,
           "width": 161
         },
         {
           "id": "concat",
           "type": "nodetool.video.Concat",
           "title": "Concat",
-          "x": 2260,
-          "y": 384,
+          "x": 2372,
+          "y": 556,
           "width": 320
         },
         {
           "id": "output-trailer",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2640,
-          "y": 384,
+          "x": 2792,
+          "y": 644,
           "width": 280
         }
       ],
@@ -14342,24 +14990,24 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
-          "width": 460,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "audio_track",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
-          "x": 50,
-          "y": 104,
+          "x": 0,
+          "y": 283,
           "width": 280
         },
         {
           "id": "genre_hint",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 396,
+          "x": 0,
+          "y": 601,
           "width": 280,
           "subtitle": "electronic ambient"
         },
@@ -14367,8 +15015,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "visual_style",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 642,
+          "x": 0,
+          "y": 826,
           "width": 280,
           "subtitle": "abstract geometric patterns, neon colors, flowing energy"
         },
@@ -14376,8 +15024,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "num_frames",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 888,
+          "x": 0,
+          "y": 1051,
           "width": 280,
           "subtitle": "8"
         },
@@ -14385,8 +15033,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "transcription",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 400,
-          "y": 255,
+          "x": 380,
+          "y": 445,
           "width": 280,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -14394,8 +15042,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mood_analyzer",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 740,
-          "y": 282,
+          "x": 760,
+          "y": 280,
           "width": 280,
           "subtitle": "Analyze the emotional arc of this song so we can design its music video. TRANSCRIBED LYRICS {{ transcription }} GENRE: {{ genre }} TARGET V…"
         },
@@ -14403,16 +15051,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mood_analysis",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 1050,
-          "y": 354,
+          "x": 1140,
+          "y": 690,
           "width": 280
         },
         {
           "id": "frame_prompt_generator",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1390,
-          "y": 496,
+          "x": 1520,
+          "y": 547,
           "width": 280,
           "subtitle": "You are writing image-generation prompts for the frames of a music video. MOOD & VISUAL DIRECTION {{ analysis }} GENRE: {{ genre }} VISUAL…"
         },
@@ -14420,24 +15068,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "frame_prompts",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 1700,
-          "y": 495,
+          "x": 1900,
+          "y": 827,
           "width": 280
         },
         {
           "id": "prompt_iterator",
           "type": "nodetool.control.ForEach",
           "title": "For Each",
-          "x": 2010,
-          "y": 613,
+          "x": 2280,
+          "y": 995,
           "width": 280
         },
         {
           "id": "visual_frame",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 2320,
-          "y": 465,
+          "x": 2660,
+          "y": 828,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -14445,88 +15093,88 @@ export const templateEntries: TemplateEntry[] = [
           "id": "collected_frames",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 3440,
-          "y": 600,
+          "x": 3904,
+          "y": 1004,
           "width": 280
         },
         {
           "id": "video_output",
           "type": "nodetool.video.FrameToVideo",
           "title": "Frame To Video",
-          "x": 3780,
-          "y": 600,
+          "x": 5044,
+          "y": 767,
           "width": 416
         },
         {
           "id": "final_video",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 4240,
-          "y": 600,
+          "x": 5560,
+          "y": 714,
           "width": 416
         },
         {
           "id": "output-music-video",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 4700,
-          "y": 600,
+          "x": 6076,
+          "y": 857,
           "width": 280
         },
         {
           "id": "frame-size",
           "type": "nodetool.image.ResizeImage",
           "title": "Resize Image",
-          "x": 2760,
-          "y": 600,
+          "x": 3144,
+          "y": 947,
           "width": 280
         },
         {
           "id": "frame-png",
           "type": "nodetool.image.SaveImageFile",
           "title": "Save Image File",
-          "x": 3100,
-          "y": 600,
+          "x": 3524,
+          "y": 909,
           "width": 280
         },
         {
           "id": "track-length",
           "type": "nodetool.audio.GetAudioInfo",
           "title": "Get Audio Info",
-          "x": 400,
-          "y": 1000,
+          "x": 760,
+          "y": 981,
           "width": 280
         },
         {
           "id": "hold-length",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 740,
-          "y": 1000,
+          "x": 4284,
+          "y": 654,
           "width": 280
         },
         {
           "id": "hold-frame",
           "type": "nodetool.control.RepeatValue",
           "title": "Repeat Value",
-          "x": 3440,
-          "y": 600,
+          "x": 4664,
+          "y": 968,
           "width": 280
         },
         {
           "id": "frame_iterator",
           "type": "nodetool.control.ForEach",
           "title": "For Each",
-          "x": 3440,
-          "y": 1000,
+          "x": 4284,
+          "y": 1143,
           "width": 280
         },
         {
           "id": "track-level",
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
-          "x": 50,
-          "y": 1000,
+          "x": 380,
+          "y": 762,
           "width": 280
         }
       ],
@@ -14764,27 +15412,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 494,
           "width": 280
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 518,
           "width": 280
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 490,
           "width": 280,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -14792,24 +15449,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tr",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 358,
           "width": 280
         },
         {
           "id": "sl",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 0,
-          "y": 340,
+          "x": 1520,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 320,
-          "y": 340,
+          "x": 1900,
+          "y": 502,
           "width": 280
         }
       ],
@@ -14889,11 +15546,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 320,
           "width": 280,
           "subtitle": "Every frame you see here was generated from a single line of text."
         },
@@ -14901,8 +15567,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tts",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 400,
-          "y": 180,
+          "x": 380,
+          "y": 307,
           "width": 280,
           "subtitle": "fal-ai/elevenlabs/tts/multilingual-v2"
         },
@@ -14911,7 +15577,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 760,
-          "y": 200,
+          "y": 333,
           "width": 240
         }
       ],
@@ -15010,19 +15676,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "script",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 583,
           "width": 300
         },
         {
           "id": "tts",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 570,
           "width": 300,
           "subtitle": "tts-1"
         },
@@ -15030,8 +15705,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mus",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 330,
-          "y": 400,
+          "x": 1180,
+          "y": 596,
           "width": 300,
           "subtitle": "calm ambient bed, no percussion, unobtrusive"
         },
@@ -15039,72 +15714,72 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ov",
           "type": "nodetool.audio.OverlayAudio",
           "title": "Overlay Audio",
-          "x": 2640,
-          "y": 100,
+          "x": 3100,
+          "y": 472,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2970,
-          "y": 100,
+          "x": 3500,
+          "y": 479,
           "width": 300
         },
         {
           "id": "voice-level",
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
-          "x": 660,
-          "y": 100,
+          "x": 800,
+          "y": 651,
           "width": 280
         },
         {
           "id": "voice-headroom",
           "type": "lib.audio.Gain",
           "title": "Gain",
-          "x": 990,
-          "y": 100,
+          "x": 1180,
+          "y": 366,
           "width": 280
         },
         {
           "id": "voice-length",
           "type": "nodetool.audio.GetAudioInfo",
           "title": "Get Audio Info",
-          "x": 990,
-          "y": 400,
+          "x": 1180,
+          "y": 913,
           "width": 280
         },
         {
           "id": "music-trim",
           "type": "nodetool.audio.Trim",
           "title": "Trim",
-          "x": 1320,
-          "y": 400,
+          "x": 1580,
+          "y": 743,
           "width": 280
         },
         {
           "id": "music-level",
           "type": "lib.audio.Gain",
           "title": "Gain",
-          "x": 1650,
-          "y": 400,
+          "x": 1960,
+          "y": 634,
           "width": 280
         },
         {
           "id": "music-start",
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
-          "x": 1980,
-          "y": 400,
+          "x": 2340,
+          "y": 633,
           "width": 280
         },
         {
           "id": "music-end",
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
-          "x": 2310,
-          "y": 400,
+          "x": 2720,
+          "y": 580,
           "width": 280
         }
       ],
@@ -15240,35 +15915,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 370,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
-          "x": 680,
-          "y": 180,
+          "x": 760,
+          "y": 370,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1020,
-          "y": 200,
+          "x": 1140,
+          "y": 354,
           "width": 240
         }
       ],
@@ -15334,27 +16018,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 385,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 366,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 398,
           "width": 300
         }
       ],
@@ -15414,27 +16107,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 372,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.image.CanvasResize",
           "title": "Canvas Resize",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 380,
           "width": 240
         }
       ],
@@ -15540,11 +16242,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "sku",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 0,
+          "y": 964,
           "width": 220
         },
         {
@@ -15552,7 +16263,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 665,
           "width": 220
         },
         {
@@ -15560,7 +16271,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 240,
+          "y": 366,
           "width": 220
         },
         {
@@ -15568,7 +16279,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 360,
+          "y": 1189,
           "width": 220
         },
         {
@@ -15576,55 +16287,55 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 480,
+          "y": 1414,
           "width": 220
         },
         {
           "id": "values",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 300,
-          "y": 160,
+          "x": 320,
+          "y": 380,
           "width": 240
         },
         {
           "id": "product",
           "type": "nodetool.entity.CreateEntity",
           "title": "Create Entity",
-          "x": 580,
-          "y": 380,
+          "x": 320,
+          "y": 1038,
           "width": 240
         },
         {
           "id": "template",
           "type": "nodetool.constant.Storyboard",
           "title": "Storyboard",
-          "x": 580,
-          "y": 620,
+          "x": 320,
+          "y": 849,
           "width": 240
         },
         {
           "id": "recast",
           "type": "nodetool.storyboard.RecastStoryboard",
           "title": "Recast Storyboard",
-          "x": 880,
-          "y": 500,
+          "x": 660,
+          "y": 863,
           "width": 260
         },
         {
           "id": "stills",
           "type": "nodetool.storyboard.RenderStills",
           "title": "Render Stills",
-          "x": 1180,
-          "y": 500,
+          "x": 1020,
+          "y": 666,
           "width": 240
         },
         {
           "id": "clips",
           "type": "nodetool.storyboard.RenderClips",
           "title": "Render Clips",
-          "x": 1440,
-          "y": 500,
+          "x": 1360,
+          "y": 604,
           "width": 240
         },
         {
@@ -15632,39 +16343,39 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.storyboard.AssembleTimeline",
           "title": "Assemble Timeline",
           "x": 1700,
-          "y": 500,
+          "y": 612,
           "width": 240
         },
         {
           "id": "fill",
           "type": "nodetool.timeline.FillTimelineText",
           "title": "Fill Timeline Text",
-          "x": 1960,
-          "y": 300,
+          "x": 2040,
+          "y": 590,
           "width": 240
         },
         {
           "id": "render",
           "type": "nodetool.timeline.RenderTimeline",
           "title": "Render Timeline",
-          "x": 2220,
-          "y": 300,
+          "x": 2380,
+          "y": 663,
           "width": 240
         },
         {
           "id": "out_video",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2480,
-          "y": 300,
+          "x": 2720,
+          "y": 705,
           "width": 200
         },
         {
           "id": "out_invalidated",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1180,
-          "y": 700,
+          "x": 1020,
+          "y": 909,
           "width": 220
         }
       ],
@@ -15861,24 +16572,24 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
-          "width": 460,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "2",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 0,
-          "y": 0,
+          "x": 3144,
+          "y": 663,
           "width": 280
         },
         {
           "id": "3",
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
-          "x": 0,
-          "y": 0,
+          "x": 2660,
+          "y": 499,
           "width": 384,
           "subtitle": "Enhance this photo with professional cinematic color grading, improved lighting, and subtle film grain. Keep the subject and composition in…"
         },
@@ -15886,48 +16597,48 @@ export const templateEntries: TemplateEntry[] = [
           "id": "4",
           "type": "lib.image.filter.UnsharpMask",
           "title": "Unsharp Mask",
-          "x": 0,
-          "y": 0,
+          "x": 2280,
+          "y": 596,
           "width": 280
         },
         {
           "id": "5",
           "type": "lib.image.filter.UnsharpMask",
           "title": "Unsharp Mask",
-          "x": 0,
-          "y": 0,
+          "x": 1900,
+          "y": 595,
           "width": 280
         },
         {
           "id": "6",
           "type": "lib.image.color.HSB",
           "title": "HSB",
-          "x": 0,
-          "y": 0,
+          "x": 1520,
+          "y": 580,
           "width": 280
         },
         {
           "id": "7",
           "type": "lib.image.color.BrightnessContrast",
           "title": "Brightness Contrast",
-          "x": 0,
-          "y": 0,
+          "x": 1140,
+          "y": 512,
           "width": 280
         },
         {
           "id": "8",
           "type": "lib.image.enhance.AutoContrast",
           "title": "Auto Contrast",
-          "x": 0,
-          "y": 0,
+          "x": 760,
+          "y": 452,
           "width": 280
         },
         {
           "id": "9",
           "type": "nodetool.control.ForEach",
           "title": "For Each",
-          "x": 0,
-          "y": 0,
+          "x": 380,
+          "y": 405,
           "width": 280
         },
         {
@@ -15935,7 +16646,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageListInput",
           "title": "Image List Input",
           "x": 0,
-          "y": 0,
+          "y": 307,
           "width": 280
         },
         {
@@ -15943,7 +16654,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.FloatInput",
           "title": "Float Input",
           "x": 0,
-          "y": 0,
+          "y": 559,
           "width": 280
         },
         {
@@ -15951,15 +16662,15 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.FloatInput",
           "title": "Float Input",
           "x": 0,
-          "y": 0,
+          "y": 743,
           "width": 280
         },
         {
           "id": "output-enhanced-photos",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 320,
-          "y": 0,
+          "x": 3524,
+          "y": 647,
           "width": 280
         }
       ],
@@ -16082,11 +16793,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "main",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 140,
+          "y": 346,
           "width": 280
         },
         {
@@ -16094,23 +16814,23 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 320,
+          "y": 562,
           "width": 280
         },
         {
           "id": "ov",
           "type": "nodetool.video.Overlay",
           "title": "Overlay",
-          "x": 400,
-          "y": 200,
+          "x": 380,
+          "y": 464,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 780,
-          "y": 220,
+          "x": 760,
+          "y": 462,
           "width": 240
         }
       ],
@@ -16176,27 +16896,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 120,
+          "y": 327,
           "width": 280
         },
         {
           "id": "ps",
           "type": "lib.audio.PitchShift",
           "title": "Pitch Shift",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 348,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 386,
           "width": 280
         }
       ],
@@ -16255,27 +16984,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 375,
           "width": 280
         },
         {
           "id": "f",
           "type": "lib.image.filter.Pixelate",
           "title": "Pixelate",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 383,
           "width": 280
         }
       ],
@@ -16337,7 +17075,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -420,
+          "y": 0,
           "width": 940,
           "isComment": true
         },
@@ -16346,191 +17084,191 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 0,
+          "y": 299,
           "width": 300
         },
         {
           "id": "floating-island-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 0,
+          "x": 400,
+          "y": 300,
           "width": 300
         },
         {
           "id": "small-floating-island",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 0,
+          "x": 840,
+          "y": 299,
           "width": 300
         },
         {
           "id": "small-floating-island-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 0,
+          "x": 1240,
+          "y": 300,
           "width": 300
         },
         {
           "id": "stepping-tile",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 0,
+          "x": 1680,
+          "y": 299,
           "width": 300
         },
         {
           "id": "stepping-tile-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 0,
+          "x": 2080,
+          "y": 300,
           "width": 300
         },
         {
           "id": "playground-ramp",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 0,
+          "x": 0,
+          "y": 571,
           "width": 300
         },
         {
           "id": "playground-ramp-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 0,
+          "x": 400,
+          "y": 572,
           "width": 300
         },
         {
           "id": "moving-platform",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 450,
+          "x": 840,
+          "y": 571,
           "width": 300
         },
         {
           "id": "moving-platform-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 450,
+          "x": 1240,
+          "y": 572,
           "width": 300
         },
         {
           "id": "jump-pad",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 450,
+          "x": 1680,
+          "y": 571,
           "width": 300
         },
         {
           "id": "jump-pad-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 450,
+          "x": 2080,
+          "y": 572,
           "width": 300
         },
         {
           "id": "checkpoint-flag",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 450,
+          "x": 0,
+          "y": 843,
           "width": 300
         },
         {
           "id": "checkpoint-flag-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 450,
+          "x": 400,
+          "y": 844,
           "width": 300
         },
         {
           "id": "pressure-switch",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 450,
+          "x": 840,
+          "y": 843,
           "width": 300
         },
         {
           "id": "pressure-switch-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 450,
+          "x": 1240,
+          "y": 844,
           "width": 300
         },
         {
           "id": "breakable-block",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 900,
+          "x": 1680,
+          "y": 843,
           "width": 300
         },
         {
           "id": "breakable-block-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 900,
+          "x": 2080,
+          "y": 844,
           "width": 300
         },
         {
           "id": "collectible-gem",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 900,
+          "x": 0,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "collectible-gem-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 900,
+          "x": 400,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "collectible-star",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 900,
+          "x": 840,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "collectible-star-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 900,
+          "x": 1240,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "spike-tile",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 900,
+          "x": 1680,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "spike-tile-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 900,
+          "x": 2080,
+          "y": 1116,
           "width": 300
         },
         {
@@ -16538,63 +17276,63 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 1350,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "rotating-sweeper-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 1350,
+          "x": 400,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "goal-portal",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 1350,
+          "x": 840,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "goal-portal-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 1350,
+          "x": 1240,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "route-arrow",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 1350,
+          "x": 1680,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "route-arrow-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 1350,
+          "x": 2080,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "cloud-platform",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 1350,
+          "x": 0,
+          "y": 1659,
           "width": 300
         },
         {
           "id": "cloud-platform-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 1350,
+          "x": 400,
+          "y": 1660,
           "width": 300
         }
       ],
@@ -16762,27 +17500,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 390,
           "width": 300
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 414,
           "width": 300
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 384,
           "width": 300,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -16790,16 +17537,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 366,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 330,
+          "x": 1600,
+          "y": 398,
           "width": 300
         }
       ],
@@ -16909,25 +17656,25 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 40,
-          "y": -260,
-          "width": 480,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "episode_audio",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
-          "x": 50,
-          "y": 80,
+          "x": 0,
+          "y": 1049,
           "width": 280
         },
         {
           "id": "show_context",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 330,
+          "x": 0,
+          "y": 1404,
           "width": 280,
           "subtitle": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab t…"
         },
@@ -16935,16 +17682,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "quote_count",
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
-          "x": 50,
-          "y": 580,
+          "x": 0,
+          "y": 1836,
           "width": 280
         },
         {
           "id": "transcribe",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 410,
-          "y": 100,
+          "x": 380,
+          "y": 1161,
           "width": 300,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -16952,8 +17699,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "shownotes_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 790,
-          "y": -240,
+          "x": 780,
+          "y": 465,
           "width": 320,
           "subtitle": "You are producing the episode page for this podcast. Show: {{ SHOW }} From the transcript below, return Markdown, no commentary: Titles: 3…"
         },
@@ -16961,24 +17708,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "shownotes_agent",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 1150,
-          "y": -220,
+          "x": 1200,
+          "y": 369,
           "width": 330
         },
         {
           "id": "preview_shownotes",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1530,
-          "y": -200,
+          "x": 1630,
+          "y": 346,
           "width": 320
         },
         {
           "id": "newsletter_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 790,
-          "y": 180,
+          "x": 780,
+          "y": 921,
           "width": 320,
           "subtitle": "Turn this podcast episode into the show's email newsletter edition. Show: {{ SHOW }} Return Markdown, no commentary: Subject: 3 subject-lin…"
         },
@@ -16986,24 +17733,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "newsletter_agent",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 1150,
-          "y": 200,
+          "x": 1200,
+          "y": 825,
           "width": 330
         },
         {
           "id": "preview_newsletter",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1530,
-          "y": 220,
+          "x": 1630,
+          "y": 802,
           "width": 320
         },
         {
           "id": "posts_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 790,
-          "y": 600,
+          "x": 780,
+          "y": 1377,
           "width": 320,
           "subtitle": "From this podcast episode transcript, write exactly 5 social posts, one per line — no numbering, no labels, no hashtags unless they earn th…"
         },
@@ -17011,24 +17758,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "posts_list",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 1150,
-          "y": 640,
+          "x": 1200,
+          "y": 1313,
           "width": 330
         },
         {
           "id": "preview_posts",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1530,
-          "y": 660,
+          "x": 1630,
+          "y": 1268,
           "width": 300
         },
         {
           "id": "quotes_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 790,
-          "y": 1010,
+          "x": 780,
+          "y": 1813,
           "width": 320,
           "subtitle": "From this transcript, pick exactly {{ COUNT }} verbatim quotes worth putting on a quote card, one per line — no numbering, no attribution,…"
         },
@@ -17036,16 +17783,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "quotes_list",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 1150,
-          "y": 1050,
+          "x": 1200,
+          "y": 1723,
           "width": 330
         },
         {
           "id": "card_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1530,
-          "y": 1080,
+          "x": 1630,
+          "y": 1578,
           "width": 340,
           "subtitle": "Minimal typographic quote card, square 1:1, for this podcast: {{ SHOW }} Render exactly this text as the centerpiece, large and perfectly l…"
         },
@@ -17053,8 +17800,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "quote_card",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 1910,
-          "y": 1100,
+          "x": 2070,
+          "y": 1598,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -17062,8 +17809,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "preview_cards",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 2270,
-          "y": 1090,
+          "x": 2490,
+          "y": 1606,
           "width": 360
         }
       ],
@@ -17265,17 +18012,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 291,
-          "y": -200,
-          "width": 500,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "2f773f4f-c863-4215-bb89-e8cc09e95472",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 291,
-          "y": 120,
+          "x": 0,
+          "y": 461,
           "width": 220,
           "subtitle": "lion, eagle, koi fish"
         },
@@ -17283,8 +18030,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "input-style",
           "type": "nodetool.input.SelectInput",
           "title": "Select Input",
-          "x": 291,
-          "y": 300,
+          "x": 0,
+          "y": 686,
           "width": 220,
           "subtitle": "Classic anime cel-shaded"
         },
@@ -17292,8 +18039,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "464a17c1-c916-4b24-8e23-856160732293",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 581,
-          "y": 150,
+          "x": 320,
+          "y": 327,
           "width": 351,
           "subtitle": "You are a creature designer for an original monster-collecting game. Invent FOUR distinct collectible creatures, each a believable fusion o…"
         },
@@ -17301,16 +18048,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "7613de08-0407-42aa-8dc8-3b7777e9529d",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 1002,
-          "y": 90,
+          "x": 771,
+          "y": 459,
           "width": 291
         },
         {
           "id": "b55c474e-e397-44a3-adc7-94bcf61eee35",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 1363,
-          "y": 149,
+          "x": 1162,
+          "y": 429,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -17318,8 +18065,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-pokemon",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1783,
-          "y": 149,
+          "x": 1646,
+          "y": 577,
           "width": 280
         }
       ],
@@ -17399,11 +18146,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280,
           "subtitle": "A brutalist concert hall at dusk, long shadows, single figure on the steps"
         },
@@ -17411,8 +18167,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "img",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 400,
-          "y": 180,
+          "x": 380,
+          "y": 346,
           "width": 280,
           "subtitle": "seedream/4.5-text-to-image"
         },
@@ -17421,7 +18177,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 760,
-          "y": 200,
+          "y": 359,
           "width": 240
         }
       ],
@@ -17480,27 +18236,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 375,
           "width": 280
         },
         {
           "id": "f",
           "type": "lib.image.filter.Posterize",
           "title": "Posterize",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 383,
           "width": 280
         }
       ],
@@ -17570,8 +18335,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 60,
-          "y": -240,
+          "x": 0,
+          "y": 0,
           "width": 560,
           "isComment": true
         },
@@ -17579,8 +18344,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "document_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 60,
-          "y": 80,
+          "x": 0,
+          "y": 393,
           "width": 300,
           "subtitle": "Team sync — Thursday - Launch date moved to March 14 (was March 7) to finish the accessibility fixes. - Priya owns the onboarding rewrite;…"
         },
@@ -17588,8 +18353,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "question_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 60,
-          "y": 360,
+          "x": 0,
+          "y": 618,
           "width": 300,
           "subtitle": "When do we launch, and what's the biggest open risk?"
         },
@@ -17597,8 +18362,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tone_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 60,
-          "y": 600,
+          "x": 0,
+          "y": 843,
           "width": 300,
           "subtitle": "concise and neutral"
         },
@@ -17606,8 +18371,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "prompt_template",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 440,
-          "y": 220,
+          "x": 400,
+          "y": 480,
           "width": 300,
           "subtitle": "Tone: {{ tone }} Document (the only source you may use): \"\"\" {{ document }} \"\"\" Question: {{ question }} Answer the question using only the…"
         },
@@ -17615,8 +18380,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "assistant",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 820,
-          "y": 220,
+          "x": 800,
+          "y": 599,
           "width": 320,
           "subtitle": "llama3.2"
         },
@@ -17625,7 +18390,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1220,
-          "y": 220,
+          "y": 630,
           "width": 300
         }
       ],
@@ -17746,32 +18511,32 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
-          "width": 460,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "2",
           "type": "lib.image.color.BrightnessContrast",
           "title": "Brightness Contrast",
-          "x": 2300,
-          "y": 479,
+          "x": 2764,
+          "y": 730,
           "width": 280
         },
         {
           "id": "3",
           "type": "lib.image.color.BrightnessContrast",
           "title": "Brightness Contrast",
-          "x": 1990,
-          "y": 479,
+          "x": 2384,
+          "y": 703,
           "width": 280
         },
         {
           "id": "4",
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
-          "x": 1680,
-          "y": 388,
+          "x": 1900,
+          "y": 517,
           "width": 384,
           "subtitle": "fal-ai/nano-banana/edit"
         },
@@ -17779,24 +18544,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "5",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
-          "x": 1340,
-          "y": 509,
+          "x": 0,
+          "y": 432,
           "width": 280
         },
         {
           "id": "6",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 1340,
-          "y": 205,
+          "x": 1520,
+          "y": 854,
           "width": 280
         },
         {
           "id": "7",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1030,
-          "y": 155,
+          "x": 1140,
+          "y": 668,
           "width": 280,
           "subtitle": "Convert these scene concepts into image generation prompts. Scene Concepts: {{ scenes }} Product: {{ name }} - {{ description }} For each s…"
         },
@@ -17804,16 +18569,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "8",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 670,
-          "y": 254,
+          "x": 760,
+          "y": 996,
           "width": 280
         },
         {
           "id": "9",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 360,
-          "y": 281,
+          "x": 380,
+          "y": 759,
           "width": 280,
           "subtitle": "You are a product photography director. Product: {{ name }} Description: {{ description }} Target Audience: {{ audience }} Create {{ count…"
         },
@@ -17822,7 +18587,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 130,
+          "y": 797,
           "width": 280,
           "subtitle": "Premium Wireless Headphones"
         },
@@ -17831,7 +18596,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 827,
+          "y": 1022,
           "width": 280,
           "subtitle": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam e…"
         },
@@ -17840,7 +18605,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 583,
+          "y": 1247,
           "width": 280,
           "subtitle": "Tech-savvy professionals, music enthusiasts, and remote workers"
         },
@@ -17849,15 +18614,15 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 367,
+          "y": 1472,
           "width": 280
         },
         {
           "id": "15",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 1680,
-          "y": 0,
+          "x": 1900,
+          "y": 1032,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -17865,16 +18630,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-mockup",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2620,
-          "y": 479,
+          "x": 3144,
+          "y": 776,
           "width": 280
         },
         {
           "id": "output-scene",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2000,
-          "y": 0,
+          "x": 2384,
+          "y": 1233,
           "width": 280
         }
       ],
@@ -18055,7 +18820,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 240,
+          "y": 388,
           "width": 280,
           "subtitle": "Matte-black wireless over-ear headphones with a brushed-copper accent ring"
         },
@@ -18064,7 +18829,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 400,
+          "y": 612,
           "width": 280,
           "subtitle": "Polished dark concrete pedestal, volumetric rim light, fine dust drifting through a soft teal backlight"
         },
@@ -18073,7 +18838,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 560,
+          "y": 871,
           "width": 280,
           "subtitle": "Slow dolly push-in with a gentle rotation, shallow depth of field holding focus on the product"
         },
@@ -18081,8 +18846,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "prompt-still",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 340,
-          "y": 320,
+          "x": 380,
+          "y": 327,
           "width": 320,
           "subtitle": "Cinematic product photograph for a premium commercial. Product: {{ product }} Staging: {{ staging }} Single hero subject, centered, filling…"
         },
@@ -18090,8 +18855,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "still",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 720,
-          "y": 280,
+          "x": 800,
+          "y": 644,
           "width": 280,
           "subtitle": "fal-ai/flux-2/klein/9b"
         },
@@ -18099,8 +18864,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "prompt-motion",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 720,
-          "y": 600,
+          "x": 380,
+          "y": 823,
           "width": 320,
           "subtitle": "Animate the reference still into a short product commercial. Camera: {{ camera_motion }} Preserve the product, its proportions, framing, an…"
         },
@@ -18108,8 +18873,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "spot",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 1100,
-          "y": 400,
+          "x": 1180,
+          "y": 810,
           "width": 280,
           "subtitle": "fal-ai/ltx-2.3/image-to-video/fast"
         },
@@ -18117,8 +18882,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-spot",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1460,
-          "y": 420,
+          "x": 1560,
+          "y": 822,
           "width": 240
         }
       ],
@@ -18232,17 +18997,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-1",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -460,
-          "y": -247,
-          "width": 437,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "4",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 390,
-          "y": -7,
+          "x": 380,
+          "y": 451,
           "width": 486,
           "subtitle": "Using the text and image inputs, write a video prompt for a single 16:9 product shot. Give clear instructions on the animations and movemen…"
         },
@@ -18250,16 +19015,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "3",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 936,
-          "y": 308,
+          "x": 966,
+          "y": 731,
           "width": 457
         },
         {
           "id": "5",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": -197,
+          "x": 0,
+          "y": 393,
           "width": 280,
           "subtitle": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking."
         },
@@ -18267,8 +19032,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "6",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 83,
+          "x": 0,
+          "y": 618,
           "width": 280,
           "subtitle": "active millennials who enjoy weekend hiking and fitness challenges"
         },
@@ -18276,8 +19041,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "7",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 363,
+          "x": 0,
+          "y": 843,
           "width": 280,
           "subtitle": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance"
         },
@@ -18285,16 +19050,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ada8f51f-0155-4178-a07c-9415be82534a",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
-          "x": 50,
-          "y": 643,
+          "x": 0,
+          "y": 1068,
           "width": 280
         },
         {
           "id": "97f03868-da4f-4604-b57e-5f2118847956",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 1443,
-          "y": 357,
+          "x": 1523,
+          "y": 782,
           "width": 739,
           "subtitle": "veo-3.1-generate-preview"
         },
@@ -18302,8 +19067,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-product-video",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1763,
-          "y": 357,
+          "x": 2362,
+          "y": 935,
           "width": 280
         }
       ],
@@ -18415,17 +19180,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment_tutorial",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -520,
-          "y": 40,
-          "width": 480,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "input_topic",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 60,
+          "x": 0,
+          "y": 478,
           "width": 280,
           "subtitle": "Photosynthesis"
         },
@@ -18433,8 +19198,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "input_audience",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 320,
+          "x": 0,
+          "y": 703,
           "width": 280,
           "subtitle": "curious 10-year-old"
         },
@@ -18442,8 +19207,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "prompt_template",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 390,
-          "y": 50,
+          "x": 380,
+          "y": 465,
           "width": 340,
           "subtitle": "Explain the following topic so that the given audience genuinely understands it. Topic: {{ topic }} Audience: {{ audience }} Write your exp…"
         },
@@ -18451,16 +19216,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "llm",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 800,
-          "y": 65,
+          "x": 820,
+          "y": 465,
           "width": 320
         },
         {
           "id": "explanation_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1200,
-          "y": 65,
+          "x": 1240,
+          "y": 603,
           "width": 280
         }
       ],
@@ -18548,8 +19313,8 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
-          "width": 520,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
@@ -18557,7 +19322,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 0,
+          "y": 2052,
           "width": 260
         },
         {
@@ -18565,7 +19330,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 140,
+          "y": 252,
           "width": 260
         },
         {
@@ -18573,7 +19338,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 280,
+          "y": 477,
           "width": 260
         },
         {
@@ -18581,7 +19346,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 420,
+          "y": 702,
           "width": 260
         },
         {
@@ -18589,7 +19354,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 560,
+          "y": 927,
           "width": 260
         },
         {
@@ -18597,7 +19362,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 700,
+          "y": 1152,
           "width": 260
         },
         {
@@ -18605,7 +19370,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 840,
+          "y": 2268,
           "width": 260
         },
         {
@@ -18613,7 +19378,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 980,
+          "y": 1377,
           "width": 260,
           "subtitle": "none"
         },
@@ -18622,7 +19387,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1120,
+          "y": 1602,
           "width": 260
         },
         {
@@ -18630,55 +19395,55 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1260,
+          "y": 1827,
           "width": 260
         },
         {
           "id": "direction-brief",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 340,
-          "y": 360,
+          "x": 360,
+          "y": 1005,
           "width": 420
         },
         {
           "id": "direction-agent",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 820,
-          "y": 360,
+          "x": 880,
+          "y": 1244,
           "width": 320
         },
         {
           "id": "direction-parser",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1200,
-          "y": 360,
+          "x": 1300,
+          "y": 1157,
           "width": 420
         },
         {
           "id": "out-directions",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1700,
-          "y": 260,
+          "x": 1820,
+          "y": 1075,
           "width": 260
         },
         {
           "id": "out-plan",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1700,
-          "y": 400,
+          "x": 1820,
+          "y": 1275,
           "width": 260
         },
         {
           "id": "out-phase",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1700,
-          "y": 540,
+          "x": 1820,
+          "y": 1475,
           "width": 260
         }
       ],
@@ -18843,11 +19608,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "s",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 500,
           "width": 280,
           "subtitle": "{\"user\":{\"name\":\"Ada\",\"role\":\"engineer\"},\"active\":true}"
         },
@@ -18855,16 +19629,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ej",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 478,
           "width": 280
         }
       ],
@@ -18925,27 +19699,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 476,
           "width": 280
         },
         {
           "id": "frame",
           "type": "nodetool.video.ExtractFrame",
           "title": "Extract Frame",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 484,
           "width": 240
         }
       ],
@@ -19015,27 +19798,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 370,
           "width": 300
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 394,
           "width": 300
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 364,
           "width": 300,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -19043,16 +19835,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 330,
+          "x": 1600,
+          "y": 378,
           "width": 300
         }
       ],
@@ -19145,19 +19937,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 366,
           "width": 300
         },
         {
           "id": "bg",
           "type": "nodetool.image.RemoveBackground",
           "title": "Remove Background",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 441,
           "width": 300,
           "subtitle": "fal-ai/bria/background/remove"
         },
@@ -19165,8 +19966,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comp",
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
-          "x": 1320,
-          "y": 120,
+          "x": 1600,
+          "y": 459,
           "width": 300,
           "subtitle": "Keep the product as it is. Change only what is around it: warm concrete plinth, soft studio key from upper left, blurred background."
         },
@@ -19174,32 +19975,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1650,
-          "y": 120,
+          "x": 2000,
+          "y": 468,
           "width": 300
         },
         {
           "id": "edge-softness",
           "type": "nodetool.input.FloatInput",
           "title": "Float Input",
-          "x": 330,
-          "y": 460,
+          "x": 0,
+          "y": 590,
           "width": 300
         },
         {
           "id": "soften-alpha",
           "type": "lib.image.filter.GaussianBlur",
           "title": "Gaussian Blur",
-          "x": 660,
-          "y": 300,
+          "x": 800,
+          "y": 455,
           "width": 300
         },
         {
           "id": "refine-cutout",
           "type": "lib.image.channel.Merge",
           "title": "Merge",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 465,
           "width": 300
         }
       ],
@@ -19333,11 +20134,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "t",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 615,
           "width": 280,
           "subtitle": "Built for people who would rather ship than configure."
         },
@@ -19345,8 +20155,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tts",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 567,
           "width": 280,
           "subtitle": "tts-1"
         },
@@ -19354,8 +20164,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mus",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 330,
-          "y": 400,
+          "x": 1140,
+          "y": 596,
           "width": 280,
           "subtitle": "calm ambient pad, no drums, soft and unobtrusive"
         },
@@ -19363,72 +20173,72 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ov",
           "type": "nodetool.audio.OverlayAudio",
           "title": "Overlay Audio",
-          "x": 2640,
-          "y": 100,
+          "x": 3040,
+          "y": 473,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2970,
-          "y": 100,
+          "x": 3420,
+          "y": 482,
           "width": 280
         },
         {
           "id": "voice-level",
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
-          "x": 660,
-          "y": 100,
+          "x": 760,
+          "y": 649,
           "width": 280
         },
         {
           "id": "voice-headroom",
           "type": "lib.audio.Gain",
           "title": "Gain",
-          "x": 990,
-          "y": 100,
+          "x": 1140,
+          "y": 366,
           "width": 280
         },
         {
           "id": "voice-length",
           "type": "nodetool.audio.GetAudioInfo",
           "title": "Get Audio Info",
-          "x": 990,
-          "y": 400,
+          "x": 1140,
+          "y": 913,
           "width": 280
         },
         {
           "id": "music-trim",
           "type": "nodetool.audio.Trim",
           "title": "Trim",
-          "x": 1320,
-          "y": 400,
+          "x": 1520,
+          "y": 744,
           "width": 280
         },
         {
           "id": "music-level",
           "type": "lib.audio.Gain",
           "title": "Gain",
-          "x": 1650,
-          "y": 400,
+          "x": 1900,
+          "y": 636,
           "width": 280
         },
         {
           "id": "music-start",
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
-          "x": 1980,
-          "y": 400,
+          "x": 2280,
+          "y": 636,
           "width": 280
         },
         {
           "id": "music-end",
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
-          "x": 2310,
-          "y": 400,
+          "x": 2660,
+          "y": 582,
           "width": 280
         }
       ],
@@ -19558,11 +20368,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 486,
           "width": 280,
           "subtitle": "alpha, beta, gamma, delta"
         },
@@ -19570,24 +20389,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "sp",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 366,
           "width": 280
         },
         {
           "id": "jn",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 680,
-          "y": 180,
+          "x": 760,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1020,
-          "y": 200,
+          "x": 1140,
+          "y": 499,
           "width": 240
         }
       ],
@@ -19653,27 +20472,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 327,
           "width": 280
         },
         {
           "id": "f",
           "type": "nodetool.video.Fps",
           "title": "Fps",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 351,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 335,
           "width": 280
         }
       ],
@@ -19732,11 +20560,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "s",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 524,
           "width": 280,
           "subtitle": "Contact ada@example.com or grace@navy.mil before Friday."
         },
@@ -19744,16 +20581,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "rr",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 502,
           "width": 280
         }
       ],
@@ -19812,11 +20649,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "raw",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 834,
           "width": 280,
           "subtitle": "2026-08-02 WARN user=ada.lovelace@example.com ip=10.0.0.7 retry=3"
         },
@@ -19824,48 +20670,48 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mail",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 655,
           "width": 280
         },
         {
           "id": "ip",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 639,
           "width": 280
         },
         {
           "id": "tidy",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 607,
           "width": 280
         },
         {
           "id": "nums",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 0,
-          "y": 340,
+          "x": 1520,
+          "y": 385,
           "width": 280
         },
         {
           "id": "o1",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 320,
-          "y": 340,
+          "x": 1520,
+          "y": 922,
           "width": 280
         },
         {
           "id": "o2",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 340,
+          "x": 1900,
+          "y": 583,
           "width": 280
         }
       ],
@@ -19952,19 +20798,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 351,
           "width": 300
         },
         {
           "id": "rl",
           "type": "nodetool.image.Relight",
           "title": "Relight",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "warm low winter sun from the left, long soft shadows"
         },
@@ -19972,8 +20827,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 359,
           "width": 300
         }
       ],
@@ -20042,8 +20897,8 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
-          "width": 520,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
@@ -20051,7 +20906,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 327,
           "width": 280
         },
         {
@@ -20059,7 +20914,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 300,
+          "y": 552,
           "width": 280,
           "subtitle": "A"
         },
@@ -20067,16 +20922,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "hero-prepare",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 334,
           "width": 440
         },
         {
           "id": "hero-edit",
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
-          "x": 880,
-          "y": 180,
+          "x": 920,
+          "y": 439,
           "width": 320,
           "subtitle": "fal-ai/nano-banana/edit"
         },
@@ -20084,32 +20939,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "hero-finalize",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1260,
-          "y": 180,
+          "x": 1340,
+          "y": 306,
           "width": 380
         },
         {
           "id": "out-hero",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1720,
-          "y": 100,
+          "x": 1820,
+          "y": 252,
           "width": 250
         },
         {
           "id": "out-contract",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1720,
-          "y": 240,
+          "x": 1820,
+          "y": 452,
           "width": 250
         },
         {
           "id": "out-phase",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1720,
-          "y": 380,
+          "x": 1820,
+          "y": 652,
           "width": 250
         }
       ],
@@ -20227,7 +21082,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
+          "y": 0,
           "width": 560,
           "isComment": true
         },
@@ -20236,311 +21091,311 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.DocumentInput",
           "title": "Document Input",
           "x": 0,
-          "y": 200,
+          "y": 739,
           "width": 300
         },
         {
           "id": "validate-record",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 340,
-          "y": 100,
+          "x": 400,
+          "y": 683,
           "width": 500
         },
         {
           "id": "validate-original-source",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 880,
-          "y": -400,
+          "x": 1000,
+          "y": 687,
           "width": 420
         },
         {
           "id": "validate-original-portrait",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1340,
-          "y": -400,
+          "x": 1520,
+          "y": 694,
           "width": 420
         },
         {
           "id": "validate-original-story",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 880,
-          "y": -240,
+          "x": 2040,
+          "y": 694,
           "width": 420
         },
         {
           "id": "validate-original-portrait-svg",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1340,
-          "y": -240,
+          "x": 2560,
+          "y": 694,
           "width": 420
         },
         {
           "id": "validate-original-story-svg",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 880,
-          "y": -80,
+          "x": 3080,
+          "y": 694,
           "width": 420
         },
         {
           "id": "validate-revision-source",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1340,
-          "y": -80,
+          "x": 3600,
+          "y": 694,
           "width": 420
         },
         {
           "id": "validate-revision-portrait",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 880,
-          "y": 80,
+          "x": 4120,
+          "y": 694,
           "width": 420
         },
         {
           "id": "validate-revision-story",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1340,
-          "y": 80,
+          "x": 4640,
+          "y": 693,
           "width": 420
         },
         {
           "id": "validate-revision-portrait-svg",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 880,
-          "y": 240,
+          "x": 5160,
+          "y": 692,
           "width": 420
         },
         {
           "id": "validate-revision-story-svg",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1340,
-          "y": 240,
+          "x": 5680,
+          "y": 689,
           "width": 420
         },
         {
           "id": "restore-original-source",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 920,
-          "y": 40,
+          "x": 6200,
+          "y": 680,
           "width": 420
         },
         {
           "id": "restore-original-portrait",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1390,
-          "y": 40,
+          "x": 6720,
+          "y": 509,
           "width": 420
         },
         {
           "id": "restore-original-story",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 920,
-          "y": 220,
+          "x": 7240,
+          "y": 392,
           "width": 420
         },
         {
           "id": "restore-original-portrait-svg",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1390,
-          "y": 220,
+          "x": 7760,
+          "y": 673,
           "width": 420
         },
         {
           "id": "restore-original-story-svg",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 920,
-          "y": 400,
+          "x": 8280,
+          "y": 500,
           "width": 420
         },
         {
           "id": "restore-revision-source",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1390,
-          "y": 400,
+          "x": 8800,
+          "y": 376,
           "width": 420
         },
         {
           "id": "restore-revision-portrait",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 920,
-          "y": 580,
+          "x": 9320,
+          "y": 650,
           "width": 420
         },
         {
           "id": "restore-revision-story",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1390,
-          "y": 580,
+          "x": 9840,
+          "y": 483,
           "width": 420
         },
         {
           "id": "restore-revision-portrait-svg",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 920,
-          "y": 760,
+          "x": 10360,
+          "y": 362,
           "width": 420
         },
         {
           "id": "restore-revision-story-svg",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1390,
-          "y": 760,
+          "x": 10880,
+          "y": 636,
           "width": 420
         },
         {
           "id": "restore-finalize",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1420,
-          "y": 980,
+          "x": 11400,
+          "y": 464,
           "width": 420
         },
         {
           "id": "restore-record-file",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 1900,
-          "y": 900,
+          "x": 11920,
+          "y": 1052,
           "width": 280
         },
         {
           "id": "out-accepted_hero",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 0,
+          "x": 6720,
+          "y": 946,
           "width": 240
         },
         {
           "id": "out-accepted_contract",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 120,
+          "x": 11920,
+          "y": 252,
           "width": 240
         },
         {
           "id": "out-original_portrait",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 240,
+          "x": 7240,
+          "y": 829,
           "width": 240
         },
         {
           "id": "out-original_story",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 360,
+          "x": 7760,
+          "y": 473,
           "width": 240
         },
         {
           "id": "out-original_portrait_svg",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 480,
+          "x": 8280,
+          "y": 937,
           "width": 240
         },
         {
           "id": "out-original_story_svg",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 600,
+          "x": 8800,
+          "y": 813,
           "width": 240
         },
         {
           "id": "out-original_record",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 720,
+          "x": 11920,
+          "y": 652,
           "width": 240
         },
         {
           "id": "out-revised_hero",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1380,
-          "y": 0,
+          "x": 9320,
+          "y": 450,
           "width": 240
         },
         {
           "id": "out-revised_contract",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1380,
-          "y": 120,
+          "x": 11920,
+          "y": 452,
           "width": 240
         },
         {
           "id": "out-revised_portrait",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1380,
-          "y": 240,
+          "x": 9840,
+          "y": 920,
           "width": 240
         },
         {
           "id": "out-revised_story",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1380,
-          "y": 360,
+          "x": 10360,
+          "y": 799,
           "width": 240
         },
         {
           "id": "out-revised_portrait_svg",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1380,
-          "y": 480,
+          "x": 10880,
+          "y": 436,
           "width": 240
         },
         {
           "id": "out-revised_story_svg",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1380,
-          "y": 600,
+          "x": 11400,
+          "y": 901,
           "width": 240
         },
         {
           "id": "out-record_file",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1380,
-          "y": 720,
+          "x": 12300,
+          "y": 1069,
           "width": 240
         },
         {
           "id": "out-phase",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1380,
-          "y": 840,
+          "x": 11920,
+          "y": 852,
           "width": 240
         }
       ],
@@ -21018,17 +21873,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -480,
-          "y": 40,
-          "width": 420,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "input-topic",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 60,
+          "x": 0,
+          "y": 689,
           "width": 280,
           "subtitle": "Small language models running on-device in 2026"
         },
@@ -21036,8 +21891,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "input-audience",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 300,
+          "x": 0,
+          "y": 914,
           "width": 280,
           "subtitle": "a technical product team deciding whether to adopt on-device models"
         },
@@ -21045,8 +21900,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "compose-objective",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 400,
-          "y": 120,
+          "x": 380,
+          "y": 432,
           "width": 340,
           "subtitle": "Research the topic below and write a briefing document for the stated audience. TOPIC: {{ topic }} AUDIENCE: {{ audience }} Method: 1. Brea…"
         },
@@ -21054,16 +21909,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "research-agent",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 800,
-          "y": 60,
+          "x": 820,
+          "y": 782,
           "width": 320
         },
         {
           "id": "output-brief",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1180,
-          "y": 60,
+          "x": 1240,
+          "y": 814,
           "width": 280
         }
       ],
@@ -21152,8 +22007,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 40,
-          "y": -300,
+          "x": 0,
+          "y": 0,
           "width": 560,
           "isComment": true
         },
@@ -21161,8 +22016,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "in_website",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 60,
+          "x": 0,
+          "y": 877,
           "width": 300,
           "subtitle": "https://nodetool.ai"
         },
@@ -21170,8 +22025,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "research_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 430,
-          "y": 60,
+          "x": 400,
+          "y": 761,
           "width": 320,
           "subtitle": "Research the brand behind this website: {{ WEBSITE }} 1. Open the website with the browser tool. Open one or two more pages from it if the…"
         },
@@ -21179,8 +22034,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "research_agent",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 830,
-          "y": 60,
+          "x": 820,
+          "y": 733,
           "width": 340,
           "subtitle": "claude-sonnet-5"
         },
@@ -21188,8 +22043,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "extract_fields",
           "type": "nodetool.agents.Extractor",
           "title": "Extractor",
-          "x": 1250,
-          "y": 60,
+          "x": 1260,
+          "y": 665,
           "width": 320,
           "subtitle": "Extract a brand profile from the research notes in <TEXT>. - brand_name: the brand name exactly as written in the notes. - audience: who th…"
         },
@@ -21197,48 +22052,48 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out_notes",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1250,
-          "y": 460,
+          "x": 1260,
+          "y": 954,
           "width": 300
         },
         {
           "id": "out_brand_name",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1650,
-          "y": 60,
+          "x": 1680,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out_audience",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1650,
-          "y": 200,
+          "x": 1680,
+          "y": 546,
           "width": 280
         },
         {
           "id": "out_voice",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1650,
-          "y": 340,
+          "x": 1680,
+          "y": 746,
           "width": 280
         },
         {
           "id": "out_brand_description",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1650,
-          "y": 480,
+          "x": 1680,
+          "y": 946,
           "width": 280
         },
         {
           "id": "out_tagline",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1650,
-          "y": 620,
+          "x": 1680,
+          "y": 1146,
           "width": 280
         }
       ],
@@ -21346,19 +22201,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 351,
           "width": 300
         },
         {
           "id": "i2i",
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "flat vector illustration, bold shapes, limited palette, clean edges"
         },
@@ -21366,8 +22230,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 359,
           "width": 300
         }
       ],
@@ -21433,35 +22297,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 327,
           "width": 280
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 351,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.audio.Reverse",
           "title": "Reverse",
-          "x": 680,
-          "y": 180,
+          "x": 760,
+          "y": 351,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1020,
-          "y": 200,
+          "x": 1140,
+          "y": 335,
           "width": 240
         }
       ],
@@ -21528,27 +22401,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.video.Reverse",
           "title": "Reverse",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 370,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 354,
           "width": 240
         }
       ],
@@ -21622,8 +22504,8 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
-          "width": 520,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
@@ -21631,7 +22513,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 80,
+          "y": 252,
           "width": 280
         },
         {
@@ -21639,7 +22521,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 230,
+          "y": 508,
           "width": 280
         },
         {
@@ -21647,7 +22529,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 380,
+          "y": 733,
           "width": 280,
           "subtitle": "Move the scene from late afternoon to blue hour."
         },
@@ -21656,7 +22538,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 530,
+          "y": 958,
           "width": 280,
           "subtitle": "Keep the cup, camera position, composition, stone surface, headline, CTA, and spacing."
         },
@@ -21665,7 +22547,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 680,
+          "y": 1183,
           "width": 280,
           "subtitle": "Let reflections, shadows, and the sky respond to the light."
         },
@@ -21673,24 +22555,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "normalize-hero",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 340,
-          "y": 80,
+          "x": 380,
+          "y": 424,
           "width": 320
         },
         {
           "id": "revision-prepare",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 360,
-          "y": 300,
+          "x": 800,
+          "y": 636,
           "width": 440
         },
         {
           "id": "revision-edit",
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
-          "x": 880,
-          "y": 300,
+          "x": 1340,
+          "y": 774,
           "width": 320,
           "subtitle": "fal-ai/nano-banana/edit"
         },
@@ -21698,32 +22580,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "revision-finalize",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1260,
-          "y": 300,
+          "x": 1760,
+          "y": 638,
           "width": 380
         },
         {
           "id": "out-hero",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1720,
-          "y": 220,
+          "x": 2240,
+          "y": 583,
           "width": 250
         },
         {
           "id": "out-contract",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1720,
-          "y": 360,
+          "x": 2240,
+          "y": 783,
           "width": 250
         },
         {
           "id": "out-phase",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1720,
-          "y": 500,
+          "x": 2240,
+          "y": 983,
           "width": 250
         }
       ],
@@ -21859,27 +22741,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -21939,27 +22830,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 327,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.video.Rotate",
           "title": "Rotate",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 351,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 335,
           "width": 240
         }
       ],
@@ -22045,17 +22945,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 40,
-          "y": -240,
-          "width": 480,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "business",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 60,
+          "x": 0,
+          "y": 879,
           "width": 280,
           "subtitle": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collectio…"
         },
@@ -22063,8 +22963,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "seeds",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 50,
-          "y": 310,
+          "x": 0,
+          "y": 1104,
           "width": 280,
           "subtitle": "beginner hikers researching their first serious gear; seed topics: ultralight backpacking basics, trail runners vs hiking boots, multi-day…"
         },
@@ -22072,16 +22972,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "article_count",
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
-          "x": 50,
-          "y": 560,
+          "x": 0,
+          "y": 1329,
           "width": 280
         },
         {
           "id": "plan_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 410,
-          "y": 60,
+          "x": 380,
+          "y": 942,
           "width": 300,
           "subtitle": "You are planning organic-search content for this business. Business: {{ BUSINESS }} Audience and seed topics: {{ SEEDS }} Articles to produ…"
         },
@@ -22089,24 +22989,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "strategist",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 750,
-          "y": 90,
+          "x": 780,
+          "y": 1005,
           "width": 330
         },
         {
           "id": "preview_plan",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 750,
-          "y": 490,
+          "x": 1210,
+          "y": 937,
           "width": 300
         },
         {
           "id": "briefs_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1130,
-          "y": 120,
+          "x": 1210,
+          "y": 1207,
           "width": 340,
           "subtitle": "From this content plan, write exactly {{ COUNT }} article briefs, one per line — no numbering, no labels. Each line: working title | primar…"
         },
@@ -22114,16 +23014,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "briefs_list",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 1510,
-          "y": 180,
+          "x": 1650,
+          "y": 1136,
           "width": 330
         },
         {
           "id": "article_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1890,
-          "y": 40,
+          "x": 2080,
+          "y": 772,
           "width": 360,
           "subtitle": "Write the full article for this brief. Brief: {{ BRIEF }} Publishing business: {{ BUSINESS }} Rules for the body: - 900-1200 words. Use the…"
         },
@@ -22131,48 +23031,48 @@ export const templateEntries: TemplateEntry[] = [
           "id": "writer",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 2290,
-          "y": 60,
+          "x": 2540,
+          "y": 778,
           "width": 330
         },
         {
           "id": "preview_titles",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 2680,
-          "y": 60,
+          "x": 2970,
+          "y": 1045,
           "width": 320
         },
         {
           "id": "preview_meta",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 2680,
-          "y": 190,
+          "x": 2970,
+          "y": 1205,
           "width": 320
         },
         {
           "id": "preview_keywords",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 2680,
-          "y": 320,
+          "x": 2970,
+          "y": 855,
           "width": 320
         },
         {
           "id": "preview_bodies",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 3080,
-          "y": 60,
+          "x": 2970,
+          "y": 385,
           "width": 380
         },
         {
           "id": "hero_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1890,
-          "y": 500,
+          "x": 2080,
+          "y": 1268,
           "width": 340,
           "subtitle": "Editorial hero image for a blog article, 16:9. Article brief: {{ BRIEF }} One clear photographic scene that shows the article's subject in…"
         },
@@ -22180,8 +23080,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "hero_image",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 2290,
-          "y": 520,
+          "x": 2540,
+          "y": 1317,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -22189,8 +23089,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "preview_heroes",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 2680,
-          "y": 540,
+          "x": 2970,
+          "y": 1365,
           "width": 360
         }
       ],
@@ -22361,27 +23261,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -22442,7 +23351,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -420,
+          "y": 0,
           "width": 940,
           "isComment": true
         },
@@ -22451,191 +23360,191 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 0,
+          "y": 299,
           "width": 300
         },
         {
           "id": "scout-robot-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 0,
+          "x": 400,
+          "y": 300,
           "width": 300
         },
         {
           "id": "survey-drone",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 0,
+          "x": 840,
+          "y": 299,
           "width": 300
         },
         {
           "id": "survey-drone-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 0,
+          "x": 1240,
+          "y": 300,
           "width": 300
         },
         {
           "id": "cargo-crate",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 0,
+          "x": 1680,
+          "y": 299,
           "width": 300
         },
         {
           "id": "cargo-crate-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 0,
+          "x": 2080,
+          "y": 300,
           "width": 300
         },
         {
           "id": "cargo-container",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 0,
+          "x": 0,
+          "y": 571,
           "width": 300
         },
         {
           "id": "cargo-container-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 0,
+          "x": 400,
+          "y": 572,
           "width": 300
         },
         {
           "id": "power-cell",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 450,
+          "x": 840,
+          "y": 571,
           "width": 300
         },
         {
           "id": "power-cell-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 450,
+          "x": 1240,
+          "y": 572,
           "width": 300
         },
         {
           "id": "crystal-cluster",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 450,
+          "x": 1680,
+          "y": 571,
           "width": 300
         },
         {
           "id": "crystal-cluster-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 450,
+          "x": 2080,
+          "y": 572,
           "width": 300
         },
         {
           "id": "crystal-shard",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 450,
+          "x": 0,
+          "y": 843,
           "width": 300
         },
         {
           "id": "crystal-shard-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 450,
+          "x": 400,
+          "y": 844,
           "width": 300
         },
         {
           "id": "floor-tile",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 450,
+          "x": 840,
+          "y": 843,
           "width": 300
         },
         {
           "id": "floor-tile-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 450,
+          "x": 1240,
+          "y": 844,
           "width": 300
         },
         {
           "id": "wall-panel",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 900,
+          "x": 1680,
+          "y": 843,
           "width": 300
         },
         {
           "id": "wall-panel-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 900,
+          "x": 2080,
+          "y": 844,
           "width": 300
         },
         {
           "id": "door-frame",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 900,
+          "x": 0,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "door-frame-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 900,
+          "x": 400,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "support-column",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 900,
+          "x": 840,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "support-column-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 900,
+          "x": 1240,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "ramp",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 900,
+          "x": 1680,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "ramp-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 900,
+          "x": 2080,
+          "y": 1116,
           "width": 300
         },
         {
@@ -22643,31 +23552,31 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 1350,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "terminal-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 1350,
+          "x": 400,
+          "y": 1388,
           "width": 300
         },
         {
           "id": "beacon",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 1350,
+          "x": 840,
+          "y": 1387,
           "width": 300
         },
         {
           "id": "beacon-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 1350,
+          "x": 1240,
+          "y": 1388,
           "width": 300
         }
       ],
@@ -22812,7 +23721,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -420,
+          "y": 0,
           "width": 940,
           "isComment": true
         },
@@ -22821,191 +23730,191 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
           "x": 0,
-          "y": 0,
+          "y": 299,
           "width": 300
         },
         {
           "id": "exploration-rover-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 0,
+          "x": 400,
+          "y": 300,
           "width": 300
         },
         {
           "id": "sentry-turret",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 0,
+          "x": 840,
+          "y": 299,
           "width": 300
         },
         {
           "id": "sentry-turret-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 0,
+          "x": 1240,
+          "y": 300,
           "width": 300
         },
         {
           "id": "reactor",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 0,
+          "x": 1680,
+          "y": 299,
           "width": 300
         },
         {
           "id": "reactor-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 0,
+          "x": 2080,
+          "y": 300,
           "width": 300
         },
         {
           "id": "satellite-dish",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 0,
+          "x": 0,
+          "y": 571,
           "width": 300
         },
         {
           "id": "satellite-dish-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 0,
+          "x": 400,
+          "y": 572,
           "width": 300
         },
         {
           "id": "airlock-door",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 450,
+          "x": 840,
+          "y": 571,
           "width": 300
         },
         {
           "id": "airlock-door-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 450,
+          "x": 1240,
+          "y": 572,
           "width": 300
         },
         {
           "id": "window-wall",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 450,
+          "x": 1680,
+          "y": 571,
           "width": 300
         },
         {
           "id": "window-wall-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 450,
+          "x": 2080,
+          "y": 572,
           "width": 300
         },
         {
           "id": "bridge-segment",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 450,
+          "x": 0,
+          "y": 843,
           "width": 300
         },
         {
           "id": "bridge-segment-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 450,
+          "x": 400,
+          "y": 844,
           "width": 300
         },
         {
           "id": "energy-gate",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 450,
+          "x": 840,
+          "y": 843,
           "width": 300
         },
         {
           "id": "energy-gate-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 450,
+          "x": 1240,
+          "y": 844,
           "width": 300
         },
         {
           "id": "landing-pad",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 0,
-          "y": 900,
+          "x": 1680,
+          "y": 843,
           "width": 300
         },
         {
           "id": "landing-pad-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 340,
-          "y": 900,
+          "x": 2080,
+          "y": 844,
           "width": 300
         },
         {
           "id": "storage-barrel",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 720,
-          "y": 900,
+          "x": 0,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "storage-barrel-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1060,
-          "y": 900,
+          "x": 400,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "repair-station",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 1440,
-          "y": 900,
+          "x": 840,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "repair-station-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1780,
-          "y": 900,
+          "x": 1240,
+          "y": 1116,
           "width": 300
         },
         {
           "id": "navigation-marker",
           "type": "nodetool.constant.Model3D",
           "title": "Model3 D",
-          "x": 2160,
-          "y": 900,
+          "x": 1680,
+          "y": 1115,
           "width": 300
         },
         {
           "id": "navigation-marker-out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2500,
-          "y": 900,
+          "x": 2080,
+          "y": 1116,
           "width": 300
         }
       ],
@@ -23150,35 +24059,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "clip",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 385,
           "width": 300
         },
         {
           "id": "mood",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 330,
-          "y": 120,
+          "x": 0,
+          "y": 601,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 660,
-          "y": 120,
+          "x": 400,
+          "y": 526,
           "width": 300
         },
         {
           "id": "mus",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 990,
-          "y": 120,
+          "x": 800,
+          "y": 475,
           "width": 300,
           "subtitle": "fal-ai/stable-audio-25/text-to-audio"
         },
@@ -23186,16 +24104,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mix",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 0,
-          "y": 330,
+          "x": 1200,
+          "y": 451,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 330,
-          "y": 330,
+          "x": 1600,
+          "y": 454,
           "width": 300
         }
       ],
@@ -23325,7 +24243,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 240,
+          "y": 233,
           "width": 280
         },
         {
@@ -23333,7 +24251,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 400,
+          "y": 599,
           "width": 280,
           "subtitle": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental"
         },
@@ -23341,8 +24259,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "score",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 700,
-          "y": 400,
+          "x": 780,
+          "y": 488,
           "width": 280,
           "subtitle": "fal-ai/stable-audio-25/text-to-audio"
         },
@@ -23350,56 +24268,56 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mix",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 2450,
-          "y": 240,
+          "x": 2760,
+          "y": 390,
           "width": 280
         },
         {
           "id": "output-scored",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2800,
-          "y": 240,
+          "x": 3140,
+          "y": 406,
           "width": 240
         },
         {
           "id": "level",
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
-          "x": 1400,
-          "y": 400,
+          "x": 1560,
+          "y": 474,
           "width": 300
         },
         {
           "id": "fade-in",
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
-          "x": 1750,
-          "y": 400,
+          "x": 1960,
+          "y": 454,
           "width": 300
         },
         {
           "id": "fade-out",
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
-          "x": 2100,
-          "y": 400,
+          "x": 2360,
+          "y": 434,
           "width": 300
         },
         {
           "id": "clip-info",
           "type": "nodetool.video.GetVideoInfo",
           "title": "Get Video Info",
-          "x": 350,
-          "y": 240,
+          "x": 380,
+          "y": 455,
           "width": 300
         },
         {
           "id": "trim-score",
           "type": "nodetool.audio.Trim",
           "title": "Trim",
-          "x": 1050,
-          "y": 400,
+          "x": 1160,
+          "y": 477,
           "width": 300
         }
       ],
@@ -23532,27 +24450,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "script",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 380,
           "width": 300
         },
         {
           "id": "scene",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 330,
-          "y": 120,
+          "x": 0,
+          "y": 618,
           "width": 300
         },
         {
           "id": "tts",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 660,
-          "y": 120,
+          "x": 400,
+          "y": 366,
           "width": 300,
           "subtitle": "tts-1"
         },
@@ -23560,8 +24487,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "vid",
           "type": "nodetool.video.TextToVideo",
           "title": "Text To Video",
-          "x": 990,
-          "y": 120,
+          "x": 400,
+          "y": 618,
           "width": 300,
           "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
         },
@@ -23569,16 +24496,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mix",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 0,
-          "y": 330,
+          "x": 800,
+          "y": 514,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 330,
-          "y": 330,
+          "x": 1200,
+          "y": 512,
           "width": 300
         }
       ],
@@ -23722,17 +24649,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment_main",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 40,
-          "y": -260,
-          "width": 520,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "brief",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 60,
+          "x": 0,
+          "y": 1245,
           "width": 280,
           "subtitle": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point…"
         },
@@ -23740,8 +24667,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "style",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 320,
+          "x": 0,
+          "y": 1020,
           "width": 280,
           "subtitle": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly rea…"
         },
@@ -23749,8 +24676,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "shot_count",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 580,
+          "x": 0,
+          "y": 1470,
           "width": 280,
           "subtitle": "5"
         },
@@ -23758,8 +24685,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "director_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 400,
-          "y": 60,
+          "x": 380,
+          "y": 1053,
           "width": 320,
           "subtitle": "You are directing a short film. Write a complete DIRECTION DOCUMENT for this brief. Brief: {{ BRIEF }} Visual style: {{ STYLE }} Shot count…"
         },
@@ -23767,24 +24694,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "director",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 770,
-          "y": 100,
+          "x": 800,
+          "y": 1077,
           "width": 330
         },
         {
           "id": "direction_out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1160,
-          "y": -60,
+          "x": 1230,
+          "y": 1190,
           "width": 280
         },
         {
           "id": "production_data",
           "type": "nodetool.generators.StructuredOutputGenerator",
           "title": "Structured Output Generator",
-          "x": 1160,
-          "y": 140,
+          "x": 1230,
+          "y": 794,
           "width": 300,
           "subtitle": "Return only a valid JSON object with the requested fields. Do not wrap it in Markdown or add commentary."
         },
@@ -23792,8 +24719,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "style_frame",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 1540,
-          "y": 480,
+          "x": 1650,
+          "y": 424,
           "width": 300,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -23801,8 +24728,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "shotlist_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1160,
-          "y": 520,
+          "x": 1230,
+          "y": 1390,
           "width": 320,
           "subtitle": "From the direction document below, output exactly {{ COUNT }} lines, one per shot from the SHOT LIST, in order. No numbering, no labels, no…"
         },
@@ -23810,16 +24737,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "shot_list",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 1540,
-          "y": 100,
+          "x": 1650,
+          "y": 1492,
           "width": 300
         },
         {
           "id": "keyframe_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1900,
-          "y": 100,
+          "x": 2050,
+          "y": 965,
           "width": 320,
           "subtitle": "Cinematic film still, 16:9. Shot: {{ SHOT }} Visual style: {{ STYLE }}. Dramatic volumetric lighting, rich cinematic color grading, fine fi…"
         },
@@ -23827,8 +24754,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "keyframe",
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
-          "x": 2280,
-          "y": 300,
+          "x": 2470,
+          "y": 799,
           "width": 320,
           "subtitle": "fal-ai/nano-banana/edit"
         },
@@ -23836,24 +24763,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "storyboard_collect",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 2660,
-          "y": 80,
+          "x": 2890,
+          "y": 914,
           "width": 160
         },
         {
           "id": "storyboard_out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2880,
-          "y": 80,
+          "x": 3320,
+          "y": 892,
           "width": 280
         },
         {
           "id": "motion_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 2280,
-          "y": 700,
+          "x": 2050,
+          "y": 1391,
           "width": 320,
           "subtitle": "Animate this exact scene. {{ SHOT }} Follow the MOTION direction precisely: move only what it names, keep everything else stable. Preserve…"
         },
@@ -23861,8 +24788,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "animate",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 2660,
-          "y": 420,
+          "x": 2890,
+          "y": 1116,
           "width": 330,
           "subtitle": "veo-3.1-generate-preview"
         },
@@ -23870,24 +24797,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "clips_collect",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 3050,
-          "y": 460,
+          "x": 3320,
+          "y": 1194,
           "width": 160
         },
         {
           "id": "cut",
           "type": "nodetool.video.Concat",
           "title": "Concat",
-          "x": 3270,
-          "y": 420,
+          "x": 3700,
+          "y": 1103,
           "width": 300
         },
         {
           "id": "narration_tts",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 3270,
-          "y": 720,
+          "x": 1650,
+          "y": 1176,
           "width": 300,
           "subtitle": "tts-1"
         },
@@ -23895,8 +24822,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "music",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 3650,
-          "y": 900,
+          "x": 1650,
+          "y": 840,
           "width": 300,
           "subtitle": "meta/musicgen"
         },
@@ -23904,24 +24831,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mix_vo",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 3650,
-          "y": 480,
+          "x": 4100,
+          "y": 1084,
           "width": 280
         },
         {
           "id": "mix_music",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 4000,
-          "y": 540,
+          "x": 4480,
+          "y": 962,
           "width": 280
         },
         {
           "id": "film_out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 4350,
-          "y": 560,
+          "x": 4860,
+          "y": 1015,
           "width": 280
         }
       ],
@@ -24163,27 +25090,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.video.Sharpness",
           "title": "Sharpness",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 370,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 354,
           "width": 240
         }
       ],
@@ -24243,27 +25179,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -24327,11 +25272,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 386,
           "width": 280,
           "subtitle": "Rain running down a diner window at night, neon bleeding through the glass"
         },
@@ -24339,16 +25293,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tpl",
           "type": "nodetool.text.Template",
           "title": "Template",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 404,
           "width": 320
         },
         {
           "id": "vid",
           "type": "nodetool.video.TextToVideo",
           "title": "Text To Video",
-          "x": 720,
-          "y": 180,
+          "x": 800,
+          "y": 385,
           "width": 280,
           "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
         },
@@ -24356,8 +25310,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1080,
-          "y": 200,
+          "x": 1180,
+          "y": 398,
           "width": 240
         }
       ],
@@ -24424,11 +25378,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 478,
           "width": 280,
           "subtitle": "0123456789abcdefghij"
         },
@@ -24436,16 +25399,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "sl",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 680,
-          "y": 200,
+          "x": 760,
+          "y": 490,
           "width": 240
         }
       ],
@@ -24504,27 +25467,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 120,
+          "y": 327,
           "width": 280
         },
         {
           "id": "ts",
           "type": "lib.audio.TimeStretch",
           "title": "Time Stretch",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 348,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 386,
           "width": 280
         }
       ],
@@ -24584,27 +25556,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 327,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.video.Blur",
           "title": "Blur",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 351,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 335,
           "width": 240
         }
       ],
@@ -24663,27 +25644,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 356,
           "width": 280
         },
         {
           "id": "f",
           "type": "lib.image.filter.Solarize",
           "title": "Solarize",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 327,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 364,
           "width": 280
         }
       ],
@@ -24747,11 +25737,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "t",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 375,
           "width": 280,
           "subtitle": "The package arrives on Thursday. Someone has to be home to sign for it."
         },
@@ -24759,8 +25758,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tts",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 327,
           "width": 280,
           "subtitle": "tts-1"
         },
@@ -24768,16 +25767,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "rs",
           "type": "nodetool.audio.RemoveSilence",
           "title": "Remove Silence",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 369,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 353,
           "width": 280
         }
       ],
@@ -24843,19 +25842,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 351,
           "width": 300
         },
         {
           "id": "v",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "slow orbit around the product, fixed lighting, product stays centred"
         },
@@ -24863,8 +25871,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 359,
           "width": 300
         }
       ],
@@ -24924,27 +25932,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 374,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.image.Channels",
           "title": "Channels",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 382,
           "width": 240
         }
       ],
@@ -25003,11 +26020,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "s",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 512,
           "width": 280,
           "subtitle": "2026-01-01 boot 2026-01-02 sync 2026-01-03 purge"
         },
@@ -25015,16 +26041,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "rs",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 490,
           "width": 280
         }
       ],
@@ -25084,27 +26110,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 346,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.video.Stabilize",
           "title": "Stabilize",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 370,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 354,
           "width": 240
         }
       ],
@@ -25163,11 +26198,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 180,
+          "y": 366,
           "width": 280,
           "subtitle": "A weathered fishing boat hauled onto black sand, cold northern light"
         },
@@ -25175,8 +26219,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "img",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 400,
-          "y": 180,
+          "x": 380,
+          "y": 366,
           "width": 280,
           "subtitle": "black-forest-labs/flux-2-klein-9b"
         },
@@ -25185,7 +26229,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 760,
-          "y": 200,
+          "y": 379,
           "width": 240
         }
       ],
@@ -25244,27 +26288,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 327,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 358,
           "width": 300
         }
       ],
@@ -25328,11 +26381,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 300,
           "subtitle": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
         },
@@ -25341,23 +26403,23 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.LanguageModelInput",
           "title": "Language Model Input",
           "x": 0,
-          "y": 300,
+          "y": 571,
           "width": 280
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 430,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 462,
           "width": 300
         }
       ],
@@ -25434,27 +26496,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 370,
           "width": 300
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 394,
           "width": 300
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 364,
           "width": 300,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -25462,16 +26533,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 330,
+          "x": 1600,
+          "y": 378,
           "width": 300
         }
       ],
@@ -25555,27 +26626,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 370,
           "width": 300
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 394,
           "width": 300
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 364,
           "width": 300,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -25583,16 +26663,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 330,
+          "x": 1600,
+          "y": 378,
           "width": 300
         }
       ],
@@ -25670,35 +26750,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 120,
+          "y": 367,
           "width": 280
         },
         {
           "id": "ph",
           "type": "lib.audio.Phaser",
           "title": "Phaser",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "dl",
           "type": "lib.audio.Delay",
           "title": "Delay",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 388,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 426,
           "width": 280
         }
       ],
@@ -25768,35 +26857,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "l",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 280
         },
         {
           "id": "t",
           "type": "nodetool.control.TakeWhile",
           "title": "Take While",
-          "x": 320,
-          "y": 120,
+          "x": 760,
+          "y": 488,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 1140,
+          "y": 472,
           "width": 280
         },
         {
           "id": "fanout1",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 160,
-          "y": 240,
+          "x": 380,
+          "y": 364,
           "width": 280
         }
       ],
@@ -25877,19 +26975,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 366,
           "width": 300
         },
         {
           "id": "up",
           "type": "nodetool.image.Upscale",
           "title": "Upscale",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 433,
           "width": 300,
           "subtitle": "fal-ai/clarity-upscaler"
         },
@@ -25897,32 +27004,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1320,
-          "y": 120,
+          "x": 1600,
+          "y": 507,
           "width": 300
         },
         {
           "id": "sharpen",
           "type": "lib.image.filter.UnsharpMask",
           "title": "Unsharp Mask",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 463,
           "width": 300
         },
         {
           "id": "sharpness",
           "type": "nodetool.input.FloatInput",
           "title": "Float Input",
-          "x": 330,
-          "y": 440,
+          "x": 0,
+          "y": 590,
           "width": 300
         },
         {
           "id": "save",
           "type": "nodetool.image.SaveImageFile",
           "title": "Save Image File",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 427,
           "width": 300
         }
       ],
@@ -26002,11 +27109,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "mus",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 280,
           "subtitle": "bright synth arpeggio, upbeat, clean"
         },
@@ -26014,16 +27130,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "sl",
           "type": "nodetool.audio.SliceAudio",
           "title": "Slice Audio",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 420,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 404,
           "width": 280
         }
       ],
@@ -26088,35 +27204,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "src",
           "type": "nodetool.constant.List",
           "title": "List",
           "x": 0,
-          "y": 180,
+          "y": 327,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.control.Take",
           "title": "Take",
-          "x": 360,
-          "y": 180,
+          "x": 760,
+          "y": 482,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 1140,
+          "y": 466,
           "width": 240
         },
         {
           "id": "fanout1",
           "type": "nodetool.control.Collection",
           "title": "Collection",
-          "x": 160,
-          "y": 300,
+          "x": 380,
+          "y": 358,
           "width": 280
         }
       ],
@@ -26192,43 +27317,52 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 280
         },
         {
           "id": "hp",
           "type": "lib.audio.HighPassFilter",
           "title": "High Pass Filter",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 367,
           "width": 280
         },
         {
           "id": "lp",
           "type": "lib.audio.LowPassFilter",
           "title": "Low Pass Filter",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 367,
           "width": 280
         },
         {
           "id": "dist",
           "type": "lib.audio.Distortion",
           "title": "Distortion",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 367,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 340,
+          "x": 1520,
+          "y": 405,
           "width": 280
         }
       ],
@@ -26301,27 +27435,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -26386,83 +27529,92 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "cut",
           "type": "nodetool.constant.Timeline",
           "title": "Timeline",
           "x": 0,
-          "y": 260,
+          "y": 746,
           "width": 240
         },
         {
           "id": "vertical",
           "type": "nodetool.timeline.RetargetTimeline",
           "title": "Retarget Timeline",
-          "x": 300,
-          "y": 40,
+          "x": 340,
+          "y": 385,
           "width": 260
         },
         {
           "id": "square",
           "type": "nodetool.timeline.RetargetTimeline",
           "title": "Retarget Timeline",
-          "x": 300,
-          "y": 260,
+          "x": 340,
+          "y": 777,
           "width": 260
         },
         {
           "id": "r_vertical",
           "type": "nodetool.timeline.RenderTimeline",
           "title": "Render Timeline",
-          "x": 620,
-          "y": 40,
+          "x": 700,
+          "y": 432,
           "width": 240
         },
         {
           "id": "r_square",
           "type": "nodetool.timeline.RenderTimeline",
           "title": "Render Timeline",
-          "x": 620,
-          "y": 260,
+          "x": 700,
+          "y": 847,
           "width": 240
         },
         {
           "id": "r_source",
           "type": "nodetool.timeline.RenderTimeline",
           "title": "Render Timeline",
-          "x": 620,
-          "y": 480,
+          "x": 340,
+          "y": 1169,
           "width": 240
         },
         {
           "id": "out_vertical",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 900,
-          "y": 40,
+          "x": 1040,
+          "y": 468,
           "width": 200
         },
         {
           "id": "out_square",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 900,
-          "y": 260,
+          "x": 1040,
+          "y": 883,
           "width": 200
         },
         {
           "id": "out_source",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 900,
-          "y": 480,
+          "x": 700,
+          "y": 1156,
           "width": 200
         },
         {
           "id": "out_cropped",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 300,
-          "y": 660,
+          "x": 700,
+          "y": 647,
           "width": 240
         }
       ],
@@ -26570,11 +27722,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "s",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 544,
           "width": 280,
           "subtitle": "The QUICK, brown --- fox!!"
         },
@@ -26582,32 +27743,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "cw",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 366,
           "width": 280
         },
         {
           "id": "rp",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 402,
           "width": 280
         },
         {
           "id": "lc",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 402,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 340,
+          "x": 1520,
+          "y": 522,
           "width": 280
         }
       ],
@@ -26743,51 +27904,60 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "template",
           "type": "nodetool.game.LoadGameTemplate",
           "title": "Load Game Template",
           "x": 0,
-          "y": 400,
+          "y": 1026,
           "width": 240
         },
         {
           "id": "style",
           "type": "nodetool.constant.Entity",
           "title": "Entity",
-          "x": 0,
-          "y": 0,
+          "x": 340,
+          "y": 821,
           "width": 240
         },
         {
           "id": "hero",
           "type": "nodetool.constant.Entity",
           "title": "Entity",
-          "x": 0,
-          "y": 160,
+          "x": 340,
+          "y": 1005,
           "width": 240
         },
         {
           "id": "sheet_slots",
           "type": "nodetool.control.FilterCode",
           "title": "Filter Code",
-          "x": 300,
-          "y": 0,
+          "x": 340,
+          "y": 454,
           "width": 220
         },
         {
           "id": "sheet_prompt",
           "type": "nodetool.game.SlotPrompt",
           "title": "Slot Prompt",
-          "x": 560,
-          "y": 0,
+          "x": 680,
+          "y": 500,
           "width": 220
         },
         {
           "id": "sheet_image",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 820,
-          "y": 0,
+          "x": 1000,
+          "y": 416,
           "width": 220,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -26795,40 +27965,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "sheet_pass",
           "type": "nodetool.control.Reroute",
           "title": "Reroute",
-          "x": 1080,
-          "y": 0,
+          "x": 1320,
+          "y": 482,
           "width": 200
         },
         {
           "id": "sheet_check",
           "type": "nodetool.game.SpriteSheet",
           "title": "Sprite Sheet",
-          "x": 1320,
-          "y": 0,
+          "x": 1640,
+          "y": 366,
           "width": 220
         },
         {
           "id": "tile_slots",
           "type": "nodetool.control.FilterCode",
           "title": "Filter Code",
-          "x": 300,
-          "y": 200,
+          "x": 340,
+          "y": 653,
           "width": 220
         },
         {
           "id": "tile_prompt",
           "type": "nodetool.game.SlotPrompt",
           "title": "Slot Prompt",
-          "x": 560,
-          "y": 200,
+          "x": 680,
+          "y": 724,
           "width": 220
         },
         {
           "id": "tile_image",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 820,
-          "y": 200,
+          "x": 1000,
+          "y": 689,
           "width": 220,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -26836,40 +28006,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tile_pass",
           "type": "nodetool.control.Reroute",
           "title": "Reroute",
-          "x": 1080,
-          "y": 200,
+          "x": 1320,
+          "y": 803,
           "width": 200
         },
         {
           "id": "tile_check",
           "type": "nodetool.game.Tileset",
           "title": "Tileset",
-          "x": 1320,
-          "y": 200,
+          "x": 1640,
+          "y": 738,
           "width": 220
         },
         {
           "id": "image_slots",
           "type": "nodetool.control.FilterCode",
           "title": "Filter Code",
-          "x": 300,
-          "y": 400,
+          "x": 340,
+          "y": 1189,
           "width": 220
         },
         {
           "id": "image_prompt",
           "type": "nodetool.game.SlotPrompt",
           "title": "Slot Prompt",
-          "x": 560,
-          "y": 400,
+          "x": 680,
+          "y": 948,
           "width": 220
         },
         {
           "id": "image_image",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 820,
-          "y": 400,
+          "x": 1000,
+          "y": 968,
           "width": 220,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -26877,40 +28047,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "image_pass",
           "type": "nodetool.control.Reroute",
           "title": "Reroute",
-          "x": 1080,
-          "y": 400,
+          "x": 1320,
+          "y": 1137,
           "width": 200
         },
         {
           "id": "image_check",
           "type": "nodetool.game.SeamlessImage",
           "title": "Seamless Image",
-          "x": 1320,
-          "y": 400,
+          "x": 1640,
+          "y": 1110,
           "width": 220
         },
         {
           "id": "sfx_slots",
           "type": "nodetool.control.FilterCode",
           "title": "Filter Code",
-          "x": 300,
-          "y": 600,
+          "x": 340,
+          "y": 1357,
           "width": 220
         },
         {
           "id": "sfx_prompt",
           "type": "nodetool.game.SlotPrompt",
           "title": "Slot Prompt",
-          "x": 560,
-          "y": 600,
+          "x": 680,
+          "y": 1172,
           "width": 220
         },
         {
           "id": "sfx_audio",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 820,
-          "y": 600,
+          "x": 1000,
+          "y": 1194,
           "width": 220,
           "subtitle": "meta/musicgen"
         },
@@ -26918,32 +28088,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "sfx_check",
           "type": "nodetool.game.SoundEffect",
           "title": "Sound Effect",
-          "x": 1080,
-          "y": 600,
+          "x": 1320,
+          "y": 1207,
           "width": 220
         },
         {
           "id": "music_slots",
           "type": "nodetool.control.FilterCode",
           "title": "Filter Code",
-          "x": 300,
-          "y": 800,
+          "x": 340,
+          "y": 1525,
           "width": 220
         },
         {
           "id": "music_prompt",
           "type": "nodetool.game.SlotPrompt",
           "title": "Slot Prompt",
-          "x": 560,
-          "y": 800,
+          "x": 680,
+          "y": 1396,
           "width": 220
         },
         {
           "id": "music_audio",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 820,
-          "y": 800,
+          "x": 1000,
+          "y": 1446,
           "width": 220,
           "subtitle": "meta/musicgen"
         },
@@ -26951,32 +28121,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "music_check",
           "type": "nodetool.game.MusicLoop",
           "title": "Music Loop",
-          "x": 1080,
-          "y": 800,
+          "x": 1320,
+          "y": 1403,
           "width": 220
         },
         {
           "id": "each_fill",
           "type": "nodetool.control.ForEach",
           "title": "For Each",
-          "x": 1620,
-          "y": 300,
+          "x": 1960,
+          "y": 1003,
           "width": 220
         },
         {
           "id": "fills",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 1880,
-          "y": 300,
+          "x": 2280,
+          "y": 985,
           "width": 220
         },
         {
           "id": "export",
           "type": "nodetool.game.StageGameAssets",
           "title": "Stage Game Assets",
-          "x": 2140,
-          "y": 300,
+          "x": 2600,
+          "y": 860,
           "width": 240
         }
       ],
@@ -27351,27 +28521,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 327,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 358,
           "width": 300
         }
       ],
@@ -27434,25 +28613,25 @@ export const templateEntries: TemplateEntry[] = [
           "id": "5",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": -421,
-          "y": 18,
-          "width": 280,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "7",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
-          "x": 50,
-          "y": 50,
+          "x": 0,
+          "y": 288,
           "width": 280
         },
         {
           "id": "c5191702-2a3c-440d-b3af-2db20e74a369",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 360,
-          "y": 79,
+          "x": 380,
+          "y": 334,
           "width": 280,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -27460,8 +28639,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-transcript",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 680,
-          "y": 79,
+          "x": 760,
+          "y": 347,
           "width": 260
         }
       ],
@@ -27526,27 +28705,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 351,
           "width": 280
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 375,
           "width": 280
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 680,
-          "y": 180,
+          "x": 760,
+          "y": 346,
           "width": 280,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -27554,8 +28742,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1040,
-          "y": 200,
+          "x": 1140,
+          "y": 359,
           "width": 240
         }
       ],
@@ -27621,27 +28809,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 385,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 366,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 398,
           "width": 300
         }
       ],
@@ -27710,11 +28907,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in-script",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 366,
           "width": 300,
           "subtitle": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
         },
@@ -27723,7 +28929,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 300,
+          "y": 591,
           "width": 300,
           "subtitle": "Spanish"
         },
@@ -27731,32 +28937,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tpl",
           "type": "nodetool.text.Template",
           "title": "Template",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 549,
           "width": 300
         },
         {
           "id": "in-model",
           "type": "nodetool.input.LanguageModelInput",
           "title": "Language Model Input",
-          "x": 330,
-          "y": 300,
+          "x": 0,
+          "y": 816,
           "width": 280
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 651,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 682,
           "width": 300
         }
       ],
@@ -27842,35 +29048,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 327,
           "width": 280
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 340,
-          "y": 180,
+          "x": 380,
+          "y": 351,
           "width": 280
         },
         {
           "id": "tr",
           "type": "nodetool.audio.Trim",
           "title": "Trim",
-          "x": 680,
-          "y": 180,
+          "x": 760,
+          "y": 351,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1020,
-          "y": 200,
+          "x": 1140,
+          "y": 335,
           "width": 240
         }
       ],
@@ -27936,11 +29151,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "s",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 512,
           "width": 280,
           "subtitle": "A visual editor for building AI workflows that run locally on your own hardware or against cloud APIs, whichever suits the job."
         },
@@ -27948,16 +29172,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tr",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 490,
           "width": 280
         }
       ],
@@ -28017,27 +29241,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 180,
+          "y": 327,
           "width": 280
         },
         {
           "id": "op",
           "type": "nodetool.video.Trim",
           "title": "Trim",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 351,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 335,
           "width": 240
         }
       ],
@@ -28097,27 +29330,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 346,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 327,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 358,
           "width": 300
         }
       ],
@@ -28176,27 +29418,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -28255,27 +29506,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -28334,19 +29594,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 332,
           "width": 300
         },
         {
           "id": "v",
           "type": "nodetool.image.Vectorize",
           "title": "Vectorize",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 327,
           "width": 300,
           "subtitle": "fal-ai/recraft/vectorize"
         },
@@ -28354,8 +29623,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 340,
           "width": 300
         }
       ],
@@ -28414,27 +29683,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 365,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -28504,27 +29782,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 370,
           "width": 300
         },
         {
           "id": "ex",
           "type": "nodetool.video.ExtractAudio",
           "title": "Extract Audio",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 394,
           "width": 300
         },
         {
           "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 364,
           "width": 300,
           "subtitle": "gpt-4o-mini-transcribe"
         },
@@ -28532,16 +29819,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 990,
-          "y": 120,
+          "x": 1200,
+          "y": 346,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 330,
+          "x": 1600,
+          "y": 378,
           "width": 300
         }
       ],
@@ -28614,19 +29901,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 180,
+          "y": 312,
           "width": 280
         },
         {
           "id": "up",
           "type": "nodetool.image.Upscale",
           "title": "Upscale",
-          "x": 360,
-          "y": 180,
+          "x": 380,
+          "y": 307,
           "width": 280,
           "subtitle": "fal-ai/esrgan"
         },
@@ -28634,8 +29930,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 200,
+          "x": 760,
+          "y": 320,
           "width": 240
         }
       ],
@@ -28699,11 +29995,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "p",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 381,
           "width": 280,
           "subtitle": "a flat minimal fox head logo, two colors, thick shapes, solid white background"
         },
@@ -28711,8 +30016,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "gen",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -28720,8 +30025,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "vec",
           "type": "nodetool.image.Vectorize",
           "title": "Vectorize",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 346,
           "width": 280,
           "subtitle": "fal-ai/recraft/vectorize"
         },
@@ -28729,8 +30034,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 359,
           "width": 280
         }
       ],
@@ -28820,7 +30125,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 240,
+          "y": 288,
           "width": 280
         },
         {
@@ -28828,7 +30133,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 400,
+          "y": 504,
           "width": 280,
           "subtitle": "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain"
         },
@@ -28837,7 +30142,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 560,
+          "y": 729,
           "width": 280,
           "subtitle": "faces, text, and the position of every subject in frame"
         },
@@ -28846,7 +30151,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 420,
+          "y": 434,
           "width": 320,
           "subtitle": "Restyle this footage. Target style: {{ style }} Preserve exactly: {{ preserve }} Apply the style uniformly across every frame so the look d…"
         },
@@ -28854,8 +30159,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "restyle",
           "type": "nodetool.video.VideoToVideo",
           "title": "Video To Video",
-          "x": 780,
-          "y": 320,
+          "x": 800,
+          "y": 416,
           "width": 280,
           "subtitle": "decart/lucy-edit-2"
         },
@@ -28863,8 +30168,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-video",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1140,
-          "y": 340,
+          "x": 1180,
+          "y": 430,
           "width": 240
         }
       ],
@@ -28944,27 +30249,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 403,
           "width": 280
         },
         {
           "id": "f",
           "type": "lib.image.filter.Vignette",
           "title": "Vignette",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 346,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 411,
           "width": 280
         }
       ],
@@ -29028,27 +30342,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "a",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 360,
           "width": 300
         },
         {
           "id": "b",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 330,
-          "y": 120,
+          "x": 0,
+          "y": 612,
           "width": 300
         },
         {
           "id": "ta",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 660,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "tts-1"
         },
@@ -29056,8 +30379,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tb",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 990,
-          "y": 120,
+          "x": 400,
+          "y": 598,
           "width": 300,
           "subtitle": "tts-1"
         },
@@ -29065,16 +30388,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "cat",
           "type": "nodetool.audio.Concat",
           "title": "Concat",
-          "x": 0,
-          "y": 330,
+          "x": 800,
+          "y": 388,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 330,
-          "y": 330,
+          "x": 1200,
+          "y": 498,
           "width": 300
         }
       ],
@@ -29154,27 +30477,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 120,
+          "y": 327,
           "width": 280
         },
         {
           "id": "cb",
           "type": "nodetool.video.ColorBalance",
           "title": "Color Balance",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 351,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 335,
           "width": 280
         }
       ],
@@ -29235,35 +30567,44 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "watch",
           "type": "nodetool.triggers.FileWatchTrigger",
           "title": "File Watch Trigger",
           "x": 0,
-          "y": 120,
+          "y": 501,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 350,
-          "y": 220,
+          "x": 400,
+          "y": 366,
           "width": 300
         },
         {
           "id": "event",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 350,
-          "y": 40,
+          "x": 400,
+          "y": 629,
           "width": 240
         },
         {
           "id": "note",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 700,
-          "y": 220,
+          "x": 800,
+          "y": 426,
           "width": 240
         }
       ],
@@ -29334,11 +30675,20 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "t",
           "type": "nodetool.constant.String",
           "title": "String",
           "x": 0,
-          "y": 120,
+          "y": 375,
           "width": 280,
           "subtitle": "Stereo is not louder. It is wider."
         },
@@ -29346,8 +30696,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "tts",
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
-          "x": 320,
-          "y": 120,
+          "x": 380,
+          "y": 327,
           "width": 280,
           "subtitle": "tts-1"
         },
@@ -29355,16 +30705,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ms",
           "type": "nodetool.audio.MonoToStereo",
           "title": "Mono To Stereo",
-          "x": 640,
-          "y": 120,
+          "x": 760,
+          "y": 369,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 960,
-          "y": 120,
+          "x": 1140,
+          "y": 353,
           "width": 280
         }
       ],
@@ -29440,17 +30790,17 @@ export const templateEntries: TemplateEntry[] = [
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 40,
-          "y": -260,
-          "width": 520,
+          "x": 0,
+          "y": 0,
+          "width": 560,
           "isComment": true
         },
         {
           "id": "topic_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 40,
-          "y": 120,
+          "x": 0,
+          "y": 782,
           "width": 280,
           "subtitle": "The economics of home solar batteries"
         },
@@ -29458,8 +30808,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "brief",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 40,
-          "y": 320,
+          "x": 380,
+          "y": 590,
           "width": 280,
           "subtitle": "Write a concise, accurate explainer (250-350 words) about the following subject: {{ topic }} Process: 1. Call the research_specialist tool…"
         },
@@ -29467,16 +30817,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "orchestrator",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 440,
-          "y": 200,
+          "x": 760,
+          "y": 762,
           "width": 300
         },
         {
           "id": "research_specialist",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 840,
-          "y": 40,
+          "x": 1160,
+          "y": 510,
           "width": 300,
           "subtitle": "gemini-3.5-flash"
         },
@@ -29484,8 +30834,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "copy_editor",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 840,
-          "y": 400,
+          "x": 1160,
+          "y": 773,
           "width": 300,
           "subtitle": "claude-sonnet-5"
         },
@@ -29493,8 +30843,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "output-article",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1240,
-          "y": 200,
+          "x": 1160,
+          "y": 1036,
           "width": 280
         }
       ],
@@ -29575,19 +30925,28 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 120,
+          "y": 370,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 346,
           "width": 300,
           "subtitle": "Write a product title under 70 characters and a description of about 80 words for the product in this image."
         },
@@ -29595,8 +30954,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 378,
           "width": 300
         }
       ],
@@ -29661,27 +31020,36 @@ export const templateEntries: TemplateEntry[] = [
     "graph": {
       "nodes": [
         {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
           "id": "in",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 120,
+          "y": 463,
           "width": 300
         },
         {
           "id": "ag",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 330,
-          "y": 120,
+          "x": 400,
+          "y": 444,
           "width": 300
         },
         {
           "id": "gen",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 660,
-          "y": 120,
+          "x": 800,
+          "y": 346,
           "width": 300,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -29689,16 +31057,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "op",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 990,
-          "y": 120,
+          "x": 800,
+          "y": 572,
           "width": 300
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 330,
+          "x": 1200,
+          "y": 378,
           "width": 300
         }
       ],
