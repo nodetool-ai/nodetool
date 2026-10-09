@@ -7,6 +7,11 @@
         "buildResources": "resources"
     },
     "afterPack": "scripts/after-pack.cjs",
+    "electronFuses": {
+        "runAsNode": false,
+        "enableNodeOptionsEnvironmentVariable": false,
+        "enableNodeCliInspectArguments": false
+    },
     "files": [
         "assets/**/*",
         "dist-electron/main.js",
