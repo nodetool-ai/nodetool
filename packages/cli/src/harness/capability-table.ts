@@ -2750,10 +2750,6 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
         cases: ["game-whole-document-save"],
       },
-      {
-        file: "packages/agents/src/evals/surfaces/game.ts",
-        cases: ["animation-graph-locomotion"],
-      },
     ],
   },
   {
