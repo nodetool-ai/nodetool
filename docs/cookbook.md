@@ -197,7 +197,7 @@ After a failed run, `nodetool debug` returns each node's output and error. See
 
 <div class="card-grid">
   <a class="doc-card" href="{{ '/use-cases' | relative_url }}"><strong>Use Cases</strong><span>Flagship projects end to end: trailers, product videos, ad batches, posters.</span></a>
-  <a class="doc-card" href="{{ '/workflows/' | relative_url }}"><strong>Workflow Examples</strong><span>Smaller single-purpose graphs, each with its nodes.</span></a>
+  <a class="doc-card" href="{{ '/workflows/' | relative_url }}"><strong>Examples</strong><span>Every shipped example: apps, recipes, workflows, storyboards, timelines, sketches, 3D models, and games.</span></a>
   <a class="doc-card" href="{{ '/skills' | relative_url }}"><strong>Shipped Skills</strong><span>Every skill the agent can load, grouped by the work it covers.</span></a>
   <a class="doc-card" href="https://nodetool.ai/ad-library"><strong>Ad Library</strong><span>Vertical ad formats with beat sheets and sample cuts.</span></a>
 </div>

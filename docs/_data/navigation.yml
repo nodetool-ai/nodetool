@@ -148,7 +148,7 @@
       url: "/cookbook/core-concepts"
     - title: "Workflow Patterns"
       url: "/cookbook/patterns"
-    - title: "Workflow Examples"
+    - title: "Examples"
       url: "/workflows/"
 - id: integrations
   title: "Integrations"
