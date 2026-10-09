@@ -129,20 +129,12 @@ export const PROVIDER_META: ProviderMeta[] = [
     tag: "Popular",
     docsUrl: "https://platform.openai.com/docs",
     icon: openaiIcon,
-    mono: true
-  },
-  {
-    key: "CODEX_SUBSCRIPTION",
-    providerId: PROVIDER_IDS.CODEX,
-    name: "Codex",
-    description: "Use Codex models through your ChatGPT subscription.",
-    section: "popular",
-    docsUrl: "https://developers.openai.com/codex/",
-    icon: openaiIcon,
     mono: true,
-    note: "Signs in with your ChatGPT account.",
+    // One card for both OpenAI paths, as in provider onboarding: two cards
+    // with the same logo read as a duplicate to a new user.
+    note: "Sign in with your ChatGPT account to use Codex models, or add an API key.",
     oauth: "openai",
-    oauthOnly: true
+    oauthProviderId: PROVIDER_IDS.CODEX
   },
   {
     key: "CLAUDE_SUBSCRIPTION",
