@@ -8,6 +8,13 @@ import { useLastModelStore } from "../../../stores/lastModelStore";
 
 jest.mock("../../../hooks/useResolvedMediaUri");
 
+/** Whether the board renders at phone width. */
+let mockCompact = false;
+jest.mock("@mui/material", () => ({
+  ...jest.requireActual("@mui/material"),
+  useMediaQuery: () => mockCompact
+}));
+
 let mockShots: Shot[] = [];
 /** The board's scene records; empty is a legacy board (PRD § 7.7.7). */
 let mockScenes: Scene[] = [];
@@ -384,6 +391,7 @@ const makeShot = (id: string, sceneId?: string): Shot => {
 };
 
 beforeEach(() => {
+  mockCompact = false;
   nextIndex = 0;
   mockScenes = [];
   mockGenre = "";
@@ -539,7 +547,9 @@ describe("StoryboardBoard download", () => {
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    await user.click(screen.getByRole("button", { name: "More board actions" }));
+    await user.click(
+      screen.getByRole("button", { name: "More board actions" })
+    );
 
     expect(
       screen.getByRole("menuitem", { name: "Download ZIP" })
@@ -552,7 +562,9 @@ describe("StoryboardBoard download", () => {
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    await user.click(screen.getByRole("button", { name: "More board actions" }));
+    await user.click(
+      screen.getByRole("button", { name: "More board actions" })
+    );
     await user.click(screen.getByRole("menuitem", { name: "Download ZIP" }));
 
     expect(mockFlushStoryboardSave).toHaveBeenCalledWith("board-1");
@@ -632,6 +644,28 @@ describe("StoryboardBoard toolbar", () => {
     expect(
       screen.getByRole("button", { name: "Create timeline" })
     ).toBeDisabled();
+  });
+
+  it("folds the board tools into one icon row on a phone", async () => {
+    mockCompact = true;
+    mockShots = [makeShot("s1")];
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    // One column fills the width at any card size.
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add shot" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Slideshow" })).toBeEnabled();
+    const settings = screen.getByRole("button", { name: "Board settings" });
+    expect(settings).toHaveAttribute("aria-expanded", "false");
+    // The buttons that spend money keep their labels.
+    expect(
+      screen.getByRole("button", { name: "Render stills (1)" })
+    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Render clips" })).toBeDisabled();
+
+    await user.click(settings);
+    expect(settings).toHaveAttribute("aria-expanded", "true");
   });
 
   it("highlights clip rendering after every shot has a still", () => {
@@ -1219,7 +1253,9 @@ describe("StoryboardBoard Change Style", () => {
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    await user.click(screen.getByRole("button", { name: "More board actions" }));
+    await user.click(
+      screen.getByRole("button", { name: "More board actions" })
+    );
     await user.click(screen.getByRole("menuitem", { name: "Change style…" }));
     const grid = await screen.findByRole("radiogroup", { name: "Art style" });
     await user.click(within(grid).getByRole("radio", { name: /Noir/ }));
@@ -1249,7 +1285,9 @@ describe("StoryboardBoard next steps", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole("button", { name: "Create timeline" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Create timeline" })
+    ).toBeEnabled();
   });
 
   it("offers Create timeline once a shot has a clip", () => {
