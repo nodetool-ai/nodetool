@@ -257,7 +257,8 @@ export async function stageModelGameAsset3D(run: CapabilityRun, game: Game, work
     const envelope = z.record(z.string(), z.unknown()).safeParse(result);
     if (envelope.success && typeof envelope.data.error === "string") { return { error: envelope.data.error }; }
     const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
-    const modelRef = z.object({ type: z.literal("model3d").optional(), uri: z.string().optional(), data: z.union([z.string(), z.instanceof(Uint8Array)]).optional(), asset_id: z.string().optional() });
+    // Model3DRef is tagged "model_3d" (TextTo3D, ImageTo3D, PrepareForEngine); accept the older spelling too.
+    const modelRef = z.object({ type: z.enum(["model_3d", "model3d"]).optional(), uri: z.string().optional(), data: z.union([z.string(), z.instanceof(Uint8Array)]).optional(), asset_id: z.string().optional() });
     for (const candidate of envelope.success ? [envelope.data.model, envelope.data.model3d, envelope.data.output, envelope.data.result, result] : [result]) {
       const parsed = modelRef.safeParse(candidate);
       if (parsed.success && (parsed.data.uri || parsed.data.data || parsed.data.asset_id)) {
