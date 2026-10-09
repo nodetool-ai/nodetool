@@ -27,6 +27,7 @@ import GameInspector from "./panels/inspector/GameInspector";
 import GameSceneTree from "./panels/hierarchy/GameSceneTree";
 import GameRuntimeInspector from "./panels/inspector/GameRuntimeInspector";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
+import GameAssetBrowser, { type GameAssetServerEditResult } from "./panels/assets/GameAssetBrowser";
 import GameEditorShell from "./shell/GameEditorShell";
 import type { GameCommandHandler, GameCommandHandlers } from "./shell/gameCommands";
 import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
@@ -231,6 +232,16 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       setError(null);
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setSaving(false); }
+  };
+
+  const serverAssetEdit = async (edit: (baseUpdatedAt: string) => Promise<GameAssetServerEditResult>): Promise<void> => {
+    await flushDraft();
+    const fresh = getGameDraftStore(refId).getState();
+    if (!fresh.baseUpdatedAt) { throw new Error("The draft is not ready for asset changes"); }
+    const result = await edit(fresh.baseUpdatedAt);
+    getGameDraftStore(refId).getState().load(result.document, result.game.draftUpdatedAt);
+    loadedTokenRef.current = result.game.draftUpdatedAt;
+    await queries.games.draftChanges.invalidate({ id: refId });
   };
 
   const publish = async () => {
@@ -457,6 +468,9 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
                 runEntityStats={diagnostics.byEntity}
                 onChange={(source) => onOps([{ op: "set_script", entity_id: activeScript.id, scene_id: scriptKey.sceneId, index: scriptKey.index, source }])} />
         </> : null },
+      { id: "assets", visible: !isMobile,
+        node: <GameAssetBrowser gameId={refId} document={document} runServerEdit={serverAssetEdit} onOps={onOps}
+          onSelectEntity={(_sceneId, entityId) => selectEntity(entityId, false)} onAskAssistant={assistant.draft} /> },
       { id: "inspector", visible: !isMobile,
         node: <>
           {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}

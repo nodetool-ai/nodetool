@@ -2657,8 +2657,8 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-asset-browser.test.ts",
       "packages/agents/tests/capabilities-game-authoring.test.ts",
-      "packages/agents/tests/capabilities-game-autoplay.test.ts",
     ],
     evals: [
       {
@@ -2707,6 +2707,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-asset-browser.test.ts",
     ],
   },
   {
@@ -2833,6 +2834,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game-authoring.test.ts",
+    ],
+  },
+  {
+    name: "browse_native_game_assets",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "813a7cac1c81",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-asset-browser.test.ts",
     ],
   },
   {

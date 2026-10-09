@@ -1,4 +1,4 @@
-import { gameAssetManifest, type GameAssetManifest } from "@nodetool-ai/protocol";
+import { gameAssetManifest, type GameAssetManifest, type GameSlotSpec } from "@nodetool-ai/protocol";
 
 export interface NativeGameTemplate {
   readonly id: string;
@@ -29,4 +29,13 @@ export function listNativeTemplates(): readonly NativeGameTemplate[] {
 export function getNativeTemplate(id: string): NativeGameTemplate {
   if (id === TOP_DOWN.id) return TOP_DOWN;
   throw new Error(`Unknown native game template ${id}. Available: ${TOP_DOWN.id}`);
+}
+
+/** The first template slot with this id, for seeding a document slot's generation request. */
+export function gameTemplateSlot(slotId: string): GameSlotSpec | undefined {
+  for (const template of listNativeTemplates()) {
+    const slot = template.manifest.slots.find((entry) => entry.id === slotId);
+    if (slot) return slot;
+  }
+  return undefined;
 }

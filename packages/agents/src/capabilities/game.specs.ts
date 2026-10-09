@@ -17,6 +17,22 @@ export const applyGameAuthoringSpec: CapabilitySpec = {
   category: "write", userMessage: () => "Applying game construction"
 };
 
+export const BROWSE_GAME_ASSET_KINDS = ["image", "audio", "font", "model", "collider", "hdri"] as const;
+
+export const browseGameAssetsSpec: CapabilitySpec = {
+  name: "browse_native_game_assets",
+  description: "List a game draft's assets with where each is used, its prefabs and scenes, staged candidates under the game's assets folder, and the generation request (kind, prompt, preparation) for each slot. Filter with query and kind. Pass digest (and slot) to get one candidate's installable binding for install_native_game_asset.",
+  inputSchema: { type: "object", properties: {
+    game_id: { type: "string", description: "Full game id or exact 12-character prefix." },
+    query: { type: "string", description: "Case-insensitive match on slot, digest prefix or user name." },
+    kind: { type: "string", enum: [...BROWSE_GAME_ASSET_KINDS] },
+    digest: { type: "string", description: "A staged candidate's 64-character content digest." },
+    slot: { type: "string", description: "With digest: the slot the candidate will replace. Its pivot and sampling carry over." }
+  }, required: ["game_id"] },
+  category: "read",
+  userMessage: () => "Browsing game assets"
+};
+
 export const gameSpecs: readonly CapabilitySpec[] = [
   {
     name: "create_native_game",
@@ -110,5 +126,6 @@ export const gameSpecs: readonly CapabilitySpec[] = [
     userMessage: () => "Finding a game route"
   },
   previewGameAuthoringSpec,
-  applyGameAuthoringSpec
+  applyGameAuthoringSpec,
+  browseGameAssetsSpec
 ];

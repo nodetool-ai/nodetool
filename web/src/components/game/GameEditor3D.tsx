@@ -23,6 +23,7 @@ import GameHierarchy3D from "./panels/hierarchy/GameHierarchy3D";
 import GameInspector3D from "./panels/inspector/GameInspector3D";
 import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
+import GameAssetBrowser, { type GameAssetServerEditResult } from "./panels/assets/GameAssetBrowser";
 import GameEditorShell from "./shell/GameEditorShell";
 import GameRevisions from "./panels/revisions/GameRevisions";
 import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
@@ -239,6 +240,17 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     } catch (cause) { setOperationError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setRestoring(false); }
   };
+  const serverAssetEdit = async (edit: (baseUpdatedAt: string) => Promise<GameAssetServerEditResult>): Promise<void> => {
+    await flush();
+    await flushGameDraft(savingRef, async () => {
+      const state = getGameDraftStore(refId).getState();
+      if (!state.baseUpdatedAt) { throw new Error("The draft is not ready for asset changes"); }
+      const result = await edit(state.baseUpdatedAt);
+      getGameDraftStore(refId).getState().load(result.document, result.game.draftUpdatedAt);
+    });
+    await queries.games.getDraft.invalidate({ id: refId });
+    await queries.games.draftChanges.invalidate({ id: refId });
+  };
   const restart = useMemo(() => host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document),
     [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
@@ -321,6 +333,9 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary} runEntityStats={diagnostics.byEntity}
           onChange={(source) => onOps([{ op: "set_script", scene_id: scriptKey.sceneId, entity_id: activeScript.id, index: scriptKey.index, source }])}
           onClose={() => { setScriptKey(null); layoutStore.getState().dispatch({ type: "hide", panelId: "scripts" }); }} /> : null },
+      { id: "assets",
+        node: <GameAssetBrowser gameId={refId} document={document} runServerEdit={serverAssetEdit} onOps={onOps}
+          onSelectEntity={(entitySceneId, entityId) => { setSceneId(entitySceneId); select(entityId); }} onAskAssistant={assistant.draft} /> },
       { id: "inspector",
         node: <>
         <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />

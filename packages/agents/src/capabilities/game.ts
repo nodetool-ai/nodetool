@@ -16,7 +16,8 @@ import { persistOutput } from "../tools/asset-persist.js";
 import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../game-examples.js";
 import { previewGameAuthoring, applyGameAuthoring } from "../game-authoring.js";
 import { gameDocumentDigest } from "../game-code-bake.js";
-import { previewGameAuthoringSpec, applyGameAuthoringSpec } from "./game.specs.js";
+import { previewGameAuthoringSpec, applyGameAuthoringSpec, browseGameAssetsSpec } from "./game.specs.js";
+import { browseGameAssets } from "./game-asset-browser.js";
 
 const log = createLogger("capabilities.game");
 
@@ -1192,5 +1193,6 @@ export const module: CapabilityModule = {
   module: "game",
   exports: [create, get, save, install, playtest, buildGame, edit, capture, generateAsset, listExamples, getExample, installExample, autoplay,
     { spec: previewGameAuthoringSpec, impl: previewGameAuthoring },
-    { spec: applyGameAuthoringSpec, impl: applyGameAuthoring }].map(withDraftRecovery)
+    { spec: applyGameAuthoringSpec, impl: applyGameAuthoring },
+    { spec: browseGameAssetsSpec, impl: browseGameAssets }].map(withDraftRecovery)
 };
