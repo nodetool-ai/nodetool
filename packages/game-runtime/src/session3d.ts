@@ -64,6 +64,7 @@ function initialState3D(definition: GameEntity3D, spawnTick: number): EntityStat
     previousTransform: structuredClone(definition.transform3d), velocity: { ...(definition.body3d?.velocity ?? ZERO3) },
     angularVelocity: { ...(definition.body3d?.angularVelocity ?? ZERO3) }
   };
+  if (definition.props !== undefined) { state.props = structuredClone(definition.props); }
   if (definition.character3d) {
     state.controller = { grounded: false, coyoteRemaining: 0, jumpBufferRemaining: 0, verticalVelocity: definition.body3d?.velocity.y ?? 0 };
   }
@@ -104,6 +105,7 @@ function restoreEntityStates3D(
       animation: structuredClone(entity.animation),
       opacity: entity.opacity
     };
+    if (entity.props !== undefined) { state.props = structuredClone(entity.props); }
     if (entity.controller) state.controller = { ...entity.controller, grounded: entity.grounded };
     return state;
   });
@@ -122,6 +124,7 @@ function snapshotEntity3D(state: EntityState3D): GameEntityState3D {
     transform: structuredClone(state.transform), localTransform: structuredClone(state.localTransform), previousTransform: structuredClone(state.previousTransform),
     velocity: { ...state.velocity }, angularVelocity: { ...state.angularVelocity }, grounded: state.controller?.grounded ?? false
   };
+  if (state.props !== undefined) { entity.props = structuredClone(state.props); }
   if (state.sourceId) entity.sourceId = state.sourceId;
   if (state.prefabId) entity.prefabId = state.prefabId;
   if (state.instanceId) entity.instanceId = state.instanceId;

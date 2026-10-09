@@ -77,6 +77,7 @@ function initialState(entity: GameEntity, world: WorldTransform, spawnTick = 0):
     velocityX: entity.body2d?.velocity.x ?? 0,
     velocityY: entity.body2d?.velocity.y ?? 0
   };
+  if (entity.props !== undefined) { state.props = structuredClone(entity.props); }
   if (patrol?.kind === "patrol") {
     state.patrolOrigin = patrol.axis === "x" ? state.x : state.y;
     state.patrolDirection = 1;
@@ -243,6 +244,10 @@ function createGameSessionWithRunner(
       state.velocityY = saved.velocityY;
       state.spawnTick = saved.spawnTick ?? 0;
       state.active = saved.active;
+      if (saved.props !== undefined) {
+        if (document.schemaVersion !== 4) { throw new Error(`Save entity ${saved.id} props require schema version 4`); }
+        state.props = structuredClone(saved.props);
+      }
       state.health = saved.health;
       state.patrolOrigin = saved.patrolOrigin;
       state.patrolDirection = saved.patrolDirection;
@@ -279,7 +284,7 @@ function createGameSessionWithRunner(
     }
     return {
       gameRevision: document.revision,
-      engineVersion: "1",
+      engineVersion: document.engineVersion,
       sceneId,
       tick,
       rngState,
@@ -306,6 +311,7 @@ function createGameSessionWithRunner(
         if (state.sourceId) {
           entity.sourceId = state.sourceId;
         }
+        if (state.props !== undefined) { entity.props = structuredClone(state.props); }
         if (state.visual) Object.assign(entity, state.visual);
         if (state.health !== undefined) entity.health = state.health;
         if (state.patrolOrigin !== undefined) entity.patrolOrigin = state.patrolOrigin;

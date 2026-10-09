@@ -19,6 +19,8 @@ function preservingPatch<Schema extends z.ZodType>(schema: Schema) {
   });
 }
 const entitySet = preservingPatch(gameEntity3D.partial().extend({
+  tags: gameEntity3D.shape.tags.unwrap().nullable().optional(),
+  props: gameEntity3D.shape.props.unwrap().nullable().optional(),
   id: z.never().optional(),
   parentId: id.nullable().optional(),
   transform3d: gameTransform3D.partial().extend({ position: gameVector3.partial().optional(), scale: gameTransform3D.shape.scale.unwrap().partial().optional() }).optional(),
@@ -168,7 +170,13 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
       }
       case "update_entity": {
         const { scene, entity } = findEntity(op.entity_id, op.scene_id, opIndex);
-        const next = gameEntity3D.safeParse(merge(entity, op.set));
+        const merged = merge(entity, op.set);
+        if (!isRecord(merged)) { fail(opIndex, ["set"], "Entity update must be an object"); }
+        for (const key of ["tags", "props"] as const) {
+          if (op.set[key] === null) { delete merged[key]; }
+          else if (op.set[key] !== undefined) { merged[key] = structuredClone(op.set[key]); }
+        }
+        const next = gameEntity3D.safeParse(merged);
         if (!next.success) { const issue = next.error.issues[0]; fail(opIndex, ["set", ...pathOf(issue.path)], issue.message); }
         scene.entities[scene.entities.indexOf(entity)] = next.data;
         break;

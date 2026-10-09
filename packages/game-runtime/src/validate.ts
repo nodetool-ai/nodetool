@@ -54,6 +54,9 @@ export function validateGame(value: unknown): GameValidationResult {
     } catch (error) { errors.push(`authoring: ${error instanceof Error ? error.message : "Invalid authoring metadata"}`); }
   }
   const issueOverrides = new Map<number, GameValidationIssue>();
+  if ((document.schemaVersion === 4) !== (document.engineVersion === "3")) {
+    errors.push(`engineVersion: schema version ${document.schemaVersion} requires engine version ${document.schemaVersion === 4 ? "3" : "1"}`);
+  }
   if (document.schemaVersion === 1 && document.collisionLayers) {
     errors.push("collisionLayers: requires schema version 2");
   }
@@ -223,6 +226,8 @@ export function validateGame(value: unknown): GameValidationResult {
       }
       if (entity.visualAnimation && !entity.sprite) errors.push(`${path}.visualAnimation: requires a sprite`);
       if (document.schemaVersion === 1 && entity.visualAnimation) errors.push(`${path}.visualAnimation: requires schema version 2`);
+      if (document.schemaVersion !== 4 && entity.tags !== undefined) errors.push(`${path}.tags: requires schema version 4`);
+      if (document.schemaVersion !== 4 && entity.props !== undefined) errors.push(`${path}.props: requires schema version 4`);
       if (document.schemaVersion === 1 && entity.sprite?.unlit !== undefined) errors.push(`${path}.sprite.unlit: requires schema version 2`);
       if (document.schemaVersion === 1) {
         for (const [field, present] of [

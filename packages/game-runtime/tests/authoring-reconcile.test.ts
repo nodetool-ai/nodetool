@@ -186,3 +186,21 @@ describe("retained game authoring", () => {
     expect(result.document.scenes[0].entities).toHaveLength(10000);
   });
 });
+
+it("preserves explicit metadata replacements while rebuilding unrelated authored transforms", () => {
+  const baseline = simple();
+  baseline.schemaVersion = 4;
+  baseline.engineVersion = "3";
+  baseline.scenes[0].entities[0].tags = ["baseline"];
+  baseline.scenes[0].entities[0].props = {nested:{removed:1,keep:null}};
+  const initial = gameDocument.parse(retained(baseline));
+  const edited = applyGameOps(initial,[{op:"update_entity",entity_id:"gem-0",set:{tags:[],props:{nested:{keep:null}}}}]);
+  const generated = structuredClone(baseline);
+  generated.scenes[0].entities[0].transform2d.x = 10;
+  const result = reconcileGameAuthoring(edited,retained(generated));
+  expect(result.conflicts).toEqual([]);
+  const entity = gameDocument.parse(result.document).scenes[0].entities[0];
+  expect(entity.transform2d.x).toBe(10);
+  expect(entity.tags).toEqual([]);
+  expect(entity.props).toEqual({nested:{keep:null}});
+});

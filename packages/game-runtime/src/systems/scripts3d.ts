@@ -1,6 +1,17 @@
+import type { GameEntityProps } from "@nodetool-ai/protocol";
+import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecycle.js";
+import { planScriptProps } from "../script-props.js";
+import type { GameScriptCall3D } from "../scripts3d.js";
 import { scriptSourceKey } from "../scripts.js";
+
+const NO_TAGS: readonly string[] = Object.freeze([]);
+
+function scriptMetadata(state: EntityState3D): Pick<GameScriptCall3D, "tags" | "active" | "rotation"> {
+  return { tags: state.definition.tags ?? NO_TAGS, active: state.active, rotation: [...state.transform.rotation] };
+}
+
 export function stepScripts3D(context: GameSystemContext3D): void {
   for (const state of context.states) {
     if (!state.active) {
@@ -24,6 +35,7 @@ export function stepScripts3D(context: GameSystemContext3D): void {
           position: { ...state.transform.position },
           velocity: { ...state.velocity },
           grounded: state.controller?.grounded ?? false,
+          ...scriptMetadata(state),
           maxCommands: behavior.maxCommands,
           maxTickMs: behavior.maxTickMs
         });
@@ -32,6 +44,11 @@ export function stepScripts3D(context: GameSystemContext3D): void {
   }
   context.runner?.retain?.(new Set(context.calls.map((call) => call.stateKey)));
   if (context.runner && context.calls.length > 0) {
+    // Each active entity's props travel once; scripts read them on `entity`, `world` and `world.get`.
+    const props: Record<string, GameEntityProps> = {};
+    for (const state of context.states) {
+      if (state.active && state.props !== undefined && Object.keys(state.props).length > 0) { props[state.definition.id] = state.props; }
+    }
     const batch = context.runner.run(
       context.calls,
       {
@@ -47,12 +64,15 @@ export function stepScripts3D(context: GameSystemContext3D): void {
             source: state.sourceId ?? state.definition.id,
             position: { ...state.transform.position },
             velocity: { ...state.velocity },
-            grounded: state.controller?.grounded ?? false
-          }))
+            grounded: state.controller?.grounded ?? false,
+            ...scriptMetadata(state)
+          })),
+        props
       },
       context.rngState
     );
     const byId = new Map(context.states.map((state) => [state.definition.id, state]));
+    const plannedProps = planScriptProps(batch.results, (entityId) => byId.get(entityId)?.props, context.tick, true);
     for (let index = 0; index < batch.results.length; index += 1) {
       const result = batch.results[index];
       context.scriptState[context.calls[index].stateKey] = result.state;
@@ -62,6 +82,10 @@ export function stepScripts3D(context: GameSystemContext3D): void {
       }
       for (const command of result.commands) {
         switch (command.kind) {
+          case "setProp":
+          case "removeProp":
+            state.props = plannedProps.get(result.entityId);
+            break;
           case "characterIntent":
             if (!state.definition.character3d) {
               throw new Error(`Character intent requires a character (${result.entityId})`);

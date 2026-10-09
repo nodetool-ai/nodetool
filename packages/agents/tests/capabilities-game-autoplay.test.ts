@@ -44,7 +44,7 @@ describe("agent game routes", () => {
   it("finds and replays an owned draft win beyond 3600 ticks", async () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Long route" }) as GameReply;
-    expect(created.document.schemaVersion).toBe(2);
+    expect(created.document.schemaVersion).toBe(4);
     const document = structuredClone(created.document);
     const scene = document.scenes[0];
     scene.entities = scene.entities.filter((entity) => !entity.id.startsWith("wall"));

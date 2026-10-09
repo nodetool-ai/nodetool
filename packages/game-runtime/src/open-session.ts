@@ -41,7 +41,7 @@ export async function openGameSession(value: AnyGameDocument, options: OpenGameS
       return { ok: true, opened: { dimension: "3d", session } };
     }
     const session = await createScriptedGameSession(document, options.seed,
-      snapshot?.engineVersion === "1" ? snapshot : undefined, options.eventSink, options);
+      snapshot?.engineVersion !== "2" ? snapshot : undefined, options.eventSink, options);
     if (options.signal?.aborted) {
       session.dispose();
       options.signal.throwIfAborted();
