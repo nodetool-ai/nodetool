@@ -118,7 +118,12 @@ import {
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT
 } from "./workflows.specs.js";
-import { isNumber, isObjectLike, isString } from "../utils/type-guards.js";
+import {
+  isBoolean,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 import { resolveProjectId } from "./project-scope.js";
 
 /** The run environment this run can execute a workflow in, or null. */
@@ -554,9 +559,43 @@ const setWorkflowAccess: CapabilityExport = {
   }
 };
 
+/**
+ * `node_ids` and `reuse_results` as the execution service takes them, or the
+ * error for a malformed value. A bad selection must not fall back to running
+ * (and billing) the whole workflow.
+ */
+function partialRunOptions(
+  params: Record<string, unknown>
+):
+  | { options: { nodeIds?: string[]; reuseResults?: boolean } }
+  | { error: string } {
+  const options: { nodeIds?: string[]; reuseResults?: boolean } = {};
+  const nodeIds = params["node_ids"];
+  if (nodeIds !== undefined && nodeIds !== null) {
+    if (
+      !Array.isArray(nodeIds) ||
+      nodeIds.length === 0 ||
+      !nodeIds.every(isString)
+    ) {
+      return { error: "node_ids must be a non-empty array of node id strings" };
+    }
+    options.nodeIds = nodeIds;
+  }
+  const reuse = params["reuse_results"];
+  if (reuse !== undefined && reuse !== null) {
+    if (!isBoolean(reuse)) {
+      return { error: "reuse_results must be a boolean" };
+    }
+    options.reuseResults = reuse;
+  }
+  return { options };
+}
+
 const runWorkflowCapability: CapabilityExport = {
   spec: runWorkflowCapabilitySpec,
   impl: async (run, params) => {
+    const partial = partialRunOptions(params);
+    if ("error" in partial) return partial;
     const env = await runEnvironmentOf(run);
     if (!env) return noRegistryError("run a workflow");
     const { runWorkflow } = await import("@nodetool-ai/execution/service");
@@ -565,6 +604,7 @@ const runWorkflowCapability: CapabilityExport = {
       userId: userIdOf(run.context),
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...partial.options,
       interactive: params["interactive"] === true,
       // A run started from a project's agent thread is that project's spend.
       projectId: run.projectId ?? null
@@ -576,6 +616,8 @@ const runWorkflowCapability: CapabilityExport = {
 const debugWorkflow: CapabilityExport = {
   spec: debugWorkflowSpec,
   impl: async (run, params) => {
+    const partial = partialRunOptions(params);
+    if ("error" in partial) return partial;
     const env = await runEnvironmentOf(run);
     if (!env) return noRegistryError("debug a workflow");
     const { Job, Workflow } = await import("@nodetool-ai/models");
@@ -590,6 +632,7 @@ const debugWorkflow: CapabilityExport = {
       debug: true,
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...partial.options,
       interactive: params["interactive"] === true,
       projectId: run.projectId ?? null
     });
@@ -833,6 +876,8 @@ async function withSecretRemediation(
 const startBackgroundJob: CapabilityExport = {
   spec: startBackgroundJobSpec,
   impl: async (run, params) => {
+    const partial = partialRunOptions(params);
+    if ("error" in partial) return partial;
     const env = await runEnvironmentOf(run);
     if (!env) return noRegistryError("start a background job");
     const { runWorkflow } = await import("@nodetool-ai/execution/service");
@@ -841,6 +886,7 @@ const startBackgroundJob: CapabilityExport = {
       userId: userIdOf(run.context),
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...partial.options,
       background: true,
       projectId: run.projectId ?? null
     });

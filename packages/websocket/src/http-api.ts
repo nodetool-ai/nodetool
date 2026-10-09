@@ -57,6 +57,7 @@ import {
   peekDebugSession,
   runWorkflow,
   submitEscalationVerdict,
+  type RunGeneration,
   type RunWorkflowOutcome
 } from "@nodetool-ai/execution/service";
 import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
@@ -94,6 +95,7 @@ import {
 import type { SdkV1ImplementationBoundary } from "./sdk/sdk-v1-handler-map.js";
 import { z } from "zod";
 import {
+  isBoolean,
   isNonEmptyString,
   isObjectLike,
   isRecord,
@@ -123,6 +125,10 @@ import {
   normalizeAssetContentType
 } from "./lib/asset-paths.js";
 import { resolveAssetBytesForExport } from "./lib/asset-export.js";
+import {
+  autoSaveAssets,
+  primaryTextOutputName
+} from "./session/asset-autosave.js";
 import { toAssetResponse } from "./lib/asset-response.js";
 import { scheduleVideoProxy } from "./lib/video-proxy.js";
 
@@ -230,6 +236,7 @@ type WorkflowRuntimeEnvironment = {
   configureContext: (context: ProcessingContext) => void;
   assetStorage: StorageAdapter;
   storage: StorageAdapter;
+  persistGeneration: (generation: RunGeneration) => Promise<void>;
 };
 
 export async function getWorkflowRuntimeEnvironment(
@@ -412,7 +419,22 @@ export async function getWorkflowRuntimeEnvironment(
         // it the reference resolves to nothing and the node runs on an empty
         // input. Same pair the streaming WebSocket runner uses.
         assetStorage: getAssetAdapter(),
-        storage: getTempAdapter()
+        storage: getTempAdapter(),
+        // The same per-generation autosave the editor's runs do, so a later
+        // run with `node_ids` can reuse what this one generated.
+        persistGeneration: (generation: RunGeneration) =>
+          autoSaveAssets(generation.outputs, {
+            userId: generation.userId,
+            workflowId: generation.workflowId,
+            jobId: generation.jobId,
+            nodeId: generation.nodeId,
+            textOutputName: primaryTextOutputName(
+              registry.getMetadata(generation.nodeType)
+            ),
+            generationIndex: generation.index,
+            properties: generation.properties ?? undefined,
+            nodeType: generation.nodeType
+          })
       };
     })();
   }
@@ -635,6 +657,26 @@ export async function handleWorkflowRun(
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const body = await parseBody(request, workflowRunBodySchema);
 
+  const rawNodeIds = body?.node_ids;
+  let nodeIds: string[] | undefined;
+  if (rawNodeIds !== undefined && rawNodeIds !== null) {
+    if (
+      !Array.isArray(rawNodeIds) ||
+      rawNodeIds.length === 0 ||
+      !rawNodeIds.every(isString)
+    ) {
+      return errorResponse(
+        400,
+        "node_ids must be a non-empty array of node id strings"
+      );
+    }
+    nodeIds = rawNodeIds;
+  }
+  const reuseResults = body?.reuse_results;
+  if (reuseResults !== undefined && !isBoolean(reuseResults)) {
+    return errorResponse(400, "reuse_results must be a boolean");
+  }
+
   const runOptions: Parameters<typeof runWorkflow>[0] = {
     workflowId,
     userId,
@@ -649,6 +691,12 @@ export async function handleWorkflowRun(
     // The server's own import site, so a test that mocks it still governs.
     resolveWorkspace: resolveWorkflowWorkspace
   };
+  if (nodeIds) {
+    runOptions.nodeIds = nodeIds;
+  }
+  if (reuseResults !== undefined) {
+    runOptions.reuseResults = reuseResults;
+  }
   if (body?.max_decisions !== undefined) {
     runOptions.maxDecisions = body.max_decisions;
   }
