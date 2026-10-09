@@ -14,7 +14,8 @@ export const RUNTIME_PACKAGES = {
       "Python interpreter and uv package manager. Required for AI and data processing nodes.",
     category: "language",
     versionRange: ">=3.11 <3.12",
-    condaPackages: ["python=3.11", "uv"],
+    // uv 0.9+ knows the cu130 and rocm7 `--torch-backend` values.
+    condaPackages: ["python=3.11", "uv>=0.9"],
     verifyBinary: "python",
     extraBinaries: { uv: "uv" },
     windowsBinSubdir: "Library\\bin",
@@ -104,8 +105,12 @@ export const RUNTIME_PACKAGES = {
     description:
       "Optional Hugging Face Transformers.js runtime (includes the ONNX Runtime) for local JavaScript AI nodes.",
     category: "library",
-    versionRange: "4.x",
-    npmPackages: ["@huggingface/transformers@4.2.0", "kokoro-js@1.2.1"],
+    // 3.x, not 4.x: kokoro-js 1.2.1 requires @huggingface/transformers
+    // ^3.5.1. With 4.x installed npm nested a second 3.x copy under
+    // kokoro-js, which cached Kokoro weights inside its own package folder.
+    // Keep this inside the range packages/transformers-js-nodes declares.
+    versionRange: "3.x",
+    npmPackages: ["@huggingface/transformers@3.8.1", "kokoro-js@1.2.1"],
     packageNames: ["@huggingface/transformers", "kokoro-js"],
   }),
 

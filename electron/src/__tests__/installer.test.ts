@@ -42,7 +42,7 @@ describe("installer promptForInstallLocation", () => {
     jest.clearAllMocks();
   });
 
-  it("sends prompt to renderer and resolves with location and modelBackend", async () => {
+  it("sends prompt to renderer and resolves with the location", async () => {
     jest.mocked(getDefaultInstallLocation).mockReturnValue("/default/path");
     let handler: Parameters<typeof createIpcMainHandler>[1] | undefined;
     jest.mocked(createIpcMainHandler).mockImplementation((_channel, fn) => {
@@ -51,7 +51,6 @@ describe("installer promptForInstallLocation", () => {
 
     const promise = promptForInstallLocation({
       location: "/default/path",
-      modelBackend: "ollama",
     });
 
     expect(BrowserWindow.getFocusedWindow).toHaveBeenCalled();
@@ -62,18 +61,12 @@ describe("installer promptForInstallLocation", () => {
 
     await handler?.({} as never, {
       location: "/chosen",
-      modelBackend: "ollama",
     });
     const result = await promise;
-    expect(updateSettings).toHaveBeenCalledWith(
-      expect.objectContaining({
-        CONDA_ENV: "/chosen",
-        MODEL_BACKEND: "ollama",
-      })
-    );
+    // MODEL_BACKEND is no longer saved: nothing read it.
+    expect(updateSettings).toHaveBeenCalledWith({ CONDA_ENV: "/chosen" });
     expect(result).toMatchObject({
       location: "/chosen",
-      modelBackend: "ollama",
     });
   });
 
@@ -85,7 +78,7 @@ describe("installer promptForInstallLocation", () => {
     });
 
     const promise = promptForInstallLocation();
-    await handler?.({} as never, { location: "/loc", modelBackend: "ollama" });
+    await handler?.({} as never, { location: "/loc" });
     await promise;
 
     expect(createIpcMainHandler).toHaveBeenCalledWith(

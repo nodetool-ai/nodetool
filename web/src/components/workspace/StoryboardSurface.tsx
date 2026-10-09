@@ -14,6 +14,8 @@ import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay"
 import { useStoryboardServerSync } from "../../hooks/storyboard/useStoryboardServerSync";
 import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
 import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
+import { useContextCommands } from "../../hooks/useContextCommands";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
 import {
   Box,
   FlexColumn,
@@ -93,7 +95,8 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     active,
     enabled: mode !== "view" && loadState === "ready",
     onUndo: useCallback(() => undo(refId), [undo, refId]),
-    onRedo: useCallback(() => redo(refId), [redo, refId])
+    onRedo: useCallback(() => redo(refId), [redo, refId]),
+    menuHeading: "Storyboard"
   });
 
   // Keep the tab label in sync with the board's title field.
@@ -158,6 +161,32 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     []
   );
   const desktopAssistant = !isMobile && mode !== "view";
+
+  const menuCommands = useMemo<ContextCommand[]>(() => {
+    if (mode === "view" || loadState !== "ready" || setupStage !== "done") {
+      return [];
+    }
+    const commands: ContextCommand[] = [
+      { id: "assemble", label: "Assemble Timeline", run: handleAssemble }
+    ];
+    if (desktopAssistant) {
+      commands.push({
+        id: "assistant",
+        label: assistantOpen ? "Hide Assistant" : "Show Assistant",
+        run: toggleAssistant
+      });
+    }
+    return commands;
+  }, [
+    mode,
+    loadState,
+    setupStage,
+    handleAssemble,
+    desktopAssistant,
+    assistantOpen,
+    toggleAssistant
+  ]);
+  useContextCommands("Storyboard", menuCommands, active);
 
   const board = useMemo(
     () => (

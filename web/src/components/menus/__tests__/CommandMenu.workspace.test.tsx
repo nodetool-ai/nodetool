@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import CommandMenu from "../CommandMenu";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import { useCommandMenuStore } from "../../../stores/CommandMenuStore";
 import { trpcClient } from "../../../trpc/client";
 
 const mockRemoveWorkflow = jest.fn();
@@ -43,6 +44,7 @@ jest.mock("../../../hooks/useFitView", () => ({ useFitView: () => () => undefine
 jest.mock("../../../hooks/useSelectionActions", () => ({ useSelectionActions: () => ({}) }));
 jest.mock("@xyflow/react", () => ({ useReactFlow: () => ({}) }));
 jest.mock("../../../trpc/client", () => ({ trpcClient: { workflows: { get: { query: jest.fn() } } } }));
+jest.mock("../GlobalCommandGroups", () => ({ __esModule: true, default: () => null, SwitchTabCommands: () => null }));
 jest.mock("../../ui_primitives", () => ({ Dialog: ({ children, open }: React.PropsWithChildren<{ open: boolean }>) => open ? <div role="dialog">{children}</div> : null }));
 
 function Location(): React.ReactElement {
@@ -51,7 +53,7 @@ function Location(): React.ReactElement {
 const renderMenu = () => render(
   <MemoryRouter initialEntries={["/workspace"]}>
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <CommandMenu open setOpen={() => undefined} undo={() => undefined} redo={() => undefined} reactFlowWrapper={{ current: null }} />
+      <CommandMenu undo={() => undefined} redo={() => undefined} />
       <Location />
     </QueryClientProvider>
   </MemoryRouter>
@@ -62,6 +64,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useCommandMenuStore.setState({ open: true, editorClaims: 0 });
   mockManager.unsavedWorkflowIds = {};
   useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null, activeProjectId: "a", projectSessions: {} });
   useWorkspaceTabsStore.getState().openTab({ type: "workflow", ref: "existing", projectId: "a", title: "Existing" });

@@ -116,3 +116,36 @@ describe("DownloadManager terminal progress", () => {
     expect(asyncHfDownloadMock).not.toHaveBeenCalled();
   });
 });
+
+describe("DownloadManager per-repo concurrency", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env["NODETOOL_HF_DOWNLOAD_CONCURRENCY"];
+  });
+
+  it("downloads at most 8 files of one repo at a time, like the Python worker", async () => {
+    listFilesMock.mockImplementation(async function* () {
+      for (let i = 0; i < 20; i += 1) {
+        yield { type: "file", path: `shard-${i}.safetensors`, size: 1 };
+      }
+    });
+    let inFlight = 0;
+    let peak = 0;
+    asyncHfDownloadMock.mockImplementation(async (_repo: string, path: string) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return `Z:/cache/${path}`;
+    });
+    const updates: Array<{ status: string }> = [];
+
+    await new DownloadManager().startDownload("org/sharded", {
+      onProgress: (update) => updates.push(update)
+    });
+
+    expect(asyncHfDownloadMock).toHaveBeenCalledTimes(20);
+    expect(peak).toBe(8);
+    expect(updates.at(-1)?.status).toBe("completed");
+  });
+});
