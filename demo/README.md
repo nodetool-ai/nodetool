@@ -326,6 +326,25 @@ npm run render:surfaces                # → out/surfaces/surface-<id>.mp4
 npm run encode:hero -- --only surface-storyboard   # one tab; omit --only for all
 ```
 
+## Node-based workflows hero (`demo/src/nodeshero/`)
+
+The `/node-based-workflows` page plays a 22-second muted loop of one
+workflow: seven real registry nodes are wired, a video output is refused by a
+text input, five "Under the Bed" shots run through For Each, Text To Image,
+Image To Video, Collect, and Concatenate Video, and the image model is
+swapped. It is a pure motion composition with no cast or store, so it renders
+with more than one worker. `graph.ts` holds the nodes, wires, and the clock.
+The stills and clips come from `public/casts/heroflow/bed/`.
+
+```bash
+npm run studio:nodeshero -- --no-open
+npm run render:nodeshero                 # → out/nodes-hero.mp4
+npm run encode:hero -- --only hero-nodes # → marketing/public/hero-nodes.*
+```
+
+Node titles, type ids, and model names in `graph.ts` must stay registry
+entries. When one is renamed, update it here and on the page.
+
 ## Published marketing demos (`demo/src/marketing/`)
 
 The homepage serves the conversation demo from

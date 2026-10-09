@@ -33,6 +33,7 @@ const LANDING_PAGES = {
   "/alternatives/dreamina": "dreamina",
   "/use-cases/movie-poster": "movie-poster",
   "/node-based-ai": "node-based-ai",
+  "/node-based-workflows": "node-based-workflows",
   "/studio": "studio",
   "/cloud": "cloud",
   "/download": "download",
