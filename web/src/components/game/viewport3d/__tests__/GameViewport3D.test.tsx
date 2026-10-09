@@ -1,5 +1,5 @@
 import { createRef } from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { Object3D, PerspectiveCamera, Scene, Vector3 } from "three";
@@ -12,7 +12,7 @@ import type { GamePlaySession3D } from "../../useGamePlaySession3D";
 import GameViewport3D from "../GameViewport3D";
 import mockTheme from "../../../../__mocks__/themeMock";
 import GameEditorShell from "../../shell/GameEditorShell";
-import { handleGameUndo } from "../../gameEditorShortcuts";
+import { getGameShortcutStore } from "../../../../stores/game/GameShortcutStore";
 
 interface GestureControl {
   object: Object3D | undefined;
@@ -54,7 +54,16 @@ jest.mock("three/addons/controls/OrbitControls.js", () => ({
     dispose() {}
   }
 }));
-jest.mock("three/addons/controls/FlyControls.js", () => ({ FlyControls: jest.fn() }));
+jest.mock("three/addons/controls/FlyControls.js", () => ({
+  FlyControls: class {
+    movementSpeed = 0;
+    rollSpeed = 0;
+    addEventListener() {}
+    removeEventListener() {}
+    update() {}
+    dispose() {}
+  }
+}));
 
 async function mountViewport(useCommandStore = false, useShell = false) {
   const document = createNative3DGame("viewport-gesture");
@@ -110,8 +119,7 @@ async function mountViewport(useCommandStore = false, useShell = false) {
       panels={[{ id: "viewport", keyboardScope: true, node: viewport }]}
       layoutStore={createGamePanelLayoutStore({ anonymous: true },
         { getItem: () => null, setItem: () => undefined, removeItem: () => undefined })}
-      onKeyDown={(event) => handleGameUndo(event, false,
-        () => store.getState().undo(), () => store.getState().redo())} />
+      commands={{ "edit.undo": { run: () => store.getState().undo() }, "edit.redo": { run: () => store.getState().redo() } }} />
     : viewport}</ThemeProvider>);
   const controls = mockGizmo;
   if (!controls?.object) { view.unmount(); session.dispose(); throw new Error("Gizmo did not attach to the real selected target"); }
@@ -157,6 +165,31 @@ it.each(["Control", "Meta"])("undoes and redoes a viewport edit with %s while th
     expect(fixture.store.getState().document).toEqual(moved);
     expect(fixture.store.getState().commandHistory.past).toHaveLength(1);
   } finally { fixture.view.unmount(); fixture.session.dispose(); }
+});
+
+it("switches transform tools and snapping through registry shortcuts, honours rebinding and yields to fly mode", async () => {
+  const user = userEvent.setup();
+  const shortcuts = getGameShortcutStore(null);
+  shortcuts.getState().resetAll();
+  const fixture = await mountViewport(true, true);
+  try {
+    const canvas = screen.getByLabelText("3D game viewport");
+    await user.click(canvas);
+    await user.keyboard("e");
+    expect(screen.getByRole("button", { name: "Rotate" })).toHaveAttribute("aria-pressed", "true");
+    await user.keyboard("g");
+    expect(screen.getByRole("button", { name: "Snap" })).toHaveAttribute("aria-pressed", "false");
+    act(() => shortcuts.getState().setBindings("tool.scale", [{ code: "KeyT" }]));
+    await user.keyboard("r");
+    expect(screen.getByRole("button", { name: "Scale" })).toHaveAttribute("aria-pressed", "false");
+    await user.keyboard("t");
+    expect(screen.getByRole("button", { name: "Scale" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Fly camera" }));
+    await user.click(canvas);
+    await user.keyboard("w");
+    expect(within(screen.getByRole("group", { name: "Transform mode" })).getByRole("button", { name: "Move" }))
+      .toHaveAttribute("aria-pressed", "false");
+  } finally { shortcuts.getState().resetAll(); fixture.view.unmount(); fixture.session.dispose(); }
 });
 
 it.each(["pointercancel", "lostpointercapture", "blur", "unmount"])("discards pending gizmo edits and closes the gesture on %s", async (boundary) => {

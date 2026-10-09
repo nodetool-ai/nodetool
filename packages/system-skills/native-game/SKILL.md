@@ -501,6 +501,15 @@ the active play session's recorded history. It does not replay the independent
 diagnostic session. Use **Ask the assistant** to pass the script context to
 the game assistant.
 
+Both editors read their commands and default shortcuts from one registry.
+Press Ctrl+K (Cmd+K on macOS) to open the command palette. It lists editor
+commands with their current shortcuts and assistant actions, such as a
+playtest request or a question about the selection. An assistant action writes
+the prompt into the assistant input without sending it. **Edit keyboard
+shortcuts** in the palette rebinds, removes or resets a shortcut. The editor
+rejects a shortcut that another command in the same editor already uses.
+Shortcuts are saved per user in the browser.
+
 ### C: Content and assets
 
 ### D: Performance and delivery

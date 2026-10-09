@@ -44,6 +44,7 @@ When the user already has a board, a script or a cut they signed off, do not put
 | `nodetool.constant.Storyboard` / `.Entity` | a picked board or library entity as a graph value. Outputs `output`. |
 | `nodetool.entity.CreateEntity` | `image`, `kind`, `name`, `descriptor`, `key` → `entity`, `created`. Upserts on `key` (a SKU), so a second run reuses the row instead of growing the library. |
 | `nodetool.entity.LoadEntity` / `ListEntities` | read one entity, or stream a filtered set. |
+| `nodetool.storyboard.CreateStoryboard` | `screenplay` from `Director`, `name`, `cast`, both models → a new writable `storyboard`. The brief-first path: Director → CreateStoryboard → RenderStills. A re-run returns the board it made. |
 | `nodetool.storyboard.RecastStoryboard` | `storyboard`, `cast`, `replaces`, `reuse_existing` → the copy, `invalidated`, `kept`. Keeps every frame whose prompt did not move. |
 | `nodetool.storyboard.RenderStills` / `RenderClips` | render the stale shots of a derived board. `only_stale`, `max_shots`, `require_keyframe` are the spend gates. |
 | `nodetool.storyboard.AssembleTimeline` | the derived board → `timeline`. A copy inherits the template's cut, titles and music. |
@@ -55,8 +56,8 @@ When the user already has a board, a script or a cut they signed off, do not put
 **The write contract.** A `storyboard` ref is read-only unless the run derived it.
 `RenderStills`, `RenderClips` and `AssembleTimeline` refuse a picked board and name
 `allow_writes`, which is the override for a graph whose whole purpose is to render the
-board a person chose. Wire `RecastStoryboard` first and pass its output along; that ref
-carries the permission.
+board a person chose. Wire `CreateStoryboard` or `RecastStoryboard` first and pass its
+output along; that ref carries the permission.
 
 Shipped examples to read before wiring one yourself: **Per-SKU Ad Factory**,
 **Localized Explainer**, **Three Ratios** (`get_example_workflow`).

@@ -39,7 +39,10 @@
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "recording",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/meeting.mp4"
+          },
           "description": "The recording to work from"
         },
         "ui_properties": {

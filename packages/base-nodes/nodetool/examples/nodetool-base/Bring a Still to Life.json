@@ -39,7 +39,10 @@
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "still",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "A still to bring to life"
         },
         "ui_properties": {

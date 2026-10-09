@@ -343,10 +343,18 @@ entity ids twice.
 |---|---|---|
 | `LoadStoryboard` | `storyboard` | `storyboard` (same ref), `shots: list[dict]`, `entities: list[entity]`, `style: str`, `aspect_ratio: str`, `name: str`, `image_model`, `video_model`, `shot_count: int` |
 | `StoryboardShots` | `storyboard` | streams `shot: dict`, `index: int`, `slug: str`, `keyframe: image`, `clip: video`; `output: list[dict]` at the end (the `ScreenplayShots` contract, over a persisted board) |
+| `CreateStoryboard` | `screenplay: dict` (from `Director`), `name?`, `brief?`, `cast: list[entity]`, `image_model?`, `video_model?`, `project?`, `reuse_existing: bool = true` | `storyboard` (writable), `shots: list[dict]`, `shot_count: int`, `created: bool` |
 | `RecastStoryboard` | `storyboard`, `cast: list[entity]`, `replaces?: list[str]`, `name?: str`, `reuse_existing: bool = true` | `storyboard` (the copy), `invalidated: list[str]`, `kept: list[str]` |
 | `RenderStills` | `storyboard`, `targets?: list[str]`, `max_shots: int = 24`, `concurrency: int = 2`, `only_stale: bool = true` | `storyboard`, `keyframes: list[image]`, `rendered: list[str]`, `skipped: list[str]`, `failed: list[str]` |
 | `RenderClips` | `storyboard`, `targets?`, `max_shots: int = 8`, `require_keyframe: bool = true`, `concurrency: int = 1`, `only_stale: bool = true` | `storyboard`, `clips: list[video]`, `rendered`, `skipped`, `failed` |
 | `AssembleTimeline` | `storyboard`, `name?: str` | `timeline: timeline`, `skipped_shots: list[str]`, `retimed: list[dict]` |
+
+`CreateStoryboard` is the brief-first entry: `Director` writes the
+screenplay and this node saves it as a board a person can open in the board
+editor. With `reuse_existing` it returns the board it stamped with
+`recastKey: "created:<name>"` on an earlier run, so a re-run renders only
+stale shots, and a hand-made board with the same name is never handed out as
+writable.
 
 `RecastStoryboard` with `reuse_existing` looks up a board in the same project
 with the same `templateId` and `recastKey` (`findRecastStoryboard`, §2.3 —
@@ -357,7 +365,8 @@ re-rendered. The output ref carries `writable: true`.
 
 **Write contract.** A `StoryboardRef` is read-only unless it carries
 `writable: true`, and only a node that created or derived the row in this run
-sets it: `RecastStoryboard`, and the render nodes on the ref they pass on.
+sets it: `CreateStoryboard`, `RecastStoryboard`, and the render nodes on the
+ref they pass on.
 The picker (`nodetool.constant.Storyboard`), `LoadStoryboard` and
 `StoryboardShots` never set it. `RenderStills`, `RenderClips` and
 `AssembleTimeline` refuse a ref without the flag with an error naming

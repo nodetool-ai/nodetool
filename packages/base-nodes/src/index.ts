@@ -279,6 +279,7 @@ export {
 export {
   LoadStoryboardNode,
   StoryboardShotsNode,
+  CreateStoryboardNode,
   RecastStoryboardNode,
   RenderStillsNode,
   RenderClipsNode,
