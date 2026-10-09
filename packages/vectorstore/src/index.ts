@@ -142,7 +142,7 @@ export async function resolveCollection(
       const model = meta.embedding_model as string | undefined;
       const efProvider = meta.embedding_provider as string | undefined;
       if (model) {
-        ef = getProviderEmbeddingFunction(model, efProvider) ?? undefined;
+        ef = getProviderEmbeddingFunction(model, efProvider);
       }
       if (ef) {
         return provider.getCollection({ name, embeddingFunction: ef });
