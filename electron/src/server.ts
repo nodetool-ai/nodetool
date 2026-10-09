@@ -362,6 +362,11 @@ async function startServer(): Promise<void> {
     // Preview any file the user drags onto the canvas, wherever it lives.
     NODETOOL_LOCAL_FILE_ROOTS: getLocalFileRootsEnv(),
     NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
+    // V8 code cache for the backend's modules. Compiling the bundled
+    // server.mjs costs most of a second on every launch without it.
+    NODE_COMPILE_CACHE:
+      getProcessEnv()["NODE_COMPILE_CACHE"] ??
+      path.join(app.getPath("userData"), "backend-compile-cache"),
     NODE_PATH: backendNodePath,
     NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,
   };
