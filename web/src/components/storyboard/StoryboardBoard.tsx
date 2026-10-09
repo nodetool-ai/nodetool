@@ -39,6 +39,10 @@ import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
 import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import SlideshowIcon from "@mui/icons-material/Slideshow";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import { useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 import { ASPECT_OPTIONS } from "./aspectOptions";
 import {
@@ -74,6 +78,7 @@ import {
   Skeleton,
   Text,
   TextInput,
+  ToolbarIconButton,
   Tooltip,
   UndoRedoButtons,
   BORDER_RADIUS,
@@ -248,6 +253,8 @@ interface RenderBatchButtonProps {
   disabled: boolean;
   highlighted: boolean;
   onClick: () => void;
+  /** Shares a row with its sibling on a phone instead of sizing to its label. */
+  fullWidth?: boolean;
 }
 
 const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
@@ -255,7 +262,8 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
   estimate,
   disabled,
   highlighted,
-  onClick
+  onClick,
+  fullWidth
 }) => {
   const { requestCount, cost, pricedRequestCount, reasons, notes } = estimate;
   const priced = pricedRequestCount > 0 && cost > 0;
@@ -296,13 +304,17 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
       }
     >
       {/* A disabled button swallows pointer events, so the tooltip needs a host. */}
-      <FlexRow component="span">
+      <FlexRow
+        component="span"
+        sx={fullWidth ? { flex: 1, minWidth: 0 } : undefined}
+      >
         <EditorButton
           variant={highlighted ? "contained" : "outlined"}
           color="primary"
           aria-current={highlighted ? "step" : undefined}
           onClick={onClick}
           disabled={disabled}
+          fullWidth={fullWidth}
         >
           {`${label}${requestCount > 0 ? ` (${requestCount})` : ""}${
             priced ? ` · ~${formatUsd(cost)}` : ""
@@ -346,6 +358,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   useStoryboardShotFocus(boardId);
 
   const inStudio = useInStudio();
+  const theme = useTheme();
+  const compactToolbar = useMediaQuery(theme.breakpoints.down("sm"));
   const setTitle = useStoryboardStore((state) => state.setTitle);
   const setBrief = useStoryboardStore((state) => state.setBrief);
   const setStyle = useStoryboardStore((state) => state.setStyle);
@@ -974,6 +988,52 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     [leaveRequest, selectShot, boardId, downloadZip]
   );
 
+  const undoRedo = (
+    <UndoRedoButtons
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onUndo={onUndo}
+      onRedo={onRedo}
+      undoTooltip="Undo (⌘Z)"
+      redoTooltip="Redo (⌘⇧Z)"
+    />
+  );
+  const downloadingStatus = downloading && (
+    <FlexRow align="center" gap={SPACING.xs} role="status">
+      <LoadingSpinner size={16} />
+      <Caption color="secondary">Preparing ZIP…</Caption>
+    </FlexRow>
+  );
+  const actionsMenu = (
+    <BoardActionsMenu
+      onChangeStyle={openStyle}
+      onDownloadZip={handleDownloadZip}
+      downloading={downloading}
+      hasShots={hasShots}
+      workflowMedia={boardWorkflowMedia}
+    />
+  );
+  const renderStillsButton = (
+    <RenderBatchButton
+      label="Render stills"
+      estimate={stillsCost}
+      disabled={pendingStills.length === 0 || !!directing}
+      highlighted={stillStepActive}
+      onClick={openStillRenderDialog}
+      fullWidth={compactToolbar}
+    />
+  );
+  const renderClipsButton = (
+    <RenderBatchButton
+      label="Render clips"
+      estimate={clipsCost}
+      disabled={pendingClips.length === 0 || !!directing}
+      highlighted={clipStepActive}
+      onClick={openClipRenderDialog}
+      fullWidth={compactToolbar}
+    />
+  );
+
   return (
     <Box sx={{ position: "relative", height: "100%", minHeight: 0 }}>
       <ScrollArea
@@ -995,92 +1055,126 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         >
           <FlexRow align="center" gap={SPACING.lg} wrap>
             <Text size="big">{title || "Untitled film"}</Text>
-            <BoardGenreChip boardId={boardId} genre={genre} readOnly={readOnly} />
+            <BoardGenreChip
+              boardId={boardId}
+              genre={genre}
+              readOnly={readOnly}
+            />
             <BoardLineageChip boardId={boardId} />
             <Caption color="secondary">{summary}</Caption>
-            <Box sx={{ flex: 1 }} />
-            {hasShots && (
-              <FlexRow align="center" gap={SPACING.md}>
-                <BoardCardSizeSlider />
-                <EditorButton variant="outlined" onClick={openSlideshow}>
-                  Slideshow
-                </EditorButton>
-              </FlexRow>
-            )}
-            {!readOnly && (
-              <FlexRow align="center" gap={SPACING.md} wrap>
-                <UndoRedoButtons
-                  canUndo={canUndo}
-                  canRedo={canRedo}
-                  onUndo={onUndo}
-                  onRedo={onRedo}
-                  undoTooltip="Undo (⌘Z)"
-                  redoTooltip="Redo (⌘⇧Z)"
-                />
-                <EditorButton
-                  variant="outlined"
-                  startIcon={<AddIcon fontSize="small" />}
-                  onClick={handleAddShot}
-                  disabled={directing}
-                >
-                  Add shot
-                </EditorButton>
-                <EditorButton
-                  variant="outlined"
-                  onClick={togglePreview}
-                  disabled={!hasPlayableShot}
-                >
-                  {previewOpen ? "Hide preview" : "Preview"}
-                </EditorButton>
-                <EditorButton
-                  variant={settingsVisible ? "contained" : "outlined"}
-                  startIcon={<TuneIcon fontSize="small" />}
-                  onClick={toggleSettings}
-                  aria-expanded={settingsVisible}
-                  aria-controls={settingsPanelId}
-                >
-                  Board settings
-                </EditorButton>
-                {onToggleAssistant && (
-                  <EditorButton
-                    variant={assistantOpen ? "contained" : "outlined"}
-                    startIcon={<AutoAwesomeIcon fontSize="small" />}
-                    onClick={onToggleAssistant}
-                    aria-pressed={assistantOpen}
-                  >
-                    Assistant
-                  </EditorButton>
-                )}
-                {downloading && (
-                  <FlexRow align="center" gap={SPACING.xs} role="status">
-                    <LoadingSpinner size={16} />
-                    <Caption color="secondary">Preparing ZIP…</Caption>
+            {!compactToolbar && (
+              <>
+                <Box sx={{ flex: 1 }} />
+                {hasShots && (
+                  <FlexRow align="center" gap={SPACING.md}>
+                    <BoardCardSizeSlider />
+                    <EditorButton variant="outlined" onClick={openSlideshow}>
+                      Slideshow
+                    </EditorButton>
                   </FlexRow>
                 )}
-                <BoardActionsMenu
-                  onChangeStyle={openStyle}
-                  onDownloadZip={handleDownloadZip}
-                  downloading={downloading}
-                  hasShots={hasShots}
-                  workflowMedia={boardWorkflowMedia}
-                />
-                <RenderBatchButton
-                  label="Render stills"
-                  estimate={stillsCost}
-                  disabled={pendingStills.length === 0 || !!directing}
-                  highlighted={stillStepActive}
-                  onClick={openStillRenderDialog}
-                />
-                <RenderBatchButton
-                  label="Render clips"
-                  estimate={clipsCost}
-                  disabled={pendingClips.length === 0 || !!directing}
-                  highlighted={clipStepActive}
-                  onClick={openClipRenderDialog}
-                />
-              </FlexRow>
+                {!readOnly && (
+                  <FlexRow align="center" gap={SPACING.md} wrap>
+                    {undoRedo}
+                    <EditorButton
+                      variant="outlined"
+                      startIcon={<AddIcon fontSize="small" />}
+                      onClick={handleAddShot}
+                      disabled={directing}
+                    >
+                      Add shot
+                    </EditorButton>
+                    <EditorButton
+                      variant="outlined"
+                      onClick={togglePreview}
+                      disabled={!hasPlayableShot}
+                    >
+                      {previewOpen ? "Hide preview" : "Preview"}
+                    </EditorButton>
+                    <EditorButton
+                      variant={settingsVisible ? "contained" : "outlined"}
+                      startIcon={<TuneIcon fontSize="small" />}
+                      onClick={toggleSettings}
+                      aria-expanded={settingsVisible}
+                      aria-controls={settingsPanelId}
+                    >
+                      Board settings
+                    </EditorButton>
+                    {onToggleAssistant && (
+                      <EditorButton
+                        variant={assistantOpen ? "contained" : "outlined"}
+                        startIcon={<AutoAwesomeIcon fontSize="small" />}
+                        onClick={onToggleAssistant}
+                        aria-pressed={assistantOpen}
+                      >
+                        Assistant
+                      </EditorButton>
+                    )}
+                    {downloadingStatus}
+                    {actionsMenu}
+                    {renderStillsButton}
+                    {renderClipsButton}
+                  </FlexRow>
+                )}
+              </>
             )}
           </FlexRow>
+
+          {/* A phone has no room for a row of labelled buttons: the board's
+              tools become one row of icons, and the two render buttons, which
+              spend money, keep their labels and share the row under it. The
+              card size slider is left out, since one column fills the width
+              at any size. */}
+          {compactToolbar && (hasShots || !readOnly) && (
+            <FlexColumn gap={SPACING.sm}>
+              <FlexRow align="center" gap={SPACING.xs} wrap>
+                {!readOnly && undoRedo}
+                {!readOnly && (
+                  <ToolbarIconButton
+                    icon={<AddIcon />}
+                    tooltip="Add shot"
+                    onClick={handleAddShot}
+                    disabled={directing}
+                  />
+                )}
+                {hasShots && (
+                  <ToolbarIconButton
+                    icon={<SlideshowIcon />}
+                    tooltip="Slideshow"
+                    onClick={openSlideshow}
+                  />
+                )}
+                {!readOnly && (
+                  <ToolbarIconButton
+                    icon={<PlayCircleOutlineIcon />}
+                    tooltip={previewOpen ? "Hide preview" : "Preview"}
+                    onClick={togglePreview}
+                    disabled={!hasPlayableShot}
+                    active={previewOpen}
+                    aria-pressed={previewOpen}
+                  />
+                )}
+                {!readOnly && (
+                  <ToolbarIconButton
+                    icon={<TuneIcon />}
+                    tooltip="Board settings"
+                    onClick={toggleSettings}
+                    active={settingsVisible}
+                    aria-expanded={settingsVisible}
+                    aria-controls={settingsPanelId}
+                  />
+                )}
+                {!readOnly && actionsMenu}
+                {!readOnly && downloadingStatus}
+              </FlexRow>
+              {!readOnly && (
+                <FlexRow gap={SPACING.sm}>
+                  {renderStillsButton}
+                  {renderClipsButton}
+                </FlexRow>
+              )}
+            </FlexColumn>
+          )}
 
           {/* The board's own state, under the toolbar and above the settings
               form: what is stale and what failed. Both render null when they
@@ -1151,7 +1245,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                         <FormField label="Screenplay model" sx={modelFieldSx}>
                           <LanguageModelSelect
                             value={directorModel?.id ?? ""}
-                            onChange={(value) => setDirectorModel(boardId, value)}
+                            onChange={(value) =>
+                              setDirectorModel(boardId, value)
+                            }
                           />
                         </FormField>
                       )}
@@ -1183,7 +1279,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     wrap
                   >
                     <Caption
-                      color={directError || assembleError ? "error" : "secondary"}
+                      color={
+                        directError || assembleError ? "error" : "secondary"
+                      }
                     >
                       {directError ??
                         assembleError ??
@@ -1260,12 +1358,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 ? ` · ~${formatUsd(clipsCost.cost)}`
                 : ""
             }`}
-            confirmDisabled={clipModelTasks.some((task) => !clipSelections[task])}
+            confirmDisabled={clipModelTasks.some(
+              (task) => !clipSelections[task]
+            )}
           >
             <FlexColumn gap={SPACING.md}>
               <Caption color="secondary">
-                Pick a model for each kind of clip in this batch. Each shot keeps
-                its choice for fast re-renders.
+                Pick a model for each kind of clip in this batch. Each shot
+                keeps its choice for fast re-renders.
               </Caption>
               {clipModelTasks.map((task) => (
                 <FormField

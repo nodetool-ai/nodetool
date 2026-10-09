@@ -22,17 +22,17 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Low-poly Seaside Starter Pack\n\nLow-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles. Run to expose each GLB as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z and bottom-level origins. Dock decks repeat on a 2 m grid with their top at Y 0.80 m. All models are static visuals. Add physics, buoyancy and gameplay in the game. Download a model output and upload it to your project before importing it into a 3D game."
+          "comment": "# Low-poly Seaside Starter Pack\n\nLow-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles.\n\n**How it works:** Each of the 16 \"Model3D\" constants, such as \"Harbor rowboat\", \"Dock segment\" and \"Striped lighthouse\", points at a packaged GLB file and connects to its own output, such as \"Harbor rowboat output\". Running the graph exposes every model as a named output. It runs locally with no provider or API key. Models use meters, Y up, forward -Z and bottom-level origins. Dock decks repeat on a 2 m grid with their top at Y 0.80 m. All models are static, so add physics, buoyancy and gameplay in the game.\n\n**Try this:** Run the graph, download \"Dock segment output\", upload it to your project, and place three copies 2 m apart in a 3D game to build a pier."
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": -420
+            "y": 0
           },
           "width": 940,
           "selectable": true,
           "title": "Low-poly Seaside Starter Pack",
-          "height": 360
+          "height": 219
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -49,7 +49,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 0
+            "y": 299
           },
           "width": 300,
           "selectable": true,
@@ -66,8 +66,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 0
+            "x": 400,
+            "y": 300
           },
           "width": 300,
           "selectable": true,
@@ -87,8 +87,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 0
+            "x": 840,
+            "y": 299
           },
           "width": 300,
           "selectable": true,
@@ -105,8 +105,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1060,
-            "y": 0
+            "x": 1240,
+            "y": 300
           },
           "width": 300,
           "selectable": true,
@@ -126,8 +126,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1440,
-            "y": 0
+            "x": 1680,
+            "y": 299
           },
           "width": 300,
           "selectable": true,
@@ -144,8 +144,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1780,
-            "y": 0
+            "x": 2080,
+            "y": 300
           },
           "width": 300,
           "selectable": true,
@@ -165,8 +165,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2160,
-            "y": 0
+            "x": 0,
+            "y": 571
           },
           "width": 300,
           "selectable": true,
@@ -183,8 +183,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2500,
-            "y": 0
+            "x": 400,
+            "y": 572
           },
           "width": 300,
           "selectable": true,
@@ -204,8 +204,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 450
+            "x": 840,
+            "y": 571
           },
           "width": 300,
           "selectable": true,
@@ -222,8 +222,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 450
+            "x": 1240,
+            "y": 572
           },
           "width": 300,
           "selectable": true,
@@ -243,8 +243,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 450
+            "x": 1680,
+            "y": 571
           },
           "width": 300,
           "selectable": true,
@@ -261,8 +261,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1060,
-            "y": 450
+            "x": 2080,
+            "y": 572
           },
           "width": 300,
           "selectable": true,
@@ -282,8 +282,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1440,
-            "y": 450
+            "x": 0,
+            "y": 843
           },
           "width": 300,
           "selectable": true,
@@ -300,8 +300,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1780,
-            "y": 450
+            "x": 400,
+            "y": 844
           },
           "width": 300,
           "selectable": true,
@@ -321,8 +321,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2160,
-            "y": 450
+            "x": 840,
+            "y": 843
           },
           "width": 300,
           "selectable": true,
@@ -339,8 +339,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2500,
-            "y": 450
+            "x": 1240,
+            "y": 844
           },
           "width": 300,
           "selectable": true,
@@ -360,8 +360,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 900
+            "x": 1680,
+            "y": 843
           },
           "width": 300,
           "selectable": true,
@@ -378,8 +378,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 900
+            "x": 2080,
+            "y": 844
           },
           "width": 300,
           "selectable": true,
@@ -399,8 +399,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 900
+            "x": 0,
+            "y": 1115
           },
           "width": 300,
           "selectable": true,
@@ -417,8 +417,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1060,
-            "y": 900
+            "x": 400,
+            "y": 1116
           },
           "width": 300,
           "selectable": true,
@@ -438,8 +438,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1440,
-            "y": 900
+            "x": 840,
+            "y": 1115
           },
           "width": 300,
           "selectable": true,
@@ -456,8 +456,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1780,
-            "y": 900
+            "x": 1240,
+            "y": 1116
           },
           "width": 300,
           "selectable": true,
@@ -477,8 +477,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2160,
-            "y": 900
+            "x": 1680,
+            "y": 1115
           },
           "width": 300,
           "selectable": true,
@@ -495,8 +495,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2500,
-            "y": 900
+            "x": 2080,
+            "y": 1116
           },
           "width": 300,
           "selectable": true,
@@ -517,7 +517,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1350
+            "y": 1387
           },
           "width": 300,
           "selectable": true,
@@ -534,8 +534,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 1350
+            "x": 400,
+            "y": 1388
           },
           "width": 300,
           "selectable": true,
@@ -555,8 +555,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 1350
+            "x": 840,
+            "y": 1387
           },
           "width": 300,
           "selectable": true,
@@ -573,8 +573,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1060,
-            "y": 1350
+            "x": 1240,
+            "y": 1388
           },
           "width": 300,
           "selectable": true,
@@ -594,8 +594,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1440,
-            "y": 1350
+            "x": 1680,
+            "y": 1387
           },
           "width": 300,
           "selectable": true,
@@ -612,8 +612,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1780,
-            "y": 1350
+            "x": 2080,
+            "y": 1388
           },
           "width": 300,
           "selectable": true,
@@ -633,8 +633,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2160,
-            "y": 1350
+            "x": 0,
+            "y": 1659
           },
           "width": 300,
           "selectable": true,
@@ -651,8 +651,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2500,
-            "y": 1350
+            "x": 400,
+            "y": 1660
           },
           "width": 300,
           "selectable": true,

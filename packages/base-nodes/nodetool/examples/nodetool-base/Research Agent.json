@@ -24,17 +24,17 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🔎 Research Agent\n\nType a topic, name the audience, and get back a sourced briefing. The agent breaks the topic into questions, runs Google searches, opens the best pages with the browser tool to verify details, then streams a markdown brief with inline [n] citations.\n\n**Graph:** topic + audience → compose objective → research agent (search + browse) → streaming brief\n\n**Why a graph, not a chat box:** the two inputs are composed into a structured research objective, and the agent's tool loop (search → browse → cross-check) runs on every Run with the same rigor. Swap the model or add tools without rewriting a prompt.\n\nNeeds an OpenAI key for the default model. Search + browse tools run against the open web."
+          "comment": "# 🔎 Research Agent\n\nType a topic, name the audience, and get back a sourced briefing. Use it when you need a cited summary built from pages the agent actually opened, not from one prompt call.\n\n**How it works:** \"Topic\" and \"Audience\" fill the template in \"Compose research objective\", which asks for 3 to 5 research questions, cross-checked claims and a markdown brief with short takeaways and a numbered source list. \"Research agent (search + browse)\" receives that objective and loops over its two tools, google_search and browser, opening pages to verify details. Its text streams into \"Cited brief\" with inline [n] citations. Pick a language model on the agent before running. The search and browser tools reach the open web.\n\n**Try this:** Change \"Audience\" to \"a non-technical executive deciding on budget\" and compare the depth and framing of the new brief."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": -480,
-            "y": 40
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
-          "width": 420,
-          "height": 320,
+          "width": 560,
+          "height": 382,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -53,8 +53,8 @@
         "ui_properties": {
           "title": "1️⃣ Topic",
           "position": {
-            "x": 40,
-            "y": 60
+            "x": 0,
+            "y": 719
           },
           "zIndex": 0,
           "width": 280,
@@ -76,8 +76,8 @@
         "ui_properties": {
           "title": "2️⃣ Audience",
           "position": {
-            "x": 40,
-            "y": 300
+            "x": 0,
+            "y": 944
           },
           "zIndex": 0,
           "width": 280,
@@ -96,8 +96,8 @@
         "ui_properties": {
           "title": "3️⃣ Compose research objective",
           "position": {
-            "x": 400,
-            "y": 120
+            "x": 380,
+            "y": 462
           },
           "zIndex": 0,
           "width": 340,
@@ -143,8 +143,8 @@
         "ui_properties": {
           "title": "4️⃣ Research agent (search + browse)",
           "position": {
-            "x": 800,
-            "y": 60
+            "x": 820,
+            "y": 812
           },
           "zIndex": 0,
           "width": 320,
@@ -163,8 +163,8 @@
         "ui_properties": {
           "title": "5️⃣ Cited brief",
           "position": {
-            "x": 1180,
-            "y": 60
+            "x": 1240,
+            "y": 844
           },
           "zIndex": 0,
           "width": 280,

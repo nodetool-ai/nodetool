@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Bring a Still to Life\n\nTurns one image into a short moving shot. The brief lets the model move the camera and add atmosphere but tells it to keep the subject, framing and colour unchanged.\n\n**How it works:** \"1 Still\" takes the image and \"2 Motion\" describes the camera move. \"3 Motion brief\" inserts the motion into a fixed instruction. \"4 Animate\" makes a 6-second 16:9 clip at 1080p, with a negative prompt against warping. \"5 Clip\" shows the result.\n\n**Try this:** Pick a model on \"4 Animate\" and change \"2 Motion\" to \"slow orbit to the left\" to see a different camera path."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "still",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "A still to bring to life"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -47,7 +69,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 340
+            "y": 582
           },
           "zIndex": 0,
           "width": 280,
@@ -65,8 +87,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 260
+            "x": 380,
+            "y": 527
           },
           "zIndex": 0,
           "width": 320,
@@ -97,7 +119,7 @@
         "ui_properties": {
           "position": {
             "x": 800,
-            "y": 200
+            "y": 434
           },
           "zIndex": 0,
           "width": 280,
@@ -115,8 +137,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1160,
-            "y": 220
+            "x": 1180,
+            "y": 448
           },
           "zIndex": 0,
           "width": 240,

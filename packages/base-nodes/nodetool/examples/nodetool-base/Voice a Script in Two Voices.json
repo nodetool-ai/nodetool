@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Voice a Script in Two Voices\n\nVoices a two-person exchange with a separate voice for each speaker. Each line is synthesized on its own, so you can redo one without re-rendering the other.\n\n**How it works:** Type the lines into \"1 Line A\" and \"2 Line B\". \"3 Voice A\" and \"4 Voice B\" turn each into speech, \"5 Join\" places B after A, and \"6 Exchange\" returns the combined audio.\n\n**Try this:** Pick a model and a different voice on \"3 Voice A\" and \"4 Voice B\" so the speakers sound distinct."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "a",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 360
           },
           "zIndex": 0,
           "width": 300,
@@ -45,8 +64,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 0,
+            "y": 612
           },
           "zIndex": 0,
           "width": 300,
@@ -81,8 +100,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -117,8 +136,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 400,
+            "y": 598
           },
           "zIndex": 0,
           "width": 300,
@@ -134,8 +153,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 800,
+            "y": 388
           },
           "zIndex": 0,
           "width": 300,
@@ -153,8 +172,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 330
+            "x": 1200,
+            "y": 498
           },
           "zIndex": 0,
           "width": 300,

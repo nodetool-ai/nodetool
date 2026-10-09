@@ -221,7 +221,7 @@ describe("RemoteSettingsMenu", () => {
       await user.type(timeoutInput, "60");
 
       // Save settings
-      const saveButton = screen.getByRole("button", { name: /SAVE SETTINGS/i });
+      const saveButton = screen.getByRole("button", { name: /save changes/i });
       await user.click(saveButton);
 
       await waitFor(() => {
@@ -274,7 +274,7 @@ describe("RemoteSettingsMenu", () => {
         expect(screen.getByDisplayValue("localhost")).toBeInTheDocument();
       });
       expect(
-        screen.queryByRole("button", { name: /SAVE SETTINGS/i })
+        screen.queryByRole("button", { name: /save changes/i })
       ).not.toBeInTheDocument();
     });
 
@@ -350,13 +350,13 @@ describe("RemoteSettingsMenu", () => {
       // The save bar only appears once a field is edited.
       const input = await screen.findByDisplayValue("30");
       expect(
-        screen.queryByRole("button", { name: /SAVE SETTINGS/i })
+        screen.queryByRole("button", { name: /save changes/i })
       ).not.toBeInTheDocument();
 
       await user.clear(input);
       await user.type(input, "60");
 
-      const saveButton = await screen.findByRole("button", { name: /SAVE SETTINGS/i });
+      const saveButton = await screen.findByRole("button", { name: /save changes/i });
       await user.click(saveButton);
 
       await waitFor(() => {
@@ -409,7 +409,7 @@ describe("RemoteSettingsMenu", () => {
       await user.clear(input);
       await user.type(input, "http://127.0.0.1:8080");
       await user.click(
-        await screen.findByRole("button", { name: /SAVE SETTINGS/i })
+        await screen.findByRole("button", { name: /save changes/i })
       );
 
       await waitFor(() => {
@@ -446,7 +446,7 @@ describe("RemoteSettingsMenu", () => {
         expect(screen.getByDisplayValue("30")).toBeInTheDocument();
       });
       expect(
-        screen.queryByRole("button", { name: /SAVE SETTINGS/i })
+        screen.queryByRole("button", { name: /save changes/i })
       ).not.toBeInTheDocument();
 
       // Edit a field — the bar appears.
@@ -454,8 +454,39 @@ describe("RemoteSettingsMenu", () => {
       await user.clear(input);
       await user.type(input, "45");
       expect(
-        await screen.findByRole("button", { name: /SAVE SETTINGS/i })
+        await screen.findByRole("button", { name: /save changes/i })
       ).toBeInTheDocument();
+    });
+
+    it("discards unsaved edits back to the saved value", async () => {
+      const mockSettings = [
+        {
+          package_name: "nodetool",
+          env_var: "TIMEOUT",
+          group: "Configuration",
+          description: "Timeout",
+          is_secret: false,
+          value: "30",
+          enum: null
+        }
+      ];
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
+      const user = userEvent.setup();
+
+      render(<RemoteSettingsMenuComponent />, { wrapper });
+
+      const input = await screen.findByDisplayValue("30");
+      await user.clear(input);
+      await user.type(input, "45");
+      expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Discard" }));
+
+      expect(screen.getByDisplayValue("30")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /save changes/i })
+      ).not.toBeInTheDocument();
+      expect(mockRemoteSettingsStore.updateSettings).not.toHaveBeenCalled();
     });
   });
 

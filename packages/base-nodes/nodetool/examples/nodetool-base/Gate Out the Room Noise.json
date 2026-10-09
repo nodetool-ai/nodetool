@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Gate Out the Room Noise\n\nSilences audio that falls below a threshold, so the hiss between phrases disappears and the phrases themselves stay untouched.\n\n**How it works:** \"Audio\" passes the recording to \"Gate\". Anything quieter than -45 dB is muted. A 1 ms attack opens the gate quickly when speech starts, and a 120 ms release closes it smoothly afterward. \"Result\" shows the gated audio. It is local audio processing with no model.\n\n**Try this:** If quiet word endings get clipped, lower the threshold on \"Gate\" to -55 dB or raise the release to 250 ms."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.AudioInput",
         "data": {
           "name": "audio",
-          "value": null,
+          "value": {
+            "type": "audio",
+            "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+          },
           "description": "The noisy recording"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -45,8 +67,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 387
           },
           "zIndex": 0,
           "width": 280,
@@ -64,8 +86,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 425
           },
           "zIndex": 0,
           "width": 280,

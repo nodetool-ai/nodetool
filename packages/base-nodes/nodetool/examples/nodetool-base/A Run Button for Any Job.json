@@ -6,17 +6,47 @@
   "name": "A Run Button for Any Job",
   "tool_name": null,
   "description": "The trigger you reach for when nothing external should decide the timing — a person does. It waits, and whatever payload you hand it comes out of `data`, with the caller in `source` so two senders stay distinguishable. Useful as the front of a pipeline you want to fire by hand, from a script, or from another workflow.",
-  "tags": ["example", "trigger", "manual", "automation"],
+  "tags": [
+    "example",
+    "trigger",
+    "manual",
+    "automation"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# A Run Button for Any Job\n\nStarts a pipeline when a person or a caller fires it, instead of a schedule or an external event. Use it as the front of a job you want to run by hand, from a script or from another workflow.\n\n**How it works:** \"1 Run button\" is a manual trigger that waits for events. Its data goes to \"2 Payload\", the name of the caller goes to \"3 Source\", and the ISO timestamp goes to \"4 Fired at\".\n\n**Try this:** Set max_events on \"1 Run button\" to 1 so the workflow stops after a single fire instead of waiting for more."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "start",
         "type": "nodetool.triggers.ManualTrigger",
-        "data": { "name": "run_button", "max_events": 0 },
+        "data": {
+          "name": "run_button",
+          "max_events": 0
+        },
         "ui_properties": {
-          "position": { "x": 0, "y": 120 },
+          "position": {
+            "x": 0,
+            "y": 554
+          },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
@@ -29,9 +59,15 @@
         "id": "payload",
         "type": "nodetool.output.Output",
         "name": "payload",
-        "data": { "name": "payload", "description": "Whatever the caller sent" },
+        "data": {
+          "name": "payload",
+          "description": "Whatever the caller sent"
+        },
         "ui_properties": {
-          "position": { "x": 330, "y": 40 },
+          "position": {
+            "x": 380,
+            "y": 366
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,
@@ -44,9 +80,15 @@
         "id": "source",
         "type": "nodetool.output.Output",
         "name": "source",
-        "data": { "name": "source", "description": "Who fired it" },
+        "data": {
+          "name": "source",
+          "description": "Who fired it"
+        },
         "ui_properties": {
-          "position": { "x": 330, "y": 220 },
+          "position": {
+            "x": 380,
+            "y": 566
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,
@@ -59,9 +101,15 @@
         "id": "at",
         "type": "nodetool.output.Output",
         "name": "fired_at",
-        "data": { "name": "fired_at", "description": "ISO time it was fired" },
+        "data": {
+          "name": "fired_at",
+          "description": "ISO time it was fired"
+        },
         "ui_properties": {
-          "position": { "x": 330, "y": 400 },
+          "position": {
+            "x": 380,
+            "y": 766
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,

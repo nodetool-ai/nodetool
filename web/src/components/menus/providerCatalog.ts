@@ -465,6 +465,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://docs.requesty.ai"
   },
   {
+    key: "OPPER_API_KEY",
+    providerId: PROVIDER_IDS.OPPER,
+    name: "Opper",
+    description: "Access multiple AI models through one EU-hosted OpenAI-compatible gateway.",
+    section: "gateways",
+    docsUrl: "https://docs.opper.ai"
+  },
+  {
     key: "SERPAPI_API_KEY",
     name: "SerpAPI",
     description: "Web search via SerpAPI.",

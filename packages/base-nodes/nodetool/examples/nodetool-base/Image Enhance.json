@@ -5,7 +5,7 @@
   "updated_at": "2026-07-17T12:00:00.000Z",
   "name": "Image Enhance",
   "tool_name": null,
-  "description": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
+  "description": "A live photo editor: four GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
   "tags": [
     "image",
     "start",
@@ -71,17 +71,17 @@
         "id": "97876",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# ✨ Image Enhance — a live photo editor\n\nFive GPU filters in a row: **Denoise → Brightness/Contrast → Saturation → Sharpen**. Each filter exposes plain numeric properties (amount, radius, contrast…), so the mini app binds one slider to each and the preview re-renders as you drag.\n\n**Why it's a graph, not a prompt:** the whole chain runs on the GPU in the browser. No LLM, no API key, no per-run cost — which is what makes real-time slider feedback possible. Reorder the filters, add a Vignette or Hue shift, and the app picks up the new controls automatically.\n\n**Defaults** give a gentle all-round lift; push Sharpen and Contrast for punch, or raise Denoise to clean up a noisy phone shot before sharpening."
+          "comment": "# ✨ Image Enhance\n\nA live photo editor. Each filter exposes numeric properties that a mini app binds to sliders, and the preview updates as you drag.\n\n**How it works:** \"Source photo\" ships with a photo of a coffee mug. \"Denoise (radius)\" is a Gaussian blur set to radius 0, so it is off by default. \"Brightness & contrast\" applies brightness 0.05 and contrast 1.15. \"Saturation & hue\" raises saturation to 1.2. \"Sharpen (amount)\" is an unsharp mask with amount 1 and threshold 0.02. \"Enhanced image\" shows the result. The chain runs on the GPU in the browser with no model, API key or per-run cost.\n\n**Try this:** Set \"radius\" on \"Denoise (radius)\" to 2 and \"amount\" on \"Sharpen (amount)\" to 2. Noise in flat areas softens while edges stay crisp."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 11,
-            "y": -300
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
           "width": 900,
-          "height": 250,
+          "height": 266,
           "selectable": true,
           "bypassed": false
         },
@@ -94,8 +94,7 @@
         "data": {
           "value": {
             "type": "image",
-            "asset_id": "31cadd9e065711f1818000006beef284",
-            "uri": "/api/storage/31cadd9e065711f1818000006beef284.png"
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
           },
           "name": "image",
           "description": "The photo to enhance. Ships with a demo image so Run works immediately — drop in your own JPEG or PNG to edit it."
@@ -103,8 +102,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1,
-            "y": 71
+            "x": 0,
+            "y": 399
           },
           "zIndex": 0,
           "width": 260,
@@ -125,8 +124,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 300,
-            "y": 90
+            "x": 360,
+            "y": 360
           },
           "zIndex": 0,
           "width": 240,
@@ -147,8 +146,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 580,
-            "y": 90
+            "x": 700,
+            "y": 360
           },
           "zIndex": 0,
           "width": 240,
@@ -170,8 +169,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 860,
-            "y": 90
+            "x": 1040,
+            "y": 346
           },
           "zIndex": 0,
           "width": 240,
@@ -192,8 +191,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1140,
-            "y": 90
+            "x": 1380,
+            "y": 360
           },
           "zIndex": 0,
           "width": 240,
@@ -212,8 +211,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1420,
-            "y": 100
+            "x": 1720,
+            "y": 411
           },
           "selectable": true,
           "title": "Enhanced image"

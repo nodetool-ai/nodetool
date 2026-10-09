@@ -102,3 +102,70 @@ describe("game style image generation", () => {
     expect(request.params.entities[0].reference_images?.[0]).toMatchObject({ asset_id: "shared-style", uri: "asset://shared-style" });
   });
 });
+
+describe("ImageToImageNode entities", () => {
+  it("declares the entities property as list[entity]", () => {
+    const declared = getDeclaredPropertiesForClass(ImageToImageNode).find(
+      (entry) => entry.name === "entities"
+    );
+    expect(declared?.options.type).toBe("list[entity]");
+  });
+
+  it("resolves a picked entity so its reference image can stand in for the input", async () => {
+    const { context, runProviderPrediction } = contextWithProvider(true);
+    const node = new ImageToImageNode();
+    // A picked entity is an id plus an empty cache: no descriptor, no images.
+    // Before resolution the node refused it as "The input image is empty."
+    node.assign({
+      prompt: "Fox reading a map",
+      image: [],
+      model: { type: "image_model", provider: "fake", id: "image-edit" },
+      entities: [
+        { type: "entity", id: "e-fox", kind: "character", name: "Fox", descriptor: "" }
+      ]
+    });
+
+    await node.process(context);
+
+    const passed = entitiesParam(runProviderPrediction.mock.calls[0][0]);
+    expect(passed[0].descriptor).toBe("a red fox in a blue coat");
+    expect(passed[0].reference_images?.[0].uri).toBe("asset://e-fox.png");
+  });
+});
+
+describe("TextToImageNode entity mentions", () => {
+  it("expands an entity:// mention into the entity's name and descriptor", async () => {
+    const { context, runProviderPrediction } = contextWithProvider(false);
+    context.setModelInterfaces({
+      getAssetInfo: async ({ assetId }) =>
+        assetId === "e-fox"
+          ? {
+              id: "e-fox",
+              content_type: "image/png",
+              name: "fox.png",
+              metadata: {
+                nodetool_entity: {
+                  kind: "character",
+                  name: "Fox",
+                  descriptor: "a red fox in a blue coat"
+                }
+              }
+            }
+          : null
+    });
+    const node = new TextToImageNode();
+    node.assign({
+      prompt: "entity://e-fox on a rooftop",
+      model: { type: "image_model", provider: "fake", id: "m1" }
+    });
+
+    await node.process(context);
+
+    const req = runProviderPrediction.mock.calls[0][0] as unknown as {
+      params: { prompt: string };
+    };
+    expect(req.params.prompt).not.toContain("entity://");
+    expect(req.params.prompt).toContain("Fox on a rooftop");
+    expect(req.params.prompt).toContain("- Fox: a red fox in a blue coat");
+  });
+});

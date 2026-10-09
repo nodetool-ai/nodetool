@@ -125,16 +125,16 @@
         "id": "comment_main",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83c\udfac Directed Film to Timeline\n\nA brief becomes an editable rough cut in one graph:\n\n**1. Direct** \u2014 the Director agent turns your brief into a typed screenplay (shots with action, camera, and a shared style bible).\n**2. Fan out** \u2014 Screenplay Shots streams one composed prompt per shot.\n**3. Storyboard** \u2014 each prompt renders a keyframe still.\n**4. Shoot** \u2014 each keyframe is animated into a clip.\n**5. Assemble** \u2014 clips are collected, appended to a timeline sequence, and rendered to a single video.\n\nThe rendered timeline is a real editable sequence \u2014 reopen it in the timeline editor to trim, reorder, or add audio."
+          "comment": "# 🎬 Directed Film to Timeline\n\nTurns a one-line brief into an editable rough cut. Use it to see a whole short film take shape before you refine individual shots.\n\n**How it works:** \"Brief\" feeds the \"Director\", which writes a screenplay of 5 shots in a 16:9 style bible. \"Fan out one prompt per shot\" emits one shot prompt at a time. Each prompt renders a keyframe in \"Storyboard keyframes\" (FLUX schnell, 2K) and the same prompt drives \"Animate each shot\" (Veo 3.1, 4 seconds at 720p). \"Collect the clips\" gathers the clips, \"Assemble into a timeline\" appends them to a sequence named \"Directed Film\", and \"Render the rough cut\" produces the video. Pick a language model on the \"Director\". The keyframe and video steps are paid, and Veo costs the most.\n\n**Try this:** Set \"shot_count\" on the \"Director\" to 3. The rough cut drops to three clips and the run costs less. Reopen the rendered timeline in the timeline editor to trim or reorder shots."
         },
         "ui_properties": {
           "position": {
-            "x": 40,
-            "y": -240
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
           "width": 560,
-          "height": 240,
+          "height": 403,
           "selectable": true,
           "bypassed": false
         },
@@ -146,16 +146,16 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "Brief",
-          "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves \u2014 and tonight it refuses to point anywhere else."
+          "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
         },
         "ui_properties": {
           "position": {
-            "x": 40,
-            "y": 100
+            "x": 0,
+            "y": 578
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1\ufe0f\u20e3 Brief",
+          "title": "1️⃣ Brief",
           "selectable": true,
           "bypassed": false
         },
@@ -182,13 +182,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 80
+            "x": 380,
+            "y": 483
           },
           "zIndex": 0,
           "width": 320,
           "height": 320,
-          "title": "2\ufe0f\u20e3 Director \u2014 write the screenplay",
+          "title": "2️⃣ Director — write the screenplay",
           "selectable": true,
           "bypassed": false
         },
@@ -201,13 +201,13 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 780,
-            "y": 120
+            "x": 800,
+            "y": 543
           },
           "zIndex": 0,
           "width": 280,
           "height": 200,
-          "title": "3\ufe0f\u20e3 Fan out one prompt per shot",
+          "title": "3️⃣ Fan out one prompt per shot",
           "selectable": true,
           "bypassed": false
         },
@@ -233,13 +233,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1120,
-            "y": 80
+            "x": 1180,
+            "y": 483
           },
           "zIndex": 0,
           "width": 320,
           "height": 320,
-          "title": "4\ufe0f\u20e3 Storyboard keyframes",
+          "title": "4️⃣ Storyboard keyframes",
           "selectable": true,
           "bypassed": false
         },
@@ -267,13 +267,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1500,
-            "y": 120
+            "x": 1600,
+            "y": 523
           },
           "zIndex": 0,
           "width": 330,
           "height": 240,
-          "title": "5\ufe0f\u20e3 Animate each shot",
+          "title": "5️⃣ Animate each shot",
           "selectable": true,
           "bypassed": false
         },
@@ -286,13 +286,13 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1890,
-            "y": 160
+            "x": 2030,
+            "y": 564
           },
           "zIndex": 0,
           "width": 160,
           "height": 140,
-          "title": "6\ufe0f\u20e3 Collect the clips",
+          "title": "6️⃣ Collect the clips",
           "selectable": true,
           "bypassed": false
         },
@@ -313,13 +313,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2110,
-            "y": 120
+            "x": 2290,
+            "y": 533
           },
           "zIndex": 0,
           "width": 300,
           "height": 220,
-          "title": "7\ufe0f\u20e3 Assemble into a timeline",
+          "title": "7️⃣ Assemble into a timeline",
           "selectable": true,
           "bypassed": false
         },
@@ -339,13 +339,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2470,
-            "y": 140
+            "x": 2690,
+            "y": 543
           },
           "zIndex": 0,
           "width": 300,
           "height": 200,
-          "title": "8\ufe0f\u20e3 Render the rough cut",
+          "title": "8️⃣ Render the rough cut",
           "selectable": true,
           "bypassed": false
         },
@@ -360,10 +360,10 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2830,
-            "y": 180
+            "x": 3090,
+            "y": 591
           },
-          "title": "\ud83c\udfac Rough cut",
+          "title": "🎬 Rough cut",
           "selectable": true
         },
         "dynamic_properties": {},

@@ -19,12 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "B-Roll Reel from a Brief",
-          "comment": [
-            "Turn one line of direction into a cut b-roll reel.\n\n",
-            "The two shots share a subject and a look, so they cut together: a wide establishing shot, then a detail shot.\n\n",
-            "Both prompts inherit the same look note — that shared line is what stops the two clips from feeling unrelated."
-          ]
+          "comment": "# B-Roll Reel from a Brief\n\nTurns one line of direction into a cut b-roll reel: a wide establishing shot, then a detail shot of the same scene. Use it for quick cutaway footage that matches in look.\n\n**How it works:** \"1 Subject\" and \"2 Look\" feed both \"Shot 1 brief\" and \"Shot 2 brief\". The shared look line stops the two clips from feeling unrelated. \"3 Render wide\" and \"4 Render detail\" each render a 6 second, 16:9, 1080p clip with LTX-2.3 Text to Video Fast on fal. \"5 Crossfade\" joins them with a 0.6 s fade, and \"6 B-roll reel\" shows the result. Each run makes two paid video generations and needs a fal key.\n\n**Try this:** Change \"2 Look\" to \"locked-off tripod, cool overcast light, 50mm\" and see both shots shift to the new look together."
         },
         "ui_properties": {
           "position": {
@@ -34,7 +29,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 170
+          "height": 362
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -50,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 650
           },
           "zIndex": 0,
           "width": 280,
@@ -71,7 +66,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 875
           },
           "zIndex": 0,
           "width": 280,
@@ -90,7 +85,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 280
+            "y": 880
           },
           "zIndex": 0,
           "width": 320,
@@ -109,7 +104,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 560
+            "y": 442
           },
           "zIndex": 0,
           "width": 320,
@@ -139,8 +134,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 760,
-            "y": 260
+            "x": 800,
+            "y": 875
           },
           "zIndex": 0,
           "width": 280,
@@ -170,8 +165,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 760,
-            "y": 560
+            "x": 800,
+            "y": 649
           },
           "zIndex": 0,
           "width": 280,
@@ -190,8 +185,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1120,
-            "y": 400
+            "x": 1180,
+            "y": 777
           },
           "zIndex": 0,
           "width": 280,
@@ -209,8 +204,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1460,
-            "y": 420
+            "x": 1560,
+            "y": 775
           },
           "zIndex": 0,
           "width": 240,

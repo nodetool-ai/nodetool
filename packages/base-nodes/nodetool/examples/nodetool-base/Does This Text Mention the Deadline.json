@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Does This Text Mention the Deadline\n\nChecks whether a piece of text contains a word and returns true or false. Use it as the condition for a branch that routes on what a document says.\n\n**How it works:** \"Text\" holds a sample sentence about submissions closing. The Code node \"Contains 'close'\" searches it for the substring and returns a boolean, which \"Boolean\" displays. It runs locally with no model or key.\n\n**Try this:** Edit the \"Text\" value so it no longer mentions closing, run it again, and confirm the result flips to false."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "s",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 536
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -73,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 514
           },
           "zIndex": 0,
           "width": 280,

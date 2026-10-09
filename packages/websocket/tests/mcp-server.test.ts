@@ -20,9 +20,10 @@ import {
 import {
   MCP_GUEST_CONTRACT,
   MCP_SANDBOX_ASSET_SNIPPET,
-  MCP_SANDBOX_PROBE_SNIPPET
+  MCP_SANDBOX_PROBE_SNIPPET,
+  loadSystemSkills
 } from "@nodetool-ai/agents";
-import { Asset, initTestDb } from "@nodetool-ai/models";
+import { Asset, Skill, initTestDb } from "@nodetool-ai/models";
 import {
   DIRECT_TOOL_NAMES,
   SDK_NATIVE_TOOL_REPLACEMENTS
@@ -624,18 +625,76 @@ describe("MCP server surface", () => {
     await client.close();
   });
 
-  it("lists the two sandbox prompts", async () => {
+  it("lists the sandbox prompts and every shipped skill", async () => {
     const client = await connectClient();
     const { prompts } = await client.listPrompts();
-    expect(prompts.map((p) => p.name).sort()).toEqual([
-      "sandbox-action",
-      "sandbox-asset"
-    ]);
+    const shipped = loadSystemSkills();
+    expect(shipped.length).toBeGreaterThan(0);
+    expect(prompts.map((p) => p.name).sort()).toEqual(
+      ["sandbox-action", "sandbox-asset", ...shipped.map((s) => s.name)].sort()
+    );
     const action = await client.getPrompt({ name: "sandbox-action" });
     expect(action.messages[0]?.content).toEqual({
       type: "text",
       text: expect.stringContaining("nodetool.media.generateImage")
     });
+    await client.close();
+  });
+});
+
+describe("skill prompts", () => {
+  it("serves a shipped skill body with the request", async () => {
+    const client = await connectClient();
+    const [skill] = loadSystemSkills();
+    const result = await client.getPrompt({
+      name: skill.name,
+      arguments: { request: "make a teaser" }
+    });
+    const text = (result.messages[0]?.content as { text: string }).text;
+    expect(text).toContain(`"${skill.name}"`);
+    expect(text).toContain("Request: make a teaser");
+    expect(text).toContain(skill.content.trim());
+    await client.close();
+  });
+
+  it("adds the user's own skills and lets a user row shadow a shipped one", async () => {
+    const [shipped] = loadSystemSkills();
+    await Skill.create<Skill>({
+      user_id: "1",
+      name: "my-brief",
+      description: "My brief format.",
+      content: "Write three lines."
+    });
+    await Skill.create<Skill>({
+      user_id: "1",
+      name: shipped.name,
+      description: "My override.",
+      content: "Overridden body."
+    });
+    await Skill.create<Skill>({
+      user_id: "2",
+      name: "someone-else",
+      description: "Not yours.",
+      content: "secret"
+    });
+    const client = await connectClient();
+
+    await vi.waitFor(async () => {
+      const { prompts } = await client.listPrompts();
+      const byName = new Map(prompts.map((p) => [p.name, p]));
+      expect(byName.get("my-brief")?.description).toBe("My brief format.");
+      expect(byName.get(shipped.name)?.description).toBe("My override.");
+      expect(byName.has("someone-else")).toBe(false);
+    });
+
+    const own = await client.getPrompt({ name: "my-brief", arguments: {} });
+    expect((own.messages[0]?.content as { text: string }).text).toContain(
+      "Write three lines."
+    );
+    const override = await client.getPrompt({ name: shipped.name, arguments: {} });
+    expect((override.messages[0]?.content as { text: string }).text).toContain(
+      "Overridden body."
+    );
     await client.close();
   });
 });

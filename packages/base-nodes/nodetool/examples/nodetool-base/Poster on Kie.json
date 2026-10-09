@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Poster on Kie\n\nGenerates a poster-style image through the Kie provider. Kie serves several model families behind one key, so this is a quick way to check that your Kie key works.\n\n**How it works:** Describe the scene in \"Subject\". \"Render\" turns it into a 16:9 image at 1080p and avoids text, watermarks and logos through its negative prompt. \"Poster\" shows the image.\n\n**Try this:** Pick a Kie image model on \"Render\", then change aspect_ratio to 2:3 for a portrait poster."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -54,8 +73,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 180
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -74,7 +93,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 200
+            "y": 359
           },
           "zIndex": 0,
           "width": 240,

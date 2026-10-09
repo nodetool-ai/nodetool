@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Drop the First Few",
   "tool_name": null,
-  "description": "Skip a fixed number of items off the front of a stream \u2014 the header rows of a feed, or a warm-up you do not want to pay to process.",
+  "description": "Skip a fixed number of items off the front of a stream — the header rows of a feed, or a warm-up you do not want to pay to process.",
   "tags": [
     "example"
   ],
@@ -13,6 +13,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Drop the First Few\n\nSkips a fixed number of items at the front of a stream. Use it to discard header rows from a feed or warm-up items you do not want to process.\n\n**How it works:** \"Items\" holds five Greek letter names. \"Fan out\" emits them one at a time into \"Drop 2\", which discards the first two and passes the rest. \"Rest\" collects gamma, delta and epsilon. It runs locally with no model or key.\n\n**Try this:** Change n on \"Drop 2\" from 2 to 4 and check that only epsilon reaches \"Rest\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "l",
         "type": "nodetool.constant.List",
@@ -28,7 +47,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -46,8 +65,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 760,
+            "y": 488
           },
           "zIndex": 0,
           "width": 280,
@@ -65,8 +84,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 1140,
+            "y": 472
           },
           "zIndex": 0,
           "width": 280,
@@ -84,8 +103,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 160,
-            "y": 240
+            "x": 380,
+            "y": 364
           },
           "zIndex": 0,
           "width": 280,

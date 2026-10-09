@@ -6,7 +6,11 @@
   "name": "Reopen a Directed Campaign",
   "tool_name": null,
   "description": "Validate a portable schema-version-1 campaign record and restore its accepted original and optional revision without calling a model.",
-  "tags": ["campaign", "document", "example"],
+  "tags": [
+    "campaign",
+    "document",
+    "example"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
@@ -15,15 +19,15 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Reopen a Directed Campaign\n\nRead directed-campaign.json, validate its version, copy, direction, MIME-labelled base64 payloads, dimensions, and revision ancestry, then recreate typed media references. Validation finishes before any output is written. No provider runs."
+          "comment": "# Reopen a Directed Campaign\n\nRestores a saved campaign from its portable directed-campaign.json record, with the accepted original and the optional revision. Use it to pick up a campaign later or on another machine. No model or provider runs.\n\n**How it works:** \"Campaign record\" feeds every Code node. \"Validate complete campaign record\" checks the size limit of 16 MiB, the JSON MIME type, schema version 1, the brief, copy, selected direction and contracts. Ten \"Validate ...\" nodes then check each embedded image or SVG payload in turn, passing a gate string along the chain. Only after the last check do ten \"Restore ...\" nodes turn the base64 payloads back into the hero, 4:5, 9:16 and SVG outputs for the original and the revision. \"Finish restored campaign\" writes the contracts, \"Original record\" and \"Restored phase\", and its ready flag lets \"Release validated record\" pass the file to the \"Campaign record\" output.\n\n**Try this:** Open a copy of the record, change \"schemaVersion\" to 2 and run it. \"Validate complete campaign record\" stops the run before any output is written."
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": -220
+            "y": 0
           },
           "width": 560,
-          "height": 180,
+          "height": 423,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -42,7 +46,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 200
+            "y": 990
           },
           "width": 300,
           "title": "Campaign record"
@@ -58,8 +62,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 100
+            "x": 400,
+            "y": 934
           },
           "width": 500,
           "title": "Validate complete campaign record"
@@ -94,8 +98,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 880,
-            "y": -400
+            "x": 1000,
+            "y": 938
           },
           "width": 420,
           "title": "Validate original source"
@@ -136,8 +140,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1340,
-            "y": -400
+            "x": 1520,
+            "y": 945
           },
           "width": 420,
           "title": "Validate original portrait"
@@ -178,8 +182,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 880,
-            "y": -240
+            "x": 2040,
+            "y": 945
           },
           "width": 420,
           "title": "Validate original story"
@@ -220,8 +224,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1340,
-            "y": -240
+            "x": 2560,
+            "y": 945
           },
           "width": 420,
           "title": "Validate original portraitSvg"
@@ -262,8 +266,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 880,
-            "y": -80
+            "x": 3080,
+            "y": 945
           },
           "width": 420,
           "title": "Validate original storySvg"
@@ -304,8 +308,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1340,
-            "y": -80
+            "x": 3600,
+            "y": 945
           },
           "width": 420,
           "title": "Validate revision source"
@@ -346,8 +350,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 880,
-            "y": 80
+            "x": 4120,
+            "y": 945
           },
           "width": 420,
           "title": "Validate revision portrait"
@@ -388,8 +392,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1340,
-            "y": 80
+            "x": 4640,
+            "y": 944
           },
           "width": 420,
           "title": "Validate revision story"
@@ -430,8 +434,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 880,
-            "y": 240
+            "x": 5160,
+            "y": 943
           },
           "width": 420,
           "title": "Validate revision portraitSvg"
@@ -472,8 +476,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1340,
-            "y": 240
+            "x": 5680,
+            "y": 940
           },
           "width": 420,
           "title": "Validate revision storySvg"
@@ -514,8 +518,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 920,
-            "y": 40
+            "x": 6200,
+            "y": 931
           },
           "width": 420,
           "title": "Restore original hero"
@@ -561,8 +565,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1390,
-            "y": 40
+            "x": 6720,
+            "y": 760
           },
           "width": 420,
           "title": "Restore original 4:5"
@@ -608,8 +612,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 920,
-            "y": 220
+            "x": 7240,
+            "y": 643
           },
           "width": 420,
           "title": "Restore original 9:16"
@@ -655,8 +659,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1390,
-            "y": 220
+            "x": 7760,
+            "y": 924
           },
           "width": 420,
           "title": "Restore original 4:5 SVG"
@@ -702,8 +706,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 920,
-            "y": 400
+            "x": 8280,
+            "y": 751
           },
           "width": 420,
           "title": "Restore original 9:16 SVG"
@@ -749,8 +753,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1390,
-            "y": 400
+            "x": 8800,
+            "y": 627
           },
           "width": 420,
           "title": "Restore revision hero"
@@ -796,8 +800,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 920,
-            "y": 580
+            "x": 9320,
+            "y": 901
           },
           "width": 420,
           "title": "Restore revision 4:5"
@@ -843,8 +847,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1390,
-            "y": 580
+            "x": 9840,
+            "y": 734
           },
           "width": 420,
           "title": "Restore revision 9:16"
@@ -890,8 +894,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 920,
-            "y": 760
+            "x": 10360,
+            "y": 613
           },
           "width": 420,
           "title": "Restore revision 4:5 SVG"
@@ -937,8 +941,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1390,
-            "y": 760
+            "x": 10880,
+            "y": 887
           },
           "width": 420,
           "title": "Restore revision 9:16 SVG"
@@ -984,8 +988,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1420,
-            "y": 980
+            "x": 11400,
+            "y": 715
           },
           "width": 420,
           "title": "Finish restored campaign"
@@ -1047,8 +1051,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1900,
-            "y": 900
+            "x": 11920,
+            "y": 1303
           },
           "width": 280,
           "title": "Release validated record"
@@ -1064,8 +1068,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 0
+            "x": 6720,
+            "y": 1197
           },
           "width": 240,
           "title": "Accepted hero"
@@ -1081,8 +1085,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 120
+            "x": 11920,
+            "y": 503
           },
           "width": 240,
           "title": "Accepted contract"
@@ -1098,8 +1102,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 240
+            "x": 7240,
+            "y": 1080
           },
           "width": 240,
           "title": "Original 4:5"
@@ -1115,8 +1119,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 360
+            "x": 7760,
+            "y": 724
           },
           "width": 240,
           "title": "Original 9:16"
@@ -1132,8 +1136,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 480
+            "x": 8280,
+            "y": 1188
           },
           "width": 240,
           "title": "Original 4:5 SVG"
@@ -1149,8 +1153,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 600
+            "x": 8800,
+            "y": 1064
           },
           "width": 240,
           "title": "Original 9:16 SVG"
@@ -1166,8 +1170,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 720
+            "x": 11920,
+            "y": 903
           },
           "width": 240,
           "title": "Original record"
@@ -1183,8 +1187,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1380,
-            "y": 0
+            "x": 9320,
+            "y": 701
           },
           "width": 240,
           "title": "Revised hero"
@@ -1200,8 +1204,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1380,
-            "y": 120
+            "x": 11920,
+            "y": 703
           },
           "width": 240,
           "title": "Revised contract"
@@ -1217,8 +1221,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1380,
-            "y": 240
+            "x": 9840,
+            "y": 1171
           },
           "width": 240,
           "title": "Revised 4:5"
@@ -1234,8 +1238,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1380,
-            "y": 360
+            "x": 10360,
+            "y": 1050
           },
           "width": 240,
           "title": "Revised 9:16"
@@ -1251,8 +1255,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1380,
-            "y": 480
+            "x": 10880,
+            "y": 687
           },
           "width": 240,
           "title": "Revised 4:5 SVG"
@@ -1268,8 +1272,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1380,
-            "y": 600
+            "x": 11400,
+            "y": 1152
           },
           "width": 240,
           "title": "Revised 9:16 SVG"
@@ -1285,8 +1289,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1380,
-            "y": 720
+            "x": 12300,
+            "y": 1320
           },
           "width": 240,
           "title": "Campaign record"
@@ -1302,8 +1306,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1380,
-            "y": 840
+            "x": 11920,
+            "y": 1103
           },
           "width": 240,
           "title": "Restored phase"

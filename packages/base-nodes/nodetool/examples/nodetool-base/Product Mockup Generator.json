@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Product Mockup Generator",
   "tool_name": null,
-  "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set \u2014 not one prompt, one image.",
+  "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then Nano Banana composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
   "tags": [
     "product-mockup",
     "mockup",
@@ -136,17 +136,17 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83d\uddbc\ufe0f Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out.\n\n**Why the extra stages:** a single image prompt gives you one look. Here an art-director agent first invents *distinct* scene concepts from the product brief (studio, lifestyle, flat-lay, outdoor\u2026), a second prompt turns each concept into a photography-grade image prompt, and a list generator splits them so every scene renders in parallel.\n\n**Two outputs per scene:** a pure text-to-image render (the *scene*), and an image-to-image pass that composites your real product photo into it (the *mockup*), finished with a brightness/contrast polish.\n\n**Try this:** raise the scene count, or change the target audience to shift the whole shot list."
+          "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out. Use it when you need several distinct scenes for one product instead of one prompt and one image.\n\n**How it works:** \"1️⃣ Product name\", \"5️⃣ Product description\", \"4️⃣ Target audience\" and \"2️⃣ Scene count\" (6) fill \"6️⃣ Build scene prompt\". \"7️⃣ Scene concept agent\" invents distinct scenes, and \"8️⃣ Build image prompt\" turns them into photography prompts. \"9️⃣ Split into per-scene prompts\" emits one prompt per scene to two branches. \"🔟 Render scene (text-to-image)\" draws the empty scene with FLUX Schnell for the \"scene\" output. \"🅰️ Composite product into scene (image-to-image)\" places \"3️⃣ Product image\" into the scene with Nano Banana at strength 0.65. Two Brightness/Contrast passes, \"🅱️ Brightness / contrast polish\" and \"©️ Final color adjust → mockup\" (contrast 1.1), finish the \"mockup\" output. Pick models on \"7️⃣ Scene concept agent\" and \"9️⃣ Split into per-scene prompts\".\n\n**Try this:** Change \"4️⃣ Target audience\" to \"college students on a budget\" and watch the whole shot list shift."
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 0,
-            "y": -220
+            "y": 0
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 180,
+          "width": 560,
+          "height": 423,
           "selectable": true,
           "bypassed": false
         },
@@ -162,14 +162,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2300,
-            "y": 479
+            "x": 2764,
+            "y": 801
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "\u00a9\ufe0f Final color adjust \u2192 mockup"
+          "title": "©️ Final color adjust → mockup"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -183,14 +183,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1990,
-            "y": 479
+            "x": 2384,
+            "y": 774
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "\ud83c\udd71\ufe0f Brightness / contrast polish"
+          "title": "🅱️ Brightness / contrast polish"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -215,15 +215,15 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1680,
-            "y": 388
+            "x": 1900,
+            "y": 588
           },
           "zIndex": 0,
           "width": 384,
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "\ud83c\udd70\ufe0f Composite product into scene (image-to-image)"
+          "title": "🅰️ Composite product into scene (image-to-image)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -236,23 +236,20 @@
           "name": "product_image",
           "value": {
             "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
           },
           "description": "The product image to place in scenes"
         },
         "ui_properties": {
           "position": {
-            "x": 1340,
-            "y": 509
+            "x": 0,
+            "y": 503
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "3\ufe0f\u20e3 Product image"
+          "title": "3️⃣ Product image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -274,14 +271,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1340,
-            "y": 205
+            "x": 1520,
+            "y": 925
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "9\ufe0f\u20e3 Split into per-scene prompts"
+          "title": "9️⃣ Split into per-scene prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -294,14 +291,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1030,
-            "y": 155
+            "x": 1140,
+            "y": 739
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "8\ufe0f\u20e3 Build image prompt"
+          "title": "8️⃣ Build image prompt"
         },
         "dynamic_properties": {
           "scenes": "Studio shot on a matte black surface with soft key lighting; lifestyle scene on a wooden desk beside a laptop",
@@ -322,7 +319,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a professional product photographer and commercial art director.\n\nFrom a product brief you invent distinct, sales-ready photography scene concepts. Follow these rules:\n- Make every concept visibly different in setting, lighting, and mood \u2014 no two should read as the same shot.\n- Stay faithful to the product's real materials, colors, and features; never invent capabilities you were not given.\n- Ground each concept for the stated target audience.\n- Be concrete and shootable: name the environment, the light, the props, the camera angle, and the atmosphere.\n\nReturn only the scene concepts, one complete concept per line, no numbering or commentary.",
+          "system": "You are a professional product photographer and commercial art director.\n\nFrom a product brief you invent distinct, sales-ready photography scene concepts. Follow these rules:\n- Make every concept visibly different in setting, lighting, and mood — no two should read as the same shot.\n- Stay faithful to the product's real materials, colors, and features; never invent capabilities you were not given.\n- Ground each concept for the stated target audience.\n- Be concrete and shootable: name the environment, the light, the props, the camera angle, and the atmosphere.\n\nReturn only the scene concepts, one complete concept per line, no numbering or commentary.",
           "image": {
             "type": "image",
             "uri": "",
@@ -343,14 +340,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 670,
-            "y": 254
+            "x": 760,
+            "y": 1067
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "7\ufe0f\u20e3 Scene concept agent"
+          "title": "7️⃣ Scene concept agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -363,14 +360,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 281
+            "x": 380,
+            "y": 830
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "6\ufe0f\u20e3 Build scene prompt"
+          "title": "6️⃣ Build scene prompt"
         },
         "dynamic_properties": {
           "name": "Premium Wireless Headphones",
@@ -391,13 +388,13 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 130
+            "y": 868
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "1\ufe0f\u20e3 Product name"
+          "title": "1️⃣ Product name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -413,13 +410,13 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 827
+            "y": 1093
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "5\ufe0f\u20e3 Product description"
+          "title": "5️⃣ Product description"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -435,13 +432,13 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 583
+            "y": 1318
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "4\ufe0f\u20e3 Target audience"
+          "title": "4️⃣ Target audience"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -459,13 +456,13 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 367
+            "y": 1543
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "2\ufe0f\u20e3 Scene count"
+          "title": "2️⃣ Scene count"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -488,15 +485,15 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1680,
-            "y": 0
+            "x": 1900,
+            "y": 1103
           },
           "zIndex": 0,
           "width": 384,
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "\ud83d\udd1f Render scene (text-to-image)"
+          "title": "🔟 Render scene (text-to-image)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -509,8 +506,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2620,
-            "y": 479
+            "x": 3144,
+            "y": 847
           },
           "selectable": true
         }
@@ -523,8 +520,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2000,
-            "y": 0
+            "x": 2384,
+            "y": 1304
           },
           "selectable": true
         }

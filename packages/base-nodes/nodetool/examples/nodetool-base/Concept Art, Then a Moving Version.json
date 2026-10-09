@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Concept Art, Then a Moving Version",
   "tool_name": null,
-  "description": "Design the frame first, then animate the one you kept. Committing to a still before paying for video is the cheapest way to work \u2014 video calls cost many times an image.",
+  "description": "Design the frame first, then animate the one you kept. Committing to a still before paying for video is the cheapest way to work — video calls cost many times an image.",
   "tags": [
     "image",
     "video",
@@ -15,6 +15,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Concept Art, Then a Moving Version\n\nGenerates a concept frame, then animates it into a short clip. Settling the still first is cheaper, because a video call costs many times an image.\n\n**How it works:** Type the idea into \"1 Concept\". \"2 Concept frame\" renders a 16:9 image at 1K. \"3 Animate it\" turns that image into a 4-second 720p clip with a slow push in. \"4 Clip\" shows the video.\n\n**Try this:** Pick models on both generation nodes, and change the prompt on \"3 Animate it\" to a different camera move, such as a slow pan right."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "p",
         "type": "nodetool.input.StringInput",
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -56,8 +75,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -90,8 +109,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -109,8 +128,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 359
           },
           "zIndex": 0,
           "width": 300,

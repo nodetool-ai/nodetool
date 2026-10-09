@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Black and White, Hard\n\nConverts an image to pure black and white with a slightly soft edge. Converting to grayscale first means the threshold works on brightness, not on whichever colour channel dominates.\n\n**How it works:** \"1 Image\" takes the picture. \"2 Grayscale\" removes colour, and \"3 Threshold\" splits pixels at 0.55 with a softness of 0.03. \"4 Result\" shows the two-tone image. It runs locally with no model or key.\n\n**Try this:** Lower threshold on \"3 Threshold\" to 0.4 to keep more white, or raise softness to 0.1 for a gentler edge."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "picture",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The image to threshold"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 409
           },
           "zIndex": 0,
           "width": 280,
@@ -41,8 +63,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 384
           },
           "zIndex": 0,
           "width": 280,
@@ -61,8 +83,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -80,8 +102,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 417
           },
           "zIndex": 0,
           "width": 280,

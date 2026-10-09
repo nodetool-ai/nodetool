@@ -19,12 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "Product Spot from Text",
-          "comment": [
-            "Describe the product and how it should be staged; get a short commercial spot back.\n\n",
-            "Unlike Product Video Generator, this needs no product photo — the hero frame is generated.\n\n",
-            "The motion brief deliberately forbids restyling the product: the model may move the camera, nothing else."
-          ]
+          "comment": "# Product Spot from Text\n\nDescribe the product and how it should be staged, and get a short commercial spot back. Unlike Product Video Generator, this needs no product photo because the hero frame is generated.\n\n**How it works:** \"1 Product\" and \"2 Staging\" fill \"Hero-shot brief\", and \"4 Hero still\" renders it as a 16:9 still with FLUX.2 [klein]. \"3 Camera motion\" fills \"Motion brief\", which allows camera movement and subtle atmosphere only and forbids restyling the product. \"5 Animate\" runs LTX-2.3 image-to-video on the still for 6 seconds at 1080p, and \"6 Commercial spot\" shows the clip. Both steps need a FAL key, and the animation step is billed per second of output.\n\n**Try this:** Change \"3 Camera motion\" to \"Slow orbit around the product at eye level\" and compare the camera path with the first run."
         },
         "ui_properties": {
           "position": {
@@ -33,7 +28,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 180,
+          "height": 362,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -50,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 503
           },
           "zIndex": 0,
           "width": 280,
@@ -71,7 +66,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 727
           },
           "zIndex": 0,
           "width": 280,
@@ -92,7 +87,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 560
+            "y": 986
           },
           "zIndex": 0,
           "width": 280,
@@ -110,8 +105,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 320
+            "x": 380,
+            "y": 442
           },
           "zIndex": 0,
           "width": 320,
@@ -139,8 +134,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 280
+            "x": 800,
+            "y": 759
           },
           "zIndex": 0,
           "width": 280,
@@ -158,8 +153,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 600
+            "x": 380,
+            "y": 938
           },
           "zIndex": 0,
           "width": 320,
@@ -189,8 +184,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1100,
-            "y": 400
+            "x": 1180,
+            "y": 925
           },
           "zIndex": 0,
           "width": 280,
@@ -208,8 +203,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1460,
-            "y": 420
+            "x": 1560,
+            "y": 937
           },
           "zIndex": 0,
           "width": 240,

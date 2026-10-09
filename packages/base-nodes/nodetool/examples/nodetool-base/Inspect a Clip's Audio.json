@@ -17,17 +17,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Inspect a Clip's Audio\n\nReads the audio header of a clip to report its sample rate. Run it before a lip-sync or transcription step, since both are picky about their input.\n\n**How it works:** \"Clip\" passes the video to \"Extract audio\", which separates the soundtrack. \"Read the header\" reads its properties without processing the sound, and \"Sample rate\" shows the rate in Hz. It is local processing with no model.\n\n**Try this:** Connect another output of \"Read the header\", such as channels or duration, to a new Output node to see more of the header."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "The clip to inspect"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +65,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 370
           },
           "zIndex": 0,
           "width": 280,
@@ -60,8 +82,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 680,
-            "y": 180
+            "x": 760,
+            "y": 370
           },
           "zIndex": 0,
           "width": 280,
@@ -79,8 +101,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1020,
-            "y": 200
+            "x": 1140,
+            "y": 354
           },
           "zIndex": 0,
           "width": 240,

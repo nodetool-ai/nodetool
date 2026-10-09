@@ -17,17 +17,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Reverse Audio\n\nPlays the soundtrack of a clip backwards, the starting point for reverse-cymbal risers and pre-echo effects. It runs locally through ffmpeg with no model or API key.\n\n**How it works:** \"Clip\" takes a video file. \"Extract audio\" pulls out its soundtrack, \"Process\" reverses it, and \"Audio\" returns the reversed track.\n\n**Try this:** Feed in a clip that ends on a cymbal hit, then place the reversed audio just before the hit in your edit to build a riser."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "The clip to take audio from"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +65,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 351
           },
           "zIndex": 0,
           "width": 280,
@@ -60,8 +82,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 680,
-            "y": 180
+            "x": 760,
+            "y": 351
           },
           "zIndex": 0,
           "width": 280,
@@ -79,8 +101,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1020,
-            "y": 200
+            "x": 1140,
+            "y": 335
           },
           "zIndex": 0,
           "width": 240,

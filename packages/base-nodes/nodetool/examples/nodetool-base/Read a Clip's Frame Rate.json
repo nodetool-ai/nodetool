@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Read a Clip's Frame Rate\n\nReads a video's frame rate from its header without decoding the frames. Run it before deciding whether a clip needs converting to match the rest of an edit.\n\n**How it works:** The \"Clip\" input goes to \"Frame rate\", which reads the rate from the file metadata. \"FPS\" shows the number. It runs locally with no model or key.\n\n**Try this:** Load a phone clip and a screen recording one after the other and compare their rates."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "The clip to inspect"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -41,8 +63,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 351
           },
           "zIndex": 0,
           "width": 280,
@@ -60,8 +82,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 335
           },
           "zIndex": 0,
           "width": 280,

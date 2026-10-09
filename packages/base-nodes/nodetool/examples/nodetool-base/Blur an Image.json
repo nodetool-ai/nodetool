@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Blur an Image\n\nSoftens an image with a gaussian blur. Use it for backplates behind text or to obscure a background before publishing. It runs locally with no model, key or cost.\n\n**How it works:** \"1 Image\" takes the picture. \"2 Blur\" applies a gaussian blur of size 12. \"3 Result\" shows the softened image.\n\n**Try this:** Raise size on \"2 Blur\" to 30 for a heavy background blur, or lower it to 4 for a light softening."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "picture",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The image to process"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 364
           },
           "zIndex": 0,
           "width": 280,
@@ -45,8 +67,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -64,8 +86,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 372
           },
           "zIndex": 0,
           "width": 240,

@@ -16,6 +16,13 @@ interface NumberSettingProps {
   id?: string;
 }
 
+/** "Range 1–100, default 25." — out-of-range input is clamped on commit. */
+export const formatRangeHint = (
+  min: number,
+  max: number,
+  defaultValue: number
+): string => `Range ${min}–${max}, default ${defaultValue}.`;
+
 /**
  * A numeric setting field that commits on blur or Enter.
  *
@@ -80,7 +87,9 @@ export const NumberSetting = React.memo(function NumberSetting({
         size="small"
         disabled={disabled}
       />
-      <Text className="description">{description}</Text>
+      <Text className="description">
+        {description} {formatRangeHint(min, max, fallback)}
+      </Text>
     </>
   );
 });

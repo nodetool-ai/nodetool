@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Crop then Fit\n\nCrops an image to a region, then scales that region into a 480 by 270 thumbnail. The crop chooses the subject and the fit only sets the size. It runs locally with no model or key.\n\n**How it works:** \"1 Image\" takes the picture. \"2 Crop\" keeps the area from 80, 80 to 1000, 620. \"3 Fit\" scales the result to 480 by 270, and \"4 Thumbnail\" shows it.\n\n**Try this:** Set width and height on \"3 Fit\" to 320 by 320 for a square thumbnail, and adjust the crop to suit."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "picture",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The image to process"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 385
           },
           "zIndex": 0,
           "width": 280,
@@ -47,8 +69,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 347
           },
           "zIndex": 0,
           "width": 280,
@@ -67,8 +89,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 180
+            "x": 760,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -86,8 +108,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 200
+            "x": 1140,
+            "y": 393
           },
           "zIndex": 0,
           "width": 240,

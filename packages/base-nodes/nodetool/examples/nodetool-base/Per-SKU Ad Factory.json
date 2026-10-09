@@ -17,6 +17,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Per-SKU Ad Factory\n\nTurns one approved storyboard into an ad for a specific product. Run it once per SKU and only the shots that changed get re-rendered.\n\n**How it works:** \"Upsert the SKU entity\" builds a product entity from the photo, name and descriptor, keyed on \"SKU\". \"Recast onto this SKU\" copies the \"Approved board\" onto it. \"Stills\" and \"Clips\" render stale shots only. \"Inherit the approved cut\" assembles the timeline, \"Fill name and price\" adds the \"Overlay values\", and \"Render\" outputs the \"Ad\". \"What was re-rendered\" lists the stale shots.\n\n**Try this:** Run it twice with the same SKU and check \"What was re-rendered\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "sku",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -27,7 +46,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 0
+            "y": 964
           },
           "zIndex": 0,
           "width": 220,
@@ -48,7 +67,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 665
           },
           "zIndex": 0,
           "width": 220,
@@ -69,7 +88,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 366
           },
           "zIndex": 0,
           "width": 220,
@@ -90,7 +109,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 360
+            "y": 1189
           },
           "zIndex": 0,
           "width": 220,
@@ -110,7 +129,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 480
+            "y": 1414
           },
           "zIndex": 0,
           "width": 220,
@@ -128,8 +147,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 300,
-            "y": 160
+            "x": 320,
+            "y": 380
           },
           "zIndex": 0,
           "width": 240,
@@ -156,8 +175,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 580,
-            "y": 380
+            "x": 320,
+            "y": 1038
           },
           "zIndex": 0,
           "width": 240,
@@ -179,8 +198,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 580,
-            "y": 620
+            "x": 320,
+            "y": 849
           },
           "zIndex": 0,
           "width": 240,
@@ -201,8 +220,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 880,
-            "y": 500
+            "x": 660,
+            "y": 863
           },
           "zIndex": 0,
           "width": 260,
@@ -230,8 +249,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1180,
-            "y": 500
+            "x": 1020,
+            "y": 666
           },
           "zIndex": 0,
           "width": 240,
@@ -260,8 +279,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1440,
-            "y": 500
+            "x": 1360,
+            "y": 604
           },
           "zIndex": 0,
           "width": 240,
@@ -280,7 +299,7 @@
         "ui_properties": {
           "position": {
             "x": 1700,
-            "y": 500
+            "y": 612
           },
           "zIndex": 0,
           "width": 240,
@@ -296,8 +315,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1960,
-            "y": 300
+            "x": 2040,
+            "y": 590
           },
           "zIndex": 0,
           "width": 240,
@@ -316,8 +335,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2220,
-            "y": 300
+            "x": 2380,
+            "y": 663
           },
           "zIndex": 0,
           "width": 240,
@@ -336,8 +355,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2480,
-            "y": 300
+            "x": 2720,
+            "y": 705
           },
           "zIndex": 0,
           "width": 200,
@@ -356,8 +375,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1180,
-            "y": 700
+            "x": 1020,
+            "y": 909
           },
           "zIndex": 0,
           "width": 220,

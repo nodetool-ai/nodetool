@@ -17,17 +17,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Normalize a Clip's Audio\n\nEvens out the loudness of a clip recorded too quiet or too loud. It works on video footage because it pulls the audio out first.\n\n**How it works:** The \"Clip\" input goes to \"Extract audio\", which separates the soundtrack. \"Process\" normalizes its level, and \"Audio\" plays the result. It runs locally through ffmpeg with no model or key.\n\n**Try this:** Run it on a quiet phone recording and compare the output level with the original."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "The clip to take audio from"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +65,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 370
           },
           "zIndex": 0,
           "width": 280,
@@ -60,8 +82,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 680,
-            "y": 180
+            "x": 760,
+            "y": 370
           },
           "zIndex": 0,
           "width": 280,
@@ -79,8 +101,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1020,
-            "y": 200
+            "x": 1140,
+            "y": 354
           },
           "zIndex": 0,
           "width": 240,
