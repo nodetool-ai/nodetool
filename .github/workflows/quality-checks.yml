@@ -239,7 +239,7 @@ jobs:
           set -euo pipefail
           if ! jq -e 'type == "object"' <<<"${PLAN:-null}" >/dev/null 2>&1; then
             echo "::notice::No usable plan; running every leg."
-            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"tsc6":true,"docker":true}'
+            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"tsc6":true,"docker":true,"blender":true}'
           fi
           select_legs() {
             jq -c --argjson p "$PLAN" '
@@ -248,7 +248,8 @@ jobs:
                 or ($w == "web_related" and $p.web == "related")
                 or ($w == "electron_or_mobile" and ($p.electron == true or $p.mobile == true));
               map(select(on(.when)) | del(.when)
-                | if .check == "test-electron-mobile" then .["mobile-deps"] = ($p.mobile == true | tostring) else . end)
+                | if .check == "test-electron-mobile" then .["mobile-deps"] = ($p.mobile == true | tostring) else . end
+                | if .check == "test-packages-nodes" then .blender = ($p.blender != false | tostring) else . end)
               | {include: .}'
           }
           static=$(select_legs <<'JSON'
@@ -651,15 +652,19 @@ jobs:
       # workflow-runner job. The version lives in one place (BLENDER_VERSION
       # below); bump it and the cache key together with the floor in
       # `blender-binary.ts`.
+      # Only when the plan asks for Blender: a diff touching blender-nodes,
+      # or a full run. Without the binary the render suites skip, which keeps
+      # the leg's longest files off every other PR (see `BLENDER_FILES` in
+      # scripts/ci-plan.mjs).
       - name: Cache Blender
-        if: matrix.check == 'test-packages-nodes'
+        if: matrix.check == 'test-packages-nodes' && matrix.blender == 'true'
         uses: actions/cache@v5
         with:
           path: ~/blender
           key: ${{ runner.os }}-blender-5.2.1
 
       - name: Install Blender
-        if: matrix.check == 'test-packages-nodes'
+        if: matrix.check == 'test-packages-nodes' && matrix.blender == 'true'
         env:
           BLENDER_VERSION: 5.2.1
         run: |

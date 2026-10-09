@@ -10,6 +10,7 @@ import type {
   GameDocument,
   GameEntity,
   GameEvent,
+  GameParticleEmission,
   GameHudLabel,
   GameInputFrame,
   GameRenderFrame,
@@ -49,7 +50,7 @@ export interface GameInspection {
 }
 
 export interface GameSession {
-  takePresentationEvents(): readonly GameEvent[];
+  takePresentationEvents(): readonly (GameEvent | GameParticleEmission)[];
   step(input: GameInputFrame): GameStepResult;
   frame(): GameRenderFrame;
   inspect(query?: { entityId?: string }): GameInspection;
@@ -329,7 +330,7 @@ function createGameSessionWithRunner(
     return separator > 0 && scene.entities.some((entity) => entity.templateOnly && entity.id === prefabId);
   }
 
-  let presentationEvents: GameEvent[] = [];
+  let presentationEvents: (GameEvent | GameParticleEmission)[] = [];
   type Context = GameSystemContext2D;
   type SystemState = (Partial<GameSnapshot> & { readonly gameplaySnapshot?: GameSnapshot }) | null;
   const scripts = statefulGameSystem<GameDocument, GameScene, Context, SystemState>(
@@ -538,7 +539,7 @@ function createGameSessionWithRunner(
   }
 
   return {
-    takePresentationEvents(): readonly GameEvent[] {
+    takePresentationEvents(): readonly (GameEvent | GameParticleEmission)[] {
       const pending = presentationEvents;
       presentationEvents = [];
       return pending;

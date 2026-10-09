@@ -49,6 +49,13 @@ export const DOCKER_FILES =
 /** Inputs of `npm run build:tsc6` beyond source code. */
 export const TSC6_FILES = /(^|\/)(package\.json|tsconfig[^/]*\.json)$|^package-lock\.json$|^\.nvmrc$/;
 
+/**
+ * The Blender integration suites render real scenes and take most of the
+ * nodes leg. They run when blender-nodes itself changes and in the full
+ * nightly run; elsewhere the leg skips installing Blender and they skip.
+ */
+export const BLENDER_FILES = /^packages\/blender-nodes\//;
+
 /** Web files whose change can alter any test, not just the ones importing them. */
 const WEB_GLOBAL = /^web\/src\/(setupTests\.ts$|__mocks__\/)/;
 
@@ -86,7 +93,8 @@ export function fullCiPlan() {
     integration: true,
     workflow_runner_e2e: true,
     tsc6: true,
-    docker: true
+    docker: true,
+    blender: true
   };
 }
 
@@ -126,7 +134,8 @@ export function buildCiPlan(files, packages, computeAffected) {
     integration: affected.includes("@nodetool-ai/base-nodes"),
     workflow_runner_e2e: affected.includes("@nodetool-ai/workflow-runner"),
     tsc6: files.some((f) => TSC6_FILES.test(f)),
-    docker
+    docker,
+    blender: files.some((f) => BLENDER_FILES.test(f))
   };
 }
 

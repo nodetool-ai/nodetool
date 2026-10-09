@@ -2,6 +2,7 @@ import type {
   GameDocument,
   GameEntity,
   GameEvent,
+  GameParticleEmission,
   GameHudLabel,
   GameInputFrame,
   GameRenderFrame,
@@ -42,7 +43,7 @@ export interface GameSystemContext2D {
   readonly initialState: (entity: GameEntity, world: WorldTransform, spawnTick?: number) => EntityState;
   music: GameSnapshot["music"];
   readonly initialSceneStates: (scene: GameScene, spawnTick?: number) => EntityState[];
-  presentationEvents: GameEvent[];
+  presentationEvents: (GameEvent | GameParticleEmission)[];
   result: GameStepResult | undefined;
   readonly frameFor: (
     document: GameDocument,

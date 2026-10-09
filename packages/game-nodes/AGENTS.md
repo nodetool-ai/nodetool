@@ -10,7 +10,11 @@ reference rules apply here.
 turns a slot into generator and checker inputs. `StageGameAssets` accepts the
 checker's stamped `output` media reference, validates its fill against the
 template, reads its bytes through `loadMediaRefBytes`, and writes a
-content-addressed candidate under `games/<full-game-id>/assets/`.
+content-addressed candidate under `games/<full-game-id>/assets/`. It also
+writes a record of the slot and binding to
+`games/<full-game-id>/candidates/<digest>.json`, which the asset browser reads
+through `listStagedGameCandidates` (see
+[staged candidates](src/staged-candidates.ts)).
 
 Staging does not modify `game.json` or a current revision. The authorized game
 operation installs selected bindings with compare-and-swap publication. A
