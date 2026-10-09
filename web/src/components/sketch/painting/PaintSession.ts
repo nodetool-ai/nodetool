@@ -446,6 +446,16 @@ export class PaintSession {
 
 
     // ── Dirty-rect compositing ──────────────────────────────────────
+    // Repaint only what this move painted. A move that painted nothing (the
+    // pointer has not yet travelled one dab spacing) needs no frame at all.
+    if (this.engine.takeFrameDirtyRect) {
+      const frameRect = this.engine.takeFrameDirtyRect();
+      if (frameRect && frameRect.minX < frameRect.maxX && frameRect.minY < frameRect.maxY) {
+        const doc = this.mapper.dirtyToDoc(frameRect);
+        ctx.redrawDirty(doc.x, doc.y, doc.w, doc.h);
+      }
+      return;
+    }
     const dirtyRect = this.engine.getDirtyRect();
     if (dirtyRect && dirtyRect.minX < dirtyRect.maxX && dirtyRect.minY < dirtyRect.maxY) {
       const doc = this.mapper.dirtyToDoc(dirtyRect);

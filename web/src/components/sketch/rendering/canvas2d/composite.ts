@@ -18,7 +18,10 @@ import {
   isLayerCompositeVisible
 } from "../../types";
 import { blendModeToComposite, drawCheckerboard } from "../../drawingUtils";
-import { getLayerGeometry } from "../../transform/geometry/layerGeometry";
+import {
+  computeCompositeOffset,
+  getRasterBounds
+} from "../../transform/geometry/layerGeometry";
 import type { ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "../types";
 import { drawImageToQuad } from "./quadTransform";
 
@@ -111,12 +114,46 @@ export function drawLayerToContext(
       layer.blendMode || "normal"
     );
   }
-  const compositeOffset = getLayerGeometry(layer, layerCanvas, {
-    width: drawCanvas.width,
-    height: drawCanvas.height
-  }).compositeOffset;
+  const compositeOffset = layerCompositeOffset(layer, layerCanvas, drawCanvas);
   drawWithTransform(ctx, drawCanvas, compositeOffset, layer);
   ctx.restore();
+}
+
+/** Document-space top-left where a layer's raster is drawn. */
+function layerCompositeOffset(
+  layer: Layer,
+  layerCanvas: HTMLCanvasElement,
+  drawCanvas: HTMLCanvasElement
+): { x: number; y: number } {
+  return computeCompositeOffset(
+    layer.transform,
+    getRasterBounds(layer, layerCanvas, {
+      width: drawCanvas.width,
+      height: drawCanvas.height
+    })
+  );
+}
+
+/**
+ * The layer-space rect that covers `clip` (document space), or null when the
+ * layer is scaled, rotated or warped and the mapping is not a translation.
+ */
+function clipToLayerRect(
+  layer: Layer,
+  clip: DirtyRect,
+  compositeOffset: { x: number; y: number },
+  width: number,
+  height: number
+): DirtyRect | null {
+  const t = layer.transform;
+  if (t.kind !== "affine" || t.scaleX !== 1 || t.scaleY !== 1 || t.rotation !== 0) {
+    return null;
+  }
+  const x0 = Math.max(0, Math.floor(clip.x - compositeOffset.x) - 1);
+  const y0 = Math.max(0, Math.floor(clip.y - compositeOffset.y) - 1);
+  const x1 = Math.min(width, Math.ceil(clip.x + clip.w - compositeOffset.x) + 1);
+  const y1 = Math.min(height, Math.ceil(clip.y + clip.h - compositeOffset.y) + 1);
+  return { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) };
 }
 
 // ─── Document composite (content only) ───────────────────────────────────────
@@ -134,6 +171,12 @@ interface RenderDocumentCompositeOptions {
    * @default false
    */
   includeMaskLayers?: boolean;
+  /**
+   * Document-space region the caller clipped `ctx` to. Pixels outside it are
+   * never shown, so the active-stroke merge only updates this region of its
+   * temp canvas.
+   */
+  clipRect?: DirtyRect | null;
 }
 
 /**
@@ -152,6 +195,7 @@ export function renderDocumentComposite(
   options?: RenderDocumentCompositeOptions
 ): StrokeTempState {
   const includeMaskLayers = options?.includeMaskLayers ?? false;
+  const clipRect = options?.clipRect ?? null;
   let { strokeTempCanvas } = strokeState;
 
   const docLayerMap = new Map<string, Layer>();
@@ -193,10 +237,7 @@ export function renderDocumentComposite(
       docLayerMap
     );
     const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
-    const compositeOffset = getLayerGeometry(layer, layerCanvas, {
-      width: drawCanvas.width,
-      height: drawCanvas.height
-    }).compositeOffset;
+    const compositeOffset = layerCompositeOffset(layer, layerCanvas, drawCanvas);
 
     if (hasActiveStroke) {
       let tempCanvas = strokeTempCanvas;
@@ -212,12 +253,27 @@ export function renderDocumentComposite(
       }
       const tempCtx = tempCanvas.getContext("2d");
       if (tempCtx) {
+        // Merge layer + stroke buffer. Under a clip only the clipped region
+        // reaches the display, so merge just that region: a full-layer merge
+        // per pointer move costs as much as the rest of the frame together.
+        const region =
+          (clipRect &&
+            clipToLayerRect(
+              layer,
+              clipRect,
+              compositeOffset,
+              tempCanvas.width,
+              tempCanvas.height
+            )) || { x: 0, y: 0, w: tempCanvas.width, h: tempCanvas.height };
         tempCtx.setTransform(1, 0, 0, 1, 0, 0);
         tempCtx.globalAlpha = 1;
         tempCtx.globalCompositeOperation = "source-over";
-        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-        tempCtx.drawImage(drawCanvas, 0, 0);
         tempCtx.save();
+        tempCtx.beginPath();
+        tempCtx.rect(region.x, region.y, region.w, region.h);
+        tempCtx.clip();
+        tempCtx.clearRect(region.x, region.y, region.w, region.h);
+        tempCtx.drawImage(drawCanvas, 0, 0);
         tempCtx.globalAlpha = activeStroke.opacity;
         tempCtx.globalCompositeOperation = activeStroke.compositeOp;
         tempCtx.drawImage(activeStroke.buffer, 0, 0);
@@ -269,14 +325,15 @@ export function compositeToDisplayCanvas(
 
   const fullW = targetCanvas.width;
   const fullH = targetCanvas.height;
-  const useClip = !!dirtyRect;
+  let clipRect: DirtyRect | null = null;
 
-  if (useClip) {
+  if (dirtyRect) {
     const pad = 2;
     const rx = Math.max(0, Math.floor(dirtyRect.x - pad));
     const ry = Math.max(0, Math.floor(dirtyRect.y - pad));
     const rw = Math.min(fullW - rx, Math.ceil(dirtyRect.w + pad * 2));
     const rh = Math.min(fullH - ry, Math.ceil(dirtyRect.h + pad * 2));
+    clipRect = { x: rx, y: ry, w: rw, h: rh };
 
     ctx.save();
     ctx.beginPath();
@@ -297,10 +354,10 @@ export function compositeToDisplayCanvas(
     layerCanvases,
     evaluateLayerEffects,
     strokeState,
-    { includeMaskLayers: true }
+    { includeMaskLayers: true, clipRect }
   );
 
-  if (useClip) {
+  if (clipRect) {
     ctx.restore();
   }
 

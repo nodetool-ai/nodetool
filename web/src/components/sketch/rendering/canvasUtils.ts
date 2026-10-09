@@ -44,10 +44,14 @@ const CHECKERBOARD_SCREEN_CELL = 8;
  * Integer document pixels per checker cell so the alpha grid aligns with the
  * canvas bitmap. A fractional `8/zoom` misaligns with `imageRendering: pixelated`
  * and CSS scale, which makes tiles look uneven at many zoom levels.
+ *
+ * The cell snaps to a power of two. The checkerboard is part of the composite,
+ * so every change in cell size costs a full re-composite: snapped, a zoom
+ * gesture changes it only when it crosses a doubling, not on every step.
  */
 export function checkerboardDocumentCellPx(zoom: number | undefined): number {
   const z = zoom != null && zoom > 0 ? zoom : 1;
-  return Math.max(1, Math.round(CHECKERBOARD_SCREEN_CELL / z));
+  return Math.max(1, 2 ** Math.round(Math.log2(CHECKERBOARD_SCREEN_CELL / z)));
 }
 
 export function drawCheckerboard(
