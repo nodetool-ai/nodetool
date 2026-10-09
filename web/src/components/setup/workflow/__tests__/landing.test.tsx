@@ -205,6 +205,23 @@ describe("WorkflowLandingChecklist", () => {
     expect(screen.queryByText(/did not start/)).toBeNull();
   });
 
+  // A save refused after the graph was placed stops the build with nothing
+  // unwired. The run line must not blame the plan's wiring.
+  it("says a build that stopped early did not run, without blaming the wiring", () => {
+    renderChecklist({
+      ...CLEAN,
+      status: "failed",
+      output: undefined,
+      validationPending: true,
+      testRun: { started: false, error: null },
+      explanation: "The build stopped: Failed to save workflow"
+    });
+    expect(
+      screen.getByText("Not started, the build stopped first")
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/unwired/)).toBeNull();
+  });
+
   it("says an unrecorded run's result was not recorded", () => {
     renderChecklist({
       ...CLEAN,

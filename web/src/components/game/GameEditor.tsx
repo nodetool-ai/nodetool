@@ -36,7 +36,6 @@ import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnost
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
 import GameViewport from "./viewport2d/GameViewport";
 import { pastedEntities } from "./gameClipboard";
-import { pressGameKey } from "./gameInputFrame";
 import { EMPTY_INPUT, useGamePlaySession } from "./useGamePlaySession";
 import { localTransform, selectionRoots, worldTransforms } from "./viewport2d/viewportGeometry";
 
@@ -67,7 +66,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const [editorSceneId, setEditorSceneId] = useState<string | null>(null);
   const activeSceneId = document?.scenes.some((scene) => scene.id === editorSceneId)
     ? editorSceneId : document?.entrySceneId ?? null;
-  const { canvasRef, keysRef, newlyPressedRef, playing, playDocument, playState, backend, error, setError,
+  const { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
     scriptError: hostScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, stop,
     save, load, replayBeforeError, runtimeEntities } = useGamePlaySession({ refId, active, document,
       editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
@@ -375,7 +374,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
 
   const onViewportKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>): void => {
     if (!active || !playDocument) return;
-    if (pressGameKey(keysRef.current, newlyPressedRef.current, event.code, event.key, playDocument.inputActions)) {
+    if (inputRef.current.handlesKey(playDocument, event.code, event.key)) {
+      inputRef.current.keyDown(event.code, event.key);
       event.preventDefault();
     }
   };
@@ -455,8 +455,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
             onCamera={onCamera}
             onViewportAspect={onViewportAspect}
             onKeyDown={onViewportKeyDown}
-            onKeyUp={(event) => keysRef.current.delete(event.code)}
-            onBlur={() => { keysRef.current.clear(); newlyPressedRef.current.clear(); }} />
+            onKeyUp={(event) => inputRef.current.keyUp(event.code)}
+            onBlur={() => inputRef.current.release()} />
       </> },
       { id: "scripts", visible: Boolean(scriptKey && activeScript && scriptBehavior?.kind === "script"),
         node: scriptKey && activeScript && scriptBehavior?.kind === "script" ? <>

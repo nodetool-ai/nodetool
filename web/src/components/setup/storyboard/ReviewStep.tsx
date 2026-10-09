@@ -124,7 +124,22 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   const updateScene = useStoryboardStore((state) => state.updateScene);
   const setScreenplay = useStoryboardStore((state) => state.setScreenplay);
   const notice = useImportNotice(boardId);
-  const [lengths, setLengths] = useState<Record<string, string>>({});
+  // Typed durations, each with the length the shot had when it was typed. A
+  // rewrite or a restore that gives the shot another length outdates the
+  // draft, so the field shows the length the shot now has.
+  const [drafts, setDrafts] = useState<
+    Record<string, { value: string; base: number | undefined }>
+  >({});
+  const lengths = useMemo(() => {
+    const live: Record<string, string> = {};
+    for (const shot of shots) {
+      const draft = drafts[shot.id];
+      if (draft && draft.base === shot.duration_seconds) {
+        live[shot.id] = draft.value;
+      }
+    }
+    return live;
+  }, [drafts, shots]);
   const invalidDuration = shots.some((shot) => {
     const value = lengths[shot.id];
     return (
@@ -369,7 +384,10 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                   lengths[shot.id] ??
                   (shot.duration_seconds ? String(shot.duration_seconds) : ""),
                 onChange: (value: string) => {
-                  setLengths((current) => ({ ...current, [shot.id]: value }));
+                  setDrafts((current) => ({
+                    ...current,
+                    [shot.id]: { value, base: shot.duration_seconds }
+                  }));
                 },
                 onCommit: (value: string) => {
                   const seconds = Number(value);
@@ -552,7 +570,13 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             disabled={readOnly || rewriting}
             onClick={onRewrite}
           >
-            {rewriting ? "Rewriting screenplay…" : "Rewrite from brief"}
+            {keptAsWritten
+              ? rewriting
+                ? "Directing your script…"
+                : "Direct the camera again"
+              : rewriting
+                ? "Rewriting screenplay…"
+                : "Rewrite from brief"}
           </EditorButton>
         </FlexRow>
         {/* A failed rewrite is read where it was pressed, not below a
@@ -566,8 +590,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           fallback={<Caption color="secondary">Loading estimate…</Caption>}
         >
           <GenerationSummary
-            result="Rewrite the screenplay from your brief"
-            next="Retained shots keep their stills. No images are generated."
+            result={
+              keptAsWritten
+                ? "Add camera direction to your script again"
+                : "Rewrite the screenplay from your brief"
+            }
+            next={
+              keptAsWritten
+                ? "Your words and scene order stay as written. No images are generated."
+                : "Retained shots keep their stills. No images are generated."
+            }
             model={model}
             brief={brief}
             maxOutputTokens={maxOutputTokens}

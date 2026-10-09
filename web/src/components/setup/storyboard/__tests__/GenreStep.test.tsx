@@ -230,6 +230,17 @@ describe("GenreStep", () => {
     ).toBeInTheDocument();
   });
 
+  // A script kept as written holds its words and has no shot count to pick,
+  // so the hint does not send the creator to either.
+  it("names only the genre as the way to direct a kept script again", () => {
+    renderStep({ upToDate: true, cameraPass: true });
+
+    expect(
+      screen.getByText(/Change the genre to direct it again/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/the brief or the shot count/)).toBeNull();
+  });
+
   it("shows the shot count and reports a change", async () => {
     const user = userEvent.setup();
     renderStep();

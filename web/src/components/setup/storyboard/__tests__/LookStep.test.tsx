@@ -110,9 +110,14 @@ jest.mock("../../../../serverState/useStylePresets", () => ({
 // The still-model picker reads the image-model catalog through TanStack
 // Query; this suite stands up no client. What the picker itself does is
 // pinned by `StillModelField` tests below, through the store.
+const languageModels: unknown[] = [];
 jest.mock("../../../../hooks/useModelsByProvider", () => ({
   __esModule: true,
-  useImageModelsByProvider: () => ({ models: [], isLoading: false })
+  useImageModelsByProvider: () => ({ models: [], isLoading: false }),
+  useLanguageModelsByProvider: () => ({
+    models: languageModels,
+    isLoading: false
+  })
 }));
 jest.mock("../../../properties/ImageModelSelect", () => ({
   __esModule: true,
@@ -237,6 +242,7 @@ beforeEach(() => {
   saveEntity.mockClear();
   uploadAsset.mockClear();
   rpcRequest.mockClear();
+  languageModels.length = 0;
   presets = [NOIR, COMIC];
   library = [asEntity(NOIR), asEntity(COMIC)];
   useStoryboardStore.setState({ boards: {}, history: {} } as never);
@@ -630,6 +636,25 @@ describe("LookStep — Add your own style", () => {
     );
     await user.click(screen.getByRole("button", { name: "Add style" }));
   };
+
+  // A shotlist import lands here from step 1, past the genre step that fills
+  // in the screenplay model this dialog asks.
+  it("works on a board that skipped the genre step", async () => {
+    languageModels.push({
+      id: "catalog-model",
+      provider: "openai",
+      name: "Catalog"
+    });
+    renderStep();
+    await waitFor(() =>
+      expect(board().directorModel?.id).toBe("catalog-model")
+    );
+
+    await addOwnStyle();
+
+    await waitFor(() => expect(board().entityIds).toEqual(["e-mine"]));
+    expect(screen.queryByText(/Pick a model before adding a style/)).toBeNull();
+  });
 
   it("saves the model's descriptor as a user entity and applies it", async () => {
     seedOnNoir();

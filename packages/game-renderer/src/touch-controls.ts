@@ -1,4 +1,6 @@
-const DIRECTIONS = ["left", "right", "up", "down"] as const;
+import type { ResolvedGameInputBindings } from "@nodetool-ai/protocol";
+import type { TouchInputState } from "./input-bindings.js";
+
 // sin(22.5°): an axis turns on once the stick leans past the edge of its 45° sector, which gives 8-way input.
 const AXIS_THRESHOLD = 0.38;
 
@@ -18,37 +20,107 @@ export function stickActions(dx: number, dy: number, deadZone: number): string[]
   return actions;
 }
 
-/** Splits a game's input actions into the stick's directions and one button per other action. */
-export function touchLayout(inputActions: readonly string[]): { stick: string[]; buttons: string[] } {
-  const stick = DIRECTIONS.filter((action) => inputActions.includes(action));
-  return { stick, buttons: inputActions.filter((action) => !stick.includes(action as (typeof DIRECTIONS)[number])) };
+export interface TouchLayout {
+  /** Whether any action or axis reads the floating stick. */
+  readonly stick: boolean;
+  /** One button per action with a touch button binding, in action order. */
+  readonly buttons: readonly { readonly action: string; readonly label: string }[];
+  /** Whether a drag on the right half turns the camera. */
+  readonly look: boolean;
+}
+
+/** Derives the on-screen controls from a document's resolved input bindings. */
+export function touchLayout(bindings: ResolvedGameInputBindings): TouchLayout {
+  const buttons: { action: string; label: string }[] = [];
+  for (const { action, bindings: list } of bindings.actions) {
+    const button = list.find((binding) => binding.kind === "touchButton");
+    if (button) { buttons.push({ action, label: button.label ?? action.toUpperCase() }); }
+  }
+  return {
+    stick: bindings.actions.some(({ bindings: list }) => list.some((binding) => binding.kind === "touchStick")) ||
+      bindings.axes.some(({ bindings: list }) => list.some((binding) => binding.kind === "touchStick")),
+    buttons,
+    look: bindings.look.some((binding) => binding.kind === "touchDrag")
+  };
 }
 
 export interface TouchControlsOptions {
-  readonly inputActions: readonly string[];
-  /** Called with the full set of actions touch currently holds. */
-  readonly onChange: (pressed: ReadonlySet<string>) => void;
+  readonly layout: TouchLayout;
+  /** Called with everything touch currently holds. */
+  readonly onChange: (state: TouchInputState) => void;
+  /** Called with drag movement in pixels on the look zone. */
+  readonly onLook?: (x: number, y: number) => void;
 }
+
+/** Styles for the touch layer, for players whose page does not already define them. */
+export const TOUCH_CONTROLS_CSS = ".touch-layer{position:fixed;inset:0;z-index:2;pointer-events:none}" +
+  ".touch-stick-zone{position:absolute;left:0;top:0;bottom:0;width:50%;pointer-events:auto;touch-action:none}" +
+  ".touch-look-zone{position:absolute;right:0;top:0;bottom:0;width:50%;pointer-events:auto;touch-action:none}" +
+  ".touch-stick{position:absolute;left:25%;top:70%;width:7.5rem;height:7.5rem;margin:-3.75rem 0 0 -3.75rem;border-radius:50%;border:2px solid #fff5;background:#fff1;opacity:.35;transition:opacity .15s}" +
+  ".touch-stick.active{opacity:.9}" +
+  ".touch-knob{position:absolute;left:50%;top:50%;width:3.25rem;height:3.25rem;margin:-1.625rem 0 0 -1.625rem;border-radius:50%;background:#fff8;box-shadow:0 0 1rem #fff6}" +
+  ".touch-buttons{position:absolute;right:max(1.25rem,env(safe-area-inset-right));bottom:max(1.25rem,env(safe-area-inset-bottom));display:flex;flex-direction:column-reverse;gap:1rem;pointer-events:auto}" +
+  ".touch-button{width:5.25rem;height:5.25rem;border-radius:50%;border:2px solid #fff6;background:#ffffff1f;color:#fff;font:600 .8rem system-ui,sans-serif;letter-spacing:.05em;touch-action:none;box-shadow:0 0 1.25rem #0008}" +
+  ".touch-button.active{background:#ffffff59;transform:scale(.94)}" +
+  // After mouse movement the layer lets clicks through, so a mouse on a touchscreen laptop reaches the game.
+  ".touch-layer[data-pointer=mouse] *{pointer-events:none}";
 
 /**
  * A floating stick on the left half of the screen and action buttons on the right.
  * The stick appears where the thumb lands, so it works for any hand position.
  */
 export function mountTouchControls(root: HTMLElement, options: TouchControlsOptions): () => void {
-  const layout = touchLayout(options.inputActions);
-  const held = new Map<string, Set<string>>();
-  const emit = (): void => {
-    const pressed = new Set<string>();
-    for (const actions of held.values()) actions.forEach((action) => pressed.add(action));
-    options.onChange(pressed);
-  };
+  const { layout } = options;
+  let stick: { x: number; y: number } | undefined;
+  const held = new Set<string>();
+  const emit = (): void => { options.onChange({ stick, buttons: new Set(held) }); };
   const cleanups: Array<() => void> = [];
+  // A mouse that moves over the page switches the layer to pass-through. The next touch or pen switches it back.
+  const pointerMode = (event: PointerEvent): void => {
+    const mode = event.pointerType === "mouse" ? "mouse" : "touch";
+    if (root.dataset.pointer !== mode) { root.dataset.pointer = mode; }
+  };
+  window.addEventListener("pointermove", pointerMode, { capture: true, passive: true });
+  window.addEventListener("pointerdown", pointerMode, { capture: true, passive: true });
+  cleanups.push(() => {
+    window.removeEventListener("pointermove", pointerMode, { capture: true });
+    window.removeEventListener("pointerdown", pointerMode, { capture: true });
+    delete root.dataset.pointer;
+  });
   const listen = <K extends keyof HTMLElementEventMap>(target: HTMLElement, type: K, handler: (event: HTMLElementEventMap[K]) => void): void => {
     target.addEventListener(type, handler, { passive: false });
     cleanups.push(() => target.removeEventListener(type, handler));
   };
 
-  if (layout.stick.length > 0) {
+  if (layout.look && options.onLook) {
+    const onLook = options.onLook;
+    const zone = document.createElement("div");
+    zone.className = "touch-look-zone";
+    root.append(zone);
+    let pointerId: number | undefined;
+    let lastX = 0;
+    let lastY = 0;
+    const end = (event: PointerEvent): void => { if (event.pointerId === pointerId) pointerId = undefined; };
+    listen(zone, "pointerdown", (event) => {
+      if (event.pointerType === "mouse") return;
+      event.preventDefault();
+      if (pointerId !== undefined) return;
+      pointerId = event.pointerId;
+      zone.setPointerCapture(event.pointerId);
+      lastX = event.clientX;
+      lastY = event.clientY;
+    });
+    listen(zone, "pointermove", (event) => {
+      if (event.pointerId !== pointerId) return;
+      onLook(event.clientX - lastX, event.clientY - lastY);
+      lastX = event.clientX;
+      lastY = event.clientY;
+    });
+    listen(zone, "pointerup", end);
+    listen(zone, "pointercancel", end);
+  }
+
+  if (layout.stick) {
     const zone = document.createElement("div");
     zone.className = "touch-stick-zone";
     const base = document.createElement("div");
@@ -72,7 +144,7 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
         dy = (dy / length) * limit;
       }
       knob.style.transform = `translate(${dx}px, ${dy}px)`;
-      held.set("stick", new Set(stickActions(dx, dy, limit * 0.25).filter((action) => layout.stick.includes(action as never))));
+      stick = { x: dx / limit, y: dy / limit };
       emit();
     };
     const release = (event: PointerEvent): void => {
@@ -80,10 +152,11 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
       pointerId = undefined;
       base.classList.remove("active");
       knob.style.transform = "";
-      held.delete("stick");
+      stick = undefined;
       emit();
     };
     listen(zone, "pointerdown", (event) => {
+      if (event.pointerType === "mouse") return;
       event.preventDefault();
       if (pointerId !== undefined) return;
       pointerId = event.pointerId;
@@ -105,23 +178,23 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
 
   const buttons = document.createElement("div");
   buttons.className = "touch-buttons";
-  for (const action of layout.buttons) {
+  for (const { action, label } of layout.buttons) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "touch-button";
-    button.textContent = action.toUpperCase();
+    button.textContent = label;
     button.setAttribute("aria-label", action);
-    const key = `button:${action}`;
     const up = (): void => {
       button.classList.remove("active");
-      held.delete(key);
+      held.delete(action);
       emit();
     };
     listen(button, "pointerdown", (event) => {
+      if (event.pointerType === "mouse") return;
       event.preventDefault();
       button.setPointerCapture(event.pointerId);
       button.classList.add("active");
-      held.set(key, new Set([action]));
+      held.add(action);
       emit();
     });
     listen(button, "pointerup", up);
@@ -134,5 +207,6 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
     cleanups.forEach((cleanup) => cleanup());
     root.replaceChildren();
     held.clear();
+    stick = undefined;
   };
 }

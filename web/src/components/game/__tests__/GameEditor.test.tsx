@@ -60,7 +60,7 @@ jest.mock("../../../hooks/useDocumentConflicts", () => ({ useDocumentConflicts: 
 jest.mock("../useGamePlaySession", () => ({
   ...jest.requireActual<typeof import("../useGamePlaySession")>("../useGamePlaySession"),
   useGamePlaySession: () => ({
-    canvasRef: { current: null }, keysRef: { current: new Set() }, newlyPressedRef: { current: new Set() },
+    canvasRef: { current: null }, inputRef: { current: { handlesKey: () => false, keyDown: jest.fn(), keyUp: jest.fn(), release: jest.fn() } },
     playing: false, playDocument: mockPlayDocument, playState: { tick: 11, score: 0, won: false, sceneId: mockDocument.entrySceneId },
     backend: "Test", error: null, setError: jest.fn(), scriptError: mockHostFailure, setScriptError: jest.fn(), frame: null,
     onViewportAspect: jest.fn(), onCamera: jest.fn(), resetCamera: jest.fn(), step: jest.fn(), beginPlay: jest.fn(), stop: jest.fn(),

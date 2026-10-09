@@ -32,11 +32,14 @@ jest.mock("../../../entities/EntityEditorDialog", () => () => null);
 // stand up.
 const direct = jest.fn(async () => true);
 let directError: string | null = null;
+let directing = false;
 const acceptFallback = jest.fn();
 jest.mock("../../../../hooks/storyboard/useDirectScreenplay", () => ({
   useDirectScreenplay: () => ({
     direct,
-    directing: false,
+    get directing() {
+      return directing;
+    },
     usedFallback: false,
     acceptFallback,
     get error() {
@@ -135,6 +138,7 @@ beforeEach(() => {
   direct.mockReset();
   direct.mockResolvedValue(true);
   directError = null;
+  directing = false;
   clearSetupReports(BOARD_ID);
 });
 
@@ -495,6 +499,67 @@ describe("useStoryboardSetupFlow", () => {
     expect(stageOf()).toBe("entities");
   });
 
+  // The host's extraction writes a linked script, so the shell must neither
+  // offer a Cancel that claims the draft is unchanged nor call the wait a
+  // rewrite.
+  it("names the extraction wait and offers no Cancel during it", async () => {
+    const user = userEvent.setup();
+    let release: () => void = () => undefined;
+    const onReviewed = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        })
+    );
+    seedScreenplay();
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "review" });
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ReviewHarness onReviewed={onReviewed} />
+      </ThemeProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set up entities" }));
+    await waitFor(() => expect(onReviewed).toHaveBeenCalledTimes(1));
+
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    expect(screen.queryByText(/Rewriting/)).toBeNull();
+    expect(screen.getAllByText("Saving your screenplay").length).toBeGreaterThan(
+      0
+    );
+
+    await act(async () => release());
+    await waitFor(() => expect(stageOf()).toBe("entities"));
+  });
+
+  it("shows the review step only the failure of its own rewrite", async () => {
+    seedScreenplay();
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const reviewBody = () =>
+      result.current.steps
+        .find((step) => step.stage === "review")
+        ?.render() as {
+        props: { error: string | null; onRewrite: () => void };
+      };
+
+    // A re-direct refused on the genre step, then stepped past.
+    directError = "Your provider is out of credits.";
+    direct.mockResolvedValue(false);
+    const genre = result.current.steps.find((step) => step.stage === "genre");
+    await act(async () => {
+      await Promise.resolve(
+        genre?.onAdvance?.({ signal: new AbortController().signal })
+      ).catch(() => undefined);
+    });
+    expect(reviewBody().props.error).toBeNull();
+
+    // The review step's own rewrite fails: that one is shown.
+    await act(async () => reviewBody().props.onRewrite());
+    expect(reviewBody().props.error).toBe("Your provider is out of credits.");
+  });
+
   it("does not extract for a host that has no linked script", async () => {
     const user = userEvent.setup();
     seedScreenplay();
@@ -585,6 +650,7 @@ describe("useStoryboardSetupFlow", () => {
   // F16: `Rewrite from brief` runs outside the shell's button, so the review
   // step's Cancel has to reach it.
   it("cancels a rewrite from the review step", () => {
+    directing = true;
     const { result } = renderHook(() =>
       useStoryboardSetupFlow({ boardId: BOARD_ID })
     );
@@ -607,6 +673,7 @@ describe("useStoryboardSetupFlow", () => {
 
   it("asks for and names the board's own length when rewriting", () => {
     seedScreenplay();
+    directing = true;
     const { result } = renderHook(() =>
       useStoryboardSetupFlow({ boardId: BOARD_ID })
     );
@@ -755,6 +822,14 @@ describe("useStoryboardSetupFlow", () => {
       props: { hideShotCount?: boolean };
     };
     expect(footer.props.hideShotCount).toBe(true);
+    const genreBody = genre?.render() as { props: { cameraPass?: boolean } };
+    expect(genreBody.props.cameraPass).toBe(true);
+    // The review step's re-run is the same camera pass, priced the same way.
+    const review = result.current.steps.find((step) => step.stage === "review");
+    const reviewBody = review?.render() as {
+      props: { maxOutputTokens: number };
+    };
+    expect(reviewBody.props.maxOutputTokens).toBe(4096);
   });
 
   // F16: the shell no longer disables the step body in view mode, so each

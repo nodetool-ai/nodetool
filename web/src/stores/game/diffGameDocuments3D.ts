@@ -26,9 +26,9 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
   }
   if (changed(from.presentation, to.presentation) || changed(from.inputActions, to.inputActions)
     || changed(from.inputAxes, to.inputAxes) || changed(from.entrySceneId, to.entrySceneId)
-    || changed(from.collisionLayers, to.collisionLayers)) {
+    || changed(from.collisionLayers, to.collisionLayers) || changed(from.inputBindings, to.inputBindings)) {
     ops.push({ op: "set_game", presentation: to.presentation, input_actions: to.inputActions,
-      input_axes: to.inputAxes, entry_scene_id: to.entrySceneId, collision_layers: to.collisionLayers ?? null });
+      input_axes: to.inputAxes, input_bindings: to.inputBindings ?? null, entry_scene_id: to.entrySceneId, collision_layers: to.collisionLayers ?? null });
   }
   if (changed(from.audio?.mixer, to.audio?.mixer)) { ops.push({ op: "set_audio", mixer: to.audio?.mixer ?? null }); }
   // There is no scene move operation. Reinsert reordered scenes at their requested indices.

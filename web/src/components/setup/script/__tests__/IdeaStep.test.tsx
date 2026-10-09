@@ -128,8 +128,13 @@ describe("script IdeaStep", () => {
     const user = userEvent.setup();
     renderStep();
 
+    // Only pasted or uploaded words are kept as written, so the brief is not
+    // named as the place for the script itself.
+    expect(
+      screen.queryByRole("textbox", { name: "Your script" })
+    ).not.toBeInTheDocument();
     await user.type(
-      screen.getByRole("textbox", { name: "Your script" }),
+      screen.getByRole("textbox", { name: "What the script is about" }),
       "tide clocks"
     );
 

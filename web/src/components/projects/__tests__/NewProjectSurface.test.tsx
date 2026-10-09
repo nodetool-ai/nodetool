@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
+import { useBugReportStore } from "../../../stores/BugReportStore";
 
 jest.mock("../CurrentProjectDocuments", () => ({
   __esModule: true,
@@ -1648,6 +1649,32 @@ describe("NewProjectSurface", () => {
         openTab.mock.calls.some(([input]) => input.type === "workflow")
       ).toBe(true)
     );
+  });
+
+  // Every error surface carries a Report control (components/AGENTS.md).
+  it("lets the creator report a hand-off whose project did not open", async () => {
+    const user = userEvent.setup();
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "other-project" });
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await screen.findByTestId("setup-flow");
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
+
+    openProject.mockResolvedValueOnce(false);
+    managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
+    await user.click(screen.getByRole("button", { name: "Copy the example" }));
+    await screen.findByRole("button", { name: "Open your workflow" });
+
+    await user.click(
+      screen.getByRole("button", { name: "Report this failure" })
+    );
+    expect(useBugReportStore.getState().context).toMatchObject({
+      source: "manual",
+      errorText: "Your workflow is ready, but its project did not open."
+    });
   });
 
   it("opens the image flow's sketch tab in the selected project", async () => {

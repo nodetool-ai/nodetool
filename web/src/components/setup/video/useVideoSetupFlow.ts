@@ -13,8 +13,12 @@ import { createElement, useCallback, useMemo, useState } from "react";
 import { clampShotCount } from "@nodetool-ai/protocol";
 import type { TimelineSetupStage } from "@nodetool-ai/timeline";
 
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
+import {
+  directedPlanBrief,
   usePlanBeats,
   videoPlanFingerprint,
   type PlanBeatsContext
@@ -160,6 +164,10 @@ export const useVideoSetupFlow = ({
   const [reviewError, setReviewError] = useState<string>();
   const [contextError, setContextError] = useState<string>();
   const [importingMedia, setImportingMedia] = useState(false);
+  // A Generate that failed after the host had replaced the shell with its
+  // wait. The shell that comes back never saw the failure, so Look keeps it.
+  const [generateError, setGenerateError] = useState<string>();
+  const store = useTimelineStoreApi();
   const setSetup = useTimelineStore((state) => state.setSetup);
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
   const formatId = useTimelineStore((state) => state.setup?.format);
@@ -278,7 +286,10 @@ export const useVideoSetupFlow = ({
   );
 
   const onStageChange = useCallback(
-    (next: TimelineSetupStage) => setSetup({ stage: next }),
+    (next: TimelineSetupStage) => {
+      setGenerateError(undefined);
+      setSetup({ stage: next });
+    },
     [setSetup]
   );
 
@@ -340,6 +351,14 @@ export const useVideoSetupFlow = ({
           placedClips > 0 ? ", one per clip" : ""
         }`;
 
+  // The estimate prices what the Director is sent, not only the brief: the
+  // context lines and, on a re-plan, the edited plan go with it.
+  const plannedBrief = directedPlanBrief({
+    brief,
+    context: planContext,
+    previous: hasPlan ? beats : undefined
+  });
+
   const reviewBlocker = productionGenerationBlocker(beats ?? [], false);
 
   const emptyBeats = (beats ?? []).filter(
@@ -359,8 +378,11 @@ export const useVideoSetupFlow = ({
         blockedReason: importingMedia
           ? "Uploading your media"
           : (contextError ?? "Describe the video, or bring your own media"),
-        render: () =>
+        // Change flow discards this draft, so it waits for the upload too.
+        holdNavigation: importingMedia,
+        render: (context) =>
           createElement(IdeaStep, {
+            readOnly: context?.readOnly ?? false,
             // The blank escape hatch and the last step land in the same place:
             // stage `done` and the timeline (PRD § 8.1).
             onStartBlank: () => void finish(),
@@ -404,7 +426,7 @@ export const useVideoSetupFlow = ({
               model: director.model
                 ? toLanguageModelValue(director.model)
                 : null,
-              brief,
+              brief: plannedBrief,
               maxOutputTokens: 8192,
               concise: true,
               hideTokenEstimate: true
@@ -466,7 +488,8 @@ export const useVideoSetupFlow = ({
             musicOn,
             onVoiceChange: handleVoice,
             onMusicChange: handleMusic,
-            musicAvailable: look.musicAvailable
+            musicAvailable: look.musicAvailable,
+            error: generateError
           }),
         // `generate` writes the terminal stage itself, before it enqueues
         // anything (D3); the host opens the timeline once the jobs are away.
@@ -474,7 +497,28 @@ export const useVideoSetupFlow = ({
           if (productionBlocker) {
             throw new Error(productionBlocker);
           }
-          await look.generate(operation?.signal);
+          setGenerateError(undefined);
+          // `generate` writes `done` before its last save, and the host then
+          // replaces the shell with its wait. A failure after that returns
+          // to Look in a shell that never saw it, so the step shows it.
+          let leftShell = false;
+          const unsubscribe = store.subscribe((state) => {
+            if (state.setup?.stage === "done") {
+              leftShell = true;
+            }
+          });
+          try {
+            await look.generate(operation?.signal);
+          } catch (cause) {
+            if (leftShell) {
+              setGenerateError(
+                cause instanceof Error ? cause.message : String(cause)
+              );
+            }
+            throw cause;
+          } finally {
+            unsubscribe();
+          }
           await handOver();
         }
       }
@@ -491,6 +535,7 @@ export const useVideoSetupFlow = ({
       emptyBeats,
       finish,
       formatId,
+      generateError,
       handOver,
       handleMusic,
       handleVoice,
@@ -500,6 +545,7 @@ export const useVideoSetupFlow = ({
       musicOn,
       onStartFromScript,
       planIsCurrent,
+      plannedBrief,
       planning,
       planError,
       productionBlocker,
@@ -510,6 +556,7 @@ export const useVideoSetupFlow = ({
       replan,
       runPlan,
       startFromScript,
+      store,
       voiceOn
     ]
   );

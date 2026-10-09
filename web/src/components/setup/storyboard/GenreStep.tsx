@@ -42,6 +42,11 @@ export interface GenreStepProps {
    * so the step's button continues to it instead of writing it again (F15).
    */
   upToDate?: boolean;
+  /**
+   * A script kept as written: its words are held and it has no shot count to
+   * pick, so only the genre can ask for a new camera pass.
+   */
+  cameraPass?: boolean;
 }
 
 /**
@@ -168,7 +173,8 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
   boardId,
   readOnly = false,
   directing = false,
-  upToDate = false
+  upToDate = false,
+  cameraPass = false
 }) => {
   const genre = useStoryboardStore(
     (state) => state.boards[boardId]?.genre ?? ""
@@ -226,8 +232,9 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
           one the board holds already answers these choices (F15). */}
       {!directing && upToDate ? (
         <Text size="small" color="secondary">
-          Your screenplay already follows these choices. Change the genre, the
-          brief or the shot count to write a new one.
+          {cameraPass
+            ? "Your script is already directed for these choices. Change the genre to direct it again."
+            : "Your screenplay already follows these choices. Change the genre, the brief or the shot count to write a new one."}
         </Text>
       ) : null}
     </FlexColumn>

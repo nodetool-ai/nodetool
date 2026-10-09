@@ -6,7 +6,7 @@
  * brief keeps the creator here with what landed named (F10, F30).
  */
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -208,6 +208,18 @@ describe("video IdeaStep", () => {
     fireEvent.drop(surface, {
       dataTransfer: { types: ["Files"], files } as unknown as DataTransfer
     });
+
+  it("takes no drop while the step is locked, as during Change flow (V10)", async () => {
+    const { container } = render(
+      <ThemeProvider theme={mockTheme}>
+        <IdeaStep onStartBlank={jest.fn()} readOnly />
+      </ThemeProvider>
+    );
+    const surface = container.firstElementChild as HTMLElement;
+    drop(surface, [new File(["x"], "hull.mp4", { type: "video/mp4" })]);
+    await act(async () => undefined);
+    expect(importFiles).not.toHaveBeenCalled();
+  });
 
   it("names dropped files that are not media instead of dropping them silently", async () => {
     importFiles.mockResolvedValue({

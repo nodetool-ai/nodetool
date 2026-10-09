@@ -87,6 +87,10 @@ export const gameMergeAdapter: DocumentMergeAdapter<GameDocument> = {
     { name: "entrySceneId", read: (doc) => doc.entrySceneId, write: (doc, value) => ({ ...doc, entrySceneId: value as string }) },
     { name: "pixelsPerUnit", read: (doc) => doc.pixelsPerUnit, write: (doc, value) => ({ ...doc, pixelsPerUnit: value as number }) },
     { name: "inputActions", read: (doc) => doc.inputActions, write: (doc, value) => ({ ...doc, inputActions: value as string[] }) },
+    { name: "inputBindings", read: (doc) => doc.inputBindings, write: (doc, value) => {
+      const { inputBindings: _previous, ...rest } = doc;
+      return value === undefined ? rest : { ...rest, inputBindings: value as GameDocument["inputBindings"] };
+    } },
     { name: "collisionLayers", read: (doc) => doc.collisionLayers, write: (doc, value) => ({ ...doc, collisionLayers: value as string[] | undefined }) },
     { name: "renderEffects", read: (doc) => doc.renderEffects, write: (doc, value) => ({ ...doc, renderEffects: value as GameDocument["renderEffects"] }) },
     { name: "hudEffectOrder", read: (doc) => doc.hudEffectOrder, write: (doc, value) => ({ ...doc, hudEffectOrder: value as GameDocument["hudEffectOrder"] }) },

@@ -82,6 +82,11 @@ export interface IdeaStepProps {
    * moved and the plan is drafted without it.
    */
   onImportingChange?: (importing: boolean) => void;
+  /**
+   * The step cannot change the draft: a run is pending or Change flow is
+   * discarding it. The fieldset disables the controls, not a drop.
+   */
+  readOnly?: boolean;
 }
 
 /** Why the ways out of the step wait for an upload. */
@@ -91,7 +96,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onStartBlank,
   onStartFromScript,
   onValidationChange,
-  onImportingChange
+  onImportingChange,
+  readOnly = false
 }) => {
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
   const setSetup = useTimelineStore((state) => state.setSetup);
@@ -163,13 +169,19 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     [runImport]
   );
 
-  const handleDragOver = useCallback((event: React.DragEvent) => {
-    if (!Array.from(event.dataTransfer.types).includes("Files")) {
-      return;
-    }
-    event.preventDefault();
-    setDragging(true);
-  }, []);
+  const handleDragOver = useCallback(
+    (event: React.DragEvent) => {
+      if (
+        readOnly ||
+        !Array.from(event.dataTransfer.types).includes("Files")
+      ) {
+        return;
+      }
+      event.preventDefault();
+      setDragging(true);
+    },
+    [readOnly]
+  );
 
   const handleDragLeave = useCallback(() => setDragging(false), []);
 
@@ -181,6 +193,9 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       }
       event.preventDefault();
       setDragging(false);
+      if (readOnly) {
+        return;
+      }
       if (importing || importingRef.current) {
         setError("Wait for the current upload to finish, then drop again.");
         return;
@@ -197,7 +212,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       }
       await runImport(media, notMedia);
     },
-    [importing, runImport]
+    [importing, readOnly, runImport]
   );
 
   const skippedNames = useMemo(
