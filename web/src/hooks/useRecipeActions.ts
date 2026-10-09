@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { recipes } from "@nodetool-ai/protocol/api-schemas";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../stores/NotificationStore";
+import { creationProjectId } from "../stores/WorkspaceTabsStore";
 import useOnboardingStore from "../stores/OnboardingStore";
 import { queryClient } from "../queryClient";
 import { installExampleApp } from "../utils/exampleApps";
@@ -87,10 +88,14 @@ export const useRecipeActions = (): RecipeActions => {
         // The install creates the app and every workflow it binds, so the
         // chain lands in the library alongside the surface that drives it —
         // which is what both lists have to be told about.
-        const installed = await installExampleApp(appSlug);
+        // Install into the project on screen and open the tab there: a tab
+        // with no project is out of scope once a project is active, so the
+        // workspace would show nothing.
+        const projectId = creationProjectId();
+        const installed = await installExampleApp(appSlug, projectId);
         await queryClient.invalidateQueries({ queryKey: ["applications"] });
         await queryClient.invalidateQueries({ queryKey: ["workflows"] });
-        openApplication(installed.id, installed.name);
+        openApplication(installed.id, installed.name, projectId);
         useOnboardingStore.getState().markStep("keep-creating");
       } catch (error) {
         useNotificationStore.getState().addNotification({
