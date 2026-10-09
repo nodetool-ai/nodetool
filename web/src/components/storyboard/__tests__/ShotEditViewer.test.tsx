@@ -8,7 +8,13 @@
  * which store write the result lands through.
  */
 import React from "react";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { ImageRef, Shot } from "@nodetool-ai/protocol";
@@ -193,6 +199,49 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     );
     expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
     expect(storedShot().keyframe?.asset_id).toBe("still-2");
+  });
+
+  it("pages the takes with a finger swipe on the unzoomed stage", () => {
+    // jsdom has no PointerEvent, so fireEvent would drop pointerType.
+    class FakePointerEvent extends MouseEvent {
+      pointerType: string;
+      constructor(type: string, props: PointerEventInit = {}) {
+        super(type, props);
+        this.pointerType = props.pointerType ?? "mouse";
+      }
+    }
+    const original = window.PointerEvent;
+    window.PointerEvent = FakePointerEvent as unknown as typeof PointerEvent;
+    renderViewer(
+      seedShot({
+        keyframe: image("still-2"),
+        keyframe_versions: [image("still-1"), image("still-2")]
+      })
+    );
+    const stage = screen.getByTestId("shot-edit-stage");
+    const swipe = (fromX: number, toX: number, toY = 100) => {
+      fireEvent.pointerDown(stage, {
+        button: 0,
+        pointerType: "touch",
+        clientX: fromX,
+        clientY: 100
+      });
+      fireEvent.pointerUp(stage, {
+        pointerType: "touch",
+        clientX: toX,
+        clientY: toY
+      });
+    };
+
+    swipe(100, 300);
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    // Mostly vertical: a scroll, not a swipe.
+    swipe(300, 250, 400);
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    swipe(300, 100);
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("2 / 2");
+    expect(storedShot().keyframe?.asset_id).toBe("still-2");
+    window.PointerEvent = original;
   });
 
   it("shows a take that lands while open, without making it current", () => {

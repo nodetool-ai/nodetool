@@ -76,9 +76,26 @@ const takeThumbSx = {
   }
 } as const;
 
+// On a touch screen the take actions are always shown, and two buttons on a
+// thumbnail this size cover most of it and each other. They move under the
+// thumbnail instead, side by side.
 const takeWrapSx = {
   position: "relative",
-  display: "inline-flex"
+  display: "inline-flex",
+  "@media (pointer: coarse)": {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    justifyItems: "center",
+    "& > :first-of-type": { gridColumn: "1 / -1" }
+  }
+} as const;
+
+const coarseStaticSx = {
+  "@media (pointer: coarse)": {
+    opacity: 1,
+    position: "static",
+    bgcolor: "transparent"
+  }
 } as const;
 
 // The take actions belong to the take under the pointer, not to every take in
@@ -97,7 +114,8 @@ const viewButtonSx = {
   position: "absolute",
   bottom: SPACING.micro,
   right: SPACING.micro,
-  bgcolor: "c_scrim_soft"
+  bgcolor: "c_scrim_soft",
+  ...coarseStaticSx
 } as const;
 
 const removeButtonSx = {
@@ -105,7 +123,8 @@ const removeButtonSx = {
   position: "absolute",
   top: SPACING.micro,
   right: SPACING.micro,
-  bgcolor: "c_scrim_soft"
+  bgcolor: "c_scrim_soft",
+  ...coarseStaticSx
 } as const;
 
 // Both take rows lead with the same fixed-width label so the thumbnails and
