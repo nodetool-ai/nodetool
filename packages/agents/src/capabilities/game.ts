@@ -128,7 +128,8 @@ function outline(document: GameDocument): Record<string, unknown> {
       inputActions: document.inputActions,
       collisionLayers: document.collisionLayers,
       renderEffects: document.renderEffects,
-      hudEffectOrder: document.hudEffectOrder
+      hudEffectOrder: document.hudEffectOrder,
+      audio: document.audio
     },
     scenes: document.scenes.map((scene) => ({
       id: scene.id,

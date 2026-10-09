@@ -89,6 +89,7 @@ function summarizeOps(ops: readonly GameDocumentOp[]): string {
     move_background: ["Moved background", "Moved backgrounds"],
     set_effects: ["Changed effects", "Changed effects"],
     set_game: ["Changed game settings", "Changed game settings"],
+    set_audio: ["Changed audio mix", "Changed audio mix"],
     bind_asset: ["Bound asset", "Bound assets"],
     unbind_asset: ["Unbound asset", "Unbound assets"],
     set_prefab: ["Changed prefab", "Changed prefabs"],

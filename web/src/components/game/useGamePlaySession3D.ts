@@ -115,9 +115,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       const state = session.inspect();
       committedRef.current = state;
       audioRef.current?.sync(session.snapshot());
-      for (const event of result.events) {
-        if (event.kind === "audio") { audioRef.current?.handle(event); }
-      }
+      for (const event of result.events) { audioRef.current?.handle(event); }
       if (!playingRef.current || result.tick % 6 === 0) {
         setInspection(state);
         setFrame(result.frame);
@@ -175,6 +173,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     });
     audioRef.current = audio;
     audio.updateAssets(current.assets);
+    audio.updateMixer(current.audio?.mixer);
     if (!playingRef.current) { audio.pause(); }
     audio.preload();
     const readAsset = (slot: string, signal: AbortSignal): Promise<Uint8Array | null> =>

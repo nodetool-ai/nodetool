@@ -1,9 +1,16 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { detectPipMetadataRoots } from "../src/lib/python-metadata-roots.js";
 
 const hasPython3 = spawnSync("python3", ["--version"]).status === 0;
@@ -78,4 +85,20 @@ describe.skipIf(!hasPython3)("detectPipMetadataRoots", () => {
       detectPipMetadataRoots({ pythons: ["nodetool-missing-python"] })
     ).resolves.toEqual([]);
   });
+
+  it.skipIf(process.platform === "win32")(
+    "asks the bridge's interpreter (NODETOOL_PYTHON) before python3 on PATH",
+    async () => {
+      dir = realpathSync(mkdtempSync(join(tmpdir(), "nt-pymeta-")));
+      const fakePython = join(dir, "bridge-python");
+      writeFileSync(fakePython, `#!/bin/sh\necho '${JSON.stringify([dir])}'\n`);
+      chmodSync(fakePython, 0o755);
+      vi.stubEnv("NODETOOL_PYTHON", fakePython);
+      try {
+        await expect(detectPipMetadataRoots()).resolves.toEqual([dir]);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    }
+  );
 });
