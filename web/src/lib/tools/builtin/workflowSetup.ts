@@ -18,6 +18,11 @@ import type { FrontendToolState } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { docUrl } from "./resourceLinks";
 import { resolveSnippetSteps } from "../../../utils/planSnippetSteps";
+import { queueWorkflowSave } from "../../../hooks/workflow/useWorkflowSetup";
+import {
+  PLAN_SOURCE_KEY,
+  planSourceOf
+} from "../../../components/setup/workflow/setupExtras";
 
 /**
  * The four tools that drive the Workflow creation flow from an agent
@@ -67,7 +72,9 @@ async function persistSetup(
   const live = state.getNodeStore(workflowId)?.getState().getWorkflow();
   const next = { ...(live ?? workflow), settings };
   state.updateWorkflow(next);
-  await state.saveWorkflow(next);
+  // Through the flow's save queue: a save the open flow has on the wire
+  // carries the same `expected_updated_at`, and the second one is refused.
+  await queueWorkflowSave(state, workflowId);
   return readWorkflowSetup(settings);
 }
 
@@ -211,9 +218,14 @@ FrontendToolRegistry.register({
         id: step.id ?? `step-${index + 1}`
       }))
     });
+    // What the plan answers, as the flow's own planner records it: a creator
+    // who steps back to the category is offered this plan, not a paid
+    // re-plan of it.
+    const current = requireSetup(state, workflowId).setup;
     const setup = await persistSetup(state, workflowId, {
       plan: parsed,
-      stage: "review"
+      stage: "review",
+      [PLAN_SOURCE_KEY]: planSourceOf(current?.brief ?? "", current?.category)
     });
     return {
       ok: true,

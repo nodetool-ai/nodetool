@@ -33,6 +33,7 @@ import {
 } from "../../ui_primitives";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import { useDefaultStillModel } from "../../../hooks/storyboard/useDefaultStillModel";
+import { useDefaultDirectorModel } from "../../../hooks/storyboard/useDefaultDirectorModel";
 import type { ImageModelValue } from "../../../stores/ApiTypes";
 import type { ImageModelTask } from "../../../hooks/useModelsByProvider";
 import { SETUP_FIELD_WIDTH } from "../layout";
@@ -216,6 +217,11 @@ export const LookStep: React.FC<LookStepProps> = ({
   blockedReason
 }) => {
   const [addingStyle, setAddingStyle] = useState(false);
+  // `Add your own style` reads the references with the screenplay model. A
+  // shotlist import comes here straight from step 1, past the genre step that
+  // fills that model in, so it is filled in here as well. Studio pins its own.
+  const inStudio = useInStudio();
+  useDefaultDirectorModel(boardId, !readOnly && !inStudio);
   const customStyle = useCustomStyle(boardId);
   const style = useStoryboardStore(
     useCallback((state) => state.getBoard(boardId)?.style ?? "", [boardId])

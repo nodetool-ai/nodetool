@@ -11,6 +11,7 @@
  * RPCs — no inline graphs, no bespoke engine.
  */
 
+import { useSyncExternalStore } from "react";
 import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import { randomRequestId, rpcRequest } from "../../lib/websocket/rpcRequest";
@@ -282,6 +283,45 @@ export function dismissVoicingRun(scriptId: string): void {
   useScriptStore.getState().setSetup(scriptId, { [VOICING_FIELD]: undefined });
 }
 
+// ── Runs in this page ───────────────────────────────────────────────────────
+
+/**
+ * Scripts with a voicing run going in this page. The record on the document
+ * outlives the page that wrote it, so a `running` record alone cannot say
+ * whether takes are still coming: after a reload nothing is voicing and the
+ * record would claim otherwise forever. It also keeps a second *Voice all*
+ * from paying for the lines the first one is still voicing.
+ */
+const liveRuns = new Set<string>();
+const liveListeners = new Set<() => void>();
+
+const announceLive = (): void => {
+  for (const listener of liveListeners) {
+    listener();
+  }
+};
+
+const subscribeLive = (listener: () => void): (() => void) => {
+  liveListeners.add(listener);
+  return () => {
+    liveListeners.delete(listener);
+  };
+};
+
+/** True while this page is voicing the script. */
+export function isVoicingLive(scriptId: string): boolean {
+  return liveRuns.has(scriptId);
+}
+
+/** {@link isVoicingLive}, as React state. */
+export function useVoicingLive(scriptId: string): boolean {
+  return useSyncExternalStore(
+    subscribeLive,
+    () => liveRuns.has(scriptId),
+    () => liveRuns.has(scriptId)
+  );
+}
+
 /**
  * A provider's error message, with anything credential-shaped taken out before
  * it is written to the document. The reason a line failed is what the creator
@@ -325,6 +365,26 @@ async function voiceLines(
    * run of its own: without this, retrying one of two failures would report
    * "voiced 1 line" and drop the failure nobody retried.
    */
+  base?: VoicingRun
+): Promise<VoicingRun> {
+  if (liveRuns.has(scriptId)) {
+    throw new Error("This script is already being voiced.");
+  }
+  liveRuns.add(scriptId);
+  announceLive();
+  try {
+    return await runLines(scriptId, lineIds, asr, concurrency, base);
+  } finally {
+    liveRuns.delete(scriptId);
+    announceLive();
+  }
+}
+
+async function runLines(
+  scriptId: string,
+  lineIds: readonly string[],
+  asr: AsrConfig,
+  concurrency: number,
   base?: VoicingRun
 ): Promise<VoicingRun> {
   const retried = new Set(lineIds);
@@ -376,6 +436,7 @@ async function voiceLines(
  * each line's effective voice. Lines already voiced (current take matches) and
  * lines with no text or no voice are skipped. Returns the count voiced, and
  * leaves the whole run — including the lines that failed — on the document.
+ * Rejects while this page is already voicing the script.
  */
 export async function voiceAll(
   scriptId: string,

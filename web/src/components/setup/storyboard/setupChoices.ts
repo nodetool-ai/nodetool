@@ -21,6 +21,7 @@ import { DEFAULT_SETUP_SHOT_COUNT } from "@nodetool-ai/protocol/api-schemas/stor
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import type { StoryboardBoard } from "../../../stores/storyboard/StoryboardStore";
 import type { ShotlistReportEntry } from "../../../lib/storyboard/parseShotlistCsv";
+import type { EntitySuggestion } from "./entitySuggestions";
 // The Director run records the fingerprint itself, so the comparison the genre
 // step makes and the value the run writes cannot drift apart.
 import { directionFingerprint } from "../../../hooks/storyboard/directionFingerprint";
@@ -162,9 +163,46 @@ export function usePreviousScreenplay(
   );
 }
 
+/**
+ * What `Find entities` found for a board. It is a paid model call, so the list
+ * outlives the step: a canceled creation or a trip back to the screenplay
+ * remounts the step, and it must not have to be bought again.
+ */
+const entitySuggestions = new Map<string, readonly EntitySuggestion[]>();
+const NO_SUGGESTIONS: readonly EntitySuggestion[] = [];
+
+export function getEntitySuggestions(
+  boardId: string
+): readonly EntitySuggestion[] {
+  return entitySuggestions.get(boardId) ?? NO_SUGGESTIONS;
+}
+
+export function setEntitySuggestions(
+  boardId: string,
+  suggestions: readonly EntitySuggestion[]
+): void {
+  if (suggestions.length > 0) {
+    entitySuggestions.set(boardId, suggestions);
+  } else {
+    entitySuggestions.delete(boardId);
+  }
+  announce();
+}
+
+/** The board's entity suggestions, re-read when they change. */
+export function useEntitySuggestions(
+  boardId: string
+): readonly EntitySuggestion[] {
+  return useSyncExternalStore(
+    subscribe,
+    useCallback(() => getEntitySuggestions(boardId), [boardId])
+  );
+}
+
 /** Drop a board's session reports — used by the suites between cases. */
 export function clearSetupReports(boardId: string): void {
   shotlistImports.delete(boardId);
   previous.delete(boardId);
+  entitySuggestions.delete(boardId);
   announce();
 }

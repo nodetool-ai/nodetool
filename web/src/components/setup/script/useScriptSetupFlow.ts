@@ -205,7 +205,8 @@ export const useScriptSetupFlow = ({
     cancel,
     writing,
     error: writeError,
-    errorRef: writeErrorRef
+    errorRef: writeErrorRef,
+    clearError: clearWriteError
   } = useWriteScript();
 
   const cost = useVoiceCostEstimate(scriptId);
@@ -221,9 +222,14 @@ export const useScriptSetupFlow = ({
   // it does not need a writer model to be picked first (F16).
   const needsModel = needsWrite && imported?.attributed !== true;
 
+  // A failed rewrite's reason belongs to the visit that saw it. Kept, it
+  // showed again under the script when the creator came back to the review.
   const onStageChange = useCallback(
-    (next: ScriptSetupStage) => setSetup(scriptId, { stage: next }),
-    [scriptId, setSetup]
+    (next: ScriptSetupStage) => {
+      clearWriteError();
+      setSetup(scriptId, { stage: next });
+    },
+    [clearWriteError, scriptId, setSetup]
   );
 
   const finish = useCallback(() => {

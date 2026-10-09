@@ -61,23 +61,37 @@ interface RoleModel {
   ref: Record<string, unknown>;
 }
 
-const toRoleModels = (
-  models: readonly { id: string; provider: string; name?: string | null }[],
+export const toRoleModels = (
+  models: readonly {
+    id: string;
+    provider: string;
+    name?: string | null;
+    voices?: string[] | null;
+  }[],
   propertyType: string
 ): RoleModel[] =>
-  models.map((model) => ({
-    id: `${model.provider}:${model.id}`,
-    provider: model.provider,
-    name: model.name ?? model.id,
-    ref: {
+  models.map((model) => {
+    const ref: Record<string, unknown> = {
       type: propertyType,
       provider: model.provider,
       id: model.id,
       name: model.name ?? model.id,
       path: null,
       supported_tasks: []
+    };
+    // A voice model speaks with the voice its select shows first until one
+    // is picked, so the built node carries the same list and default.
+    if (Array.isArray(model.voices)) {
+      ref.voices = model.voices;
+      ref.selected_voice = model.voices[0] ?? "";
     }
-  }));
+    return {
+      id: `${model.provider}:${model.id}`,
+      provider: model.provider,
+      name: model.name ?? model.id,
+      ref
+    };
+  });
 
 export interface WorkflowSetupHostProps {
   workflowId: string;

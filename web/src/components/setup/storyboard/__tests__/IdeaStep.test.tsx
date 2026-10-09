@@ -537,6 +537,48 @@ describe("IdeaStep — the flow's holds", () => {
     expect(board()?.brief).toBe("FADE IN. A door opens.");
   });
 
+  // A second file started while one is read would let the first one's
+  // landing release Continue while the second is still being read.
+  it("holds the imported file's controls and the shotlist while a file is read", async () => {
+    const user = userEvent.setup();
+    restFetch.mockResolvedValueOnce(
+      routeAnswer(200, { text: "FADE IN. A door opens.", pages: 1 })
+    );
+    renderStep();
+    await user.upload(
+      screen.getByLabelText("Upload your file"),
+      upload("first.pdf", "application/pdf", "%PDF-1.7")
+    );
+    await waitFor(() => expect(getImportSource(BOARD)?.kind).toBe("text"));
+
+    let land: (answer: Response) => void = () => undefined;
+    restFetch.mockReturnValueOnce(
+      new Promise<Response>((resolve) => {
+        land = resolve;
+      })
+    );
+    await user.upload(
+      screen.getByLabelText("Upload your file"),
+      upload("second.pdf", "application/pdf", "%PDF-1.7")
+    );
+    await waitFor(() => expect(restFetch).toHaveBeenCalledTimes(2));
+
+    expect(screen.getByRole("button", { name: "Replace file" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Remove the file" })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Import your shotlist/ })
+    ).toHaveAttribute("aria-disabled", "true");
+
+    await act(async () => {
+      land(routeAnswer(200, { text: "INT. HALL. Night.", pages: 1 }));
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Replace file" })).toBeEnabled()
+    );
+  });
+
   // F16: view mode shows the brief and changes nothing.
   it("writes nothing and offers no import in view mode", async () => {
     const user = userEvent.setup();

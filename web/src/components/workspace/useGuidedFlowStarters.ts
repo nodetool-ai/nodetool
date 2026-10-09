@@ -42,8 +42,11 @@ export interface GuidedFlowStarter {
   title: string;
   description: string;
   icon: ReactNode;
-  /** Start in the selected project, or the supplied project id. */
-  start: (projectId?: string) => Promise<void>;
+  /**
+   * Start in the selected project, or the supplied project id. Resolves to
+   * whether the flow opened; a failure has already been shown as a toast.
+   */
+  start: (projectId?: string) => Promise<boolean>;
 }
 
 /**
@@ -86,11 +89,12 @@ export const useGuidedFlowStarters = (
   const createWorkflow = useWorkflowManager((state) => state.create);
 
   const runStart = useCallback(
-    async (id: EntryFlowId, start: () => Promise<void>) => {
+    async (id: EntryFlowId, start: () => Promise<void>): Promise<boolean> => {
       setStarting(id);
       try {
         await start();
         onStarted?.();
+        return true;
       } catch (error) {
         addNotification({
           type: "error",
@@ -99,6 +103,7 @@ export const useGuidedFlowStarters = (
             error instanceof Error ? error.message : "unknown error"
           }`
         });
+        return false;
       } finally {
         setStarting(null);
       }
@@ -262,7 +267,7 @@ export const useGuidedFlowStarters = (
   const starters = useMemo<readonly GuidedFlowStarter[]>(() => {
     const startById: Record<
       EntryFlowId,
-      (projectId?: string) => Promise<void>
+      (projectId?: string) => Promise<boolean>
     > = {
       entity: startEntity,
       storyboard: startStoryboard,

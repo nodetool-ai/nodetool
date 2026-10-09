@@ -313,8 +313,10 @@ const TutorialsPage: React.FC = () => {
         if (!starter) {
           throw new Error(`No starter is registered for ${launch.flow}`);
         }
-        await starter.start(projectId);
-        navigate("/workspace");
+        // A failed start has shown its toast; stay on the tutorial.
+        if (await starter.start(projectId)) {
+          navigate("/workspace");
+        }
       } else if (launch.kind === "chat") {
         const threadId = await createNewThread(undefined, undefined, {
           projectId

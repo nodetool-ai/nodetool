@@ -220,7 +220,9 @@ const testRunLine = (result: BuildFromPlanResult): LineState => {
     detail:
       result.validationErrors.length > 0
         ? "Not started, the graph did not validate"
-        : "Not started, part of the plan is unwired"
+        : result.issues.length > 0
+          ? "Not started, part of the plan is unwired"
+          : "Not started, the build stopped first"
   };
 };
 

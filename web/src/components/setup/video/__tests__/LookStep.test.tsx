@@ -86,20 +86,22 @@ jest.mock("../../../properties/TTSModelSelect", () => {
         "button",
         {
           type: "button",
-          onClick: () =>
-            onChange({
-              type: "tts_model",
-              id: "eleven_multilingual_v2",
-              provider: "elevenlabs",
-              name: "Multilingual v2",
-              voices: ["rachel", "adam"],
-              selected_voice: "adam"
-            })
+          onClick: () => onChange(mockTtsPick)
         },
         `TTS model select: ${typeof value === "object" ? value.selected_voice : "none"}`
       )
   };
 });
+
+const DEFAULT_TTS_PICK = {
+  type: "tts_model",
+  id: "eleven_multilingual_v2",
+  provider: "elevenlabs",
+  name: "Multilingual v2",
+  voices: ["rachel", "adam"],
+  selected_voice: "adam"
+};
+let mockTtsPick: Record<string, unknown> = DEFAULT_TTS_PICK;
 
 interface CatalogState {
   models: Array<{
@@ -152,6 +154,7 @@ beforeEach(() => {
   useLastModelStore.setState({ byKind: {} });
   useProviderOnboardingStore.getState().dismiss();
   mockEstimate = null;
+  mockTtsPick = DEFAULT_TTS_PICK;
   videoCatalog = {
     models: [{ id: CLIP_MODEL.id, provider: "nodetool" }],
     providers: ["nodetool"],
@@ -599,6 +602,31 @@ describe("LookStep on an install without the curated catalog", () => {
     });
   });
 
+  it("says a TTS model with no preset voices cannot be used, and keeps the draft (V12)", async () => {
+    const user = userEvent.setup();
+    seedPlan();
+    byokVideo();
+    byokVoice();
+    mockTtsPick = {
+      type: "tts_model",
+      id: "clone-only",
+      provider: "elevenlabs",
+      name: "Clone only",
+      voices: [],
+      selected_voice: ""
+    };
+    renderBody(true);
+    await user.click(screen.getByRole("button", { name: /^TTS model select/ }));
+    expect(
+      screen.getByText("This model has no preset voices. Pick another model.")
+    ).toBeInTheDocument();
+    const settings = useTimelineStore.getState().setup?.generation_settings as
+      | { voice?: unknown }
+      | undefined;
+    expect(settings?.voice).toBeUndefined();
+    expect(useLastModelStore.getState().byKind.audio).toBeUndefined();
+  });
+
   it("still says so when nothing at all reports a video model", () => {
     seedPlan();
     videoCatalog = {
@@ -610,6 +638,28 @@ describe("LookStep on an install without the curated catalog", () => {
     renderBody(false);
     expect(
       screen.getByText(/providers offer no video model/)
+    ).toBeInTheDocument();
+  });
+});
+
+describe("LookStep after a Generate that failed past the shell (V11)", () => {
+  it("shows why the clips did not start", () => {
+    seedPlan();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LookStep
+          voiceOn={false}
+          musicOn={false}
+          onVoiceChange={jest.fn()}
+          onMusicChange={jest.fn()}
+          musicAvailable={false}
+          error="Could not save the prepared video. No generation requests were submitted."
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByText("Your clips did not start")).toBeInTheDocument();
+    expect(
+      screen.getByText(/No generation requests were submitted/)
     ).toBeInTheDocument();
   });
 });
