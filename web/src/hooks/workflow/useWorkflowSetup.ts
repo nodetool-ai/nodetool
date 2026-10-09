@@ -27,6 +27,7 @@ import {
   useWorkflowManagerStore
 } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import type { WorkflowManagerState } from "../../stores/WorkflowManagerStore";
 
 /** A workflow that has no `settings.setup` is finished, not mid-flow. */
 export const useWorkflowSetupStage = (workflowId: string): WorkflowSetupStage =>
@@ -148,6 +149,46 @@ const flushQueue = (workflowId: string, queue: SaveQueue): Promise<void> => {
   return queued;
 };
 
+/** The store calls a workflow save needs. */
+export type WorkflowSaveState = Pick<
+  WorkflowManagerState,
+  "getWorkflow" | "getNodeStore" | "saveWorkflow"
+>;
+
+/**
+ * Save the workflow as it is when the save starts. The row's graph can be
+ * behind the canvas — the build places nodes and then writes stage `done` — so
+ * save what the editor holds when there is one, and the stored graph when
+ * there is not.
+ */
+const saveCurrentWorkflow = async (
+  state: WorkflowSaveState,
+  workflowId: string
+): Promise<void> => {
+  const workflow =
+    state.getNodeStore(workflowId)?.getState().getWorkflow() ??
+    state.getWorkflow(workflowId);
+  if (!workflow) {
+    return;
+  }
+  await state.saveWorkflow(workflow);
+};
+
+/**
+ * Save the workflow through its setup save queue, after any save already on
+ * the wire. Writers outside the flow (the agent's setup tools, a file import)
+ * use this, so their save does not race a flow save with the same
+ * `expected_updated_at` and fail with a concurrency conflict.
+ */
+export const queueWorkflowSave = (
+  state: WorkflowSaveState,
+  workflowId: string
+): Promise<void> =>
+  flushQueue(
+    workflowId,
+    queueFor(workflowId, () => saveCurrentWorkflow(state, workflowId))
+  );
+
 /**
  * Write setup answers back onto the workflow.
  *
@@ -167,19 +208,10 @@ export const useWorkflowSetupWriter = (
 
   // The save reads the workflow when it starts, not when it was asked for, so
   // a queued save carries every change made while the previous one was out.
-  const save = useCallback(async () => {
-    const state = store.getState();
-    // The row's graph can be behind the canvas — the build places nodes and
-    // then writes stage `done` — so save what the editor holds when there is
-    // one, and the stored graph when there is not.
-    const workflow =
-      state.getNodeStore(workflowId)?.getState().getWorkflow() ??
-      state.getWorkflow(workflowId);
-    if (!workflow) {
-      return;
-    }
-    await state.saveWorkflow(workflow);
-  }, [store, workflowId]);
+  const save = useCallback(
+    () => saveCurrentWorkflow(store.getState(), workflowId),
+    [store, workflowId]
+  );
 
   const apply = useCallback(
     (patch: Partial<WorkflowSetup>) => {

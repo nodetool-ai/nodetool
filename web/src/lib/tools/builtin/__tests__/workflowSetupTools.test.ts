@@ -15,6 +15,11 @@ import { FrontendToolRegistry } from "../../frontendTools";
 import type { FrontendToolState } from "../../frontendTools";
 import { readWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import useMetadataStore from "../../../../stores/MetadataStore";
+import { queueWorkflowSave } from "../../../../hooks/workflow/useWorkflowSetup";
+import {
+  planSourceMatches,
+  readPlanSource
+} from "../../../../components/setup/workflow/setupExtras";
 import type { NodeMetadata } from "../../../../stores/ApiTypes";
 import "../workflowSetup";
 
@@ -129,6 +134,28 @@ describe("ui_workflow_set_setup", () => {
     expect(saveWorkflow).toHaveBeenCalledTimes(1);
   });
 
+  // The open flow saves the same row. Two saves on the wire carry the same
+  // `expected_updated_at`, and the server refuses the second.
+  it("waits for a setup save already on the wire before saving", async () => {
+    let landFirst: () => void = () => undefined;
+    saveWorkflow.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          landFirst = resolve;
+        })
+    );
+    const flowSave = queueWorkflowSave(state(), WORKFLOW);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(saveWorkflow).toHaveBeenCalledTimes(1);
+    const toolCall = call("ui_workflow_set_setup", { brief: "b" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(saveWorkflow).toHaveBeenCalledTimes(1);
+    landFirst();
+    await flowSave;
+    await toolCall;
+    expect(saveWorkflow).toHaveBeenCalledTimes(2);
+  });
+
   it("leaves the rest of settings alone", async () => {
     settings = { hide_ui: true };
     await call("ui_workflow_set_setup", { brief: "b" });
@@ -151,6 +178,23 @@ describe("ui_workflow_plan", () => {
     expect(readWorkflowSetup(settings)?.stage).toBe("review");
     expect(result.nodes_placed).toBe(0);
     expect(nodeToolCalls).toEqual([]);
+  });
+
+  // The flow's category step continues to a plan that still answers the
+  // brief and category, instead of offering a paid re-plan of it.
+  it("records the brief and category the plan answers", async () => {
+    await call("ui_workflow_set_setup", {
+      brief: "Summarize a PDF",
+      category: "content-pipeline"
+    });
+    await call("ui_workflow_plan", { plan: PLAN });
+    expect(
+      planSourceMatches(
+        readPlanSource(readWorkflowSetup(settings) ?? null),
+        "Summarize a PDF",
+        "content-pipeline"
+      )
+    ).toBe(true);
   });
 
   it("fills in a step id the caller did not give", async () => {

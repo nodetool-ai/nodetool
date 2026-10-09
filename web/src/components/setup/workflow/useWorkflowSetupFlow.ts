@@ -47,7 +47,9 @@ import {
   planSourceMatches,
   readPlanSource,
   readRoleModels,
-  ROLE_MODELS_KEY
+  readRoleVoices,
+  ROLE_MODELS_KEY,
+  ROLE_VOICES_KEY
 } from "./setupExtras";
 import {
   PlannerModelFooterField,
@@ -65,6 +67,12 @@ const PLANNER_MAX_OUTPUT_TOKENS = 4096;
 
 /** An empty plan, so the review step renders before a planner ever ran. */
 const EMPTY_PLAN: WorkflowSetupPlan = { inputs: [], steps: [], outputs: [] };
+
+/** A voice model's ref with the voice picked for it, when one was. */
+const withVoice = (model: unknown, voice: string | null | undefined): unknown =>
+  voice && typeof model === "object" && model !== null
+    ? { ...model, selected_voice: voice }
+    : model;
 
 export interface WorkflowSetupFlowOptions {
   workflowId: string;
@@ -130,7 +138,6 @@ export const useWorkflowSetupFlow = ({
     cancelPlanning,
     planning,
     planningPhase,
-    planningStatus,
     error: planError
   } = usePlanWorkflow(workflowId);
   const {
@@ -247,12 +254,20 @@ export const useWorkflowSetupFlow = ({
   // decides what the build places and what the test run spends, so a remount
   // must not quietly swap it for whatever sorts first.
   const roleModels = useMemo(() => readRoleModels(setup), [setup]);
+  const roleVoices = useMemo(() => readRoleVoices(setup), [setup]);
 
   const onRoleModelChange = useCallback(
-    (role: string, tileId: string) => {
-      setSetup({ [ROLE_MODELS_KEY]: { ...roleModels, [role]: tileId } });
+    (role: string, tileId: string, voice?: string) => {
+      setSetup(
+        voice === undefined
+          ? { [ROLE_MODELS_KEY]: { ...roleModels, [role]: tileId } }
+          : {
+              [ROLE_MODELS_KEY]: { ...roleModels, [role]: tileId },
+              [ROLE_VOICES_KEY]: { ...roleVoices, [role]: voice }
+            }
+      );
     },
-    [roleModels, setSetup]
+    [roleModels, roleVoices, setSetup]
   );
 
   // F20: the review advertises editing, so it can be left holding an empty
@@ -275,7 +290,10 @@ export const useWorkflowSetupFlow = ({
           selectedId: offered
             ? (remembered ?? null)
             : (available.tiles[0]?.id ?? null),
-          onSelect: (id: string) => onRoleModelChange(role, id),
+          // A voice belongs to the model it was picked for.
+          selectedVoice: offered ? (roleVoices[role] ?? null) : null,
+          onSelect: (id: string, voice?: string) =>
+            onRoleModelChange(role, id, voice),
           unavailableSelection:
             remembered !== undefined &&
             !offered &&
@@ -284,7 +302,12 @@ export const useWorkflowSetupFlow = ({
               : null
         };
       }),
-    [modelChoices, onRoleModelChange, review.roles, roleModels]
+    [modelChoices, onRoleModelChange, review.roles, roleModels, roleVoices]
+  );
+
+  const roleLoading = useCallback(
+    (role: string) => modelChoices(role).status === "loading",
+    [modelChoices]
   );
 
   // A role whose model list has not answered yet reads as uncovered, which is
@@ -423,8 +446,9 @@ export const useWorkflowSetupFlow = ({
             throw new Error(refusal);
           }
         },
-        onCancel: cancelPlanning,
-        canceled: planningStatus === "canceled"
+        // The shell owns the canceled state, so Cancel offers "Back to this
+        // step" with the category picker, not a paid Retry of the old choice.
+        onCancel: cancelPlanning
       },
       {
         stage: "review",
@@ -471,6 +495,7 @@ export const useWorkflowSetupFlow = ({
             replanPending: planning,
             onCancelReplan: cancelPlanning,
             providerConfigured,
+            roleLoading,
             error: planError
           })
       },
@@ -521,7 +546,10 @@ export const useWorkflowSetupFlow = ({
             models: Object.fromEntries(
               roleChoices.map((role) => [
                 role.role,
-                chosenModel(role.role, role.selectedId)
+                withVoice(
+                  chosenModel(role.role, role.selectedId),
+                  role.selectedVoice
+                )
               ])
             ),
             // The same converted value the input node carries, so a number
@@ -566,10 +594,10 @@ export const useWorkflowSetupFlow = ({
       plannerModel,
       planning,
       planningPhase,
-      planningStatus,
       providerConfigured,
       review.canContinue,
       roleChoices,
+      roleLoading,
       rolesAssigned,
       rolesFailed,
       rolesLoading,

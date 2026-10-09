@@ -575,6 +575,86 @@ describe("useVideoSetupFlow audit fixes", () => {
       Promise.resolve(result.current.steps[3].onAdvance?.())
     ).resolves.toBeUndefined();
   });
+
+  it("keeps a Generate failure that landed after the host replaced the shell (V11)", async () => {
+    seed("look", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const lookError = () =>
+      (
+        result.current.steps[3].render() as ReactElement<{ error?: string }>
+      ).props.error;
+    // Before `done`: the shell is still up and reports the failure itself.
+    mockGenerate.mockImplementationOnce(async () => {
+      throw new Error("Pick a video model");
+    });
+    await act(async () => {
+      await expect(
+        Promise.resolve(result.current.steps[3].onAdvance?.())
+      ).rejects.toThrow("Pick a video model");
+    });
+    expect(lookError()).toBeUndefined();
+    // After `done`: the host showed its wait, and the shell that comes back
+    // on Look never saw the failure.
+    mockGenerate.mockImplementationOnce(async () => {
+      useTimelineStore.getState().setSetup({ stage: "done" });
+      useTimelineStore.getState().setSetup({ stage: "look" });
+      throw new Error(
+        "Could not save the prepared video. No generation requests were submitted."
+      );
+    });
+    await act(async () => {
+      await expect(
+        Promise.resolve(result.current.steps[3].onAdvance?.())
+      ).rejects.toThrow("Could not save");
+    });
+    expect(lookError()).toBe(
+      "Could not save the prepared video. No generation requests were submitted."
+    );
+    // Leaving the step clears it.
+    act(() => result.current.onStageChange("review"));
+    expect(lookError()).toBeUndefined();
+  });
+
+  it("holds Change flow while dropped media uploads (V10)", () => {
+    seed("idea");
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[0].holdNavigation).toBe(false);
+    const idea = result.current.steps[0].render() as ReactElement<{
+      onImportingChange: (importing: boolean) => void;
+    }>;
+    act(() => idea.props.onImportingChange(true));
+    expect(result.current.steps[0].holdNavigation).toBe(true);
+    act(() => idea.props.onImportingChange(false));
+    expect(result.current.steps[0].holdNavigation).toBe(false);
+  });
+
+  it("hands the step's read-only state to the idea body (V10)", () => {
+    seed("idea");
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const idea = result.current.steps[0].render({
+      readOnly: true
+    }) as ReactElement<{ readOnly: boolean }>;
+    expect(idea.props.readOnly).toBe(true);
+  });
+
+  it("prices the re-plan on what the Director is sent, not the brief alone (V13)", () => {
+    seed("format", {
+      format: "spot-30",
+      creative_context: { schema_version: 1, audience: "Travelers" },
+      // Drafted for other inputs, so the format step offers a paid re-plan.
+      planFingerprint: "earlier-inputs",
+      beats: [
+        { id: "b", prompt: "A folded hull drifts", duration_ms: 3000 }
+      ]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const priced = result.current.steps[1].generation?.brief ?? "";
+    expect(priced).toContain("a paper boat");
+    expect(priced).toContain("Audience: Travelers");
+    expect(priced).toContain("A folded hull drifts");
+  });
 });
 
 // F4: the composer's context rides on the document, and a caller that has

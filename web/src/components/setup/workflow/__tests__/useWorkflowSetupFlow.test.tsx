@@ -77,6 +77,42 @@ jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
     ) : null
 }));
 
+// The voice model picker, reduced to the voice it shows and one pick that
+// changes the voice, the way its voice select does.
+jest.mock("../../../properties/TTSModelSelect", () => ({
+  __esModule: true,
+  default: ({
+    value,
+    onChange
+  }: {
+    value: unknown;
+    onChange: (model: unknown) => void;
+  }) => (
+    <>
+      <span data-testid="tts-voice">
+        {typeof value === "object" && value !== null
+          ? String((value as { selected_voice?: string }).selected_voice)
+          : ""}
+      </span>
+      <button
+        type="button"
+        onClick={() =>
+          onChange({
+            type: "tts_model",
+            provider: "p",
+            id: "m",
+            name: "m",
+            voices: ["alloy", "nova"],
+            selected_voice: "nova"
+          })
+        }
+      >
+        pick nova
+      </button>
+    </>
+  )
+}));
+
 // Typed with the real input, so `mock.calls[0][0]` is the argument the flow
 // passed rather than an empty tuple.
 const BUILD_RESULT = {
@@ -471,6 +507,51 @@ describe("useWorkflowSetupFlow", () => {
     expect(buildFromPlan).not.toHaveBeenCalled();
   });
 
+  // A canceled plan offers the category again, not a paid Retry of the
+  // category it was canceled on.
+  it("offers Back to this step after the planner is canceled", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "category", brief: "b", category: "content-pipeline" }
+    );
+    // The planner answers a cancel with its reason, as the real hook does.
+    let answer: (reason: string | null) => void = () => undefined;
+    planWorkflow.mockImplementationOnce(
+      () =>
+        new Promise<string | null>((resolve) => {
+          answer = resolve;
+        })
+    );
+    cancelPlanning.mockImplementationOnce(() => {
+      planningStatus = "canceled";
+      answer("Planning was canceled.");
+    });
+    const client = queryClient();
+    const tree = () => (
+      <QueryClientProvider client={client}>
+        <ThemeProvider theme={mockTheme}>
+          <Harness />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree());
+    await userEvent.click(
+      screen.getByRole("button", { name: "Plan the steps" })
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(cancelPlanning).toHaveBeenCalledTimes(1);
+    // The real hook re-renders the flow with its canceled status.
+    rerender(tree());
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Back to this step" })
+    );
+    expect(
+      screen.getByRole("radiogroup", { name: "Workflow category" })
+    ).toBeInTheDocument();
+    expect(planWorkflow).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps the creator on the category step when the planner is refused", async () => {
     settings = writeWorkflowSetup(
       {},
@@ -836,6 +917,39 @@ describe("useWorkflowSetupFlow", () => {
     }
   );
 
+  // A voice model's voice is not part of its tile id. It is kept beside it,
+  // shown on the picker, and sent with the model the build assigns.
+  it("keeps the picked voice and builds the voice model with it", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      {
+        stage: "setup",
+        brief: "b",
+        plan: {
+          ...PLAN,
+          steps: [{ ...PLAN.steps[0], model_role: "audio" }]
+        }
+      }
+    );
+    const { unmount } = renderFlow();
+    await userEvent.click(screen.getByRole("button", { name: "pick nova" }));
+    expect(readWorkflowSetup(settings)?.["role_voices"]).toEqual({
+      audio: "nova"
+    });
+    // A remount reads the voice back onto the picker.
+    unmount();
+    renderFlow();
+    expect(screen.getByTestId("tts-voice")).toHaveTextContent("nova");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Build your workflow" })
+    );
+    await waitFor(() => expect(buildFromPlan).toHaveBeenCalledTimes(1));
+    expect(buildFromPlan.mock.calls[0][0].models?.["audio"]).toMatchObject({
+      id: "p:m",
+      selected_voice: "nova"
+    });
+  });
+
   it("offers only a workflow JSON file to import", () => {
     settings = writeWorkflowSetup({}, { stage: "idea", brief: "b" });
     renderFlow();
@@ -870,6 +984,14 @@ describe("useWorkflowSetupFlow", () => {
     expect(continueButton).toHaveAccessibleDescription("Reading your file");
     expect(
       screen.getByRole("button", { name: /Import a workflow/ })
+    ).toHaveAttribute("aria-disabled", "true");
+    // The import lands on this workflow and opens it, so the other ways in
+    // wait for it too.
+    expect(
+      screen.getByRole("button", { name: /Start with a blank canvas/ })
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByRole("button", { name: /Start from an example/ })
     ).toHaveAttribute("aria-disabled", "true");
     land();
     await waitFor(() => expect(onFinish).toHaveBeenCalled());
