@@ -94,6 +94,8 @@ function summarizeOps(ops: readonly GameDocumentOp[]): string {
     set_prefab: ["Changed prefab", "Changed prefabs"],
     remove_prefab: ["Removed prefab", "Removed prefabs"],
     instantiate_prefab: ["Instantiated prefab", "Instantiated prefabs"],
+    set_animation_graph: ["Changed animation graph", "Changed animation graphs"],
+    remove_animation_graph: ["Removed animation graph", "Removed animation graphs"],
     reset_override: ["Reset override", "Reset overrides"],
     set_override_membership: ["Changed property ownership", "Changed property ownership"],
     set_authoring_membership: ["Changed authoring membership", "Changed authoring memberships"],

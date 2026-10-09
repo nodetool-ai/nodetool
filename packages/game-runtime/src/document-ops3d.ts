@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  gameAssetBinding3D, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameDocument3D,
+  gameAnimationGraph3D, gameAssetBinding3D, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameDocument3D,
   gameEntity3D, gameLight3D, gamePrefab3D, gameScene3D, gameTransform3D, gameVector3,
   type AnyGameDocument, type GameDocument, type GameDocument3D, type GameEntity3D, type GamePrefab3D, type GameTransform3D
 } from "@nodetool-ai/protocol";
@@ -31,7 +31,7 @@ const entitySet = preservingPatch(gameEntity3D.partial().extend({
   character3d: gameEntity3D.shape.character3d.unwrap().partial().nullable().optional(),
   camera3d: gameCamera3D.partial().nullable().optional(),
   light3d: z.union(gameLight3D.options.map((schema) => schema.partial())).nullable().optional(),
-  animator3d: gameEntity3D.shape.animator3d.unwrap().partial().nullable().optional(),
+  animator3d: gameEntity3D.shape.animator3d.unwrap().partial().extend({ graph: id.nullable().optional() }).nullable().optional(),
   interactionActor: gameEntity3D.shape.interactionActor.unwrap().partial().nullable().optional(),
   audioSource: gameEntity3D.shape.audioSource.unwrap().partial().nullable().optional()
 }));
@@ -58,7 +58,9 @@ export const gameDocumentOp3D = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("instantiate_prefab"), scene_id: id, prefab_id: id, instance_id: id, transform: gameTransform3D.optional() }),
   z.strictObject({ op: z.literal("set_game"), presentation: preservingPatch(gameDocument3D.shape.presentation.partial()).optional(), input_actions: gameDocument3D.shape.inputActions.optional(), input_axes: gameDocument3D.shape.inputAxes.optional(), entry_scene_id: id.optional(), collision_layers: gameDocument3D.shape.collisionLayers.nullable().optional() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding3D }),
-  z.strictObject({ op: z.literal("unbind_asset"), slot: id })
+  z.strictObject({ op: z.literal("unbind_asset"), slot: id }),
+  z.strictObject({ op: z.literal("set_animation_graph"), graph_id: id, graph: gameAnimationGraph3D }),
+  z.strictObject({ op: z.literal("remove_animation_graph"), graph_id: id })
 ]);
 export type GameDocumentOp3D = z.input<typeof gameDocumentOp3D>;
 
@@ -283,6 +285,13 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
       case "unbind_asset": {
         if (!draft.assets[op.slot]) { fail(opIndex, ["slot"], "Asset slot does not exist"); }
         delete draft.assets[op.slot]; break;
+      }
+      case "set_animation_graph": draft.animationGraphs = { ...draft.animationGraphs, [op.graph_id]: op.graph }; break;
+      case "remove_animation_graph": {
+        if (!draft.animationGraphs?.[op.graph_id]) { fail(opIndex, ["graph_id"], "Animation graph does not exist"); }
+        delete draft.animationGraphs[op.graph_id];
+        if (Object.keys(draft.animationGraphs).length === 0) { delete draft.animationGraphs; }
+        break;
       }
     }
   }
