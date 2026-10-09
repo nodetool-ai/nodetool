@@ -10,6 +10,10 @@ const mockGetSession = jest.fn();
 const mockSignOut = jest.fn();
 const mockOnAuthStateChange = jest.fn();
 const mockSignInWithIdToken = jest.fn();
+const mockRefreshSession = jest.fn();
+const mockBindAuthRefresh = jest.fn();
+const mockUnbindAuthRefresh = jest.fn();
+const mockResetDocumentStores = jest.fn();
 const mockGoogleConfigure = jest.fn();
 const mockGoogleHasPlayServices = jest.fn();
 const mockGoogleSignIn = jest.fn();
@@ -21,8 +25,10 @@ jest.mock('../services/supabase', () => ({
       signOut: (...args: unknown[]) => mockSignOut(...args),
       onAuthStateChange: (...args: unknown[]) => mockOnAuthStateChange(...args),
       signInWithIdToken: (...args: unknown[]) => mockSignInWithIdToken(...args),
+      refreshSession: (...args: unknown[]) => mockRefreshSession(...args),
     },
   },
+  bindAuthRefreshToAppState: (...args: unknown[]) => mockBindAuthRefresh(...args),
   isSupabaseConfigured: true,
   SUPABASE_URL: 'https://test.supabase.co',
   SUPABASE_ANON_KEY: 'anon-test-key',
@@ -36,6 +42,10 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   },
 }));
 
+jest.mock('../documents/documentStore', () => ({
+  resetDocumentStores: () => mockResetDocumentStores(),
+}));
+
 import { useAuthStore } from './AuthStore';
 
 describe('AuthStore', () => {
@@ -44,6 +54,7 @@ describe('AuthStore', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     authChangeCallback = null;
+    mockBindAuthRefresh.mockReturnValue(mockUnbindAuthRefresh);
 
     mockOnAuthStateChange.mockImplementation((callback: AuthChangeCallback) => {
       authChangeCallback = callback;
@@ -139,15 +150,77 @@ describe('AuthStore', () => {
     expect(useAuthStore.getState().user).toBeNull();
   });
 
-  it('signOut sets error state if signOut fails', async () => {
-    mockSignOut.mockResolvedValue({ error: { message: 'oops' } });
+  it('signOut still clears the local session when the network sign-out fails', async () => {
+    useAuthStore.setState({
+      session: { access_token: 't' } as never,
+      user: { id: 'u' } as never,
+      state: 'logged_in',
+    });
+    mockSignOut
+      .mockResolvedValueOnce({ error: { message: 'Network request failed' } })
+      .mockResolvedValueOnce({ error: null });
 
     await act(async () => {
       await useAuthStore.getState().signOut();
     });
 
-    expect(useAuthStore.getState().state).toBe('error');
-    expect(useAuthStore.getState().error).toBe('oops');
+    expect(mockSignOut).toHaveBeenLastCalledWith({ scope: 'local' });
+    expect(useAuthStore.getState().state).toBe('logged_out');
+    expect(useAuthStore.getState().session).toBeNull();
+    expect(useAuthStore.getState().error).toBeNull();
+  });
+
+  it('signOut clears cached document stores', async () => {
+    mockSignOut.mockResolvedValue({ error: null });
+
+    await act(async () => {
+      await useAuthStore.getState().signOut();
+    });
+
+    expect(mockResetDocumentStores).toHaveBeenCalled();
+  });
+
+  it('initialize binds token auto-refresh to AppState once', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    await act(async () => {
+      await useAuthStore.getState().initialize();
+      await useAuthStore.getState().initialize();
+    });
+
+    expect(mockBindAuthRefresh).toHaveBeenCalledTimes(2);
+    expect(mockUnbindAuthRefresh).toHaveBeenCalled();
+  });
+
+  describe('refreshSession', () => {
+    it('stores the refreshed session and resolves true', async () => {
+      useAuthStore.setState({ session: { access_token: 'old' } as never, state: 'logged_in' });
+      const session = { access_token: 'new', user: { id: 'u' } };
+      mockRefreshSession.mockResolvedValue({ data: { session }, error: null });
+
+      const results = await Promise.all([
+        useAuthStore.getState().refreshSession(),
+        useAuthStore.getState().refreshSession(),
+      ]);
+
+      expect(results).toEqual([true, true]);
+      expect(mockRefreshSession).toHaveBeenCalledTimes(1);
+      expect(useAuthStore.getState().session).toBe(session);
+      expect(useAuthStore.getState().state).toBe('logged_in');
+    });
+
+    it('expires the session when the refresh fails', async () => {
+      useAuthStore.setState({ session: { access_token: 'old' } as never, state: 'logged_in' });
+      mockRefreshSession.mockResolvedValue({
+        data: { session: null },
+        error: { message: 'invalid refresh token' },
+      });
+
+      await expect(useAuthStore.getState().refreshSession()).resolves.toBe(false);
+
+      expect(useAuthStore.getState().session).toBeNull();
+      expect(useAuthStore.getState().state).toBe('logged_out');
+    });
   });
 
   it('handleSessionExpired clears the session and routes to logged_out', () => {

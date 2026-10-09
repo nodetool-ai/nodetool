@@ -559,6 +559,42 @@ describe('WebSocketManager', () => {
       // Should transition to disconnected, then failed
       expect(onStateChange).toHaveBeenCalledWith('disconnected', 'connected');
     });
+
+    it('reports why it failed when the server refuses a reconnect', async () => {
+      manager = new WebSocketManager(defaultConfig);
+      const onError = jest.fn();
+      manager.setCallbacks({ onError });
+
+      const connectPromise = manager.connect();
+      mockWebSocketInstance?.simulateOpen();
+      await connectPromise;
+
+      mockWebSocketInstance?.simulateClose(1011, 'Server error');
+
+      expect(manager.getState()).toBe('failed');
+      expect(onError).toHaveBeenCalledWith(
+        new Error('Connection closed (code 1011)')
+      );
+    });
+
+    it('reports exhausted retries instead of ending silently in failed', async () => {
+      manager = new WebSocketManager(defaultConfig);
+      const onError = jest.fn();
+      manager.setCallbacks({ onError });
+
+      const connectPromise = manager.connect();
+      mockWebSocketInstance?.simulateOpen();
+      await connectPromise;
+
+      internals(manager).reconnectAttempt = 10;
+      // Not a socket opening: the attempt counter resets only on open.
+      mockWebSocketInstance?.simulateClose(1006, 'Abnormal');
+
+      expect(manager.getState()).toBe('failed');
+      expect(onError).toHaveBeenCalledWith(
+        new Error('Could not reconnect after 10 attempts')
+      );
+    });
   });
 
   describe('Message handling edge cases', () => {
