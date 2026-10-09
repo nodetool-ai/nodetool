@@ -267,6 +267,61 @@ const clearSawGenerationCompleteFor = (jobId: string): void => {
   }
 };
 
+// Highest `job_seq` seen per job, for every run of every workflow, so a
+// reconnect can resume each in-flight run from its own cursor. Only resilient
+// server runs stamp `job_seq`, so presence here also marks a job the server can
+// replay (an in-browser run never appears). Dropped when the job settles.
+const jobReplayCursors = new Map<string, number>();
+
+const trackJobReplayCursor = (jobId: string, jobSeq: number): void => {
+  if (jobSeq > (jobReplayCursors.get(jobId) ?? 0)) {
+    jobReplayCursors.set(jobId, jobSeq);
+  }
+};
+
+/** Run states after which a job's late node, progress and edge frames are dropped. */
+const isJobHalted = (
+  workflowId: string,
+  jobId: string | undefined,
+  runner: WorkflowRunner,
+  includeError: boolean
+): boolean => {
+  const haltedState = (state: string | undefined) =>
+    state === "cancelled" || (includeError && state === "error");
+  // A frame without a job id cannot be attributed, so it follows the runner.
+  if (!jobId) {
+    return haltedState(runner.state);
+  }
+  if (haltedState(useWorkflowRunsStore.getState().runs[workflowId]?.[jobId]?.state)) {
+    return true;
+  }
+  // The runner's own job may be stopped before its first job_update recorded it.
+  return jobId === runner.job_id && haltedState(runner.state);
+};
+
+/**
+ * End a run the server no longer knows (`job_resumed` "unknown"): stop its
+ * node borders, edge animations and running placeholders, and mark it failed in
+ * the runs registry so nothing waits on it. Returns whether the run was still
+ * in flight here.
+ */
+const settleLostRun = (workflowId: string, jobId: string): boolean => {
+  const runsStore = useWorkflowRunsStore.getState();
+  const run = runsStore.runs[workflowId]?.[jobId];
+  const wasInFlight = run?.state === "running" || run?.state === "queued";
+  if (wasInFlight) {
+    runsStore.updateRunState(workflowId, jobId, "error");
+  }
+  useStatusStore.getState().clearJobStatuses(workflowId, jobId);
+  useResultsStore
+    .getState()
+    .clearJobRunVisuals(workflowId, jobId, "Lost track of this run");
+  jobReplayCursors.delete(jobId);
+  clearSawGenerationCompleteFor(jobId);
+  clearRunSignatures(jobId);
+  return wasInFlight;
+};
+
 
 export const mergeNodeUpdateProperties = ({
   updateProperties,
@@ -403,27 +458,47 @@ export const subscribeToWorkflowUpdates = (
   // frames are buffered; `reconnect_job` reattaches this connection and replays
   // from the job's last seen `job_seq`. In-browser runs hold no socket, so they
   // have nothing to resume.
-  const resumeInFlightJob = () => {
-    const job_id = resumableJobId(runnerStore);
-    if (!job_id) {
-      return;
+  //
+  // Every in-flight run of the workflow is resumed, not only the runner's own
+  // job: a concurrent run would otherwise stay "running" on the canvas and be
+  // cancelled server-side once its detach grace period ends. The server adopts
+  // each reconnected job on this connection independently.
+  const resumeInFlightJobs = () => {
+    const cursors = new Map<string, number>();
+    const runnerJobId = resumableJobId(runnerStore);
+    if (runnerJobId) {
+      cursors.set(runnerJobId, runnerStore.getState().jobReplayCursor);
     }
-    const { jobReplayCursor } = runnerStore.getState();
-    void globalWebSocketManager
-      .send({
-        type: "reconnect_job",
-        command: "reconnect_job",
-        data: {
-          job_id,
-          workflow_id: workflowId,
-          last_seq: jobReplayCursor
-        }
-      })
-      .catch((e) => console.error("Failed to send reconnect_job:", job_id, e));
+    for (const run of useWorkflowRunsStore.getState().getRuns(workflowId)) {
+      if (
+        cursors.has(run.jobId) ||
+        isSilentJob(run.jobId) ||
+        (run.state !== "running" && run.state !== "queued")
+      ) {
+        continue;
+      }
+      // No seq-stamped frame means no resilient server session to replay
+      // (an in-browser run, or a run that never started).
+      const cursor = jobReplayCursors.get(run.jobId);
+      if (cursor !== undefined) {
+        cursors.set(run.jobId, cursor);
+      }
+    }
+    for (const [job_id, last_seq] of cursors) {
+      void globalWebSocketManager
+        .send({
+          type: "reconnect_job",
+          command: "reconnect_job",
+          data: { job_id, workflow_id: workflowId, last_seq }
+        })
+        .catch((e) =>
+          console.error("Failed to send reconnect_job:", job_id, e)
+        );
+    }
   };
   const unsubscribeOpen = globalWebSocketManager.subscribeEvent(
     "open",
-    resumeInFlightJob
+    resumeInFlightJobs
   );
 
   workflowSubscriptions.set(workflowId, {
@@ -544,11 +619,26 @@ const UNSETTLED_RUNNER_STATES: ReadonlySet<string> = new Set([
  * forever.
  */
 const handleJobResumed = (
+  workflow: WorkflowAttributes,
   data: JobResumedUpdate,
   runnerStore: WorkflowRunnerStore
 ): void => {
   const runner = runnerStore.getState();
+  // No frame will ever arrive for a run the server lost, so its per-job state
+  // is settled here, whichever run it is.
+  const lostWhileInFlight =
+    data.status === "unknown" && settleLostRun(workflow.id, data.job_id);
   if (data.job_id !== runner.job_id) {
+    if (lostWhileInFlight) {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      runner.addNotification({
+        type: "warning",
+        alert: true,
+        content:
+          "Lost track of a run after reconnecting. Check the job queue for its result.",
+        timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+      });
+    }
     return;
   }
 
@@ -748,6 +838,7 @@ const handleJobUpdate = (
     if (job.job_id && !silentJob) {
       clearSawGenerationCompleteFor(job.job_id);
       clearRunSignatures(job.job_id);
+      jobReplayCursors.delete(job.job_id);
     }
   }
 
@@ -781,6 +872,7 @@ const handleJobUpdate = (
     if (!silentJob && job.job_id && !useWorkflowRunsStore.getState().hasRun(workflow.id, job.job_id)) {
       resetErrorDetailPrompts(job.job_id);
       clearSawGenerationCompleteFor(job.job_id);
+      jobReplayCursors.delete(job.job_id);
     }
   }
 
@@ -788,8 +880,18 @@ const handleJobUpdate = (
   const runState = mapJobStatusToRunState(job.status);
   if (job.job_id && runState) {
     const runsStore = useWorkflowRunsStore.getState();
-    if (runsStore.hasRun(workflow.id, job.job_id)) {
-      runsStore.updateRunState(workflow.id, job.job_id, runState);
+    const existing = runsStore.runs[workflow.id]?.[job.job_id];
+    if (existing) {
+      // A stale "running"/"queued" frame that lands after a local Stop must not
+      // reopen the run: its late node frames are dropped by that state. Silent
+      // preview jobs reuse one id across frames, so they may restart.
+      const reopensCancelled =
+        existing.state === "cancelled" &&
+        (runState === "running" || runState === "queued") &&
+        !silentJob;
+      if (!reopensCancelled) {
+        runsStore.updateRunState(workflow.id, job.job_id, runState);
+      }
     } else {
       runsStore.recordRun({
         jobId: job.job_id,
@@ -867,8 +969,8 @@ const handleJobUpdate = (
       // Keep this run's per-job results slice (see "completed"): broad
       // clears here would erase a concurrent sibling. But do stop the
       // run's transient visuals — node/edge updates are dropped once the
-      // runner state is "cancelled", so without this job-scoped clear the
-      // "running" borders and edge animations would persist forever.
+      // run is cancelled, so without this job-scoped clear the "running"
+      // borders, edge animations and running placeholders would persist.
       if (job.job_id) {
         useStatusStore.getState().clearJobStatuses(workflow.id, job.job_id);
         useResultsStore.getState().clearJobRunVisuals(workflow.id, job.job_id);
@@ -943,7 +1045,11 @@ const reportNodeError = (
     alert: true,
     content: errorDisplay
   });
-  runnerStore.setState({ state: "error" });
+  // Only the runner's own job drives its state: a sibling run's node error
+  // must not hide Stop for the run still going.
+  if (!jobId || jobId === runnerStore.getState().job_id) {
+    runnerStore.setState({ state: "error" });
+  }
 
   if (jobId) {
     useExecutionTimeStore
@@ -1138,14 +1244,15 @@ const handleNodeUpdate = (
   runner: WorkflowRunner,
   getNodeStore: (workflowId: string) => NodeStore | undefined
 ): void => {
-  // Don't update node status if workflow is cancelled
-  if (runnerStore.getState().state === "cancelled") return;
-
   // Per-node status/error/timing are scoped by the run that produced them so
   // concurrent same-workflow runs stay isolated. The backend stamps job_id on
   // every data message; if it's somehow absent, skip the per-job writes rather
   // than writing a malformed key.
   const jobId = extractJobId(update);
+
+  // Drop late frames of a cancelled run. Gated on this frame's own job, so
+  // stopping one run does not freeze a concurrent sibling.
+  if (isJobHalted(workflow.id, jobId, runner, false)) return;
 
   const nodeError = normalizeNodeError(update.error);
   const errorDisplay = nodeErrorToDisplayString(nodeError);
@@ -1222,15 +1329,13 @@ export const handleUpdate = (
       break;
 
     case "job_resumed":
-      handleJobResumed(data, runnerStore);
+      handleJobResumed(workflow, data, runnerStore);
       break;
 
     case "edge_update": {
-      const currentState = runnerStore.getState().state;
       if (
-        currentState !== "cancelled" &&
-        currentState !== "error" &&
         messageJobId &&
+        !isJobHalted(workflow.id, messageJobId, runnerStore.getState(), true) &&
         // Silent preview jobs don't animate edges (scrub-frame noise).
         !isSilentJob(messageJobId)
       ) {
@@ -1446,7 +1551,10 @@ export const handleUpdate = (
     }
 
     case "node_progress":
-      if (runnerStore.getState().state !== "cancelled" && messageJobId) {
+      if (
+        messageJobId &&
+        !isJobHalted(workflow.id, messageJobId, runnerStore.getState(), false)
+      ) {
         useResultsStore
           .getState()
           .setProgress(
@@ -1468,6 +1576,17 @@ export const handleUpdate = (
         getNodeStore
       );
       break;
+  }
+
+  // Every job's cursor, for resuming concurrent runs after a reconnect. Tracked
+  // after the switch so a terminal job_update (which drops the cursor) and a
+  // fresh run's first frame (which resets it) are applied first.
+  if (
+    isNumber(jobSeq) &&
+    messageJobId &&
+    !(data.type === "job_update" && SETTLED_JOB_STATUSES.has(data.status))
+  ) {
+    trackJobReplayCursor(messageJobId, jobSeq);
   }
 };
 
