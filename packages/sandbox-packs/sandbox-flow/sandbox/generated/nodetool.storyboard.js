@@ -9,6 +9,9 @@ function storyboardShots(inputs) {
 storyboardShots.stream = function(inputs) {
   return streamNode("nodetool.storyboard.StoryboardShots", inputs);
 };
+function createStoryboard(inputs) {
+  return callNode("nodetool.storyboard.CreateStoryboard", inputs);
+}
 function recastStoryboard(inputs) {
   return callNode("nodetool.storyboard.RecastStoryboard", inputs);
 }
@@ -23,6 +26,7 @@ function assembleTimeline(inputs) {
 }
 export {
   assembleTimeline,
+  createStoryboard,
   loadStoryboard,
   recastStoryboard,
   renderClips,
