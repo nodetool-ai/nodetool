@@ -599,6 +599,47 @@ a prefab or an undeclared prefab asset. A behavior without `params` has no
 
 ### U: Input and game UI
 
+Action and axis names come from `inputActions` and `inputAxes`. The optional
+document-level `inputBindings` maps each name to physical controls. Set it with
+`set_game {input_bindings}`, or pass `input_bindings: null` to return to the
+defaults. The op replaces the whole map:
+
+- `actions`: `{ action: [binding] }`. A binding is `{kind: "key", code}` with a
+  `KeyboardEvent.code` such as `KeyJ`, `{kind: "keyValue", key}` with a
+  `KeyboardEvent.key` such as `z` or `+` (letter case is ignored, and a key
+  that a `key` binding names by code does not also match), `{kind: "mouseButton", button}`,
+  `{kind: "gamepadButton", button}` in the standard gamepad layout,
+  `{kind: "gamepadAxis", axis, direction: "negative"|"positive", threshold?}`,
+  `{kind: "touchButton", label?}` or `{kind: "touchStick", direction}`.
+- `axes` (3D only): `{ axis: [binding] }` with `{kind: "keys", negative, positive}`
+  code lists, `{kind: "gamepadAxis", axis, deadZone?, invert?}`,
+  `{kind: "gamepadButtons", negative, positive}` or
+  `{kind: "touchStick", axis: "x"|"y", invert?}`. The binding with the largest
+  magnitude sets the value.
+- `look` (3D only): a list of `{kind: "mouse", sensitivity?, invertY?}`,
+  `{kind: "gamepadStick", xAxis?, yAxis?, deadZone?, speed?, invertY?}` and
+  `{kind: "touchDrag", sensitivity?, invertY?}`.
+
+A listed action or axis uses exactly the listed bindings, and an empty list
+unbinds it. An unlisted one keeps the defaults generated from its name. In 2D,
+arrows and WASD are `left`/`right`/`up`/`down` and Space is `space`, by key
+position. Any other action is a `keyValue` binding of its name, so it follows the
+player's keyboard layout. In 3D, `fire` is the left mouse button and F,
+`jump` is Space, `respawn` is R, and `moveX`/`moveZ` read WASD and arrows.
+Defaults add the gamepad d-pad and left stick for directions and movement,
+button 0 for `jump`/`space`, the right trigger for `fire`, the right stick for
+look, and touch buttons for every other action. Binding an undeclared action or
+axis is a validation error.
+
+Bindings only turn physical input into input frames. They never enter the
+simulation, so playtests, replays and snapshots use the same `pressed`,
+`justPressed`, `axes` and `look` frames as before. Gamepads are polled once per
+tick. The 3D players capture the mouse for look on click. On a touch screen
+both standalone players show a stick when an action or axis has a touch stick
+binding and one button per action with a touch button binding. The 3D player
+also turns the camera by dragging on the right half. Input pressed while play is
+paused is dropped. Player-facing rebinding is not stored yet.
+
 ### G: Navigation and AI
 
 ### E: Editor tools
