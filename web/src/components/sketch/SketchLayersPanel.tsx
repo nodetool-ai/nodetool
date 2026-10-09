@@ -448,7 +448,8 @@ interface SketchLayersPanelProps {
   onToggleIsolateLayer: (layerId: string) => void;
   onToggleExposedInput: (layerId: string) => void;
   onToggleExposedOutput: (layerId: string) => void;
-  onLayerOpacityChange: (layerId: string, opacity: number) => void;
+  /** `commit` is false while the slider drags and true once on release. */
+  onLayerOpacityChange: (layerId: string, opacity: number, commit: boolean) => void;
   onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
   onRenameLayer: (layerId: string, name: string) => void;
   onClearLayer: () => void;
@@ -933,12 +934,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const handleLayerContextMenu = useCallback(
     (e: React.MouseEvent, layerId: string) => {
       e.preventDefault();
+      // Single-layer menu actions (clear, flip, merge down, crop) run on the
+      // active layer, so right-clicking a layer outside the selection makes
+      // it active first.
+      if (layerId !== activeLayerId && !selectedLayerIds.includes(layerId)) {
+        onSelectLayer(layerId);
+      }
       setLayerCtxMenu({
         position: { top: e.clientY, left: e.clientX },
         layerId
       });
     },
-    []
+    [activeLayerId, onSelectLayer, selectedLayerIds]
   );
 
   const handleLayerCtxClose = useCallback(() => setLayerCtxMenu(null), []);
@@ -1364,7 +1371,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               step={0.01}
               value={activeLayer.opacity}
               onChange={(_, v) =>
-                onLayerOpacityChange(activeLayerId, v as number)
+                onLayerOpacityChange(activeLayerId, v as number, false)
+              }
+              onChangeCommitted={(_, v) =>
+                onLayerOpacityChange(activeLayerId, v as number, true)
               }
             />
             <Text

@@ -110,6 +110,8 @@ export class PaintSession {
   private strokePointerType: string | undefined = undefined;
   private hasMoved = false;
   private lastStrokeEnd: Point | null = null;
+  /** True while end() has left a Shift-line buffer unmerged for the next segment. */
+  private chainPending = false;
 
   // ── Alpha lock ────────────────────────────────────────────────────
   private alphaSnapshot: ImageData | null = null;
@@ -173,6 +175,8 @@ export class PaintSession {
       ctx.shiftHeldRef.current &&
       this.lastStrokeEnd &&
       this.engine.bufferMode === "buffered";
+
+    this.chainPending = false;
 
     // Merge previous stroke onto the layer before the undo snapshot.
     // 1) Deferred pointer-up merge may not have run yet (rAF ordering vs next down).
@@ -523,7 +527,9 @@ export class PaintSession {
       this.engine.bufferMode === "buffered"
     ) {
       // Don't merge yet — leave activeStrokeRef intact.
-      // The next begin() call will reuse it.
+      // The next begin() call reuses it, and flushPendingChain() merges it
+      // when Shift is released or the tool changes.
+      this.chainPending = true;
       this.layer = null;
       ctx.requestRedraw();
       return;
@@ -614,6 +620,24 @@ export class PaintSession {
     }
 
     // Schedule the rAF that will drain pendingCommit and then composite.
+    ctx.requestRedraw();
+  }
+
+  /**
+   * Merge a Shift-line buffer that end() kept alive for the next segment.
+   * Without this the last segment stays off the layer, so autosave, export
+   * and undo miss it until another stroke starts.
+   */
+  flushPendingChain(ctx: ToolContext): void {
+    if (this.active || !this.chainPending) {
+      return;
+    }
+    this.chainPending = false;
+    const leftover = ctx.activeStrokeRef.current;
+    if (!leftover || leftover.pendingCommit) {
+      return;
+    }
+    this.flushShiftBuffer(ctx, leftover);
     ctx.requestRedraw();
   }
 

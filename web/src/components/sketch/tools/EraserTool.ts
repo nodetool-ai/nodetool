@@ -52,6 +52,14 @@ export class EraserTool implements ToolHandler {
   onUp(ctx: ToolContext, event: ToolPointerEvent): void {
     this.session.end(ctx, event);
   }
+
+  onModifiersReleased(ctx: ToolContext): void {
+    this.session.flushPendingChain(ctx);
+  }
+
+  onDeactivate(ctx: ToolContext): void {
+    this.session.flushPendingChain(ctx);
+  }
 }
 
 export const definition: ToolDefinition = {
