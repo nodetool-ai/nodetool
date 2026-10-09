@@ -109,6 +109,27 @@ export const SET_WORKFLOW_ACCESS_SCHEMA: JsonSchema = {
   required: ["workflow_id", "access"]
 };
 
+const NODE_IDS_PROPERTY = {
+  type: "array",
+  items: { type: "string" },
+  minItems: 1,
+  description:
+    "Run only these nodes and what they need upstream. Unrelated branches " +
+    "and downstream nodes are skipped, so they are not executed or billed. " +
+    "An upstream generator (image, video, audio, LLM) with a previous " +
+    "generation in this workflow is fed that saved output instead of " +
+    "running again; see reuse_results. The selected nodes always run. " +
+    "Omit to run the whole workflow."
+} as const;
+
+const REUSE_RESULTS_PROPERTY = {
+  type: "boolean",
+  description:
+    "With node_ids: reuse upstream generators' previous generations " +
+    "(default true). Set false to run every upstream node again. The " +
+    "result's partial_run lists what ran and what was reused."
+} as const;
+
 export const RUN_WORKFLOW_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -120,6 +141,8 @@ export const RUN_WORKFLOW_SCHEMA: JsonSchema = {
       type: "object",
       description: "Dictionary of input parameters for the workflow"
     },
+    node_ids: NODE_IDS_PROPERTY,
+    reuse_results: REUSE_RESULTS_PROPERTY,
     interactive: {
       type: "boolean",
       description:
@@ -141,6 +164,8 @@ export const DEBUG_WORKFLOW_SCHEMA: JsonSchema = {
       type: "object",
       description: "Input parameters keyed by input-node name"
     },
+    node_ids: NODE_IDS_PROPERTY,
+    reuse_results: REUSE_RESULTS_PROPERTY,
     interactive: {
       type: "boolean",
       description:
@@ -548,7 +573,9 @@ export const startBackgroundJobSpec: CapabilitySpec = {
       params: {
         type: "object",
         description: "Optional input parameters"
-      }
+      },
+      node_ids: NODE_IDS_PROPERTY,
+      reuse_results: REUSE_RESULTS_PROPERTY
     },
     required: ["workflow_id"]
   },
