@@ -181,7 +181,6 @@ function buildDocument({ width = 2048, height = 2048, layers = 12 }: DocOptions)
   fx.data = paintLayerDataUrl(width, height, 77);
   fx.effects = [
     {
-      id: "fx1",
       type: "hue_saturation",
       enabled: true,
       params: { hueDegrees: 30, saturation: 0.2, lightness: 0 }
