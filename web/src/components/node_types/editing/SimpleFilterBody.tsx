@@ -16,12 +16,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { SPACING,
+import {
+  SPACING,
   CheckerDropzone,
   FlexColumn,
   FlexRow,
   ToggleGroup,
-  ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
+  ToggleOption,
+  BORDER_RADIUS
+} from "../../ui_primitives";
 import NodePortBand from "../../node/NodePortBand";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import NodeProgress from "../../node/NodeProgress";
@@ -101,14 +104,6 @@ const styles = (theme: Theme) =>
       },
       "& > .preview-tab-bar, & > .controls": {
         display: "none"
-      },
-      "& > .outputs-row": {
-        height: 0,
-        minHeight: 0,
-        padding: 0,
-        margin: 0,
-        flex: "none",
-        overflow: "visible"
       }
     }
   });
@@ -208,7 +203,7 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
       <FlexColumn className="preview-tab-bar" gap={0.5}>
         <FlexRow className="tab-toggle-row" align="center" gap={0.5}>
           <ToggleGroup
-          quiet
+            quiet
             className="tab-toggle"
             size="small"
             value={tab}
@@ -233,7 +228,6 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
           </ToggleGroup>
         </FlexRow>
       </FlexColumn>
-
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

@@ -69,11 +69,6 @@ const styles = (theme: Theme) =>
       overflow: "visible",
       "& > .module-label, & > .player, & > .idle-hint": {
         display: "none"
-      },
-      "& > .outputs-row": {
-        height: 0,
-        minHeight: 0,
-        padding: 0
       }
     }
   });
@@ -141,7 +136,11 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
   const firstMeta = chunks[0]?.content_metadata;
 
   return (
-    <div css={cssStyles} className="audio-out-body" data-bespoke-body="AudioOut">
+    <div
+      css={cssStyles}
+      className="audio-out-body"
+      data-bespoke-body="AudioOut"
+    >
       <NodePortBand
         id={id}
         properties={chunkProperty}
@@ -163,7 +162,6 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
       ) : (
         <div className="idle-hint">Run the patch to hear it</div>
       )}
-
     </div>
   );
 };
