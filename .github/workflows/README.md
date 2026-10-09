@@ -21,21 +21,29 @@ marketing site builds, packaging side-channels (AUR, Flatpak, EAS), and
 one-off maintenance triggers — is **none/maintenance**: useful, but not
 part of the release gate and not held to the Ring 0 flake budget.
 
+The only required status check on pull requests is `Quality Gate (npm run
+check) / quality` from `test.yml`. It reports on every pull request and merge
+queue entry, and it counts a leg skipped by the diff plan as a pass. Do not mark
+any other check required. The other pull-request workflows filter by path or
+skip `merge_group`, so a required check from one of them never reports on a
+diff outside its paths and blocks the merge.
+
 `user-journeys.yml`'s browser suite runs on pull requests, nightly, and manual
-dispatch. It is a required check and has no retry or `continue-on-error` escape
-hatch. The same workflow's **`reliability-ring1`** job runs on every push to
-`main` and remains the merge-to-main gate described below.
+dispatch. It is advisory on pull requests and has no retry or
+`continue-on-error` escape hatch. The same workflow's **`reliability-ring1`**
+job runs on every push to `main` and remains the merge-to-main gate described
+below.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
 | `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A nightly run and `merge_group` events are also wired | 0 | Required |
 | `quality-checks.yml` | Reusable gate: deps/lint static legs plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples, four `test-packages-*` shards of the backend suite, three web Jest shards or one related-tests leg, electron+mobile, bundle, harness gate). The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly | 0 | Required (infra called by `test.yml`) |
-| `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
-| `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Required (also gates PRs today, ahead of the ring split) |
+| `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Advisory on PRs |
+| `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Advisory on PRs |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
 | `fly-deploy.yml` | **Deploy to Docker**: release the GHCR image to the production host over restricted SSH, gated on Docker + User Journeys succeeding for the same commit | 1 | Required |
 | `web-deploy.yml` | Build the web app and deploy to Cloudflare Pages | 1 | Required |
-| `user-journeys.yml` | `journeys`: Playwright journey suite on pull requests, nightly, and dispatch (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | Required |
+| `user-journeys.yml` | `journeys`: Playwright journey suite on pull requests, nightly, and dispatch (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | `reliability-ring1` gates deploy; `journeys` advisory on PRs |
 | `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, a packed-backend reliability journey per OS, updater assets | 2 | Required |
 | `example-smoke-debug.yml` | Nightly + manual real-provider smoke via `nodetool debug` | 2 | Nightly (spend-capped), also dispatch-only |
 | `abstraction-improver.yaml` | Scheduled agent flattens single-implementation interfaces, forwarding wrappers, re-export-only barrels | none/maintenance | Advisory (`continue-on-error`) |
