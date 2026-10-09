@@ -261,9 +261,11 @@ export const jobsRouter = router({
       if (!job || job.user_id !== ctx.userId) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Job not found");
       }
-      job.markCancelled();
-      await job.save();
-      return toBackgroundJobResponse(job);
+      // A conditional write: a run that finished between the read above and
+      // this cancel keeps its terminal status, cost and timestamps.
+      await Job.markCancelledIfActive(job.id, ctx.userId);
+      const current = (await Job.get(job.id)) as JobModel | null;
+      return toBackgroundJobResponse(current ?? job);
     }),
 
   // ── triggersRunning (GET /api/jobs/triggers/running) ────────────────────

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -304,5 +304,34 @@ describe("worker router", () => {
         expect(manager.createProfile).not.toHaveBeenCalled();
       }
     );
+  });
+
+  describe("production", () => {
+    const saved = process.env["NODETOOL_ENV"];
+    afterEach(() => {
+      if (saved === undefined) delete process.env["NODETOOL_ENV"];
+      else process.env["NODETOOL_ENV"] = saved;
+    });
+
+    it("refuses every procedure on a multi-user server", async () => {
+      process.env["NODETOOL_ENV"] = "production";
+      const caller = createCaller(makeCtx(manager, repoint));
+      await expect(caller.worker.instances.list()).rejects.toMatchObject({
+        code: "FORBIDDEN"
+      });
+      await expect(
+        caller.worker.provision({ profileName: "hf-a40" })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(caller.worker.attach({ id: "i1" })).rejects.toMatchObject({
+        code: "FORBIDDEN"
+      });
+      await expect(caller.worker.stopAll()).rejects.toMatchObject({
+        code: "FORBIDDEN"
+      });
+      expect(manager.list).not.toHaveBeenCalled();
+      expect(manager.provision).not.toHaveBeenCalled();
+      expect(manager.attach).not.toHaveBeenCalled();
+      expect(manager.stopAll).not.toHaveBeenCalled();
+    });
   });
 });

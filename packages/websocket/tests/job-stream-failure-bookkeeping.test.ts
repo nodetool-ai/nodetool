@@ -14,6 +14,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { unpack } from "msgpackr";
 import { initTestDb, Asset, Job } from "@nodetool-ai/models";
+import { ExecutionSession } from "@nodetool-ai/execution";
 import type { NodeTypeResolver, ResolvedNodeType } from "@nodetool-ai/kernel";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import {
@@ -164,6 +165,36 @@ describe("drain-loop failure bookkeeping", () => {
     // Let any escaped rejection surface before asserting.
     await new Promise((r) => setTimeout(r, 50));
     expect(unhandled).toEqual([]);
+
+    await runner.disconnect();
+  });
+
+  it("stops the kernel when the relay fails, so the failed run stops spending", async () => {
+    const cancel = vi.spyOn(ExecutionSession.prototype, "cancel");
+    const runner = makeRunner();
+    const realSend = runner.sendMessage.bind(runner);
+    vi.spyOn(runner, "sendMessage").mockImplementation(async (message) => {
+      if (
+        message.type === "generation_complete" ||
+        message.type === "output_update"
+      ) {
+        throw new Error("relay transport unavailable");
+      }
+      return realSend(message);
+    });
+
+    await runner.connect(ws);
+    await runner.jobs.runJob({
+      job_id: "JOBSTOP",
+      workflow_id: "WFSTOP",
+      graph
+    });
+    await waitFor(() =>
+      sentMsgs(ws).find(
+        (m) => m.type === "job_update" && m.status === "failed"
+      )
+    );
+    expect(cancel).toHaveBeenCalled();
 
     await runner.disconnect();
   });
