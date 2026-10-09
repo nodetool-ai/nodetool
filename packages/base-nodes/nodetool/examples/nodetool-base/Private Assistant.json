@@ -22,7 +22,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🔒 Private Assistant\n\nA fully local Q&A assistant. Paste your own notes, ask a question, and a local **Ollama** model answers — grounded only in your text. No API key, no cloud call: the document never leaves your machine.\n\n**Pipeline:** Document + question + tone → prompt template → local Ollama agent (answers only from the document) → Markdown answer.\n\n**Setup:** install [Ollama](https://ollama.com), then `ollama pull llama3.2`. Swap the model on the agent node for anything you have pulled (qwen2.5, gemma3, gpt-oss, …).\n\n**Try this:** paste a real doc into the Document input and ask something only it can answer — the assistant refuses to guess beyond the text."
+          "comment": "# 🔒 Private Assistant\n\nA fully local Q&A assistant. Paste your own notes, ask a question, and a local Ollama model answers from your text only. No API key and no cloud call, so the document never leaves your machine.\n\n**How it works:** \"1️⃣ Document\", \"2️⃣ Question\" and \"3️⃣ Tone\" fill \"4️⃣ Build the prompt\", which wraps the document as the only allowed source. \"5️⃣ Local Ollama assistant\" runs llama3.2 with no tools and a system prompt that refuses to answer beyond the text. \"6️⃣ Answer\" shows its Markdown reply. Install [Ollama](https://ollama.com) and run `ollama pull llama3.2` first. Swap the model on the agent node for any model you have pulled, such as qwen2.5 or gemma3.\n\n**Try this:** Ask \"2️⃣ Question\" something the notes do not cover, such as \"Who is the CEO?\", and confirm the assistant says the notes don't cover it."
         },
         "ui_properties": {
           "selected": false,
@@ -32,7 +32,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 313,
+          "height": 362,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -52,7 +52,7 @@
           "title": "1️⃣ Document",
           "position": {
             "x": 0,
-            "y": 393
+            "y": 442
           },
           "zIndex": 0,
           "width": 300,
@@ -75,7 +75,7 @@
           "title": "2️⃣ Question",
           "position": {
             "x": 0,
-            "y": 618
+            "y": 667
           },
           "zIndex": 0,
           "width": 300,
@@ -98,7 +98,7 @@
           "title": "3️⃣ Tone",
           "position": {
             "x": 0,
-            "y": 843
+            "y": 892
           },
           "zIndex": 0,
           "width": 300,
@@ -119,7 +119,7 @@
           "title": "4️⃣ Build the prompt",
           "position": {
             "x": 400,
-            "y": 480
+            "y": 529
           },
           "zIndex": 0,
           "width": 300,
@@ -155,7 +155,7 @@
           "title": "5️⃣ Local Ollama assistant",
           "position": {
             "x": 800,
-            "y": 599
+            "y": 648
           },
           "zIndex": 0,
           "width": 320,
@@ -175,7 +175,7 @@
           "title": "6️⃣ Answer",
           "position": {
             "x": 1220,
-            "y": 630
+            "y": 679
           },
           "width": 300,
           "selectable": true

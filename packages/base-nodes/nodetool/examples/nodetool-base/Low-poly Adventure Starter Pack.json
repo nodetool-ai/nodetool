@@ -22,7 +22,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Low-poly Adventure Starter Pack\n\nLow-poly woodland models for adventure games: a ranger, an animated slime, trees, camp props, treasure and modular scenery. Run to expose each GLB as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z and ground-level origins. The bridge repeats on a 2 m grid. The slime includes an Idle clip and the chest an Open clip. The ranger is static and has no skeleton. Add colliders and gameplay behavior in the game. Download a model output and upload it to your project before importing it into a 3D game."
+          "comment": "# Low-poly Adventure Starter Pack\n\nLow-poly woodland models for adventure games: a ranger, an animated slime, trees, camp props, treasure and modular scenery.\n\n**How it works:** Each of the 16 \"Model3D\" constants, such as \"Woodland ranger\", \"Forest slime\" and \"Wooden bridge\", points at a packaged GLB file and connects to its own output, such as \"Woodland ranger output\". Running the graph exposes every model as a named output. It runs locally with no provider or API key. Models use meters, Y up, forward -Z and ground-level origins. The bridge repeats on a 2 m grid. The slime includes an Idle clip and the chest an Open clip. The ranger is static and has no skeleton.\n\n**Try this:** Run the graph, download \"Treasure chest output\", and upload it to your project. Import it into a 3D game and play its Open clip when the player reaches it."
         },
         "ui_properties": {
           "position": {

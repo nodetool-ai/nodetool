@@ -78,7 +78,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Image to Video Animation\n\nGenerate a still from a scene prompt, then animate it into a short cinematic clip.\n\n**Pipeline:** scene prompt → Text-to-Image → build motion prompt → Image-to-Video\n\n**Try this:** edit the scene, motion, or duration prompts.\n\n**Cost note:** the animation step uses Veo 3.1, a paid per-second video model — each run costs noticeably more than an image-only template."
+          "comment": "# 🎬 Image to Video Animation\n\nGenerates a still from a scene prompt, then animates it into a short cinematic clip.\n\n**How it works:** \"Scene prompt\" drives \"Generate still\", which renders a 16:9 image with FLUX schnell. \"Build motion prompt\" combines the scene with \"Motion prompt\" and \"Duration prompt\" into instructions for the animation. \"Animate to video\" takes the still, that prompt and the \"Negative prompt\", and renders an 8 second 1080p clip with Veo 3.1, which the Output node plays. Both steps are paid, and Veo bills per second, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"Motion prompt\" to \"Slow orbit around the scene as clouds drift overhead\". The same still animates with a different camera move."
         },
         "ui_properties": {
           "selected": false,
@@ -88,7 +88,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 235,
+          "height": 321,
           "selectable": true,
           "bypassed": false
         },
@@ -116,7 +116,7 @@
         "ui_properties": {
           "position": {
             "x": 864,
-            "y": 779
+            "y": 865
           },
           "zIndex": 0,
           "width": 416,
@@ -146,7 +146,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 899
+            "y": 985
           },
           "zIndex": 0,
           "width": 384,
@@ -168,7 +168,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 775
+            "y": 861
           },
           "zIndex": 0,
           "width": 280,
@@ -187,7 +187,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 315
+            "y": 401
           },
           "zIndex": 0,
           "width": 280,
@@ -212,7 +212,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 550
+            "y": 636
           },
           "zIndex": 0,
           "width": 280,
@@ -233,7 +233,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 325
+            "y": 411
           },
           "zIndex": 0,
           "width": 280,
@@ -254,7 +254,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1000
+            "y": 1086
           },
           "zIndex": 0,
           "width": 280,
@@ -273,7 +273,7 @@
         "ui_properties": {
           "position": {
             "x": 1380,
-            "y": 861
+            "y": 947
           },
           "selectable": true
         }

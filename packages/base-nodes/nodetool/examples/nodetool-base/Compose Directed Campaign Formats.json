@@ -20,7 +20,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Compose Directed Campaign Formats\n\nBuild 4:5 and 9:16 artboards from the same complete accepted hero. Both PNGs and self-contained SVGs share the exact text element tree. The final step waits for every artifact, preserves the original record when adding a revision, and exports directed-campaign.json."
+          "comment": "# Compose Directed Campaign Formats\n\nBuilds 4:5 (1080x1350) and 9:16 (1080x1920) artboards from one accepted hero image, as PNGs and self-contained SVGs, and exports a portable campaign record. Use it as the final layout step of a directed campaign.\n\n**How it works:** \"Normalize app image\" checks \"Accepted hero\". \"Validate copy and build elements\" parses the JSON in \"Creative contract\", checks \"Version\" (original or revision), wraps the product name, headline and CTA to fit, and builds one SVG element tree per format. \"4:5 editable SVG\", \"4:5 PNG\", \"9:16 editable SVG\" and \"9:16 PNG\" render those trees. \"Wait, snapshot, and export\" waits for all four, checks the PNG sizes, keeps \"Original record file\" unchanged when adding a revision, and writes directed-campaign.json. Its outputs feed the eight result nodes. It runs locally with no model, but needs a hero image and a valid contract.\n\n**Try this:** Run once with a hero and contract, then lengthen the headline in \"Creative contract\" and see the layout step stop with a message to shorten the copy."
         },
         "ui_properties": {
           "position": {
@@ -28,7 +28,7 @@
             "y": 0
           },
           "width": 560,
-          "height": 192,
+          "height": 403,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -47,7 +47,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 688
+            "y": 899
           },
           "width": 280,
           "title": "Accepted hero"
@@ -67,7 +67,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 904
+            "y": 1115
           },
           "width": 280,
           "title": "Creative contract"
@@ -86,7 +86,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1129
+            "y": 1340
           },
           "width": 280,
           "title": "Version"
@@ -108,7 +108,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1354
+            "y": 1565
           },
           "width": 280,
           "title": "Original record file"
@@ -125,7 +125,7 @@
         "ui_properties": {
           "position": {
             "x": 800,
-            "y": 900
+            "y": 1111
           },
           "width": 500,
           "title": "Validate copy and build elements"
@@ -193,7 +193,7 @@
         "ui_properties": {
           "position": {
             "x": 1400,
-            "y": 1183
+            "y": 1394
           },
           "width": 280,
           "title": "4:5 editable SVG"
@@ -214,7 +214,7 @@
         "ui_properties": {
           "position": {
             "x": 1400,
-            "y": 731
+            "y": 942
           },
           "width": 280,
           "title": "4:5 PNG"
@@ -234,7 +234,7 @@
         "ui_properties": {
           "position": {
             "x": 1400,
-            "y": 1351
+            "y": 1562
           },
           "width": 280,
           "title": "9:16 editable SVG"
@@ -255,7 +255,7 @@
         "ui_properties": {
           "position": {
             "x": 1400,
-            "y": 957
+            "y": 1168
           },
           "width": 280,
           "title": "9:16 PNG"
@@ -272,7 +272,7 @@
         "ui_properties": {
           "position": {
             "x": 1780,
-            "y": 825
+            "y": 1036
           },
           "width": 520,
           "title": "Wait, snapshot, and export"
@@ -399,7 +399,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 272
+            "y": 483
           },
           "width": 240,
           "title": "Accepted hero"
@@ -416,7 +416,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 672
+            "y": 883
           },
           "width": 240,
           "title": "4:5 PNG"
@@ -433,7 +433,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 1072
+            "y": 1283
           },
           "width": 240,
           "title": "9:16 PNG"
@@ -450,7 +450,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 1472
+            "y": 1683
           },
           "width": 240,
           "title": "4:5 SVG"
@@ -467,7 +467,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 1872
+            "y": 2083
           },
           "width": 240,
           "title": "9:16 SVG"
@@ -484,7 +484,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 472
+            "y": 683
           },
           "width": 240,
           "title": "Accepted contract"
@@ -501,7 +501,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 872
+            "y": 1083
           },
           "width": 240,
           "title": "Campaign snapshot"
@@ -518,7 +518,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 1272
+            "y": 1483
           },
           "width": 240,
           "title": "Campaign record file"
@@ -535,7 +535,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 827
+            "y": 1038
           },
           "width": 320,
           "title": "Normalize app image"
@@ -568,7 +568,7 @@
         "ui_properties": {
           "position": {
             "x": 2400,
-            "y": 1672
+            "y": 1883
           },
           "width": 240,
           "title": "Accepted phase"

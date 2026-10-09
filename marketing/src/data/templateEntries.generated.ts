@@ -647,7 +647,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 233,
+          "y": 421,
           "width": 280
         },
         {
@@ -655,7 +655,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 599,
+          "y": 787,
           "width": 280,
           "subtitle": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
         },
@@ -664,7 +664,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
           "x": 380,
-          "y": 528,
+          "y": 716,
           "width": 280,
           "subtitle": "inworld/realtime-tts-1.5-max"
         },
@@ -673,7 +673,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.LipSync",
           "title": "Lip Sync",
           "x": 1960,
-          "y": 360,
+          "y": 548,
           "width": 280,
           "subtitle": "fal-ai/sync-lipsync/v2/pro"
         },
@@ -682,7 +682,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2340,
-          "y": 376,
+          "y": 564,
           "width": 240
         },
         {
@@ -690,7 +690,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
           "x": 760,
-          "y": 516,
+          "y": 704,
           "width": 300
         },
         {
@@ -698,7 +698,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
           "x": 1160,
-          "y": 473,
+          "y": 661,
           "width": 300
         },
         {
@@ -706,7 +706,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
           "x": 1560,
-          "y": 438,
+          "y": 626,
           "width": 300
         }
       ],
@@ -1049,7 +1049,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 307,
+          "y": 421,
           "width": 280
         },
         {
@@ -1057,7 +1057,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 523,
+          "y": 637,
           "width": 280,
           "subtitle": "Slow orbit around the product as a soft highlight travels across its surface"
         },
@@ -1066,7 +1066,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 346,
+          "y": 460,
           "width": 320,
           "subtitle": "Animate this product photo into a looping hero shot. Motion: {{ motion }} Keep the product's shape, colour, materials and label exactly as…"
         },
@@ -1075,7 +1075,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
           "x": 800,
-          "y": 376,
+          "y": 490,
           "width": 280,
           "subtitle": "kling-2.6/image-to-video"
         },
@@ -1084,7 +1084,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.SetSpeed",
           "title": "Set Speed",
           "x": 1180,
-          "y": 408,
+          "y": 522,
           "width": 280
         },
         {
@@ -1092,7 +1092,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1560,
-          "y": 397,
+          "y": 511,
           "width": 240
         }
       ],
@@ -1475,7 +1475,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 358,
+          "y": 450,
           "width": 245
         },
         {
@@ -1483,7 +1483,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
           "x": 345,
-          "y": 423,
+          "y": 515,
           "width": 280,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -1492,7 +1492,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 725,
-          "y": 288,
+          "y": 380,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -1501,7 +1501,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1209,
-          "y": 436,
+          "y": 528,
           "width": 280
         }
       ],
@@ -1591,7 +1591,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 515,
+          "y": 650,
           "width": 280,
           "subtitle": "A coastal roastery at first light, steam rising off the drum"
         },
@@ -1600,7 +1600,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 740,
+          "y": 875,
           "width": 280,
           "subtitle": "handheld documentary, warm morning light, 35mm, shallow depth of field"
         },
@@ -1609,7 +1609,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 745,
+          "y": 880,
           "width": 320,
           "subtitle": "Wide establishing shot. Subject: {{ subject }} Look: {{ look }} Hold the full scene in frame with a slow push-in. Natural motion only. No t…"
         },
@@ -1618,7 +1618,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 307,
+          "y": 442,
           "width": 320,
           "subtitle": "Close detail shot of the same scene. Subject: {{ subject }} Look: {{ look }} Tight on texture and material — hands, surfaces, steam. Shallo…"
         },
@@ -1627,7 +1627,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.TextToVideo",
           "title": "Text To Video",
           "x": 800,
-          "y": 740,
+          "y": 875,
           "width": 280,
           "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
         },
@@ -1636,7 +1636,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.TextToVideo",
           "title": "Text To Video",
           "x": 800,
-          "y": 514,
+          "y": 649,
           "width": 280,
           "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
         },
@@ -1645,7 +1645,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.Transition",
           "title": "Transition",
           "x": 1180,
-          "y": 642,
+          "y": 777,
           "width": 280
         },
         {
@@ -1653,7 +1653,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1560,
-          "y": 640,
+          "y": 775,
           "width": 240
         }
       ],
@@ -2399,7 +2399,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1151,
+          "y": 1302,
           "width": 280,
           "subtitle": "Aurora Labs"
         },
@@ -2408,7 +2408,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 926,
+          "y": 1077,
           "width": 280,
           "subtitle": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering."
         },
@@ -2417,7 +2417,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1556,
+          "y": 1707,
           "width": 280,
           "subtitle": "Power that gives back"
         },
@@ -2426,7 +2426,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ColorInput",
           "title": "Color Input",
           "x": 0,
-          "y": 1376,
+          "y": 1527,
           "width": 280
         },
         {
@@ -2434,7 +2434,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 352,
+          "y": 503,
           "width": 300,
           "subtitle": "You are an art director building a social-media image kit for a brand. BRAND Name: {{ brand_name }} Positioning: {{ brand_description }} TA…"
         },
@@ -2443,7 +2443,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 780,
-          "y": 779,
+          "y": 930,
           "width": 280
         },
         {
@@ -2451,7 +2451,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 1180,
-          "y": 916,
+          "y": 1067,
           "width": 360,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -2460,7 +2460,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.draw.RenderText",
           "title": "Render Text",
           "x": 1640,
-          "y": 1204,
+          "y": 1355,
           "width": 280
         },
         {
@@ -2468,7 +2468,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.draw.RenderText",
           "title": "Render Text",
           "x": 2020,
-          "y": 1341,
+          "y": 1492,
           "width": 280
         },
         {
@@ -2476,7 +2476,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.Collect",
           "title": "Collect",
           "x": 2400,
-          "y": 1344,
+          "y": 1495,
           "width": 240
         },
         {
@@ -2484,7 +2484,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2740,
-          "y": 1305,
+          "y": 1456,
           "width": 280
         },
         {
@@ -2492,7 +2492,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 1301,
+          "y": 1452,
           "width": 300,
           "subtitle": "Write a one-page brand brief for the brand below. BRAND Name: {{ brand_name }} Positioning: {{ brand_description }} Working tagline: {{ tag…"
         },
@@ -2501,7 +2501,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 780,
-          "y": 1500,
+          "y": 1651,
           "width": 300
         },
         {
@@ -2509,7 +2509,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1180,
-          "y": 1612,
+          "y": 1763,
           "width": 280
         }
       ],
@@ -4073,7 +4073,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1197,
+          "y": 1266,
           "width": 280,
           "subtitle": "AtlasCloud"
         },
@@ -4082,7 +4082,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1422,
+          "y": 1491,
           "width": 280,
           "subtitle": "We build NodeTool - a Creative AI workspace."
         },
@@ -4091,7 +4091,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 1144,
+          "y": 1213,
           "width": 340,
           "subtitle": "Research the prospect and draft outreach. PROSPECT: {{ prospect }} MY OFFER: {{ offer }} Steps: 1. Use google_search and browser to learn w…"
         },
@@ -4100,7 +4100,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 820,
-          "y": 1141,
+          "y": 1210,
           "width": 316,
           "subtitle": "sonnet"
         },
@@ -4109,7 +4109,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1236,
-          "y": 1503,
+          "y": 1572,
           "width": 403
         },
         {
@@ -4117,7 +4117,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1236,
-          "y": 393,
+          "y": 462,
           "width": 565
         },
         {
@@ -4125,7 +4125,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1236,
-          "y": 2008,
+          "y": 2077,
           "width": 530
         },
         {
@@ -4133,7 +4133,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1236,
-          "y": 1153,
+          "y": 1222,
           "width": 530
         },
         {
@@ -4141,7 +4141,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1236,
-          "y": 1778,
+          "y": 1847,
           "width": 530
         },
         {
@@ -4149,7 +4149,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1236,
-          "y": 803,
+          "y": 872,
           "width": 400
         }
       ],
@@ -4290,7 +4290,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 346,
+          "y": 442,
           "width": 280
         },
         {
@@ -4298,7 +4298,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.FloatInput",
           "title": "Float Input",
           "x": 0,
-          "y": 712,
+          "y": 808,
           "width": 280
         },
         {
@@ -4306,7 +4306,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ForEachFrame",
           "title": "For Each Frame",
           "x": 380,
-          "y": 507,
+          "y": 603,
           "width": 280
         },
         {
@@ -4314,7 +4314,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.color_grading.Exposure",
           "title": "Exposure",
           "x": 760,
-          "y": 461,
+          "y": 557,
           "width": 280
         },
         {
@@ -4322,7 +4322,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.color_grading.SaturationVibrance",
           "title": "Saturation Vibrance",
           "x": 1140,
-          "y": 562,
+          "y": 658,
           "width": 280
         },
         {
@@ -4330,7 +4330,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.FrameToVideo",
           "title": "Frame To Video",
           "x": 1520,
-          "y": 437,
+          "y": 533,
           "width": 416
         },
         {
@@ -4338,7 +4338,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2036,
-          "y": 566,
+          "y": 662,
           "width": 280
         }
       ],
@@ -4467,7 +4467,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 688,
+          "y": 899,
           "width": 280
         },
         {
@@ -4475,7 +4475,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 904,
+          "y": 1115,
           "width": 280
         },
         {
@@ -4483,7 +4483,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1129,
+          "y": 1340,
           "width": 280,
           "subtitle": "original"
         },
@@ -4492,7 +4492,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.DocumentInput",
           "title": "Document Input",
           "x": 0,
-          "y": 1354,
+          "y": 1565,
           "width": 280
         },
         {
@@ -4500,7 +4500,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 800,
-          "y": 900,
+          "y": 1111,
           "width": 500
         },
         {
@@ -4508,7 +4508,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.svg.Document",
           "title": "Document",
           "x": 1400,
-          "y": 1183,
+          "y": 1394,
           "width": 280
         },
         {
@@ -4516,7 +4516,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.svg.SVGToImage",
           "title": "SVG To Image",
           "x": 1400,
-          "y": 731,
+          "y": 942,
           "width": 280
         },
         {
@@ -4524,7 +4524,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.svg.Document",
           "title": "Document",
           "x": 1400,
-          "y": 1351,
+          "y": 1562,
           "width": 280
         },
         {
@@ -4532,7 +4532,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.svg.SVGToImage",
           "title": "SVG To Image",
           "x": 1400,
-          "y": 957,
+          "y": 1168,
           "width": 280
         },
         {
@@ -4540,7 +4540,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 1780,
-          "y": 825,
+          "y": 1036,
           "width": 520
         },
         {
@@ -4548,7 +4548,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2400,
-          "y": 272,
+          "y": 483,
           "width": 240
         },
         {
@@ -4556,7 +4556,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2400,
-          "y": 672,
+          "y": 883,
           "width": 240
         },
         {
@@ -4564,7 +4564,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2400,
-          "y": 1072,
+          "y": 1283,
           "width": 240
         },
         {
@@ -4572,7 +4572,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2400,
-          "y": 1472,
+          "y": 1683,
           "width": 240
         },
         {
@@ -4580,7 +4580,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2400,
-          "y": 1872,
+          "y": 2083,
           "width": 240
         },
         {
@@ -4588,7 +4588,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2400,
-          "y": 472,
+          "y": 683,
           "width": 240
         },
         {
@@ -4596,7 +4596,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2400,
-          "y": 872,
+          "y": 1083,
           "width": 240
         },
         {
@@ -4604,7 +4604,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2400,
-          "y": 1272,
+          "y": 1483,
           "width": 240
         },
         {
@@ -4612,7 +4612,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 380,
-          "y": 827,
+          "y": 1038,
           "width": 320
         },
         {
@@ -4620,7 +4620,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2400,
-          "y": 1672,
+          "y": 1883,
           "width": 240
         }
       ],
@@ -4874,7 +4874,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 2284,
-          "y": 629,
+          "y": 658,
           "width": 461,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -4883,7 +4883,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 1794,
-          "y": 754,
+          "y": 783,
           "width": 390
         },
         {
@@ -4891,7 +4891,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 857,
-          "y": 732,
+          "y": 761,
           "width": 319
         },
         {
@@ -4899,7 +4899,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 413,
+          "y": 442,
           "width": 280,
           "subtitle": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character…"
         },
@@ -4908,7 +4908,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 863,
+          "y": 892,
           "width": 280,
           "subtitle": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art"
         },
@@ -4917,7 +4917,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 638,
+          "y": 667,
           "width": 280,
           "subtitle": "mysterious, ancient, powerful, serene, sacred"
         },
@@ -4926,7 +4926,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 1276,
-          "y": 663,
+          "y": 692,
           "width": 418,
           "subtitle": "Art direction: {{ direction }} Base style: {{ style }} Task: write exactly {{ count }} distinct text-to-image prompts for concept-art varia…"
         },
@@ -4935,7 +4935,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 443,
+          "y": 472,
           "width": 377,
           "subtitle": "Creative brief: {{ brief }} Art style: {{ style }} Mood: {{ mood }} Task: turn the brief above into a concrete art-direction brief a concep…"
         },
@@ -4944,7 +4944,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2845,
-          "y": 822,
+          "y": 851,
           "width": 280
         },
         {
@@ -4952,7 +4952,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 1088,
+          "y": 1117,
           "width": 280
         }
       ],
@@ -5144,23 +5144,18 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/conditional-logic-engine",
     "title": "Conditional Logic Engine — NodeTool AI Workflow Template",
-    "description": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
+    "description": "Routes one number to a low, medium or high output with two Code comparisons and If nodes. Teaches branching and how two If nodes chained on their false handles form an else branch. No model runs.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "conditional-logic-engine",
     "name": "Conditional Logic Engine",
-    "summary": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
+    "summary": "Routes one number to a low, medium or high output with two Code comparisons and If nodes. Teaches branching and how two If nodes chained on their false handles form an else branch. No model runs.",
     "tags": [
       "boolean"
     ],
     "category": "Text & Data",
     "nodeTypes": [
-      {
-        "type": "nodetool.code.Code",
-        "label": "Code",
-        "count": 6
-      },
       {
         "type": "nodetool.control.If",
         "label": "If",
@@ -5177,12 +5172,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 4
       },
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 2
+      },
+      {
         "type": "nodetool.input.IntegerInput",
         "label": "Integer Input",
         "count": 1
       }
     ],
-    "nodeCount": 19,
+    "nodeCount": 15,
     "thumbnail": "/templates/conditional-logic-engine.jpg",
     "graph": {
       "nodes": [
@@ -5196,94 +5196,52 @@ export const templateEntries: TemplateEntry[] = [
           "isComment": true
         },
         {
-          "id": "comment-branch-a",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": 620,
-          "y": 0,
-          "width": 520,
-          "isComment": true
-        },
-        {
-          "id": "comment-branch-b",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": 1200,
-          "y": 0,
-          "width": 520,
-          "isComment": true
-        },
-        {
           "id": "2",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1900,
-          "y": 647,
+          "x": 760,
+          "y": 523,
           "width": 280,
-          "subtitle": "## Conditional Logic Decision Result **Input Value:** {{ value }} **Condition Checks:** - Greater than 100? {{ gt_100 }} - Less than 50? {{…"
+          "subtitle": "## Conditional Logic Decision Result **Input Value:** {{ value }} **Condition Checks:** - Less than 50? {{ lt_50 }} - Greater than 100? {{…"
         },
         {
           "id": "3",
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 1453,
-          "width": 280
-        },
-        {
-          "id": "pad_value",
-          "type": "nodetool.code.Code",
-          "title": "Code",
-          "x": 760,
-          "y": 1058,
-          "width": 280
-        },
-        {
-          "id": "cmp_low",
-          "type": "nodetool.code.Code",
-          "title": "Code",
-          "x": 1140,
-          "y": 1403,
-          "width": 280
-        },
-        {
-          "id": "cmp_high",
-          "type": "nodetool.code.Code",
-          "title": "Code",
-          "x": 1140,
-          "y": 938,
+          "y": 943,
           "width": 280
         },
         {
           "id": "is_low",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1520,
-          "y": 1456,
+          "x": 380,
+          "y": 523,
           "width": 280
         },
         {
           "id": "is_high",
           "type": "nodetool.code.Code",
           "title": "Code",
-          "x": 1520,
-          "y": 991,
+          "x": 380,
+          "y": 723,
           "width": 280
         },
         {
           "id": "outer_true",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 1900,
-          "y": 1762,
+          "x": 760,
+          "y": 1623,
           "width": 280
         },
         {
           "id": "outer_false",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 2280,
-          "y": 1349,
+          "x": 1140,
+          "y": 943,
           "width": 280
         },
         {
@@ -5291,7 +5249,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 1674,
+          "y": 1623,
           "width": 280,
           "subtitle": "🔴 HIGH VALUE: {{ value }} is greater than 100. Priority processing engaged."
         },
@@ -5299,16 +5257,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "inner_true",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 1900,
-          "y": 1958,
+          "x": 760,
+          "y": 1283,
           "width": 280
         },
         {
           "id": "inner_false",
           "type": "nodetool.control.If",
           "title": "If",
-          "x": 1900,
-          "y": 1566,
+          "x": 760,
+          "y": 943,
           "width": 280
         },
         {
@@ -5316,7 +5274,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 2014,
+          "y": 1283,
           "width": 280,
           "subtitle": "🔵 LOW VALUE: {{ value }} is less than 50. Standard processing applied."
         },
@@ -5325,7 +5283,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 1334,
+          "y": 943,
           "width": 280,
           "subtitle": "🟡 MEDIUM VALUE: {{ value }} is between 50 and 100. Balanced processing selected."
         },
@@ -5333,40 +5291,32 @@ export const templateEntries: TemplateEntry[] = [
           "id": "result_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2280,
-          "y": 1019,
+          "x": 1140,
+          "y": 523,
           "width": 280
-        },
-        {
-          "id": "int_to_str",
-          "type": "nodetool.code.Code",
-          "title": "Code",
-          "x": 380,
-          "y": 845,
-          "width": 200
         },
         {
           "id": "out_high",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2280,
-          "y": 1773,
+          "x": 1140,
+          "y": 1623,
           "width": 280
         },
         {
           "id": "out_low",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2280,
-          "y": 1973,
+          "x": 1140,
+          "y": 1283,
           "width": 280
         },
         {
           "id": "out_medium",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2660,
-          "y": 1343,
+          "x": 1520,
+          "y": 943,
           "width": 280
         }
       ],
@@ -5376,41 +5326,6 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "2",
           "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "3",
-          "sourceHandle": "output",
-          "target": "int_to_str",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "pad_value",
-          "sourceHandle": "output",
-          "target": "cmp_low",
-          "targetHandle": "a",
-          "color": "any"
-        },
-        {
-          "source": "pad_value",
-          "sourceHandle": "output",
-          "target": "cmp_high",
-          "targetHandle": "a",
-          "color": "any"
-        },
-        {
-          "source": "cmp_low",
-          "sourceHandle": "output",
-          "target": "is_low",
-          "targetHandle": "a",
-          "color": "any"
-        },
-        {
-          "source": "cmp_high",
-          "sourceHandle": "output",
-          "target": "is_high",
-          "targetHandle": "a",
           "color": "any"
         },
         {
@@ -5425,13 +5340,6 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "2",
           "targetHandle": "lt_50",
-          "color": "any"
-        },
-        {
-          "source": "is_low",
-          "sourceHandle": "output",
-          "target": "2",
-          "targetHandle": "combined",
           "color": "any"
         },
         {
@@ -5491,13 +5399,6 @@ export const templateEntries: TemplateEntry[] = [
           "color": "string"
         },
         {
-          "source": "int_to_str",
-          "sourceHandle": "output",
-          "target": "pad_value",
-          "targetHandle": "text",
-          "color": "any"
-        },
-        {
           "source": "9",
           "sourceHandle": "output",
           "target": "outer_true",
@@ -5543,6 +5444,20 @@ export const templateEntries: TemplateEntry[] = [
           "source": "outer_false",
           "sourceHandle": "if_false",
           "target": "out_medium",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "3",
+          "sourceHandle": "output",
+          "target": "is_low",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "3",
+          "sourceHandle": "output",
+          "target": "is_high",
           "targetHandle": "value",
           "color": "any"
         }
@@ -6460,7 +6375,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 353,
+          "y": 447,
           "width": 280,
           "subtitle": "fresh vegetables, each with its typical color"
         },
@@ -6469,7 +6384,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 578,
+          "y": 672,
           "width": 280
         },
         {
@@ -6477,7 +6392,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 307,
+          "y": 401,
           "width": 280,
           "subtitle": "Generate exactly {{ROW_COUNT}} rows of data about {{TOPIC}}. Rules for every row: - Fill in accurate, realistic values for each column — no…"
         },
@@ -6486,7 +6401,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.DataGenerator",
           "title": "Data Generator",
           "x": 760,
-          "y": 450,
+          "y": 544,
           "width": 280
         },
         {
@@ -6494,7 +6409,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1140,
-          "y": 468,
+          "y": 562,
           "width": 280
         }
       ],
@@ -6905,7 +6820,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 500,
+          "y": 578,
           "width": 280,
           "subtitle": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point…"
         },
@@ -6914,7 +6829,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.creative.Director",
           "title": "Director",
           "x": 380,
-          "y": 405,
+          "y": 483,
           "width": 320
         },
         {
@@ -6922,7 +6837,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.creative.ScreenplayShots",
           "title": "Screenplay Shots",
           "x": 800,
-          "y": 465,
+          "y": 543,
           "width": 280
         },
         {
@@ -6930,7 +6845,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 1180,
-          "y": 405,
+          "y": 483,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -6939,7 +6854,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
           "x": 1600,
-          "y": 445,
+          "y": 523,
           "width": 330,
           "subtitle": "Animate this scene with subtle, cinematic motion. Preserve the framing, subjects, and grade of the reference image. No jump cuts, no morphi…"
         },
@@ -6948,7 +6863,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.Collect",
           "title": "Collect",
           "x": 2030,
-          "y": 486,
+          "y": 564,
           "width": 160
         },
         {
@@ -6956,7 +6871,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.timeline.AddClips",
           "title": "Add Clips",
           "x": 2290,
-          "y": 455,
+          "y": 533,
           "width": 300
         },
         {
@@ -6964,7 +6879,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.timeline.RenderTimeline",
           "title": "Render Timeline",
           "x": 2690,
-          "y": 465,
+          "y": 543,
           "width": 300
         },
         {
@@ -6972,7 +6887,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 3090,
-          "y": 513,
+          "y": 591,
           "width": 280
         }
       ],
@@ -9727,7 +9642,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 704,
+          "y": 781,
           "width": 280,
           "subtitle": "Python Programming"
         },
@@ -9736,7 +9651,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 929,
+          "y": 1006,
           "width": 280
         },
         {
@@ -9744,7 +9659,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 590,
+          "y": 667,
           "width": 280,
           "subtitle": "You are a study-flashcard writer. Create {{NUM_CARDS}} flashcards that teach {{TOPIC}} to a first-time learner. Rules for every card: - \"fr…"
         },
@@ -9753,7 +9668,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.DataGenerator",
           "title": "Data Generator",
           "x": 760,
-          "y": 764,
+          "y": 841,
           "width": 280
         },
         {
@@ -9761,7 +9676,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 1140,
-          "y": 385,
+          "y": 462,
           "width": 320
         },
         {
@@ -9769,7 +9684,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1140,
-          "y": 942,
+          "y": 1019,
           "width": 260
         },
         {
@@ -9777,7 +9692,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1560,
-          "y": 593,
+          "y": 670,
           "width": 280
         }
       ],
@@ -10335,7 +10250,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 714,
+          "y": 829,
           "width": 280,
           "subtitle": "AI and developer tools"
         },
@@ -10344,7 +10259,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 760,
-          "y": 695,
+          "y": 810,
           "width": 280
         },
         {
@@ -10352,7 +10267,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 327,
+          "y": 442,
           "width": 280,
           "subtitle": "Scrape the front page of https://news.ycombinator.com/ and write a themed Markdown digest. Topic focus: {{ topic }} - Prioritize front-page…"
         },
@@ -10361,7 +10276,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1140,
-          "y": 726,
+          "y": 841,
           "width": 280
         }
       ],
@@ -10473,7 +10388,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 624,
+          "y": 655,
           "width": 280,
           "subtitle": "How compound interest quietly builds wealth"
         },
@@ -10482,7 +10397,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 849,
+          "y": 880,
           "width": 280,
           "subtitle": "Gen Z just starting to invest"
         },
@@ -10491,7 +10406,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 1074,
+          "y": 1105,
           "width": 280
         },
         {
@@ -10499,7 +10414,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 722,
+          "y": 753,
           "width": 340,
           "subtitle": "You are a short-form video strategist. Write exactly {{ count }} scroll-stopping hook lines for a video. TOPIC: {{ topic }} AUDIENCE: {{ au…"
         },
@@ -10508,7 +10423,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 820,
-          "y": 730,
+          "y": 761,
           "width": 360
         },
         {
@@ -10516,7 +10431,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 1280,
-          "y": 452,
+          "y": 483,
           "width": 340,
           "subtitle": "You are an art director for viral thumbnails. Turn one hook into a single image description. VIDEO TOPIC: {{ topic }} HOOK ON SCREEN: {{ ho…"
         },
@@ -10525,7 +10440,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 1740,
-          "y": 603,
+          "y": 634,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -10534,7 +10449,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.color.BrightnessContrast",
           "title": "Brightness Contrast",
           "x": 2160,
-          "y": 745,
+          "y": 776,
           "width": 280
         },
         {
@@ -10542,7 +10457,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.Collect",
           "title": "Collect",
           "x": 2540,
-          "y": 971,
+          "y": 1002,
           "width": 280
         },
         {
@@ -10550,7 +10465,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 3000,
-          "y": 933,
+          "y": 964,
           "width": 280
         },
         {
@@ -10558,7 +10473,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1280,
-          "y": 1008,
+          "y": 1039,
           "width": 360
         },
         {
@@ -10566,7 +10481,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 2540,
-          "y": 601,
+          "y": 632,
           "width": 360
         }
       ],
@@ -10791,13 +10706,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/image-enhance",
     "title": "Image Enhance — NodeTool AI Workflow Template",
-    "description": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
+    "description": "A live photo editor: four GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "image-enhance",
     "name": "Image Enhance",
-    "summary": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
+    "summary": "A live photo editor: four GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
     "tags": [
       "image",
       "start",
@@ -10993,7 +10908,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 353,
+          "y": 467,
           "width": 280
         },
         {
@@ -11001,7 +10916,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 380,
-          "y": 334,
+          "y": 448,
           "width": 280,
           "subtitle": "Write a 150-250 word short story inspired by this image. Give it a clear beginning, middle, and end, and a one-line title on the first line…"
         },
@@ -11010,7 +10925,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
           "x": 760,
-          "y": 307,
+          "y": 421,
           "width": 340,
           "subtitle": "tts-1"
         },
@@ -11019,7 +10934,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1200,
-          "y": 365,
+          "y": 479,
           "width": 280
         }
       ],
@@ -11109,7 +11024,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
           "x": 864,
-          "y": 779,
+          "y": 865,
           "width": 416,
           "subtitle": "veo-3.1-generate-preview"
         },
@@ -11118,7 +11033,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 380,
-          "y": 899,
+          "y": 985,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -11127,7 +11042,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 775,
+          "y": 861,
           "width": 280,
           "subtitle": "Moody twilight ocean scene with cinematic lighting"
         },
@@ -11136,7 +11051,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 315,
+          "y": 401,
           "width": 280,
           "subtitle": "Animate the reference still into a short cinematic clip. Scene: {{ scene }} Motion: {{ motion }} Pacing: {{ duration }} Preserve the subjec…"
         },
@@ -11145,7 +11060,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 550,
+          "y": 636,
           "width": 280,
           "subtitle": "Slow dolly push toward the horizon as waves shimmer with reflective highlights"
         },
@@ -11154,7 +11069,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 325,
+          "y": 411,
           "width": 280,
           "subtitle": "8 second dramatic reveal"
         },
@@ -11163,7 +11078,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1000,
+          "y": 1086,
           "width": 280,
           "subtitle": "no watermarks, no text overlays, no jump cuts, no warped anatomy"
         },
@@ -11172,7 +11087,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1380,
-          "y": 861,
+          "y": 947,
           "width": 280
         }
       ],
@@ -12061,7 +11976,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 233,
+          "y": 421,
           "width": 280
         },
         {
@@ -12069,7 +11984,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 599,
+          "y": 787,
           "width": 280
         },
         {
@@ -12077,7 +11992,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
           "x": 380,
-          "y": 614,
+          "y": 802,
           "width": 300
         },
         {
@@ -12085,7 +12000,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
           "x": 780,
-          "y": 538,
+          "y": 726,
           "width": 300
         },
         {
@@ -12093,7 +12008,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
           "x": 1180,
-          "y": 471,
+          "y": 659,
           "width": 300
         },
         {
@@ -12101,7 +12016,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.LipSync",
           "title": "Lip Sync",
           "x": 1580,
-          "y": 381,
+          "y": 569,
           "width": 280,
           "subtitle": "fal-ai/sync-lipsync/v2/pro"
         },
@@ -12110,7 +12025,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1960,
-          "y": 400,
+          "y": 588,
           "width": 240
         }
       ],
@@ -13767,7 +13682,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 611,
+          "y": 701,
           "width": 280
         },
         {
@@ -13775,7 +13690,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1010,
+          "y": 1100,
           "width": 280
         },
         {
@@ -13783,7 +13698,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
           "x": 380,
-          "y": 675,
+          "y": 765,
           "width": 280,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -13792,7 +13707,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 380,
-          "y": 901,
+          "y": 991,
           "width": 280
         },
         {
@@ -13800,7 +13715,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.If",
           "title": "If",
           "x": 760,
-          "y": 817,
+          "y": 907,
           "width": 280
         },
         {
@@ -13808,7 +13723,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.If",
           "title": "If",
           "x": 760,
-          "y": 1032,
+          "y": 1122,
           "width": 280
         },
         {
@@ -13816,7 +13731,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Summarizer",
           "title": "Summarizer",
           "x": 1520,
-          "y": 864,
+          "y": 954,
           "width": 280,
           "subtitle": "You are an expert meeting-notes writer. You will be given a raw meeting transcript. Write a summary in Markdown with this exact structure:…"
         },
@@ -13825,7 +13740,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 1520,
-          "y": 393,
+          "y": 483,
           "width": 280,
           "subtitle": "Read this meeting transcript and list every action item mentioned: {{TRANSCRIPT}} For each action item capture who owns it and any deadline…"
         },
@@ -13834,7 +13749,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.DataGenerator",
           "title": "Data Generator",
           "x": 1900,
-          "y": 561,
+          "y": 651,
           "width": 280
         },
         {
@@ -13842,7 +13757,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1520,
-          "y": 1116,
+          "y": 1206,
           "width": 280
         },
         {
@@ -13850,7 +13765,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1900,
-          "y": 913,
+          "y": 1003,
           "width": 280
         },
         {
@@ -13858,7 +13773,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2280,
-          "y": 604,
+          "y": 694,
           "width": 280
         },
         {
@@ -13866,7 +13781,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 1140,
-          "y": 727,
+          "y": 817,
           "width": 280
         }
       ],
@@ -14030,7 +13945,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 615,
+          "y": 732,
           "width": 300,
           "subtitle": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor…"
         },
@@ -14039,7 +13954,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 971,
+          "y": 1088,
           "width": 300,
           "subtitle": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects chu…"
         },
@@ -14048,7 +13963,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 400,
-          "y": 754,
+          "y": 871,
           "width": 320,
           "subtitle": "Brief: {{ BRIEF }} Audience & constraints: {{ CONTEXT }} Answer in Markdown with exactly these three sections and nothing else: ## Recommen…"
         },
@@ -14057,7 +13972,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 820,
-          "y": 366,
+          "y": 483,
           "width": 340
         },
         {
@@ -14065,7 +13980,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 820,
-          "y": 802,
+          "y": 919,
           "width": 340,
           "subtitle": "claude-sonnet-5"
         },
@@ -14074,7 +13989,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 820,
-          "y": 1238,
+          "y": 1355,
           "width": 340,
           "subtitle": "gemini-3.5-flash"
         },
@@ -14083,7 +13998,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1260,
-          "y": 416,
+          "y": 533,
           "width": 300
         },
         {
@@ -14091,7 +14006,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1260,
-          "y": 1177,
+          "y": 1294,
           "width": 300
         },
         {
@@ -14099,7 +14014,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1260,
-          "y": 1377,
+          "y": 1494,
           "width": 300
         },
         {
@@ -14107,7 +14022,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 1260,
-          "y": 661,
+          "y": 778,
           "width": 320,
           "subtitle": "Brief: {{ BRIEF }} Audience & constraints: {{ CONTEXT }} Three anonymous analysts answered this brief. You do not know who wrote which answ…"
         },
@@ -14116,7 +14031,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 1680,
-          "y": 753,
+          "y": 870,
           "width": 340,
           "subtitle": "claude-sonnet-5"
         },
@@ -14125,7 +14040,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2120,
-          "y": 891,
+          "y": 1008,
           "width": 300
         }
       ],
@@ -14716,7 +14631,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 413,
+          "y": 483,
           "width": 280,
           "subtitle": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap."
         },
@@ -14725,7 +14640,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 638,
+          "y": 708,
           "width": 280,
           "subtitle": "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, har…"
         },
@@ -14734,7 +14649,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 863,
+          "y": 933,
           "width": 280
         },
         {
@@ -14742,7 +14657,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.creative.Director",
           "title": "Director",
           "x": 380,
-          "y": 496,
+          "y": 566,
           "width": 360,
           "subtitle": "gemini-3.1-pro-preview"
         },
@@ -14751,7 +14666,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.creative.ScreenplayShots",
           "title": "Screenplay Shots",
           "x": 840,
-          "y": 566,
+          "y": 636,
           "width": 320
         },
         {
@@ -14759,7 +14674,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 1260,
-          "y": 525,
+          "y": 595,
           "width": 320,
           "subtitle": "gpt-image-2-text-to-image"
         },
@@ -14768,7 +14683,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
           "x": 1680,
-          "y": 575,
+          "y": 645,
           "width": 331,
           "subtitle": "veo-3.1-generate-preview"
         },
@@ -14777,7 +14692,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.Collect",
           "title": "Collect",
           "x": 2111,
-          "y": 611,
+          "y": 681,
           "width": 161
         },
         {
@@ -14785,7 +14700,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.Concat",
           "title": "Concat",
           "x": 2372,
-          "y": 556,
+          "y": 626,
           "width": 320
         },
         {
@@ -14793,7 +14708,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2792,
-          "y": 644,
+          "y": 714,
           "width": 280
         }
       ],
@@ -14999,7 +14914,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 283,
+          "y": 506,
           "width": 280
         },
         {
@@ -15007,7 +14922,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 601,
+          "y": 824,
           "width": 280,
           "subtitle": "electronic ambient"
         },
@@ -15016,7 +14931,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 826,
+          "y": 1049,
           "width": 280,
           "subtitle": "abstract geometric patterns, neon colors, flowing energy"
         },
@@ -15025,7 +14940,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1051,
+          "y": 1274,
           "width": 280,
           "subtitle": "8"
         },
@@ -15034,7 +14949,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
           "x": 380,
-          "y": 445,
+          "y": 668,
           "width": 280,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -15043,7 +14958,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 760,
-          "y": 280,
+          "y": 503,
           "width": 280,
           "subtitle": "Analyze the emotional arc of this song so we can design its music video. TRANSCRIBED LYRICS {{ transcription }} GENRE: {{ genre }} TARGET V…"
         },
@@ -15052,7 +14967,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 1140,
-          "y": 690,
+          "y": 913,
           "width": 280
         },
         {
@@ -15060,7 +14975,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 1520,
-          "y": 547,
+          "y": 770,
           "width": 280,
           "subtitle": "You are writing image-generation prompts for the frames of a music video. MOOD & VISUAL DIRECTION {{ analysis }} GENRE: {{ genre }} VISUAL…"
         },
@@ -15069,7 +14984,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 1900,
-          "y": 827,
+          "y": 1050,
           "width": 280
         },
         {
@@ -15077,7 +14992,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.ForEach",
           "title": "For Each",
           "x": 2280,
-          "y": 995,
+          "y": 1218,
           "width": 280
         },
         {
@@ -15085,7 +15000,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 2660,
-          "y": 828,
+          "y": 1051,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -15094,7 +15009,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.Collect",
           "title": "Collect",
           "x": 3904,
-          "y": 1004,
+          "y": 1227,
           "width": 280
         },
         {
@@ -15102,7 +15017,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.FrameToVideo",
           "title": "Frame To Video",
           "x": 5044,
-          "y": 767,
+          "y": 990,
           "width": 416
         },
         {
@@ -15110,7 +15025,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
           "x": 5560,
-          "y": 714,
+          "y": 937,
           "width": 416
         },
         {
@@ -15118,7 +15033,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 6076,
-          "y": 857,
+          "y": 1080,
           "width": 280
         },
         {
@@ -15126,7 +15041,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.ResizeImage",
           "title": "Resize Image",
           "x": 3144,
-          "y": 947,
+          "y": 1170,
           "width": 280
         },
         {
@@ -15134,7 +15049,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.SaveImageFile",
           "title": "Save Image File",
           "x": 3524,
-          "y": 909,
+          "y": 1132,
           "width": 280
         },
         {
@@ -15142,7 +15057,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.GetAudioInfo",
           "title": "Get Audio Info",
           "x": 760,
-          "y": 981,
+          "y": 1204,
           "width": 280
         },
         {
@@ -15150,7 +15065,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 4284,
-          "y": 654,
+          "y": 877,
           "width": 280
         },
         {
@@ -15158,7 +15073,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.RepeatValue",
           "title": "Repeat Value",
           "x": 4664,
-          "y": 968,
+          "y": 1191,
           "width": 280
         },
         {
@@ -15166,7 +15081,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.ForEach",
           "title": "For Each",
           "x": 4284,
-          "y": 1143,
+          "y": 1366,
           "width": 280
         },
         {
@@ -15174,7 +15089,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
           "x": 380,
-          "y": 762,
+          "y": 985,
           "width": 280
         }
       ],
@@ -16581,7 +16496,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.Collect",
           "title": "Collect",
           "x": 3144,
-          "y": 663,
+          "y": 818,
           "width": 280
         },
         {
@@ -16589,7 +16504,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
           "x": 2660,
-          "y": 499,
+          "y": 654,
           "width": 384,
           "subtitle": "Enhance this photo with professional cinematic color grading, improved lighting, and subtle film grain. Keep the subject and composition in…"
         },
@@ -16598,7 +16513,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.filter.UnsharpMask",
           "title": "Unsharp Mask",
           "x": 2280,
-          "y": 596,
+          "y": 751,
           "width": 280
         },
         {
@@ -16606,7 +16521,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.filter.UnsharpMask",
           "title": "Unsharp Mask",
           "x": 1900,
-          "y": 595,
+          "y": 750,
           "width": 280
         },
         {
@@ -16614,7 +16529,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.color.HSB",
           "title": "HSB",
           "x": 1520,
-          "y": 580,
+          "y": 735,
           "width": 280
         },
         {
@@ -16622,7 +16537,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.color.BrightnessContrast",
           "title": "Brightness Contrast",
           "x": 1140,
-          "y": 512,
+          "y": 667,
           "width": 280
         },
         {
@@ -16630,7 +16545,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.enhance.AutoContrast",
           "title": "Auto Contrast",
           "x": 760,
-          "y": 452,
+          "y": 607,
           "width": 280
         },
         {
@@ -16638,7 +16553,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.ForEach",
           "title": "For Each",
           "x": 380,
-          "y": 405,
+          "y": 560,
           "width": 280
         },
         {
@@ -16646,7 +16561,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageListInput",
           "title": "Image List Input",
           "x": 0,
-          "y": 307,
+          "y": 462,
           "width": 280
         },
         {
@@ -16654,7 +16569,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.FloatInput",
           "title": "Float Input",
           "x": 0,
-          "y": 559,
+          "y": 714,
           "width": 280
         },
         {
@@ -16662,7 +16577,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.FloatInput",
           "title": "Float Input",
           "x": 0,
-          "y": 743,
+          "y": 898,
           "width": 280
         },
         {
@@ -16670,7 +16585,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 3524,
-          "y": 647,
+          "y": 802,
           "width": 280
         }
       ],
@@ -16699,8 +16614,8 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "11",
           "sourceHandle": "output",
-          "target": "7",
-          "targetHandle": "contrast",
+          "target": "6",
+          "targetHandle": "brightness",
           "color": "any"
         },
         {
@@ -17666,7 +17581,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 1049,
+          "y": 1165,
           "width": 280
         },
         {
@@ -17674,7 +17589,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1404,
+          "y": 1520,
           "width": 280,
           "subtitle": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab t…"
         },
@@ -17683,7 +17598,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 1836,
+          "y": 1952,
           "width": 280
         },
         {
@@ -17691,7 +17606,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
           "x": 380,
-          "y": 1161,
+          "y": 1277,
           "width": 300,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -17700,7 +17615,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 780,
-          "y": 465,
+          "y": 581,
           "width": 320,
           "subtitle": "You are producing the episode page for this podcast. Show: {{ SHOW }} From the transcript below, return Markdown, no commentary: Titles: 3…"
         },
@@ -17709,7 +17624,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 1200,
-          "y": 369,
+          "y": 485,
           "width": 330
         },
         {
@@ -17717,7 +17632,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1630,
-          "y": 346,
+          "y": 462,
           "width": 320
         },
         {
@@ -17725,7 +17640,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 780,
-          "y": 921,
+          "y": 1037,
           "width": 320,
           "subtitle": "Turn this podcast episode into the show's email newsletter edition. Show: {{ SHOW }} Return Markdown, no commentary: Subject: 3 subject-lin…"
         },
@@ -17734,7 +17649,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 1200,
-          "y": 825,
+          "y": 941,
           "width": 330
         },
         {
@@ -17742,7 +17657,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1630,
-          "y": 802,
+          "y": 918,
           "width": 320
         },
         {
@@ -17750,7 +17665,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 780,
-          "y": 1377,
+          "y": 1493,
           "width": 320,
           "subtitle": "From this podcast episode transcript, write exactly 5 social posts, one per line — no numbering, no labels, no hashtags unless they earn th…"
         },
@@ -17759,7 +17674,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 1200,
-          "y": 1313,
+          "y": 1429,
           "width": 330
         },
         {
@@ -17767,7 +17682,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1630,
-          "y": 1268,
+          "y": 1384,
           "width": 300
         },
         {
@@ -17775,7 +17690,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 780,
-          "y": 1813,
+          "y": 1929,
           "width": 320,
           "subtitle": "From this transcript, pick exactly {{ COUNT }} verbatim quotes worth putting on a quote card, one per line — no numbering, no attribution,…"
         },
@@ -17784,7 +17699,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 1200,
-          "y": 1723,
+          "y": 1839,
           "width": 330
         },
         {
@@ -17792,7 +17707,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 1630,
-          "y": 1578,
+          "y": 1694,
           "width": 340,
           "subtitle": "Minimal typographic quote card, square 1:1, for this podcast: {{ SHOW }} Render exactly this text as the centerpiece, large and perfectly l…"
         },
@@ -17801,7 +17716,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 2070,
-          "y": 1598,
+          "y": 1714,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -17810,7 +17725,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 2490,
-          "y": 1606,
+          "y": 1722,
           "width": 360
         }
       ],
@@ -18022,7 +17937,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 461,
+          "y": 555,
           "width": 220,
           "subtitle": "lion, eagle, koi fish"
         },
@@ -18031,7 +17946,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.SelectInput",
           "title": "Select Input",
           "x": 0,
-          "y": 686,
+          "y": 780,
           "width": 220,
           "subtitle": "Classic anime cel-shaded"
         },
@@ -18040,7 +17955,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 320,
-          "y": 327,
+          "y": 421,
           "width": 351,
           "subtitle": "You are a creature designer for an original monster-collecting game. Invent FOUR distinct collectible creatures, each a believable fusion o…"
         },
@@ -18049,7 +17964,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 771,
-          "y": 459,
+          "y": 553,
           "width": 291
         },
         {
@@ -18057,7 +17972,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 1162,
-          "y": 429,
+          "y": 523,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -18066,7 +17981,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1646,
-          "y": 577,
+          "y": 671,
           "width": 280
         }
       ],
@@ -18345,7 +18260,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 393,
+          "y": 442,
           "width": 300,
           "subtitle": "Team sync — Thursday - Launch date moved to March 14 (was March 7) to finish the accessibility fixes. - Priya owns the onboarding rewrite;…"
         },
@@ -18354,7 +18269,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 618,
+          "y": 667,
           "width": 300,
           "subtitle": "When do we launch, and what's the biggest open risk?"
         },
@@ -18363,7 +18278,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 843,
+          "y": 892,
           "width": 300,
           "subtitle": "concise and neutral"
         },
@@ -18372,7 +18287,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 400,
-          "y": 480,
+          "y": 529,
           "width": 300,
           "subtitle": "Tone: {{ tone }} Document (the only source you may use): \"\"\" {{ document }} \"\"\" Question: {{ question }} Answer the question using only the…"
         },
@@ -18381,7 +18296,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 800,
-          "y": 599,
+          "y": 648,
           "width": 320,
           "subtitle": "llama3.2"
         },
@@ -18390,7 +18305,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1220,
-          "y": 630,
+          "y": 679,
           "width": 300
         }
       ],
@@ -18436,13 +18351,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/product-mockup-generator",
     "title": "Product Mockup Generator — NodeTool AI Workflow Template",
-    "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+    "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then Nano Banana composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "product-mockup-generator",
     "name": "Product Mockup Generator",
-    "summary": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+    "summary": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then Nano Banana composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
     "tags": [
       "product-mockup",
       "mockup",
@@ -18520,7 +18435,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.color.BrightnessContrast",
           "title": "Brightness Contrast",
           "x": 2764,
-          "y": 730,
+          "y": 801,
           "width": 280
         },
         {
@@ -18528,7 +18443,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "lib.image.color.BrightnessContrast",
           "title": "Brightness Contrast",
           "x": 2384,
-          "y": 703,
+          "y": 774,
           "width": 280
         },
         {
@@ -18536,7 +18451,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
           "x": 1900,
-          "y": 517,
+          "y": 588,
           "width": 384,
           "subtitle": "fal-ai/nano-banana/edit"
         },
@@ -18545,7 +18460,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 432,
+          "y": 503,
           "width": 280
         },
         {
@@ -18553,7 +18468,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 1520,
-          "y": 854,
+          "y": 925,
           "width": 280
         },
         {
@@ -18561,7 +18476,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 1140,
-          "y": 668,
+          "y": 739,
           "width": 280,
           "subtitle": "Convert these scene concepts into image generation prompts. Scene Concepts: {{ scenes }} Product: {{ name }} - {{ description }} For each s…"
         },
@@ -18570,7 +18485,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 760,
-          "y": 996,
+          "y": 1067,
           "width": 280
         },
         {
@@ -18578,7 +18493,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 759,
+          "y": 830,
           "width": 280,
           "subtitle": "You are a product photography director. Product: {{ name }} Description: {{ description }} Target Audience: {{ audience }} Create {{ count…"
         },
@@ -18587,7 +18502,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 797,
+          "y": 868,
           "width": 280,
           "subtitle": "Premium Wireless Headphones"
         },
@@ -18596,7 +18511,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1022,
+          "y": 1093,
           "width": 280,
           "subtitle": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam e…"
         },
@@ -18605,7 +18520,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1247,
+          "y": 1318,
           "width": 280,
           "subtitle": "Tech-savvy professionals, music enthusiasts, and remote workers"
         },
@@ -18614,7 +18529,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 1472,
+          "y": 1543,
           "width": 280
         },
         {
@@ -18622,7 +18537,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 1900,
-          "y": 1032,
+          "y": 1103,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -18631,7 +18546,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 3144,
-          "y": 776,
+          "y": 847,
           "width": 280
         },
         {
@@ -18639,7 +18554,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2384,
-          "y": 1233,
+          "y": 1304,
           "width": 280
         }
       ],
@@ -18820,7 +18735,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 388,
+          "y": 503,
           "width": 280,
           "subtitle": "Matte-black wireless over-ear headphones with a brushed-copper accent ring"
         },
@@ -18829,7 +18744,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 612,
+          "y": 727,
           "width": 280,
           "subtitle": "Polished dark concrete pedestal, volumetric rim light, fine dust drifting through a soft teal backlight"
         },
@@ -18838,7 +18753,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 871,
+          "y": 986,
           "width": 280,
           "subtitle": "Slow dolly push-in with a gentle rotation, shallow depth of field holding focus on the product"
         },
@@ -18847,7 +18762,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 327,
+          "y": 442,
           "width": 320,
           "subtitle": "Cinematic product photograph for a premium commercial. Product: {{ product }} Staging: {{ staging }} Single hero subject, centered, filling…"
         },
@@ -18856,7 +18771,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 800,
-          "y": 644,
+          "y": 759,
           "width": 280,
           "subtitle": "fal-ai/flux-2/klein/9b"
         },
@@ -18865,7 +18780,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 823,
+          "y": 938,
           "width": 320,
           "subtitle": "Animate the reference still into a short product commercial. Camera: {{ camera_motion }} Preserve the product, its proportions, framing, an…"
         },
@@ -18874,7 +18789,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
           "x": 1180,
-          "y": 810,
+          "y": 925,
           "width": 280,
           "subtitle": "fal-ai/ltx-2.3/image-to-video/fast"
         },
@@ -18883,7 +18798,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1560,
-          "y": 822,
+          "y": 937,
           "width": 240
         }
       ],
@@ -19007,7 +18922,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 451,
+          "y": 500,
           "width": 486,
           "subtitle": "Using the text and image inputs, write a video prompt for a single 16:9 product shot. Give clear instructions on the animations and movemen…"
         },
@@ -19016,7 +18931,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 966,
-          "y": 731,
+          "y": 780,
           "width": 457
         },
         {
@@ -19024,7 +18939,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 393,
+          "y": 442,
           "width": 280,
           "subtitle": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking."
         },
@@ -19033,7 +18948,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 618,
+          "y": 667,
           "width": 280,
           "subtitle": "active millennials who enjoy weekend hiking and fitness challenges"
         },
@@ -19042,7 +18957,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 843,
+          "y": 892,
           "width": 280,
           "subtitle": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance"
         },
@@ -19051,7 +18966,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 1068,
+          "y": 1117,
           "width": 280
         },
         {
@@ -19059,7 +18974,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
           "x": 1523,
-          "y": 782,
+          "y": 831,
           "width": 739,
           "subtitle": "veo-3.1-generate-preview"
         },
@@ -19068,7 +18983,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2362,
-          "y": 935,
+          "y": 984,
           "width": 280
         }
       ],
@@ -19322,7 +19237,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 2052,
+          "y": 2303,
           "width": 260
         },
         {
@@ -19330,47 +19245,52 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 252,
-          "width": 260
+          "y": 503,
+          "width": 260,
+          "subtitle": "House Blend Coffee"
         },
         {
           "id": "in-campaign_message",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 477,
-          "width": 260
+          "y": 728,
+          "width": 260,
+          "subtitle": "A small-batch house blend, roasted every week and shipped within two days of roasting."
         },
         {
           "id": "in-audience",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 702,
-          "width": 260
+          "y": 953,
+          "width": 260,
+          "subtitle": "Home coffee drinkers who grind their own beans."
         },
         {
           "id": "in-headline",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 927,
-          "width": 260
+          "y": 1178,
+          "width": 260,
+          "subtitle": "Roasted this week, brewed this morning"
         },
         {
           "id": "in-cta",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1152,
-          "width": 260
+          "y": 1403,
+          "width": 260,
+          "subtitle": "Order a bag"
         },
         {
           "id": "in-reference_image",
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 2268,
+          "y": 2519,
           "width": 260
         },
         {
@@ -19378,7 +19298,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1377,
+          "y": 1628,
           "width": 260,
           "subtitle": "none"
         },
@@ -19387,7 +19307,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1602,
+          "y": 1853,
           "width": 260
         },
         {
@@ -19395,7 +19315,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1827,
+          "y": 2078,
           "width": 260
         },
         {
@@ -19403,7 +19323,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 360,
-          "y": 1005,
+          "y": 1256,
           "width": 420
         },
         {
@@ -19411,7 +19331,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 880,
-          "y": 1244,
+          "y": 1495,
           "width": 320
         },
         {
@@ -19419,7 +19339,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 1300,
-          "y": 1157,
+          "y": 1408,
           "width": 420
         },
         {
@@ -19427,7 +19347,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1820,
-          "y": 1075,
+          "y": 1326,
           "width": 260
         },
         {
@@ -19435,7 +19355,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1820,
-          "y": 1275,
+          "y": 1526,
           "width": 260
         },
         {
@@ -19443,7 +19363,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1820,
-          "y": 1475,
+          "y": 1726,
           "width": 260
         }
       ],
@@ -20906,7 +20826,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 327,
+          "y": 578,
           "width": 280
         },
         {
@@ -20914,7 +20834,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 552,
+          "y": 803,
           "width": 280,
           "subtitle": "A"
         },
@@ -20923,7 +20843,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 380,
-          "y": 334,
+          "y": 585,
           "width": 440
         },
         {
@@ -20931,7 +20851,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
           "x": 920,
-          "y": 439,
+          "y": 690,
           "width": 320,
           "subtitle": "fal-ai/nano-banana/edit"
         },
@@ -20940,7 +20860,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 1340,
-          "y": 306,
+          "y": 557,
           "width": 380
         },
         {
@@ -20948,7 +20868,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1820,
-          "y": 252,
+          "y": 503,
           "width": 250
         },
         {
@@ -20956,7 +20876,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1820,
-          "y": 452,
+          "y": 703,
           "width": 250
         },
         {
@@ -20964,7 +20884,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1820,
-          "y": 652,
+          "y": 903,
           "width": 250
         }
       ],
@@ -21091,7 +21011,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.DocumentInput",
           "title": "Document Input",
           "x": 0,
-          "y": 739,
+          "y": 990,
           "width": 300
         },
         {
@@ -21099,7 +21019,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 400,
-          "y": 683,
+          "y": 934,
           "width": 500
         },
         {
@@ -21107,7 +21027,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 1000,
-          "y": 687,
+          "y": 938,
           "width": 420
         },
         {
@@ -21115,7 +21035,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 1520,
-          "y": 694,
+          "y": 945,
           "width": 420
         },
         {
@@ -21123,7 +21043,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 2040,
-          "y": 694,
+          "y": 945,
           "width": 420
         },
         {
@@ -21131,7 +21051,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 2560,
-          "y": 694,
+          "y": 945,
           "width": 420
         },
         {
@@ -21139,7 +21059,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 3080,
-          "y": 694,
+          "y": 945,
           "width": 420
         },
         {
@@ -21147,7 +21067,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 3600,
-          "y": 694,
+          "y": 945,
           "width": 420
         },
         {
@@ -21155,7 +21075,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 4120,
-          "y": 694,
+          "y": 945,
           "width": 420
         },
         {
@@ -21163,7 +21083,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 4640,
-          "y": 693,
+          "y": 944,
           "width": 420
         },
         {
@@ -21171,7 +21091,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 5160,
-          "y": 692,
+          "y": 943,
           "width": 420
         },
         {
@@ -21179,7 +21099,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 5680,
-          "y": 689,
+          "y": 940,
           "width": 420
         },
         {
@@ -21187,7 +21107,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 6200,
-          "y": 680,
+          "y": 931,
           "width": 420
         },
         {
@@ -21195,7 +21115,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 6720,
-          "y": 509,
+          "y": 760,
           "width": 420
         },
         {
@@ -21203,7 +21123,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 7240,
-          "y": 392,
+          "y": 643,
           "width": 420
         },
         {
@@ -21211,7 +21131,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 7760,
-          "y": 673,
+          "y": 924,
           "width": 420
         },
         {
@@ -21219,7 +21139,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 8280,
-          "y": 500,
+          "y": 751,
           "width": 420
         },
         {
@@ -21227,7 +21147,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 8800,
-          "y": 376,
+          "y": 627,
           "width": 420
         },
         {
@@ -21235,7 +21155,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 9320,
-          "y": 650,
+          "y": 901,
           "width": 420
         },
         {
@@ -21243,7 +21163,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 9840,
-          "y": 483,
+          "y": 734,
           "width": 420
         },
         {
@@ -21251,7 +21171,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 10360,
-          "y": 362,
+          "y": 613,
           "width": 420
         },
         {
@@ -21259,7 +21179,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 10880,
-          "y": 636,
+          "y": 887,
           "width": 420
         },
         {
@@ -21267,7 +21187,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 11400,
-          "y": 464,
+          "y": 715,
           "width": 420
         },
         {
@@ -21275,7 +21195,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.If",
           "title": "If",
           "x": 11920,
-          "y": 1052,
+          "y": 1303,
           "width": 280
         },
         {
@@ -21283,7 +21203,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 6720,
-          "y": 946,
+          "y": 1197,
           "width": 240
         },
         {
@@ -21291,7 +21211,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 11920,
-          "y": 252,
+          "y": 503,
           "width": 240
         },
         {
@@ -21299,7 +21219,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 7240,
-          "y": 829,
+          "y": 1080,
           "width": 240
         },
         {
@@ -21307,7 +21227,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 7760,
-          "y": 473,
+          "y": 724,
           "width": 240
         },
         {
@@ -21315,7 +21235,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 8280,
-          "y": 937,
+          "y": 1188,
           "width": 240
         },
         {
@@ -21323,7 +21243,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 8800,
-          "y": 813,
+          "y": 1064,
           "width": 240
         },
         {
@@ -21331,7 +21251,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 11920,
-          "y": 652,
+          "y": 903,
           "width": 240
         },
         {
@@ -21339,7 +21259,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 9320,
-          "y": 450,
+          "y": 701,
           "width": 240
         },
         {
@@ -21347,7 +21267,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 11920,
-          "y": 452,
+          "y": 703,
           "width": 240
         },
         {
@@ -21355,7 +21275,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 9840,
-          "y": 920,
+          "y": 1171,
           "width": 240
         },
         {
@@ -21363,7 +21283,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 10360,
-          "y": 799,
+          "y": 1050,
           "width": 240
         },
         {
@@ -21371,7 +21291,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 10880,
-          "y": 436,
+          "y": 687,
           "width": 240
         },
         {
@@ -21379,7 +21299,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 11400,
-          "y": 901,
+          "y": 1152,
           "width": 240
         },
         {
@@ -21387,7 +21307,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 12300,
-          "y": 1069,
+          "y": 1320,
           "width": 240
         },
         {
@@ -21395,7 +21315,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 11920,
-          "y": 852,
+          "y": 1103,
           "width": 240
         }
       ],
@@ -21883,7 +21803,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 689,
+          "y": 719,
           "width": 280,
           "subtitle": "Small language models running on-device in 2026"
         },
@@ -21892,7 +21812,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 914,
+          "y": 944,
           "width": 280,
           "subtitle": "a technical product team deciding whether to adopt on-device models"
         },
@@ -21901,7 +21821,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 432,
+          "y": 462,
           "width": 340,
           "subtitle": "Research the topic below and write a briefing document for the stated audience. TOPIC: {{ topic }} AUDIENCE: {{ audience }} Method: 1. Brea…"
         },
@@ -21910,7 +21830,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 820,
-          "y": 782,
+          "y": 812,
           "width": 320
         },
         {
@@ -21918,7 +21838,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1240,
-          "y": 814,
+          "y": 844,
           "width": 280
         }
       ],
@@ -21957,13 +21877,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/research-a-brand-from-its-website",
     "title": "Research a Brand from Its Website — NodeTool AI Workflow Template",
-    "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. Uses Claude Sonnet 5 with browser and web search tools, and GPT-5 mini for extraction.",
+    "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses Claude Sonnet 5 with browser and web search tools. Pick any language model for the extractor.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "research-a-brand-from-its-website",
     "name": "Research a Brand from Its Website",
-    "summary": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. Uses Claude Sonnet 5 with browser and web search tools, and GPT-5 mini for extraction.",
+    "summary": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses Claude Sonnet 5 with browser and web search tools. Pick any language model for the extractor.",
     "tags": [
       "brand-asset",
       "branding",
@@ -22017,7 +21937,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 877,
+          "y": 1014,
           "width": 300,
           "subtitle": "https://nodetool.ai"
         },
@@ -22026,7 +21946,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 400,
-          "y": 761,
+          "y": 898,
           "width": 320,
           "subtitle": "Research the brand behind this website: {{ WEBSITE }} 1. Open the website with the browser tool. Open one or two more pages from it if the…"
         },
@@ -22035,7 +21955,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 820,
-          "y": 733,
+          "y": 870,
           "width": 340,
           "subtitle": "claude-sonnet-5"
         },
@@ -22044,7 +21964,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Extractor",
           "title": "Extractor",
           "x": 1260,
-          "y": 665,
+          "y": 802,
           "width": 320,
           "subtitle": "Extract a brand profile from the research notes in <TEXT>. - brand_name: the brand name exactly as written in the notes. - audience: who th…"
         },
@@ -22053,7 +21973,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1260,
-          "y": 954,
+          "y": 1091,
           "width": 300
         },
         {
@@ -22061,7 +21981,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1680,
-          "y": 346,
+          "y": 483,
           "width": 280
         },
         {
@@ -22069,7 +21989,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1680,
-          "y": 546,
+          "y": 683,
           "width": 280
         },
         {
@@ -22077,7 +21997,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1680,
-          "y": 746,
+          "y": 883,
           "width": 280
         },
         {
@@ -22085,7 +22005,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1680,
-          "y": 946,
+          "y": 1083,
           "width": 280
         },
         {
@@ -22093,7 +22013,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1680,
-          "y": 1146,
+          "y": 1283,
           "width": 280
         }
       ],
@@ -22513,7 +22433,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.ImageInput",
           "title": "Image Input",
           "x": 0,
-          "y": 252,
+          "y": 503,
           "width": 280
         },
         {
@@ -22521,7 +22441,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 508,
+          "y": 759,
           "width": 280
         },
         {
@@ -22529,7 +22449,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 733,
+          "y": 984,
           "width": 280,
           "subtitle": "Move the scene from late afternoon to blue hour."
         },
@@ -22538,7 +22458,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 958,
+          "y": 1209,
           "width": 280,
           "subtitle": "Keep the cup, camera position, composition, stone surface, headline, CTA, and spacing."
         },
@@ -22547,7 +22467,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1183,
+          "y": 1434,
           "width": 280,
           "subtitle": "Let reflections, shadows, and the sky respond to the light."
         },
@@ -22556,7 +22476,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 380,
-          "y": 424,
+          "y": 675,
           "width": 320
         },
         {
@@ -22564,7 +22484,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 800,
-          "y": 636,
+          "y": 887,
           "width": 440
         },
         {
@@ -22572,7 +22492,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
           "x": 1340,
-          "y": 774,
+          "y": 1025,
           "width": 320,
           "subtitle": "fal-ai/nano-banana/edit"
         },
@@ -22581,7 +22501,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 1760,
-          "y": 638,
+          "y": 889,
           "width": 380
         },
         {
@@ -22589,7 +22509,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2240,
-          "y": 583,
+          "y": 834,
           "width": 250
         },
         {
@@ -22597,7 +22517,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2240,
-          "y": 783,
+          "y": 1034,
           "width": 250
         },
         {
@@ -22605,7 +22525,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 2240,
-          "y": 983,
+          "y": 1234,
           "width": 250
         }
       ],
@@ -22955,7 +22875,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 879,
+          "y": 997,
           "width": 280,
           "subtitle": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auroragear.example/guides and supports the trail-gear collectio…"
         },
@@ -22964,7 +22884,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1104,
+          "y": 1222,
           "width": 280,
           "subtitle": "beginner hikers researching their first serious gear; seed topics: ultralight backpacking basics, trail runners vs hiking boots, multi-day…"
         },
@@ -22973,7 +22893,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.IntegerInput",
           "title": "Integer Input",
           "x": 0,
-          "y": 1329,
+          "y": 1447,
           "width": 280
         },
         {
@@ -22981,7 +22901,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 942,
+          "y": 1060,
           "width": 300,
           "subtitle": "You are planning organic-search content for this business. Business: {{ BUSINESS }} Audience and seed topics: {{ SEEDS }} Articles to produ…"
         },
@@ -22990,7 +22910,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 780,
-          "y": 1005,
+          "y": 1123,
           "width": 330
         },
         {
@@ -22998,7 +22918,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1210,
-          "y": 937,
+          "y": 1055,
           "width": 300
         },
         {
@@ -23006,7 +22926,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 1210,
-          "y": 1207,
+          "y": 1325,
           "width": 340,
           "subtitle": "From this content plan, write exactly {{ COUNT }} article briefs, one per line — no numbering, no labels. Each line: working title | primar…"
         },
@@ -23015,7 +22935,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 1650,
-          "y": 1136,
+          "y": 1254,
           "width": 330
         },
         {
@@ -23023,7 +22943,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 2080,
-          "y": 772,
+          "y": 890,
           "width": 360,
           "subtitle": "Write the full article for this brief. Brief: {{ BRIEF }} Publishing business: {{ BUSINESS }} Rules for the body: - 900-1200 words. Use the…"
         },
@@ -23032,7 +22952,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 2540,
-          "y": 778,
+          "y": 896,
           "width": 330
         },
         {
@@ -23040,7 +22960,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 2970,
-          "y": 1045,
+          "y": 1163,
           "width": 320
         },
         {
@@ -23048,7 +22968,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 2970,
-          "y": 1205,
+          "y": 1323,
           "width": 320
         },
         {
@@ -23056,7 +22976,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 2970,
-          "y": 855,
+          "y": 973,
           "width": 320
         },
         {
@@ -23064,7 +22984,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 2970,
-          "y": 385,
+          "y": 503,
           "width": 380
         },
         {
@@ -23072,7 +22992,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 2080,
-          "y": 1268,
+          "y": 1386,
           "width": 340,
           "subtitle": "Editorial hero image for a blog article, 16:9. Article brief: {{ BRIEF }} One clear photographic scene that shows the article's subject in…"
         },
@@ -23081,7 +23001,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 2540,
-          "y": 1317,
+          "y": 1435,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -23090,7 +23010,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 2970,
-          "y": 1365,
+          "y": 1483,
           "width": 360
         }
       ],
@@ -24243,7 +24163,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 233,
+          "y": 442,
           "width": 280
         },
         {
@@ -24251,7 +24171,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 599,
+          "y": 808,
           "width": 280,
           "subtitle": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental"
         },
@@ -24260,7 +24180,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
           "x": 780,
-          "y": 488,
+          "y": 697,
           "width": 280,
           "subtitle": "fal-ai/stable-audio-25/text-to-audio"
         },
@@ -24269,7 +24189,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
           "x": 2760,
-          "y": 390,
+          "y": 599,
           "width": 280
         },
         {
@@ -24277,7 +24197,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 3140,
-          "y": 406,
+          "y": 615,
           "width": 240
         },
         {
@@ -24285,7 +24205,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.Normalize",
           "title": "Normalize",
           "x": 1560,
-          "y": 474,
+          "y": 683,
           "width": 300
         },
         {
@@ -24293,7 +24213,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
           "x": 1960,
-          "y": 454,
+          "y": 663,
           "width": 300
         },
         {
@@ -24301,7 +24221,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
           "x": 2360,
-          "y": 434,
+          "y": 643,
           "width": 300
         },
         {
@@ -24309,7 +24229,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.GetVideoInfo",
           "title": "Get Video Info",
           "x": 380,
-          "y": 455,
+          "y": 664,
           "width": 300
         },
         {
@@ -24317,7 +24237,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.Trim",
           "title": "Trim",
           "x": 1160,
-          "y": 477,
+          "y": 686,
           "width": 300
         }
       ],
@@ -24659,7 +24579,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1245,
+          "y": 1365,
           "width": 280,
           "subtitle": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point…"
         },
@@ -24668,7 +24588,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1020,
+          "y": 1140,
           "width": 280,
           "subtitle": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly rea…"
         },
@@ -24677,7 +24597,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 1470,
+          "y": 1590,
           "width": 280,
           "subtitle": "5"
         },
@@ -24686,7 +24606,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 1053,
+          "y": 1173,
           "width": 320,
           "subtitle": "You are directing a short film. Write a complete DIRECTION DOCUMENT for this brief. Brief: {{ BRIEF }} Visual style: {{ STYLE }} Shot count…"
         },
@@ -24695,7 +24615,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.agents.Agent",
           "title": "Agent",
           "x": 800,
-          "y": 1077,
+          "y": 1197,
           "width": 330
         },
         {
@@ -24703,7 +24623,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1230,
-          "y": 1190,
+          "y": 1310,
           "width": 280
         },
         {
@@ -24711,7 +24631,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.StructuredOutputGenerator",
           "title": "Structured Output Generator",
           "x": 1230,
-          "y": 794,
+          "y": 914,
           "width": 300,
           "subtitle": "Return only a valid JSON object with the requested fields. Do not wrap it in Markdown or add commentary."
         },
@@ -24720,7 +24640,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
           "x": 1650,
-          "y": 424,
+          "y": 544,
           "width": 300,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -24729,7 +24649,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 1230,
-          "y": 1390,
+          "y": 1510,
           "width": 320,
           "subtitle": "From the direction document below, output exactly {{ COUNT }} lines, one per shot from the SHOT LIST, in order. No numbering, no labels, no…"
         },
@@ -24738,7 +24658,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
           "x": 1650,
-          "y": 1492,
+          "y": 1612,
           "width": 300
         },
         {
@@ -24746,7 +24666,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 2050,
-          "y": 965,
+          "y": 1085,
           "width": 320,
           "subtitle": "Cinematic film still, 16:9. Shot: {{ SHOT }} Visual style: {{ STYLE }}. Dramatic volumetric lighting, rich cinematic color grading, fine fi…"
         },
@@ -24755,7 +24675,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.image.ImageToImage",
           "title": "Image To Image",
           "x": 2470,
-          "y": 799,
+          "y": 919,
           "width": 320,
           "subtitle": "fal-ai/nano-banana/edit"
         },
@@ -24764,7 +24684,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.Collect",
           "title": "Collect",
           "x": 2890,
-          "y": 914,
+          "y": 1034,
           "width": 160
         },
         {
@@ -24772,7 +24692,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 3320,
-          "y": 892,
+          "y": 1012,
           "width": 280
         },
         {
@@ -24780,7 +24700,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 2050,
-          "y": 1391,
+          "y": 1511,
           "width": 320,
           "subtitle": "Animate this exact scene. {{ SHOT }} Follow the MOTION direction precisely: move only what it names, keep everything else stable. Preserve…"
         },
@@ -24789,7 +24709,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
           "x": 2890,
-          "y": 1116,
+          "y": 1236,
           "width": 330,
           "subtitle": "veo-3.1-generate-preview"
         },
@@ -24798,7 +24718,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.control.Collect",
           "title": "Collect",
           "x": 3320,
-          "y": 1194,
+          "y": 1314,
           "width": 160
         },
         {
@@ -24806,7 +24726,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.Concat",
           "title": "Concat",
           "x": 3700,
-          "y": 1103,
+          "y": 1223,
           "width": 300
         },
         {
@@ -24814,7 +24734,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.TextToSpeech",
           "title": "Text To Speech",
           "x": 1650,
-          "y": 1176,
+          "y": 1296,
           "width": 300,
           "subtitle": "tts-1"
         },
@@ -24823,7 +24743,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
           "x": 1650,
-          "y": 840,
+          "y": 960,
           "width": 300,
           "subtitle": "meta/musicgen"
         },
@@ -24832,7 +24752,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
           "x": 4100,
-          "y": 1084,
+          "y": 1204,
           "width": 280
         },
         {
@@ -24840,7 +24760,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
           "x": 4480,
-          "y": 962,
+          "y": 1082,
           "width": 280
         },
         {
@@ -24848,7 +24768,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 4860,
-          "y": 1015,
+          "y": 1135,
           "width": 280
         }
       ],
@@ -28623,7 +28543,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
           "x": 0,
-          "y": 288,
+          "y": 380,
           "width": 280
         },
         {
@@ -28631,7 +28551,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
           "x": 380,
-          "y": 334,
+          "y": 426,
           "width": 280,
           "subtitle": "openai/whisper-large-v3"
         },
@@ -28640,7 +28560,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 760,
-          "y": 347,
+          "y": 439,
           "width": 260
         }
       ],
@@ -30125,7 +30045,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.VideoInput",
           "title": "Video Input",
           "x": 0,
-          "y": 288,
+          "y": 442,
           "width": 280
         },
         {
@@ -30133,7 +30053,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 504,
+          "y": 658,
           "width": 280,
           "subtitle": "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain"
         },
@@ -30142,7 +30062,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 729,
+          "y": 883,
           "width": 280,
           "subtitle": "faces, text, and the position of every subject in frame"
         },
@@ -30151,7 +30071,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
           "x": 380,
-          "y": 434,
+          "y": 588,
           "width": 320,
           "subtitle": "Restyle this footage. Target style: {{ style }} Preserve exactly: {{ preserve }} Apply the style uniformly across every frame so the look d…"
         },
@@ -30160,7 +30080,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.video.VideoToVideo",
           "title": "Video To Video",
           "x": 800,
-          "y": 416,
+          "y": 570,
           "width": 280,
           "subtitle": "decart/lucy-edit-2"
         },
@@ -30169,7 +30089,7 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1180,
-          "y": 430,
+          "y": 584,
           "width": 240
         }
       ],
@@ -30746,13 +30666,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/workflow-as-a-tool",
     "title": "Workflow As A Tool — NodeTool AI Workflow Template",
-    "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+    "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager, on a model you pick, decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "workflow-as-a-tool",
     "name": "Workflow As A Tool",
-    "summary": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+    "summary": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager, on a model you pick, decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
     "tags": [
       "agents",
       "composition",

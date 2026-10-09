@@ -133,7 +133,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. The Director node writes the storyboard in one step — the same node the Storyboard editor runs behind its Direct button — so the screenplay, the camera direction, and one style bible applied to every shot all come out of a single node.\n\n**Pipeline:** Logline → Director (storyboard) → Screenplay Shots → Keyframes → Image-to-Video → Concat\n\n**Cost note:** the Image-to-Video step runs on Veo 3.1, billed per second of generated video — the most expensive node here. A 6-shot trailer fires 6 Veo calls, so raising Shot Count raises cost linearly.\n\n**Try this:** change the visual style or shot count, or swap the image / video model."
+          "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. Use it to pitch a film idea as a short cut of animated shots.\n\n**How it works:** \"1️⃣ Logline\", \"2️⃣ Visual style\" and \"3️⃣ Shot count\" (6) feed \"4️⃣ Direct the storyboard\", the same Director node the Storyboard editor runs behind its Direct button. It writes the screenplay, camera direction and one style bible. \"5️⃣ One prompt per shot\" emits one prompt per shot. \"6️⃣ Render keyframes\" draws each as a 16:9 2K still, and \"7️⃣ Animate each keyframe (Veo, metered per second)\" turns it into a 4-second 720p clip. \"Collect video clips\" gathers the clips and \"🎬 Final trailer\" joins them for \"8️⃣ Trailer output\". The Director uses Gemini, the keyframes use GPT Image 2 through Kie, and the animation uses Veo 3.1, which is billed per second and costs the most. A 6-shot trailer makes 6 Veo calls.\n\n**Try this:** Set \"3️⃣ Shot count\" to 3 for a cheaper test run and confirm the trailer has three clips."
         },
         "ui_properties": {
           "position": {
@@ -142,7 +142,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 333,
+          "height": 403,
           "selectable": true,
           "bypassed": false
         },
@@ -159,7 +159,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 413
+            "y": 483
           },
           "zIndex": 0,
           "width": 280,
@@ -180,7 +180,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 638
+            "y": 708
           },
           "zIndex": 0,
           "width": 280,
@@ -203,7 +203,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 863
+            "y": 933
           },
           "zIndex": 0,
           "selectable": true,
@@ -235,7 +235,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 496
+            "y": 566
           },
           "zIndex": 0,
           "selectable": true,
@@ -256,7 +256,7 @@
         "ui_properties": {
           "position": {
             "x": 840,
-            "y": 566
+            "y": 636
           },
           "zIndex": 0,
           "selectable": true,
@@ -288,7 +288,7 @@
           "selected": false,
           "position": {
             "x": 1260,
-            "y": 525
+            "y": 595
           },
           "zIndex": 0,
           "width": 320,
@@ -324,7 +324,7 @@
           "selected": false,
           "position": {
             "x": 1680,
-            "y": 575
+            "y": 645
           },
           "zIndex": 0,
           "width": 331,
@@ -353,7 +353,7 @@
           "selected": false,
           "position": {
             "x": 2111,
-            "y": 611
+            "y": 681
           },
           "zIndex": 0,
           "width": 161,
@@ -373,7 +373,7 @@
           "selected": false,
           "position": {
             "x": 2372,
-            "y": 556
+            "y": 626
           },
           "zIndex": 0,
           "width": 320,
@@ -396,7 +396,7 @@
         "ui_properties": {
           "position": {
             "x": 2792,
-            "y": 644
+            "y": 714
           },
           "title": "8️⃣ Trailer output",
           "selectable": true

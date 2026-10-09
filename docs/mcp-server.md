@@ -162,6 +162,7 @@ The server registers a short list of direct tools. Everything else NodeTool can 
 | `nodetool://sandbox` | Resource | How to write `execute_code`: the guest contract, blocked globals, unavailable bridges, and worked examples. |
 | `sandbox-action` | Prompt | A complete `execute_code` body that lists workflows, picks a model, and generates one image. |
 | `sandbox-asset` | Prompt | A complete `execute_code` body that lists one asset and fetches its ref. |
+| `<skill-name>` | Prompt | One prompt for each skill the user can load: the shipped system skills and the user's own skills. The prompt returns the skill body. The optional `request` argument adds the task. Claude Code shows each prompt as a slash command. |
 
 ## Troubleshooting
 

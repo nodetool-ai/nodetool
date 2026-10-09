@@ -42,6 +42,29 @@ export function storyboardShots(inputs: StoryboardShotsInputs, options?: NodeOpt
   return createNode("nodetool.storyboard.StoryboardShots", inputs, { id: options?.id, outputNames: ["shot", "index", "slug", "keyframe", "clip", "output"], outputTypes: {"shot":"dict","index":"int","slug":"str","keyframe":"image","clip":"video","output":"list[dict]"}, streaming: true, inputMode: "buffered", outputCorrelation: {"shot":{"kind":"iteration","source":"__execution__","group":"items"},"index":{"kind":"iteration","source":"__execution__","group":"items"},"slug":{"kind":"iteration","source":"__execution__","group":"items"},"keyframe":{"kind":"iteration","source":"__execution__","group":"items"},"clip":{"kind":"iteration","source":"__execution__","group":"items"},"output":{"kind":"single","source":"__execution__"}} });
 }
 
+// Create Storyboard — nodetool.storyboard.CreateStoryboard
+export type CreateStoryboardInputs = {
+  screenplay?: Connectable<Record<string, unknown>>;
+  name?: Connectable<string>;
+  brief?: Connectable<string>;
+  cast?: Connectable<Entity[]>;
+  image_model?: Connectable<unknown>;
+  video_model?: Connectable<unknown>;
+  project?: Connectable<string>;
+  reuse_existing?: Connectable<boolean>;
+};
+
+export interface CreateStoryboardOutputs {
+  storyboard: StoryboardRef;
+  shots: Record<string, unknown>[];
+  shot_count: number;
+  created: boolean;
+}
+
+export function createStoryboard(inputs: CreateStoryboardInputs, options?: NodeOptions): NodeWithOutputs<CreateStoryboardOutputs> {
+  return createNode("nodetool.storyboard.CreateStoryboard", inputs, { id: options?.id, outputNames: ["storyboard", "shots", "shot_count", "created"], outputTypes: {"storyboard":"storyboard","shots":"list[dict]","shot_count":"int","created":"bool"} });
+}
+
 // Recast Storyboard — nodetool.storyboard.RecastStoryboard
 export type RecastStoryboardInputs = {
   storyboard?: Connectable<StoryboardRef>;

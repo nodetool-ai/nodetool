@@ -2,22 +2,20 @@
  * Executes every workflow example end-to-end with fully faked dependencies.
  *
  * Each workflow JSON under `nodetool/examples/nodetool-base/*.json` is:
- *   1. Hydrated through `Graph.loadFromDict` against the live registry so
+ *   1. Prepared the way the editor prepares it before Run: empty model
+ *      fields get the fake provider's model, and empty media inputs get a
+ *      shipped sample.
+ *   2. Hydrated through `Graph.loadFromDict` against the live registry so
  *      unregistered nodes (Python-only, sibling packages) are dropped.
- *   2. Handed to a `WorkflowRunner` whose execution context is a
+ *   3. Handed to a `WorkflowRunner` whose execution context is a
  *      {@link createFakeContext} — every provider call returns canned bytes
  *      from {@link FakeProvider}, storage is `InMemoryStorageAdapter`,
  *      `fetch` is a stub, secrets are stub strings, the workspace dir is a
  *      throwaway tmp directory.
- *   3. Run with a 30 s timeout. Workflows that complete are recorded as
- *      "executed"; workflows that fail (missing inputs, removed Python
- *      nodes, etc.) are recorded with their error message.
+ *   4. Run with a 30 s timeout.
  *
- * The test asserts:
- *   - every workflow either completes or fails with a *known* error class
- *     captured in the per-workflow snapshot of expected outcomes.
- *   - any workflow that previously executed cleanly keeps executing
- *     cleanly (regressions surface as new errors).
+ * Every example must complete, except the few in {@link CANNOT_COMPLETE},
+ * which must still fail so the list cannot go stale.
  *
  * No real provider is reachable: tests would fail loudly with a network
  * error if a fake leaked through.
@@ -30,9 +28,15 @@ import { fileURLToPath } from "node:url";
 import { WorkflowRunner, Graph } from "@nodetool-ai/kernel";
 import {
   NodeRegistry,
-  createGraphNodeTypeResolver
+  createGraphNodeTypeResolver,
+  createSandboxModuleCatalog,
+  discoverSandboxPack
 } from "@nodetool-ai/node-sdk";
-import { createFakeContext, stubGlobalFetch } from "@nodetool-ai/runtime";
+import {
+  createFakeContext,
+  setProcessSandboxModuleCatalog,
+  stubGlobalFetch
+} from "@nodetool-ai/runtime";
 import {
   resetDefaultStore,
   resetDefaultVectorProvider
@@ -53,14 +57,49 @@ process.env.VECTORSTORE_DB_PATH = path.join(
   "vectorstore.db"
 );
 
+// Shipped sample media (`package://nodetool-base/...`) resolves from this
+// directory, the same files an install serves from its package-asset route.
+const originalPackageAssetsDir = process.env.NODETOOL_PACKAGE_ASSETS_DIR;
+
+/**
+ * The host sandbox packs that example Code nodes import. The server builds
+ * this catalog at startup; without it the import fails before the code runs.
+ */
+const SANDBOX_PACKS = ["sandbox-tokens"];
+
 beforeAll(() => {
   restoreFetch = stubGlobalFetch();
+  const packsRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../sandbox-packs"
+  );
+  setProcessSandboxModuleCatalog(
+    createSandboxModuleCatalog(
+      SANDBOX_PACKS.map((dir) => {
+        const discovery = discoverSandboxPack(path.join(packsRoot, dir));
+        if (discovery === undefined) {
+          throw new Error(`${dir} is not a sandbox pack`);
+        }
+        return discovery;
+      })
+    )
+  );
+  process.env.NODETOOL_PACKAGE_ASSETS_DIR = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../nodetool/assets"
+  );
 });
 afterAll(() => {
   restoreFetch?.();
   restoreFetch = null;
+  setProcessSandboxModuleCatalog(null);
   resetDefaultVectorProvider();
   resetDefaultStore();
+  if (originalPackageAssetsDir === undefined) {
+    delete process.env.NODETOOL_PACKAGE_ASSETS_DIR;
+  } else {
+    process.env.NODETOOL_PACKAGE_ASSETS_DIR = originalPackageAssetsDir;
+  }
   if (originalVectorstoreDbPath === undefined) {
     delete process.env.VECTORSTORE_DB_PATH;
   } else {
@@ -76,6 +115,20 @@ const EXAMPLES_DIR = path.resolve(
 );
 
 const PER_WORKFLOW_TIMEOUT_MS = 30_000;
+
+/**
+ * Examples whose real ffmpeg work outlasts the default timeout: denoising the
+ * 8 s sample clip, and rendering a timeline to video.
+ */
+const SLOW_WORKFLOW_TIMEOUT_MS: Record<string, number> = {
+  "Denoise Footage.json": 120_000,
+  "Direct a Short Film.json": 120_000,
+  "Directed Film to Timeline.json": 120_000
+};
+
+function timeoutFor(fileName: string): number {
+  return SLOW_WORKFLOW_TIMEOUT_MS[fileName] ?? PER_WORKFLOW_TIMEOUT_MS;
+}
 
 interface WorkflowFile {
   fileName: string;
@@ -140,6 +193,105 @@ function workflowIsUnrunnable(w: WorkflowFile): boolean {
   );
 }
 
+/**
+ * Sample media for an input the example ships empty. A person picks a file
+ * before running these; the harness picks one of the shipped samples.
+ */
+const SAMPLE_MEDIA: Record<string, { type: string; uri: string }> = {
+  "nodetool.input.ImageInput": {
+    type: "image",
+    uri: "package://nodetool-base/recipe-inputs/coffee.jpg"
+  },
+  "nodetool.input.AudioInput": {
+    type: "audio",
+    uri: "package://nodetool-base/recipe-inputs/voice.wav"
+  },
+  "nodetool.input.VideoInput": {
+    type: "video",
+    uri: "package://nodetool-base/recipe-inputs/presenter.mp4"
+  }
+};
+
+function isEmptyModel(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.type === "string" &&
+    v.type.endsWith("_model") &&
+    !v.provider &&
+    !v.id
+  );
+}
+
+function isEmptyMedia(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value !== "object" || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  return !v.uri && !v.asset_id && !v.data;
+}
+
+/**
+ * Do what the editor does before a person presses Run. Examples ship model
+ * fields empty, and the app fills each from the user's default model
+ * (`web/src/utils/applyDefaultModels.ts`); here every empty model becomes
+ * a fake one. The provider id names the node because a FakeProvider answers
+ * tool calls once per instance, and the context caches one per id: two
+ * ListGenerators sharing an id would leave the second with no items. Media
+ * inputs a person must fill get a shipped sample.
+ */
+function prepareForFakeRun(
+  graph: WorkflowFile["data"]["graph"]
+): WorkflowFile["data"]["graph"] {
+  const nodes = graph.nodes.map((node) => {
+    const data = { ...((node.data as Record<string, unknown>) ?? {}) };
+    for (const [key, value] of Object.entries(data)) {
+      if (isEmptyModel(value)) {
+        data[key] = {
+          ...value,
+          provider: `fake-${String(node.id)}`,
+          id: "fake-model",
+          name: "Fake"
+        };
+      }
+    }
+    const sample = SAMPLE_MEDIA[node.type as string];
+    if (sample && isEmptyMedia(data.value)) {
+      data.value = { ...sample };
+    }
+    return { ...node, data };
+  });
+  return { ...graph, nodes };
+}
+
+/**
+ * Examples that cannot complete under this harness, and why. Each must fail;
+ * one that starts completing has to come off the list.
+ */
+const CANNOT_COMPLETE: Record<string, string> = {
+  "Brand a UGC Product Video.json":
+    "openai.audio.Transcribe calls the OpenAI API directly for word timings",
+  "Compose Directed Campaign Formats.json":
+    "reads the accepted creative contract an earlier campaign step writes",
+  "Render a Directed Campaign Hero.json":
+    "reads the campaign plan Propose Three Campaign Directions writes",
+  "Revise an Accepted Campaign Hero.json":
+    "reads the accepted hero contract an earlier campaign step writes",
+  "Reopen a Directed Campaign.json":
+    "reads a saved directed-campaign.json record",
+  "Propose Three Campaign Directions.json":
+    "parses JSON directions from the model; the fake replies with plain text",
+  "Localized Explainer.json":
+    "needs a storyboard picked on its Constant Storyboard node",
+  "Per-SKU Ad Factory.json":
+    "needs a storyboard and timeline picked; covered by per-sku-ad-factory.fake.json",
+  "Three Ratios.json":
+    "needs a timeline picked; covered by three-ratios.fake.json",
+  "Top-down Native Asset Pack.json":
+    "checks sprite grids and sound lengths the 1x1 fake media cannot pass; covered by topdown-native-asset-pack.fake.json"
+};
+
 const allWorkflows = loadWorkflows();
 const workflows = allWorkflows.filter((w) => !workflowIsUnrunnable(w));
 const skippedWorkflows = allWorkflows.filter(workflowIsUnrunnable);
@@ -160,7 +312,7 @@ async function executeWorkflow(workflow: WorkflowFile): Promise<ExecutionResult>
   const fake = createFakeContext({
     jobId: `fake-${workflow.fileName}`
   });
-  const graph = await Graph.loadFromDict(workflow.data.graph, {
+  const graph = await Graph.loadFromDict(prepareForFakeRun(workflow.data.graph), {
     resolver,
     skipErrors: true,
     allowUndefinedProperties: true
@@ -194,8 +346,10 @@ async function executeWorkflow(workflow: WorkflowFile): Promise<ExecutionResult>
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(
         () =>
-          reject(new Error(`workflow exceeded ${PER_WORKFLOW_TIMEOUT_MS} ms`)),
-        PER_WORKFLOW_TIMEOUT_MS
+          reject(
+            new Error(`workflow exceeded ${timeoutFor(workflow.fileName)} ms`)
+          ),
+        timeoutFor(workflow.fileName)
       ).unref()
     );
     const runPromise = runner.run(
@@ -223,61 +377,16 @@ async function executeWorkflow(workflow: WorkflowFile): Promise<ExecutionResult>
   }
 }
 
-interface OutcomeSummary {
-  fileName: string;
-  status: ExecutionResult["status"];
-  errorClass: string | null;
-  durationMs: number;
-  errorMessage?: string;
-}
-
-/** Bucket an error message into a small, stable class so the summary is
- *  resilient to wording changes inside node implementations. */
-function classifyError(message: string | undefined): string {
-  if (!message) return "none";
-  const m = message.toLowerCase();
-  if (m.includes("graph validation failed")) return "graph-validation";
-  if (m.includes("is not installed or not on path")) return "missing-binary";
-  if (m.includes("select a model")) return "missing-model";
-  if (m.includes("requires a") && m.includes("model")) return "missing-model";
-  if (m.includes("is not configured") || m.includes("must be configured"))
-    return "not-configured";
-  if (m.includes("webgpu")) return "unsupported-capability";
-  if (m.includes("unexpected character")) return "invalid-expression";
-  if (m.includes("required property")) return "missing-required-property";
-  if (m.includes("no provider available")) return "no-provider";
-  if (m.includes("failed to create a task plan")) return "no-provider";
-  if (m.includes("no add_item tool calls")) return "no-provider";
-  if (m.includes("libpng") || m.includes("vips2png")) return "image-codec";
-  if (m.includes("does not support")) return "unsupported-capability";
-  if (m.includes("exceeded") && m.includes("ms")) return "timeout";
-  if (m.includes("not found") || m.includes("enoent")) return "not-found";
-  if (m.includes("network") || m.includes("fetch")) return "network";
-  if (m.includes("input") && m.includes("required")) return "missing-input";
-  if (m.includes("provide a") && m.includes("input")) return "missing-input";
-  if (m.includes("campaign plan is invalid")) return "missing-input";
-  if (m.includes("creative contract is invalid")) return "missing-input";
-  if (m.includes("ref with no uri, asset_id, or data")) return "missing-input";
-  if (m.includes("requires at least one reference image or video"))
-    return "missing-input";
-  if (m.includes("required")) return "missing-input";
-  if (m.includes("is empty")) return "missing-input";
-  if (m.includes("no tiles provided")) return "missing-input";
-  // Audio effects word an unfed input as "No audio connected: … none was
-  // provided" rather than the "… is empty" the video and image nodes use.
-  // Same condition — this run supplies no inputs — so same bucket.
-  if (m.includes("none was provided")) return "missing-input";
-  // Fakes return a 1x1 image and 10 ms of audio, so a node that checks a
-  // generated sheet's grid or a sound's length refuses it.
-  if (m.includes("is not a multiple of cell")) return "fake-media-shape";
-  if (m.includes("invalid fill") && m.includes("is not within"))
-    return "fake-media-shape";
-  return "other";
-}
-
 describe("example workflows execute end-to-end with fakes", () => {
   it("has workflows to execute", () => {
     expect(workflows.length).toBeGreaterThan(0);
+  });
+
+  it("lists only shipped examples as unable to complete", () => {
+    const names = new Set(workflows.map((w) => w.fileName));
+    for (const fileName of Object.keys(CANNOT_COMPLETE)) {
+      expect(names.has(fileName), fileName).toBe(true);
+    }
   });
 
   it.each(skippedWorkflows)(
@@ -293,83 +402,35 @@ describe("example workflows execute end-to-end with fakes", () => {
       expect(unrunnable.length, fileName).toBeGreaterThan(0);
     }
   );
-
-  it(
-    "every workflow finishes within the per-workflow timeout",
-    async () => {
-      // Sanity-roll a fast sweep that just times each run. Per-workflow
-      // assertions live in the describe.each below; this aggregate guards
-      // against a regression that makes the suite hang.
-      //
-      // This runs every workflow sequentially (cwd is process-global, see
-      // executeWorkflow), so the test timeout must cover the whole sweep,
-      // not just one workflow — otherwise Vitest's default 5s test timeout
-      // aborts the loop mid-workflow, leaving process.cwd() pointed at a
-      // temp dir that the next test's cleanup then deletes out from under
-      // it, cascading into an unrelated ENOENT failure there.
-      const slow: Array<{ name: string; ms: number }> = [];
-      for (const w of workflows) {
-        const r = await executeWorkflow(w);
-        if (r.durationMs > PER_WORKFLOW_TIMEOUT_MS) {
-          slow.push({ name: w.fileName, ms: r.durationMs });
-        }
-      }
-      expect(
-        slow,
-        `workflows exceeded ${PER_WORKFLOW_TIMEOUT_MS} ms:\n${slow
-          .map((s) => `  ${s.name} (${s.ms} ms)`)
-          .join("\n")}`
-      ).toEqual([]);
-    },
-    workflows.length * PER_WORKFLOW_TIMEOUT_MS
-  );
 });
 
 describe.each(workflows)(
   "execute $fileName",
   ({ fileName, data }) => {
     it(
-      "runs to completion or fails with a recognised error class",
+      "runs to completion",
       async () => {
         const result = await executeWorkflow({ fileName, data });
-        const summary: OutcomeSummary = {
-          fileName,
-          status: result.status,
-          errorClass: classifyError(result.error),
-          durationMs: result.durationMs,
-          errorMessage: result.error
-        };
-        const detail = JSON.stringify(summary, null, 2);
-
-        expect(
-          ["completed", "failed", "errored", "cancelled"].includes(
-            result.status
-          ),
-          `unexpected status: ${detail}`
-        ).toBe(true);
-
-        // If the workflow did not complete, the error must fit into one
-        // of the known buckets. An "other" classification means we hit a
-        // failure mode we haven't characterised — that's a regression
-        // worth surfacing rather than swallowing.
-        if (result.status !== "completed") {
+        const reason = CANNOT_COMPLETE[fileName];
+        if (reason === undefined) {
           expect(
-            summary.errorClass,
-            `unclassified failure — add a new error bucket if this is expected:\n${detail}`
-          ).not.toBe("other");
-        }
-
-        // A workflow that completed must produce sensible per-output arrays.
-        if (result.status === "completed" && result.outputs) {
-          for (const [name, values] of Object.entries(result.outputs)) {
+            result.status,
+            `${fileName} did not complete: ${result.error ?? ""}`
+          ).toBe("completed");
+          for (const [name, values] of Object.entries(result.outputs ?? {})) {
             expect(
               Array.isArray(values),
               `output "${name}" is not an array in ${fileName}`
             ).toBe(true);
           }
+        } else {
+          expect(
+            result.status,
+            `${fileName} now completes. Remove it from CANNOT_COMPLETE (${reason}).`
+          ).not.toBe("completed");
         }
       },
-      PER_WORKFLOW_TIMEOUT_MS + 5_000
+      timeoutFor(fileName) + 5_000
     );
   }
 );

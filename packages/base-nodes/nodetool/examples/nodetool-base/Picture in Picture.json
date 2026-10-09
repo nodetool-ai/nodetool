@@ -39,7 +39,10 @@
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "main_clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "The background clip"
         },
         "ui_properties": {
@@ -60,7 +63,10 @@
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "inset_clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "The clip to inset"
         },
         "ui_properties": {

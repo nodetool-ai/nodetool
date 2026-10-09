@@ -22,7 +22,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Low-poly Seaside Starter Pack\n\nLow-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles. Run to expose each GLB as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z and bottom-level origins. Dock decks repeat on a 2 m grid with their top at Y 0.80 m. All models are static visuals. Add physics, buoyancy and gameplay in the game. Download a model output and upload it to your project before importing it into a 3D game."
+          "comment": "# Low-poly Seaside Starter Pack\n\nLow-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles.\n\n**How it works:** Each of the 16 \"Model3D\" constants, such as \"Harbor rowboat\", \"Dock segment\" and \"Striped lighthouse\", points at a packaged GLB file and connects to its own output, such as \"Harbor rowboat output\". Running the graph exposes every model as a named output. It runs locally with no provider or API key. Models use meters, Y up, forward -Z and bottom-level origins. Dock decks repeat on a 2 m grid with their top at Y 0.80 m. All models are static, so add physics, buoyancy and gameplay in the game.\n\n**Try this:** Run the graph, download \"Dock segment output\", upload it to your project, and place three copies 2 m apart in a 3D game to build a pier."
         },
         "ui_properties": {
           "position": {
