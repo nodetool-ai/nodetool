@@ -532,6 +532,12 @@ emitter ids, so captures repeat. The built-in players do not draw particles yet.
 
 ### P: Physics
 
+2D `schemaVersion: 5` with `engineVersion: "4"` is reserved for Rapier 2D
+physics. This runtime does not provide that engine yet, so validation and
+sessions refuse such a document with the `engine_unavailable` diagnostic. Do not
+author schema 5. Keep 2D games on schema 4 with engine 3, or on schemas 1 and 2
+with engine 1. A schema must use its own engine version.
+
 ### A: Audio
 
 Set the document mix with `set_audio {mixer}` in 2D and 3D. `set_audio

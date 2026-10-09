@@ -10,6 +10,8 @@ import {
   type MutableRefObject
 } from "react";
 import { registerComboCallback, useKeyPressedStore } from "../../stores/KeyPressedStore";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
+import { useContextCommands } from "../../hooks/useContextCommands";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import * as THREE from "three";
@@ -1082,6 +1084,22 @@ const Model3DEditor = ({
     );
     return () => releases.forEach((release) => release());
   }, [getContainer]);
+
+  // The same actions, listed in the Cmd+K menu while this tab is on screen.
+  const menuCommands = useMemo<ContextCommand[]>(
+    () =>
+      EDITOR_SHORTCUTS.filter((shortcut) => shortcut.action !== "deselect").map(
+        (shortcut) => ({
+          id: shortcut.action,
+          label: shortcut.label,
+          keywords: [shortcut.group],
+          shortcut: shortcut.keys.join("+"),
+          run: () => actionsRef.current[shortcut.action]()
+        })
+      ),
+    []
+  );
+  useContextCommands("3D Model", menuCommands, active && !cameraPose);
 
   // --- Render ------------------------------------------------------------------------
 

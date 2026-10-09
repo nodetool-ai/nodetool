@@ -5,11 +5,8 @@
  * (OpenAI, Ollama, Gemini, Mistral, Cohere, Voyage AI, Jina AI).
  */
 
-import { createLogger } from "@nodetool-ai/config";
 import { getSecret } from "@nodetool-ai/models";
 import type { EmbeddingFunction } from "./sqlite-vec-store.js";
-
-const log = createLogger("nodetool.vectorstore.embedding");
 
 // ---------------------------------------------------------------------------
 // Types
@@ -436,8 +433,8 @@ export class JinaEmbeddingFunction extends ProviderEmbeddingFunction {
  *
  * When provider is omitted, the model name is used to infer the provider:
  * - `text-embedding-*` → OpenAI
- * - Otherwise → Ollama (if OLLAMA_API_URL is set)
- * - Fallback → null (caller should handle)
+ * - Otherwise → Ollama, at OLLAMA_API_URL from Settings or the environment,
+ *   else the local default, as every other Ollama path resolves it
  *
  * @param embeddingModel  Model identifier.
  * @param provider        Optional explicit provider name.
@@ -484,15 +481,8 @@ export function getProviderEmbeddingFunction(
     return new JinaEmbeddingFunction(embeddingModel, undefined, userId);
   }
 
-  // Default to Ollama for local models (nomic-embed-text, all-minilm, mxbai-embed-large, etc.)
-  const ollamaUrl = process.env.OLLAMA_API_URL;
-  if (ollamaUrl) {
-    return new OllamaEmbeddingFunction(embeddingModel, userId);
-  }
-
-  log.warn(
-    `Could not determine provider for embedding model '${embeddingModel}'. ` +
-      `Set OLLAMA_API_URL or pass an explicit provider.`
-  );
-  return null;
+  // Default to Ollama for local models (nomic-embed-text, all-minilm,
+  // mxbai-embed-large, etc.). The URL resolves at call time through the
+  // secret store and environment, with the localhost default.
+  return new OllamaEmbeddingFunction(embeddingModel, userId);
 }

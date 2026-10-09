@@ -3,7 +3,7 @@ import { protectedProcedure } from "../middleware.js";
 import { TRPCError } from "@trpc/server";
 import type { Context } from "../context.js";
 import type { PythonBridge } from "@nodetool-ai/runtime";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, getHfHubCacheDir } from "@nodetool-ai/config";
 import { discoverASRModels, discoverVadModels } from "@nodetool-ai/whisper-cpp";
 import {
   getProvider,
@@ -32,7 +32,8 @@ import {
   searchCachedHfModels,
   getModelsByHfType,
   filterModelsByHfType,
-  deleteCachedHfModel
+  deleteCachedHfModel,
+  isLlamaCppModelCached as isFlatLlamaCppModelCached
 } from "@nodetool-ai/huggingface";
 import {
   getTransformersJsCacheDir,
@@ -46,8 +47,7 @@ import { MODEL_SEARCH_KINDS } from "@nodetool-ai/protocol";
 import { rankedModelKeys } from "../../models-api.js";
 import { access, readdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
-import { homedir } from "node:os";
-import { basename, join, resolve, sep } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { z } from "zod";
 import { isString } from "../../lib/wire-values.js";
 import {
@@ -334,10 +334,7 @@ function isDownloadedFromFiles(
 }
 
 function getHfCacheRoot(): string {
-  const cacheEnv = process.env.HUGGINGFACE_HUB_CACHE ?? process.env.HF_HOME;
-  return cacheEnv
-    ? join(cacheEnv, "hub")
-    : join(homedir(), ".cache", "huggingface", "hub");
+  return getHfHubCacheDir();
 }
 
 function repoToCacheDir(repoId: string): string {
@@ -423,6 +420,9 @@ async function listRepoCachedFiles(repoId: string): Promise<string[]> {
   return [...collected];
 }
 
+/** A GGUF is downloaded when it is in the HF hub cache (the `llama_cpp_model`
+ * download path) or in llama.cpp's flat cache (the `llama_cpp` download path,
+ * which writes `{org}_{repo}_{file}` to {@link getLlamaCppCacheDir}). */
 async function isLlamaCppModelCached(
   repoId: string,
   filePath: string
@@ -430,28 +430,7 @@ async function isLlamaCppModelCached(
   if (await repoFileInCache(repoId, filePath)) {
     return true;
   }
-
-  const cacheRoot =
-    process.env.LLAMA_CPP_CACHE_DIR ??
-    join(homedir(), "Library", "Caches", "llama.cpp", "hf");
-  const repoDir = join(cacheRoot, repoToCacheDir(repoId), "snapshots");
-  if (!(await pathExists(repoDir))) return false;
-
-  const snapshots = await readdir(repoDir, { withFileTypes: true });
-  for (const snapshot of snapshots) {
-    if (!snapshot.isDirectory()) continue;
-    const snapshotDir = join(repoDir, snapshot.name);
-    const full = safeJoinWithin(snapshotDir, filePath);
-    if (full && (await pathExists(full))) {
-      return true;
-    }
-    // basename() strips any traversal segments, so this join stays contained.
-    if (await pathExists(join(snapshotDir, basename(filePath)))) {
-      return true;
-    }
-  }
-
-  return false;
+  return isFlatLlamaCppModelCached(repoId, filePath);
 }
 
 type ProviderInstance = Awaited<ReturnType<typeof getProvider>>;

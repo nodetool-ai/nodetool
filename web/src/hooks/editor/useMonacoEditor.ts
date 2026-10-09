@@ -4,10 +4,12 @@ import React, { useCallback, useRef, useState } from "react";
 // reached this hook — including the inspector, which mounts with the workspace
 // — so the app downloaded the code editor on every boot.
 import type * as monaco from "monaco-editor";
+import { toggleCommandMenuFromShortcut } from "../../components/menus/commandMenuShortcut";
 
 // Configure Monaco loader to use local files instead of CDN
 // This must be done before importing @monaco-editor/react
 let loaderConfigured = false;
+const COMMAND_MENU_MONACO_COMMAND = "nodetool.toggleCommandMenu";
 async function configureMonacoLoader() {
   if (loaderConfigured) {
     return;
@@ -17,6 +19,15 @@ async function configureMonacoLoader() {
     import("monaco-editor")
   ]);
   loader.default.config({ monaco });
+  // Monaco handles Cmd/Ctrl+K itself and stops the event, so the app's
+  // dispatcher never sees it. Every editor binds it to the command menu instead.
+  monaco.editor.registerCommand(COMMAND_MENU_MONACO_COMMAND, () =>
+    toggleCommandMenuFromShortcut()
+  );
+  monaco.editor.addKeybindingRule({
+    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK,
+    command: COMMAND_MENU_MONACO_COMMAND
+  });
   loaderConfigured = true;
 }
 

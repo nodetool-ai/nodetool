@@ -34,12 +34,12 @@ function toolbar(playSession = false): ComponentProps<typeof GameEditorShell>["t
 const shortcuts = () => getGameShortcutStore(useAuth.getState().user?.id ?? null);
 beforeEach(() => { shortcuts().getState().resetAll(); });
 
-it.each(["2d", "3d"] as const)("opens the %s palette with Ctrl+K, filters commands and runs the highlighted one", async (dimension) => {
+it.each(["2d", "3d"] as const)("opens the %s palette with Ctrl+Shift+K, filters commands and runs the highlighted one", async (dimension) => {
   const user = userEvent.setup();
   const redo = jest.fn();
   render(<Shell dimension={dimension} toolbar={toolbar()} commands={{ "edit.undo": { run: jest.fn() }, "edit.redo": { run: redo } }} />);
   await user.click(screen.getByRole("button", { name: "Editor canvas" }));
-  await user.keyboard("{Control>}k{/Control}");
+  await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
   const palette = await screen.findByRole("dialog", { name: /^Commands/ });
   expect(within(palette).getByRole("button", { name: /Undo/ })).toBeInTheDocument();
   await user.keyboard("redo");
@@ -79,11 +79,11 @@ it("rebinds a command from the shortcut editor, rejects conflicts and resets it"
   const undo = jest.fn();
   render(<Shell dimension="2d" toolbar={toolbar()} commands={{ "edit.undo": { run: undo } }} />);
   await user.click(screen.getByRole("button", { name: "Editor canvas" }));
-  await user.keyboard("{Control>}k{/Control}");
+  await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
   await user.keyboard("keyboard shortcuts{Enter}");
   const editor = await screen.findByRole("dialog", { name: /^Keyboard shortcuts/ });
   await user.click(within(editor).getByRole("button", { name: "Change shortcut for Undo" }));
-  await user.keyboard("{Control>}k{/Control}");
+  await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
   expect(within(editor).getByRole("alert")).toHaveTextContent("Open command palette already uses this shortcut");
   await user.click(within(editor).getByRole("button", { name: "Change shortcut for Undo" }));
   await user.keyboard("{Control>}u{/Control}");

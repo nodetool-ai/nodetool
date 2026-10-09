@@ -7,10 +7,12 @@
  *  - `{org}_{repo}_{filename}.gguf.etag`
  *  - `manifest={org}={repo}={tag}.json`
  *
- * Cache directories by platform:
+ * Cache directory (llama.cpp's own rules, see `getLlamaCppCacheDir` in
+ * `@nodetool-ai/config`):
+ *  - `$LLAMA_CACHE` when set
  *  - macOS:   `~/Library/Caches/llama.cpp/`
- *  - Linux:   `~/.cache/llama.cpp/`
- *  - Windows: `%LOCALAPPDATA%/llama.cpp/` (fallback `~/.cache/llama.cpp/`)
+ *  - Linux:   `$XDG_CACHE_HOME/llama.cpp/` (fallback `~/.cache/llama.cpp/`)
+ *  - Windows: `%LOCALAPPDATA%/llama.cpp/`
  *
  * Uses native `fetch()` for all HTTP and `node:fs/promises` for file I/O.
  *
@@ -18,30 +20,21 @@
  */
 
 import * as fsp from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
+
+import { getLlamaCppCacheDir as getConfigLlamaCppCacheDir } from "@nodetool-ai/config";
 
 // ---------------------------------------------------------------------------
 // Cache directory helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Return the platform-specific llama.cpp cache directory.
+ * Return the llama.cpp cache directory. Delegates to `getLlamaCppCacheDir`
+ * in `@nodetool-ai/config`, which honours `LLAMA_CACHE` and `XDG_CACHE_HOME`
+ * the way llama.cpp does.
  */
 export function getLlamaCppCacheDir(): string {
-  const platform = os.platform();
-  if (platform === "darwin") {
-    return path.join(os.homedir(), "Library", "Caches", "llama.cpp");
-  }
-  if (platform === "win32") {
-    const localAppData = process.env["LOCALAPPDATA"];
-    if (localAppData) {
-      return path.join(localAppData, "llama.cpp");
-    }
-    return path.join(os.homedir(), ".cache", "llama.cpp");
-  }
-  // Linux and other unix
-  return path.join(os.homedir(), ".cache", "llama.cpp");
+  return getConfigLlamaCppCacheDir();
 }
 
 /**

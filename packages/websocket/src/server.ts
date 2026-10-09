@@ -89,6 +89,10 @@ import {
   migrateSqliteDb,
   runSeeds
 } from "@nodetool-ai/models";
+import {
+  applyTransformersJsCacheSetting,
+  resolveWorkerSettingsEnv
+} from "./worker-settings-env.js";
 import { isMcpHttpEnabled, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
 import {
   authenticateMcpAccessToken,
@@ -377,6 +381,19 @@ try {
   // global resolver.
   await initMasterKey();
 
+  // Transformers.js fixes its cache directory on first import, which happens
+  // after this point, so a directory saved in Settings must be applied now.
+  try {
+    const tjsCacheDir = await applyTransformersJsCacheSetting(LOCAL_USER_ID);
+    if (tjsCacheDir) {
+      log.info("Transformers.js cache directory from Settings", { path: tjsCacheDir });
+    }
+  } catch (err) {
+    log.warn("Could not read TRANSFORMERS_JS_CACHE_DIR from Settings", {
+      error: err instanceof Error ? err.message : String(err)
+    });
+  }
+
   // Bookkeeping for media generations: close the rows a restart orphaned, and
   // keep refining estimates into billed amounts while the server runs.
   void sweepInterruptedGenerations(PROCESS_STARTED_AT).catch((err: unknown) => {
@@ -535,7 +552,8 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 const localBridge = createPythonBridge({
   workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
     ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
-    : []
+    : [],
+  workerEnv: () => resolveWorkerSettingsEnv(LOCAL_USER_ID)
 });
 
 // The ONE stable bridge reference handed to every consumer. It delegates to the

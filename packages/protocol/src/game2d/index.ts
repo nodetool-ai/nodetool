@@ -57,11 +57,19 @@ export const gameRenderEffect = z.discriminatedUnion("kind", [
 
 export type GameRenderEffect = z.infer<typeof gameRenderEffect>;
 
+/**
+ * The engine each 2D schema runs on. Schemas 1 and 2 run on engine 1. Schema 4 adds entity
+ * tags and props and runs on engine 3. Schema 5 is reserved for Rapier 2D physics on engine 4.
+ * Schema 3 is the 3D document and engine 2 is its engine.
+ */
+export const GAME_2D_ENGINE_BY_SCHEMA = { 1: "1", 2: "1", 4: "3", 5: "4" } as const;
+
+const gameEngineVersion2D = z.enum(["1", "3", "4"]);
+
 export const gameDocument = z.strictObject({
   authoring: gameAuthoring.optional(),
-  /** Schema 4 adds entity tags and props and runs on engine 3. Schemas 1 and 2 run on engine 1. */
-  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(4)]),
-  engineVersion: z.enum(["1", "3"]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(4), z.literal(5)]),
+  engineVersion: gameEngineVersion2D,
   id: z.string().min(1),
   revision: z.string().min(1),
   entrySceneId: z.string().min(1),
@@ -130,7 +138,7 @@ export type GameRenderFrame = z.infer<typeof gameRenderFrame>;
 
 export const gameSnapshot = z.object({
   gameRevision: z.string(),
-  engineVersion: z.enum(["1", "3"]),
+  engineVersion: gameEngineVersion2D,
   sceneId: z.string(),
   tick: z.number().int().nonnegative(),
   rngState: z.number().int().nonnegative(),

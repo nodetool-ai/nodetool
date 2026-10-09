@@ -314,6 +314,16 @@ it("simulates script params and verifies replay", async () => {
   } finally { session.dispose(); }
 });
 
+it("reports a reserved 2D engine before any simulation starts", async () => {
+  await writeFile(gamePath, JSON.stringify({ ...createTopDownRoomGame("a".repeat(32)), schemaVersion: 5, engineVersion: "4" }));
+  const program = new Command();
+  registerGameCommands(program);
+  await program.parseAsync(["node", "nodetool", "game", "validate", gamePath, "--json"]);
+  expect(process.exitCode).toBe(1);
+  expect(JSON.parse(output.trim())).toMatchObject({ valid: false,
+    diagnostics: [{ code: "engine_unavailable", path: ["engineVersion"] }] });
+});
+
 it("simulates particle emitters and emitParticles commands with a verified replay", async () => {
   const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
   vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);

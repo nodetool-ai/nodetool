@@ -13,7 +13,19 @@ const PROVIDER_CREDENTIALS: Array<[envVar: string, readBy: string]> = [
   ["EVOLINK_API_KEY", "packages/runtime/src/providers/evolink-provider.ts"],
   ["VAST_API_KEY", "packages/compute/src/manager.ts"],
   ["VERDA_CLIENT_ID", "packages/compute/src/manager.ts"],
-  ["VERDA_CLIENT_SECRET", "packages/compute/src/manager.ts"]
+  ["VERDA_CLIENT_SECRET", "packages/compute/src/manager.ts"],
+  ["LMSTUDIO_API_KEY", "packages/runtime/src/providers/lmstudio-provider.ts"]
+];
+
+/** Non-secret local-inference settings the backend or the Python worker reads. */
+const LOCAL_INFERENCE_SETTINGS = [
+  "OLLAMA_API_URL",
+  "OLLAMA_KEEP_ALIVE",
+  "OLLAMA_CONTEXT_LENGTH",
+  "LLAMA_CPP_CONTEXT_LENGTH",
+  "TRANSFORMERS_JS_CACHE_DIR",
+  "WAN2GP_MCP_URL",
+  "NODETOOL_TORCH_DEVICE"
 ];
 
 describe("setting catalog", () => {
@@ -31,6 +43,18 @@ describe("setting catalog", () => {
       ([envVar]) => settingDefinition(envVar)?.isSecret !== true
     );
     expect(notSecret.map(([envVar]) => envVar)).toEqual([]);
+  });
+
+  it("registers the local inference settings as non-secret settings", () => {
+    for (const envVar of LOCAL_INFERENCE_SETTINGS) {
+      const entry = settingDefinition(envVar);
+      expect(entry, envVar).toBeDefined();
+      expect(entry?.isSecret, envVar).toBeFalsy();
+    }
+  });
+
+  it("does not give NodeTool's own port as the vLLM example", () => {
+    expect(settingDefinition("VLLM_BASE_URL")?.description).not.toContain(":7777");
   });
 
   it("registers each env var exactly once", () => {

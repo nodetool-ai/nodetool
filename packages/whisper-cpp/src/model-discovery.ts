@@ -1,6 +1,7 @@
 import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+import { getHfHubCacheDir as getConfigHfHubCacheDir } from "@nodetool-ai/config";
 import type { ASRModel } from "@nodetool-ai/runtime";
 
 function expand(value: string): string {
@@ -8,14 +9,9 @@ function expand(value: string): string {
     value.startsWith("~/") ? path.join(homedir(), value.slice(2)) : value
   );
 }
+/** HuggingFace hub cache root, from the resolver every hub reader shares. */
 export function getHfHubCacheDir(): string {
-  if (process.env.HF_HUB_CACHE) {
-    return expand(process.env.HF_HUB_CACHE);
-  }
-  return path.join(
-    expand(process.env.HF_HOME || path.join(homedir(), ".cache/huggingface")),
-    "hub"
-  );
+  return path.resolve(getConfigHfHubCacheDir());
 }
 async function directories(dir: string): Promise<string[]> {
   try {
