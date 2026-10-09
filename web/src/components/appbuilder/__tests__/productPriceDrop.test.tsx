@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { parseApplicationDocument } from "@nodetool-ai/app-runtime";
-import priceDrop from "../../../../../packages/base-nodes/nodetool/examples/apps/product-price-drop.app.json";
+import priceDrop from "@nodetool-ai/base-nodes/examples/apps/product-price-drop.app.json";
 import mockTheme from "../../../__mocks__/themeMock";
 import { TextInputWidget, ChoiceCardsWidget } from "../puck/widgets";
 import { makeTestRuntime } from "./testRuntime";

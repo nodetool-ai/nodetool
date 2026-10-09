@@ -33,6 +33,7 @@ import {
   readWorkflowFile
 } from "../../../hooks/workflow/importWorkflowFile";
 import {
+  isWorkflowBuildLive,
   readWorkflowBuild,
   workflowBuildResult,
   type BuildFromPlanResult
@@ -249,10 +250,14 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
       // explanation when the flow has been restored from the document.
       onFinish(
         result ??
-          (persistedBuild === null ? null : workflowBuildResult(persistedBuild))
+          (persistedBuild === null
+            ? null
+            : workflowBuildResult(persistedBuild, {
+                live: isWorkflowBuildLive(workflowId)
+              }))
       );
     },
-    [onFinish, persistedBuild]
+    [onFinish, persistedBuild, workflowId]
   );
 
   const config = useWorkflowSetupFlow({

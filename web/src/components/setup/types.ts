@@ -119,6 +119,11 @@ export interface SetupStep<Stage extends string> {
    * also true while the step's run is pending.
    */
   footerControls?: (context: SetupStepRenderContext) => ReactNode;
+  /**
+   * Keeps Back and Change flow off while the step body stays usable: a run the
+   * step owns (an example copy, a re-plan) would land after the creator left.
+   */
+  holdNavigation?: boolean;
   /** Optional way to leave a non-required step without making a selection. */
   skipLabel?: string;
   onSkip?: () => void | Promise<void>;

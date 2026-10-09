@@ -83,22 +83,22 @@ export interface PlanBeatsContext {
 export interface VideoPlanFingerprintInputs {
   brief: string;
   formatId: string | undefined;
-  modelId: string;
   context: PlanBeatsContext;
 }
 
-/** The persisted identity of the inputs answered by one Video plan. */
+/**
+ * The persisted identity of the inputs answered by one Video plan. The
+ * Director model is not an input: a different model drafts the same request.
+ */
 export function videoPlanFingerprint({
   brief,
   formatId,
-  modelId,
   context
 }: VideoPlanFingerprintInputs): string {
   return deterministicFingerprint({
     kind: "video-plan",
     brief: brief.trim(),
     formatId: formatId ?? "",
-    modelId,
     context
   });
 }
@@ -474,7 +474,6 @@ export function usePlanBeats(): UsePlanBeatsResult {
       const fingerprint = videoPlanFingerprint({
         brief: setup?.brief ?? "",
         formatId: setup?.format,
-        modelId: selectedModel.id,
         context: planContext
       });
       setError(null);

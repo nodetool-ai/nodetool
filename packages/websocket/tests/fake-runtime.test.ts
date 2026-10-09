@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { DirectorNode } from "@nodetool-ai/base-nodes";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  ProcessingContext,
+  generateStructured,
+  getRegisteredProvider,
+  isProviderConfigured,
+  registerProvider,
+  unregisterProvider
+} from "@nodetool-ai/runtime";
 
 import {
+  FAKE_IMAGE_PNG_BASE64,
   FakeProvider,
   assertValidFakeChunk,
+  fakeAllProviders,
   createFakeExecutorResolver,
   fakeExecutor,
   FAKE_LLM_TEXT
@@ -45,12 +54,14 @@ describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () 
       // The actor passes saved properties again as execution inputs.
       const result = await executor.process(properties, context);
 
+      // The fake answers the Director's forced screenplay tool with values
+      // its schema accepts, as a real model must.
       expect(result.screenplay).toMatchObject({
         type: "screenplay",
         shots: [
-          { index: 0, action: "A lighthouse keeper's last night — beat 1 of 3" },
-          { index: 1, action: "A lighthouse keeper's last night — beat 2 of 3" },
-          { index: 2, action: "A lighthouse keeper's last night — beat 3 of 3" }
+          { index: 0, action: "fake" },
+          { index: 1, action: "fake" },
+          { index: 2, action: "fake" }
         ]
       });
       const streamed: Record<string, unknown>[] = [];
@@ -197,5 +208,68 @@ describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () 
         { text: "deterministic e2e response", timestamp: [0, 3] }
       ]);
     });
+  });
+});
+
+describe("FakeProvider as a stand-in provider", () => {
+  it("answers a forced tool with arguments its schema accepts", async () => {
+    const provider = new FakeProvider();
+    const data = await generateStructured(provider, {
+      messages: [{ role: "user", content: "A fox in snow" }],
+      model: "test-chat-model",
+      toolName: "refine_brief",
+      toolDescription: "Return the brief.",
+      schema: {
+        type: "object",
+        properties: {
+          subject: { type: "string" },
+          aspect: { type: "string", enum: ["square", "wide"] }
+        },
+        required: ["subject", "aspect"]
+      }
+    });
+    expect(data).toEqual({ subject: "fake", aspect: "square" });
+  });
+
+  it("lists models only for the providers in its catalog", async () => {
+    expect(await new FakeProvider({}, "openai").getAvailableLanguageModels()).toEqual([
+      { id: "test-chat-model", name: "Test Chat Model", provider: "openai" }
+    ]);
+    expect(await new FakeProvider({}, "openai").getAvailableImageModels()).toMatchObject([
+      { id: "test-image-model", provider: "openai" }
+    ]);
+    expect(await new FakeProvider({}, "groq").getAvailableLanguageModels()).toEqual([]);
+    expect(new FakeProvider({}, "openai").getCapabilities()).toContain("text_to_image");
+    expect(new FakeProvider({}, "anthropic").getCapabilities()).not.toContain("text_to_image");
+  });
+
+  it("returns a visible PNG for an image", async () => {
+    const bytes = await new FakeProvider().textToImage({
+      prompt: "A fox",
+      model: { id: "test-image-model", name: "Test Image Model", provider: "openai" }
+    } as Parameters<FakeProvider["textToImage"]>[0]);
+    const png = Buffer.from(bytes);
+    expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+    // IHDR width and height: 256 × 256, not a 1 × 1 transparent pixel.
+    expect(png.readUInt32BE(16)).toBe(256);
+    expect(png.readUInt32BE(20)).toBe(256);
+    expect(png.toString("base64")).toBe(FAKE_IMAGE_PNG_BASE64);
+  });
+
+  it("keeps credential keys only when asked to", async () => {
+    registerProvider("qa-test-provider", FakeProvider, { api_key: "" }, {}, {
+      access: "remote_api",
+      displayName: "QA Test"
+    });
+    const noSecret = async (): Promise<string | null> => null;
+
+    fakeAllProviders({ requireCredentials: true });
+    expect(await isProviderConfigured("qa-test-provider", noSecret)).toBe(false);
+    expect(getRegisteredProvider("qa-test-provider")?.metadata.displayName).toBe("QA Test");
+
+    registerProvider("qa-test-provider", FakeProvider, { api_key: "" });
+    fakeAllProviders();
+    expect(await isProviderConfigured("qa-test-provider", noSecret)).toBe(true);
+    unregisterProvider("qa-test-provider");
   });
 });

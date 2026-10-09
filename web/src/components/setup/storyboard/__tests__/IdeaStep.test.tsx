@@ -497,3 +497,80 @@ describe("IdeaStep — import your shotlist", () => {
     expect(board()?.setupStage).toBe("done");
   });
 });
+
+describe("IdeaStep — the flow's holds", () => {
+  // F9: the flow holds Continue on this report while a file is read.
+  it("reports a file being read until it lands", async () => {
+    const user = userEvent.setup();
+    let land: (answer: Response) => void = () => undefined;
+    restFetch.mockReturnValue(
+      new Promise<Response>((resolve) => {
+        land = resolve;
+      })
+    );
+    const onImportingChange = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <IdeaStep
+          boardId={BOARD}
+          onStartBlank={jest.fn()}
+          onOpenTutorial={jest.fn()}
+          onImportingChange={onImportingChange}
+        />
+      </ThemeProvider>
+    );
+
+    await user.upload(
+      screen.getByLabelText("Upload your file"),
+      upload("script.pdf", "application/pdf", "%PDF-1.7")
+    );
+    await waitFor(() =>
+      expect(onImportingChange).toHaveBeenLastCalledWith(true)
+    );
+    await act(async () => {
+      land(routeAnswer(200, { text: "FADE IN. A door opens.", pages: 1 }));
+    });
+
+    await waitFor(() =>
+      expect(onImportingChange).toHaveBeenLastCalledWith(false)
+    );
+    expect(board()?.brief).toBe("FADE IN. A door opens.");
+  });
+
+  // F16: view mode shows the brief and changes nothing.
+  it("writes nothing and offers no import in view mode", async () => {
+    const user = userEvent.setup();
+    useStoryboardStore.getState().setSetup(BOARD, { brief: "A kept brief" });
+    const onStartBlank = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <IdeaStep
+          boardId={BOARD}
+          onStartBlank={onStartBlank}
+          onOpenTutorial={jest.fn()}
+          readOnly
+        />
+      </ThemeProvider>
+    );
+
+    await user.type(screen.getByRole("textbox", { name: "Your story" }), "!");
+
+    expect(board()?.brief).toBe("A kept brief");
+    // The cards stay focusable and say why they are off (aria-disabled).
+    for (const name of [
+      /Upload your file/,
+      /Import your shotlist/,
+      /Start with a blank storyboard/
+    ]) {
+      expect(screen.getByRole("button", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true"
+      );
+    }
+    await user.click(
+      screen.getByRole("button", { name: /Start with a blank storyboard/ })
+    );
+    expect(screen.queryByRole("group", { name: "Inspiration" })).toBeNull();
+    expect(onStartBlank).not.toHaveBeenCalled();
+  });
+});
