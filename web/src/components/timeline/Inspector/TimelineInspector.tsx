@@ -351,7 +351,9 @@ const TimelineInspectorContent: React.FC = memo(() => {
 
   const identityMeta = useMemo<string[]>(() => {
     if (!clip) return [];
-    const parts: string[] = [clip.mediaType];
+    const parts: string[] = [
+      clip.mediaType.charAt(0).toUpperCase() + clip.mediaType.slice(1)
+    ];
     const secs = clip.durationMs / 1000;
     parts.push(secs < 10 ? `${secs.toFixed(2)}s` : `${secs.toFixed(1)}s`);
     if (clip.width && clip.height) {
@@ -606,7 +608,11 @@ const TimelineInspectorContent: React.FC = memo(() => {
         name={clip.name}
         metadata={identityMeta}
         accentColor={accentColor}
-      />
+      >
+        {/* Shot clips are assembled as imported media, so this branch is the
+            only one a board link can reach. */}
+        <ClipStoryboardLink clip={clip} />
+      </ClipIdentityCard>
 
       {aiEditSection}
 
@@ -615,10 +621,6 @@ const TimelineInspectorContent: React.FC = memo(() => {
       {(clip.mediaType === "video" || clip.mediaType === "audio") && (
         <ClipVersionHistory clipId={clip.id} />
       )}
-
-      {/* Shot clips are assembled as imported media, so this branch is the
-          only one a board link can reach. */}
-      <ClipStoryboardLink clip={clip} />
 
       {textStyle && <ClipTextStyleSection clip={clip} textStyle={textStyle} />}
 
