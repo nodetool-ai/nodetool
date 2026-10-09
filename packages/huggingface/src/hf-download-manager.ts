@@ -125,7 +125,7 @@ function globToRegex(pattern: string): RegExp {
 
 function matchesAnyPattern(
   filepath: string,
-  patterns: string[] | null | undefined
+  patterns: readonly string[] | null | undefined
 ): boolean {
   if (!patterns || patterns.length === 0) return false;
   return patterns.some((p) => globToRegex(p).test(filepath));
