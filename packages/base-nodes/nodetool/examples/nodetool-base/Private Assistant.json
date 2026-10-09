@@ -27,12 +27,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 60,
-            "y": -240
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
           "width": 560,
-          "height": 240,
+          "height": 313,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -51,8 +51,8 @@
           "selected": false,
           "title": "1️⃣ Document",
           "position": {
-            "x": 60,
-            "y": 80
+            "x": 0,
+            "y": 393
           },
           "zIndex": 0,
           "width": 300,
@@ -74,8 +74,8 @@
           "selected": false,
           "title": "2️⃣ Question",
           "position": {
-            "x": 60,
-            "y": 360
+            "x": 0,
+            "y": 618
           },
           "zIndex": 0,
           "width": 300,
@@ -97,8 +97,8 @@
           "selected": false,
           "title": "3️⃣ Tone",
           "position": {
-            "x": 60,
-            "y": 600
+            "x": 0,
+            "y": 843
           },
           "zIndex": 0,
           "width": 300,
@@ -118,8 +118,8 @@
           "selected": false,
           "title": "4️⃣ Build the prompt",
           "position": {
-            "x": 440,
-            "y": 220
+            "x": 400,
+            "y": 480
           },
           "zIndex": 0,
           "width": 300,
@@ -154,8 +154,8 @@
           "selected": false,
           "title": "5️⃣ Local Ollama assistant",
           "position": {
-            "x": 820,
-            "y": 220
+            "x": 800,
+            "y": 599
           },
           "zIndex": 0,
           "width": 320,
@@ -175,7 +175,7 @@
           "title": "6️⃣ Answer",
           "position": {
             "x": 1220,
-            "y": 220
+            "y": 630
           },
           "width": 300,
           "selectable": true

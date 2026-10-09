@@ -29,12 +29,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": -480,
-            "y": 40
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
-          "width": 420,
-          "height": 320,
+          "width": 560,
+          "height": 352,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -53,8 +53,8 @@
         "ui_properties": {
           "title": "1️⃣ Topic",
           "position": {
-            "x": 40,
-            "y": 60
+            "x": 0,
+            "y": 689
           },
           "zIndex": 0,
           "width": 280,
@@ -76,8 +76,8 @@
         "ui_properties": {
           "title": "2️⃣ Audience",
           "position": {
-            "x": 40,
-            "y": 300
+            "x": 0,
+            "y": 914
           },
           "zIndex": 0,
           "width": 280,
@@ -96,8 +96,8 @@
         "ui_properties": {
           "title": "3️⃣ Compose research objective",
           "position": {
-            "x": 400,
-            "y": 120
+            "x": 380,
+            "y": 432
           },
           "zIndex": 0,
           "width": 340,
@@ -143,8 +143,8 @@
         "ui_properties": {
           "title": "4️⃣ Research agent (search + browse)",
           "position": {
-            "x": 800,
-            "y": 60
+            "x": 820,
+            "y": 782
           },
           "zIndex": 0,
           "width": 320,
@@ -163,8 +163,8 @@
         "ui_properties": {
           "title": "5️⃣ Cited brief",
           "position": {
-            "x": 1180,
-            "y": 60
+            "x": 1240,
+            "y": 814
           },
           "zIndex": 0,
           "width": 280,

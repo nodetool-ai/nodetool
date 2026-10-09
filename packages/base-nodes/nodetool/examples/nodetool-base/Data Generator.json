@@ -13,6 +13,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "b313851f-3dc9-4372-92ba-acd96654dfd5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and pick a row count — an AI agent returns structured rows matching your schema, not a wall of prose.\n\n**Pipeline:** Topic + row count → build prompt → generate rows → table\n\n**Try this:** change the topic, or edit/add columns on the generator node to reshape the dataset. Pick a model first."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "height": 227,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
         "id": "topic_input",
         "parent_id": null,
         "type": "nodetool.input.StringInput",
@@ -24,8 +43,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 54,
-            "y": 20
+            "x": 0,
+            "y": 353
           },
           "zIndex": 0,
           "width": 280,
@@ -49,8 +68,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 54,
-            "y": 180
+            "x": 0,
+            "y": 578
           },
           "zIndex": 0,
           "width": 280,
@@ -70,8 +89,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 410,
-            "y": 20
+            "x": 380,
+            "y": 307
           },
           "zIndex": 0,
           "width": 280,
@@ -118,8 +137,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 766,
-            "y": 20
+            "x": 760,
+            "y": 450
           },
           "zIndex": 0,
           "width": 280,
@@ -137,8 +156,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1122,
-            "y": 20
+            "x": 1140,
+            "y": 468
           },
           "zIndex": 0,
           "width": 280,
@@ -148,25 +167,6 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
-      },
-      {
-        "id": "b313851f-3dc9-4372-92ba-acd96654dfd5",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Comment",
-        "data": {
-          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and pick a row count — an AI agent returns structured rows matching your schema, not a wall of prose.\n\n**Pipeline:** Topic + row count → build prompt → generate rows → table\n\n**Try this:** change the topic, or edit/add columns on the generator node to reshape the dataset. Pick a model first."
-        },
-        "ui_properties": {
-          "position": {
-            "x": 45,
-            "y": -200
-          },
-          "zIndex": 0,
-          "width": 460,
-          "height": 190,
-          "selectable": true
-        },
-        "dynamic_properties": {}
       }
     ],
     "edges": [

@@ -137,12 +137,12 @@
         },
         "ui_properties": {
           "position": {
-            "x": 40,
-            "y": -210
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 190,
+          "width": 560,
+          "height": 333,
           "selectable": true,
           "bypassed": false
         },
@@ -158,8 +158,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 69
+            "x": 0,
+            "y": 413
           },
           "zIndex": 0,
           "width": 280,
@@ -179,8 +179,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 343
+            "x": 0,
+            "y": 638
           },
           "zIndex": 0,
           "width": 280,
@@ -202,8 +202,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 619
+            "x": 0,
+            "y": 863
           },
           "zIndex": 0,
           "selectable": true,
@@ -234,8 +234,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 430,
-            "y": 180
+            "x": 380,
+            "y": 496
           },
           "zIndex": 0,
           "selectable": true,
@@ -255,8 +255,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 860,
-            "y": 300
+            "x": 840,
+            "y": 566
           },
           "zIndex": 0,
           "selectable": true,
@@ -287,8 +287,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1250,
-            "y": 330
+            "x": 1260,
+            "y": 525
           },
           "zIndex": 0,
           "width": 320,
@@ -323,8 +323,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1640,
-            "y": 400
+            "x": 1680,
+            "y": 575
           },
           "zIndex": 0,
           "width": 331,
@@ -352,8 +352,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2040,
-            "y": 436
+            "x": 2111,
+            "y": 611
           },
           "zIndex": 0,
           "width": 161,
@@ -372,8 +372,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2260,
-            "y": 384
+            "x": 2372,
+            "y": 556
           },
           "zIndex": 0,
           "width": 320,
@@ -395,8 +395,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2640,
-            "y": 384
+            "x": 2792,
+            "y": 644
           },
           "title": "8️⃣ Trailer output",
           "selectable": true

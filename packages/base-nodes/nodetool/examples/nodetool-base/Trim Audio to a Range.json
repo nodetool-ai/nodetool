@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Trim Audio to a Range\n\nCuts the audio from a video down to a start and end point. Pair it with Inspect a Clip's Audio when you need the duration before you choose where to cut.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Extract audio\" pulls out the soundtrack, \"3 Trim\" keeps the part from 0.5 to 4.0 seconds, and \"4 Audio\" returns the trimmed track.\n\n**Try this:** Change start and end on \"3 Trim\" to keep a different range of the clip."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 351
           },
           "zIndex": 0,
           "width": 280,
@@ -62,8 +81,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 680,
-            "y": 180
+            "x": 760,
+            "y": 351
           },
           "zIndex": 0,
           "width": 280,
@@ -81,8 +100,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1020,
-            "y": 200
+            "x": 1140,
+            "y": 335
           },
           "zIndex": 0,
           "width": 240,

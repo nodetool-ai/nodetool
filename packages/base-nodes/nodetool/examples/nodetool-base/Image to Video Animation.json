@@ -78,17 +78,17 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83c\udfac Image to Video Animation\n\nGenerate a still from a scene prompt, then animate it into a short cinematic clip.\n\n**Pipeline:** scene prompt \u2192 Text-to-Image \u2192 build motion prompt \u2192 Image-to-Video\n\n**Try this:** edit the scene, motion, or duration prompts.\n\n**Cost note:** the animation step uses Veo 3.1, a paid per-second video model \u2014 each run costs noticeably more than an image-only template."
+          "comment": "# 🎬 Image to Video Animation\n\nGenerate a still from a scene prompt, then animate it into a short cinematic clip.\n\n**Pipeline:** scene prompt → Text-to-Image → build motion prompt → Image-to-Video\n\n**Try this:** edit the scene, motion, or duration prompts.\n\n**Cost note:** the animation step uses Veo 3.1, a paid per-second video model — each run costs noticeably more than an image-only template."
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 0,
-            "y": -220
+            "y": 0
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 180,
+          "width": 560,
+          "height": 235,
           "selectable": true,
           "bypassed": false
         },
@@ -115,14 +115,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1000,
-            "y": 165
+            "x": 864,
+            "y": 779
           },
           "zIndex": 0,
           "width": 416,
           "selectable": true,
           "height": 360,
-          "title": "3\ufe0f\u20e3 Animate to video"
+          "title": "3️⃣ Animate to video"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -145,14 +145,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 500,
-            "y": 510
+            "x": 380,
+            "y": 899
           },
           "zIndex": 0,
           "width": 384,
           "selectable": true,
           "height": 400,
-          "title": "2\ufe0f\u20e3 Generate still"
+          "title": "2️⃣ Generate still"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -168,12 +168,12 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 483
+            "y": 775
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "1\ufe0f\u20e3 Scene prompt"
+          "title": "1️⃣ Scene prompt"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -186,8 +186,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 580,
-            "y": 228
+            "x": 380,
+            "y": 315
           },
           "zIndex": 0,
           "width": 280,
@@ -211,8 +211,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 80,
-            "y": 255
+            "x": 0,
+            "y": 550
           },
           "zIndex": 0,
           "width": 280,
@@ -232,8 +232,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 160,
-            "y": 39
+            "x": 0,
+            "y": 325
           },
           "zIndex": 0,
           "width": 280,
@@ -253,8 +253,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 0
+            "x": 0,
+            "y": 1000
           },
           "zIndex": 0,
           "width": 280,
@@ -272,8 +272,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 165
+            "x": 1380,
+            "y": 861
           },
           "selectable": true
         }

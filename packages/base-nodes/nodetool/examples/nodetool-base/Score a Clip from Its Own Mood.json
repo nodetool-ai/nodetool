@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Score a Clip from Its Own Mood",
   "tool_name": null,
-  "description": "The agent watches nothing \u2014 it reads your description of the mood and writes the music prompt. Splitting it this way means you can adjust the mood in words rather than re-describing the music.",
+  "description": "The agent watches nothing — it reads your description of the mood and writes the music prompt. Splitting it this way means you can adjust the mood in words rather than re-describing the music.",
   "tags": [
     "video",
     "audio",
@@ -15,6 +15,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Score a Clip from Its Own Mood\n\nWrites a music cue for a clip from a mood you describe in words, then lays it under the footage. The agent never sees the video, so you adjust the mood rather than the music prompt.\n\n**How it works:** \"Mood\" feeds \"Music prompt\", an agent that writes one sentence on instrumentation, tempo, and texture. \"Compose\" turns that into 10 seconds of music. \"Lay under\" mixes it under the \"Clip\" video at 0.4 volume, and \"Scored clip\" returns the result.\n\n**Try this:** Pick models on \"Music prompt\" and \"Compose\", then raise the duration on \"Compose\" to match a longer clip."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 305
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "clip",
         "type": "nodetool.input.VideoInput",
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 385
           },
           "zIndex": 0,
           "width": 300,
@@ -46,8 +65,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 0,
+            "y": 601
           },
           "zIndex": 0,
           "width": 300,
@@ -81,8 +100,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 400,
+            "y": 526
           },
           "zIndex": 0,
           "width": 300,
@@ -109,8 +128,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 800,
+            "y": 475
           },
           "zIndex": 0,
           "width": 300,
@@ -129,8 +148,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 1200,
+            "y": 451
           },
           "zIndex": 0,
           "width": 300,
@@ -148,8 +167,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 330
+            "x": 1600,
+            "y": 454
           },
           "zIndex": 0,
           "width": 300,

@@ -22,18 +22,17 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📚 Chat With Your Documents (RAG)\n\nAsk questions against your own documents instead of the model's memory. Each document is indexed into a **vector collection**, a search keyword pulls the matching passages back out, and an LLM writes the answer **only** from what was retrieved — citing the source of every claim.\n\n**Pipeline:** Documents → index into collection · Search keyword → retrieve passages → build grounded prompt → cited answer\n\n**Why a graph:** the retrieval step is separate from the generation step, so you can swap the corpus, inspect exactly which passages were used, and keep the model from inventing facts. A chat box can't show you that.\n\n**Try this:** edit the documents, or change the search keyword to `warranty` to scope retrieval to one topic.\n\n**Retrieval:** the search keyword is matched against the indexed passages — `Aurora` appears in every document, so the whole corpus comes back and the model can answer any question about it. Narrow the keyword to retrieve a subset. The collection is set up with the Ollama `nomic-embed-text` embedding model for semantic vector search.",
-          "headline": "Chat With Your Documents"
+          "comment": "# 📚 Chat With Your Documents (RAG)\n\nAsk questions against your own documents instead of the model's memory. Each document is indexed into a **vector collection**, a search keyword pulls the matching passages back out, and an LLM writes the answer **only** from what was retrieved — citing the source of every claim.\n\n**Pipeline:** Documents → index into collection · Search keyword → retrieve passages → build grounded prompt → cited answer\n\n**Why a graph:** the retrieval step is separate from the generation step, so you can swap the corpus, inspect exactly which passages were used, and keep the model from inventing facts. A chat box can't show you that.\n\n**Try this:** edit the documents, or change the search keyword to `warranty` to scope retrieval to one topic.\n\n**Retrieval:** the search keyword is matched against the indexed passages — `Aurora` appears in every document, so the whole corpus comes back and the model can answer any question about it. Narrow the keyword to retrieve a subset. The collection is set up with the Ollama `nomic-embed-text` embedding model for semantic vector search."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": -620,
-            "y": 40
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
-          "width": 520,
-          "height": 300,
+          "width": 560,
+          "height": 458,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -51,8 +50,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 40,
-            "y": 80
+            "x": 0,
+            "y": 587
           },
           "zIndex": 0,
           "width": 300,
@@ -74,8 +73,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 40,
-            "y": 240
+            "x": 0,
+            "y": 869
           },
           "zIndex": 0,
           "width": 300,
@@ -97,8 +96,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 40,
-            "y": 400
+            "x": 0,
+            "y": 1137
           },
           "zIndex": 0,
           "width": 300,
@@ -120,8 +119,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 40,
-            "y": 560
+            "x": 0,
+            "y": 1613
           },
           "zIndex": 0,
           "width": 300,
@@ -143,8 +142,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 40,
-            "y": 720
+            "x": 0,
+            "y": 1838
           },
           "zIndex": 0,
           "width": 300,
@@ -175,8 +174,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 400,
-            "y": 400
+            "x": 0,
+            "y": 1362
           },
           "zIndex": 0,
           "width": 280,
@@ -199,8 +198,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 740,
-            "y": 400
+            "x": 400,
+            "y": 1156
           },
           "zIndex": 0,
           "width": 280,
@@ -223,8 +222,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 740,
-            "y": 560
+            "x": 400,
+            "y": 1459
           },
           "zIndex": 0,
           "width": 280,
@@ -247,8 +246,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 740,
-            "y": 720
+            "x": 400,
+            "y": 1762
           },
           "zIndex": 0,
           "width": 280,
@@ -268,8 +267,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 740,
-            "y": 120
+            "x": 400,
+            "y": 922
           },
           "zIndex": 0,
           "width": 280,
@@ -290,8 +289,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1080,
-            "y": 120
+            "x": 780,
+            "y": 707
           },
           "zIndex": 0,
           "width": 280,
@@ -330,8 +329,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1420,
-            "y": 120
+            "x": 1160,
+            "y": 538
           },
           "zIndex": 0,
           "width": 300,
@@ -360,8 +359,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1760,
-            "y": 120
+            "x": 1560,
+            "y": 687
           },
           "zIndex": 0,
           "width": 300,
@@ -381,8 +380,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 2100,
-            "y": 120
+            "x": 1960,
+            "y": 744
           },
           "zIndex": 0,
           "width": 260,
@@ -403,8 +402,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1420,
-            "y": 400
+            "x": 1160,
+            "y": 976
           },
           "zIndex": 0,
           "width": 260,

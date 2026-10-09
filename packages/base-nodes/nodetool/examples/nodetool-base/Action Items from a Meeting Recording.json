@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Action Items from a Meeting Recording\n\nTurns a meeting recording into a list of action items with owners and deadlines. Items without a clear owner go under \"Unassigned\" instead of being guessed.\n\n**How it works:** \"1 Recording\" takes a video file. \"2 Extract audio\" pulls the soundtrack, and \"3 Transcribe\" converts speech to English text. \"4 Agent\" reads the transcript and lists owner, action and deadline for each item. \"5 Output\" shows the list.\n\n**Try this:** Pick models for \"3 Transcribe\" and \"4 Agent\", and change the language on \"3 Transcribe\" if your meeting is not in English."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 390
           },
           "zIndex": 0,
           "width": 300,
@@ -42,8 +61,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 414
           },
           "zIndex": 0,
           "width": 300,
@@ -70,8 +89,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 384
           },
           "zIndex": 0,
           "width": 300,
@@ -105,8 +124,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -124,8 +143,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 1600,
+            "y": 398
           },
           "zIndex": 0,
           "width": 300,

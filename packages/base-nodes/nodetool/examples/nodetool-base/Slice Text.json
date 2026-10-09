@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Slice Text\n\nTakes a fixed range of characters out of a string by index. Use it to cut a caption to a length limit. It runs locally with no model or key.\n\n**How it works:** \"Text\" holds a sample string of digits and letters. \"Slice\" is a Code node that returns the characters between its start and end inputs, and \"Excerpt\" shows the result.\n\n**Try this:** Set start to 0 and end to 10 on \"Slice\" to keep only the first ten characters, then paste a long caption into \"Text\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 478
           },
           "zIndex": 0,
           "width": 280,
@@ -45,8 +64,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -73,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 680,
-            "y": 200
+            "x": 760,
+            "y": 490
           },
           "zIndex": 0,
           "width": 240,

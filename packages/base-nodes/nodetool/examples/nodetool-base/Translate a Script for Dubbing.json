@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Translate a Script for Dubbing\n\nTranslates a spoken script into the language you name, keeping each sentence close to the original length. The new voice track then fits the same footage.\n\n**How it works:** \"1 Script\" and \"2 Language\" fill the template in \"3 Prompt\". \"4 Agent\" writes the translation with the model chosen in \"Language model\", following a system prompt for natural, length-matched speech. \"5 Output\" returns only the translated script.\n\n**Try this:** Set \"2 Language\" to Japanese or German and compare sentence lengths against \"1 Script\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in-script",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -46,7 +65,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 300
+            "y": 591
           },
           "zIndex": 0,
           "width": 300,
@@ -64,8 +83,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 549
           },
           "zIndex": 0,
           "width": 300,
@@ -92,8 +111,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 300
+            "x": 0,
+            "y": 816
           },
           "zIndex": 0,
           "width": 280,
@@ -127,8 +146,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 651
           },
           "zIndex": 0,
           "width": 300,
@@ -146,8 +165,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 682
           },
           "zIndex": 0,
           "width": 300,

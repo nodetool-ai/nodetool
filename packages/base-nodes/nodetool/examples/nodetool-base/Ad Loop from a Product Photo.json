@@ -20,12 +20,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "Ad Loop from a Product Photo",
-          "comment": [
-            "One product photo in, a looping hero shot out.\n\n",
-            "Kling 2.6 animates the still, then the speed pass halves playback so the loop reads as a slow, premium reveal.\n\n",
-            "The motion brief forbids redesigning the product — the model may move the camera and the light, nothing else."
-          ]
+          "comment": "# Ad Loop from a Product Photo\n\nOne product photo in, a looping hero shot out.\n\nKling 2.6 animates the still, then the speed pass halves playback so the loop reads as a slow, premium reveal.\n\nThe motion brief forbids redesigning the product — the model may move the camera and the light, nothing else."
         },
         "ui_properties": {
           "position": {
@@ -35,7 +30,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 170
+          "height": 227
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -51,7 +46,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 307
           },
           "zIndex": 0,
           "width": 280,
@@ -72,7 +67,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 523
           },
           "zIndex": 0,
           "width": 280,
@@ -91,7 +86,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 380
+            "y": 346
           },
           "zIndex": 0,
           "width": 320,
@@ -121,8 +116,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 760,
-            "y": 300
+            "x": 800,
+            "y": 376
           },
           "zIndex": 0,
           "width": 280,
@@ -140,8 +135,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1100,
-            "y": 340
+            "x": 1180,
+            "y": 408
           },
           "zIndex": 0,
           "width": 280,
@@ -159,8 +154,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1440,
-            "y": 360
+            "x": 1560,
+            "y": 397
           },
           "zIndex": 0,
           "width": 240,

@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Editorial Still from a Line\n\nTurns one line of subject text into an editorial photograph. A Template node holds the house look, so the caller only supplies the subject.\n\n**How it works:** \"Subject\" feeds \"Prompt\", which wraps it in fixed directions for natural light, shallow depth of field and no text or logos. \"Render\" generates a 16:9 image from that prompt, with a negative prompt against watermarks, and \"Image\" shows it. Pick a model on \"Render\" before running.\n\n**Try this:** Replace the \"Subject\" text with your own scene, or edit the style sentence in \"Prompt\" to change the look of every image this workflow makes."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +62,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 385
           },
           "zIndex": 0,
           "width": 320,
@@ -72,8 +91,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 180
+            "x": 800,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -91,8 +110,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 200
+            "x": 1180,
+            "y": 379
           },
           "zIndex": 0,
           "width": 240,

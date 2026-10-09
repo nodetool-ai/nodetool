@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Slow a Clip Without Dropping Pitch",
   "tool_name": null,
-  "description": "Time stretch changes duration and leaves pitch alone \u2014 which is the whole point. Changing playback speed instead would take the pitch down with it.",
+  "description": "Time stretch changes duration and leaves pitch alone — which is the whole point. Changing playback speed instead would take the pitch down with it.",
   "tags": [
     "audio",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Slow a Clip Without Dropping Pitch\n\nMakes audio longer or shorter while the pitch stays the same. Changing playback speed would lower the pitch along with the tempo, which is the problem this avoids.\n\n**How it works:** \"Audio\" takes your file. \"Stretch to 80%\" runs a time stretch at a rate of 0.8, which slows it down, and \"Result\" returns the stretched audio.\n\n**Try this:** Set the rate on \"Stretch to 80%\" to 1.25 to speed a voiceover up so it fits a shorter cut."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.AudioInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +62,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 348
           },
           "zIndex": 0,
           "width": 280,
@@ -62,8 +81,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 386
           },
           "zIndex": 0,
           "width": 280,

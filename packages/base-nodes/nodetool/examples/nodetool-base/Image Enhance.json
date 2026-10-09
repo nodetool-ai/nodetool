@@ -76,12 +76,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 11,
-            "y": -300
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
           "width": 900,
-          "height": 250,
+          "height": 266,
           "selectable": true,
           "bypassed": false
         },
@@ -103,8 +103,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1,
-            "y": 71
+            "x": 0,
+            "y": 399
           },
           "zIndex": 0,
           "width": 260,
@@ -125,8 +125,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 300,
-            "y": 90
+            "x": 360,
+            "y": 360
           },
           "zIndex": 0,
           "width": 240,
@@ -147,8 +147,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 580,
-            "y": 90
+            "x": 700,
+            "y": 360
           },
           "zIndex": 0,
           "width": 240,
@@ -170,8 +170,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 860,
-            "y": 90
+            "x": 1040,
+            "y": 346
           },
           "zIndex": 0,
           "width": 240,
@@ -192,8 +192,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1140,
-            "y": 90
+            "x": 1380,
+            "y": 360
           },
           "zIndex": 0,
           "width": 240,
@@ -212,8 +212,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1420,
-            "y": 100
+            "x": 1720,
+            "y": 411
           },
           "selectable": true,
           "title": "Enhanced image"

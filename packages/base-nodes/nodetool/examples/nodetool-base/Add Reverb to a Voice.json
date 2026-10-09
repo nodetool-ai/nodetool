@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Add Reverb to a Voice",
   "tool_name": null,
-  "description": "Put a dry vocal in a room. Wet level is the send, dry level the original \u2014 keeping both is what makes it sound like a space rather than a wash.",
+  "description": "Put a dry vocal in a room. Wet level is the send, dry level the original — keeping both is what makes it sound like a space rather than a wash.",
   "tags": [
     "audio",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Add Reverb to a Voice\n\nPlaces a dry vocal in a simulated room. The workflow keeps the original signal alongside the reverb so the voice stays clear instead of washing out.\n\n**How it works:** \"1 Audio\" takes the dry recording. \"2 Reverb\" applies a room scale of 0.7, damping of 0.4, a wet level of 0.25 and a dry level of 0.6. \"3 Result\" plays the processed audio.\n\n**Try this:** Raise room_scale to 0.9 and wet_level to 0.4 on \"2 Reverb\" for a hall sound, or lower both for a small booth."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.AudioInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 367
           },
           "zIndex": 0,
           "width": 280,
@@ -46,8 +65,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -65,8 +84,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 426
           },
           "zIndex": 0,
           "width": 280,

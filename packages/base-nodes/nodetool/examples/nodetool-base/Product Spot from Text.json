@@ -19,12 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "Product Spot from Text",
-          "comment": [
-            "Describe the product and how it should be staged; get a short commercial spot back.\n\n",
-            "Unlike Product Video Generator, this needs no product photo — the hero frame is generated.\n\n",
-            "The motion brief deliberately forbids restyling the product: the model may move the camera, nothing else."
-          ]
+          "comment": "# Product Spot from Text\n\nDescribe the product and how it should be staged; get a short commercial spot back.\n\nUnlike Product Video Generator, this needs no product photo — the hero frame is generated.\n\nThe motion brief deliberately forbids restyling the product: the model may move the camera, nothing else."
         },
         "ui_properties": {
           "position": {
@@ -33,7 +28,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 180,
+          "height": 247,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -50,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 388
           },
           "zIndex": 0,
           "width": 280,
@@ -71,7 +66,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 612
           },
           "zIndex": 0,
           "width": 280,
@@ -92,7 +87,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 560
+            "y": 871
           },
           "zIndex": 0,
           "width": 280,
@@ -110,8 +105,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 320
+            "x": 380,
+            "y": 327
           },
           "zIndex": 0,
           "width": 320,
@@ -139,8 +134,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 280
+            "x": 800,
+            "y": 644
           },
           "zIndex": 0,
           "width": 280,
@@ -158,8 +153,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 600
+            "x": 380,
+            "y": 823
           },
           "zIndex": 0,
           "width": 320,
@@ -189,8 +184,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1100,
-            "y": 400
+            "x": 1180,
+            "y": 810
           },
           "zIndex": 0,
           "width": 280,
@@ -208,8 +203,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1460,
-            "y": 420
+            "x": 1560,
+            "y": 822
           },
           "zIndex": 0,
           "width": 240,

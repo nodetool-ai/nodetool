@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Pitch a Voice Up",
   "tool_name": null,
-  "description": "Shift pitch in semitones while duration stays put \u2014 the counterpart to time stretch.",
+  "description": "Shift pitch in semitones while duration stays put — the counterpart to time stretch.",
   "tags": [
     "audio",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Pitch a Voice Up\n\nRaises the pitch of a voice by a set number of semitones without changing its length. It is the counterpart to time stretching.\n\n**How it works:** The \"Audio\" input goes to \"Up 4 semitones\", which shifts the pitch up by four semitones. \"Result\" plays the shifted audio. It runs locally with no model or key.\n\n**Try this:** Set semitones on \"Up 4 semitones\" to -5 to drop the voice lower instead."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.AudioInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +62,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 348
           },
           "zIndex": 0,
           "width": 280,
@@ -62,8 +81,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 386
           },
           "zIndex": 0,
           "width": 280,

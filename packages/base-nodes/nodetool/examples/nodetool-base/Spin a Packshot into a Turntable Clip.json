@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Spin a Packshot into a Turntable Clip\n\nTurns a product still into a short orbiting clip for a product page. Image-to-video keeps the product as photographed and adds only the camera move.\n\n**How it works:** \"Packshot\" takes your product photo. \"Animate\" generates a 4-second square clip at 720p from a prompt for a slow orbit with fixed lighting, and \"Clip\" returns it.\n\n**Try this:** Pick a model on \"Animate\", then change the prompt to \"slow push in toward the label\" for a detail shot instead of an orbit."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 351
           },
           "zIndex": 0,
           "width": 300,
@@ -58,8 +77,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -77,8 +96,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 359
           },
           "zIndex": 0,
           "width": 300,

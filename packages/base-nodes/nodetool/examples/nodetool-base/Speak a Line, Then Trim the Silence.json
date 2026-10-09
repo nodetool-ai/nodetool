@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Speak a Line, Then Trim the Silence\n\nTurns a line of text into speech and removes the dead air at both ends. Text-to-speech often adds padding, and a trimmed clip drops straight into a timeline.\n\n**How it works:** \"Line\" holds the sentence to read. \"Speak\" synthesises it, \"Trim silence\" cuts quiet stretches below -40 dB, and \"Audio\" returns the tight clip.\n\n**Try this:** Pick a model on \"Speak\", then raise the threshold on \"Trim silence\" to -30 if room noise in the voice keeps it from trimming."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "t",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 375
           },
           "zIndex": 0,
           "width": 280,
@@ -58,8 +77,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -81,8 +100,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 369
           },
           "zIndex": 0,
           "width": 280,
@@ -100,8 +119,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 353
           },
           "zIndex": 0,
           "width": 280,

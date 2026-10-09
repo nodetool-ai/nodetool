@@ -6,7 +6,12 @@
   "name": "Compose Directed Campaign Formats",
   "tool_name": null,
   "description": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
-  "tags": ["campaign", "image", "svg", "example"],
+  "tags": [
+    "campaign",
+    "image",
+    "svg",
+    "example"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
@@ -20,10 +25,10 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": -240
+            "y": 0
           },
           "width": 560,
-          "height": 190,
+          "height": 192,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -42,7 +47,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 80
+            "y": 688
           },
           "width": 280,
           "title": "Accepted hero"
@@ -62,7 +67,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 904
           },
           "width": 280,
           "title": "Creative contract"
@@ -81,7 +86,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 1129
           },
           "width": 280,
           "title": "Version"
@@ -103,7 +108,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 560
+            "y": 1354
           },
           "width": 280,
           "title": "Original record file"
@@ -119,8 +124,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 260
+            "x": 800,
+            "y": 900
           },
           "width": 500,
           "title": "Validate copy and build elements"
@@ -187,8 +192,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 940,
-            "y": 80
+            "x": 1400,
+            "y": 1183
           },
           "width": 280,
           "title": "4:5 editable SVG"
@@ -208,8 +213,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 940,
-            "y": 240
+            "x": 1400,
+            "y": 731
           },
           "width": 280,
           "title": "4:5 PNG"
@@ -228,8 +233,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 940,
-            "y": 440
+            "x": 1400,
+            "y": 1351
           },
           "width": 280,
           "title": "9:16 editable SVG"
@@ -249,8 +254,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 940,
-            "y": 600
+            "x": 1400,
+            "y": 957
           },
           "width": 280,
           "title": "9:16 PNG"
@@ -266,8 +271,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1300,
-            "y": 300
+            "x": 1780,
+            "y": 825
           },
           "width": 520,
           "title": "Wait, snapshot, and export"
@@ -393,8 +398,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1900,
-            "y": 0
+            "x": 2400,
+            "y": 272
           },
           "width": 240,
           "title": "Accepted hero"
@@ -410,8 +415,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1900,
-            "y": 120
+            "x": 2400,
+            "y": 672
           },
           "width": 240,
           "title": "4:5 PNG"
@@ -427,8 +432,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1900,
-            "y": 240
+            "x": 2400,
+            "y": 1072
           },
           "width": 240,
           "title": "9:16 PNG"
@@ -444,8 +449,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1900,
-            "y": 360
+            "x": 2400,
+            "y": 1472
           },
           "width": 240,
           "title": "4:5 SVG"
@@ -461,8 +466,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1900,
-            "y": 480
+            "x": 2400,
+            "y": 1872
           },
           "width": 240,
           "title": "9:16 SVG"
@@ -478,8 +483,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2200,
-            "y": 0
+            "x": 2400,
+            "y": 472
           },
           "width": 240,
           "title": "Accepted contract"
@@ -495,8 +500,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2200,
-            "y": 120
+            "x": 2400,
+            "y": 872
           },
           "width": 240,
           "title": "Campaign snapshot"
@@ -512,8 +517,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2200,
-            "y": 240
+            "x": 2400,
+            "y": 1272
           },
           "width": 240,
           "title": "Campaign record file"
@@ -529,8 +534,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 80
+            "x": 380,
+            "y": 827
           },
           "width": 320,
           "title": "Normalize app image"
@@ -562,8 +567,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2200,
-            "y": 360
+            "x": 2400,
+            "y": 1672
           },
           "width": 240,
           "title": "Accepted phase"

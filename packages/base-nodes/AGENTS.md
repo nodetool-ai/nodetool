@@ -23,6 +23,11 @@ These graphs ship with the package and seed every install's example library. The
   graph.** Don't promise inputs or output nodes the graph doesn't contain (a
   "grid"/`Preview` step, a "count" input that was removed). Stale copy is the most
   common drift when a graph is edited in the app and re-saved.
+- **Every example opens with an intro `Comment` at the top left, above a
+  left-to-right graph.** Its `comment` is a Markdown string starting with
+  `# <workflow name>` (or a saved Lexical state). The canvas ignores a
+  `headline` field and renders a list of strings as an empty note.
+  `tests/example-workflows-validation.test.ts` checks this.
 - **`etag` is not validated on load** — the loader returns it verbatim. No need to
   recompute it after a hand edit.
 - **Don't hand-edit `electron/backend-bundle/examples/`** — it's gitignored and

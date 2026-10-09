@@ -111,12 +111,12 @@
         },
         "ui_properties": {
           "position": {
-            "x": -460,
-            "y": -247
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
-          "width": 437,
-          "height": 340,
+          "width": 560,
+          "height": 313,
           "selectable": true,
           "bypassed": false
         },
@@ -132,8 +132,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 390,
-            "y": -7
+            "x": 380,
+            "y": 451
           },
           "zIndex": 0,
           "width": 486,
@@ -175,8 +175,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 936,
-            "y": 308
+            "x": 966,
+            "y": 731
           },
           "zIndex": 0,
           "width": 457,
@@ -198,8 +198,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": -197
+            "x": 0,
+            "y": 393
           },
           "zIndex": 0,
           "width": 280,
@@ -220,8 +220,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 83
+            "x": 0,
+            "y": 618
           },
           "zIndex": 0,
           "width": 280,
@@ -242,8 +242,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 363
+            "x": 0,
+            "y": 843
           },
           "zIndex": 0,
           "width": 280,
@@ -267,8 +267,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 643
+            "x": 0,
+            "y": 1068
           },
           "zIndex": 0,
           "width": 280,
@@ -300,8 +300,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1443,
-            "y": 357
+            "x": 1523,
+            "y": 782
           },
           "zIndex": 0,
           "width": 739,
@@ -322,8 +322,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1763,
-            "y": 357
+            "x": 2362,
+            "y": 935
           },
           "selectable": true
         }

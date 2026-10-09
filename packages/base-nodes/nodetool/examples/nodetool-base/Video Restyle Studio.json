@@ -19,12 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "Video Restyle Studio",
-          "comment": [
-            "Restyle a clip without re-shooting or re-animating it.\n\n",
-            "Motion, timing and framing come from the source video. Only the look changes.\n\n",
-            "Strength is the dial to turn: 0.3-0.5 keeps faces and text legible, 0.7+ commits to the style and will drift."
-          ]
+          "comment": "# Video Restyle Studio\n\nRestyle a clip without re-shooting or re-animating it.\n\nMotion, timing and framing come from the source video. Only the look changes.\n\nStrength is the dial to turn: 0.3-0.5 keeps faces and text legible, 0.7+ commits to the style and will drift."
         },
         "ui_properties": {
           "position": {
@@ -34,7 +29,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 170
+          "height": 208
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -50,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 288
           },
           "zIndex": 0,
           "width": 280,
@@ -71,7 +66,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 504
           },
           "zIndex": 0,
           "width": 280,
@@ -92,7 +87,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 560
+            "y": 729
           },
           "zIndex": 0,
           "width": 280,
@@ -111,7 +106,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 420
+            "y": 434
           },
           "zIndex": 0,
           "width": 320,
@@ -138,8 +133,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 780,
-            "y": 320
+            "x": 800,
+            "y": 416
           },
           "zIndex": 0,
           "width": 280,
@@ -157,8 +152,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1140,
-            "y": 340
+            "x": 1180,
+            "y": 430
           },
           "zIndex": 0,
           "width": 240,

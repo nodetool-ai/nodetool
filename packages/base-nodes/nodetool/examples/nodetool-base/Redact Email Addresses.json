@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Redact Email Addresses\n\nReplaces email addresses in text using a regular expression. Use it to strip personal data before text reaches a model or a log.\n\n**How it works:** \"Text\" holds a sentence with two addresses. \"Redact\" finds every match of its pattern and swaps in the replacement string. \"Result\" shows the cleaned text. It runs locally with no model or key.\n\n**Try this:** Change the pattern on \"Redact\" to match phone numbers, or set count to 1 to replace only the first address."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "s",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 524
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -72,8 +91,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 502
           },
           "zIndex": 0,
           "width": 280,

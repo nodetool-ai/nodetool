@@ -20,8 +20,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "AI Spokesperson",
-          "comment": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip."
+          "comment": "# AI Spokesperson\n\nTurn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip."
         },
         "ui_properties": {
           "position": {
@@ -31,7 +30,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 170
+          "height": 153
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -50,7 +49,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 233
           },
           "zIndex": 0,
           "width": 280,
@@ -71,7 +70,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 599
           },
           "zIndex": 0,
           "width": 280,
@@ -98,7 +97,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 380
+            "y": 528
           },
           "zIndex": 0,
           "width": 280,
@@ -123,8 +122,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1750,
-            "y": 300
+            "x": 1960,
+            "y": 360
           },
           "zIndex": 0,
           "width": 280,
@@ -142,8 +141,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2110,
-            "y": 320
+            "x": 2340,
+            "y": 376
           },
           "zIndex": 0,
           "width": 240,
@@ -159,8 +158,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 710,
-            "y": 380
+            "x": 760,
+            "y": 516
           },
           "width": 300,
           "title": "Even out volume"
@@ -176,8 +175,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1040,
-            "y": 380
+            "x": 1160,
+            "y": 473
           },
           "width": 300,
           "title": "Soften the start"
@@ -193,8 +192,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1370,
-            "y": 380
+            "x": 1560,
+            "y": 438
           },
           "width": 300,
           "title": "Soften the ending"

@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Invert a Still",
   "tool_name": null,
-  "description": "A straight negative \u2014 every channel flipped. The cheapest way to see whether a filter chain is operating on the pixels you think it is.",
+  "description": "A straight negative — every channel flipped. The cheapest way to see whether a filter chain is operating on the pixels you think it is.",
   "tags": [
     "image",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Invert a Still\n\nTurns an image into its negative by flipping every color channel. Use it to check that a filter chain is changing the pixels you expect.\n\n**How it works:** The \"Image\" input passes your picture to \"Invert\", which replaces each channel value with its opposite. \"Result\" shows the negative. It runs locally with no model or key.\n\n**Try this:** Drop in a photo with strong colors and compare the output. Then chain a second \"Invert\" after the first and confirm you get the original back."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.ImageInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 371
           },
           "zIndex": 0,
           "width": 280,
@@ -41,8 +60,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -60,8 +79,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 379
           },
           "zIndex": 0,
           "width": 280,

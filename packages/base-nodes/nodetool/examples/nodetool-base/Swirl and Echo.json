@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Swirl and Echo\n\nRuns audio through a sweeping phaser and then a feedback delay. Both effects blend with the dry signal, so the original sound stays audible underneath.\n\n**How it works:** \"Audio\" takes your file. \"Phaser\" sweeps at 0.6 Hz around 1000 Hz at a 0.5 mix. \"Delay\" adds 0.33-second echoes with 0.35 feedback at a 0.4 mix, and \"Result\" returns the treated audio.\n\n**Try this:** Set delay_seconds on \"Delay\" to match your track's tempo, for example 0.5 for a quarter note at 120 BPM."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.AudioInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 367
           },
           "zIndex": 0,
           "width": 280,
@@ -47,8 +66,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -68,8 +87,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 388
           },
           "zIndex": 0,
           "width": 280,
@@ -87,8 +106,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 426
           },
           "zIndex": 0,
           "width": 280,

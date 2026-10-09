@@ -26,12 +26,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 40,
-            "y": -260
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
-          "width": 520,
-          "height": 300,
+          "width": 560,
+          "height": 430,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -50,8 +50,8 @@
           "selected": false,
           "title": "1️⃣ Topic",
           "position": {
-            "x": 40,
-            "y": 120
+            "x": 0,
+            "y": 782
           },
           "zIndex": 0,
           "width": 280,
@@ -71,8 +71,8 @@
           "selected": false,
           "title": "2️⃣ Objective",
           "position": {
-            "x": 40,
-            "y": 320
+            "x": 380,
+            "y": 590
           },
           "zIndex": 0,
           "width": 280,
@@ -105,8 +105,8 @@
           "selected": false,
           "title": "3️⃣ Orchestrator",
           "position": {
-            "x": 440,
-            "y": 200
+            "x": 760,
+            "y": 762
           },
           "zIndex": 0,
           "width": 300,
@@ -137,8 +137,8 @@
           "selected": false,
           "title": "🔧 Tool: Research (Gemini)",
           "position": {
-            "x": 840,
-            "y": 40
+            "x": 1160,
+            "y": 510
           },
           "zIndex": 0,
           "width": 300,
@@ -169,8 +169,8 @@
           "selected": false,
           "title": "🔧 Tool: Copy Editor (Claude)",
           "position": {
-            "x": 840,
-            "y": 400
+            "x": 1160,
+            "y": 773
           },
           "zIndex": 0,
           "width": 300,
@@ -190,8 +190,8 @@
           "selected": false,
           "title": "4️⃣ Final article",
           "position": {
-            "x": 1240,
-            "y": 200
+            "x": 1160,
+            "y": 1036
           },
           "zIndex": 0,
           "width": 280,

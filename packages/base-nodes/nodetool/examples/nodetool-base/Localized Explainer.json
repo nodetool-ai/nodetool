@@ -17,6 +17,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Localized Explainer\n\nMakes one narrated explainer video per language from a single brief, narrator and b-roll storyboard. Each video comes with an SRT subtitle file.\n\n**How it works:** \"One run per language\" runs the graph for en, de and fr. \"Write the script in this language\" uses the \"Brief\" and \"Narrator\", and \"Voice the changed lines\" voices only edited lines. \"Script into a cut\" builds a timeline, and \"Lay the b-roll over it\" adds stills from the \"B-roll board\". \"Render\" outputs \"Videos\", and \"Subtitles\" outputs SRT files.\n\n**Try this:** Choose a narrator and board, then add \"es\" to \"One run per language\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "languages",
         "type": "nodetool.control.Collection",
         "data": {
@@ -29,7 +48,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 0
+            "y": 366
           },
           "zIndex": 0,
           "width": 220,
@@ -50,7 +69,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 160
+            "y": 782
           },
           "zIndex": 0,
           "width": 220,
@@ -75,7 +94,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 300
+            "y": 1007
           },
           "zIndex": 0,
           "width": 240,
@@ -98,7 +117,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 460
+            "y": 1191
           },
           "zIndex": 0,
           "width": 240,
@@ -126,8 +145,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 340,
+            "y": 691
           },
           "zIndex": 0,
           "width": 260,
@@ -145,8 +164,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 700,
+            "y": 805
           },
           "zIndex": 0,
           "width": 240,
@@ -162,8 +181,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 920,
-            "y": 120
+            "x": 1040,
+            "y": 959
           },
           "zIndex": 0,
           "width": 240,
@@ -179,8 +198,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 460
+            "x": 340,
+            "y": 1130
           },
           "zIndex": 0,
           "width": 240,
@@ -196,8 +215,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 620,
-            "y": 460
+            "x": 700,
+            "y": 1104
           },
           "zIndex": 0,
           "width": 220,
@@ -216,8 +235,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1200,
-            "y": 300
+            "x": 1380,
+            "y": 992
           },
           "zIndex": 0,
           "width": 240,
@@ -236,8 +255,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1200,
-            "y": 60
+            "x": 1040,
+            "y": 640
           },
           "zIndex": 0,
           "width": 240,
@@ -256,8 +275,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1480,
-            "y": 300
+            "x": 1720,
+            "y": 1034
           },
           "zIndex": 0,
           "width": 240,
@@ -276,8 +295,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1740,
-            "y": 300
+            "x": 2060,
+            "y": 1048
           },
           "zIndex": 0,
           "width": 200,
@@ -296,8 +315,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1480,
-            "y": 60
+            "x": 1380,
+            "y": 688
           },
           "zIndex": 0,
           "width": 200,

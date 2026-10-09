@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Put a Voice Over a Music Bed\n\nVoices a one-line script and mixes it over a generated music bed. Use it to make a short audio spot.\n\n**How it works:** \"Voice\" reads the \"Script\". \"Normalize\" and a \"Gain\" of -3 dB set the voice level, and \"GetAudioInfo\" measures its length. \"Music bed\" generates music, which \"Trim\" cuts to that length. A \"Gain\" of -18 dB, \"FadeIn\" and \"FadeOut\" place it under the voice. \"Overlay\" mixes both into the \"Spot\".\n\n**Try this:** Pick models on \"Voice\" and \"Music bed\", then rewrite \"Script\" with your own tagline."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "t",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 615
           },
           "zIndex": 0,
           "width": 280,
@@ -58,8 +77,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 567
           },
           "zIndex": 0,
           "width": 280,
@@ -86,8 +105,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 400
+            "x": 1140,
+            "y": 596
           },
           "zIndex": 0,
           "width": 280,
@@ -103,8 +122,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 2640,
-            "y": 100
+            "x": 3040,
+            "y": 473
           },
           "zIndex": 0,
           "width": 280,
@@ -123,8 +142,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2970,
-            "y": 100
+            "x": 3420,
+            "y": 482
           },
           "zIndex": 0,
           "width": 280,
@@ -140,8 +159,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 100
+            "x": 760,
+            "y": 649
           },
           "width": 280
         },
@@ -157,8 +176,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 100
+            "x": 1140,
+            "y": 366
           },
           "width": 280
         },
@@ -172,8 +191,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 400
+            "x": 1140,
+            "y": 913
           },
           "width": 280
         },
@@ -189,8 +208,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 400
+            "x": 1520,
+            "y": 744
           },
           "width": 280
         },
@@ -206,8 +225,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1650,
-            "y": 400
+            "x": 1900,
+            "y": 636
           },
           "width": 280
         },
@@ -223,8 +242,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1980,
-            "y": 400
+            "x": 2280,
+            "y": 636
           },
           "width": 280
         },
@@ -240,8 +259,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2310,
-            "y": 400
+            "x": 2660,
+            "y": 582
           },
           "width": 280
         },

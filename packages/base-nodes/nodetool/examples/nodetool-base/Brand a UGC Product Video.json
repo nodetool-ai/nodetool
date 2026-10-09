@@ -6,7 +6,14 @@
   "name": "Brand a UGC Product Video",
   "tool_name": null,
   "description": "Turn one continuous vertical creator clip into a polished branded reel. The workflow extracts the native audio, transcribes it with word timestamps, groups the words into short animated phrases, builds an editable NodeTool timeline with MORROW motion graphics, and renders the finished video.",
-  "tags": ["video", "marketing", "ugc", "captions", "motion-graphics", "example"],
+  "tags": [
+    "video",
+    "marketing",
+    "ugc",
+    "captions",
+    "motion-graphics",
+    "example"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
@@ -17,47 +24,130 @@
         "data": {
           "comment": "# Brand a UGC Product Video\n\nDrop in one continuous, native-audio vertical creator clip. The workflow transcribes the clip, groups the spoken words into 3–5 word phrases, and builds a reusable editable timeline with word highlighting, stable frame-snapped phrases, a MORROW opening bug, a compact lower-left DAILY RITUAL callout, and an animated closing lockup.\n\n**Pipeline:** Creator clip → Native audio → Word timestamps → Motion-design timeline → Final reel\n\n**Style:** Ivory `#F6F4EC`, sage `#C0D28C`, forest `#14241E`. `Polished` adds a soft caption plate; `Minimal` keeps only type and outline."
         },
-        "ui_properties": {"position": {"x": -20, "y": -210}, "zIndex": -1, "width": 1860, "height": 170, "selectable": true, "title": "MORROW motion finishing"},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": -1,
+          "width": 1860,
+          "height": 208,
+          "selectable": true,
+          "title": "MORROW motion finishing"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
         "id": "creator-clip",
         "type": "nodetool.input.VideoInput",
-        "data": {"name": "creator_clip", "value": null, "description": "One continuous 9:16 creator clip with its native audio"},
-        "ui_properties": {"position": {"x": 0, "y": 40}, "zIndex": 0, "width": 280, "selectable": true, "title": "1  Creator clip"},
+        "data": {
+          "name": "creator_clip",
+          "value": null,
+          "description": "One continuous 9:16 creator clip with its native audio"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 288
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Creator clip"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
         "id": "brand",
         "type": "nodetool.input.StringInput",
-        "data": {"name": "brand", "value": "MORROW", "description": "Brand name used by the opening bug and closing lockup"},
-        "ui_properties": {"position": {"x": 0, "y": 250}, "zIndex": 0, "width": 280, "selectable": true, "title": "2  Brand"},
+        "data": {
+          "name": "brand",
+          "value": "MORROW",
+          "description": "Brand name used by the opening bug and closing lockup"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 504
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Brand"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
         "id": "slogan",
         "type": "nodetool.input.StringInput",
-        "data": {"name": "slogan", "value": "Carry the calm.", "description": "Closing line under the brand"},
-        "ui_properties": {"position": {"x": 0, "y": 450}, "zIndex": 0, "width": 280, "selectable": true, "title": "3  Slogan"},
+        "data": {
+          "name": "slogan",
+          "value": "Carry the calm.",
+          "description": "Closing line under the brand"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 729
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Slogan"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
         "id": "caption-style",
         "type": "nodetool.input.SelectInput",
-        "data": {"name": "caption_style", "value": "Polished", "options": ["Polished", "Minimal"], "enum_type_name": "", "description": "Polished adds a restrained forest plate; Minimal keeps the outlined type"},
-        "ui_properties": {"position": {"x": 0, "y": 650}, "zIndex": 0, "width": 280, "selectable": true, "title": "4  Caption style"},
+        "data": {
+          "name": "caption_style",
+          "value": "Polished",
+          "options": [
+            "Polished",
+            "Minimal"
+          ],
+          "enum_type_name": "",
+          "description": "Polished adds a restrained forest plate; Minimal keeps the outlined type"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 954
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Caption style"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
         "id": "brand-accent",
         "type": "nodetool.input.ColorInput",
-        "data": {"name": "brand_accent", "value": {"type": "color", "value": "#C0D28C"}, "description": "Active-word, underline, bracket, and closing-rule color"},
-        "ui_properties": {"position": {"x": 0, "y": 850}, "zIndex": 0, "width": 280, "selectable": true, "title": "5  Brand accent"},
+        "data": {
+          "name": "brand_accent",
+          "value": {
+            "type": "color",
+            "value": "#C0D28C"
+          },
+          "description": "Active-word, underline, bracket, and closing-rule color"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1142
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Brand accent"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
@@ -65,7 +155,16 @@
         "id": "extract-audio",
         "type": "nodetool.video.ExtractAudio",
         "data": {},
-        "ui_properties": {"position": {"x": 360, "y": 40}, "zIndex": 0, "width": 280, "selectable": true, "title": "6  Keep the native track"},
+        "ui_properties": {
+          "position": {
+            "x": 380,
+            "y": 451
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "6  Keep the native track"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
@@ -73,15 +172,39 @@
         "id": "clip-info",
         "type": "nodetool.video.GetVideoInfo",
         "data": {},
-        "ui_properties": {"position": {"x": 360, "y": 200}, "zIndex": 0, "width": 280, "selectable": true, "title": "Measure the clip"},
+        "ui_properties": {
+          "position": {
+            "x": 380,
+            "y": 619
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Measure the clip"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
         "id": "transcribe",
         "type": "openai.audio.Transcribe",
-        "data": {"model": "whisper-1", "language": "auto_detect", "timestamps": true, "prompt": "Return the creator's exact spoken words. Preserve product and brand terms.", "temperature": 0},
-        "ui_properties": {"position": {"x": 700, "y": 40}, "zIndex": 0, "width": 300, "selectable": true, "title": "7  Derive word timings"},
+        "data": {
+          "model": "whisper-1",
+          "language": "auto_detect",
+          "timestamps": true,
+          "prompt": "Return the creator's exact spoken words. Preserve product and brand terms.",
+          "temperature": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 577
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "7  Derive word timings"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
@@ -97,40 +220,174 @@
           "secrets": [],
           "script": {}
         },
-        "ui_properties": {"position": {"x": 1070, "y": 330}, "zIndex": 0, "width": 400, "height": 520, "selectable": true, "title": "8  Build the editable motion timeline"},
-        "dynamic_properties": {"creator": null, "words": [], "brand": "", "slogan": "", "captionStyle": "Polished", "brandAccent": {"type": "color", "value": "#C0D28C"}, "clipSeconds": 0},
-        "dynamic_outputs": {"timeline": {"type": "timeline", "type_args": [], "optional": false}}
+        "ui_properties": {
+          "position": {
+            "x": 1160,
+            "y": 574
+          },
+          "zIndex": 0,
+          "width": 400,
+          "height": 520,
+          "selectable": true,
+          "title": "8  Build the editable motion timeline"
+        },
+        "dynamic_properties": {
+          "creator": null,
+          "words": [],
+          "brand": "",
+          "slogan": "",
+          "captionStyle": "Polished",
+          "brandAccent": {
+            "type": "color",
+            "value": "#C0D28C"
+          },
+          "clipSeconds": 0
+        },
+        "dynamic_outputs": {
+          "timeline": {
+            "type": "timeline",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "render",
         "type": "nodetool.timeline.RenderTimeline",
-        "data": {"timeline": {"type": "timeline", "id": null, "data": null}, "include_audio": true, "format": "mp4", "alpha": false, "video_codec": "", "motion_blur_samples": 1, "shutter_angle": 180, "bitrate": 0, "preview_scale": 1},
-        "ui_properties": {"position": {"x": 1540, "y": 390}, "zIndex": 0, "width": 300, "selectable": true, "title": "9  Render the finished reel"},
+        "data": {
+          "timeline": {
+            "type": "timeline",
+            "id": null,
+            "data": null
+          },
+          "include_audio": true,
+          "format": "mp4",
+          "alpha": false,
+          "video_codec": "",
+          "motion_blur_samples": 1,
+          "shutter_angle": 180,
+          "bitrate": 0,
+          "preview_scale": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1660,
+            "y": 828
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "9  Render the finished reel"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
         "id": "video-out",
         "type": "nodetool.output.Output",
-        "data": {"name": "video", "description": "Polished vertical UGC reel with editable motion graphics and captions"},
-        "ui_properties": {"position": {"x": 1910, "y": 390}, "zIndex": 0, "width": 260, "selectable": true, "title": "10  Branded UGC reel"},
+        "data": {
+          "name": "video",
+          "description": "Polished vertical UGC reel with editable motion graphics and captions"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2060,
+            "y": 863
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "10  Branded UGC reel"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       }
     ],
     "edges": [
-      {"id": "e1", "source": "creator-clip", "sourceHandle": "output", "target": "extract-audio", "targetHandle": "video"},
-      {"id": "e2", "source": "extract-audio", "sourceHandle": "output", "target": "transcribe", "targetHandle": "audio"},
-      {"id": "e3", "source": "creator-clip", "sourceHandle": "output", "target": "build-timeline", "targetHandle": "creator"},
-      {"id": "e4", "source": "transcribe", "sourceHandle": "words", "target": "build-timeline", "targetHandle": "words"},
-      {"id": "e5", "source": "brand", "sourceHandle": "output", "target": "build-timeline", "targetHandle": "brand"},
-      {"id": "e6", "source": "slogan", "sourceHandle": "output", "target": "build-timeline", "targetHandle": "slogan"},
-      {"id": "e7", "source": "caption-style", "sourceHandle": "output", "target": "build-timeline", "targetHandle": "captionStyle"},
-      {"id": "e8", "source": "brand-accent", "sourceHandle": "output", "target": "build-timeline", "targetHandle": "brandAccent"},
-      {"id": "e9", "source": "build-timeline", "sourceHandle": "timeline", "target": "render", "targetHandle": "timeline"},
-      {"id": "e10", "source": "render", "sourceHandle": "output", "target": "video-out", "targetHandle": "value"},
-      {"id": "e11", "source": "creator-clip", "sourceHandle": "output", "target": "clip-info", "targetHandle": "video"},
-      {"id": "e12", "source": "clip-info", "sourceHandle": "duration", "target": "build-timeline", "targetHandle": "clipSeconds"}
+      {
+        "id": "e1",
+        "source": "creator-clip",
+        "sourceHandle": "output",
+        "target": "extract-audio",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e2",
+        "source": "extract-audio",
+        "sourceHandle": "output",
+        "target": "transcribe",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "creator-clip",
+        "sourceHandle": "output",
+        "target": "build-timeline",
+        "targetHandle": "creator"
+      },
+      {
+        "id": "e4",
+        "source": "transcribe",
+        "sourceHandle": "words",
+        "target": "build-timeline",
+        "targetHandle": "words"
+      },
+      {
+        "id": "e5",
+        "source": "brand",
+        "sourceHandle": "output",
+        "target": "build-timeline",
+        "targetHandle": "brand"
+      },
+      {
+        "id": "e6",
+        "source": "slogan",
+        "sourceHandle": "output",
+        "target": "build-timeline",
+        "targetHandle": "slogan"
+      },
+      {
+        "id": "e7",
+        "source": "caption-style",
+        "sourceHandle": "output",
+        "target": "build-timeline",
+        "targetHandle": "captionStyle"
+      },
+      {
+        "id": "e8",
+        "source": "brand-accent",
+        "sourceHandle": "output",
+        "target": "build-timeline",
+        "targetHandle": "brandAccent"
+      },
+      {
+        "id": "e9",
+        "source": "build-timeline",
+        "sourceHandle": "timeline",
+        "target": "render",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e10",
+        "source": "render",
+        "sourceHandle": "output",
+        "target": "video-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e11",
+        "source": "creator-clip",
+        "sourceHandle": "output",
+        "target": "clip-info",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e12",
+        "source": "clip-info",
+        "sourceHandle": "duration",
+        "target": "build-timeline",
+        "targetHandle": "clipSeconds"
+      }
     ]
   },
   "input_schema": null,

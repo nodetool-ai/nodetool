@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Photo Enhancement Suite",
   "tool_name": null,
-  "description": "Batch-enhance a list of photos through a fixed retouch chain \u2014 auto-contrast, color, sharpening, and an AI cinematic-grade pass \u2014 with no folder path required, just drop images in.",
+  "description": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
   "tags": [
     "image",
     "photo",
@@ -19,17 +19,17 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83d\udcf7 Photo Enhancement Suite\n\nBatch-enhance a list of photos through a fixed retouch chain: auto-contrast, color, brightness, sharpening, and an AI polish pass.\n\n**Pipeline:** Photo list \u2192 Auto-contrast \u2192 Color/Brightness \u2192 Sharpen \u2192 AI enhance \u2192 Collect\n\n**Try this:** add a few photos and adjust the brightness and color factors to taste."
+          "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhance a list of photos through a fixed retouch chain: auto-contrast, color, brightness, sharpening, and an AI polish pass.\n\n**Pipeline:** Photo list → Auto-contrast → Color/Brightness → Sharpen → AI enhance → Collect\n\n**Try this:** add a few photos and adjust the brightness and color factors to taste."
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 0,
-            "y": -220
+            "y": 0
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 180,
+          "width": 560,
+          "height": 227,
           "selectable": true,
           "bypassed": false
         },
@@ -44,7 +44,11 @@
           "input_item": []
         },
         "ui_properties": {
-          "title": "8\ufe0f\u20e3 Collect enhanced batch"
+          "title": "8️⃣ Collect enhanced batch",
+          "position": {
+            "x": 3144,
+            "y": 663
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -79,7 +83,11 @@
         "ui_properties": {
           "width": 384,
           "height": 400,
-          "title": "7\ufe0f\u20e3 AI enhance"
+          "title": "7️⃣ AI enhance",
+          "position": {
+            "x": 2660,
+            "y": 499
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -100,7 +108,11 @@
           "threshold": 0.0117647
         },
         "ui_properties": {
-          "title": "6\ufe0f\u20e3 Sharpen detail"
+          "title": "6️⃣ Sharpen detail",
+          "position": {
+            "x": 2280,
+            "y": 596
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -120,7 +132,11 @@
           "amount": 1
         },
         "ui_properties": {
-          "title": "5\ufe0f\u20e3 Sharpen"
+          "title": "5️⃣ Sharpen",
+          "position": {
+            "x": 1900,
+            "y": 595
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -142,7 +158,11 @@
           "brightness": 1
         },
         "ui_properties": {
-          "title": "4\ufe0f\u20e3 Adjust color"
+          "title": "4️⃣ Adjust color",
+          "position": {
+            "x": 1520,
+            "y": 580
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -163,7 +183,11 @@
           "contrast": 1
         },
         "ui_properties": {
-          "title": "3\ufe0f\u20e3 Brightness/Contrast"
+          "title": "3️⃣ Brightness/Contrast",
+          "position": {
+            "x": 1140,
+            "y": 512
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -183,7 +207,11 @@
           "cutoff": 2
         },
         "ui_properties": {
-          "title": "2\ufe0f\u20e3 Auto-contrast"
+          "title": "2️⃣ Auto-contrast",
+          "position": {
+            "x": 760,
+            "y": 452
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -197,7 +225,11 @@
           "limit": -1
         },
         "ui_properties": {
-          "title": "1\ufe0f\u20e3 Iterate photos"
+          "title": "1️⃣ Iterate photos",
+          "position": {
+            "x": 380,
+            "y": 405
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -209,10 +241,14 @@
         "data": {
           "name": "photos",
           "value": [],
-          "description": "Photos to enhance. Add one or more images directly \u2014 no folder path or upload step required."
+          "description": "Photos to enhance. Add one or more images directly — no folder path or upload step required."
         },
         "ui_properties": {
-          "title": "Photos to enhance"
+          "title": "Photos to enhance",
+          "position": {
+            "x": 0,
+            "y": 307
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -229,7 +265,11 @@
           "max": 1.5
         },
         "ui_properties": {
-          "title": "Brightness factor"
+          "title": "Brightness factor",
+          "position": {
+            "x": 0,
+            "y": 559
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -246,7 +286,11 @@
           "max": 2
         },
         "ui_properties": {
-          "title": "Color factor"
+          "title": "Color factor",
+          "position": {
+            "x": 0,
+            "y": 743
+          }
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -259,8 +303,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 0
+            "x": 3524,
+            "y": 647
           },
           "selectable": true
         }

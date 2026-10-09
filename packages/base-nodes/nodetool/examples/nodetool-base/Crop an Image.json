@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Crop an Image\n\nCuts a rectangle out of an image using pixel bounds. Use Fit instead when you want the whole frame at a new size. It runs locally with no model, key or cost.\n\n**How it works:** \"1 Image\" takes the picture. \"2 Crop\" keeps the area from left 100, top 100 to right 900, bottom 600. \"3 Result\" shows the cropped image.\n\n**Try this:** Change the four bounds on \"2 Crop\" to frame a different part of your image, keeping right larger than left and bottom larger than top."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 365
           },
           "zIndex": 0,
           "width": 280,
@@ -47,8 +66,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -66,8 +85,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 373
           },
           "zIndex": 0,
           "width": 240,

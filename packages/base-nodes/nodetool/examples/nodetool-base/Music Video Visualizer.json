@@ -226,11 +226,11 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": -220
+            "y": 0
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 180,
+          "width": 560,
+          "height": 200,
           "selectable": true,
           "bypassed": false
         },
@@ -250,12 +250,12 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 104
+            "x": 0,
+            "y": 283
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1\ufe0f\u20e3 Song audio",
+          "title": "1️⃣ Song audio",
           "selectable": true,
           "bypassed": false
         },
@@ -272,8 +272,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 396
+            "x": 0,
+            "y": 601
           },
           "zIndex": 0,
           "width": 280,
@@ -294,8 +294,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 642
+            "x": 0,
+            "y": 826
           },
           "zIndex": 0,
           "width": 280,
@@ -316,8 +316,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 888
+            "x": 0,
+            "y": 1051
           },
           "zIndex": 0,
           "width": 280,
@@ -342,12 +342,12 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 255
+            "x": 380,
+            "y": 445
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2\ufe0f\u20e3 Transcribe lyrics",
+          "title": "2️⃣ Transcribe lyrics",
           "selectable": true,
           "bypassed": false
         },
@@ -362,8 +362,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 740,
-            "y": 282
+            "x": 760,
+            "y": 280
           },
           "zIndex": 0,
           "width": 280,
@@ -390,16 +390,16 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are an award-winning music-video creative director. You translate how a song feels into concrete visual language \u2014 mood, energy, color, and motion. Answer with tight, evocative direction only; never restate or acknowledge the request, and never add headings or lists unless asked."
+          "system": "You are an award-winning music-video creative director. You translate how a song feels into concrete visual language — mood, energy, color, and motion. Answer with tight, evocative direction only; never restate or acknowledge the request, and never add headings or lists unless asked."
         },
         "ui_properties": {
           "position": {
-            "x": 1050,
-            "y": 354
+            "x": 1140,
+            "y": 690
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3\ufe0f\u20e3 Analyze mood",
+          "title": "3️⃣ Analyze mood",
           "selectable": true,
           "bypassed": false
         },
@@ -414,8 +414,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1390,
-            "y": 496
+            "x": 1520,
+            "y": 547
           },
           "zIndex": 0,
           "width": 280,
@@ -447,13 +447,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1700,
-            "y": 495
+            "x": 1900,
+            "y": 827
           },
           "zIndex": 0,
           "width": 280,
           "height": 340,
-          "title": "4\ufe0f\u20e3 Generate frame prompts",
+          "title": "4️⃣ Generate frame prompts",
           "selectable": true,
           "bypassed": false
         },
@@ -466,8 +466,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 2010,
-            "y": 613
+            "x": 2280,
+            "y": 995
           },
           "zIndex": 0,
           "width": 280,
@@ -494,13 +494,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2320,
-            "y": 465
+            "x": 2660,
+            "y": 828
           },
           "zIndex": 0,
           "width": 384,
           "height": 400,
-          "title": "5\ufe0f\u20e3 Render frames",
+          "title": "5️⃣ Render frames",
           "selectable": true,
           "bypassed": false
         },
@@ -513,8 +513,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 3440,
-            "y": 600
+            "x": 3904,
+            "y": 1004
           },
           "zIndex": 0,
           "width": 280,
@@ -532,13 +532,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 3780,
-            "y": 600
+            "x": 5044,
+            "y": 767
           },
           "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "6\ufe0f\u20e3 Frames to video",
+          "title": "6️⃣ Frames to video",
           "selectable": true,
           "bypassed": false
         },
@@ -554,13 +554,13 @@
         },
         "ui_properties": {
           "position": {
-            "x": 4240,
-            "y": 600
+            "x": 5560,
+            "y": 714
           },
           "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "7\ufe0f\u20e3 Add audio",
+          "title": "7️⃣ Add audio",
           "selectable": true,
           "bypassed": false
         },
@@ -576,8 +576,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 4700,
-            "y": 600
+            "x": 6076,
+            "y": 857
           },
           "selectable": true
         }
@@ -592,8 +592,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2760,
-            "y": 600
+            "x": 3144,
+            "y": 947
           },
           "width": 280
         },
@@ -610,8 +610,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 3100,
-            "y": 600
+            "x": 3524,
+            "y": 909
           },
           "width": 280
         },
@@ -625,8 +625,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 1000
+            "x": 760,
+            "y": 981
           },
           "width": 280
         },
@@ -643,8 +643,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 740,
-            "y": 1000
+            "x": 4284,
+            "y": 654
           },
           "width": 280
         },
@@ -667,8 +667,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 3440,
-            "y": 600
+            "x": 4664,
+            "y": 968
           },
           "width": 280
         },
@@ -682,8 +682,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 3440,
-            "y": 1000
+            "x": 4284,
+            "y": 1143
           },
           "width": 280
         },
@@ -696,8 +696,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 50,
-            "y": 1000
+            "x": 380,
+            "y": 762
           },
           "width": 280
         },

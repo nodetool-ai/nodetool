@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Turn Research Notes into a Comparison Table\n\nTurns messy research notes into a Markdown table with one row per option. Cells the notes do not cover are marked unknown instead of guessed.\n\n**How it works:** Paste the notes into \"1 Input\". \"2 Agent\" picks the attributes the notes discuss as columns and writes one row per option, and \"3 Output\" returns the table.\n\n**Try this:** Pick a model on \"2 Agent\" and paste notes comparing three tools, then check which cells come back unknown."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -60,8 +79,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 327
           },
           "zIndex": 0,
           "width": 300,
@@ -79,8 +98,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 358
           },
           "zIndex": 0,
           "width": 300,

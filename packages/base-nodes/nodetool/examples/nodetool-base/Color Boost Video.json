@@ -14,6 +14,26 @@
   "graph": {
     "nodes": [
       {
+        "id": "60677785-41d5-4795-bdba-15003d0dec86",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🎨 Color Boost Video\n\nGrade a clip frame-by-frame, then reassemble it. Each frame gets an exposure and saturation pass; the Grading Intensity input feeds the saturation strength so it can be bound to a slider in the app view.\n\n**Pipeline:** Video → Split frames → Exposure → Saturation (driven by Grading intensity) → Reassemble\n\n**Try this:** drag Grading intensity, tweak the exposure settings, or set a start/end frame range."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "height": 266,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
         "id": "7074f109-83b1-4864-8e37-17a89fcbf46d",
         "parent_id": null,
         "type": "nodetool.input.VideoInput",
@@ -29,8 +49,8 @@
         "ui_properties": {
           "title": "1️⃣ Source video",
           "position": {
-            "x": 50,
-            "y": 50
+            "x": 0,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -52,8 +72,8 @@
         "ui_properties": {
           "title": "Grading intensity",
           "position": {
-            "x": 680,
-            "y": 320
+            "x": 0,
+            "y": 712
           },
           "zIndex": 0,
           "width": 280,
@@ -72,8 +92,8 @@
         "ui_properties": {
           "title": "2️⃣ Split into frames",
           "position": {
-            "x": 360,
-            "y": 54
+            "x": 380,
+            "y": 507
           },
           "zIndex": 0,
           "width": 280,
@@ -94,8 +114,8 @@
         "ui_properties": {
           "title": "3️⃣ Exposure & contrast",
           "position": {
-            "x": 680,
-            "y": 60
+            "x": 760,
+            "y": 461
           },
           "zIndex": 0,
           "width": 280,
@@ -113,8 +133,8 @@
         "ui_properties": {
           "title": "4️⃣ Saturation & vibrance",
           "position": {
-            "x": 1000,
-            "y": 140
+            "x": 1140,
+            "y": 562
           },
           "zIndex": 0,
           "width": 280,
@@ -130,33 +150,13 @@
         "ui_properties": {
           "title": "5️⃣ Reassemble video",
           "position": {
-            "x": 1320,
-            "y": 112
+            "x": 1520,
+            "y": 437
           },
           "zIndex": 0,
           "width": 416,
           "selectable": true,
           "height": 360
-        },
-        "dynamic_properties": {}
-      },
-      {
-        "id": "60677785-41d5-4795-bdba-15003d0dec86",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Comment",
-        "data": {
-          "comment": "# 🎨 Color Boost Video\n\nGrade a clip frame-by-frame, then reassemble it. Each frame gets an exposure and saturation pass; the Grading Intensity input feeds the saturation strength so it can be bound to a slider in the app view.\n\n**Pipeline:** Video → Split frames → Exposure → Saturation (driven by Grading intensity) → Reassemble\n\n**Try this:** drag Grading intensity, tweak the exposure settings, or set a start/end frame range."
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 48,
-            "y": -209
-          },
-          "zIndex": 0,
-          "width": 520,
-          "height": 220,
-          "selectable": true
         },
         "dynamic_properties": {}
       },
@@ -170,8 +170,8 @@
         "ui_properties": {
           "title": "6️⃣ Graded output",
           "position": {
-            "x": 1640,
-            "y": 112
+            "x": 2036,
+            "y": 566
           },
           "zIndex": 0,
           "width": 280,

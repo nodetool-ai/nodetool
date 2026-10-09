@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Pad a Canvas\n\nPlaces an image on a larger canvas without scaling it. Use it to fit a landscape shot into a square post without cropping the subject.\n\n**How it works:** The \"Image\" input goes to \"Pad\", which centers the picture on a 1280 by 1280 canvas filled with the dark color #101014. \"Result\" shows the padded image. It runs locally with no model or key.\n\n**Try this:** Set width to 1080 and height to 1920 on \"Pad\" for a vertical story format, or change color to #FFFFFF for a white border."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 372
           },
           "zIndex": 0,
           "width": 280,
@@ -54,8 +73,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -73,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 380
           },
           "zIndex": 0,
           "width": 240,
