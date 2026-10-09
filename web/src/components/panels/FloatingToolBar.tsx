@@ -70,7 +70,7 @@ const MOBILE_DOCK_LAYER_STYLE: React.CSSProperties = {
 
 const RUNNING_TIME_STYLE: React.CSSProperties = {
   fontWeight: 600,
-  fontFamily: "monospace",
+  fontFamily: "var(--fontFamily2)",
   letterSpacing: "-0.5px"
 };
 

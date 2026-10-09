@@ -91,7 +91,7 @@ const ThemeNodetool = createTheme({
     }
   },
   typography: {
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "var(--fontFamily1)",
     fontSize: 15
   },
   spacing: 4,
@@ -317,7 +317,7 @@ const ThemeNodetool = createTheme({
           borderRadius: theme.rounded.md,
           padding: theme.spacing(1.5, 2), // 6px / 8px
           boxShadow:
-            "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)"
+            "var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.04)"
         }),
         arrow: () => ({
           color: "var(--palette-c_scrim_strong)"

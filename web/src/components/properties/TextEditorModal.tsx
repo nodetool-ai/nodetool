@@ -24,7 +24,7 @@ import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, reducedMotion } from "../ui_primitives";
+import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, reducedMotion, SHADOW } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -248,10 +248,9 @@ const styles = (theme: Theme) =>
       position: "relative",
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.1)`,
       borderRadius: theme.vars.rounded.dialog,
-      boxShadow: `0 48px 100px -24px rgba(0, 0, 0, 0.65),
-        0 24px 48px -12px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(255,255,255,0.06) inset,
-        0 1px 0 0 rgba(255,255,255,0.08) inset`,
+      boxShadow: `${SHADOW(theme).xl},
+        0 0 0 1px ${theme.vars.palette.c_overlay} inset,
+        0 1px 0 0 ${theme.vars.palette.c_overlay} inset`,
       overflow: "hidden",
       transition: MOTION.all,
       animation: `modalSlideIn ${MOTION.slow} forwards`
@@ -479,8 +478,7 @@ const styles = (theme: Theme) =>
         pre: {
           height: "100%",
           overflowWrap: "break-word",
-          fontFamily:
-            "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SF Mono', Consolas, monospace",
+          fontFamily: "var(--fontFamily2)",
           fontVariantLigatures: "common-ligatures"
         },
         textarea: {
@@ -531,7 +529,7 @@ const styles = (theme: Theme) =>
         height: "100%",
         overflow: "hidden",
         boxShadow: `-1px 0 0 rgba(${theme.vars.palette.common.whiteChannel} / 0.06),
-          -12px 0 32px -8px rgba(0,0,0,0.12)`,
+          ${SHADOW(theme).panelRight}`,
         position: "relative",
         ".assistant-header": {
           display: "flex",

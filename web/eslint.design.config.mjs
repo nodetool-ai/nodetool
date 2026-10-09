@@ -64,6 +64,10 @@ export default [
       // errors. See docs/DESIGN.md §1 (font size) and §3 (color).
       "design-tokens/font-size-tokens": "error",
       "design-tokens/color-tokens": "error",
+      // Font family and drop shadows reached zero violations when the rules
+      // landed — locked in as errors. See docs/DESIGN.md §1 and §6.
+      "design-tokens/font-family-tokens": "error",
+      "design-tokens/shadow-tokens": "error",
       // Border radius is fully migrated (zero violations) — locked in as an
       // error so any new raw/magic/var(--rounded-*) radius fails the gate. See
       // docs/DESIGN.md §4.
