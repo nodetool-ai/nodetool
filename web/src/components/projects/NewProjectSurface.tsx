@@ -424,6 +424,8 @@ const NewProjectSurface = ({
   const [modelAnchor, setModelAnchor] = useState<HTMLElement | null>(null);
   // A start requested before a provider was configured, resumed once one is.
   const [pendingStart, setPendingStart] = useState(false);
+  // A start parked on the model menu, resumed once a model is picked.
+  const [pendingModelStart, setPendingModelStart] = useState(false);
   // The flow can swap its own target and finish in the same tick — the example
   // route replaces the placeholder workflow with the copy, then finishes — so
   // the handlers read this rather than the render's copy of the state.
@@ -689,14 +691,14 @@ const NewProjectSurface = ({
     // A configured provider is not a picked model: the chat's model selection
     // starts on the "empty" sentinel, and a send with it never leaves the
     // client. Open this surface's own model menu rather than point at a
-    // composer that is not on this screen.
+    // composer that is not on this screen, and start once a model is picked.
     if (!isModelSelected(selectedModel)) {
+      setPendingModelStart(true);
       setModelAnchor(modelButtonRef.current);
       addNotification({
-        type: "error",
+        type: "info",
         alert: true,
-        content:
-          "No model selected. Pick a language model here before opening chat."
+        content: "Pick a language model and the chat starts."
       });
       return;
     }
@@ -1638,6 +1640,14 @@ const NewProjectSurface = ({
     void resumeProject.current();
   }, [pendingStart, hasConfiguredProvider]);
 
+  useEffect(() => {
+    if (!pendingModelStart || !isModelSelected(selectedModel)) {
+      return;
+    }
+    setPendingModelStart(false);
+    void resumeProject.current();
+  }, [pendingModelStart, selectedModel]);
+
   // The handler rides the field wrapper, where MUI puts unknown props, and the
   // keydown reaches it by bubbling from the textarea. Both pickers only read
   // `key` and call `preventDefault`, so the retype is safe. Enter keeps its
@@ -2236,7 +2246,10 @@ const NewProjectSurface = ({
       <LanguageModelMenuDialog
         open={modelAnchor !== null}
         anchorEl={modelAnchor}
-        onClose={() => setModelAnchor(null)}
+        onClose={() => {
+          setModelAnchor(null);
+          setPendingModelStart(false);
+        }}
         onModelChange={(model) => {
           setSelectedModel(model);
           setModelAnchor(null);

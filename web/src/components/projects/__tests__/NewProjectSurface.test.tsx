@@ -986,10 +986,30 @@ describe("NewProjectSurface", () => {
     expect(peekChatTurn("chat-1")).toBeNull();
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "error",
-        content: expect.stringContaining("Pick a language model here")
+        type: "info",
+        content: "Pick a language model and the chat starts."
       })
     );
+  });
+
+  // A first-time user who sends before picking a model got an error and had
+  // to send again after picking one. The start now resumes on the pick.
+  it("starts the parked chat once a model is picked", async () => {
+    selectedModel = { provider: "empty", id: "gpt-4o" };
+    const { refresh } = renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
+    expect(createNewThread).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Pick Claude" })
+    );
+    selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
+    refresh();
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
   });
 
   // BUG F1: the refusal was a dead end — no picker on this screen, and a
