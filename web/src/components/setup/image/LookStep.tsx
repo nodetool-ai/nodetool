@@ -83,6 +83,8 @@ export interface LookStepControls {
   blockedReason: string;
   /** What the click spends, or undefined when nothing priced it. */
   primaryDetail: string | undefined;
+  /** What one more image costs: a contact sheet Regenerate. */
+  perImageDetail: string | undefined;
   /** The model list's state, and what the body renders in its place. */
   availability: ModelAvailability;
   models: readonly ImageModel[];
@@ -238,6 +240,10 @@ export function useLookStep(): LookStepControls {
           estimate.total
         )}`
       : undefined;
+  const perImageDetail =
+    estimate && estimate.total > 0
+      ? `about ${formatUsd(estimate.total / variations)}`
+      : undefined;
 
   const blockedReason =
     availability === "loading"
@@ -273,6 +279,7 @@ export function useLookStep(): LookStepControls {
       !styleLoading,
     blockedReason,
     primaryDetail,
+    perImageDetail,
     availability,
     models,
     sizePresets,

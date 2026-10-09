@@ -140,6 +140,83 @@ describe("WorkflowLandingChecklist", () => {
       screen.getByText("Running with your sample inputs")
     ).toBeInTheDocument();
   });
+  // F4: a canceled run is the creator's choice, not a fault to repair.
+  it("says the test run was canceled and offers the next step", () => {
+    renderChecklist({
+      ...CLEAN,
+      status: "canceled",
+      output: undefined,
+      testRun: { started: true, error: null }
+    });
+    expect(screen.getByText("Test run canceled")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask the agent" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Create Mini App" })
+    ).toBeInTheDocument();
+  });
+
+  // F5: each line follows where the build got to.
+  it("shows the check in progress for a graph that was only built", () => {
+    renderChecklist({
+      ...CLEAN,
+      status: "built",
+      output: undefined,
+      testRun: { started: false, error: null }
+    });
+    expect(screen.getByText("Checking…")).toBeInTheDocument();
+    expect(screen.getByText("Not run yet")).toBeInTheDocument();
+  });
+
+  it("says a validated graph has not run yet, not that it is unwired", () => {
+    renderChecklist({
+      ...CLEAN,
+      status: "validated",
+      output: undefined,
+      testRun: { started: false, error: null }
+    });
+    expect(screen.getByText("No problems found")).toBeInTheDocument();
+    expect(screen.getByText("Not run yet")).toBeInTheDocument();
+    expect(screen.queryByText(/unwired/)).toBeNull();
+  });
+
+  it("says validation could not run when the graph check failed", () => {
+    renderChecklist({
+      ...CLEAN,
+      status: "failed",
+      output: undefined,
+      validationError: "editor not open",
+      testRun: { started: false, error: "editor not open" }
+    });
+    expect(screen.getByText("Validation could not run")).toBeInTheDocument();
+    expect(screen.queryByText(/did not start/)).toBeNull();
+  });
+
+  it("calls a started run that failed a failed run", () => {
+    renderChecklist({
+      ...CLEAN,
+      status: "failed",
+      output: undefined,
+      testRun: { started: true, error: "The sample run failed." }
+    });
+    expect(
+      screen.getByText("Run failed: The sample run failed.")
+    ).toBeInTheDocument();
+    expect(screen.getByText(/The test run failed:/)).toBeInTheDocument();
+    expect(screen.queryByText(/did not start/)).toBeNull();
+  });
+
+  it("says an unrecorded run's result was not recorded", () => {
+    renderChecklist({
+      ...CLEAN,
+      status: "unrecorded",
+      output: undefined,
+      testRun: { started: true, error: null }
+    });
+    expect(
+      screen.getByText("The test run's result was not recorded")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Running with your sample inputs")).toBeNull();
+  });
 });
 
 describe("buildFailureMessage", () => {

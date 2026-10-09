@@ -53,7 +53,7 @@ import { useGenerateShot } from "../../../hooks/storyboard/useGenerateShot";
 import { useRenderBatchCostEstimate } from "../../../hooks/storyboard/useRenderBatchCostEstimate";
 import { STYLE_DESCRIPTIONS } from "../styleDescriptions";
 import { AddStyleDialog } from "./AddStyleDialog";
-import { useCustomStyle } from "./useCustomStyle";
+import { useCustomStyle, useStyleSaving } from "./useCustomStyle";
 import { setShotlistImport, useShotlistImportSummary } from "./setupChoices";
 
 export interface LookStepProps {
@@ -120,6 +120,7 @@ export function useLookStep(boardId: string): LookStepControls {
       [boardId]
     )
   );
+  const savingStyle = useStyleSaving(boardId);
   const { generateKeyframe } = useGenerateShot();
   const estimate = useRenderBatchCostEstimate(boardId, shots, "still");
 
@@ -147,8 +148,11 @@ export function useLookStep(boardId: string): LookStepControls {
   // board names the model that will draw the stills: without one the request
   // falls back to a server default the creator never chose and cannot see,
   // and nothing can price it (`primaryDetail` stays empty).
-  const blockedReason =
-    style.trim().length === 0
+  // A style still being saved replaces the board's style when it lands, so
+  // generating now would render in the look it is about to replace (F8).
+  const blockedReason = savingStyle
+    ? "Saving your style"
+    : style.trim().length === 0
       ? "Pick an art style"
       : hasStillModel
         ? undefined

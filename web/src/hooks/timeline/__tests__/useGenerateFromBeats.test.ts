@@ -193,8 +193,115 @@ describe("generateFromBeats (criterion 5)", () => {
     });
     expect(store.getState().setup?.stage).toBe("look");
     acknowledge();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(persistPreparedBatch).toHaveBeenCalledTimes(2);
+    expect(startJob).not.toHaveBeenCalled();
+    acknowledge();
     await generating;
     expect(startJob).toHaveBeenCalledTimes(7);
+  });
+
+  // V3: a reload during submission must load stage `done`, not Look with
+  // Generate offered again, so `done` is saved before the first paid request.
+  it("saves the terminal stage before dispatching any request", async () => {
+    const store = seeded();
+    const savedStages: (string | undefined)[] = [];
+    const startJob = jest.fn(async (clipId: string) => {
+      expect(savedStages).toContain("done");
+      return clipId;
+    });
+
+    await generateFromBeats(store, {
+      ...options,
+      persistPreparedBatch: async () => {
+        savedStages.push(store.getState().setup?.stage);
+      },
+      startJob
+    });
+
+    expect(savedStages).toEqual(["look", "done"]);
+    expect(startJob).toHaveBeenCalledTimes(7);
+  });
+
+  it("returns to Look and submits nothing when saving the terminal stage fails", async () => {
+    const store = seeded();
+    const startJob = jest.fn(async (clipId: string) => clipId);
+    let saves = 0;
+
+    await expect(
+      generateFromBeats(store, {
+        ...options,
+        persistPreparedBatch: async () => {
+          saves += 1;
+          if (saves === 2) {
+            throw new Error("save failed");
+          }
+        },
+        startJob
+      })
+    ).rejects.toThrow(/No generation requests were submitted/i);
+
+    expect(startJob).not.toHaveBeenCalled();
+    expect(store.getState().setup).toMatchObject({
+      stage: "look",
+      prepared_generation: { status: "unsubmitted" }
+    });
+  });
+
+  // V4: a beat removed on review leaves its imported clip behind. The clip is
+  // kept, moved with its linked audio past the re-timed cut.
+  it("moves an imported clip no beat uses past the cut, with its linked clips", async () => {
+    const store = seeded([
+      {
+        id: "b-kept",
+        prompt: "the kept shot",
+        duration_ms: 4_000,
+        source_clip_id: "kept"
+      }
+    ]);
+    const track = makeTrack({ id: "v", type: "video" });
+    const audio = makeTrack({ id: "a", type: "audio" });
+    const clip = (
+      id: string,
+      startMs: number,
+      over: Partial<ReturnType<typeof makeClip>> = {}
+    ) =>
+      makeClip({
+        id,
+        trackId: track.id,
+        name: `${id}.mp4`,
+        startMs,
+        durationMs: 3_000,
+        mediaType: "video",
+        sourceType: "imported",
+        ...over
+      });
+    store.setState({
+      tracks: [track, audio],
+      clips: [
+        clip("removed", 0, { linkId: "removed-link" }),
+        clip("removed-audio", 0, {
+          trackId: audio.id,
+          mediaType: "audio",
+          linkId: "removed-link"
+        }),
+        clip("kept", 3_000)
+      ]
+    });
+
+    await generateFromBeats(store, {
+      ...options,
+      voiceover: false,
+      music: false,
+      startJob: async (clipId: string) => clipId,
+      persistPreparedBatch: async () => undefined
+    });
+
+    const byId = new Map(store.getState().clips.map((c) => [c.id, c]));
+    expect(byId.get("kept")).toMatchObject({ startMs: 0, durationMs: 4_000 });
+    expect(byId.get("removed")?.startMs).toBe(4_000);
+    expect(byId.get("removed-audio")?.startMs).toBe(4_000);
+    expect(store.getState().clips).toHaveLength(3);
   });
 
   it("does not submit after canceling while the prepared draft is saving", async () => {
