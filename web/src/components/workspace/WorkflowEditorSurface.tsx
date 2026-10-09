@@ -11,6 +11,7 @@ import {
 } from "../../hooks/workflow/useWorkflowSetup";
 import {
   readWorkflowBuild,
+  isWorkflowBuildLive,
   workflowBuildResult,
   type BuildFromPlanResult
 } from "../../hooks/workflow/useBuildFromPlan";
@@ -175,7 +176,9 @@ const WorkflowEditorSurface = ({
     !landingDismissed &&
     (landingResult ??
       (setupStage === "done" && persistedBuild
-        ? workflowBuildResult(persistedBuild)
+        ? workflowBuildResult(persistedBuild, {
+            live: isWorkflowBuildLive(workflowId)
+          })
         : null));
   const landingRunMode =
     setup?.run_mode === "app" || setup?.run_mode === "trigger"

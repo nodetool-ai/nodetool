@@ -34,6 +34,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 
 import {
   BORDER_RADIUS,
+  AlertBanner,
   Box,
   Caption,
   Chip,
@@ -290,6 +291,16 @@ const SETUP_TAB_TYPE = {
   game: "game"
 } as const;
 
+/** What a flow makes, in the creator's words. */
+const SETUP_KIND_NOUN: Record<SetupTarget["kind"], string> = {
+  entity: "entity",
+  storyboard: "storyboard",
+  video: "video",
+  script: "script",
+  workflow: "workflow",
+  game: "game"
+};
+
 /**
  * One composer attachment, as a setup document may hold it.
  *
@@ -417,6 +428,19 @@ const NewProjectSurface = ({
   // route replaces the placeholder workflow with the copy, then finishes — so
   // the handlers read this rather than the render's copy of the state.
   const setupTargetRef = useRef<SetupTarget | null>(setupTarget);
+  // Whether this guided tab is the one on screen. The New Project tab itself
+  // (no `flowRef`) only finishes from a click, so it always is.
+  const guidedTabActive = useWorkspaceTabsStore(
+    (state) => !flowRef || state.activeTabId === tabId("guided-flow", flowRef)
+  );
+  const guidedTabActiveRef = useRef(guidedTabActive);
+  guidedTabActiveRef.current = guidedTabActive;
+  // A finish that could not hand off yet: held while this tab is hidden, or
+  // after its project failed to open.
+  const [heldFinish, setHeldFinish] = useState<{
+    result?: BuildFromPlanResult | null;
+  } | null>(null);
+  const [finishError, setFinishError] = useState<string | null>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -1331,7 +1355,8 @@ const NewProjectSurface = ({
             ...card,
             meta: "Creating…",
             disabled: true,
-            disabledReason: "Creating your project…"
+            // Every card files a draft into the open project and makes none.
+            disabledReason: "Creating your draft…"
           }
         : {
             ...card,
@@ -1355,9 +1380,24 @@ const NewProjectSurface = ({
       if (!target || target.kind === "entity") {
         return;
       }
-      if (!(await showDocumentProject(target.projectId, target.name))) {
+      // Every tab stays mounted, so a flow can finish (or load as finished)
+      // while the creator works in another tab or project. Opening its
+      // project then would pull them away, so the hand-off waits until this
+      // tab is in view again.
+      if (!guidedTabActiveRef.current) {
+        setHeldFinish({ result });
         return;
       }
+      if (!(await showDocumentProject(target.projectId, target.name))) {
+        // The document is done, so the flow has no step left to show. The
+        // hand-off is kept with a way to try it again.
+        setHeldFinish({ result });
+        setFinishError(
+          `Your ${SETUP_KIND_NOUN[target.kind]} is ready, but its project did not open.`
+        );
+        return;
+      }
+      setFinishError(null);
       const failures = result ? buildFailures(result) : [];
       if (failures.length > 0) {
         addNotification({
@@ -1381,6 +1421,20 @@ const NewProjectSurface = ({
     },
     [addNotification, applySetupTarget, closeTab, flowRef, openTab, showDocumentProject]
   );
+
+  useEffect(() => {
+    if (heldFinish && guidedTabActive && finishError === null) {
+      setHeldFinish(null);
+      void handleSetupFinished(heldFinish.result);
+    }
+  }, [finishError, guidedTabActive, handleSetupFinished, heldFinish]);
+
+  const retryFinish = useCallback(() => {
+    const held = heldFinish;
+    setHeldFinish(null);
+    setFinishError(null);
+    void handleSetupFinished(held?.result);
+  }, [handleSetupFinished, heldFinish]);
 
   const handleEntityFinished = useCallback(() => {
     useOnboardingStore.getState().markStep("start-guided-flow");
@@ -1639,6 +1693,23 @@ const NewProjectSurface = ({
   const handleOpenTutorials = useCallback(() => {
     openPageTab("tutorials");
   }, []);
+
+  if (setupTarget && finishError) {
+    return (
+      <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl, maxWidth: COLUMN_WIDTH }}>
+        <AlertBanner severity="error" title="Could not open it yet">
+          {finishError}
+        </AlertBanner>
+        <EditorButton
+          variant="contained"
+          onClick={retryFinish}
+          sx={{ alignSelf: "flex-start" }}
+        >
+          {`Open your ${SETUP_KIND_NOUN[setupTarget.kind]}`}
+        </EditorButton>
+      </FlexColumn>
+    );
+  }
 
   // An entry card was clicked: this tab is the flow now (PRD § 6.1).
   if (setupTarget) {

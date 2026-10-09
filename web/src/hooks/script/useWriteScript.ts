@@ -93,14 +93,23 @@ function applyImportedAsIs(
     idPrefix: string;
     lineIds: readonly string[];
     sectionTitle: string;
+    /** The cast on the document. A speaker of the same name keeps its id, and
+     * with it the voice the creator picked. */
+    existingCast: ReadonlyArray<{ id: string; name: string }>;
   }
 ): WrittenScript {
+  const heldIds = new Map(
+    options.existingCast.map(
+      (member) => [member.name.trim().toLowerCase(), member.id] as const
+    )
+  );
   const cast: Array<{ id: string; name: string }> = [];
   const byName = new Map<string, string>();
   imported.speakers.forEach((name, index) => {
-    const id = `${options.idPrefix}_spk_${index + 1}`;
+    const key = name.trim().toLowerCase();
+    const id = heldIds.get(key) ?? `${options.idPrefix}_spk_${index + 1}`;
     cast.push({ id, name });
-    byName.set(name.toLowerCase(), id);
+    byName.set(key, id);
   });
   return {
     cast,
@@ -110,7 +119,7 @@ function applyImportedAsIs(
         title: options.sectionTitle,
         lines: imported.lines.map((line, index) => ({
           id: options.lineIds[index] ?? `${options.idPrefix}_line_${index + 1}`,
-          speakerId: byName.get(line.speakerName.toLowerCase()) ?? null,
+          speakerId: byName.get(line.speakerName.trim().toLowerCase()) ?? null,
           text: line.text,
           direction: line.direction,
           targetDurationMs: line.targetDurationMs
@@ -233,7 +242,8 @@ export const useWriteScript = (): UseWriteScriptResult => {
           written = applyImportedAsIs(imported, {
             idPrefix,
             lineIds: heldLineIds,
-            sectionTitle
+            sectionTitle,
+            existingCast: asWritten(script).cast
           });
         } else if (imported) {
           const texts = imported.lines.map((line) => line.text);

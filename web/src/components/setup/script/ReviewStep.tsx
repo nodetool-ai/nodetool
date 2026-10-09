@@ -75,6 +75,8 @@ export interface ReviewStepProps {
   error?: string | null;
   /** Finishes setup on the text alone: stage `done`, no voices, no audio. */
   onOpenEditor: () => void;
+  /** A view-mode tab: the script shows but cannot be changed. */
+  readOnly?: boolean;
 }
 
 const ReviewStepInternal: React.FC<ReviewStepProps> = ({
@@ -82,8 +84,12 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onRewrite,
   rewriting = false,
   error,
-  onOpenEditor
+  onOpenEditor,
+  readOnly = false
 }) => {
+  // Nothing on the step may change the script: not while a rewrite replaces
+  // the lines, and not in a view-mode tab.
+  const locked = rewriting || readOnly;
   const script = useScriptStore((state) => state.scripts[scriptId]);
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
@@ -160,7 +166,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             compact: true,
             value: line.speakerId ?? "",
             options: speakerOptions,
-            readOnly: rewriting,
+            readOnly: locked,
             onChange: (value: string) => setLineSpeaker(line.id, value)
           },
           {
@@ -170,7 +176,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             placeholder: "Line",
             value: line.text,
             multiline: true,
-            readOnly: rewriting,
+            readOnly: locked,
             onChange: (value: string) => setLineText(line.id, value)
           },
           ...(line.direction === undefined
@@ -200,7 +206,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               ])
         ])
       })),
-    [rewriting, script?.sections, setLineSpeaker, setLineText, speakerOptions]
+    [locked, script?.sections, setLineSpeaker, setLineText, speakerOptions]
   );
 
   const emptyLineIds = useMemo(
@@ -227,6 +233,19 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     [script?.sections]
   );
 
+  // A rewrite sends the script as it stands along with the brief, so the
+  // estimate prices both.
+  const estimatedInput = useMemo(
+    () =>
+      [
+        setup?.brief ?? "",
+        ...(script?.sections ?? []).flatMap((section) =>
+          section.lines.map((line) => line.text)
+        )
+      ].join("\n"),
+    [script?.sections, setup?.brief]
+  );
+
   return (
     <FlexColumn gap={GAP.spacious}>
       <FlexColumn gap={GAP.tight}>
@@ -247,13 +266,14 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             value={writerModel?.id ?? ""}
             provider={writerModel?.provider}
             placeholder="Select writer model"
+            disabled={readOnly}
             onChange={setWriterModel}
           />
         </Box>
         <EditorButton
           variant="outlined"
           size="small"
-          disabled={rewriting}
+          disabled={locked}
           onClick={onRewrite}
         >
           {rewriting ? "Rewriting…" : "Rewrite"}
@@ -270,7 +290,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             : "Edits you have made are given to the writer as context."
         }
         model={writerModel}
-        brief={setup?.brief ?? ""}
+        brief={estimatedInput}
         maxOutputTokens={REWRITE_MAX_TOKENS}
       />
 
@@ -282,7 +302,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           variant="outlined"
           size="small"
           onClick={addLine}
-          disabled={rewriting}
+          disabled={locked}
         >
           Add a line
         </EditorButton>
@@ -290,7 +310,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           <EditorButton
             variant="text"
             size="small"
-            disabled={rewriting}
+            disabled={locked}
             onClick={() => emptyLineIds.forEach(removeLine)}
           >
             {`Remove ${emptyLineIds.length} empty ${emptyLineIds.length === 1 ? "line" : "lines"}`}
@@ -307,7 +327,12 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       ) : null}
 
       <FlexRow gap={GAP.normal} align="center" wrap>
-        <EditorButton variant="text" size="small" onClick={onOpenEditor}>
+        <EditorButton
+          variant="text"
+          size="small"
+          disabled={readOnly}
+          onClick={onOpenEditor}
+        >
           Open the editor without voicing
         </EditorButton>
         <Caption color="secondary">

@@ -309,7 +309,7 @@ describe("StoryboardSurface setup stages", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("View only")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
-    expect(screen.getByRole("textbox")).toBeDisabled();
+    expect(screen.getByRole("textbox")).toHaveAttribute("readonly");
   });
 
   it("shows setup conflicts in the shared surface shell", () => {

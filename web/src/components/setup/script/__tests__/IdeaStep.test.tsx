@@ -300,6 +300,75 @@ describe("script IdeaStep", () => {
     expect(sourceNow()?.speakers).toEqual(["ALICE", "BOB"]);
   });
 
+  it("holds paste and the blank script while a file is being read (F8)", async () => {
+    const user = userEvent.setup();
+    let finish: (value: unknown) => void = () => undefined;
+    restFetch.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    renderStep();
+
+    await user.upload(
+      screen.getByLabelText("Upload a file") as HTMLInputElement,
+      new File(["%PDF-1.7"], "notes.pdf", { type: "application/pdf" })
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /Paste your script/ })
+      ).toHaveAttribute("aria-disabled", "true")
+    );
+    expect(
+      screen.getByRole("button", { name: /Start with a blank script/ })
+    ).toHaveAttribute("aria-disabled", "true");
+
+    finish({ ok: true, json: async () => ({ text: "One sentence." }) });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /Paste different words/ })
+      ).not.toHaveAttribute("aria-disabled")
+    );
+    expect(
+      screen.getByRole("button", { name: /Start with a blank script/ })
+    ).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("changes nothing in a view-mode tab (F14)", async () => {
+    const user = userEvent.setup();
+    const onStartBlank = jest.fn();
+    useScriptStore.getState().setSetup(SCRIPT_ID, {
+      brief: "Tide clocks",
+      ...scriptSourcePatch(importedFromText("Keep these words."))
+    });
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <IdeaStep scriptId={SCRIPT_ID} onStartBlank={onStartBlank} readOnly />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("textbox", { name: "Notes for the writer" })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "Audience" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Replace these words" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove them" })).toBeDisabled();
+    expect(screen.queryByRole("group", { name: "Inspiration" })).toBeNull();
+    for (const name of [
+      /Paste different words/,
+      /Upload a file/,
+      /Import subtitles/,
+      /Start with a blank script/
+    ]) {
+      expect(screen.getByRole("button", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true"
+      );
+    }
+    await user.click(screen.getByRole("button", { name: /Start with a blank script/ }));
+    expect(onStartBlank).not.toHaveBeenCalled();
+    expect(setupNow()?.brief).toBe("Tide clocks");
+  });
+
   it("offers the blank escape hatch", async () => {
     const user = userEvent.setup();
     const onStartBlank = renderStep();
