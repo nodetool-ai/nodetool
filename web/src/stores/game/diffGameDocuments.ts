@@ -160,6 +160,7 @@ export function diffGameDocuments(from: GameDocument, to: GameDocument): GameDoc
       input_bindings: to.inputBindings ?? null,
       entry_scene_id: to.entrySceneId, collision_layers: to.collisionLayers ?? null });
   }
+  if (changed(from.audio?.mixer, to.audio?.mixer)) { ops.push({ op: "set_audio", mixer: to.audio?.mixer ?? null }); }
   for (const slot of Object.keys(from.assets)) {
     if (!(slot in to.assets)) { ops.push({ op: "unbind_asset", slot }); }
   }

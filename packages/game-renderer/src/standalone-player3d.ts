@@ -72,12 +72,12 @@ async function start(): Promise<void> {
   let frame = session.frame();
   const audio = new GameAudioPlayer({ assets: game.assets, tickRate: game.tickRate,
     resolveAsset: async (binding) => manifest.assets[Object.entries(game.assets).find(([, entry]) => entry.assetId === binding.assetId && entry.digest === binding.digest)?.[0] ?? ""] ?? null,
-    status });
+    status, mixer: game.audio?.mixer });
   audio.preload(); audio.sync(session.snapshot());
   for (const event of ["pointerdown", "keydown"] as const) { window.addEventListener(event, () => { void audio.unlock(); }, { signal: controller.signal }); }
   const step = (nextInput: GameInputFrame3D): void => {
     const result = session.step(nextInput); frame = result.frame;
-    for (const event of result.events) { if (event.kind === "audio") { audio.handle(event); } }
+    for (const event of result.events) { audio.handle(event); }
     audio.sync(session.snapshot());
   };
   const input = new GameInput3D();

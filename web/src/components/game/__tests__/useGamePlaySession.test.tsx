@@ -29,7 +29,7 @@ const mockAudioInstances: Array<{
 
 jest.mock("@nodetool-ai/game-renderer/audio", () => ({
   GameAudioPlayer: jest.fn().mockImplementation(() => {
-    const audio = { reset: jest.fn(), pause: jest.fn(), resume: jest.fn(), sync: jest.fn(), updateAssets: jest.fn(), preload: jest.fn(), dispose: jest.fn() };
+    const audio = { reset: jest.fn(), pause: jest.fn(), resume: jest.fn(), sync: jest.fn(), updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), dispose: jest.fn() };
     mockAudioInstances.push(audio);
     return audio;
   })

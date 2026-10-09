@@ -31,6 +31,8 @@ jest.mock('../types.d', () => ({
     PACKAGE_OPEN_EXTERNAL: 'package-open-external',
     DIALOG_OPEN_FILE: 'dialog-open-file',
     DIALOG_OPEN_FOLDER: 'dialog-open-folder',
+    RUNTIME_PACKAGE_INSTALL: 'runtime-package-install',
+    RUNTIME_SELECT_INSTALL_LOCATION: 'runtime-select-install-location',
   },
   IpcEvents: {},
   IpcResponse: {},
@@ -72,6 +74,8 @@ jest.mock('../packageManager', () => ({
   validateRepoId: jest.fn(),
   searchNodes: jest.fn(),
   checkForPackageUpdates: jest.fn(),
+  installRuntimePackage: jest.fn().mockResolvedValue({ success: true, message: 'ok' }),
+  RUNTIME_PACKAGE_IDS: ['ffmpeg'],
 }));
 
 jest.mock('electron', () => {
@@ -109,6 +113,7 @@ jest.mock('electron', () => {
   };
 });
 
+import path from 'path';
 import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell, dialog } from 'electron';
 import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer } from '../server';
 import { logMessage } from '../logger';
@@ -588,6 +593,38 @@ describe('initializeIpcHandlers', () => {
         expect.stringContaining('Error in window close'),
         'error'
       );
+    });
+  });
+
+  describe('runtime install location', () => {
+    beforeEach(() => {
+      initializeIpcHandlers();
+    });
+
+    it('rejects an install location the folder picker did not return', async () => {
+      const { installRuntimePackage } = jest.requireMock('../packageManager');
+      installRuntimePackage.mockClear();
+      const install = invokeHandlerFor<{ success: boolean }>('runtime-package-install');
+
+      const result = await install({}, { packageId: 'ffmpeg', installLocation: '/tmp/x' });
+
+      expect(result.success).toBe(false);
+      expect(installRuntimePackage).not.toHaveBeenCalled();
+    });
+
+    it('accepts the location picked in the folder dialog', async () => {
+      const { installRuntimePackage } = jest.requireMock('../packageManager');
+      installRuntimePackage.mockClear();
+      dialogMock.showOpenDialog.mockResolvedValue({ canceled: false, filePaths: ['/picked'] });
+      const select = invokeHandlerFor<string | null>('runtime-select-install-location');
+      const install = invokeHandlerFor<{ success: boolean }>('runtime-package-install');
+
+      const location = await select({});
+      const result = await install({}, { packageId: 'ffmpeg', installLocation: location });
+
+      expect(location).toBe(path.join('/picked', 'nodetool-env'));
+      expect(result.success).toBe(true);
+      expect(installRuntimePackage).toHaveBeenCalledWith('ffmpeg', location);
     });
   });
 

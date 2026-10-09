@@ -30,6 +30,7 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
     ops.push({ op: "set_game", presentation: to.presentation, input_actions: to.inputActions,
       input_axes: to.inputAxes, input_bindings: to.inputBindings ?? null, entry_scene_id: to.entrySceneId, collision_layers: to.collisionLayers ?? null });
   }
+  if (changed(from.audio?.mixer, to.audio?.mixer)) { ops.push({ op: "set_audio", mixer: to.audio?.mixer ?? null }); }
   // There is no scene move operation. Reinsert reordered scenes at their requested indices.
   const retainedSceneIds = from.scenes.filter((scene) => to.scenes.some((entry) => entry.id === scene.id)).map((scene) => scene.id);
   const desiredRetainedSceneIds = to.scenes.filter((scene) => from.scenes.some((entry) => entry.id === scene.id)).map((scene) => scene.id);

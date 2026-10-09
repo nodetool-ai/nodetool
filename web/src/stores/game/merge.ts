@@ -93,7 +93,8 @@ export const gameMergeAdapter: DocumentMergeAdapter<GameDocument> = {
     } },
     { name: "collisionLayers", read: (doc) => doc.collisionLayers, write: (doc, value) => ({ ...doc, collisionLayers: value as string[] | undefined }) },
     { name: "renderEffects", read: (doc) => doc.renderEffects, write: (doc, value) => ({ ...doc, renderEffects: value as GameDocument["renderEffects"] }) },
-    { name: "hudEffectOrder", read: (doc) => doc.hudEffectOrder, write: (doc, value) => ({ ...doc, hudEffectOrder: value as GameDocument["hudEffectOrder"] }) }
+    { name: "hudEffectOrder", read: (doc) => doc.hudEffectOrder, write: (doc, value) => ({ ...doc, hudEffectOrder: value as GameDocument["hudEffectOrder"] }) },
+    { name: "audio", read: (doc) => doc.audio, write: (doc, value) => ({ ...doc, audio: value as GameDocument["audio"] }) }
   ]
 };
 

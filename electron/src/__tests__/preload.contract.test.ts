@@ -73,11 +73,6 @@ const IpcChannels = {
   GET_SYSTEM_INFO: "get-system-info",
   DIALOG_OPEN_FILE: "dialog-open-file",
   DIALOG_OPEN_FOLDER: "dialog-open-folder",
-  LOCALHOST_PROXY_REQUEST: "localhost-proxy-request",
-  LOCALHOST_PROXY_WS_OPEN: "localhost-proxy-ws-open",
-  LOCALHOST_PROXY_WS_SEND: "localhost-proxy-ws-send",
-  LOCALHOST_PROXY_WS_CLOSE: "localhost-proxy-ws-close",
-  LOCALHOST_PROXY_WS_EVENT: "localhost-proxy-ws-event",
   FRONTEND_LOG: "frontend-log",
 } as const;
 
@@ -129,7 +124,6 @@ describe("preload contract", () => {
       "files",
       "logging",
       "windowControls",
-      "localhostProxy",
     ];
     for (const ns of expectedNamespaces) {
       expect(api).toHaveProperty(ns);

@@ -182,6 +182,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     });
     audioRef.current = audio;
     audio.updateAssets(sessionDocument.assets);
+    audio.updateMixer(sessionDocument.audio?.mixer);
     if (playbackActiveRef.current) audio.resume();
     else audio.pause();
     audio.preload();
