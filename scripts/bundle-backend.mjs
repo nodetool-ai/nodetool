@@ -111,6 +111,7 @@ const REQUIRED_EXTERNAL_PACKAGES = [
   "@mediabunny/server",
   "node-av",
   "webgpu",
+  "esbuild",
 ];
 
 // Staged into _modules/ on every profile.
@@ -161,6 +162,11 @@ const COMMON_EXTERNAL_PACKAGES = [
   // preserves import.meta.url so emscripten-module.wasm resolves next to the
   // package's own JS instead of next to backend/server.mjs.
   "@jitl/quickjs-ng-wasmfile-release-sync",
+  // The sandbox compiler bundles npm modules for the QuickJS guest with
+  // esbuild's JS API, which refuses to run once inlined (it locates its
+  // native binary relative to its own lib/main.js). Staging it keeps that
+  // layout and brings the @esbuild/<platform> binary along.
+  "esbuild",
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
   "@supabase/supabase-js",

@@ -12,10 +12,12 @@ describe('buildMenu', () => {
     jest.clearAllMocks();
   });
 
-  it('does nothing when no main window is available', async () => {
+  it('installs the menu with no window and sends to the window open at click time', async () => {
     mockIpcChannels();
 
-    const buildFromTemplateMock = jest.fn();
+    const buildFromTemplateMock = jest
+      .fn()
+      .mockImplementation((template) => ({ template }));
     const setApplicationMenuMock = jest.fn();
 
     jest.doMock('electron', () => ({
@@ -32,8 +34,17 @@ describe('buildMenu', () => {
       },
     }));
 
+    const closedWindow = {
+      isDestroyed: () => true,
+      webContents: { send: jest.fn() },
+    };
+    const reopenedWindow = {
+      isDestroyed: () => false,
+      webContents: { send: jest.fn() },
+    };
+    const getMainWindowMock = jest.fn().mockReturnValue(null);
     jest.doMock('../state', () => ({
-      getMainWindow: jest.fn().mockReturnValue(null),
+      getMainWindow: getMainWindowMock,
     }));
 
     jest.doMock('../window', () => ({
@@ -44,8 +55,24 @@ describe('buildMenu', () => {
     const menuModule = await import('../menu');
     menuModule.buildMenu();
 
-    expect(buildFromTemplateMock).not.toHaveBeenCalled();
-    expect(setApplicationMenuMock).not.toHaveBeenCalled();
+    expect(setApplicationMenuMock).toHaveBeenCalledTimes(1);
+    const template = buildFromTemplateMock.mock.calls[0][0] as Array<Record<string, any>>;
+    const saveItem = template
+      .find((item) => item.label === 'File')
+      ?.submenu?.find((item: { label?: string }) => item.label === 'Save');
+
+    // No window, then a destroyed one: the click is dropped, not thrown.
+    saveItem?.click();
+    getMainWindowMock.mockReturnValue(closedWindow);
+    expect(() => saveItem?.click()).not.toThrow();
+    expect(closedWindow.webContents.send).not.toHaveBeenCalled();
+
+    // macOS recreates the window on Dock activation without rebuilding the menu.
+    getMainWindowMock.mockReturnValue(reopenedWindow);
+    saveItem?.click();
+    expect(reopenedWindow.webContents.send).toHaveBeenCalledWith('menu-event', {
+      type: 'saveWorkflow',
+    });
   });
 
   it('builds menu and wires commands when window exists', async () => {
@@ -75,6 +102,7 @@ describe('buildMenu', () => {
 
     jest.doMock('../state', () => ({
       getMainWindow: jest.fn().mockReturnValue({
+        isDestroyed: () => false,
         webContents: {
           send: sendMock,
         },
@@ -175,6 +203,7 @@ describe('buildMenu', () => {
 
     jest.doMock('../state', () => ({
       getMainWindow: jest.fn().mockReturnValue({
+        isDestroyed: () => false,
         webContents: { send: sendMock },
       }),
     }));
@@ -240,6 +269,7 @@ describe('buildMenu', () => {
 
     jest.doMock('../state', () => ({
       getMainWindow: jest.fn().mockReturnValue({
+        isDestroyed: () => false,
         webContents: { send: jest.fn() },
       }),
     }));
