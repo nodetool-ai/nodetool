@@ -30,7 +30,8 @@ vi.mock("../src/resource-events.js", async (orig) => {
 
 import {
   getDefaultVectorProvider,
-  CollectionNotFoundError
+  CollectionNotFoundError,
+  OllamaEmbeddingFunction
 } from "@nodetool-ai/vectorstore";
 import { notifyResourceChange } from "../src/resource-events.js";
 import { handleCollectionRequest } from "../src/collection-api.js";
@@ -239,14 +240,13 @@ describe("unindexable uploads", () => {
     expect(collection.upsert).not.toHaveBeenCalled();
   });
 
-  it("rejects an embedding model no provider can serve with 400", async () => {
+  it("indexes a local embedding model through the Ollama default", async () => {
     const savedOllama = process.env.OLLAMA_API_URL;
     delete process.env.OLLAMA_API_URL;
     try {
       const collection = makeCollection({ embedding_model: "nomic-embed-text" });
-      providerMock.mockReturnValue({
-        getCollection: vi.fn().mockResolvedValue(collection)
-      });
+      const getCollection = vi.fn().mockResolvedValue(collection);
+      providerMock.mockReturnValue({ getCollection });
 
       const res = await handleCollectionRequest(
         uploadRequest("/api/collections/docs/index", {
@@ -256,9 +256,12 @@ describe("unindexable uploads", () => {
         options
       );
 
-      expect(res!.status).toBe(400);
-      expect((await res!.json()).detail).toContain("nomic-embed-text");
-      expect(collection.upsert).not.toHaveBeenCalled();
+      expect(res!.status).toBe(200);
+      expect(getCollection).toHaveBeenLastCalledWith({
+        name: "docs",
+        embeddingFunction: expect.any(OllamaEmbeddingFunction)
+      });
+      expect(collection.upsert).toHaveBeenCalledTimes(1);
     } finally {
       if (savedOllama !== undefined) process.env.OLLAMA_API_URL = savedOllama;
     }

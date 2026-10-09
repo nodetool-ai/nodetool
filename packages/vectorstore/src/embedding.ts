@@ -443,7 +443,7 @@ export function getProviderEmbeddingFunction(
   embeddingModel: string,
   provider?: string | null,
   opts?: { userId?: string }
-): EmbeddingFunction | null {
+): EmbeddingFunction {
   const userId = opts?.userId;
   if (provider) {
     return new ProviderEmbeddingFunction({
