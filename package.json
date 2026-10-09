@@ -102,7 +102,7 @@
     "turbo:lint": "node scripts/run-turbo.mjs run lint",
     "turbo:typecheck": "node scripts/run-turbo.mjs run typecheck",
     "turbo:check": "node scripts/run-turbo.mjs run typecheck lint test",
-    "dev": "concurrently --raw --kill-others-on-fail \"node scripts/dev-server.mjs\" \"node scripts/wait-for-api.mjs && npm run dev --workspace=web\"",
+    "dev": "node scripts/dev-ports.mjs api web && concurrently --raw --kill-others-on-fail \"node scripts/dev-server.mjs\" \"node scripts/wait-for-api.mjs && npm run dev --workspace=web\"",
     "dev:fast": "npm run dev",
     "dev:web": "npm run dev --workspace=web",
     "storybook": "npm run storybook --workspace=web",
