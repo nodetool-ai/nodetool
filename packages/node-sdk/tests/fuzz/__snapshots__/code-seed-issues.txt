@@ -9,6 +9,9 @@ branching warning code_undeclared_output The code returns "a", which is not decl
 branching warning code_unused_input Inputs "a", "items", "text" are never read by the code.
 empty-ish error code_no_return The code never returns, so the outputs "n", "out", "doc" stay empty. End it with `return { n, out, doc };`.
 empty-ish warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+wrapper-escape-call error code_syntax The code does not parse as JavaScript: Could not read the code as a function body.
+wrapper-escape error code_syntax The code does not parse as JavaScript: Could not read the code as a function body.
+function-only-syntax warning code_unused_input Inputs "flag", "items", "text" are never read by the code.
 export-module error code_module The code uses `export` at the top level. The body runs inside an async function, which cannot contain an export declaration. Write top-level statements only — do not wrap the body in `export async function run`.
 export-module warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
 node-builtin error code_module The code imports "fs", "node:path". The sandbox is QuickJS, not Node — it has no builtin modules. Use the sandbox API (fetch, workspace, crypto, media) or a sandbox pack instead.
