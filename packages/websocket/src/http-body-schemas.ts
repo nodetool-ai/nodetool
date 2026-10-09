@@ -83,7 +83,13 @@ export const workflowRunBodySchema = z.object({
   max_decisions: lenientNumber(),
   max_retries_per_node: lenientNumber(),
   decision_timeout_ms: lenientNumber(),
-  project_id: lenientString()
+  project_id: lenientString(),
+  /**
+   * Run only these nodes and their upstream dependencies. Left unchecked so
+   * the route can answer a malformed value with a 400 instead of silently
+   * running (and billing) the whole graph.
+   */
+  node_ids: unchecked<unknown>()
 });
 
 /** `POST /api/debug/sessions/:id/verdict` */

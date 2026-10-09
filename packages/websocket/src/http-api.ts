@@ -635,6 +635,15 @@ export async function handleWorkflowRun(
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
   const body = await parseBody(request, workflowRunBodySchema);
 
+  const rawNodeIds = body?.node_ids;
+  let nodeIds: string[] | undefined;
+  if (rawNodeIds !== undefined && rawNodeIds !== null) {
+    if (!Array.isArray(rawNodeIds) || !rawNodeIds.every(isString)) {
+      return errorResponse(400, "node_ids must be an array of node id strings");
+    }
+    nodeIds = rawNodeIds;
+  }
+
   const runOptions: Parameters<typeof runWorkflow>[0] = {
     workflowId,
     userId,
@@ -649,6 +658,9 @@ export async function handleWorkflowRun(
     // The server's own import site, so a test that mocks it still governs.
     resolveWorkspace: resolveWorkflowWorkspace
   };
+  if (nodeIds) {
+    runOptions.nodeIds = nodeIds;
+  }
   if (body?.max_decisions !== undefined) {
     runOptions.maxDecisions = body.max_decisions;
   }

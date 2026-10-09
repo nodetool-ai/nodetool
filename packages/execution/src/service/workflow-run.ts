@@ -30,6 +30,7 @@ import type {
 } from "@nodetool-ai/runtime";
 import { ExecutionSession } from "../session.js";
 import { normalizeGraph, toRawGraphInput } from "../normalize-graph.js";
+import { selectNodeSubset } from "../node-subset.js";
 import type { RawGraphInput } from "../types.js";
 import {
   collectPreflightIssues,
@@ -180,6 +181,11 @@ export interface RunWorkflowOptions {
    */
   environment: WorkflowRunEnvironment | (() => Promise<WorkflowRunEnvironment>);
   params?: Record<string, unknown>;
+  /**
+   * Run only these nodes and everything upstream of them. Unrelated branches
+   * and downstream nodes are not executed. Unknown ids are refused with a 400.
+   */
+  nodeIds?: string[];
   /** Return the full debug report (summary + verdict) instead of the run row. */
   debug?: boolean;
   /**
@@ -553,6 +559,18 @@ export async function runWorkflow(
       };
     }
     runnableGraph = normalizeGraph(workflow.getGraph());
+  }
+
+  if (options.nodeIds && options.nodeIds.length > 0) {
+    const subset = selectNodeSubset(runnableGraph, options.nodeIds);
+    if (subset.kind === "unknown_nodes") {
+      return {
+        kind: "error",
+        status: 400,
+        detail: `Unknown node ids in node_ids: ${subset.ids.join(", ")}`
+      };
+    }
+    runnableGraph = subset.graph;
   }
 
   // The same refusal `ExecutionSession` raises, one layer up: a provider that

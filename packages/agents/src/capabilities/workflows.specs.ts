@@ -109,6 +109,16 @@ export const SET_WORKFLOW_ACCESS_SCHEMA: JsonSchema = {
   required: ["workflow_id", "access"]
 };
 
+const NODE_IDS_PROPERTY = {
+  type: "array",
+  items: { type: "string" },
+  description:
+    "Run only these nodes and everything upstream of them. Unrelated " +
+    "branches and downstream nodes are skipped, so they are not executed or " +
+    "billed. Upstream nodes of the selection do run again. Omit to run the " +
+    "whole workflow."
+} as const;
+
 export const RUN_WORKFLOW_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
@@ -120,6 +130,7 @@ export const RUN_WORKFLOW_SCHEMA: JsonSchema = {
       type: "object",
       description: "Dictionary of input parameters for the workflow"
     },
+    node_ids: NODE_IDS_PROPERTY,
     interactive: {
       type: "boolean",
       description:
@@ -141,6 +152,7 @@ export const DEBUG_WORKFLOW_SCHEMA: JsonSchema = {
       type: "object",
       description: "Input parameters keyed by input-node name"
     },
+    node_ids: NODE_IDS_PROPERTY,
     interactive: {
       type: "boolean",
       description:
@@ -548,7 +560,8 @@ export const startBackgroundJobSpec: CapabilitySpec = {
       params: {
         type: "object",
         description: "Optional input parameters"
-      }
+      },
+      node_ids: NODE_IDS_PROPERTY
     },
     required: ["workflow_id"]
   },

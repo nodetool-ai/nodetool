@@ -554,6 +554,14 @@ const setWorkflowAccess: CapabilityExport = {
   }
 };
 
+/** `node_ids` as the execution service takes it: a non-empty list of strings. */
+function withNodeIds(params: Record<string, unknown>): { nodeIds?: string[] } {
+  const raw = params["node_ids"];
+  if (!Array.isArray(raw)) return {};
+  const nodeIds = raw.filter((id): id is string => typeof id === "string");
+  return nodeIds.length > 0 ? { nodeIds } : {};
+}
+
 const runWorkflowCapability: CapabilityExport = {
   spec: runWorkflowCapabilitySpec,
   impl: async (run, params) => {
@@ -565,6 +573,7 @@ const runWorkflowCapability: CapabilityExport = {
       userId: userIdOf(run.context),
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...withNodeIds(params),
       interactive: params["interactive"] === true,
       // A run started from a project's agent thread is that project's spend.
       projectId: run.projectId ?? null
@@ -590,6 +599,7 @@ const debugWorkflow: CapabilityExport = {
       debug: true,
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...withNodeIds(params),
       interactive: params["interactive"] === true,
       projectId: run.projectId ?? null
     });
@@ -841,6 +851,7 @@ const startBackgroundJob: CapabilityExport = {
       userId: userIdOf(run.context),
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...withNodeIds(params),
       background: true,
       projectId: run.projectId ?? null
     });
