@@ -293,6 +293,26 @@ it("validates and simulates a document with an audio mixer and verifies replay",
   expect(report).toMatchObject({ ok: true, replay: { verified: true } });
 });
 
+it("simulates script params and verifies replay", async () => {
+  const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+  vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);
+  const document = createTopDownRoomGame("b".repeat(32));
+  document.schemaVersion = 4;
+  document.engineVersion = "3";
+  const player = document.scenes[0].entities.find(entity=>entity.id==="player");
+  if (!player) { throw new Error("CLI fixture requires player"); }
+  player.behaviors = [{kind:"script",source:"(input)=>({state:input.params,commands:[{kind:'setVelocity',x:input.params.speed,y:0}]})",maxCommands:1,maxTickMs:30,
+    params:{speed:{type:"number",default:1,minimum:0,maximum:5},target:{type:"entity"}},values:{speed:3,target:"gem"}}];
+  await writeFile(gamePath,JSON.stringify(document));
+  const report = await runSimulation("--ticks","3","--verify-replay");
+  expect(report).toMatchObject({ok:true,replay:{verified:true}});
+  const session = await createScriptedGameSession(document,1);
+  try {
+    session.step({pressed:[]});
+    expect(Object.values(session.snapshot().scriptState)).toEqual([{speed:3,target:"gem"}]);
+  } finally { session.dispose(); }
+});
+
 it("reports a reserved 2D engine before any simulation starts", async () => {
   await writeFile(gamePath, JSON.stringify({ ...createTopDownRoomGame("a".repeat(32)), schemaVersion: 5, engineVersion: "4" }));
   const program = new Command();

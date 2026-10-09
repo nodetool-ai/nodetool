@@ -5,10 +5,12 @@ import {
   applyExposedPlacementTarget,
   canConfigureExposedPlacement,
   getEffectiveExposedPlacement,
+  isModelPropertyType,
   nextExposedInputPlacement,
   resolveExposedInputLabeledNames,
   resolveExposedInputNames,
-  resolveInlineFieldNames
+  resolveInlineFieldNames,
+  resolveModelChipNames
 } from "../exposedInputs";
 
 const baseMetadata = (
@@ -193,4 +195,34 @@ describe("exposedInputs utility", () => {
     });
   });
 
+  describe("model chips", () => {
+    const prop = (name: string, type: string) =>
+      ({ name, type: { type, optional: false, type_args: [] } }) as never;
+
+    it("recognizes model property types", () => {
+      expect(isModelPropertyType("image_model")).toBe(true);
+      expect(isModelPropertyType("hf.text_to_image")).toBe(true);
+      expect(isModelPropertyType("tjs.text_generation")).toBe(true);
+      expect(isModelPropertyType("str")).toBe(false);
+    });
+
+    it("selects model properties the node has not placed or hidden", () => {
+      const metadata = baseMetadata({
+        properties: [
+          prop("model", "language_model"),
+          prop("inline", "image_model"),
+          prop("handle", "video_model"),
+          prop("hidden", "tts_model"),
+          prop("prompt", "str")
+        ],
+        inline_fields: ["inline"]
+      });
+      expect(
+        resolveModelChipNames(metadata, {
+          exposedInputs: ["handle"],
+          exposedInputsHidden: ["hidden"]
+        })
+      ).toEqual(["model"]);
+    });
+  });
 });
