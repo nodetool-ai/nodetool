@@ -14,6 +14,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Last One Wins\n\nReduces a stream to its final item. Use it at the end of a loop that refines one value, where only the last version matters.\n\n**How it works:** \"Versions\" holds three drafts. \"Fan out\" streams them one at a time into \"Last\", which waits for the stream to end and passes on only the final item. \"Final\" shows that value.\n\n**Try this:** Add a fourth entry to \"Versions\", such as \"approved\", and confirm that \"Final\" now shows it."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "l",
         "type": "nodetool.constant.List",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 354
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 760,
+            "y": 470
           },
           "zIndex": 0,
           "width": 280,
@@ -61,8 +80,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 1140,
+            "y": 454
           },
           "zIndex": 0,
           "width": 280,
@@ -80,8 +99,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 160,
-            "y": 240
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,

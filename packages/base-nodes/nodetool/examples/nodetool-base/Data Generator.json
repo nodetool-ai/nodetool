@@ -13,6 +13,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "b313851f-3dc9-4372-92ba-acd96654dfd5",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and pick a row count. An AI returns structured rows matching your columns instead of a wall of prose.\n\n**How it works:** \"Topic\" and \"Row count\" (8 by default, 3 to 30) fill the placeholders in \"Build prompt\", which asks for exactly that many distinct rows. \"Generate rows\" is a DataGenerator with two columns, name and color, and returns a table that \"View table\" shows. Pick a language model on \"Generate rows\" before you run it.\n\n**Try this:** On \"Generate rows\", add a third column named \"season\" with type string. Run again and the table gains a season value for each vegetable."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "height": 321,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
         "id": "topic_input",
         "parent_id": null,
         "type": "nodetool.input.StringInput",
@@ -24,8 +43,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 54,
-            "y": 20
+            "x": 0,
+            "y": 447
           },
           "zIndex": 0,
           "width": 280,
@@ -49,8 +68,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 54,
-            "y": 180
+            "x": 0,
+            "y": 672
           },
           "zIndex": 0,
           "width": 280,
@@ -70,8 +89,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 410,
-            "y": 20
+            "x": 380,
+            "y": 401
           },
           "zIndex": 0,
           "width": 280,
@@ -118,8 +137,8 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 766,
-            "y": 20
+            "x": 760,
+            "y": 544
           },
           "zIndex": 0,
           "width": 280,
@@ -137,8 +156,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1122,
-            "y": 20
+            "x": 1140,
+            "y": 562
           },
           "zIndex": 0,
           "width": 280,
@@ -148,25 +167,6 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
-      },
-      {
-        "id": "b313851f-3dc9-4372-92ba-acd96654dfd5",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Comment",
-        "data": {
-          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and pick a row count — an AI agent returns structured rows matching your schema, not a wall of prose.\n\n**Pipeline:** Topic + row count → build prompt → generate rows → table\n\n**Try this:** change the topic, or edit/add columns on the generator node to reshape the dataset. Pick a model first."
-        },
-        "ui_properties": {
-          "position": {
-            "x": 45,
-            "y": -200
-          },
-          "zIndex": 0,
-          "width": 460,
-          "height": 190,
-          "selectable": true
-        },
-        "dynamic_properties": {}
       }
     ],
     "edges": [

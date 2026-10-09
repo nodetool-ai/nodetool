@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo, useRef, useState, type PointerEvent, type Ref } from "react";
+import { memo, useCallback, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type Ref } from "react";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 
@@ -32,6 +32,13 @@ export interface InspectorValueInputProps {
   scrubGesture?: InspectorValueGesture;
   size?: "small" | "medium";
   grow?: boolean;
+  /**
+   * Commit a blank draft. Off by default: clearing a numeric field and
+   * leaving it reverts to the previous value instead of committing "", which
+   * `Number("")` would read as 0. Turn it on for fields where blank means
+   * "use the default" (an easing, an optional outline width).
+   */
+  allowEmpty?: boolean;
   ref?: Ref<HTMLInputElement>;
 }
 
@@ -70,16 +77,31 @@ const inputStyles = (theme: Theme, scrubbable: boolean, focused: boolean) => css
   cursor: scrubbable && !focused ? "ew-resize" : undefined
 });
 
+const clampToScrub = (next: number, scrub: InspectorValueScrub): number => {
+  let clamped = next;
+  if (scrub.min != null) clamped = Math.max(scrub.min, clamped);
+  if (scrub.max != null) clamped = Math.min(scrub.max, clamped);
+  return clamped;
+};
+
 const unitStyles = (theme: Theme) => css({
   ...TYPOGRAPHY.mono.label,
   color: theme.vars.palette.text.secondary,
   flexShrink: 0
 });
 
-/** A buffered inspector value with optional drag scrubbing supplied by the editor. */
+/** Scrub and arrow-key step multiplier: Shift is coarse, Alt is fine. */
+const stepMultiplier = (event: { shiftKey: boolean; altKey: boolean }): number =>
+  event.shiftKey ? 10 : event.altKey ? 0.1 : 1;
+
+/**
+ * A buffered inspector value with optional drag scrubbing supplied by the
+ * editor. With `scrub`, ArrowUp and ArrowDown step the value by `scrub.step`
+ * (Shift ×10, Alt ×0.1), clamped to the scrub range.
+ */
 export const InspectorValueInput = memo(function InspectorValueInput({
   value, onCommit, unit, placeholder, disabled = false, ariaLabel, id, minWidth, scrub,
-  scrubGesture, size = "small", grow = false, ref
+  scrubGesture, size = "small", grow = false, allowEmpty = false, ref
 }: InspectorValueInputProps) {
   const theme = useTheme();
   const [draft, setDraft] = useState(value);
@@ -98,9 +120,15 @@ export const InspectorValueInput = memo(function InspectorValueInput({
     else if (ref) ref.current = node;
   }, [ref]);
 
+  // The last value an arrow key committed. Leaving the field afterwards must
+  // not write it a second time as a separate undo entry.
+  const steppedValueRef = useRef<string | null>(null);
+
   const commit = useCallback(() => {
-    if (draft !== value) onCommit(draft);
-  }, [draft, value, onCommit]);
+    if (draft === value || draft === steppedValueRef.current) return;
+    if (!allowEmpty && draft.trim() === "") return;
+    onCommit(draft);
+  }, [draft, value, onCommit, allowEmpty]);
 
   const gestureRef = useRef<{ pointerId: number; startX: number; startValue: number; moved: boolean; lastValue?: string } | null>(null);
   const scrubDecimals = useMemo(() => scrub ? (String(scrub.step).split(".")[1] ?? "").length : 0, [scrub]);
@@ -123,11 +151,8 @@ export const InspectorValueInput = memo(function InspectorValueInput({
       drag.moved = true;
       scrubGesture?.begin();
     }
-    const multiplier = event.shiftKey ? 10 : event.altKey ? 0.1 : 1;
-    let next = drag.startValue + dx * scrub.step * multiplier;
-    if (scrub.min != null) next = Math.max(scrub.min, next);
-    if (scrub.max != null) next = Math.min(scrub.max, next);
-    const formatted = next.toFixed(scrubDecimals);
+    const next = drag.startValue + dx * scrub.step * stepMultiplier(event);
+    const formatted = clampToScrub(next, scrub).toFixed(scrubDecimals);
     drag.lastValue = formatted;
     setDraft(formatted);
     scrubGesture?.schedule(formatted);
@@ -146,6 +171,37 @@ export const InspectorValueInput = memo(function InspectorValueInput({
     }
   }, [onCommit, scrubGesture]);
 
+  // Arrow keys step the value. A held key repeats into one undo entry: the
+  // gesture opens on the first press and commits on key up or blur.
+  const keyStepActiveRef = useRef(false);
+  const endKeyStep = useCallback(() => {
+    if (!keyStepActiveRef.current) return;
+    keyStepActiveRef.current = false;
+    scrubGesture?.commit();
+  }, [scrubGesture]);
+
+  const handleArrowStep = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
+    if (!scrub || disabled) return;
+    const current = parseFloat(draft);
+    const base = Number.isFinite(current) ? current : parseFloat(value);
+    if (!Number.isFinite(base)) return;
+    event.preventDefault();
+    const direction = event.key === "ArrowUp" ? 1 : -1;
+    const next = base + direction * scrub.step * stepMultiplier(event);
+    const formatted = clampToScrub(next, scrub).toFixed(scrubDecimals);
+    setDraft(formatted);
+    steppedValueRef.current = formatted;
+    if (scrubGesture) {
+      if (!keyStepActiveRef.current) {
+        keyStepActiveRef.current = true;
+        scrubGesture.begin();
+      }
+      scrubGesture.schedule(formatted);
+    } else {
+      onCommit(formatted);
+    }
+  }, [scrub, disabled, draft, value, scrubDecimals, scrubGesture, onCommit]);
+
   const wrapCss = useMemo(() => wrapStyles(theme, disabled, focused, Boolean(scrub),
     size === "small" ? CONTROL.height.xs : CONTROL.height.sm, grow), [theme, disabled, focused, scrub, size, grow]);
   const inputCss = useMemo(() => inputStyles(theme, Boolean(scrub), focused), [theme, scrub, focused]);
@@ -155,16 +211,25 @@ export const InspectorValueInput = memo(function InspectorValueInput({
     onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
     <input id={id} ref={setRefs} type="text" size={1} css={inputCss} value={draft}
       placeholder={placeholder} disabled={disabled} aria-label={ariaLabel}
-      onChange={(event) => setDraft(event.target.value)}
+      onChange={(event) => {
+        steppedValueRef.current = null;
+        setDraft(event.target.value);
+      }}
       onFocus={() => setFocused(true)}
       onBlur={() => {
+        endKeyStep();
         setFocused(false);
         if (cancelBlurCommitRef.current) cancelBlurCommitRef.current = false;
         else commit();
+        steppedValueRef.current = null;
         setDraft(value);
       }}
+      onKeyUp={(event) => {
+        if (event.key === "ArrowUp" || event.key === "ArrowDown") endKeyStep();
+      }}
       onKeyDown={(event) => {
-        if (event.key === "Enter") event.currentTarget.blur();
+        if (event.key === "ArrowUp" || event.key === "ArrowDown") handleArrowStep(event);
+        else if (event.key === "Enter") event.currentTarget.blur();
         else if (event.key === "Escape") {
           cancelBlurCommitRef.current = true;
           setDraft(value);

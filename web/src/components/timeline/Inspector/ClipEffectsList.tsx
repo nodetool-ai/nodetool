@@ -40,7 +40,6 @@ import {
   Caption,
   Checkbox,
   CollapsibleSection,
-  CONTROL,
   DeleteButton,
   EmptyState,
   FlexColumn,
@@ -60,7 +59,8 @@ import {
   InspectorRow,
   InspectorSectionTitle,
   InspectorSliderRow,
-  InspectorToggleRow
+  InspectorToggleRow,
+  INSPECTOR_ROW_BUTTON_SX
 } from "./InspectorPrimitives";
 import { parseFiniteNumber } from "./InspectorPrimitives.helpers";
 import { ToneCurveEditor } from "./ToneCurveEditor";
@@ -290,6 +290,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             value={effect.opacity ?? 1}
             display={(effect.opacity ?? 1).toFixed(2)}
             onChange={(opacity) => onPatch({ opacity })}
+            resetValue={1}
           />
         </>
       );
@@ -342,13 +343,14 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             onChange={(size) => onPatch({ size })}
           />
           <InspectorSliderRow
-            label="Colour"
+            label="Color"
             min={0}
             max={1}
             step={0.01}
             value={effect.colorAmount ?? 0}
             display={(effect.colorAmount ?? 0).toFixed(2)}
             onChange={(colorAmount) => onPatch({ colorAmount })}
+            origin={0}
           />
           <InspectorToggleRow
             label="Animate"
@@ -550,7 +552,6 @@ const ROW_SX = {
   borderTop: (theme: Theme) => `1px solid ${theme.vars.palette.divider}`,
   pt: SPACING.md
 };
-const DELETE_SX = { width: CONTROL.height.sm, height: CONTROL.height.sm };
 const EFFECT_DRAG_TYPE = "application/x-nodetool-clip-effect";
 
 interface EffectRowProps {
@@ -669,7 +670,7 @@ const EffectRow: React.FC<EffectRowProps> = memo(
             tooltip={`Remove ${name} effect`}
             ariaLabel={`Remove ${name} effect`}
             iconVariant="clear"
-            sx={DELETE_SX}
+            sx={INSPECTOR_ROW_BUTTON_SX}
           />
         </FlexRow>
         {expanded && <EffectFields effect={effect} onPatch={patch} />}
@@ -857,6 +858,11 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
                 </FlexColumn>
               </FlexColumn>
             </Popover>
+            {listed.length === 0 && (
+              <Caption color="muted">
+                Add a blur, glow, shadow, vignette, chroma key or grade.
+              </Caption>
+            )}
             {listed.map((effect, index) => (
               <EffectRow
                 key={effect.id}

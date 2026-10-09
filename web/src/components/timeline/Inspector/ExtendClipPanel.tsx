@@ -22,6 +22,7 @@ import {
   VideoPlayer
 } from "../../ui_primitives";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
+import { usePersistedFold } from "./usePersistedFold";
 
 const TIMING_OPTIONS: ReadonlyArray<{ value: ExtensionTiming; label: string }> =
   [
@@ -31,6 +32,7 @@ const TIMING_OPTIONS: ReadonlyArray<{ value: ExtensionTiming; label: string }> =
   ];
 
 const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
+  const [open, setOpen] = usePersistedFold("extend", true);
   const clip = useTimelineStore((state) =>
     state.clips.find((item) => item.id === clipId)
   );
@@ -132,7 +134,8 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
       title={
         <InspectorSectionTitle title="Extend" icon={<MoreTimeOutlinedIcon />} />
       }
-      defaultOpen
+      open={open}
+      onToggle={setOpen}
     >
       <FlexColumn gap={SPACING.md} sx={{ p: SPACING.md }}>
         {!eligibility?.ok ? (

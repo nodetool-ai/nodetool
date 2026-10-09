@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Find and Replace\n\nSwaps one substring for another across a block of text. The find and replace terms are inputs, so the same graph can be called from the API without editing it.\n\n**How it works:** \"Text\", \"Find\" and \"Replace with\" all feed \"Replace\", a Code node that replaces every occurrence of the search term. \"Result\" shows the edited text. With the defaults, \"lazy\" becomes \"energetic\". It runs locally with no model or key.\n\n**Try this:** Set \"Find\" to \"o\" and \"Replace with\" to \"0\" to confirm it replaces every occurrence, not only the first."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -47,7 +66,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 340
+            "y": 571
           },
           "zIndex": 0,
           "width": 280,
@@ -68,7 +87,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 500
+            "y": 796
           },
           "zIndex": 0,
           "width": 280,
@@ -87,8 +106,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 300
+            "x": 380,
+            "y": 439
           },
           "zIndex": 0,
           "width": 280,
@@ -113,7 +132,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 320
+            "y": 584
           },
           "zIndex": 0,
           "width": 240,

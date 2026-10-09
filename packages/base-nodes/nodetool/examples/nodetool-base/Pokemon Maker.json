@@ -67,17 +67,17 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83d\udc32 Pokemon Maker\n\nName a few animals, pick an art style, and get a batch of four original collectible creatures \u2014 each one a believable fusion of the animals you chose, all rendered in the same style.\n\n**Pipeline:** Animals + Style \u2192 Design brief \u2192 Creature prompts \u2192 Render \u2192 Gallery\n\n**Try this:** mix an unlikely pair (axolotl + hummingbird) and switch the style to see the whole set restyle at once."
+          "comment": "# 🐲 Pokemon Maker\n\nName a few animals, pick an art style, and get four original collectible creatures, each a fusion of the animals you chose, all rendered in the same style.\n\n**How it works:** \"1️⃣ Animal inspiration\" (lion, eagle, koi fish) and \"1️⃣ Art style\" fill \"2️⃣ Build design brief\", which asks for four creature prompts in one consistent style. \"3️⃣ Write four creature prompts\" splits the answer into four separate prompts. \"4️⃣ Render each creature\" draws each one as a 1:1 image with FLUX Schnell, and \"Creature gallery\" collects all four. Pick a language model on \"3️⃣ Write four creature prompts\". The render step needs a FAL key.\n\n**Try this:** Set \"1️⃣ Animal inspiration\" to \"axolotl, hummingbird\" and switch \"1️⃣ Art style\" to \"Retro 16-bit pixel art\" to see the whole set restyle at once."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 291,
-            "y": -200
+            "x": 0,
+            "y": 0
           },
           "zIndex": 0,
-          "width": 500,
-          "height": 210,
+          "width": 560,
+          "height": 341,
           "selectable": true,
           "bypassed": false
         },
@@ -89,18 +89,18 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "animals",
-          "description": "Which real animals should the creatures be built from? List two or three, comma-separated \u2014 mixing distant species gives the most striking hybrids.",
+          "description": "Which real animals should the creatures be built from? List two or three, comma-separated — mixing distant species gives the most striking hybrids.",
           "value": "lion, eagle, koi fish"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 291,
-            "y": 120
+            "x": 0,
+            "y": 555
           },
           "zIndex": 0,
           "width": 220,
-          "title": "1\ufe0f\u20e3 Animal inspiration",
+          "title": "1️⃣ Animal inspiration",
           "selectable": true,
           "bypassed": false
         },
@@ -126,12 +126,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 291,
-            "y": 300
+            "x": 0,
+            "y": 780
           },
           "zIndex": 0,
           "width": 220,
-          "title": "1\ufe0f\u20e3 Art style",
+          "title": "1️⃣ Art style",
           "selectable": true,
           "bypassed": false
         },
@@ -142,17 +142,17 @@
         "id": "464a17c1-c916-4b24-8e23-856160732293",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "You are a creature designer for an original monster-collecting game. Invent FOUR distinct collectible creatures, each a believable fusion of these real animals: {{animals}}.\n\nFor every creature, write ONE self-contained image-generation prompt \u2014 a single vivid paragraph, no title, no numbering, no creature name \u2014 that describes:\n- Body and silhouette: proportions, stance, and how the source animals fuse into one coherent form\n- Surface detail: dominant colors, patterns, and one or two standout features (horns, fins, glowing markings, plating)\n- Framing: the creature centered on a clean, uncluttered studio background so it reads clearly\n\nRender all four in this consistent art style: {{style}}.\n\nReturn exactly four prompts \u2014 one creature each, no two alike."
+          "prompt": "You are a creature designer for an original monster-collecting game. Invent FOUR distinct collectible creatures, each a believable fusion of these real animals: {{animals}}.\n\nFor every creature, write ONE self-contained image-generation prompt — a single vivid paragraph, no title, no numbering, no creature name — that describes:\n- Body and silhouette: proportions, stance, and how the source animals fuse into one coherent form\n- Surface detail: dominant colors, patterns, and one or two standout features (horns, fins, glowing markings, plating)\n- Framing: the creature centered on a clean, uncluttered studio background so it reads clearly\n\nRender all four in this consistent art style: {{style}}.\n\nReturn exactly four prompts — one creature each, no two alike."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 581,
-            "y": 150
+            "x": 320,
+            "y": 421
           },
           "zIndex": 0,
           "width": 351,
-          "title": "2\ufe0f\u20e3 Build design brief",
+          "title": "2️⃣ Build design brief",
           "selectable": true,
           "bypassed": false
         },
@@ -180,14 +180,14 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1002,
-            "y": 90
+            "x": 771,
+            "y": 553
           },
           "zIndex": 0,
           "width": 291,
           "selectable": true,
           "bypassed": false,
-          "title": "3\ufe0f\u20e3 Write four creature prompts"
+          "title": "3️⃣ Write four creature prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -211,15 +211,15 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1363,
-            "y": 149
+            "x": 1162,
+            "y": 523
           },
           "zIndex": 0,
           "width": 384,
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "4\ufe0f\u20e3 Render each creature"
+          "title": "4️⃣ Render each creature"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -232,8 +232,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1783,
-            "y": 149
+            "x": 1646,
+            "y": 671
           },
           "selectable": true,
           "title": "Creature gallery"

@@ -16,6 +16,7 @@ function launch(pin) {
   temporaryDirectories.push(dir);
   mkdirSync(join(dir, "scripts"));
   copyFileSync(new URL("../electron-dev.mjs", import.meta.url), join(dir, "scripts/electron-dev.mjs"));
+  copyFileSync(new URL("../dev-ports.mjs", import.meta.url), join(dir, "scripts/dev-ports.mjs"));
   writeFileSync(join(dir, ".nvmrc"), `${pin}\n`);
   const capture = join(dir, "spawn.json");
   const preload = join(dir, "mock-spawn.mjs");
@@ -26,6 +27,8 @@ childProcess.spawnSync = (command, args, options) => {
   writeFileSync(${JSON.stringify(capture)}, JSON.stringify({command, args, env: options.env}));
   return {status: 0};
 };
+// No listeners, so the dev port preflight passes on a busy dev machine.
+childProcess.execFileSync = () => { throw new Error("nothing listens"); };
 syncBuiltinESMExports();
 `);
   const result = spawnSync(process.execPath, ["--import", preload, "scripts/electron-dev.mjs"], {

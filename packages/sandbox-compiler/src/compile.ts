@@ -8,7 +8,7 @@
  * different problems, and the pack author gets told which.
  */
 
-import { bundleNpmModule } from "./bundle.js";
+import { bundleNpmModule, currentOptionsDigest } from "./bundle.js";
 import {
   CompiledModuleCache,
   computeCacheKey,
@@ -44,6 +44,23 @@ export async function compileNpmModule(
   request: CompileNpmModuleRequest
 ): Promise<CompileNpmModuleResult> {
   const { packDir, npmName } = request;
+  const cache =
+    request.noCache === true
+      ? undefined
+      : (request.cache ?? new CompiledModuleCache());
+
+  // The pack pointer re-hashes every input and resolution file the entry
+  // recorded, so a hit names the bundle esbuild would produce now. Trusting it
+  // skips the bundle step, which is most of a warm server start.
+  const known = cache?.readForPack(packDir, npmName);
+  if (
+    known !== undefined &&
+    known.probeOk &&
+    known.optionsDigest === currentOptionsDigest()
+  ) {
+    return { outcome: outcomeFor(npmName, known), cached: true, key: known.key };
+  }
+
   const bundled = await bundleNpmModule(packDir, npmName);
   if (bundled.status === "failed") {
     return {
@@ -70,10 +87,6 @@ export async function compileNpmModule(
     inputDigests: bundle.inputDigests,
     resolutionDigests: bundle.resolutionDigests
   });
-  const cache =
-    request.noCache === true
-      ? undefined
-      : (request.cache ?? new CompiledModuleCache());
   const hit = cache?.read(key);
   if (hit !== undefined) {
     // Re-point even on a hit: a pack whose dependency was updated back to a

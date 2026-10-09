@@ -1,109 +1,128 @@
 {
- "id": "",
- "access": "private",
- "created_at": "2026-07-30T12:00:00.000Z",
- "updated_at": "2026-07-30T12:00:00.000Z",
- "name": "A Gradient Card as PNG",
- "tool_name": null,
- "description": "A certified starter that runs as-is with no asset, provider, or API key. Build vector art in a Code node, rasterise it, and inspect the generated 800×480 PNG.",
- "tags": [
-  "image",
-  "example",
-  "getting-started"
- ],
- "thumbnail": null,
- "thumbnail_url": null,
- "graph": {
-  "nodes": [
-   {
-    "id": "elements",
-    "type": "nodetool.code.Code",
-    "data": {
-     "code": "// One Code node replaces the retired lib.svg element builders. The gradient\n// is defined first so the rect below can paint with fill=\"url(#card)\".\nreturn {\n  output: [\n    {\n      name: \"linearGradient\",\n      attributes: { id: \"card\", x1: \"0%\", y1: \"0%\", x2: \"100%\", y2: \"100%\" },\n      children: [\n        {\n          name: \"stop\",\n          attributes: { offset: \"0%\", style: \"stop-color:#0ea5e9;stop-opacity:1\" }\n        },\n        {\n          name: \"stop\",\n          attributes: { offset: \"100%\", style: \"stop-color:#7c3aed;stop-opacity:1\" }\n        }\n      ]\n    },\n    {\n      name: \"rect\",\n      attributes: { x: 0, y: 0, width: 400, height: 240, fill: \"url(#card)\" }\n    }\n  ]\n};"
-    },
-    "ui_properties": {
-     "position": {
-      "x": 0,
-      "y": 120
-     },
-     "zIndex": 0,
-     "width": 380,
-     "selectable": true,
-     "title": "1  Elements"
-    },
-    "dynamic_properties": {},
-    "dynamic_outputs": {
-     "output": {
-      "type": "any",
-      "type_args": [],
-      "optional": false
-     }
-    }
-   },
-   {
-    "id": "img",
-    "type": "lib.svg.SVGToImage",
-    "data": {
-     "elements": [],
-     "width": 400,
-     "height": 240,
-     "viewBox": "0 0 400 240",
-     "scale": 2
-    },
-    "ui_properties": {
-     "position": {
-      "x": 440,
-      "y": 120
-     },
-     "zIndex": 0,
-     "width": 280,
-     "selectable": true,
-     "title": "2  Rasterise 2x"
-    },
-    "dynamic_properties": {},
-    "dynamic_outputs": {}
-   },
-   {
-    "id": "out",
-    "type": "nodetool.output.Output",
-    "data": {
-     "name": "card"
-    },
-    "ui_properties": {
-     "position": {
-      "x": 760,
-      "y": 120
-     },
-     "zIndex": 0,
-     "width": 280,
-     "selectable": true,
-     "title": "3  PNG"
-    },
-    "dynamic_properties": {},
-    "dynamic_outputs": {}
-   }
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-30T12:00:00.000Z",
+  "updated_at": "2026-07-30T12:00:00.000Z",
+  "name": "A Gradient Card as PNG",
+  "tool_name": null,
+  "description": "A certified starter that runs as-is with no asset, provider, or API key. Build vector art in a Code node, rasterise it, and inspect the generated 800×480 PNG.",
+  "tags": [
+    "image",
+    "example",
+    "getting-started"
   ],
-  "edges": [
-   {
-    "id": "e1",
-    "source": "elements",
-    "sourceHandle": "output",
-    "target": "img",
-    "targetHandle": "elements"
-   },
-   {
-    "id": "e2",
-    "source": "img",
-    "sourceHandle": "output",
-    "target": "out",
-    "targetHandle": "value"
-   }
-  ]
- },
- "input_schema": null,
- "output_schema": null,
- "settings": null,
- "package_name": "nodetool-base",
- "path": null,
- "run_mode": null
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# A Gradient Card as PNG\n\nDraws a gradient card as vector art and saves it as an 800 by 480 PNG. It runs locally with no asset, provider or API key.\n\n**How it works:** \"1 Elements\" is a Code node that returns SVG elements, with the linear gradient defined before the rectangle that uses it. \"2 Rasterise 2x\" renders the 400 by 240 view box at scale 2. \"3 PNG\" shows the image.\n\n**Try this:** Change the gradient stop colours in the Elements code, or set scale to 3 on \"2 Rasterise 2x\" for a 1200 by 720 PNG."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "elements",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// One Code node replaces the retired lib.svg element builders. The gradient\n// is defined first so the rect below can paint with fill=\"url(#card)\".\nreturn {\n  output: [\n    {\n      name: \"linearGradient\",\n      attributes: { id: \"card\", x1: \"0%\", y1: \"0%\", x2: \"100%\", y2: \"100%\" },\n      children: [\n        {\n          name: \"stop\",\n          attributes: { offset: \"0%\", style: \"stop-color:#0ea5e9;stop-opacity:1\" }\n        },\n        {\n          name: \"stop\",\n          attributes: { offset: \"100%\", style: \"stop-color:#7c3aed;stop-opacity:1\" }\n        }\n      ]\n    },\n    {\n      name: \"rect\",\n      attributes: { x: 0, y: 0, width: 400, height: 240, fill: \"url(#card)\" }\n    }\n  ]\n};"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 346
+          },
+          "zIndex": 0,
+          "width": 380,
+          "selectable": true,
+          "title": "1  Elements"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "img",
+        "type": "lib.svg.SVGToImage",
+        "data": {
+          "elements": [],
+          "width": 400,
+          "height": 240,
+          "viewBox": "0 0 400 240",
+          "scale": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 480,
+            "y": 430
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Rasterise 2x"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "card"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 860,
+            "y": 444
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  PNG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "elements",
+        "sourceHandle": "output",
+        "target": "img",
+        "targetHandle": "elements"
+      },
+      {
+        "id": "e2",
+        "source": "img",
+        "sourceHandle": "output",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
 }

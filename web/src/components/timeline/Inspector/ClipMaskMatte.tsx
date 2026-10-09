@@ -47,7 +47,8 @@ import {
   InspectorSectionTitle,
   InspectorSelect,
   InspectorSliderRow,
-  InspectorToggleRow
+  InspectorToggleRow,
+  INSPECTOR_SECTION_CONTENT_SX
 } from "./InspectorPrimitives";
 import { TextCommitField } from "./InspectorMotionFields";
 
@@ -237,7 +238,7 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(
           onToggle={setMaskOpen}
           unmountOnExit
         >
-          <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+          <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
             {mask === undefined ? (
               <Caption color="muted">
                 Enable the mask to cut this clip to a rectangle, an ellipse or
@@ -336,7 +337,7 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(
               onToggle={setMatteOpen}
               unmountOnExit
             >
-              <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+              <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
                 <InspectorRow label="Source">
                   <InspectorSelect
                     label="Matte source clip"
@@ -500,7 +501,7 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
           onToggle={setOpen}
           unmountOnExit
         >
-          <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+          <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
             <InspectorRow label="Model">
               <InspectorSelect
                 label="Subject matte model"
@@ -560,6 +561,7 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
                   step={0.01}
                   disabled={generating}
                   onChange={handleStrength}
+                  resetValue={1}
                 />
                 <InspectorRow label="Feather">
                   <InspectorPillInput

@@ -311,3 +311,28 @@ export function bindingKeys(binding: KeyBinding): string[] {
   parts.push(label);
   return parts;
 }
+
+/** One binding as tooltip text, e.g. "Alt+←". */
+export function formatBinding(binding: KeyBinding): string {
+  return bindingKeys(binding).join("+");
+}
+
+/** The first key `action` is bound to under `preset`, as tooltip text, or
+ *  null when the preset leaves it unbound. */
+export function formatActionShortcut(
+  preset: TimelineKeyboardPreset,
+  action: TimelineAction
+): string | null {
+  const binding = TIMELINE_KEYMAPS[preset][action]?.[0];
+  return binding ? formatBinding(binding) : null;
+}
+
+/** `label` with the shortcut for `action` appended in parentheses, when bound. */
+export function withActionShortcut(
+  label: string,
+  preset: TimelineKeyboardPreset,
+  action: TimelineAction
+): string {
+  const shortcut = formatActionShortcut(preset, action);
+  return shortcut ? `${label} (${shortcut})` : label;
+}

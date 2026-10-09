@@ -172,7 +172,7 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
             <Radio value="center" label="Center" size="small" />
             <Radio
               value="smart"
-              label="Smart Reframe"
+              label="Smart reframe"
               size="small"
               disabled={smartUnavailable}
             />
@@ -199,7 +199,7 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
           )}
           {smartUnavailable && (
             <Caption color="muted">
-              Smart Reframe needs a current subject track or authored framing
+              Smart reframe needs a current subject track or authored framing
               for every visual clip. Use Center until those signals exist.
             </Caption>
           )}

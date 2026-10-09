@@ -22,7 +22,6 @@ import {
   Caption,
   CollapsibleSection,
   FlexColumn,
-  SPACING,
   BatchedColorInput
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
@@ -32,7 +31,8 @@ import {
   InspectorRow,
   InspectorSectionTitle,
   InspectorSelect,
-  InspectorSliderRow
+  InspectorSliderRow,
+  INSPECTOR_SECTION_CONTENT_SX
 } from "./InspectorPrimitives";
 import { FillFields, TextCommitField } from "./InspectorMotionFields";
 import {
@@ -211,7 +211,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
           onToggle={setOpen}
           unmountOnExit
         >
-          <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
+          <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
             <InspectorRow label="Kind">
               <InspectorSelect
                 label="Shape kind"
@@ -331,6 +331,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
                 value={shapeStyle.innerRadius ?? 0.5}
                 display={(shapeStyle.innerRadius ?? 0.5).toFixed(2)}
                 onChange={handleInnerRadiusChange}
+                resetValue={0.5}
               />
             )}
 
@@ -406,6 +407,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
               value={shapeStyle.trimStart ?? 0}
               display={(shapeStyle.trimStart ?? 0).toFixed(2)}
               onChange={handleTrimStartChange}
+              origin={0}
             />
             <InspectorSliderRow
               label="Trim end"
@@ -415,6 +417,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
               value={shapeStyle.trimEnd ?? 1}
               display={(shapeStyle.trimEnd ?? 1).toFixed(2)}
               onChange={handleTrimEndChange}
+              resetValue={1}
             />
           </FlexColumn>
         </CollapsibleSection>

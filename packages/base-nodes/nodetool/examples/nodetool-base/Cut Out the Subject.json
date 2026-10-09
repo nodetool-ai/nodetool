@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Cut Out the Subject\n\nRemoves the background from an image and leaves the subject on transparency. Use it as the first step for a product cut-out or a character that has to sit on brand colour.\n\n**How it works:** \"1 Image\" takes the picture. \"2 Remove background\" separates the subject from everything behind it. \"3 Cut-out\" shows the result with a transparent background.\n\n**Try this:** Try a photo with fine edges, such as hair or a plant, to see how cleanly \"2 Remove background\" handles them."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "picture",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The image to cut out"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 371
           },
           "zIndex": 0,
           "width": 280,
@@ -50,8 +72,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -69,8 +91,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 379
           },
           "zIndex": 0,
           "width": 240,

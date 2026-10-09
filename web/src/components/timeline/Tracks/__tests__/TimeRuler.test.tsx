@@ -33,6 +33,10 @@ describe("TimeRuler markers", () => {
 
     const flag = screen.getByTestId("timeline-marker");
     expect(flag).toHaveTextContent("Scene 1");
+    // A real button, reachable and named for keyboard and screen-reader users.
+    expect(
+      screen.getByRole("button", { name: "Scene 1 at 0:02.0" })
+    ).toBe(flag);
 
     act(() => {
       fireEvent.click(flag);

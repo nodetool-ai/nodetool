@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Name a File from Its Narration\n\nTurns the first words spoken in a clip into a URL-safe slug. Use it to name video files by what is said in them.\n\n**How it works:** The \"Clip\" input goes to \"Extract audio\", and \"Transcribe\" converts the speech to English text. \"First 60 chars\" shortens the transcript, and \"Slugify\" lowercases it and joins the words with hyphens. \"Slug\" shows the filename.\n\n**Try this:** Pick a speech recognition model on \"Transcribe\", then change its language if your clip is not in English."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "The clip to name"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 494
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +64,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 518
           },
           "zIndex": 0,
           "width": 280,
@@ -70,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 490
           },
           "zIndex": 0,
           "width": 280,
@@ -90,8 +112,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 358
           },
           "zIndex": 0,
           "width": 280,
@@ -120,8 +142,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 340
+            "x": 1520,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -150,8 +172,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 340
+            "x": 1900,
+            "y": 502
           },
           "zIndex": 0,
           "width": 280,

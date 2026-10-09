@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Podcast Episode to Show Notes",
   "tool_name": null,
-  "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes \u2014 summary, topics with rough timings, and the links mentioned.",
+  "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topics with rough timings, and the links mentioned.",
   "tags": [
     "audio",
     "text",
@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Podcast Episode to Show Notes\n\nTurns a recorded episode into show notes. You get a short summary, topic bullets and any resources mentioned.\n\n**How it works:** The \"Recording\" input goes to \"Extract audio\", and \"Transcribe\" converts the speech to English text. \"Agent\" writes a two-sentence summary, five topic bullets and the named resources, without inventing timestamps. \"Output\" shows the notes.\n\n**Try this:** Pick models on \"Transcribe\" and \"Agent\", then edit the system prompt on \"Agent\" to ask for three suggested episode titles as well."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "recording",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/meeting.mp4"
+          },
           "description": "The recording to work from"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 390
           },
           "zIndex": 0,
           "width": 300,
@@ -42,8 +64,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 414
           },
           "zIndex": 0,
           "width": 300,
@@ -70,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 384
           },
           "zIndex": 0,
           "width": 300,
@@ -105,8 +127,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -124,8 +146,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 1600,
+            "y": 398
           },
           "zIndex": 0,
           "width": 300,

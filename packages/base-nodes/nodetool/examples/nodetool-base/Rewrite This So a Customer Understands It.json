@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Rewrite This So a Customer Understands It\n\nRewrites technical text in plain language for a general reader. Use it for help articles, release notes, or support replies that start full of jargon.\n\n**How it works:** \"Input\" takes the text to simplify. \"Agent\" rewrites it at roughly a UK Year 9 reading level, keeping every fact and explaining jargon inline. \"Output\" returns the plain-English version.\n\n**Try this:** Pick a model on \"Agent\", then change its system prompt to target a different reader, such as a new employee in finance."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 365
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -78,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

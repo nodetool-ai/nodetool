@@ -14,6 +14,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Keep Only the Matches\n\nKeeps only the list items equal to a chosen value. Use it to pick out one status, tag or label from a longer list.\n\n**How it works:** \"Statuses\" holds four values. \"Fan out\" sends them one by one to \"Keep 'ok'\", which passes items equal to \"ok\". \"Matches\" shows what got through.\n\n**Try this:** Turn on invert in \"Keep 'ok'\" to get the reject list instead, or change its value to \"fail\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "l",
         "type": "nodetool.constant.List",
         "data": {
@@ -27,7 +46,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -46,8 +65,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 760,
+            "y": 442
           },
           "zIndex": 0,
           "width": 280,
@@ -65,8 +84,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 1140,
+            "y": 440
           },
           "zIndex": 0,
           "width": 280,
@@ -84,8 +103,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 160,
-            "y": 240
+            "x": 380,
+            "y": 332
           },
           "zIndex": 0,
           "width": 280,

@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Clip on Kie\n\nGenerates a short video clip from a one-line shot description. Use it to compare what the same direction produces across providers before committing a template to one.\n\n**How it works:** \"1 Shot\" describes a tram crossing an empty city square in rain at night. \"2 Render\" makes a 5-second 16:9 clip at 1080p, with a negative prompt against text and watermarks. \"3 Clip\" shows the video.\n\n**Try this:** Pick a model on \"2 Render\", then rewrite \"1 Shot\" with your own scene and compare the result against another provider."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -55,8 +74,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 180
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -75,7 +94,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 200
+            "y": 379
           },
           "zIndex": 0,
           "width": 240,

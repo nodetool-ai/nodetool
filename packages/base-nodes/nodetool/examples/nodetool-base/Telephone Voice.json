@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Telephone Voice",
   "tool_name": null,
-  "description": "Band-limit to a narrow midrange and drive it. Cutting both ends is what sells the effect \u2014 the distortion alone just sounds loud.",
+  "description": "Band-limit to a narrow midrange and drive it. Cutting both ends is what sells the effect — the distortion alone just sounds loud.",
   "tags": [
     "audio",
     "example"
@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Telephone Voice\n\nMakes a voice sound like it comes through a phone line. Cutting both ends of the spectrum sells the effect, and the distortion alone would only sound loud.\n\n**How it works:** \"1 Audio\" takes your recording. \"2 Cut lows\" removes everything below 400 Hz, \"3 Cut highs\" removes everything above 3000 Hz, and \"4 Drive\" adds 12 dB of distortion before \"5 Result\" returns the degraded voice.\n\n**Try this:** Narrow the band by raising the cutoff on \"2 Cut lows\" to 600 Hz for a thinner, cheaper-sounding line."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.AudioInput",
         "data": {
           "name": "audio",
-          "value": null,
+          "value": {
+            "type": "audio",
+            "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+          },
           "description": "The voice to degrade"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +65,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 367
           },
           "zIndex": 0,
           "width": 280,
@@ -62,8 +84,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 367
           },
           "zIndex": 0,
           "width": 280,
@@ -81,8 +103,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 367
           },
           "zIndex": 0,
           "width": 280,
@@ -100,8 +122,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 340
+            "x": 1520,
+            "y": 405
           },
           "zIndex": 0,
           "width": 280,

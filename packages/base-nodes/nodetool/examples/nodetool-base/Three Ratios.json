@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Three Ratios\n\nTurns one approved 16:9 cut into 9:16, 1:1 and 16:9 renders. Retargeting builds a new sequence and never edits the source, so the approved trims and placements carry over.\n\n**How it works:** \"1 The approved 16:9 cut\" feeds \"2 Retarget 9:16\", \"3 Retarget 1:1\" and \"6 Render 16:9\". Each retarget goes to its own render node, and the outputs land in \"7 9:16\", \"8 1:1\" and \"9 16:9\". \"10 What the crop loses\" lists the clips the vertical crop cuts into.\n\n**Try this:** Select your timeline on \"1 The approved 16:9 cut\", then change fit on \"2 Retarget 9:16\" from cover to compare framing."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 305
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "cut",
         "type": "nodetool.constant.Timeline",
         "data": {
@@ -28,7 +47,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 260
+            "y": 746
           },
           "zIndex": 0,
           "width": 240,
@@ -48,8 +67,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 300,
-            "y": 40
+            "x": 340,
+            "y": 385
           },
           "zIndex": 0,
           "width": 260,
@@ -69,8 +88,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 300,
-            "y": 260
+            "x": 340,
+            "y": 777
           },
           "zIndex": 0,
           "width": 260,
@@ -89,8 +108,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 620,
-            "y": 40
+            "x": 700,
+            "y": 432
           },
           "zIndex": 0,
           "width": 240,
@@ -109,8 +128,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 620,
-            "y": 260
+            "x": 700,
+            "y": 847
           },
           "zIndex": 0,
           "width": 240,
@@ -129,8 +148,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 620,
-            "y": 480
+            "x": 340,
+            "y": 1169
           },
           "zIndex": 0,
           "width": 240,
@@ -149,8 +168,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 900,
-            "y": 40
+            "x": 1040,
+            "y": 468
           },
           "zIndex": 0,
           "width": 200,
@@ -169,8 +188,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 900,
-            "y": 260
+            "x": 1040,
+            "y": 883
           },
           "zIndex": 0,
           "width": 200,
@@ -189,8 +208,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 900,
-            "y": 480
+            "x": 700,
+            "y": 1156
           },
           "zIndex": 0,
           "width": 200,
@@ -209,8 +228,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 300,
-            "y": 660
+            "x": 700,
+            "y": 647
           },
           "zIndex": 0,
           "width": 240,

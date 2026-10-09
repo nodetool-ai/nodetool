@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# How Long Is This Transcript\n\nTranscribes a clip and counts the tokens in the transcript. Check this before sending a transcript to a model that bills per token or limits context.\n\n**How it works:** \"Clip\" passes the video to \"Extract audio\". \"Transcribe\" turns the audio into English text. \"Count tokens\" is a Code node that counts the tokens in that text, and \"Count\" shows the number. Pick a speech recognition model on \"Transcribe\".\n\n**Try this:** Set the language on \"Transcribe\" to match a non-English clip, then compare its token count with an English clip of the same length."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "The clip to measure"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 490
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +64,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 514
           },
           "zIndex": 0,
           "width": 280,
@@ -70,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 486
           },
           "zIndex": 0,
           "width": 280,
@@ -89,8 +111,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -111,8 +133,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 340
+            "x": 1520,
+            "y": 498
           },
           "zIndex": 0,
           "width": 280,

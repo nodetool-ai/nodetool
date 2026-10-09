@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T14:00:00.000Z",
   "name": "Master a Voice Track",
   "tool_name": null,
-  "description": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters \u2014 limiting first would leave nothing for the compressor.",
+  "description": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters — limiting first would leave nothing for the compressor.",
   "tags": [
     "audio",
     "example"
@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Master a Voice Track\n\nApplies a standard finishing chain to a recorded voice so it sounds even and never clips. The order matters, because limiting first would leave the compressor nothing to do.\n\n**How it works:** The \"Audio\" input goes to \"Compress\", which evens out peaks above -18 dB at a 3:1 ratio. \"Lift 3 dB\" raises the level, and \"Limit\" caps it at -1 dB. \"Result\" plays the mastered track. It runs locally with no model or key.\n\n**Try this:** Raise the ratio on \"Compress\" to 6 for a denser, broadcast-style sound."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.AudioInput",
         "data": {
           "name": "audio",
-          "value": null,
+          "value": {
+            "type": "audio",
+            "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+          },
           "description": "The recorded voice"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 381
           },
           "zIndex": 0,
           "width": 280,
@@ -47,8 +69,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -66,8 +88,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 402
           },
           "zIndex": 0,
           "width": 280,
@@ -87,8 +109,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 388
           },
           "zIndex": 0,
           "width": 280,
@@ -106,8 +128,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 340
+            "x": 1520,
+            "y": 440
           },
           "zIndex": 0,
           "width": 280,

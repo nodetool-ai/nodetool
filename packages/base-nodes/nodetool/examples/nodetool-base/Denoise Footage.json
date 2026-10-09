@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Denoise Footage\n\nReduces sensor grain in footage shot at high ISO. It runs locally through ffmpeg, with no API key and no per-run cost.\n\n**How it works:** \"Clip\" passes the video to \"Denoise\", which smooths grain at the set strength. \"Result\" shows the cleaned clip. Higher strength removes more grain but also softens fine detail such as hair and texture.\n\n**Try this:** Lower the \"Denoise\" strength from 4 to 2 on a clip with fine detail, and compare it with the default to find the point where grain drops but edges stay crisp."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "The clip to process"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -44,8 +66,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 370
           },
           "zIndex": 0,
           "width": 280,
@@ -63,8 +85,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 354
           },
           "zIndex": 0,
           "width": 240,

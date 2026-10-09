@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "A Repeating Texture Tile",
   "tool_name": null,
-  "description": "A seamless tile for backgrounds. Prompting for the tiling explicitly matters \u2014 an unseamed texture is visibly wrong the moment it repeats.",
+  "description": "A seamless tile for backgrounds. Prompting for the tiling explicitly matters — an unseamed texture is visibly wrong the moment it repeats.",
   "tags": [
     "image",
     "example"
@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# A Repeating Texture Tile\n\nGenerates a square texture that tiles without visible seams, for backgrounds and surfaces. The prompt asks for tiling explicitly, because a texture without matching edges shows a seam as soon as it repeats.\n\n**How it works:** \"1 Prompt\" describes hand-made paper as a tileable, top-down texture. \"2 Generate\" renders it at 1:1 and 1K resolution. \"3 Image\" shows the tile.\n\n**Try this:** Pick a model on \"2 Generate\" and replace the paper with another material, such as worn concrete or linen, keeping the words about tiling and seams."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "p",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 381
           },
           "zIndex": 0,
           "width": 300,
@@ -53,8 +72,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -72,8 +91,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 359
           },
           "zIndex": 0,
           "width": 300,

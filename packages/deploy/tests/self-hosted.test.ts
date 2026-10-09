@@ -826,7 +826,7 @@ describe("DockerDeployer with persistent paths", () => {
       persistent_paths: {
         users_file: "/workspace/users.yaml",
         db_path: "/workspace/nodetool.db",
-        chroma_path: "/workspace/chroma",
+        vectorstore_db_path: "/workspace/vectorstore.db",
         hf_cache: "/workspace/hf-cache",
         asset_bucket: "/workspace/assets",
         logs_path: "/workspace/logs"
@@ -849,7 +849,7 @@ describe("DockerDeployer with persistent paths", () => {
     expect(__constructedWith[0].persistentPaths).toEqual({
       usersFile: "/workspace/users.yaml",
       dbPath: "/workspace/nodetool.db",
-      chromaPath: "/workspace/chroma",
+      vectorstoreDbPath: "/workspace/vectorstore.db",
       hfCache: "/workspace/hf-cache",
       assetBucket: "/workspace/assets",
       logsPath: "/workspace/logs"

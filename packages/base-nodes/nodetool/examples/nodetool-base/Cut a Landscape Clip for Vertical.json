@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Cut a Landscape Clip for Vertical\n\nResizes a landscape clip to a 1080 by 1920 vertical frame for channels that expect 9:16. It is the step between having footage and being able to post it.\n\n**How it works:** \"1 Clip\" takes the 16:9 video. \"2 To 9:16\" resizes it to a width of 1080 and a height of 1920. \"3 Vertical\" shows the vertical clip.\n\n**Try this:** Set width and height on \"2 To 9:16\" to 1080 by 1350 for a 4:5 feed post instead."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "The landscape clip"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 327
           },
           "zIndex": 0,
           "width": 300,
@@ -44,8 +66,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 351
           },
           "zIndex": 0,
           "width": 300,
@@ -63,8 +85,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 335
           },
           "zIndex": 0,
           "width": 300,

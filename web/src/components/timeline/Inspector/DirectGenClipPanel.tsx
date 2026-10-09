@@ -76,6 +76,7 @@ import {
 } from "../../ui_primitives";
 import { GeneratedClipTopBar } from "./GeneratedClipTopBar";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
+import { usePersistedFold } from "./usePersistedFold";
 import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipVersionHistory } from "./ClipVersionHistory";
 
@@ -128,6 +129,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   additionalSections
 }) => {
   const theme = useTheme();
+  const [promptOpen, setPromptOpen] = usePersistedFold("direct-gen-prompt", true);
 
   const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
   const setClipPrompt = useTimelineStore((s) => s.setClipPrompt);
@@ -390,7 +392,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               icon={<AutoAwesomeOutlinedIcon />}
             />
           }
-          defaultOpen
+          open={promptOpen}
+          onToggle={setPromptOpen}
         >
           <FlexColumn gap={SPACING.sm} css={sectionStyles(theme)}>
             {kind === "image" && (
@@ -521,7 +524,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                     <MediaOptionChip
                       icon={<TuneIcon fontSize="small" />}
                       label={`Strength ${(clip.strength ?? DEFAULT_STRENGTH).toFixed(2)}`}
-                      header="Edit Strength"
+                      header="Edit strength"
                       value={clip.strength ?? DEFAULT_STRENGTH}
                       options={strengthOptions}
                       onChange={(s) =>
@@ -531,7 +534,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                     <MediaOptionChip
                       icon={<LayersIcon fontSize="small" />}
                       label={`${clip.numInferenceSteps ?? DEFAULT_STEPS} steps`}
-                      header="Inference Steps"
+                      header="Inference steps"
                       value={clip.numInferenceSteps ?? DEFAULT_STEPS}
                       options={stepsOptions}
                       onChange={(n) =>
@@ -554,7 +557,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                 />
                 <MediaOptionChip
                   icon={<TvIcon fontSize="small" />}
-                  header="Video Resolution"
+                  header="Video resolution"
                   value={
                     (clip.resolution as VideoResolution | undefined) ??
                     DEFAULT_VIDEO_RESOLUTION

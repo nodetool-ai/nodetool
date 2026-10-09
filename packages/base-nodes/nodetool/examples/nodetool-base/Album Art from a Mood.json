@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Album Art from a Mood",
   "tool_name": null,
-  "description": "Square cover art. The aspect ratio is the requirement here \u2014 every platform crops to it, so generating anything else creates work.",
+  "description": "Square cover art. The aspect ratio is the requirement here — every platform crops to it, so generating anything else creates work.",
   "tags": [
     "image",
     "example"
@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Album Art from a Mood\n\nGenerates square cover art from a mood description. The 1:1 aspect ratio matches what streaming platforms display, so the image needs no cropping.\n\n**How it works:** \"1 Prompt\" describes a single stark object on a deep colour field with grainy film texture. \"2 Generate\" renders it at 1:1 and 1K resolution. \"3 Image\" shows the cover.\n\n**Try this:** Pick a model on \"2 Generate\" and rewrite the prompt for your record, for example a neon-lit street at dawn in muted blues."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "p",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 381
           },
           "zIndex": 0,
           "width": 300,
@@ -53,8 +72,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -72,8 +91,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 359
           },
           "zIndex": 0,
           "width": 300,

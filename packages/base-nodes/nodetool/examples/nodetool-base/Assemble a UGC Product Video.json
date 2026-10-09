@@ -6,21 +6,51 @@
   "name": "Assemble a UGC Product Video",
   "tool_name": null,
   "description": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
-  "tags": ["video", "marketing", "ugc", "example"],
+  "tags": [
+    "video",
+    "marketing",
+    "ugc",
+    "example"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Assemble a UGC Product Video\n\nCombines a creator testimonial with a product demonstration placed on top as a silent picture-in-picture. The creator stays on camera for the whole vertical reel.\n\n**How it works:** \"1 Creator testimonial\" provides the main clip and \"2 Product proof\" provides the overlay. \"3 Add proof without leaving camera\" places the proof at x 720, y 1010, scaled to 0.28 with its audio muted. \"4 UGC Reel\" shows the finished video.\n\n**Try this:** Change x, y and scale on the Overlay node to move the proof clip, for example to the top-left corner."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "creator",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "creator_clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "Continuous 15-second creator testimonial"
         },
         "ui_properties": {
-          "position": { "x": 0, "y": 80 },
+          "position": {
+            "x": 0,
+            "y": 366
+          },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
@@ -34,11 +64,17 @@
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "product_clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "Silent vertical product proof overlay"
         },
         "ui_properties": {
-          "position": { "x": 0, "y": 300 },
+          "position": {
+            "x": 0,
+            "y": 582
+          },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
@@ -57,7 +93,10 @@
           "overlay_audio_volume": 0
         },
         "ui_properties": {
-          "position": { "x": 400, "y": 180 },
+          "position": {
+            "x": 380,
+            "y": 484
+          },
           "zIndex": 0,
           "width": 320,
           "selectable": true,
@@ -69,9 +108,14 @@
       {
         "id": "video-out",
         "type": "nodetool.output.Output",
-        "data": { "name": "video" },
+        "data": {
+          "name": "video"
+        },
         "ui_properties": {
-          "position": { "x": 820, "y": 180 },
+          "position": {
+            "x": 800,
+            "y": 482
+          },
           "zIndex": 0,
           "width": 260,
           "selectable": true,

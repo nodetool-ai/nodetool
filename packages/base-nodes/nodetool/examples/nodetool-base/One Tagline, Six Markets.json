@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# One Tagline, Six Markets\n\nTranslates a tagline into six languages and adds an English back-translation for each. Someone who reads none of the languages can still check what each version says.\n\n**How it works:** Type the tagline into \"Input\". \"Agent\" writes it in German, French, Spanish, Italian, Japanese and Brazilian Portuguese, each followed by a literal English back-translation in brackets. \"Output\" shows the list.\n\n**Try this:** Pick a model on \"Agent\", then edit its system prompt to swap Italian for Korean."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 385
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -78,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 398
           },
           "zIndex": 0,
           "width": 300,

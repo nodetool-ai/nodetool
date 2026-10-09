@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -12,6 +12,7 @@ jest.mock("../TopBarPrompt", () => ({
 }));
 
 import { TopBar } from "../TopBar";
+import { useDocumentDraftStore } from "../../../stores/DocumentDraftStore";
 
 const renderTopBar = (props: React.ComponentProps<typeof TopBar>) =>
   render(
@@ -82,5 +83,23 @@ describe("TopBar Code button", () => {
       screen.getByRole("button", { name: "Open the timeline's code" })
     );
     expect(onOpenCode).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TopBar save state", () => {
+  afterEach(() => {
+    useDocumentDraftStore.getState().setDirty("timeline:seq-1", false);
+    useDocumentDraftStore.getState().setSaving("timeline:seq-1", false);
+  });
+
+  it("reads Saved, Unsaved changes and Saving… from the autosave state", () => {
+    renderTopBar({ onSave: jest.fn(), sequenceId: "seq-1" });
+    expect(screen.getByRole("status")).toHaveTextContent("Saved");
+
+    act(() => useDocumentDraftStore.getState().setDirty("timeline:seq-1", true));
+    expect(screen.getByRole("status")).toHaveTextContent("Unsaved changes");
+
+    act(() => useDocumentDraftStore.getState().setSaving("timeline:seq-1", true));
+    expect(screen.getByRole("status")).toHaveTextContent("Saving…");
   });
 });

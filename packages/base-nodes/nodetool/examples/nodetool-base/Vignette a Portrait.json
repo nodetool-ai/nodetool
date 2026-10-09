@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Vignette a Portrait\n\nDarkens the corners of an image to pull the eye toward the subject. It runs locally with no model or key.\n\n**How it works:** Drop a portrait into \"1 Image\". \"2 Vignette\" applies the effect at intensity 0.6, where radius sets where the falloff starts and softness sets how gradually it arrives. \"3 Result\" returns the image.\n\n**Try this:** Lower radius on \"2 Vignette\" to 0.5 to start the darkening closer to the center."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "picture",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The portrait to vignette"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 403
           },
           "zIndex": 0,
           "width": 280,
@@ -45,8 +67,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -64,8 +86,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 411
           },
           "zIndex": 0,
           "width": 280,

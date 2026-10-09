@@ -20,8 +20,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "headline": "AI Spokesperson",
-          "comment": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip."
+          "comment": "# AI Spokesperson\n\nRe-voices a presenter clip with a new script and lip-syncs the face to the new words. Use it to update a spoken line without reshooting.\n\n**How it works:** \"3 Voice the script\" reads \"2 New script\" aloud at speed 1.0 with Inworld Realtime TTS on Replicate. \"Even out volume\" normalizes the speech, then \"Soften the start\" (0.01 s fade in) and \"Soften the ending\" (0.03 s fade out) remove clicks at the edges. \"4 Lip-sync to the new audio\" matches \"1 Presenter clip\" to that track with Sync Lipsync v2 Pro on fal, and \"5 Re-voiced clip\" shows the result. Both model steps need provider keys and are billed per run.\n\n**Try this:** Change \"2 New script\" to a longer line, for example add a second sentence, and watch the re-voiced clip's mouth movements follow the new words."
         },
         "ui_properties": {
           "position": {
@@ -31,7 +30,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 170
+          "height": 341
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -50,7 +49,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 240
+            "y": 421
           },
           "zIndex": 0,
           "width": 280,
@@ -71,7 +70,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 787
           },
           "zIndex": 0,
           "width": 280,
@@ -98,7 +97,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 380
+            "y": 716
           },
           "zIndex": 0,
           "width": 280,
@@ -123,8 +122,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1750,
-            "y": 300
+            "x": 1960,
+            "y": 548
           },
           "zIndex": 0,
           "width": 280,
@@ -142,8 +141,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2110,
-            "y": 320
+            "x": 2340,
+            "y": 564
           },
           "zIndex": 0,
           "width": 240,
@@ -159,8 +158,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 710,
-            "y": 380
+            "x": 760,
+            "y": 704
           },
           "width": 300,
           "title": "Even out volume"
@@ -176,8 +175,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1040,
-            "y": 380
+            "x": 1160,
+            "y": 661
           },
           "width": 300,
           "title": "Soften the start"
@@ -193,8 +192,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1370,
-            "y": 380
+            "x": 1560,
+            "y": 626
           },
           "width": 300,
           "title": "Soften the ending"

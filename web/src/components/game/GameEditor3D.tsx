@@ -4,7 +4,6 @@ import { useStore } from "zustand";
 import { gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { trpc, trpcClient } from "../../trpc/client";
-import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
 import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutStore";
@@ -30,7 +29,8 @@ import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
 import { openGameDiagnosticSession3D } from "./viewport3d/gameSessionAssets3D";
-import { handleGameUndo } from "./gameEditorShortcuts";
+import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
+import { gamePlaytestPrompt, gameScriptErrorPrompt, gameSelectionPrompt } from "./gameAssistantPrompt";
 import GameViewport3D from "./viewport3d/GameViewport3D";
 import { scriptFailure } from "./useGamePlaySession";
 import { EMPTY_INPUT_3D, useGamePlaySession3D } from "./useGamePlaySession3D";
@@ -51,6 +51,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const canRedo = useStore(getGameDraftStore(refId), (state) => state.canRedo);
   const [sceneId, setSceneId] = useState(document.entrySceneId);
   const layoutStore = useGamePanelLayoutStore();
+  const assistant = useGameAssistantDraft(layoutStore);
   const assistantOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("assistant"));
   const inspectorOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("inspector"));
   const treeOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("hierarchy") || !state.layout.hidden.includes("revisions"));
@@ -60,8 +61,6 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const [publishMessage, setPublishMessage] = useState("");
   const [scriptKey, setScriptKey] = useState<{ sceneId: string; entityId: string; index: number } | null>(null);
   const [restoring, setRestoring] = useState(false);
-  const [assistantThreadId, setAssistantThreadId] = useState<string | null>(null);
-  const pendingAssistantPromptRef = useRef<string | null>(null);
   const [assetId, setAssetId] = useState("");
   const [assetSlot, setAssetSlot] = useState("model");
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
@@ -221,16 +220,9 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const behavior = activeScript?.behaviors[scriptKey?.index ?? -1];
   const askAssistant = (): void => {
     if (!scriptError || !scriptKey) { return; }
-    const prompt = `Help fix this game script error. Scene: ${scriptKey.sceneId}. Entity: ${scriptKey.entityId}. Behavior index: ${scriptKey.index}. Tick: ${scriptError.tick}. Error: ${scriptError.message}`;
-    if (assistantThreadId) { useChatDraftStore.getState().setDraft(assistantThreadId, prompt); }
-    else { pendingAssistantPromptRef.current = prompt; }
-    layoutStore.getState().dispatch({ type: "reveal", panelId: "assistant" });
+    assistant.draft(gameScriptErrorPrompt(scriptKey, scriptError));
   };
-  useEffect(() => {
-    if (!assistantThreadId || !pendingAssistantPromptRef.current) { return; }
-    useChatDraftStore.getState().setDraft(assistantThreadId, pendingAssistantPromptRef.current);
-    pendingAssistantPromptRef.current = null;
-  }, [assistantThreadId]);
+  const selectedEntities = scene?.entities.filter((entity) => selectedIds.includes(entity.id)) ?? [];
   const restoreRevision = async (revision: string): Promise<void> => {
     setRestoring(true);
     try {
@@ -339,11 +331,16 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       </> },
       { id: "assistant",
         node: <>
-        <GameAgentPanel gameId={refId} name={name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
+        <GameAgentPanel gameId={refId} name={name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={assistant.onThreadId} focusMessage={focusMessage} />
       </> }
     ]}
-    onKeyDown={(event) => handleGameUndo(event, Boolean(host.playDocument),
-      () => getGameDraftStore(refId).getState().undo(), () => getGameDraftStore(refId).getState().redo())}
+    commands={{
+      "edit.undo": { run: () => getGameDraftStore(refId).getState().undo(), enabled: canUndo },
+      "edit.redo": { run: () => getGameDraftStore(refId).getState().redo(), enabled: canRedo },
+      "assistant.playtest": { run: () => assistant.draft(gamePlaytestPrompt()) },
+      "assistant.explainSelection": { run: () => assistant.draft(gameSelectionPrompt(selectedEntities)), enabled: selectedEntities.length > 0 },
+      "assistant.fixScriptError": { run: askAssistant, enabled: Boolean(scriptError && scriptKey) }
+    }}
     dialogs={<>
     <Dialog open={publishOpen} onClose={() => setPublishOpen(false)} title="Publish 3D game"
       onConfirm={() => void publish()} confirmText="Publish" isLoading={publishing} showActions>

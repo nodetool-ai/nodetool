@@ -3,9 +3,10 @@
  *
  * A director approves one board in the editor; a graph then re-runs it for a
  * new product, a new actor, a new SKU. These nodes are that loop: read a board
- * (`LoadStoryboard`, `StoryboardShots`), derive a copy for a new cast
- * (`RecastStoryboard`), spend on its frames (`RenderStills`, `RenderClips`),
- * and cut it (`AssembleTimeline`). Design:
+ * (`LoadStoryboard`, `StoryboardShots`), save one from a Director screenplay
+ * (`CreateStoryboard`), derive a copy for a new cast (`RecastStoryboard`),
+ * spend on its frames (`RenderStills`, `RenderClips`), and cut it
+ * (`AssembleTimeline`). Design:
  * [docs/graph-resources/design.md](../../../../docs/graph-resources/design.md) §4.2.
  *
  * The derivation, the render plan and the render path itself come from
@@ -15,9 +16,10 @@
  *
  * **Write contract.** A `StoryboardRef` is read-only unless it carries
  * `writable: true`, and only a node that created or derived the row in this run
- * sets it. `RenderStills`, `RenderClips` and `AssembleTimeline` refuse a ref
- * without the flag before they read anything, so a picker wired straight into a
- * render node fails before any spend rather than after it.
+ * sets it (`CreateStoryboard`, `RecastStoryboard`). `RenderStills`,
+ * `RenderClips` and `AssembleTimeline` refuse a ref without the flag before
+ * they read anything, so a picker wired straight into a render node fails
+ * before any spend rather than after it.
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
@@ -29,7 +31,7 @@ import {
   probeVideoDurationSeconds,
   resolveEntities
 } from "@nodetool-ai/runtime";
-import { shotRenderMode } from "@nodetool-ai/protocol";
+import { parseScreenplay, shotRenderMode } from "@nodetool-ai/protocol";
 import type {
   Entity,
   ImageRef,
@@ -630,6 +632,184 @@ export class StoryboardShotsNode extends BaseNode {
       output: shots
     };
   }
+}
+
+// ---------------------------------------------------------------------------
+// CreateStoryboard
+// ---------------------------------------------------------------------------
+
+type CreateStoryboardOutputs = {
+  storyboard: StoryboardRef;
+  shots: Shot[];
+  shot_count: number;
+  created: boolean;
+};
+
+/**
+ * The `recastKey` a board made by {@link CreateStoryboardNode} carries.
+ *
+ * `recastKey` exists so a re-run finds the row it made last time. A created
+ * board has no template, so the key is the node's own identity: the name. It
+ * also keeps a hand-made board with the same name out of reach, since only a
+ * board this node stamped matches.
+ */
+const createdBoardKey = (name: string): string => `created:${name}`;
+
+export class CreateStoryboardNode extends BaseNode {
+  static readonly nodeType = "nodetool.storyboard.CreateStoryboard";
+  static readonly title = "Create Storyboard";
+  static readonly description =
+    "Save a Director screenplay as a storyboard you can open, edit and render.\n    storyboard, create, screenplay, director, shots, board\n\n    Use cases:\n    - Turning a brief into a board: Director -> Create Storyboard -> Render Stills\n    - Handing a generated shot list to a person for review in the board editor\n    - Casting library entities into a new board";
+  static readonly metadataOutputTypes = {
+    storyboard: "storyboard",
+    shots: "list[dict]",
+    shot_count: "int",
+    created: "bool"
+  };
+  static readonly inputFields = ["screenplay", "cast"];
+
+  @prop({
+    type: "dict",
+    default: {},
+    title: "Screenplay",
+    description: "The screenplay to save, usually from the Director node."
+  })
+  declare screenplay: Record<string, unknown>;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Name",
+    description:
+      "Board name. Defaults to the screenplay's title. With reuse_existing it is also the board's identity across runs."
+  })
+  declare name: string;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Brief",
+    description: "The brief the board was directed from, shown in the board editor."
+  })
+  declare brief: string;
+
+  @prop({
+    type: "list[entity]",
+    default: [],
+    title: "Cast",
+    description:
+      "Library entities the board's shots are seasoned with. A shot that names an entity gets its descriptor and reference image when rendered."
+  })
+  declare cast: unknown[];
+
+  @prop({
+    type: "image_model",
+    default: emptyModel("image_model"),
+    title: "Image Model",
+    description: "The board's still model. Render Stills uses it unless its own input overrides it."
+  })
+  declare image_model: ModelSelectionLike;
+
+  @prop({
+    type: "video_model",
+    default: emptyModel("video_model"),
+    title: "Video Model",
+    description: "The board's clip model. Render Clips uses it unless its own input overrides it."
+  })
+  declare video_model: ModelSelectionLike;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Project",
+    description: "Project to create the board in. Empty uses the default project."
+  })
+  declare project: string;
+
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Reuse Existing",
+    description:
+      "Return the board this node made under the same name last run instead of creating another, so a re-run renders only what is stale."
+  })
+  declare reuse_existing: boolean;
+
+  async process(context?: ProcessingContext): Promise<CreateStoryboardOutputs> {
+    const ctx = requireContext(context, "CreateStoryboard");
+    const raw = isRecord(this.screenplay) ? this.screenplay : {};
+    const rawShots = Array.isArray(raw["shots"]) ? raw["shots"] : [];
+    if (rawShots.length === 0) {
+      throw new Error(
+        "CreateStoryboard: the screenplay has no shots. Connect a Director node's screenplay output."
+      );
+    }
+    const screenplay = parseScreenplay(raw, { shotCount: rawShots.length });
+    const name = String(this.name ?? "").trim() || screenplay.title;
+    const projectId = String(this.project ?? "").trim() || "default";
+    const key = createdBoardKey(name);
+
+    if (this.reuse_existing) {
+      const boards = await listBoards(ctx, projectId);
+      if (boards === null) {
+        throw new Error(
+          "CreateStoryboard: this host cannot look up the board a previous run made, so reuse_existing would create a new board every run. Turn reuse_existing off."
+        );
+      }
+      const existing = boards.find(
+        (board) => board.document.recastKey === key && !board.document.templateId
+      );
+      if (existing) {
+        const shots = orderedShots(existing.document);
+        return {
+          storyboard: writableRef(existing.id),
+          shots,
+          shot_count: shots.length,
+          created: false
+        };
+      }
+    }
+
+    const cast = await resolveEntities(this.cast, ctx);
+    const shots = screenplay.shots.map((entry, index) => ({ ...entry, index }));
+    const document: StoryboardDocument = {
+      screenplay: { ...screenplay, shots },
+      shots,
+      brief: String(this.brief ?? "").trim() || screenplay.logline || "",
+      style: screenplay.style_bible ?? "",
+      entityIds: cast.map((entity) => entity.id).filter(Boolean),
+      aspectRatio: screenplay.aspect_ratio || "16:9",
+      setupStage: "done",
+      genre: screenplay.genre ?? "",
+      directorModel: null,
+      imageModel: selectedModel(this.image_model),
+      videoModel: selectedModel(this.video_model),
+      templateId: null,
+      recastKey: key
+    };
+    const saved = asBoardRow(
+      await ctx.createStoryboard({ name, projectId, document })
+    );
+    if (!saved) {
+      throw new Error(`CreateStoryboard: could not save storyboard ${name}.`);
+    }
+    return {
+      storyboard: writableRef(saved.id),
+      shots,
+      shot_count: shots.length,
+      created: true
+    };
+  }
+}
+
+/** A model prop as the board stores it: null when nothing is selected. */
+function selectedModel(
+  model: ModelSelectionLike | null | undefined
+): Record<string, unknown> | null {
+  if (!model || !model.id || !model.provider || model.provider === "empty") {
+    return null;
+  }
+  return { ...model };
 }
 
 // ---------------------------------------------------------------------------
@@ -1367,6 +1547,7 @@ export class AssembleTimelineNode extends BaseNode {
 export const STORYBOARD_NODES = tagAsServer([
   LoadStoryboardNode,
   StoryboardShotsNode,
+  CreateStoryboardNode,
   RecastStoryboardNode,
   RenderStillsNode,
   RenderClipsNode,

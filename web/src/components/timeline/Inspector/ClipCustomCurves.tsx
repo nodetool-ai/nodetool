@@ -33,7 +33,8 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSelect,
-  InspectorStaticValue
+  InspectorStaticValue,
+  INSPECTOR_ROW_BUTTON_SX
 } from "./InspectorPrimitives";
 import {
   EASING_HINT,
@@ -61,8 +62,6 @@ export function makeCustomAnimation(): CustomClipAnimation {
 const SCRUB_T = { step: 0.01, min: 0, max: 1 };
 const SCRUB_VALUE = { step: 0.01 };
 
-const CURVE_DELETE_SX = { width: 24, height: 24 };
-const KEYFRAME_DELETE_SX = { width: 20, height: 20 };
 
 interface KeyframeRowProps {
   keyframe: CustomKeyframe;
@@ -152,6 +151,7 @@ const KeyframeRow: React.FC<KeyframeRowProps> = memo(
           <InspectorPillInput
             value={keyframe.easing ?? ""}
             placeholder="linear"
+            allowEmpty
             minWidth={96}
             onCommit={handleEasingCommit}
             ariaLabel={`${name} easing`}
@@ -161,7 +161,7 @@ const KeyframeRow: React.FC<KeyframeRowProps> = memo(
             tooltip={`Remove ${name}`}
             ariaLabel={`Remove ${name}`}
             iconVariant="clear"
-            sx={KEYFRAME_DELETE_SX}
+            sx={INSPECTOR_ROW_BUTTON_SX}
           />
         </FlexRow>
         {easingUnparseable && (
@@ -227,7 +227,7 @@ const CurveEditor: React.FC<CurveEditorProps> = memo(
             tooltip={`Remove ${curveLabel}`}
             ariaLabel={`Remove ${curveLabel}`}
             iconVariant="clear"
-            sx={CURVE_DELETE_SX}
+            sx={INSPECTOR_ROW_BUTTON_SX}
           />
         </FlexRow>
         <InspectorRow label="Property">

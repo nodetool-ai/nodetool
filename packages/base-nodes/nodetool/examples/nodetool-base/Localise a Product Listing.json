@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Localise a Product Listing",
   "tool_name": null,
-  "description": "Currency, units and address format are where listings actually break in a new market \u2014 more often than the prose does.",
+  "description": "Currency, units and address format are where listings actually break in a new market — more often than the prose does.",
   "tags": [
     "text",
     "example"
@@ -14,6 +14,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Localise a Product Listing\n\nRewrites a US product listing for the UK market. It converts units, currency and spelling, which is where listings usually break in a new market.\n\n**How it works:** Paste the listing into \"Input\". \"Agent\" follows its system prompt to convert units to metric, prices to GBP with a placeholder rate, and US spelling to UK spelling, and it flags anything that needs a human decision. \"Output\" shows the UK listing.\n\n**Try this:** Pick a model on \"Agent\", then edit its system prompt to target another market, such as Germany with euros."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.StringInput",
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 385
           },
           "zIndex": 0,
           "width": 300,
@@ -59,8 +78,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -78,8 +97,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 398
           },
           "zIndex": 0,
           "width": 300,

@@ -17,17 +17,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Fade Audio In and Out\n\nEases a track in from silence so it does not start on a hard edit. It pulls the audio out of a video first, so it works on footage. It runs locally through ffmpeg with no API cost.\n\n**How it works:** \"Clip\" passes the video to \"Extract audio\", which separates the soundtrack. \"Process\" applies a 1.5-second fade-in to it, and \"Audio\" shows the faded track. This graph applies only the fade-in.\n\n**Try this:** Raise the duration on \"Process\" from 1.5 to 4 seconds for a slower entrance under a title card."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "The clip to take audio from"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +65,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 180
+            "x": 380,
+            "y": 390
           },
           "zIndex": 0,
           "width": 280,
@@ -62,8 +84,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 680,
-            "y": 180
+            "x": 760,
+            "y": 390
           },
           "zIndex": 0,
           "width": 280,
@@ -81,8 +103,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1020,
-            "y": 200
+            "x": 1140,
+            "y": 374
           },
           "zIndex": 0,
           "width": 240,

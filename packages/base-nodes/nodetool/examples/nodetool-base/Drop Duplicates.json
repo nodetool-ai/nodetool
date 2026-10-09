@@ -16,6 +16,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Drop Duplicates\n\nPasses each distinct value through once and drops repeats. It runs in-process with no model, no key and no cost.\n\n**How it works:** \"Source list\" holds six colour names with two repeats. \"Fan out\" emits them one at a time into \"Drop\", which forwards a value only the first time it appears. \"Result\" collects the four unique colours.\n\n**Try this:** Replace the strings in \"Source list\" with objects such as {\"sku\": \"A1\", \"size\": \"M\"} and set the key on \"Drop\" to sku, so items are compared on that one field."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "src",
         "type": "nodetool.constant.List",
         "data": {
@@ -31,7 +50,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -49,8 +68,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 760,
+            "y": 501
           },
           "zIndex": 0,
           "width": 280,
@@ -68,8 +87,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 1140,
+            "y": 485
           },
           "zIndex": 0,
           "width": 240,
@@ -87,8 +106,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 160,
-            "y": 300
+            "x": 380,
+            "y": 377
           },
           "zIndex": 0,
           "width": 280,

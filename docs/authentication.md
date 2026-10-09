@@ -28,7 +28,7 @@ nodetool serve
 The server does not read an `AUTH_PROVIDER` variable. The mode comes only from the presence of both Supabase variables (`packages/websocket/src/server.ts`).
 
 - **Supabase mode.** The server validates a Supabase JWT on every non-public request, over HTTP and WebSocket.
-- **Local mode.** `LocalAuthProvider` maps requests to user `"1"`. Loopback connections bypass auth (gated by `NODETOOL_TRUST_LOCALHOST`). Other sources are rejected with `401` unless a trust rule or a valid access token applies.
+- **Local mode.** `LocalAuthProvider` maps requests to user `"1"`. Loopback connections bypass auth (gated by `NODETOOL_TRUST_LOCALHOST`). Other sources are rejected with `401` unless a trust rule, a valid access token, or the `SERVER_AUTH_TOKEN` bearer token applies.
 
 > `AUTH_PROVIDER` is only written into deployed-container environments by the `@nodetool-ai/deploy` tooling. The server itself never branches on it.
 

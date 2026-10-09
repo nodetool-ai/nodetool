@@ -6,25 +6,58 @@
   "name": "Watch a Folder, Act on What Lands",
   "tool_name": null,
   "description": "A drop folder as an interface. Point `path` at a directory, narrow it with `patterns`, and the graph wakes whenever a matching file appears or changes — you get the event kind and the full path. The agent here just names what arrived; replace it with the work you actually want done on the file. `debounce_seconds` exists because editors write a file more than once.",
-  "tags": ["example", "trigger", "file-watch", "automation"],
+  "tags": [
+    "example",
+    "trigger",
+    "file-watch",
+    "automation"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Watch a Folder, Act on What Lands\n\nUses a drop folder as an interface. The graph wakes whenever a matching file is created or modified, so you can process files as they arrive.\n\n**How it works:** \"1 Watch ./inbox\" watches for CSV and JSON files, with a short debounce because editors often write a file twice. It sends the event kind to \"2 Event\" and the file path to \"3 Describe it\", which names the file and suggests a next step in \"4 Note\".\n\n**Try this:** Point path on \"1 Watch ./inbox\" at your own folder and add *.pdf to patterns."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "watch",
         "type": "nodetool.triggers.FileWatchTrigger",
         "data": {
           "path": "./inbox",
           "recursive": false,
-          "patterns": ["*.csv", "*.json"],
+          "patterns": [
+            "*.csv",
+            "*.json"
+          ],
           "ignore_patterns": [],
-          "events": ["created", "modified"],
+          "events": [
+            "created",
+            "modified"
+          ],
           "debounce_seconds": 0.5,
           "max_events": 0
         },
         "ui_properties": {
-          "position": { "x": 0, "y": 120 },
+          "position": {
+            "x": 0,
+            "y": 501
+          },
           "zIndex": 0,
           "width": 300,
           "selectable": true,
@@ -56,7 +89,10 @@
           "max_turns": 100
         },
         "ui_properties": {
-          "position": { "x": 350, "y": 220 },
+          "position": {
+            "x": 400,
+            "y": 366
+          },
           "zIndex": 0,
           "width": 300,
           "selectable": true,
@@ -74,7 +110,10 @@
           "description": "created, modified, deleted or moved"
         },
         "ui_properties": {
-          "position": { "x": 350, "y": 40 },
+          "position": {
+            "x": 400,
+            "y": 629
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,
@@ -87,9 +126,15 @@
         "id": "note",
         "type": "nodetool.output.Output",
         "name": "note",
-        "data": { "name": "note", "description": "What arrived, in one line" },
+        "data": {
+          "name": "note",
+          "description": "What arrived, in one line"
+        },
         "ui_properties": {
-          "position": { "x": 700, "y": 220 },
+          "position": {
+            "x": 800,
+            "y": 426
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,

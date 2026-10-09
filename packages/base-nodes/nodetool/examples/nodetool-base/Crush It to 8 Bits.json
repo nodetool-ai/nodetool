@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Crush It to 8 Bits\n\nGives audio a lo-fi, retro sound by reducing bit depth and sample rate. The two controls work independently, so you can tune each one.\n\n**How it works:** \"1 Audio\" takes the input. \"2 Bitcrush\" quantises to 6 bits and reduces the sample rate by a factor of 4. \"3 Result\" plays the crushed audio. It runs locally with no model or key.\n\n**Try this:** Set bit_depth on \"2 Bitcrush\" to 8 and sample_rate_reduction to 1 to hear the effect of bit depth alone."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.AudioInput",
         "data": {
           "name": "audio",
-          "value": null,
+          "value": {
+            "type": "audio",
+            "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+          },
           "description": "The audio to crush"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -44,8 +66,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 367
           },
           "zIndex": 0,
           "width": 280,
@@ -63,8 +85,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 405
           },
           "zIndex": 0,
           "width": 280,

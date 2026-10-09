@@ -6,6 +6,9 @@ function loadStoryboard(inputs, options) {
 function storyboardShots(inputs, options) {
   return createNode("nodetool.storyboard.StoryboardShots", inputs, { id: options?.id, outputNames: ["shot", "index", "slug", "keyframe", "clip", "output"], outputTypes: { "shot": "dict", "index": "int", "slug": "str", "keyframe": "image", "clip": "video", "output": "list[dict]" }, streaming: true, inputMode: "buffered", outputCorrelation: { "shot": { "kind": "iteration", "source": "__execution__", "group": "items" }, "index": { "kind": "iteration", "source": "__execution__", "group": "items" }, "slug": { "kind": "iteration", "source": "__execution__", "group": "items" }, "keyframe": { "kind": "iteration", "source": "__execution__", "group": "items" }, "clip": { "kind": "iteration", "source": "__execution__", "group": "items" }, "output": { "kind": "single", "source": "__execution__" } } });
 }
+function createStoryboard(inputs, options) {
+  return createNode("nodetool.storyboard.CreateStoryboard", inputs, { id: options?.id, outputNames: ["storyboard", "shots", "shot_count", "created"], outputTypes: { "storyboard": "storyboard", "shots": "list[dict]", "shot_count": "int", "created": "bool" } });
+}
 function recastStoryboard(inputs, options) {
   return createNode("nodetool.storyboard.RecastStoryboard", inputs, { id: options?.id, outputNames: ["storyboard", "invalidated", "kept"], outputTypes: { "storyboard": "storyboard", "invalidated": "list[str]", "kept": "list[str]" } });
 }
@@ -20,6 +23,7 @@ function assembleTimeline(inputs, options) {
 }
 export {
   assembleTimeline,
+  createStoryboard,
   loadStoryboard,
   recastStoryboard,
   renderClips,

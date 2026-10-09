@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Turn a Logo into Print-Ready Vector\n\nTraces a raster logo into SVG paths. A vector mark scales to any size a printer, sign maker or embroiderer asks for.\n\n**How it works:** Drop the logo image into \"1 Photo\". \"2 Trace to SVG\" converts its shapes to vector paths, and \"3 Result\" returns the SVG.\n\n**Try this:** Load a logo with flat colors on a plain background into \"1 Photo\". It traces cleaner than a photographed mark."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -25,7 +44,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 332
           },
           "zIndex": 0,
           "width": 300,
@@ -50,8 +69,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 327
           },
           "zIndex": 0,
           "width": 300,
@@ -69,8 +88,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 340
           },
           "zIndex": 0,
           "width": 300,

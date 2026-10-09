@@ -82,12 +82,12 @@ describe("AdaptFormatDialog", () => {
     createAdaptations.mockClear();
   });
 
-  it("defaults to a nondestructive 9:16 Smart Reframe adaptation", async () => {
+  it("defaults to a nondestructive 9:16 Smart reframe adaptation", async () => {
     renderDialog([subject]);
 
     expect(screen.getByText("1920 × 1080")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: /9:16/i })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Smart Reframe" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Smart reframe" })).toBeChecked();
 
     await userEvent.click(
       screen.getByRole("button", { name: "Create adaptation" })
@@ -100,11 +100,11 @@ describe("AdaptFormatDialog", () => {
     });
   });
 
-  it("makes Smart Reframe unavailable without analysis or authored framing", () => {
+  it("makes Smart reframe unavailable without analysis or authored framing", () => {
     renderDialog();
 
     expect(screen.getByRole("radio", { name: "Center" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Smart Reframe" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Smart reframe" })).toBeDisabled();
     expect(
       screen.getByText(/needs a current subject track or authored framing/i)
     ).toBeInTheDocument();

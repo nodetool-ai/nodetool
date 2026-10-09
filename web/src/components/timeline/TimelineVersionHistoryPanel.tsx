@@ -323,7 +323,7 @@ export const TimelineVersionHistoryPanel: React.FC<
         onCancel={closeSaveDialog}
         confirmText="Save version"
       >
-        <FlexColumn gap={1} sx={{ minWidth: 320, py: 1 }}>
+        <FlexColumn gap={1} sx={{ py: 1 }}>
           <TextInput
             label="Name (optional)"
             value={saveName}
