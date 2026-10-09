@@ -11,6 +11,9 @@ import { gameEntityComponents } from "./components/entity-components.js";
 import { gameParticles } from "../game-particles.js";
 import { gameAuthoring } from "../game-authoring.js";
 import { gameAudioSettings } from "./components/audio.js";
+import { gameInputBindings } from "../game-input.js";
+
+export * from "../game-input.js";
 
 export const gameEntity = z.strictObject({
   id: z.string().min(1),
@@ -76,6 +79,7 @@ export const gameDocument = z.strictObject({
   pixelsPerUnit: positive,
   tickRate: z.literal(60),
   inputActions: z.array(z.string().min(1)),
+  inputBindings: gameInputBindings.optional(),
   collisionLayers: z.array(z.string().min(1)).max(32).optional(),
   renderEffects: z.array(gameRenderEffect).max(8).optional(),
   hudEffectOrder: z.enum(["beforeEffects", "afterEffects"]).optional(),

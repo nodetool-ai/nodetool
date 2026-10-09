@@ -17,8 +17,10 @@ import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
-import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
-import { useSketchStore } from "../../components/sketch/state/useSketchStore";
+import {
+  useSketchInstance,
+  type SketchInstance
+} from "../../stores/sketch/SketchInstance";
 import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import {
@@ -230,14 +232,22 @@ const clearInFlight = (layerId: string): void => {
  * render triggered by the status flip already has it — a tile never shows
  * "failed" with nothing beside it.
  */
-const failLayer = (layerId: string, failure: DirectGenFailure): void => {
+const failLayer = (
+  session: SketchInstance["session"],
+  layerId: string,
+  failure: DirectGenFailure
+): void => {
   failures.set(layerId, failure);
-  useSketchSessionStore.getState().patchBinding(layerId, { status: "failed" });
+  session.getState().patchBinding(layerId, { status: "failed" });
 };
 
 export function useDirectGenJob(): UseDirectGenJobApi {
+  // The editor this hook was mounted in. `getState()` on the shared hooks
+  // follows the focused tab, so a take that settles after a tab switch would
+  // be written into another document, or nowhere, and stay "generating".
+  const { editor, session } = useSketchInstance();
   const start = useCallback(async (layerId: string) => {
-    const bindings = useSketchSessionStore.getState();
+    const bindings = session.getState();
     const binding = bindings.bindings[layerId];
     if (!binding) return;
     if (binding.status === "queued" || binding.status === "generating") {
@@ -251,7 +261,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       return;
     }
     if (!binding.provider || !binding.model) {
-      failLayer(layerId, {
+      failLayer(session, layerId, {
         kind: "no-model",
         message:
           "No image model is set on this layer. Pick one, then try again.",
@@ -260,7 +270,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       return;
     }
     if (!binding.prompt || !binding.prompt.trim()) {
-      failLayer(layerId, {
+      failLayer(session, layerId, {
         kind: "no-prompt",
         message: "This layer has no prompt to render.",
         detail: ""
@@ -268,13 +278,13 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       return;
     }
 
-    const sketch = useSketchStore.getState();
+    const sketch = editor.getState();
     let sourceAssetId: string | undefined;
     let maskAssetId: string | undefined;
 
     if (binding.kind === "inpaint") {
       if (!binding.sourceAssetId || !binding.maskAssetId) {
-        failLayer(layerId, {
+        failLayer(session, layerId, {
           kind: "no-source",
           message:
             "The selection this was going to repaint is gone. Make a new one and try again.",
@@ -290,7 +300,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
         // uploaded as a throwaway asset on the binding.
         sourceAssetId = binding.sourceAssetId;
       } else if (!binding.sourceLayerId) {
-        failLayer(layerId, {
+        failLayer(session, layerId, {
           kind: "no-source",
           message: "This layer has no source image to work from.",
           detail: ""
@@ -301,7 +311,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
           (l) => l.id === binding.sourceLayerId
         );
         if (!sourceLayer) {
-          failLayer(layerId, {
+          failLayer(session, layerId, {
             kind: "no-source",
             message: "The source layer this was built from is gone.",
             detail: ""
@@ -315,7 +325,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
           try {
             const canvas = await exportLayer(sketch.document, sourceLayer.id);
             if (!canvas) {
-              failLayer(layerId, {
+              failLayer(session, layerId, {
                 kind: "no-source",
                 message: "The source layer is empty, so there is nothing to work from.",
                 detail: ""
@@ -333,7 +343,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
               .createAsset(file, undefined, undefined, undefined, "file");
             sourceAssetId = uploaded.id;
           } catch (cause) {
-            failLayer(layerId, {
+            failLayer(session, layerId, {
               kind: "provider",
               message: "The source image could not be prepared.",
               detail: causeDetail(cause)
@@ -391,11 +401,11 @@ export function useDirectGenJob(): UseDirectGenJobApi {
 
     const settle = async (msg: DirectGenRpcResponse) => {
       cleanup();
-      const store = useSketchSessionStore.getState();
+      const store = session.getState();
       if (msg.error) {
         // rpc_response means the backend has finished reading the inputs.
         deleteTempUploads();
-        failLayer(layerId, classifyProviderError(msg.error));
+        failLayer(session, layerId, classifyProviderError(msg.error));
         return;
       }
       const assetIds = Array.isArray(msg.result?.asset_ids)
@@ -406,7 +416,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       const first = assetIds[0];
       if (!first) {
         deleteTempUploads();
-        failLayer(layerId, {
+        failLayer(session, layerId, {
           kind: "provider",
           message: "The request finished without an image.",
           detail: ""
@@ -429,7 +439,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
             const generatedUrl = getAssetUrl(generatedAsset);
             const maskUrl = getAssetUrl(maskAsset);
             if (generatedUrl && maskUrl) {
-              const sketchState = useSketchStore.getState();
+              const sketchState = editor.getState();
               const masked = await maskInpaintResult(
                 generatedUrl,
                 maskUrl,
@@ -463,7 +473,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
 
         const asset = await useAssetStore.getState().get(finalAssetId);
         const url = getAssetUrl(asset) ?? `asset://${finalAssetId}.png`;
-        const sketchState = useSketchStore.getState();
+        const sketchState = editor.getState();
         const currentLayer = sketchState.document.layers.find(
           (l) => l.id === layerId
         );
@@ -478,7 +488,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
           objectFit: "contain"
         });
       } catch (cause) {
-        failLayer(layerId, {
+        failLayer(session, layerId, {
           kind: "provider",
           message: "The image came back but could not be placed on the canvas.",
           detail: causeDetail(cause)
@@ -538,19 +548,22 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       cleanup();
       // Send never reached the backend, so the uploads are orphaned.
       deleteTempUploads();
-      failLayer(layerId, {
+      failLayer(session, layerId, {
         kind: "network",
         message:
           "The request never reached NodeTool. Check your connection and try again.",
         detail: causeDetail(cause)
       });
     }
-  }, []);
+  }, [editor, session]);
 
-  const cancel = useCallback((layerId: string) => {
-    clearInFlight(layerId);
-    useSketchSessionStore.getState().patchBinding(layerId, { status: "draft" });
-  }, []);
+  const cancel = useCallback(
+    (layerId: string) => {
+      clearInFlight(layerId);
+      session.getState().patchBinding(layerId, { status: "draft" });
+    },
+    [session]
+  );
 
   return { start, cancel };
 }

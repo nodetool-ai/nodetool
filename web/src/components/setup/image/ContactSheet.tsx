@@ -342,7 +342,14 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
         }}
       >
         {tiles.map((tile) => (
-          <FlexColumn key={tile.layerId} gap={GAP.normal}>
+          // Every tile repeats the same buttons, so each is a named group: a
+          // screen reader hears which variation "Sketch editor" picks.
+          <FlexColumn
+            key={tile.layerId}
+            gap={GAP.normal}
+            role="group"
+            aria-label={tile.label}
+          >
             <Box
               role="group"
               aria-label={`${tile.label} preview`}

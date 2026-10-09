@@ -110,7 +110,11 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
         id: "example",
         title: "Start from an example",
         description: "Browse the shipped workflows and copy one",
-        onSelect: () => onBrowseExamples(true)
+        onSelect: () => onBrowseExamples(true),
+        // A file being read lands on this workflow and opens it, so a second
+        // way in started meanwhile would be overwritten by it, or overwrite it.
+        disabled: importing,
+        disabledReason: "Reading your file"
       },
       {
         id: "import",
@@ -124,7 +128,9 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
         id: "blank",
         title: "Start with a blank canvas",
         description: "Skip the plan and place nodes yourself",
-        onSelect: onStartBlank
+        onSelect: onStartBlank,
+        disabled: importing,
+        disabledReason: "Reading your file"
       }
     ],
     [importing, onBrowseExamples, onStartBlank]

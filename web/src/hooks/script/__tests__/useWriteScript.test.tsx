@@ -272,6 +272,36 @@ describe("writeScript", () => {
     ]);
   });
 
+  it("gives a screenplay that names nobody one speaker to read it", async () => {
+    setSource({
+      kind: "fdx",
+      preserve: "verbatim",
+      label: "Final Draft screenplay",
+      lines: [
+        { text: "Are you coming or not?", speakerName: "" },
+        { text: "Give me a minute.", speakerName: "" }
+      ],
+      speakers: [],
+      attributed: true,
+      text: "Are you coming or not?\nGive me a minute."
+    });
+    const { result } = renderHook(() => useWriteScript());
+
+    await act(async () => {
+      expect(await result.current.write(SCRIPT)).toBe(true);
+    });
+
+    // With no cast the review asked for a speaker and offered none.
+    expect(scriptNow().cast.map((speaker) => speaker.name)).toEqual([
+      "Narrator"
+    ]);
+    const narrator = scriptNow().cast[0].id;
+    expect(linesNow().map((line) => line.speakerId)).toEqual([
+      narrator,
+      narrator
+    ]);
+  });
+
   it("keeps the voices picked for an attributed import when it is prepared again", async () => {
     setSource({
       kind: "fdx",

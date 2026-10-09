@@ -7,7 +7,13 @@
  * reason the losers stay on the document instead of being deleted.
  */
 import React from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { LayerVersion } from "@nodetool-ai/image-editor";
@@ -330,6 +336,30 @@ describe("ContactSheet Pick (criterion 5)", () => {
     expect(
       screen.getByRole("group", { name: "Variation 4 preview" })
     ).toBeInTheDocument();
+  });
+
+  // Every tile repeats the same buttons, so each tile is a named group and
+  // a screen reader hears which variation a button acts on.
+  it("names each tile's controls by its variation", async () => {
+    const layerIds = seedBatch();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+    const tile = screen.getByRole("group", { name: "Variation 2" });
+    await userEvent.click(
+      within(tile).getByRole("button", { name: "Sketch editor" })
+    );
+    expect(onPick).toHaveBeenCalledWith(layerIds[1]);
   });
 
   it("offers the strip's follow-ups", async () => {

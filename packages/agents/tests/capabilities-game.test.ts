@@ -124,6 +124,21 @@ describe("native game capabilities", () => {
     expect(await run("stranger").invoke("get_native_game", { game_id: created.game.id })).toEqual({ error: "Game not found" });
   });
 
+  it("stores and clears the document input map through edit_native_game", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Bindings" }) as GameReply;
+    const bindings = { actions: { left: [{ kind: "key", code: "KeyJ" }, { kind: "gamepadButton", button: 14 }] }, axes: {} };
+    const bound = await agent.invoke("edit_native_game", { game_id: created.game.id,
+      ops: [{ op: "set_game", input_bindings: bindings }] }) as GameReply;
+    expect(bound.document.inputBindings?.actions).toEqual(bindings.actions);
+    expect(await agent.invoke("edit_native_game", { game_id: created.game.id,
+      ops: [{ op: "set_game", input_bindings: { actions: { left: [{ kind: "key" }] }, axes: {} } }] }))
+      .toMatchObject({ error: "Invalid game ops", issues: [{ op_index: 0 }] });
+    const cleared = await agent.invoke("edit_native_game", { game_id: created.game.id,
+      ops: [{ op: "set_game", input_bindings: null }] }) as GameReply;
+    expect(cleared.document.inputBindings).toBeUndefined();
+  });
+
   it("edits the draft atomically, reads an outline, and captures the edited frame", async () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Draft room" }) as GameReply;

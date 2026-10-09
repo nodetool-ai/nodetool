@@ -9,6 +9,7 @@ import { gameDocument3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import { validateGame3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-runtime";
 import { prepareGameModel } from "./renderer3d/preparation.js";
 import type { StandaloneAsset, StandaloneGameBuild } from "./build.js";
+import { TOUCH_CONTROLS_CSS } from "./touch-controls.js";
 
 export interface BuildStandaloneGame3DOptions {
   readonly document: GameDocument3D;
@@ -18,7 +19,9 @@ export interface BuildStandaloneGame3DOptions {
 }
 const PLAYER_FILE = "game3d-player.js";
 const HTML = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; connect-src \'self\' blob:; script-src \'self\' \'wasm-unsafe-eval\'; img-src \'self\' blob:; font-src \'self\'; style-src \'self\'"><title>NodeTool 3D Game</title><link rel="stylesheet" href="./style.css"></head><body><main><canvas id="game" aria-label="3D game viewport"></canvas><nav aria-label="Game controls"><button id="pause" type="button">Pause</button><button id="reset" type="button">Reset</button></nav><p id="status" role="status" aria-live="polite">Loading game</p></main><script type="module" src="./game3d-player.js"></script></body></html>';
-const CSS = 'html,body{margin:0;background:#202838;color:#fff;font:16px system-ui,sans-serif}main{max-width:1280px;margin:auto}canvas{display:block;width:100%;height:auto;touch-action:none}nav{display:flex;gap:8px;padding:8px}button{font:inherit}#status{padding:8px}';
+const CSS = 'html,body{margin:0;background:#202838;color:#fff;font:16px system-ui,sans-serif}main{max-width:1280px;margin:auto}canvas{display:block;width:100%;height:auto;touch-action:none}nav{display:flex;gap:8px;padding:8px;position:relative;z-index:3}button{font:inherit}#status{padding:8px}' +
+  // The export CSP allows only same-origin styles, so the touch controls are styled here rather than by the player.
+  TOUCH_CONTROLS_CSS;
 
 async function playerBundle(): Promise<Uint8Array> {
   const source = fileURLToPath(new URL("./standalone-player3d.ts", import.meta.url));
