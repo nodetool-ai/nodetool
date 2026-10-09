@@ -48,19 +48,21 @@ function inRange(value: number, param: { readonly minimum?: number; readonly max
 /** Returns why `value` does not fit `param`, or undefined when it fits. References are checked by game validation. */
 export function gameScriptParamValueIssue(param: GameScriptParam, value: unknown): string | undefined {
   switch (param.type) {
-    case "number":
-      if (typeof value !== "number" || !Number.isFinite(value)) { return "must be a number"; }
-      if (param.integer && !Number.isInteger(value)) { return "must be an integer"; }
-      return inRange(value, param) ? undefined : `must be between ${param.minimum ?? "-∞"} and ${param.maximum ?? "∞"}`;
+    case "number": {
+      const number = finite.safeParse(value);
+      if (!number.success) { return "must be a number"; }
+      if (param.integer && !Number.isInteger(number.data)) { return "must be an integer"; }
+      return inRange(number.data, param) ? undefined : `must be between ${param.minimum ?? "-∞"} and ${param.maximum ?? "∞"}`;
+    }
     case "boolean":
-      return typeof value === "boolean" ? undefined : "must be a boolean";
+      return z.boolean().safeParse(value).success ? undefined : "must be a boolean";
     case "color":
-      return typeof value === "string" && color.safeParse(value).success ? undefined : "must be a #rrggbb colour";
+      return color.safeParse(value).success ? undefined : "must be a #rrggbb colour";
     case "enum":
-      return typeof value === "string" && param.options.includes(value) ? undefined : `must be one of ${param.options.join(", ")}`;
+      return z.enum(param.options).safeParse(value).success ? undefined : `must be one of ${param.options.join(", ")}`;
     case "entity":
     case "asset":
-      return typeof value === "string" && id.safeParse(value).success ? undefined : `must be ${param.type === "entity" ? "an entity" : "an asset"} ID`;
+      return id.safeParse(value).success ? undefined : `must be ${param.type === "entity" ? "an entity" : "an asset"} ID`;
     case "vector": {
       const vector = gameScriptVectorValue.safeParse(value);
       if (!vector.success) { return "must be a vector"; }
