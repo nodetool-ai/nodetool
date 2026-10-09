@@ -100,6 +100,7 @@ it("mirrors 2D presentation output without advancing simulation state", () => {
       events,
       frameFor: () => session.frame(),
       scriptStats: undefined,
+      queues: { despawns: new Set(), spawns: [] },
       presentationEvents: [],
       result: undefined
     };
@@ -255,6 +256,7 @@ it("mirrors 3D presentation output without advancing simulation state", async ()
       events,
       frame: () => session.frame(),
       scriptStats: undefined,
+      queues: { despawns: new Set(), spawns: [] },
       presentationEvents: [],
       result: undefined
     };

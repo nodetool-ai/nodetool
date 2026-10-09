@@ -8,6 +8,7 @@ import { gameTransform2D } from "./components/transform.js";
 import { gameBehavior } from "./components/behaviors.js";
 import { gameBackgroundLayer } from "./components/background.js";
 import { gameEntityComponents } from "./components/entity-components.js";
+import { gameParticles } from "../game-particles.js";
 import { gameAuthoring } from "../game-authoring.js";
 import { gameAudioSettings } from "./components/audio.js";
 import { gameInputBindings } from "../game-input.js";
@@ -133,7 +134,8 @@ export const gameRenderFrame = z.object({
   backgrounds: z.array(gameBackgroundLayer).optional(),
   lighting: gameScene.shape.lighting,
   tiles: z.array(z.object({ entityId: z.string(), assetId: z.string(), x: finite, y: finite, width: positive, height: positive, frame: frame.optional(), layer: z.number().int(), tint: z.string().optional(), opacity: finite.min(0).max(1).optional(), sampling: z.enum(["nearest", "linear"]).optional() })),
-  hud: z.array(gameHudLabel)
+  hud: z.array(gameHudLabel),
+  particles: z.array(z.object({ entityId: z.string(), x: finite, y: finite, rotation: finite, particles: gameParticles })).optional()
 });
 
 export type GameRenderFrame = z.infer<typeof gameRenderFrame>;

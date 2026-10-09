@@ -7,7 +7,7 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 
 import { trpc, trpcClient } from "../../trpc/client";
 import { useConflictStore } from "../../stores/ConflictStore";
-import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
+import { absorbServerGameDraft, captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
@@ -27,6 +27,7 @@ import GameInspector from "./panels/inspector/GameInspector";
 import GameSceneTree from "./panels/hierarchy/GameSceneTree";
 import GameRuntimeInspector from "./panels/inspector/GameRuntimeInspector";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
+import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
 import GameEditorShell from "./shell/GameEditorShell";
 import type { GameCommandHandler, GameCommandHandlers } from "./shell/gameCommands";
 import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
@@ -230,6 +231,17 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       setError(null);
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setSaving(false); }
+  };
+
+  // A generation runs for minutes while the user keeps editing and autosave keeps saving, so the
+  // server binds onto whatever draft is current and the result is merged in, never loaded over.
+  const serverAssetEdit = async (edit: () => Promise<unknown>): Promise<void> => {
+    await edit();
+    await pullGameDraft(savingPromiseRef, async () => {
+      absorbServerGameDraft(refId, await trpcClient.games.getDraft.query({ id: refId }));
+      loadedTokenRef.current = getGameDraftStore(refId).getState().baseUpdatedAt;
+    });
+    await queries.games.draftChanges.invalidate({ id: refId });
   };
 
   const publish = async () => {
@@ -457,6 +469,9 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
                 runEntityStats={diagnostics.byEntity}
                 onChange={(source) => onOps([{ op: "set_script", entity_id: activeScript.id, scene_id: scriptKey.sceneId, index: scriptKey.index, source }])} />
         </> : null },
+      { id: "assets", visible: !isMobile,
+        node: <GameAssetBrowser gameId={refId} document={document} runServerEdit={serverAssetEdit} onOps={onOps}
+          onSelectEntity={(_sceneId, entityId) => selectEntity(entityId, false)} onAskAssistant={assistant.draft} /> },
       { id: "inspector", visible: !isMobile,
         node: <>
           {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}

@@ -17,6 +17,8 @@ const filesRoutes: FastifyPluginAsync<RouteOptions> = async (app, _opts) => {
   // denylist.
   app.all("/api/files/local", async (req, reply) => {
     await bridge(req, reply, (request) => handleFileRequest(request));
+    // A streamed file body is still being sent when bridge returns.
+    return reply;
   });
 };
 

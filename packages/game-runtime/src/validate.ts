@@ -1,6 +1,6 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import { scriptParamReferenceIssues } from "./script-params.js";
-import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameInputBindingIssues, type GameDocument } from "@nodetool-ai/protocol";
+import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameInputBindingIssues, gameParticleIssues, type GameDocument } from "@nodetool-ai/protocol";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 
 /**
@@ -251,6 +251,7 @@ export function validateGame(value: unknown): GameValidationResult {
       if (document.schemaVersion === 1) {
         for (const [field, present] of [
           ["light2d", entity.light2d !== undefined],
+          ["particles", entity.particles !== undefined],
           ["animator.clips", entity.animator?.clips !== undefined],
           ["sprite.flipX", entity.sprite?.flipX !== undefined],
           ["sprite.faceMotion", entity.sprite?.faceMotion !== undefined],
@@ -263,6 +264,7 @@ export function validateGame(value: unknown): GameValidationResult {
         }
       }
       if (entity.light2d && !scene.lighting) errors.push(`${path}.light2d: requires scene lighting`);
+      for (const issue of entity.particles ? gameParticleIssues(entity.particles) : []) errors.push(`${path}.particles.${issue.path.join(".")}: ${issue.message}`);
       const tracked = new Set<string>();
       for (const track of entity.visualAnimation?.tracks ?? []) {
         if (tracked.has(track.property)) errors.push(`${path}.visualAnimation: duplicate ${track.property} track`);

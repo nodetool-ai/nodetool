@@ -19,6 +19,8 @@ const storageRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   // handler and get a proper 405 instead of Fastify's default 404.
   app.all("/api/storage/*", async (req, reply) => {
     await bridge(req, reply, (request) => storageHandler(request));
+    // A streamed file body is still being sent when bridge returns.
+    return reply;
   });
 };
 

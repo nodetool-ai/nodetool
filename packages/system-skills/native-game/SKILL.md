@@ -500,6 +500,36 @@ Capture the scene to review the result.
 
 ### V: 2D rendering and visual effects
 
+Add particle effects with the `particles` component on any 2D (schema 2 or 4)
+or 3D entity. It holds up to 8 `emitters`, each with a unique `id`. An emitter
+sets `rate` (particles per second), `bursts` (`time`, `count`, `cycles`,
+`interval`), `duration`, `loop`, `playOnStart`, `maxParticles` and a `shape`:
+`point`, `circle`, `sphere`, `cone`, `box` or `edge`. Cone, box and edge emit
+along local +Y. Point, circle and sphere emit outward. Per-particle values
+`lifetime`, `speed`, `size`, `rotation` and `angularVelocity` take a number or
+`{ min, max }`. `color` takes `#rrggbb` or `{ min, max }`. The
+`sizeOverLifetime`, `speedOverLifetime` and `opacityOverLifetime` curves are
+lists of `{ t, value }` keys sorted by `t` from 0 to 1.
+`colorOverLifetime` uses `{ t, color }` keys. Add `gravity`
+(`{ x, y, z }` in units per second squared) and `drag`. `space: "local"` makes
+particles follow the entity. `onDeath: [{ emitter, count }]` fires another
+emitter of the same component where each particle dies. Give that emitter
+`playOnStart: false` and `rate: 0`.
+
+Scripts trigger emitters with `{ kind: "emitParticles", emitter?, count? }` on
+their own entity. Without `count`, the emitter restarts its cycle, which suits a
+one-shot explosion with `loop: false`. With `count`, that many particles spawn
+at once. Omitting `emitter` selects the first emitter in the component's `emitters` list. The command is a presentation
+event from `takePresentationEvents()`. It never appears in gameplay events or
+snapshots. Particles cannot affect scores, physics or scripts. Prefer them over
+spawned prefabs for sparks, smoke and dust.
+
+The renderer simulates particles with `ParticleSimulator` from
+`@nodetool-ai/game-renderer`. Each tick, call `sync(particleSourcesFromFrame(frame))`,
+`emit(session.takePresentationEvents())` and `step(seconds)`, then read
+`forEachParticle`. One `step` simulates at most 0.25 seconds, so a resumed tab does not replay a long pause. Each emitter's random stream is seeded from its entity and
+emitter ids, so captures repeat. The built-in players do not draw particles yet.
+
 ### P: Physics
 
 2D `schemaVersion: 5` with `engineVersion: "4"` is reserved for Rapier 2D
@@ -614,8 +644,8 @@ paused is dropped. Player-facing rebinding is not stored yet.
 
 ### E: Editor tools
 
-Both editors provide hierarchy, inspector, revisions, scripts and assistant
-panels. Opening another entity keeps an already open script anchored to its
+Both editors provide hierarchy, inspector, revisions, scripts, assets and
+assistant panels. Opening another entity keeps an already open script anchored to its
 original entity and behavior.
 
 Use **Run 10 s** to diagnose the captured draft in an independent session. The
@@ -635,6 +665,40 @@ rejects a shortcut that another command in the same editor already uses.
 Shortcuts are saved per user in the browser.
 
 ### C: Content and assets
+
+Call `browse_native_game_assets {game_id}` before replacing or regenerating
+art. It returns every bound asset with `usedBy` (the entities, scenes, prefabs
+and game settings that reference it), prefabs with their instances, scenes with
+the assets they use, the staged candidates under the game's `assets/` folder,
+and `slot_requests`. A slot request is the template slot's prompt and image
+preparation, or the prompt recorded with the asset now bound. Use it to
+regenerate in the same style. Narrow the lists with `query` and `kind`.
+
+`staleSiblings` lists `<slot>.frame.N` and `<slot>.tile.M` bindings that still
+point at the slot's previous bytes. Rebind them with `bind_asset` operations
+before publishing, or the sheet's animations keep drawing the old art.
+
+To bind a staged candidate, call `browse_native_game_assets {game_id, digest,
+slot}`. Pass the returned `binding` and `draft_updated_at` to
+`install_native_game_asset`. A recorded binding keeps its frame and
+preparation metadata. An unrecorded image or audio file gets a binding derived
+from its bytes with the slot's pivot and sampling. A 3D model is prepared
+from its GLB. An unrecorded collider cannot be derived and must be restaged.
+
+The editor's **Assets** panel in the bottom dock shows the same catalog with
+thumbnails: images from the stored thumbnail, audio as a waveform, and models
+rendered by the game renderer. Its search and type filter match the
+capability's `query` and `kind`. **Generate** and **Regenerate** run
+`generate_game_asset` for image, speech and music slots with an editable
+prompt, record the prompt beside the staged file, and install the result with
+its frame bindings. The panel stages with `install: false` and binds onto the
+draft that is current when the bytes are ready, so edits saved while it runs
+stay. **Use** binds an older candidate in place and moves the slot's frame and
+tile bindings onto it. Sound-effect, model and collider slots
+need a provider node, so the panel drafts the request in the assistant
+instead. Candidates staged by `StageGameAssets` and by the panel carry a record
+at `<source_root>/candidates/<digest>.json`. Files staged by
+`generate_game_asset` itself have none and list as unrecorded.
 
 ### D: Performance and delivery
 

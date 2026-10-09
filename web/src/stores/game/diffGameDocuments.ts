@@ -2,7 +2,7 @@ import type { GameDocument, GameEntity } from "@nodetool-ai/protocol/game.js";
 import { applyGameOps, gameDocumentOp, type GameDocumentOp } from "@nodetool-ai/game-runtime";
 import { diffGameOwnership, sameGameAuthoringDefinitions } from "./diffGameOwnership";
 
-const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "parentId"] as const;
+const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "parentId", "particles"] as const;
 
 function changed(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);

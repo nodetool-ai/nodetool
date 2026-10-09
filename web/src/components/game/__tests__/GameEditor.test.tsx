@@ -82,6 +82,7 @@ jest.mock("../panels/inspector/GameRuntimeInspector", () => ({ __esModule: true,
 jest.mock("../panels/authoring/GameAuthoringPreview", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/changes/GameChanges", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/agent/GameAgentPanel", () => ({ __esModule: true, default: () => null }));
+jest.mock("../panels/assets/GameAssetBrowser", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/scripts/GameScriptPane", () => ({
   __esModule: true, default: ({ error, onReplay }: ComponentProps<typeof GameScriptPane>) => <>
     <p>{error?.message}</p>
