@@ -77,7 +77,6 @@ export function createGameToolBridge3D(initial: GameDocument3D): HeadlessSurface
   };
 }
 
-
 export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] = [{
   id: "entity-tags-properties",
   description: "Author native entity tags and nested JSON properties through public edit ops.",

@@ -54,6 +54,7 @@ export class GameSkyRenderer3D {
   async invalidate(slot: string): Promise<void> {
     const pending = this.hdris.get(slot);
     this.hdris.delete(slot);
+    this.reported.delete(slot);
     const loaded = await pending?.catch(() => null);
     if (loaded) { this.releaseHdri(loaded); }
     if (this.applied?.startsWith(`hdri:${slot}:`)) { this.applied = undefined; }
