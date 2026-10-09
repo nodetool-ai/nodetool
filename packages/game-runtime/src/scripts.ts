@@ -185,7 +185,10 @@ interface ScriptRealm {
   setWorldReader(reader: (() => QuickJSHandle) | undefined): void;
 }
 
-function disposeRealm(realm: ScriptRealm): void {
+/** A context with the transport helpers installed and no user source evaluated yet. */
+type RealmShell = Omit<ScriptRealm, "sourceKey">;
+
+function disposeRealm(realm: RealmShell): void {
   realm.setWorldReader(undefined);
   realm.worldGetter.dispose();
   realm.queryJson.dispose();
@@ -278,7 +281,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       if (!keys.has(key)) { disposeRealm(realm); realms.delete(key); }
     }
   };
-  const createRealm = (sourceKey: string, source: string, seed: number, persistent: boolean): ScriptRealm => {
+  // Host-only setup. Creating a context can run a QuickJS cycle collection of earlier disposed contexts.
+  const createRealmShell = (seed: number, persistent: boolean): RealmShell => {
     const context = runtime.newContext();
     let invoke: QuickJSHandle | undefined;
     let defineData: QuickJSHandle | undefined;
@@ -315,14 +319,24 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         queryJson = context.getProp(helpers, 1);
         invoke = context.getProp(helpers, 2);
       } finally { helpers.dispose(); }
-      if (evaluate(context, `globalThis.__gameScript = (${source}); typeof __gameScript`) !== "function") {
-        throw new Error(`Game script ${sourceKey} must be a function expression`);
-      }
-      return { sourceKey, context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; } };
+      return { context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; } };
     } catch (error) {
       worldGetter?.dispose(); queryJson?.dispose(); defineData?.dispose(); invoke?.dispose(); context.dispose(); throw error;
     }
   };
+  /** Evaluates user source in the shell, which this takes ownership of. */
+  const loadSource = (shell: RealmShell, sourceKey: string, source: string): ScriptRealm => {
+    try {
+      if (evaluate(shell.context, `globalThis.__gameScript = (${source}); typeof __gameScript`) !== "function") {
+        throw new Error(`Game script ${sourceKey} must be a function expression`);
+      }
+      return { ...shell, sourceKey };
+    } catch (error) {
+      disposeRealm(shell); throw error;
+    }
+  };
+  const createRealm = (sourceKey: string, source: string, seed: number, persistent: boolean): ScriptRealm =>
+    loadSource(createRealmShell(seed, persistent), sourceKey, source);
   try {
     for (const scene of document.scenes) {
       for (const entity of scene.entities) {
@@ -408,15 +422,16 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         if (source === undefined) {
           throw new Error(`Game script source ${call.sourceKey} is missing for ${call.entityId} at tick ${input.tick}`);
         }
-        const callStarted = performance.now();
-        const deadline = Math.min(batchDeadline, callStarted + call.maxTickMs);
+        let callStarted = performance.now();
+        let deadline = batchDeadline;
         const checkCallDeadline = (): void => {
           assertBeforeDeadline(batchDeadline, batchBudget);
           assertBeforeDeadline(deadline, `call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`);
         };
-        runtime.setInterruptHandler(() => performance.now() >= deadline);
+        runtime.setInterruptHandler(() => performance.now() >= batchDeadline);
         const persistent = persistentSources.has(call.sourceKey);
         let realm = realms.get(call.stateKey);
+        let shell: RealmShell | undefined;
         let worldHandle: QuickJSHandle | undefined;
         let worldCall: ReturnType<ScriptWorldSnapshot["install"]> | undefined;
         try {
@@ -427,7 +442,19 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             realm = prepared.get(call.sourceKey);
             prepared.delete(call.sourceKey);
           }
-          realm ??= createRealm(call.sourceKey, source, nextRngState, persistent);
+          // Context setup is host work, so it counts against the batch budget only. The call budget starts
+          // before any user source is evaluated, so the script's own execution limit is unchanged.
+          if (!realm) { shell = createRealmShell(nextRngState, persistent); }
+          assertBeforeDeadline(batchDeadline, batchBudget);
+          callStarted = performance.now();
+          deadline = Math.min(batchDeadline, callStarted + call.maxTickMs);
+          runtime.setInterruptHandler(() => performance.now() >= deadline);
+          if (shell) {
+            const loading = shell;
+            shell = undefined;
+            realm = loadSource(loading, call.sourceKey, source);
+          }
+          if (!realm) { throw new Error("Game script realm was not created"); }
           if (persistent) { realms.set(call.stateKey, realm); }
           const { context, invoke, defineData, worldGetter } = realm;
           if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
@@ -481,6 +508,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         } catch (error) {
           // A failed batch cannot retain partially evaluated realms.
           worldHandle?.dispose(); worldHandle = undefined;
+          if (shell) { disposeRealm(shell); shell = undefined; }
           if (!persistent && realm) { disposeRealm(realm); realm = undefined; }
           disposeRealms();
           throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
