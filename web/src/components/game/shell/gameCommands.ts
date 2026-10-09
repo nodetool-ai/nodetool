@@ -34,15 +34,16 @@ const ONLY_2D: readonly GameDimension[] = ["2d"];
 const ONLY_3D: readonly GameDimension[] = ["3d"];
 
 function command(id: string, title: string, category: GameCommandCategory, dimensions: readonly GameDimension[],
-  scope: GameCommandScope, defaultBindings: readonly GameKeyBinding[], whilePlaying?: true): GameCommandDefinition {
-  return whilePlaying ? { id, title, category, dimensions, scope, defaultBindings, whilePlaying } : { id, title, category, dimensions, scope, defaultBindings };
+  scope: GameCommandScope, defaultBindings: readonly GameKeyBinding[], whilePlaying = false): GameCommandDefinition {
+  return { id, title, category, dimensions, scope, defaultBindings, whilePlaying };
 }
 
 function nudge(direction: "Left" | "Right" | "Up" | "Down", far: boolean): GameCommandDefinition {
+  const code = `Arrow${direction}`;
+  // Alt+arrow also nudges in the viewport. The scene tree handles Alt+arrow itself to reorder entities.
+  const bindings: GameKeyBinding[] = far ? [{ code, shift: true }, { code, shift: true, alt: true }] : [{ code }, { code, alt: true }];
   return command(`edit.nudge${direction}${far ? "Far" : ""}`, `Nudge selection ${direction.toLowerCase()}${far ? " by 2.5 units" : ""}`,
-    "Edit", ONLY_2D, "viewport", [{ code: `Arrow${direction}`, ...(far ? { shift: true } : {}) },
-      // Alt+arrow also nudges in the viewport. The scene tree handles Alt+arrow itself to reorder entities.
-      { code: `Arrow${direction}`, alt: true, ...(far ? { shift: true } : {}) }]);
+    "Edit", ONLY_2D, "viewport", bindings);
 }
 
 /** Every game editor command, in palette order. Both editors read their default shortcuts from this list. */
@@ -115,12 +116,11 @@ const MODIFIER_CODES = new Set(["ControlLeft", "ControlRight", "MetaLeft", "Meta
 /** The binding a key press records in the shortcut editor, or null for a lone modifier key. */
 export function gameBindingFromEvent(event: KeyLike): GameKeyBinding | null {
   if (!event.code || MODIFIER_CODES.has(event.code)) { return null; }
-  return {
-    code: event.code,
-    ...(event.ctrlKey || event.metaKey ? { mod: true } : {}),
-    ...(event.shiftKey ? { shift: true } : {}),
-    ...(event.altKey ? { alt: true } : {})
-  };
+  const binding: { code: string; mod?: boolean; shift?: boolean; alt?: boolean } = { code: event.code };
+  if (event.ctrlKey || event.metaKey) { binding.mod = true; }
+  if (event.shiftKey) { binding.shift = true; }
+  if (event.altKey) { binding.alt = true; }
+  return binding;
 }
 
 /** Key names for `ShortcutHint`, which renders Meta as the macOS command symbol. */
