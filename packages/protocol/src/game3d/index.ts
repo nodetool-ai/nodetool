@@ -253,7 +253,7 @@ export { gameLight3D, type GameLight3D } from "./components/light.js";
 
 export { gameAnimator3D } from "./components/animator.js";
 
-export { gameEnvironment3D, type GameEnvironment3D } from "./components/environment.js";
+export { gameEnvironment3D, type GameEnvironment3D, gameSky3D, type GameSky3D } from "./components/environment.js";
 
 export { gameModelImportSettings3D, type GameModelImportSettings3D, gameAssetBinding3D, type GameAssetBinding3D, anyGameAssetBinding, type AnyGameAssetBinding } from "./components/assets.js";
 

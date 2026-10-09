@@ -22,6 +22,19 @@ function stepTicks(session: Awaited<ReturnType<typeof createGameSession3D>>, cou
 }
 
 describe("3D fixed-step session", () => {
+  it("projects the scene sky as presentation without changing simulation", async () => {
+    const plain = await createGameSession3D(fixture(), 1);
+    const document = fixture([{ id: "sun", transform3d: {}, light3d: { kind: "directional", color: "#ffffff", intensity: 2 } }]);
+    document.scenes[0].environment.sky = { kind: "procedural", sunEntityId: "sun", turbidity: 4, rayleigh: 1, groundColor: "#202020", intensity: 0.5 };
+    const sky = await createGameSession3D(document, 1);
+    try {
+      expect(sky.frame().environment.sky).toEqual(document.scenes[0].environment.sky);
+      stepTicks(plain, 30, input({ moveZ: -1 }));
+      stepTicks(sky, 30, input({ moveZ: -1 }));
+      const plainState = plain.inspect({ entityId: "player" });
+      expect(sky.inspect({ entityId: "player" })).toEqual(plainState);
+    } finally { plain.dispose(); sky.dispose(); }
+  });
   it("projects physics roots, cameras, lights, hierarchy and HUD font bindings", async () => {
     const document = fixture([
       { id: "light", transform3d: { position: { x: 0, y: 4, z: 0 } }, light3d: { kind: "point", color: "#ffffff", intensity: 1, range: 10 } },

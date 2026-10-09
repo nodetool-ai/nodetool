@@ -56,4 +56,24 @@ describe("3D game validation", () => {
     }
     expect(validateGame3D(game).valid).toBe(true);
   });
+  it("requires an hdri binding for an HDRI sky and a directional light for the procedural sun", () => {
+    const game = blockout();
+    game.scenes[0].entities.push(gameEntity3D.parse({ id: "sun", transform3d: {}, light3d: { kind: "directional", color: "#ffffff", intensity: 2 } }),
+      gameEntity3D.parse({ id: "lamp", transform3d: {}, light3d: { kind: "point", color: "#ffffff", intensity: 2, range: 5 } }));
+    game.scenes[0].environment.sky = { kind: "hdri", assetId: "sky", rotation: 0, intensity: 1 };
+    expect(codes(game)).toEqual(["missing_asset"]);
+    game.assets.sky = { mediaKind: "audio", assetId: "0123456789abcdef0123456789abcdef", digest: "audio", required: true };
+    expect(codes(game)).toEqual(["missing_asset"]);
+    game.assets.sky = { mediaKind: "hdri", assetId: "0123456789abcdef0123456789abcdef", digest: "0".repeat(64), required: true,
+      format: "hdr", width: 64, height: 32, byteLength: 1024, preparationVersion: "1" };
+    expect(validateGame3D(game).valid).toBe(true);
+    game.scenes[0].environment.sky = { kind: "procedural", sunEntityId: "sun", turbidity: 10, rayleigh: 2, groundColor: "#333333", intensity: 1 };
+    expect(validateGame3D(game).valid).toBe(true);
+    for (const sunEntityId of ["lamp", "missing", "player"]) {
+      game.scenes[0].environment.sky.sunEntityId = sunEntityId;
+      expect(validateGame3D(game).diagnostics).toEqual([expect.objectContaining({ code: "invalid_sky_sun", path: ["scenes", 0, "environment", "sky", "sunEntityId"] })]);
+    }
+    delete game.scenes[0].environment.sky.sunEntityId;
+    expect(validateGame3D(game).valid).toBe(true);
+  });
 });
