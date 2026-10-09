@@ -567,6 +567,45 @@ Players can scale and mute a bus at runtime through `GameAudioPlayer`
 
 ### N: Animation
 
+A 3D animation graph lives in the document's `animationGraphs` map. An
+entity's `animator3d.graph` names one, and its `animator3d.clips` maps the
+graph's clip aliases to prepared clip IDs, so one graph can drive several rigs.
+Store a graph with `set_animation_graph {graph_id, graph}` and delete it with
+`remove_animation_graph {graph_id}`. An animator with a graph cannot also set
+`initialClip`.
+
+A graph declares `parameters` (`float` with a default, `bool` with a default,
+or `trigger`) and one to eight `layers`. Each layer has an `initialState`,
+`states` and `transitions`. A state plays a `motion`: one `clip`, a `blend1d`
+over a float parameter with points in increasing `value` order, or a `blend2d`
+over two float parameters. `speed` scales the animator's `playbackRate`, and
+`loop` defaults to true. The first layer is the unmasked override base. Later
+layers can be `additive` and can set `weight` and a `mask` of prepared model
+node IDs. A mask covers each listed node and its descendants.
+
+A transition names `from` (a state ID, or `*` for any state), `to`,
+`conditions`, optional `exitTicks` and `durationTicks` for the crossfade. Every
+condition must hold. Float conditions use `gt`, `gte`, `lt`, `lte`, `eq` or
+`neq` with a `value`. Bool conditions use `true` or `false`. A trigger uses
+`set` and resets once a transition consumes it. `exitTicks` is how long the
+source state must run before the transition may fire. Each transition needs a
+condition or `exitTicks`. A crossfading layer does not start another
+transition. Transitions are checked in document order.
+
+Scripts set parameters with `setAnimParam {name, value}`. Pass `true` to fire
+a trigger. `playAnimation {clip}` on a graph entity switches the base layer
+directly to the state with that ID, or else to the first state that plays that
+clip alias, using `animator3d.transitionTicks`. Example locomotion: a `speed`
+float, a `move` state with `blend1d` points idle at 0, walk at 2 and run at 6,
+and a script that sends `setAnimParam` with the character's planar speed.
+
+Graph state (current state, entry tick, crossfade source and parameter values)
+is simulation state. It is saved in snapshots and replays exactly with
+`nodetool game simulate --verify-replay`. Render frames carry the resolved
+`animationPose` (clip weights per layer), and the renderer samples it at the
+interpolated tick. Blended clips share one normalized phase. The pose sampler
+blends node translation, rotation and scale. It does not blend morph targets.
+
 ### S: Scripting and gameplay
 
 #### Script parameters

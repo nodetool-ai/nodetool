@@ -107,6 +107,7 @@ function restoreEntityStates3D(
       opacity: entity.opacity
     };
     if (entity.props !== undefined) { state.props = structuredClone(entity.props); }
+    if (entity.animationGraph) { state.animationGraph = structuredClone(entity.animationGraph); }
     if (entity.controller) state.controller = { ...entity.controller, grounded: entity.grounded };
     return state;
   });
@@ -133,6 +134,7 @@ function snapshotEntity3D(state: EntityState3D): GameEntityState3D {
   if (state.health !== undefined) entity.health = state.health;
   if (state.opacity !== undefined) entity.opacity = state.opacity;
   if (state.animation) entity.animation = structuredClone(state.animation);
+  if (state.animationGraph) entity.animationGraph = structuredClone(state.animationGraph);
   if (state.controller) {
     entity.controller = { coyoteRemaining: state.controller.coyoteRemaining, jumpBufferRemaining: state.controller.jumpBufferRemaining,
       verticalVelocity: state.controller.verticalVelocity };

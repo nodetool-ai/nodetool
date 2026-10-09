@@ -76,6 +76,23 @@ describe("native game tools in 3D", () => {
     expect(await run.invoke("autoplay_native_game", { game_id: shortId })).toMatchObject({ status: "unsupported", code: "autoplay_3d_unsupported" });
   });
 
+  it("stores and removes a document animation graph through edit_native_game", async () => {
+    const { run } = await agent();
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Locomotion", dimension: "3d" }));
+    const graph = { parameters: { speed: { kind: "float", default: 0 } }, layers: [{ id: "base", initialState: "move", states: {
+      move: { motion: { kind: "blend1d", parameter: "speed", points: [{ value: 0, clip: "idle" }, { value: 2, clip: "walk" }, { value: 6, clip: "run" }] } } } }] };
+    const stored = replyDocument(await run.invoke("edit_native_game", { game_id: created.document.id,
+      ops: [{ op: "set_animation_graph", graph_id: "locomotion", graph }] }));
+    if (stored.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    expect(stored.document.animationGraphs?.locomotion?.parameters.speed).toEqual({ kind: "float", default: 0 });
+    expect(await run.invoke("edit_native_game", { game_id: created.document.id, ops: [{ op: "remove_animation_graph", graph_id: "missing" }] }))
+      .toMatchObject({ error: "Game edit rejected", issues: [{ op_index: 0, path: ["graph_id"], message: "Animation graph does not exist" }] });
+    const removed = replyDocument(await run.invoke("edit_native_game", { game_id: created.document.id,
+      ops: [{ op: "remove_animation_graph", graph_id: "locomotion" }] }));
+    if (removed.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    expect(removed.document.animationGraphs).toBeUndefined();
+  });
+
   it("consumes analog input and restores the same physics/script snapshot hash", async () => {
     const { run } = await agent();
     const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Replay", dimension: "3d" }));

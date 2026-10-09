@@ -24,6 +24,9 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
   for (const [prefabId, prefab] of Object.entries(to.prefabs)) {
     if (changed(from.prefabs[prefabId], prefab)) { ops.push({ op: "set_prefab", prefab_id: prefabId, prefab }); }
   }
+  for (const [graphId, graph] of Object.entries(to.animationGraphs ?? {})) {
+    if (changed(from.animationGraphs?.[graphId], graph)) { ops.push({ op: "set_animation_graph", graph_id: graphId, graph }); }
+  }
   if (changed(from.presentation, to.presentation) || changed(from.inputActions, to.inputActions)
     || changed(from.inputAxes, to.inputAxes) || changed(from.entrySceneId, to.entrySceneId)
     || changed(from.collisionLayers, to.collisionLayers) || changed(from.inputBindings, to.inputBindings)) {
@@ -104,6 +107,9 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
   }
   for (const prefabId of Object.keys(from.prefabs)) {
     if (!(prefabId in to.prefabs)) { ops.push({ op: "remove_prefab", prefab_id: prefabId }); }
+  }
+  for (const graphId of Object.keys(from.animationGraphs ?? {})) {
+    if (!(graphId in (to.animationGraphs ?? {}))) { ops.push({ op: "remove_animation_graph", graph_id: graphId }); }
   }
   for (const slot of Object.keys(from.assets)) {
     if (!(slot in to.assets)) { ops.push({ op: "unbind_asset", slot }); }

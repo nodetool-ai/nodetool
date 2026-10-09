@@ -5,6 +5,7 @@ import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecyc
 import { planScriptProps } from "../script-props.js";
 import type { GameScriptCall3D } from "../scripts3d.js";
 import { scriptSourceKey } from "../scripts.js";
+import { playAnimationGraphState3D, setAnimationParameter3D } from "./animation-graph3d.js";
 
 const NO_TAGS: readonly string[] = Object.freeze([]);
 
@@ -131,7 +132,13 @@ export function stepScripts3D(context: GameSystemContext3D): void {
               state.opacity = command.opacity;
             }
             break;
+          case "setAnimParam":
+            setAnimationParameter3D(context.document, state, command.name, command.value);
+            break;
           case "playAnimation": {
+            if (playAnimationGraphState3D(context.document, state, command.clip, context.tick + 1)) {
+              break;
+            }
             const animator = state.definition.animator3d;
             const clipId = animator?.clips[command.clip];
             if (!animator || !clipId) {

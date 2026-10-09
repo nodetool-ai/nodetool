@@ -178,3 +178,62 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           .safeParse(document.inputBindings).success }]
   }
 }];
+
+/** Headless 3D game editor bridge that exercises the production 3D op reducer. */
+export function createGame3DToolBridge(initial: GameDocument3D): HeadlessSurfaceBridge<GameDocument3D> {
+  let document = gameDocument3D.parse(initial);
+  return {
+    tools: [
+      { name: "get_native_game", description: "Read the current native 3D game draft.", parameters: z.object({}), execute: async () => ({ document }) },
+      {
+        name: "edit_native_game",
+        description: "Apply ordered native 3D game draft ops atomically.",
+        parameters: z.object({ ops: z.array(gameDocumentOp3D).min(1) }),
+        execute: async (args) => {
+          try {
+            document = applyGameOps3D(document, z.array(gameDocumentOp3D).parse(args.ops));
+            return { document };
+          } catch (error) {
+            if (error instanceof GameOpError) return { error: error.message, issues: error.issues };
+            throw error;
+          }
+        }
+      }
+    ],
+    finalState: () => document
+  };
+}
+
+function riggedNative3DGame(): GameDocument3D {
+  const document = createNative3DGame("animation-graph-eval");
+  document.assets.hero = { mediaKind: "model", assetId: "hero", digest: "hero-digest", required: true, format: "glb", preparationVersion: "1",
+    bounds: { min: { x: -0.5, y: 0, z: -0.5 }, max: { x: 0.5, y: 2, z: 0.5 } }, nodeIds: ["node:0", "node:1"], clipIds: ["clip:0", "clip:1", "clip:2"],
+    geometryBytes: 1, textureBytes: 0, triangles: 1, supportedExtensions: [] };
+  const visual = document.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (visual) {
+    delete visual.primitive;
+    visual.model = { assetId: "hero", castShadow: true, receiveShadow: true };
+    visual.animator3d = { clips: { idle: "clip:0", walk: "clip:1", run: "clip:2" }, playbackRate: 1, loop: true, transitionTicks: 6 };
+  }
+  return document;
+}
+
+export const GAME_3D_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<GameDocument3D>[] = [{
+  id: "animation-graph-locomotion",
+  description: "Author a speed-driven locomotion animation graph and attach it to a rigged model through public edit ops.",
+  objective: "Give player-visual an animation graph named locomotion whose base layer blends idle, walk and run by a float parameter speed (0, 2 and 6).",
+  createBridge: () => createGame3DToolBridge(riggedNative3DGame()),
+  systemPrompt: "Use get_native_game and edit_native_game. set_animation_graph {graph_id, graph} stores a document-level graph, and update_entity sets animator3d.graph to its ID. Blend points name animator3d.clips aliases.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "locomotionGraph", detail: "player-visual does not play a speed blend of idle, walk and run.",
+      test: (document) => {
+        const animator = document.scenes[0].entities.find((entity) => entity.id === "player-visual")?.animator3d;
+        const graph = animator?.graph === undefined ? undefined : document.animationGraphs?.[animator.graph];
+        const base = graph?.layers[0];
+        const motion = base ? base.states[base.initialState]?.motion : undefined;
+        return graph?.parameters.speed?.kind === "float" && motion?.kind === "blend1d" && motion.parameter === "speed" &&
+          JSON.stringify(motion.points.map((point) => [point.value, point.clip])) === JSON.stringify([[0, "idle"], [2, "walk"], [6, "run"]]);
+      } }]
+  }
+}];
