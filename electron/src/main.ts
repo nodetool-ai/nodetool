@@ -113,7 +113,10 @@ let isShowingUnexpectedError = false;
 if (process.env.NODE_ENV !== "test" && !isElectronDevMode()) {
   const gotLock = app.requestSingleInstanceLock();
   if (!gotLock) {
-    app.quit();
+    // Exit at once. `app.quit()` runs the before-quit handler below, which
+    // defers the quit to a backend shutdown, so this process could still
+    // reach "ready" and open a window.
+    app.exit(0);
   } else {
     app.on("second-instance", () => {
       // Closing the main window destroys it, so read the current one from
