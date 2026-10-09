@@ -2,6 +2,7 @@ import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
+import KeyboardCommandKeyIcon from "@mui/icons-material/KeyboardCommandKey";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PauseIcon from "@mui/icons-material/Pause";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -13,6 +14,7 @@ import UndoIcon from "@mui/icons-material/Undo";
 import VideogameAssetOutlinedIcon from "@mui/icons-material/VideogameAssetOutlined";
 
 import { BORDER_RADIUS, Box, Caption, CONTROL, EditorButton, FlexRow, SPACING, Text, ToolbarIconButton } from "../../ui_primitives";
+import { useGameCommandShortcut } from "./useGameCommands";
 
 interface GameToolbarProps {
   name: string;
@@ -38,6 +40,7 @@ interface GameToolbarProps {
   onAssistant: () => void;
   onSceneTree: () => void;
   onInspector: () => void;
+  onCommandPalette?: () => void;
 }
 
 const DIVIDER_SX = { width: "1px", alignSelf: "stretch", my: SPACING.sm, bgcolor: "divider", flexShrink: 0 } as const;
@@ -56,7 +59,10 @@ function SaveState({ saveStatus }: { saveStatus: string }) {
 /** Editor title bar: document identity, history, transport controls and panel toggles. */
 export default function GameToolbar({ name, playing, playSession, loading, saving, saveStatus,
   assistantOpen, sceneTreeOpen, inspectorOpen, playHref, canUndo = false, canRedo = false, onUndo, onRedo,
-  onPlay, onStop, onStep, onSave, onLoad, onPublish, onAssistant, onSceneTree, onInspector }: GameToolbarProps) {
+  onPlay, onStop, onStep, onSave, onLoad, onPublish, onAssistant, onSceneTree, onInspector, onCommandPalette }: GameToolbarProps) {
+  const undoShortcut = useGameCommandShortcut("edit.undo");
+  const redoShortcut = useGameCommandShortcut("edit.redo");
+  const paletteShortcut = useGameCommandShortcut("editor.commandPalette");
   return <Box component="header" sx={{
     display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)", alignItems: "center",
     columnGap: SPACING.lg, minHeight: CONTROL.height.xl, px: SPACING.md,
@@ -68,8 +74,8 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
       <SaveState saveStatus={saveStatus} />
       {(onUndo || onRedo) && <>
         <Box sx={DIVIDER_SX} />
-        <ToolbarIconButton icon={<UndoIcon fontSize="small" />} tooltip="Undo" shortcut={["Ctrl", "Z"]} disabled={!canUndo} onClick={onUndo} />
-        <ToolbarIconButton icon={<RedoIcon fontSize="small" />} tooltip="Redo" shortcut={["Ctrl", "Shift", "Z"]} disabled={!canRedo} onClick={onRedo} />
+        <ToolbarIconButton icon={<UndoIcon fontSize="small" />} tooltip="Undo" shortcut={undoShortcut} disabled={!canUndo} onClick={onUndo} />
+        <ToolbarIconButton icon={<RedoIcon fontSize="small" />} tooltip="Redo" shortcut={redoShortcut} disabled={!canRedo} onClick={onRedo} />
       </>}
     </FlexRow>
 
@@ -95,6 +101,8 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
         aria-pressed={inspectorOpen} active={inspectorOpen} onClick={onInspector} />
       <ToolbarIconButton icon={<AutoAwesomeOutlinedIcon fontSize="small" />} tooltip={assistantOpen ? "Hide assistant" : "Show assistant"}
         aria-pressed={assistantOpen} active={assistantOpen} onClick={onAssistant} />
+      {onCommandPalette && <ToolbarIconButton icon={<KeyboardCommandKeyIcon fontSize="small" />} tooltip="Commands"
+        shortcut={paletteShortcut} onClick={onCommandPalette} />}
       <Box sx={DIVIDER_SX} />
       <EditorButton variant="contained" disableElevation density="normal" onClick={onPublish} disabled={saving || saveStatus === "saving"}>Publish</EditorButton>
     </FlexRow>
