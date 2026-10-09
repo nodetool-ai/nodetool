@@ -1,8 +1,10 @@
 import { createGameSession3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-runtime";
 import { z } from "zod";
-import { gameDocument3D, type GameInputFrame3D, type GameSnapshot3D, type GameInspection3D } from "@nodetool-ai/protocol";
+import { gameDocument3D, resolveGameInputBindings, type GameInputFrame3D, type GameSnapshot3D, type GameInspection3D } from "@nodetool-ai/protocol";
 import { createGameRenderer3D } from "./browser3d.js";
 import { GameInput3D } from "./input3d.js";
+import { browserGamepads } from "./input-bindings.js";
+import { mountTouchControls, touchLayout, TOUCH_CONTROLS_CSS } from "./touch-controls.js";
 import { GameAudioPlayer } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
 
@@ -87,15 +89,32 @@ async function start(): Promise<void> {
   }, { signal: controller.signal });
   window.addEventListener("keyup", (event) => { input.keyUp(event.code); }, { signal: controller.signal });
   const mouseFire = game.inputActions.includes("fire");
+  const bindings = resolveGameInputBindings(game);
+  const mouseLook = bindings.look.some((binding) => binding.kind === "mouse");
+  let touchMode = false;
+  const enableTouch = (): void => {
+    if (touchMode) { return; }
+    touchMode = true;
+    const style = document.createElement("style");
+    style.textContent = TOUCH_CONTROLS_CSS;
+    const layer = document.createElement("div");
+    layer.className = "touch-layer";
+    document.head.append(style);
+    document.body.append(layer);
+    mountTouchControls(layer, { layout: touchLayout(bindings), onChange: (state) => input.setTouch(state), onLook: (x, y) => input.touchLook(x, y) });
+  };
+  if (window.matchMedia("(pointer: coarse)").matches) { enableTouch(); }
+  window.addEventListener("touchstart", enableTouch, { passive: true, signal: controller.signal });
   canvas.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch") { return; }
     dragging = true;
     canvas.setPointerCapture(event.pointerId);
-    input.keyDown(`Mouse${event.button}`);
-    if (mouseFire && document.pointerLockElement !== canvas) {
-      void canvas.requestPointerLock().catch(() => { status("Mouse capture unavailable. Hold and drag to aim, or press F to fire."); });
+    input.mouseDown(event.button);
+    if ((mouseFire || mouseLook) && document.pointerLockElement !== canvas) {
+      void canvas.requestPointerLock().catch(() => { status(mouseFire ? "Mouse capture unavailable. Hold and drag to aim, or press F to fire." : "Mouse capture unavailable. Drag to turn the camera."); });
     }
   }, { signal: controller.signal });
-  window.addEventListener("pointerup", (event) => { dragging = false; input.keyUp(`Mouse${event.button}`); }, { signal: controller.signal });
+  window.addEventListener("pointerup", (event) => { dragging = false; input.mouseUp(event.button); }, { signal: controller.signal });
   canvas.addEventListener("pointercancel", release, { signal: controller.signal });
   document.addEventListener("pointerlockchange", () => { if (document.pointerLockElement !== canvas) { release(); } }, { signal: controller.signal });
   canvas.addEventListener("pointermove", (event) => { if (dragging || document.pointerLockElement === canvas) { input.look(event.movementX, event.movementY); } }, { signal: controller.signal });
@@ -116,7 +135,7 @@ async function start(): Promise<void> {
     if (disposed) { return; }
     if (!paused && !contextPaused && !document.hidden) {
       try {
-        const interpolation = clock.advance(now, () => { step(input.sample(game)); });
+        const interpolation = clock.advance(now, () => { input.pollGamepads(browserGamepads()); step(input.sample(game)); });
         void render(interpolation);
       } catch (error) { paused = true; clock.reset(); status(error instanceof Error ? error.message : "Game script failed"); }
     } else if (contextPaused && renderer.capabilities.deviceStatus === "ready") {
@@ -127,6 +146,8 @@ async function start(): Promise<void> {
   };
   document.getElementById("pause")?.addEventListener("click", (event) => {
     paused = !paused;
+    // Input pressed while paused is dropped rather than delivered on resume (F23).
+    input.setEnabled(!paused);
     if (event.currentTarget instanceof HTMLButtonElement) { event.currentTarget.textContent = paused ? "Resume" : "Pause"; }
     release(); clock.reset();
     if (paused) { audio.pause(); } else { audio.resume(); }
@@ -158,7 +179,8 @@ async function start(): Promise<void> {
     inspect: () => session.inspect()
   });
   // A static HTTP host is required for browser modules and WASM.
-  status(mouseFire ? "Ready. Click to capture the mouse and fire. WASD moves, F fires, Space jumps, Escape releases the mouse." : "Ready. Move with WASD or arrows, jump with Space, drag to turn the camera.");
+  status(mouseFire ? "Ready. Click to capture the mouse and fire. WASD moves, F fires, Space jumps, Escape releases the mouse."
+    : "Ready. Move with WASD, arrows or a gamepad, jump with Space. Click to capture the mouse for looking, Escape releases it.");
   await render(1);
   animationId = requestAnimationFrame(tick);
 }

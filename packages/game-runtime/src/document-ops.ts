@@ -5,6 +5,7 @@ import {
   gameBehavior,
   gameDocument,
   gameEntity,
+  gameInputBindings,
   gameRenderEffect,
   gameScene,
   type GameDocument,
@@ -73,7 +74,7 @@ export const gameDocumentOp = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("remove_background"), scene_id: id, id }),
   z.strictObject({ op: z.literal("move_background"), scene_id: id, id, to_index: index }),
   z.strictObject({ op: z.literal("set_effects"), effects: z.array(gameRenderEffect).max(8).nullable(), hud_effect_order: gameDocument.shape.hudEffectOrder.nullable().optional() }),
-  z.strictObject({ op: z.literal("set_game"), pixels_per_unit: gameDocument.shape.pixelsPerUnit.optional(), input_actions: gameDocument.shape.inputActions.optional(), entry_scene_id: id.optional(), collision_layers: gameDocument.shape.collisionLayers.nullable().optional() }),
+  z.strictObject({ op: z.literal("set_game"), pixels_per_unit: gameDocument.shape.pixelsPerUnit.optional(), input_actions: gameDocument.shape.inputActions.optional(), input_bindings: gameInputBindings.nullable().optional(), entry_scene_id: id.optional(), collision_layers: gameDocument.shape.collisionLayers.nullable().optional() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding }),
   z.strictObject({ op: z.literal("unbind_asset"), slot: id })
 ]);
@@ -162,7 +163,7 @@ function responsibleOpIndex(document: GameDocument, ops: readonly GameDocumentOp
     if (scene && "scene_id" in op && op.scene_id === scene.id) { return index; }
     if (head === "assets" && "slot" in op && op.slot === position) { return index; }
     if (head === "renderEffects" && op.op === "set_effects") { return index; }
-    if ((head === "entrySceneId" || head === "pixelsPerUnit" || head === "inputActions" || head === "collisionLayers") && op.op === "set_game") { return index; }
+    if ((head === "entrySceneId" || head === "pixelsPerUnit" || head === "inputActions" || head === "inputBindings" || head === "collisionLayers") && op.op === "set_game") { return index; }
   }
   return Math.max(0, ops.length - 1);
 }
@@ -408,6 +409,8 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
       case "set_game": {
         if (op.pixels_per_unit !== undefined) { draft.pixelsPerUnit = op.pixels_per_unit; }
         if (op.input_actions !== undefined) { draft.inputActions = op.input_actions; }
+        if (op.input_bindings === null) { delete draft.inputBindings; }
+        else if (op.input_bindings !== undefined) { draft.inputBindings = op.input_bindings; }
         if (op.entry_scene_id !== undefined) { draft.entrySceneId = op.entry_scene_id; }
         if (op.collision_layers === null) { delete draft.collisionLayers; }
         else if (op.collision_layers !== undefined) { draft.collisionLayers = op.collision_layers; }

@@ -1,6 +1,6 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import {
-  gameDocument3D, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
+  gameDocument3D, gameInputBindingIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
 import { validateGame } from "./validate.js";
@@ -43,6 +43,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
       const names = document[key] ?? [];
       if (new Set(names).size !== names.length) { add("duplicate_name", [key], "Names must be unique"); }
     }
+    for (const issue of gameInputBindingIssues(document)) { add("missing_input_binding_target", issue.path, issue.message); }
     for (const [slot, asset] of Object.entries(document.assets)) {
       if (asset.mediaKind === "model" || asset.mediaKind === "collider") {
         if (["x", "y", "z"].some((axis) => {

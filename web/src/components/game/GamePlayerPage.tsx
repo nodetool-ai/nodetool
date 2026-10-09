@@ -5,7 +5,6 @@ import type { GameDocument } from "@nodetool-ai/protocol/game.js";
 import { trpc } from "../../trpc/client";
 import { Box, Caption, EditorButton, EmptyState, FlexColumn, FlexRow, LoadingSpinner, SPACING, Text } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
-import { pressGameKey } from "./gameInputFrame";
 import { useGamePlaySession } from "./useGamePlaySession";
 
 interface GamePlayerProps {
@@ -18,7 +17,7 @@ interface GamePlayerProps {
 }
 
 export function GamePlayer({ gameId, name, document, active = true, setsDocumentTitle = true }: GamePlayerProps) {
-  const { canvasRef, keysRef, newlyPressedRef, playing, playDocument, playState, backend, error,
+  const { canvasRef, inputRef, playing, playDocument, playState, backend, error,
     beginPlay, stop } = useGamePlaySession({ refId: gameId, active, document, name });
   const status = playState.won ? "Won" : playing ? "Playing" : playDocument ? "Paused" : "Ready";
 
@@ -30,7 +29,8 @@ export function GamePlayer({ gameId, name, document, active = true, setsDocument
   }, [name, setsDocumentTitle]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
-    if (playing && pressGameKey(keysRef.current, newlyPressedRef.current, event.code, event.key, document.inputActions)) {
+    if (playing && inputRef.current.handlesKey(document, event.code)) {
+      inputRef.current.keyDown(event.code);
       event.preventDefault();
     }
   };
@@ -51,8 +51,8 @@ export function GamePlayer({ gameId, name, document, active = true, setsDocument
     <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, bgcolor: "common.black" }}>
       <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label={`${name} game`} tabIndex={0}
         onKeyDown={onKeyDown}
-        onKeyUp={(event) => keysRef.current.delete(event.code)}
-        onBlur={() => { keysRef.current.clear(); newlyPressedRef.current.clear(); }}
+        onKeyUp={(event) => inputRef.current.keyUp(event.code)}
+        onBlur={() => inputRef.current.release()}
         onPointerDown={() => canvasRef.current?.focus()}
         sx={{ width: "100%", height: "100%", objectFit: "contain" }} />
     </Box>

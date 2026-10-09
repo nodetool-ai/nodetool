@@ -314,7 +314,7 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
   const frameShortcut = useGameCommandShortcut("view.frameSelection");
   const snapShortcut = useGameCommandShortcut("view.toggleSnap");
 
-  const hint = host.playDocument ? "WASD or arrows to move. Space to jump. Click to capture the mouse, Esc to release it."
+  const hint = host.playDocument ? "WASD, arrows or a gamepad to move. Space to jump. Click to capture the mouse, Esc to release it."
     : flyMode ? "WASD to fly. R/F to rise and descend. Drag to look." : "Drag to orbit. Shift-drag to pan. Scroll to zoom.";
   return <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
     {!playerOnly && <GamePanelHeader title={host.playDocument ? "Game" : "Scene"}
@@ -334,9 +334,9 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
     <Box sx={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0, bgcolor: "common.black" }}>
       <Box component="canvas" ref={host.canvasRef} data-game-undo-scope tabIndex={0} aria-label="3D game viewport"
         onKeyDown={(event) => {
-          if (host.playDocument) {
+          if (host.playDocument && host.playing) {
             host.inputRef.current.keyDown(event.code);
-            if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyR", "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) { event.preventDefault(); }
+            if (host.inputRef.current.handlesKey(host.playDocument, event.code)) { event.preventDefault(); }
           }
         }}
         onKeyUp={(event) => host.inputRef.current.keyUp(event.code)}
@@ -345,10 +345,10 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
           const canvas = host.canvasRef.current;
           canvas?.focus();
           if (!canvas || !host.playDocument || !host.playing) { return; }
-          if (window.document.pointerLockElement === canvas) { host.inputRef.current.keyDown(`Mouse${event.button}`); return; }
+          if (window.document.pointerLockElement === canvas) { host.inputRef.current.mouseDown(event.button); return; }
           void canvas.requestPointerLock()?.catch(() => undefined);
         }}
-        onPointerUp={(event) => host.inputRef.current.keyUp(`Mouse${event.button}`)}
+        onPointerUp={(event) => host.inputRef.current.mouseUp(event.button)}
         onPointerMove={(event) => {
           if (host.playDocument && (window.document.pointerLockElement === host.canvasRef.current || event.buttons === 2)) {
             host.inputRef.current.look(event.movementX, event.movementY);

@@ -1,5 +1,5 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
-import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
+import { gameDocument, gameInputBindingIssues, type GameDocument } from "@nodetool-ai/protocol";
 
 export interface GameValidationResult {
   readonly valid: boolean;
@@ -25,7 +25,7 @@ function issueFromError(error: string, document: GameDocument): GameValidationIs
   const separator = error.indexOf(": ");
   if (separator < 0) return { path: [], message: error };
   const prefix = error.slice(0, separator);
-  if (!/^(assets|scenes|renderEffects|entrySceneId|inputActions|collisionLayers)(\.|$)/.test(prefix)) return { path: [], message: error };
+  if (!/^(assets|scenes|renderEffects|entrySceneId|inputActions|inputBindings|collisionLayers)(\.|$)/.test(prefix)) return { path: [], message: error };
   if (prefix.startsWith("assets.")) {
     const slot = Object.keys(document.assets).sort((left, right) => right.length - left.length)
       .find((key) => prefix === `assets.${key}` || prefix.startsWith(`assets.${key}.`));
@@ -113,6 +113,9 @@ export function validateGame(value: unknown): GameValidationResult {
       errors.push(`inputActions.${actionIndex}: Duplicate input action ${action}`);
     }
     actions.add(action);
+  }
+  for (const issue of gameInputBindingIssues(document)) {
+    errors.push(`${issue.path.join(".")}: ${issue.message}`);
   }
   for (const [sceneIndex, scene] of document.scenes.entries()) {
     if (document.schemaVersion === 1 && scene.lighting) errors.push(`scenes.${sceneIndex}.lighting: requires schema version 2`);
