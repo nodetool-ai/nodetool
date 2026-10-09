@@ -186,6 +186,12 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
         add("shadow_budget", [...path, "entities"], "Only one directional light may cast shadows");
       }
       if (scene.environment.fog && scene.environment.fog.near >= scene.environment.fog.far) { add("invalid_fog", [...path, "environment", "fog"], "Fog near must be less than far"); }
+      const sky = scene.environment.sky;
+      if (sky?.kind === "hdri" && document.assets[sky.assetId]?.mediaKind !== "hdri") { add("missing_asset", [...path, "environment", "sky", "assetId"], "HDRI sky requires an hdri binding"); }
+      if (sky?.kind === "procedural" && sky.sunEntityId !== undefined) {
+        const sun = scene.entities.find((entity) => entity.id === sky.sunEntityId);
+        if (!sun || sun.templateOnly || sun.light3d?.kind !== "directional") { add("invalid_sky_sun", [...path, "environment", "sky", "sunEntityId"], "Procedural sky sun must select a directional light in the scene"); }
+      }
       if (scene.music && document.assets[scene.music.assetId]?.mediaKind !== "audio") { add("missing_asset", [...path, "music", "assetId"], "Scene music requires an audio binding"); }
     }
     for (const [prefabId, prefab] of Object.entries(document.prefabs)) {

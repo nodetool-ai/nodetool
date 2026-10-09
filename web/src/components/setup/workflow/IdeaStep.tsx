@@ -50,6 +50,8 @@ export interface WorkflowIdeaStepProps {
   exampleError?: string | null;
   /** Reads a picked workflow JSON file onto this workflow. */
   onImport: (file: File) => void | Promise<void>;
+  /** True while a picked file is being read onto this workflow. */
+  importing?: boolean;
   /** Leaves the flow for an empty canvas. */
   onStartBlank: () => void;
   /** An import that was refused, shown above the alternatives. */
@@ -72,6 +74,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
   pickingExampleId = null,
   exampleError = null,
   onImport,
+  importing = false,
   onStartBlank,
   importError = null,
   onDismissImportError
@@ -112,8 +115,10 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
       {
         id: "import",
         title: "Import a workflow",
-        description: "A workflow JSON file",
-        onSelect: () => importInput.current?.click()
+        description: importing ? "Reading your file" : "A workflow JSON file",
+        onSelect: () => importInput.current?.click(),
+        disabled: importing,
+        disabledReason: "Reading your file"
       },
       {
         id: "blank",
@@ -122,7 +127,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
         onSelect: onStartBlank
       }
     ],
-    [onBrowseExamples, onStartBlank]
+    [importing, onBrowseExamples, onStartBlank]
   );
 
   if (browsingExamples) {

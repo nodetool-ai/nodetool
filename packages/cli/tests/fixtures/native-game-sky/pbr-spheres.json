@@ -1,0 +1,485 @@
+{
+  "schemaVersion": 3,
+  "engineVersion": "2",
+  "dimension": "3d",
+  "id": "pbr-spheres",
+  "revision": "r1-sky",
+  "entrySceneId": "scene",
+  "tickRate": 60,
+  "presentation": {
+    "aspectRatio": 1.7777777777777777,
+    "hudWidth": 640,
+    "hudHeight": 360
+  },
+  "inputActions": [],
+  "assets": {},
+  "scenes": [
+    {
+      "id": "scene",
+      "name": "Sky",
+      "activeCameraId": "camera",
+      "environment": {
+        "background": "#202838",
+        "ambient": {
+          "color": "#ffffff",
+          "intensity": 0
+        },
+        "shadows": {
+          "enabled": true,
+          "mapSize": 1024,
+          "extent": 12
+        },
+        "sky": {
+          "kind": "procedural",
+          "turbidity": 3,
+          "rayleigh": 1.5,
+          "groundColor": "#5a5248",
+          "intensity": 1
+        }
+      },
+      "entities": [
+        {
+          "id": "camera",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 1.8,
+              "z": 1.2
+            },
+            "rotation": [
+              -0.024977,
+              0,
+              0,
+              0.999688
+            ]
+          },
+          "camera3d": {
+            "projection": {
+              "kind": "perspective",
+              "fov": 55,
+              "near": 0.1,
+              "far": 200
+            },
+            "behavior": {
+              "kind": "fixed"
+            }
+          }
+        },
+        {
+          "id": "floor",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": -6
+            }
+          },
+          "primitive": {
+            "kind": "plane",
+            "dimensions": {
+              "x": 40,
+              "y": 1,
+              "z": 40
+            },
+            "material": {
+              "color": "#7a746c",
+              "roughness": 0.9,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "sun",
+          "transform3d": {
+            "rotation": [
+              -0.315167,
+              -0.270143,
+              0,
+              0.909776
+            ]
+          },
+          "light3d": {
+            "kind": "directional",
+            "color": "#fff4e0",
+            "intensity": 1.5
+          }
+        },
+        {
+          "id": "sphere-m0-r0",
+          "transform3d": {
+            "position": {
+              "x": -2.5,
+              "y": 3,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0,
+              "metalness": 1
+            }
+          }
+        },
+        {
+          "id": "sphere-m0-r1",
+          "transform3d": {
+            "position": {
+              "x": -1.25,
+              "y": 3,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0.25,
+              "metalness": 1
+            }
+          }
+        },
+        {
+          "id": "sphere-m0-r2",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 3,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0.5,
+              "metalness": 1
+            }
+          }
+        },
+        {
+          "id": "sphere-m0-r3",
+          "transform3d": {
+            "position": {
+              "x": 1.25,
+              "y": 3,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0.75,
+              "metalness": 1
+            }
+          }
+        },
+        {
+          "id": "sphere-m0-r4",
+          "transform3d": {
+            "position": {
+              "x": 2.5,
+              "y": 3,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 1,
+              "metalness": 1
+            }
+          }
+        },
+        {
+          "id": "sphere-m1-r0",
+          "transform3d": {
+            "position": {
+              "x": -2.5,
+              "y": 1.7999999999999998,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0,
+              "metalness": 0.5
+            }
+          }
+        },
+        {
+          "id": "sphere-m1-r1",
+          "transform3d": {
+            "position": {
+              "x": -1.25,
+              "y": 1.7999999999999998,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0.25,
+              "metalness": 0.5
+            }
+          }
+        },
+        {
+          "id": "sphere-m1-r2",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 1.7999999999999998,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0.5,
+              "metalness": 0.5
+            }
+          }
+        },
+        {
+          "id": "sphere-m1-r3",
+          "transform3d": {
+            "position": {
+              "x": 1.25,
+              "y": 1.7999999999999998,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0.75,
+              "metalness": 0.5
+            }
+          }
+        },
+        {
+          "id": "sphere-m1-r4",
+          "transform3d": {
+            "position": {
+              "x": 2.5,
+              "y": 1.7999999999999998,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 1,
+              "metalness": 0.5
+            }
+          }
+        },
+        {
+          "id": "sphere-m2-r0",
+          "transform3d": {
+            "position": {
+              "x": -2.5,
+              "y": 0.6,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "sphere-m2-r1",
+          "transform3d": {
+            "position": {
+              "x": -1.25,
+              "y": 0.6,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0.25,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "sphere-m2-r2",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.6,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0.5,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "sphere-m2-r3",
+          "transform3d": {
+            "position": {
+              "x": 1.25,
+              "y": 0.6,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 0.75,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "sphere-m2-r4",
+          "transform3d": {
+            "position": {
+              "x": 2.5,
+              "y": 0.6,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "castShadow": false,
+            "receiveShadow": false,
+            "material": {
+              "color": "#d8d2c8",
+              "roughness": 1,
+              "metalness": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

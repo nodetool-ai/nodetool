@@ -69,6 +69,13 @@ const PacketSchema = z.object({
   /** Ordinary user-owned files. The participant sees only the names. */
   assets: z
     .array(z.object({ name: z.string(), path: z.string() }))
+    .default([]),
+  /**
+   * Keys the persona owns and may paste when the app asks for one, such as a
+   * test API key the fake runtime accepts. Never a real credential.
+   */
+  credentials: z
+    .array(z.object({ label: z.string(), value: z.string() }))
     .default([])
 });
 type Packet = z.infer<typeof PacketSchema>;
@@ -104,6 +111,13 @@ function renderPacket(packet: Packet): string {
     "Files you own and may upload when a page asks for a file:",
     assets,
     "",
+    ...(packet.credentials.length > 0
+      ? [
+          "Keys you own and may paste when the app asks for one:",
+          ...packet.credentials.map((c) => `- ${c.label}: ${c.value}`),
+          ""
+        ]
+      : []),
     "The browser is already open at the entry URL. Call `screenshot` to see it.",
     "When you stop, write your final account as described in the protocol."
   ].join("\n");
@@ -117,6 +131,9 @@ CSS pixels. Coordinates are CSS pixels from the top-left corner of the screensho
 Every action tool performs one action and returns a receipt with the new
 screenshot, its ID, the address bar, and the tab title. \`screenshot\` does not
 count as an action. You have no other tools.
+
+The browser runs on ${process.platform === "darwin" ? "macOS" : process.platform === "win32" ? "Windows" : "Linux"}.
+Editing shortcuts such as select all use ${process.platform === "darwin" ? "Meta (Command)" : "Control"}.
 `;
 
 function parseCli(): {
@@ -174,7 +191,7 @@ function stripImages(value: unknown): unknown {
 class BrowserSession {
   private page!: Page;
   private context!: BrowserContext;
-  private browser!: Browser;
+  private browser: Browser | undefined;
   private shotCount = 0;
   private pendingEvents: string[] = [];
   private fileChooser: FileChooser | null = null;
@@ -189,13 +206,14 @@ class BrowserSession {
   ) {}
 
   async start(headed: boolean): Promise<void> {
-    this.browser = await chromium.launch({
+    const browser = await chromium.launch({
       headless: !headed,
       ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
         ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
         : {})
     });
-    this.context = await this.browser.newContext({
+    this.browser = browser;
+    this.context = await browser.newContext({
       viewport: VIEWPORT,
       deviceScaleFactor: 1,
       locale: "en-US"
@@ -350,7 +368,8 @@ class BrowserSession {
   }
 
   async close(): Promise<void> {
-    await this.browser.close().catch(() => undefined);
+    // A failed launch leaves no browser; keep its error in runner-error.txt.
+    await this.browser?.close().catch(() => undefined);
   }
 }
 
@@ -461,6 +480,16 @@ function buildTools(session: BrowserSession, packet: Packet, log: (r: Receipt) =
     tool("back", "Press the browser Back button.", {}, async () =>
       action("browser Back", async (page) => {
         await page.goBack({ waitUntil: "load" }).catch(() => undefined);
+      })
+    ),
+    tool("forward", "Press the browser Forward button.", {}, async () =>
+      action("browser Forward", async (page) => {
+        await page.goForward({ waitUntil: "load" }).catch(() => undefined);
+      })
+    ),
+    tool("reload", "Press the browser Reload button.", {}, async () =>
+      action("browser Reload", async (page) => {
+        await page.reload({ waitUntil: "load" }).catch(() => undefined);
       })
     ),
     ...(packet.assets.length > 0

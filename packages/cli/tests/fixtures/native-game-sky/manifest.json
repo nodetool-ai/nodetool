@@ -1,0 +1,12 @@
+{
+  "tick": 60,
+  "seed": 1,
+  "channelTolerance": 16,
+  "changedFractionTolerance": 0.005,
+  "fixtures": [
+    "pbr-spheres",
+    "sky-color",
+    "sky-procedural"
+  ],
+  "backend": "webgl2"
+}

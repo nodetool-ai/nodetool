@@ -41,6 +41,7 @@ import {
 } from "../../ui_primitives";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useImportNotice } from "../../../hooks/storyboard/useImportNotice";
+import { useImportSource } from "../../../hooks/storyboard/useImportSource";
 import { sceneOrder } from "../../../lib/storyboard/sceneOrder";
 import { PlanReview } from "../PlanReview";
 import { REVIEW_WIDE_WIDTH } from "../reviewStyles";
@@ -84,6 +85,8 @@ export interface ReviewStepProps {
   model: GenerationModel | null;
   maxOutputTokens: number;
   onValidationChange?: (reason: string | undefined) => void;
+  /** View mode: the screenplay reads as text and nothing on it changes. */
+  readOnly?: boolean;
 }
 
 /** One array, so a board that has not loaded yet returns a stable snapshot. */
@@ -101,7 +104,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onKeepFallback,
   model,
   maxOutputTokens,
-  onValidationChange
+  onValidationChange,
+  readOnly = false
 }) => {
   const shots = useStoryboardStore(
     (state) => state.boards[boardId]?.shots ?? NO_SHOTS
@@ -140,6 +144,9 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   // What a rewrite replaced, kept for as long as the tab is open, so the
   // creator can put it back rather than reconstructing it by hand (F15).
   const replaced = usePreviousScreenplay(boardId);
+  // A script kept as written is never rewritten from the brief: the run only
+  // adds camera work to the imported words, so the banner says that (F14).
+  const keptAsWritten = useImportSource(boardId)?.preserveWords === true;
 
   // What the post-check touched, in the numbering the creator is reading.
   // One pass over the scene groups: an answer that reordered a long script
@@ -205,13 +212,30 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   }, [scenes, shots]);
 
   const handleRestore = useCallback(() => {
-    if (replaced) {
+    if (replaced && !readOnly) {
+      // The undo is for the story: its shots, scenes and title. Everything
+      // picked since, on this step or a later one the creator came back from
+      // (entities, style, aspect ratio, the brief), stays as it is now (F14).
+      const current = useStoryboardStore.getState().getBoard(boardId);
+      const currentShots = new Map(
+        (current?.shots ?? []).map((shot) => [shot.id, shot])
+      );
       // `setScreenplay` merges by shot id, so a shot both versions hold keeps
       // its stills and its clips.
-      setScreenplay(boardId, replaced);
+      setScreenplay(boardId, {
+        ...replaced,
+        shots: replaced.shots.map((shot) => ({
+          ...shot,
+          entity_ids: currentShots.get(shot.id)?.entity_ids
+        })),
+        brief: current?.brief ?? replaced.brief,
+        style_bible: current?.style ?? replaced.style_bible,
+        aspect_ratio: current?.aspectRatio ?? replaced.aspect_ratio,
+        entity_ids: current ? [...current.entityIds] : replaced.entity_ids
+      });
       forgetPreviousScreenplay(boardId);
     }
-  }, [boardId, replaced, setScreenplay]);
+  }, [boardId, readOnly, replaced, setScreenplay]);
 
   const sections = useMemo((): PlanReviewSection[] => {
     const groups = sceneOrder(shots, scenes);
@@ -228,7 +252,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         }
       ]
     };
-    return [
+    const all = [
       screenplaySection,
       ...groups.map((group, index): PlanReviewSection => {
         const sceneId = group.sceneId;
@@ -407,9 +431,25 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         };
       })
     ];
+    if (!readOnly) {
+      return all;
+    }
+    // View mode holds every field, and leaves "More options" and the rest of
+    // the reading controls usable.
+    const hold = (rows: readonly PlanReviewField[]): PlanReviewField[] =>
+      rows.map((row) => ({ ...row, readOnly: true }));
+    return all.map((section) => ({
+      ...section,
+      rows: hold(section.rows),
+      groups: section.groups?.map((group) => ({
+        ...group,
+        rows: hold(group.rows)
+      }))
+    }));
   }, [
     boardId,
     lengths,
+    readOnly,
     scenes,
     setTitle,
     shots,
@@ -453,7 +493,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               <EditorButton
                 variant="outlined"
                 size="small"
-                disabled={rewriting}
+                disabled={readOnly || rewriting}
                 onClick={onRewrite}
               >
                 Run the Director again
@@ -463,6 +503,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                   variant="text"
                   size="small"
                   onClick={onKeepFallback}
+                  disabled={readOnly}
                 >
                   Keep this outline
                 </EditorButton>
@@ -475,15 +516,22 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           edited. Putting it back is one press for as long as the tab is
           open (F15). */}
       {replaced ? (
-        <AlertBanner severity="info" title="Rewritten from your brief">
+        <AlertBanner
+          severity="info"
+          title={
+            keptAsWritten ? "Directed from your script" : "Rewritten from your brief"
+          }
+        >
           <FlexRow gap={GAP.normal} align="center" wrap>
             <Caption component="span">
-              The previous screenplay is still here.
+              {keptAsWritten
+                ? "The version before this camera pass is still here."
+                : "The previous screenplay is still here."}
             </Caption>
             <EditorButton
               variant="outlined"
               size="small"
-              disabled={rewriting}
+              disabled={readOnly || rewriting}
               onClick={handleRestore}
             >
               Restore the previous screenplay
@@ -501,7 +549,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           <EditorButton
             variant="outlined"
             size="small"
-            disabled={rewriting}
+            disabled={readOnly || rewriting}
             onClick={onRewrite}
           >
             {rewriting ? "Rewriting screenplay…" : "Rewrite from brief"}

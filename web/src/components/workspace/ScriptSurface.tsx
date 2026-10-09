@@ -160,7 +160,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   }
 
   if (setupStage !== "done") {
-    return <SetupFlow config={setupConfig} />;
+    return <SetupFlow config={setupConfig} readOnly={readOnly} />;
   }
 
   // On mobile the fixed 320px side dock would crush the document, so the cast

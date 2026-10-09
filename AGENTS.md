@@ -495,7 +495,8 @@ Follow [Security](docs/DEVELOPMENT_STANDARDS.md#16-security) and
   checking the initial URL does not validate redirects. Maintain the
   [URL Egress Inventory](docs/url-egress-inventory.md). Its audit is
   `packages/runtime/tests/url-egress-audit.test.ts`.
-- Code scanning uses GitHub default setup. `.github/codeql/*.yml` does not
-  configure it. Dismiss false positives in the Security UI and test the premise
-  that makes them false, as in `packages/models/tests/access-token.test.ts`.
-  Custom exclusions require advanced setup with an explicit `config-file:`.
+- Code scanning uses advanced setup in `.github/workflows/codeql.yml`.
+  Default setup must stay off, or GitHub rejects its uploads. Dismiss false
+  positives in the Security UI and test the premise that makes them false, as
+  in `packages/models/tests/access-token.test.ts`. Custom exclusions need an
+  explicit `config-file:` in that workflow.

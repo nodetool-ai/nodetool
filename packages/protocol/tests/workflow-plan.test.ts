@@ -7,6 +7,7 @@ import {
   parseWorkflowPlan,
   refineWorkflowPlan,
   type PlannerMessage,
+  planInputSample,
   planToPlacement,
   resolveWorkflowPlan,
   type PlanNodeLookup,
@@ -276,6 +277,31 @@ describe("planToPlacement", () => {
     });
   });
 
+  it("converts a number input's string sample to a number for FloatInput", () => {
+    const placed = planToPlacement(
+      plan({ inputs: [{ name: "count", type: "number", sample: "3.5" }] }),
+      lookup
+    );
+    expect(placed.nodes[0].type).toBe("nodetool.input.FloatInput");
+    expect(placed.nodes[0].properties).toEqual({ name: "count", value: 3.5 });
+  });
+
+  it("drops a number sample that does not parse", () => {
+    const placed = planToPlacement(
+      plan({ inputs: [{ name: "count", type: "number", sample: "three" }] }),
+      lookup
+    );
+    expect(placed.nodes[0].properties).toEqual({ name: "count" });
+  });
+
+  it("drops a sample on a media input, which takes an upload", () => {
+    const placed = planToPlacement(
+      plan({ inputs: [{ name: "photo", type: "image", sample: "photo.png" }] }),
+      lookup
+    );
+    expect(placed.nodes[0].properties).toEqual({ name: "photo" });
+  });
+
   it("never wires a chain into a model property", () => {
     const placed = planToPlacement(
       plan({
@@ -476,6 +502,16 @@ describe("planToPlacement", () => {
     // 2000 chain edges plus the one that feeds the output node.
     expect(placed.edges).toHaveLength(2001);
     expect(Date.now() - started).toBeLessThan(2000);
+  });
+});
+
+describe("planInputSample", () => {
+  it("keeps text samples and converts typed ones", () => {
+    expect(planInputSample({ name: "a", type: "string", sample: "x" })).toBe("x");
+    expect(planInputSample({ name: "a", type: "number", sample: "  " })).toBeUndefined();
+    expect(planInputSample({ name: "a", type: "integer", sample: "4" })).toBe(4);
+    expect(planInputSample({ name: "a", type: "integer", sample: "4.2" })).toBeUndefined();
+    expect(planInputSample({ name: "a", type: "audio", sample: "x" })).toBeUndefined();
   });
 });
 

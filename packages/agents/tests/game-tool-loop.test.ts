@@ -28,6 +28,27 @@ it("scores an audio mixer authored through the public edit surface", async () =>
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
 
+it("scores a procedural sky authored through the public 3D edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="procedural-sky");
+  if (!candidate) { throw new Error("Sky eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Sky eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const read = bridge.tools.find(tool=>tool.name==="get_native_game");
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!read || !edit) { throw new Error("Native game tools must exist"); }
+  const { outline } = await read.execute({ view: "outline" }) as { outline: { scenes: { id: string; environment: Record<string, unknown> }[] } };
+  const scene = outline.scenes[0];
+  if (!scene) { throw new Error("Outline must list the scene"); }
+  expect(await edit.execute({ ops: [{ op: "update_scene", scene_id: scene.id, set: { environment: { ...scene.environment, sky: { kind: "procedural", sunEntityId: "missing" } } } }] })).toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  await edit.execute({ ops: [{ op: "update_scene", scene_id: scene.id, set: { environment: { sky: { kind: "procedural", sunEntityId: "sun", turbidity: 4 } } } }] });
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  await edit.execute({ ops: [{ op: "update_scene", scene_id: scene.id, set: { environment: { ...scene.environment, sky: { kind: "procedural", sunEntityId: "sun", turbidity: 4 } } } }] });
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
 it("scores script params set through the public edit surface", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="script-parameters");
   if (!candidate) { throw new Error("Script params eval case must exist"); }

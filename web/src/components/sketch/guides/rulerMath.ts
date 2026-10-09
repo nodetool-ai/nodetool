@@ -3,7 +3,6 @@
  * guides share with the canvas (`docToScreen` in `tools/transform`).
  */
 
-import type { Point } from "../types";
 
 /** Major tick spacing candidates in document pixels. */
 const MAJOR_STEPS = [
@@ -56,18 +55,4 @@ export function viewportToDoc(
   pan: number
 ): number {
   return (viewport - viewportSize / 2 - pan) / zoom + docSize / 2;
-}
-
-/** Document point under a viewport point. */
-export function viewportPointToDoc(
-  point: Point,
-  doc: { width: number; height: number },
-  viewport: { width: number; height: number },
-  zoom: number,
-  pan: Point
-): Point {
-  return {
-    x: viewportToDoc(point.x, doc.width, viewport.width, zoom, pan.x),
-    y: viewportToDoc(point.y, doc.height, viewport.height, zoom, pan.y)
-  };
 }
