@@ -196,7 +196,7 @@ describe("DockerRunGenerator.generateCommand", () => {
       persistentPaths: {
         usersFile: "/data/users.json",
         dbPath: "/data/db",
-        chromaPath: "/data/chroma",
+        vectorstoreDbPath: "/data/vectorstore.db",
         hfCache: "/data/hf",
         assetBucket: "/data/assets"
       }
@@ -249,36 +249,20 @@ describe("DockerRunGenerator environment variables", () => {
     );
   });
 
-  it("should include NODETOOL_SERVER_MODE", () => {
+  it("emits none of the variables the server ignores", () => {
     const cmd = generateDockerRunCommand(makeDeployment());
-    expect(cmd).toContain("NODETOOL_SERVER_MODE=private");
+    expect(cmd).not.toContain("NODETOOL_SERVER_MODE");
+    expect(cmd).not.toContain("AUTH_PROVIDER");
+    expect(cmd).not.toContain("CHROMA_PATH");
+    expect(cmd).not.toContain("ASSET_BUCKET");
   });
 
-  it("should set static AUTH_PROVIDER without persistentPaths", () => {
-    const cmd = generateDockerRunCommand(makeDeployment());
-    expect(cmd).toContain("AUTH_PROVIDER=static");
-  });
-
-  it("should set multi_user AUTH_PROVIDER with persistentPaths", () => {
+  it("maps persistent paths onto the variables the server reads", () => {
     const d = makeDeployment({
       persistentPaths: {
         usersFile: "/data/users.json",
         dbPath: "/data/db",
-        chromaPath: "/data/chroma",
-        hfCache: "/data/hf",
-        assetBucket: "/data/assets"
-      }
-    });
-    const cmd = generateDockerRunCommand(d);
-    expect(cmd).toContain("AUTH_PROVIDER=multi_user");
-  });
-
-  it("should include persistent path env vars", () => {
-    const d = makeDeployment({
-      persistentPaths: {
-        usersFile: "/data/users.json",
-        dbPath: "/data/db",
-        chromaPath: "/data/chroma",
+        vectorstoreDbPath: "/data/vectorstore.db",
         hfCache: "/data/hf",
         assetBucket: "/data/assets"
       }
@@ -286,15 +270,24 @@ describe("DockerRunGenerator environment variables", () => {
     const cmd = generateDockerRunCommand(d);
     expect(cmd).toContain("USERS_FILE=/data/users.json");
     expect(cmd).toContain("DB_PATH=/data/db");
-    expect(cmd).toContain("CHROMA_PATH=/data/chroma");
+    expect(cmd).toContain("VECTORSTORE_DB_PATH=/data/vectorstore.db");
     expect(cmd).toContain("HF_HOME=/data/hf");
-    expect(cmd).toContain("ASSET_BUCKET=/data/assets");
+    expect(cmd).toContain("ASSET_FOLDER=/data/assets");
   });
 
-  it("should set DB_PATH and HF_HOME defaults without persistentPaths", () => {
+  it("keeps every store on the /workspace mount without persistentPaths", () => {
     const cmd = generateDockerRunCommand(makeDeployment());
+    expect(cmd).toContain("-v /srv/nodetool:/workspace");
     expect(cmd).toContain("DB_PATH=/workspace/nodetool.db");
-    expect(cmd).toContain("HF_HOME=/hf-cache");
+    expect(cmd).toContain("VECTORSTORE_DB_PATH=/workspace/vectorstore.db");
+    expect(cmd).toContain("ASSET_FOLDER=/workspace/assets");
+  });
+
+  it("points HF_HUB_CACHE at the mounted host hub cache", () => {
+    const cmd = generateDockerRunCommand(makeDeployment());
+    expect(cmd).toContain("/srv/hf-cache:/hf-cache:ro");
+    expect(cmd).toContain("HF_HUB_CACHE=/hf-cache");
+    expect(cmd).not.toContain("HF_HOME=/hf-cache");
   });
 
   it("should include container environment variables", () => {
@@ -333,20 +326,6 @@ describe("DockerRunGenerator environment variables", () => {
   it("should not include SERVER_AUTH_TOKEN when not set", () => {
     const cmd = generateDockerRunCommand(makeDeployment());
     expect(cmd).not.toContain("SERVER_AUTH_TOKEN");
-  });
-
-  it("should respect existing AUTH_PROVIDER in container env without persistentPaths", () => {
-    const d = makeDeployment({
-      container: {
-        name: "c",
-        port: 8080,
-        environment: { AUTH_PROVIDER: "custom" }
-      }
-    });
-    const cmd = generateDockerRunCommand(d);
-    expect(cmd).toContain("AUTH_PROVIDER=custom");
-    // Should not overwrite with "static"
-    expect(cmd).not.toContain("AUTH_PROVIDER=static");
   });
 });
 

@@ -35,7 +35,7 @@ see the [End-to-End Deployment Guide](deployment-e2e-guide.md).
 | **Rent a GPU to run Python nodes (RunPod / Vast / Verda)** | [Worker Deployment](worker-deployment.md) |
 | **Tune GPU/memory/volumes for the server container** | [Docker Resource Management](docker-resource-management.md) |
 | **Use Supabase for auth/storage** | [Supabase Deployment Integration](supabase-deployment.md) |
-| **Set up TLS/HTTPS** | [Self-Hosted Deployment](self-hosted-deployment.md) |
+| **Set up TLS/HTTPS** | [Serving the Web UI and TLS](configuration.md#serving-the-web-ui-and-tls) |
 | **Connect Claude Code or another MCP client to a deployed server** | [MCP on a Production Server](mcp-production.md) |
 
 ---
@@ -130,19 +130,21 @@ from the UI or CLI, supported targets, and the cost guard in full.
 - `host` – Docker host (IP/hostname, or `localhost`)
 - `ssh` – SSH connection details for remote hosts (omit for local)
 - `paths` – host directories for the workspace (default `~/nodetool_data/workspace`, mounted at `/workspace`) and the HF cache (default `~/nodetool_data/hf-cache`, mounted at `/hf-cache`, read-only unless `persistent_paths` is set)
-- `persistent_paths` – optional container paths for the users file, database, Chroma store, HF cache, assets, and logs. Setting it changes the injected environment, see below
+- `persistent_paths` – optional container paths for the users file, database, vector store (`vectorstore_db_path`), HF home, assets, and logs. Setting it changes the injected environment, see below
 - `image` – container image name/tag/registry
 - `container` – `name`, `port`, `gpu` (device ids such as `0` or `0,1`, passed as `--gpus "device=…"`), and `environment` (env vars injected into the container)
-- `server_auth_token` – auto-generated bearer token for admin/sync calls
+- `server_auth_token` – auto-generated bearer token for admin/sync calls. The server accepts it in Local mode (see [Authentication](authentication.md#authentication-modes))
 - `state` – deployment state tracked by the deployer
 
 The container is named `nodetool-<container.name>` and runs with
 `--restart unless-stopped`. The server listens on `7777` inside the container
 and the deployer publishes it on host port `container.port`. A `container.port`
 of `7777` is published as `8000`. The deployer also sets `PORT`,
-`NODETOOL_API_URL`, `NODETOOL_SERVER_MODE`, `DB_PATH` (`/workspace/nodetool.db`),
-`HF_HOME`, and `SERVER_AUTH_TOKEN` in the container, on top of
-`container.environment`.
+`NODETOOL_API_URL`, `DB_PATH` (`/workspace/nodetool.db`), `VECTORSTORE_DB_PATH`
+(`/workspace/vectorstore.db`), `ASSET_FOLDER` (`/workspace/assets`),
+`HF_HUB_CACHE` (`/hf-cache`), and `SERVER_AUTH_TOKEN` in the container, on top
+of `container.environment`. With `persistent_paths` set, the first three and
+`HF_HOME` come from it instead.
 
 Environment variables live under `container.environment`. When a deployment is
 loaded, `deploy` generates `SECRETS_MASTER_KEY` in `container.environment` and a
@@ -154,11 +156,12 @@ Keep that file private.
 ## Monitoring & health checks
 
 ```bash
-# Health endpoint (no auth required)
-curl http://your-server:7777/health
+# Health endpoint (no auth required). Use the published host port: 17777 for
+# the bundled Compose file, container.port (default 8000) for `deploy apply`.
+curl http://your-server:17777/health
 # 200: {"status": "ok", "services": {...}, ...}
 # 503: status "degraded" (database check failed) or "draining" (shutting down)
-curl http://your-server:7777/ready     # liveness only, always 200
+curl http://your-server:17777/ready    # liveness only, always 200
 
 nodetool deploy status <name>
 nodetool deploy logs <name> --follow
