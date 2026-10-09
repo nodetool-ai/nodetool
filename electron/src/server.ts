@@ -1,5 +1,6 @@
 import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
+import { isNodeToolBackendProcess } from "./processIdentity";
 import {
   getOptionalNodeModulesPath,
   getPythonPath,
@@ -138,6 +139,16 @@ function findPidListeningOnPort(port: number): number | null {
   }
 }
 
+async function removePidFile(): Promise<void> {
+  try {
+    await fs.unlink(PID_FILE_PATH);
+  } catch (error) {
+    if (!isErrnoException(error) || error.code !== "ENOENT") {
+      logMessage(`Failed to remove PID file: ${errorMessage(error)}`, "warn");
+    }
+  }
+}
+
 /**
  * Checks if there's an existing NodeTool server process from a PID file
  * @returns Promise resolving to the PID if a running server is found, null otherwise
@@ -151,13 +162,25 @@ async function findExistingServerPid(): Promise<number | null> {
       return null;
     }
     
-    if (isProcessRunning(pid)) {
-      logMessage(`Found existing NodeTool server process with PID ${pid}`);
-      return pid;
+    if (!isProcessRunning(pid)) {
+      logMessage(`PID file exists but process ${pid} is not running, will clean up`);
+      await removePidFile();
+      return null;
     }
-    
-    logMessage(`PID file exists but process ${pid} is not running, will clean up`);
-    return null;
+
+    if (!(await isNodeToolBackendProcess(pid))) {
+      // The backend that wrote this file is gone and the PID now belongs to
+      // another program. Killing it would take down whatever reused the PID.
+      logMessage(
+        `PID file names process ${pid}, which is not a NodeTool backend; ignoring the stale PID file`,
+        "warn"
+      );
+      await removePidFile();
+      return null;
+    }
+
+    logMessage(`Found existing NodeTool server process with PID ${pid}`);
+    return pid;
   } catch (error) {
     if (isErrnoException(error) && error.code === "ENOENT") {
       logMessage("No PID file found, no existing server process");
@@ -214,6 +237,11 @@ async function killExistingServer(): Promise<void> {
   try {
     const pidContent = await fs.readFile(PID_FILE_PATH, "utf8");
     const pid = parseInt(pidContent, 10);
+
+    if (pid && !(await isNodeToolBackendProcess(pid))) {
+      await removePidFile();
+      return;
+    }
 
     if (pid) {
       try {
