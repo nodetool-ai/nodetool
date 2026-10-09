@@ -326,6 +326,29 @@ describe("native game capabilities", () => {
     }
   });
 
+  it("stages a generated image without binding it when install is false", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const bytes = await readFile(new URL("../../base-nodes/nodetool/assets/nodetool-base/templates/game-topdown.png", import.meta.url));
+    const generated = vi.spyOn(generateImage, "impl").mockResolvedValue({ asset_uri: "asset://generated.png", generation_id: "generation-2" });
+    const context = { userId: USER, assetStorage: storage, resolveAssetBytes: async () => ({ bytes }) } as unknown as ProcessingContext;
+    const agent = createCapabilityRun({ context, gate: UNGATED });
+    try {
+      const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Staged room" }) as GameReply;
+      const result = await agent.invoke("generate_game_asset", {
+        game_id: created.game.id, slot: "new-art", kind: "image", prompt: "A sprite", provider: "test", model: "test", install: false
+      }) as { installed: boolean; binding: { digest: string; assetId: string }; generation_id: string };
+      expect(result).toMatchObject({ installed: false, generation_id: "generation-2" });
+      expect(result.binding.assetId).toBe(`generated:${result.binding.digest}`);
+      const [row] = await Workspace.listByProject(USER, PROJECT);
+      const workspace = row ? workspaceFromRow(row) : null;
+      expect(await workspace?.read(`games/${created.game.id}/assets/${result.binding.digest}.png`)).toBeTruthy();
+      const draft = await agent.invoke("get_native_game", { game_id: created.game.id, source: "draft", view: "full" }) as GameReply;
+      expect(draft.document.assets["new-art"]).toBeUndefined();
+    } finally {
+      generated.mockRestore();
+    }
+  });
+
   it("keeps the generated audio format reported by the provider", async () => {
     const storage = new InMemoryStorageAdapter();
     const bytes = new Uint8Array([82, 73, 70, 70, 1, 2, 3, 4]);

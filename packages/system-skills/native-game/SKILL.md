@@ -562,8 +562,10 @@ rendered by the game renderer. Its search and type filter match the
 capability's `query` and `kind`. **Generate** and **Regenerate** run
 `generate_game_asset` for image, speech and music slots with an editable
 prompt, record the prompt beside the staged file, and install the result with
-its frame bindings. **Use** binds an older candidate in place and moves the
-slot's frame and tile bindings onto it. Sound-effect, model and collider slots
+its frame bindings. The panel stages with `install: false` and binds onto the
+draft that is current when the bytes are ready, so edits saved while it runs
+stay. **Use** binds an older candidate in place and moves the slot's frame and
+tile bindings onto it. Sound-effect, model and collider slots
 need a provider node, so the panel drafts the request in the assistant
 instead. Candidates staged by `StageGameAssets` and by the panel carry a record
 at `<source_root>/candidates/<digest>.json`. Files staged by

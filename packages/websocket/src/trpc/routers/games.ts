@@ -66,13 +66,12 @@ const assetBrowserInfo = z.object({
   slot_requests: z.record(z.string(), z.object({ kind: z.string(), prompt: z.string().optional(),
     preparation: z.record(z.string(), z.unknown()).optional(), source: z.string() }))
 });
+const assetFrame = z.object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() });
 const generatedAssetResult = z.object({
   error: z.string().optional(),
-  document: gameDocument.optional(),
-  draft_updated_at: z.string().optional(),
   binding: anyGameAssetBinding.optional(),
-  bindings: z.record(z.string(), gameAssetBinding).optional(),
-  installed: z.boolean().optional()
+  frames: z.array(assetFrame).optional(),
+  tiles: z.array(z.object({ mask: z.number().int(), frame: assetFrame })).optional()
 }).loose();
 const stagedCandidateBinding = z.object({ error: z.string().optional(), binding: anyGameAssetBinding.optional() }).loose();
 const generatedAsset = gameWithDocument.extend({ stagedDigest: z.string().nullable(), installed: z.boolean() });
@@ -153,10 +152,14 @@ async function gameWorkspace(userId: string, game: Game): Promise<RunWorkspace> 
   return workspace;
 }
 
+/** Maps the installed 2D binding to the frame and tile bindings written with it. */
+type SiblingBindings = (installed: z.infer<typeof gameAssetBinding>) => Record<string, z.infer<typeof gameAssetBinding>>;
+const CONCURRENT_DRAFT_EDIT = "Game draft was modified concurrently";
+
 async function persistGameAsset(
   userId: string, game: Game, workspace: RunWorkspace, draftUpdatedAt: string,
   slot: string, binding: z.infer<typeof anyGameAssetBinding>, bytes: Uint8Array,
-  extension: string, contentType: string, replaceInPlace?: Record<string, z.infer<typeof gameAssetBinding>>
+  extension: string, contentType: string, siblingBindings?: SiblingBindings
 ): Promise<z.infer<typeof gameWithDocument>> {
   await workspace.write(`${game.source_root}/assets/${binding.digest}.${extension}`, bytes, contentType);
   const installed = await Asset.create({
@@ -171,11 +174,12 @@ async function persistGameAsset(
   try {
     uri = await storage.store(getAssetStorageKey(userId, installed.id, contentType), bytes, contentType);
     const op = gameDocumentOp.parse({ op: "bind_asset", slot, binding: { ...binding, assetId: installed.id } });
-    const parent = replaceInPlace ? gameAssetBinding.safeParse({ ...binding, assetId: installed.id }) : null;
-    const siblings = replaceInPlace && parent?.success
-      ? gameAssetSiblingRebinds(replaceInPlace, slot, parent.data).ops.map((sibling) => gameDocumentOp.parse(sibling)) : [];
+    const parent = siblingBindings ? gameAssetBinding.safeParse({ ...binding, assetId: installed.id }) : null;
+    const siblings = siblingBindings && parent?.success
+      ? Object.entries(siblingBindings(parent.data)).map(([sibling, siblingBinding]) =>
+        gameDocumentOp.parse({ op: "bind_asset", slot: sibling, binding: siblingBinding })) : [];
     const saved = await Game.updateDraft(userId, game.id, draftUpdatedAt, [op, ...siblings], workspace, { actor: "user" });
-    if (!saved) { throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently"); }
+    if (!saved) { throwApiError(ApiErrorCode.ALREADY_EXISTS, CONCURRENT_DRAFT_EDIT); }
     return { game: info(saved.game), document: saved.document };
   } catch (error) {
     if (uri) { await storage.delete(uri); }
@@ -348,9 +352,30 @@ const installCandidateInput = idInput.extend({
   binding: anyGameAssetBinding
 });
 
-/** Install a staged candidate's bytes into the draft. `replaceInPlace` also moves the slot's frame and tile bindings onto the new bytes. */
+interface InstallCandidateOptions {
+  /** Move the slot's existing frame and tile bindings onto the new bytes. */
+  readonly replaceInPlace?: boolean;
+  /** Frame or tile rectangles a sheet or tileset preparation produced. They replace `replaceInPlace`. */
+  readonly frames?: readonly z.infer<typeof assetFrame>[];
+  readonly tiles?: readonly { readonly mask: number; readonly frame: z.infer<typeof assetFrame> }[];
+}
+
+function siblingBindingsFor(slot: string, assets: Record<string, z.infer<typeof gameAssetBinding>>,
+  options: InstallCandidateOptions): SiblingBindings | undefined {
+  const { frames, tiles } = options;
+  if (frames?.length) {
+    return (installed) => Object.fromEntries(frames.map((frame, index) => [`${slot}.frame.${index}`, { ...installed, frame }]));
+  }
+  if (tiles?.length) {
+    return (installed) => Object.fromEntries(tiles.map((tile) => [`${slot}.tile.${tile.mask}`, { ...installed, frame: tile.frame }]));
+  }
+  if (!options.replaceInPlace) { return undefined; }
+  return (installed) => Object.fromEntries(gameAssetSiblingRebinds(assets, slot, installed).ops.map((op) => [op.slot, op.binding]));
+}
+
+/** Install a staged candidate's bytes into the draft, with the sibling bindings `options` names. */
 async function installCandidateBinding(userId: string, input: z.infer<typeof installCandidateInput>,
-  options: { replaceInPlace?: boolean } = {}): Promise<z.infer<typeof gameWithDocument>> {
+  options: InstallCandidateOptions = {}): Promise<z.infer<typeof gameWithDocument>> {
   const ctx = { userId };
   const game = await ownedGame(ctx.userId, input.id);
   const workspace = await gameWorkspace(ctx.userId, game);
@@ -444,7 +469,24 @@ async function installCandidateBinding(userId: string, input: z.infer<typeof ins
   }
   return persistGameAsset(ctx.userId, game, workspace, draft.game.draft_updated_at, input.slot,
     targetBinding.data, bytes, extension, contentType,
-    options.replaceInPlace && draft.document.schemaVersion !== 3 ? draft.document.assets : undefined);
+    draft.document.schemaVersion !== 3 ? siblingBindingsFor(input.slot, draft.document.assets, options) : undefined);
+}
+
+/**
+ * Install into whichever draft is current when the bytes are ready. An editor
+ * session saves while a generation runs, so a slot binding must not depend on
+ * the draft token the request started from. The write itself stays a
+ * compare-and-swap, retried when a save lands between the read and the write.
+ */
+async function installOnLatestDraft(userId: string, input: Omit<z.infer<typeof installCandidateInput>, "baseUpdatedAt">,
+  options: InstallCandidateOptions): Promise<z.infer<typeof gameWithDocument>> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await installCandidateBinding(userId, input, options);
+    } catch (error) {
+      if (attempt >= 3 || !(error instanceof Error) || error.message !== CONCURRENT_DRAFT_EDIT) { throw error; }
+    }
+  }
 }
 
 export const gamesRouter = router({
@@ -744,12 +786,14 @@ export const gamesRouter = router({
 
   /**
    * Generate an asset for one slot through `generate_game_asset`, record the
-   * prompt beside the staged bytes, and install the result in place: a 2D
-   * sheet's frame bindings and a 3D candidate are bound in the same request.
+   * prompt beside the staged bytes, and bind it in place on the draft that is
+   * current when the bytes are ready. The editor keeps saving while a
+   * generation runs, so the request carries no draft token: a sheet's frame
+   * bindings, or the slot's existing frame and tile bindings, are written in
+   * the same compare-and-swap as the slot, as the user who asked.
    */
   generateAsset: gameProcedure
     .input(idInput.extend({
-      baseUpdatedAt: z.string(),
       slot: z.string().min(1),
       kind: z.enum(["image", "audio", "music"]),
       prompt: z.string().trim().min(1).max(4000),
@@ -759,45 +803,25 @@ export const gamesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
       const workspace = await gameWorkspace(ctx.userId, game);
-      const draft = await Game.readDraft(ctx.userId, game.id, workspace);
-      if (!draft) { throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found"); }
-      if (draft.game.draft_updated_at !== input.baseUpdatedAt) {
-        throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
-      }
-      const args: Record<string, unknown> = { game_id: game.id, slot: input.slot, kind: input.kind, prompt: input.prompt };
+      const args: Record<string, unknown> = { game_id: game.id, slot: input.slot, kind: input.kind, prompt: input.prompt, install: false };
       if (input.preparation) { args["preparation"] = input.preparation; }
       const run = await assetGenerationRun(ctx.userId, game, workspace);
       const result = generatedAssetResult.safeParse(await run.invoke("generate_game_asset", args));
       if (!result.success) { throwApiError(ApiErrorCode.INTERNAL_ERROR, "Asset generation returned an invalid result"); }
       checkAuthoringResult(result.data);
-      const generated = result.data;
-      const staged = generated.document?.assets[input.slot]?.digest ?? generated.binding?.digest ?? null;
-      if (staged) {
-        const binding = generated.document?.assets[input.slot] ?? generated.binding;
-        const record: Record<string, unknown> = { version: 1, digest: staged, slot: input.slot, prompt: input.prompt, source: "generate",
-          stagedAt: new Date().toISOString() };
-        if (binding) { record["binding"] = binding; }
-        await workspace.write(stagedGameCandidateRecordPath(game.source_root, staged),
-          JSON.stringify(stagedGameCandidateRecord.parse(record)), "application/json");
-      }
-      if (generated.installed === false && generated.binding && generated.draft_updated_at) {
-        const installed = await installCandidateBinding(ctx.userId, { id: game.id, slot: input.slot,
-          baseUpdatedAt: generated.draft_updated_at, binding: generated.binding }, { replaceInPlace: true });
-        return { ...installed, stagedDigest: staged, installed: true };
-      }
-      if (!generated.document || !generated.draft_updated_at) { throwApiError(ApiErrorCode.INTERNAL_ERROR, "Asset generation did not install the asset"); }
-      const siblings = Object.entries(generated.bindings ?? {}).map(([slot, binding]) => gameDocumentOp.parse({ op: "bind_asset", slot, binding }));
-      const saved = siblings.length
-        ? await Game.updateDraft(ctx.userId, game.id, generated.draft_updated_at, siblings, workspace, { actor: "user" })
-        : await Game.readDraft(ctx.userId, game.id, workspace);
-      if (!saved) { throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently"); }
-      return { game: info(saved.game), document: saved.document, stagedDigest: staged, installed: true };
+      const { binding, frames, tiles } = result.data;
+      if (!binding) { throwApiError(ApiErrorCode.INTERNAL_ERROR, "Asset generation did not stage an asset"); }
+      await workspace.write(stagedGameCandidateRecordPath(game.source_root, binding.digest), JSON.stringify(stagedGameCandidateRecord.parse({
+        version: 1, digest: binding.digest, slot: input.slot, prompt: input.prompt, source: "generate", stagedAt: new Date().toISOString(), binding
+      })), "application/json");
+      const installed = await installOnLatestDraft(ctx.userId, { id: game.id, slot: input.slot, binding },
+        { replaceInPlace: true, frames, tiles });
+      return { ...installed, stagedDigest: binding.digest, installed: true };
     }),
 
-  /** Bind a staged candidate to a slot. A 2D sheet's frame and tile bindings move onto the new bytes. */
+  /** Bind a staged candidate to a slot on the current draft. A 2D slot's frame and tile bindings move onto the new bytes. */
   installStagedCandidate: gameProcedure
     .input(idInput.extend({
-      baseUpdatedAt: z.string(),
       slot: z.string().min(1),
       digest: z.string().regex(/^[a-f0-9]{64}$/)
     }).strict())
@@ -810,7 +834,6 @@ export const gamesRouter = router({
       if (!picked.success) { throwApiError(ApiErrorCode.INTERNAL_ERROR, "Candidate lookup returned an invalid result"); }
       checkAuthoringResult(picked.data);
       if (!picked.data.binding) { throwApiError(ApiErrorCode.NOT_FOUND, "Staged candidate not found"); }
-      return installCandidateBinding(ctx.userId, { id: game.id, slot: input.slot, baseUpdatedAt: input.baseUpdatedAt,
-        binding: picked.data.binding }, { replaceInPlace: true });
+      return installOnLatestDraft(ctx.userId, { id: game.id, slot: input.slot, binding: picked.data.binding }, { replaceInPlace: true });
     })
 });

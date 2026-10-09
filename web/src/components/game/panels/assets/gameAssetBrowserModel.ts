@@ -146,3 +146,37 @@ export function modelThumbnailFrame(modelId: string, bounds: { readonly min: Vec
 export function shortDigest(digest: string): string {
   return digest.slice(0, 12);
 }
+
+/**
+ * A promise cache with a size bound. A load that fails or answers `null` is
+ * dropped, so the next caller retries it, and past `limit` entries the least
+ * recently used one goes first. `onEvict` releases what an evicted load held.
+ */
+export class BoundedPromiseCache<T> {
+  private readonly entries = new Map<string, Promise<T | null>>();
+
+  constructor(private readonly limit: number, private readonly onEvict?: (value: T) => void) {}
+
+  get size(): number { return this.entries.size; }
+
+  get(key: string, load: () => Promise<T | null>): Promise<T | null> {
+    const cached = this.entries.get(key);
+    if (cached) {
+      this.entries.delete(key);
+      this.entries.set(key, cached);
+      return cached;
+    }
+    const pending: Promise<T | null> = load().catch(() => null).then((value) => {
+      if (value === null && this.entries.get(key) === pending) { this.entries.delete(key); }
+      return value;
+    });
+    this.entries.set(key, pending);
+    for (const [oldest, evicted] of this.entries) {
+      if (this.entries.size <= this.limit) { break; }
+      this.entries.delete(oldest);
+      const release = this.onEvict;
+      if (release) { void evicted.then((value) => { if (value !== null) { release(value); } }); }
+    }
+    return pending;
+  }
+}

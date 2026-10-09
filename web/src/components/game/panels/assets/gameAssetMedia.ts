@@ -3,7 +3,7 @@ import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { restFetch } from "../../../../lib/rest-fetch";
 import { resolveMediaUri } from "../../../../utils/resolveMediaUri";
 import { workspaceFileDownloadPath } from "../../../workspace/workspaceFileRef";
-import { modelThumbnailFrame, waveformPeaks, type GameAssetSource, type ModelThumbnailColors } from "./gameAssetBrowserModel";
+import { BoundedPromiseCache, modelThumbnailFrame, waveformPeaks, type GameAssetSource, type ModelThumbnailColors } from "./gameAssetBrowserModel";
 
 /** The media locator the media primitives resolve: an installed asset, or the staged file's download route. */
 export function gameAssetLocator(source: GameAssetSource): string {
@@ -29,48 +29,38 @@ export async function fetchGameAssetBytes(source: GameAssetSource, signal?: Abor
 }
 
 const WAVEFORM_BUCKETS = 48;
-const waveforms = new Map<string, Promise<number[] | null>>();
+const waveforms = new BoundedPromiseCache<number[]>(64);
 let audioContext: AudioContext | null = null;
 
 /** Peaks for an audio asset, decoded once per source and shared by every row that shows it. */
 export function audioWaveform(source: GameAssetSource): Promise<number[] | null> {
-  const key = gameAssetSourceKey(source);
-  let pending = waveforms.get(key);
-  if (!pending) {
-    pending = (async () => {
-      if (typeof AudioContext === "undefined") { return null; }
-      const bytes = await fetchGameAssetBytes(source);
-      audioContext ??= new AudioContext();
-      const buffer = await audioContext.decodeAudioData(bytes.slice().buffer);
-      const channels = Array.from({ length: buffer.numberOfChannels }, (_, index) => buffer.getChannelData(index));
-      return waveformPeaks(channels, WAVEFORM_BUCKETS);
-    })().catch(() => null);
-    waveforms.set(key, pending);
-  }
-  return pending;
+  return waveforms.get(gameAssetSourceKey(source), async () => {
+    if (typeof AudioContext === "undefined") { return null; }
+    const bytes = await fetchGameAssetBytes(source);
+    audioContext ??= new AudioContext();
+    const buffer = await audioContext.decodeAudioData(bytes.slice().buffer);
+    const channels = Array.from({ length: buffer.numberOfChannels }, (_, index) => buffer.getChannelData(index));
+    return waveformPeaks(channels, WAVEFORM_BUCKETS);
+  });
 }
 
-const fontFamilies = new Map<string, Promise<string | null>>();
+// An evicted font leaves the document, so a long browsing session does not keep every face it drew.
+const fontFaces = new BoundedPromiseCache<FontFace>(16, (face) => { document.fonts.delete(face); });
+let fontSequence = 0;
 
 /** Loads a font asset into the document and answers its family name, so a row can draw a sample in it. */
-export function gameFontFamily(source: GameAssetSource): Promise<string | null> {
-  const key = gameAssetSourceKey(source);
-  let pending = fontFamilies.get(key);
-  if (!pending) {
-    pending = (async () => {
-      if (typeof FontFace === "undefined" || typeof document === "undefined") { return null; }
-      const family = `game-asset-${fontFamilies.size}`;
-      const face = await new FontFace(family, (await fetchGameAssetBytes(source)).slice().buffer).load();
-      document.fonts.add(face);
-      return family;
-    })().catch(() => null);
-    fontFamilies.set(key, pending);
-  }
-  return pending;
+export async function gameFontFamily(source: GameAssetSource): Promise<string | null> {
+  const face = await fontFaces.get(gameAssetSourceKey(source), async () => {
+    if (typeof FontFace === "undefined" || typeof document === "undefined") { return null; }
+    const loaded = await new FontFace(`game-asset-${++fontSequence}`, (await fetchGameAssetBytes(source)).slice().buffer).load();
+    document.fonts.add(loaded);
+    return loaded;
+  });
+  return face?.family ?? null;
 }
 
 const THUMBNAIL_PIXELS = 192;
-const modelThumbnails = new Map<string, Promise<string | null>>();
+const modelThumbnails = new BoundedPromiseCache<string>(64);
 let thumbnailRenderer: Promise<GameRenderer3D> | null = null;
 let renderQueue: Promise<unknown> = Promise.resolve();
 const pendingModels = new Map<string, Uint8Array>();
@@ -95,29 +85,24 @@ function sharedRenderer(): Promise<GameRenderer3D> {
 
 /**
  * A PNG data URL of a model rendered by the game renderer itself. One
- * offscreen renderer serves every thumbnail, one render at a time, and each
- * digest renders once.
+ * offscreen renderer serves every thumbnail, one render at a time, and a
+ * digest renders again only after a failure or once it falls out of the cache.
  */
 export function modelThumbnail(source: GameAssetSource, digest: string,
   bounds: Parameters<typeof modelThumbnailFrame>[1], colors: ModelThumbnailColors): Promise<string | null> {
-  let pending = modelThumbnails.get(digest);
-  if (!pending) {
-    pending = (async () => {
-      const bytes = await fetchGameAssetBytes(source);
-      const job = renderQueue.then(async () => {
-        const renderer = await sharedRenderer();
-        pendingModels.set(digest, bytes);
-        try {
-          await renderer.render(modelThumbnailFrame(digest, bounds, colors), 1);
-          return renderer.canvas.toDataURL("image/png");
-        } finally {
-          pendingModels.delete(digest);
-        }
-      });
-      renderQueue = job.catch(() => undefined);
-      return job;
-    })().catch(() => null);
-    modelThumbnails.set(digest, pending);
-  }
-  return pending;
+  return modelThumbnails.get(digest, async () => {
+    const bytes = await fetchGameAssetBytes(source);
+    const job = renderQueue.then(async () => {
+      const renderer = await sharedRenderer();
+      pendingModels.set(digest, bytes);
+      try {
+        await renderer.render(modelThumbnailFrame(digest, bounds, colors), 1);
+        return renderer.canvas.toDataURL("image/png");
+      } finally {
+        pendingModels.delete(digest);
+      }
+    });
+    renderQueue = job.catch(() => undefined);
+    return job;
+  });
 }

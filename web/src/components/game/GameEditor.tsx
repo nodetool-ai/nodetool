@@ -7,7 +7,7 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 
 import { trpc, trpcClient } from "../../trpc/client";
 import { useConflictStore } from "../../stores/ConflictStore";
-import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
+import { absorbServerGameDraft, captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
@@ -27,7 +27,7 @@ import GameInspector from "./panels/inspector/GameInspector";
 import GameSceneTree from "./panels/hierarchy/GameSceneTree";
 import GameRuntimeInspector from "./panels/inspector/GameRuntimeInspector";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
-import GameAssetBrowser, { type GameAssetServerEditResult } from "./panels/assets/GameAssetBrowser";
+import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
 import GameEditorShell from "./shell/GameEditorShell";
 import type { GameCommandHandler, GameCommandHandlers } from "./shell/gameCommands";
 import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
@@ -234,13 +234,14 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     finally { setSaving(false); }
   };
 
-  const serverAssetEdit = async (edit: (baseUpdatedAt: string) => Promise<GameAssetServerEditResult>): Promise<void> => {
-    await flushDraft();
-    const fresh = getGameDraftStore(refId).getState();
-    if (!fresh.baseUpdatedAt) { throw new Error("The draft is not ready for asset changes"); }
-    const result = await edit(fresh.baseUpdatedAt);
-    getGameDraftStore(refId).getState().load(result.document, result.game.draftUpdatedAt);
-    loadedTokenRef.current = result.game.draftUpdatedAt;
+  // A generation runs for minutes while the user keeps editing and autosave keeps saving, so the
+  // server binds onto whatever draft is current and the result is merged in, never loaded over.
+  const serverAssetEdit = async (edit: () => Promise<unknown>): Promise<void> => {
+    await edit();
+    await pullGameDraft(savingPromiseRef, async () => {
+      absorbServerGameDraft(refId, await trpcClient.games.getDraft.query({ id: refId }));
+      loadedTokenRef.current = getGameDraftStore(refId).getState().baseUpdatedAt;
+    });
     await queries.games.draftChanges.invalidate({ id: refId });
   };
 

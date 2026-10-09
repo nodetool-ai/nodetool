@@ -11,17 +11,11 @@ import GameAssetThumbnail from "./GameAssetThumbnail";
 import { GAME_ASSET_KIND_FILTERS, candidatesForSlot, panelGenerationKind, shortDigest, type GameAssetBrowserTab,
   type GameAssetPanelGenerationKind, type GameAssetSource } from "./gameAssetBrowserModel";
 
-/** A server edit returns the saved draft, which the editor loads in place of its own. */
-export interface GameAssetServerEditResult {
-  readonly document: AnyGameDocument;
-  readonly game: { readonly draftUpdatedAt: string };
-}
-
 export interface GameAssetBrowserProps {
   readonly gameId: string;
   readonly document: AnyGameDocument;
-  /** Flushes local edits, runs `edit` against the saved draft token, and loads the result. */
-  readonly runServerEdit: (edit: (baseUpdatedAt: string) => Promise<GameAssetServerEditResult>) => Promise<void>;
+  /** Runs `edit` on the server, which binds onto the current draft, then merges that draft into the local one. */
+  readonly runServerEdit: (edit: () => Promise<unknown>) => Promise<void>;
   readonly onOps: (ops: AnyGameDocumentOp[]) => void;
   readonly onSelectEntity: (sceneId: string, entityId: string) => void;
   /** Drafts a prompt in the assistant, for slots whose generation needs a provider node the panel cannot pick. */
@@ -87,7 +81,7 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
   const selected = catalog.assets.find((entry) => entry.slot === selectedSlot) ?? filtered.assets[0] ?? null;
   const counts = { assets: filtered.assets.length, prefabs: filtered.prefabs.length, scenes: filtered.scenes.length };
 
-  const run = async (edit: (baseUpdatedAt: string) => Promise<GameAssetServerEditResult>): Promise<void> => {
+  const run = async (edit: () => Promise<unknown>): Promise<void> => {
     setBusy(true);
     try {
       await runServerEdit(edit);
@@ -97,10 +91,10 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
     finally { setBusy(false); }
   };
   const install = (slot: string, digest: string): Promise<void> =>
-    run((baseUpdatedAt) => trpcClient.games.installStagedCandidate.mutate({ id: gameId, baseUpdatedAt, slot, digest }));
-  const generate = (draft: GenerationDraft): Promise<void> => run((baseUpdatedAt) => {
+    run(() => trpcClient.games.installStagedCandidate.mutate({ id: gameId, slot, digest }));
+  const generate = (draft: GenerationDraft): Promise<void> => run(() => {
     const request: Parameters<typeof trpcClient.games.generateAsset.mutate>[0] = {
-      id: gameId, baseUpdatedAt, slot: draft.slot, kind: draft.kind, prompt: draft.prompt };
+      id: gameId, slot: draft.slot, kind: draft.kind, prompt: draft.prompt };
     if (draft.preparation) { request.preparation = { ...draft.preparation }; }
     return trpcClient.games.generateAsset.mutate(request);
   });

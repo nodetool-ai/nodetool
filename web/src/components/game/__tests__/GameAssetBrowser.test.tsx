@@ -5,7 +5,7 @@ import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import type { GameDocument } from "@nodetool-ai/protocol";
 
 import mockTheme from "../../../__mocks__/themeMock";
-import GameAssetBrowser, { type GameAssetServerEditResult } from "../panels/assets/GameAssetBrowser";
+import GameAssetBrowser from "../panels/assets/GameAssetBrowser";
 
 const mockBase = createTopDownRoomGame("asset-browser");
 const mockDocument: GameDocument = {
@@ -26,7 +26,7 @@ const mockServerData = {
     "sfx.collect": { kind: "sfx", prompt: "a bright chime", source: "template" }
   }
 };
-const mockResult: GameAssetServerEditResult = { document: mockDocument, game: { draftUpdatedAt: "t1" } };
+const mockResult = { document: mockDocument, game: { draftUpdatedAt: "t1" } };
 const mockInstall = jest.fn(async (_request: unknown) => mockResult);
 const mockGenerate = jest.fn(async (_request: unknown) => mockResult);
 const mockInvalidate = jest.fn(async () => undefined);
@@ -46,7 +46,7 @@ jest.mock("../panels/assets/GameAssetThumbnail", () => ({ __esModule: true,
 jest.mock("../../support/ReportBugButton", () => ({ __esModule: true, default: () => null }));
 
 function setup() {
-  const runServerEdit = jest.fn(async (edit: (baseUpdatedAt: string) => Promise<GameAssetServerEditResult>) => { await edit("base-token"); });
+  const runServerEdit = jest.fn(async (edit: () => Promise<unknown>) => { await edit(); });
   const onOps = jest.fn();
   const onSelectEntity = jest.fn();
   const onAskAssistant = jest.fn();
@@ -82,7 +82,7 @@ describe("GameAssetBrowser", () => {
     expect(screen.getByText("a red fox")).toBeInTheDocument();
     expect(screen.queryByText("image:Candidate dddddddddddd")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Use" }));
-    await waitFor(() => expect(mockInstall).toHaveBeenCalledWith({ id: "game-1", baseUpdatedAt: "base-token", slot: "player", digest: mockDigest }));
+    await waitFor(() => expect(mockInstall).toHaveBeenCalledWith({ id: "game-1", slot: "player", digest: mockDigest }));
     expect(runServerEdit).toHaveBeenCalledTimes(1);
     expect(mockInvalidate).toHaveBeenCalledWith({ id: "game-1" });
   });
@@ -97,7 +97,7 @@ describe("GameAssetBrowser", () => {
     await user.clear(prompt);
     await user.type(prompt, "a fox in a cloak");
     await user.click(within(dialog).getByRole("button", { name: "Generate and install" }));
-    await waitFor(() => expect(mockGenerate).toHaveBeenCalledWith({ id: "game-1", baseUpdatedAt: "base-token", slot: "player",
+    await waitFor(() => expect(mockGenerate).toHaveBeenCalledWith({ id: "game-1", slot: "player",
       kind: "image", prompt: "a fox in a cloak", preparation: { sheet: { cols: 4, rows: 2 } } }));
   });
 

@@ -59,6 +59,14 @@ describe("gameAssetCatalog", () => {
     expect(catalog.prefabs).toEqual([]);
   });
 
+  it("counts a mixer bus assignment as a use of its audio slot", () => {
+    const mixed = gameDocument.parse({ ...game2D, audio: { mixer: { assetBuses: { collect: "sfx", unused: "ui" } } } });
+    const bySlot = Object.fromEntries(gameAssetCatalog(mixed).assets.map((entry) => [entry.slot, entry]));
+    expect(bySlot.collect.usedBy).toContainEqual({ kind: "document", path: "audio.mixer.assetBuses.collect" });
+    expect(bySlot.collect.usedBy).toHaveLength(3);
+    expect(bySlot.unused.usedBy).toEqual([{ kind: "document", path: "audio.mixer.assetBuses.unused" }]);
+  });
+
   it("flags frame bindings left on the old bytes after the sheet is replaced", () => {
     const replaced = { ...game2D, assets: { ...game2D.assets, player: { ...game2D.assets.player, digest: digest("f"), assetId: "asset-f" } } };
     const entry = gameAssetCatalog(replaced).assets.find((asset) => asset.slot === "player");

@@ -80,11 +80,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Every `assetId`/`fontId` naming a bound slot under `value`, with its dotted path. */
 /** Bound slot names keyed by themselves, so a lookup with any field value answers the slot it names. */
 type SlotIndex = ReadonlyMap<unknown, string>;
 type CatalogEntity = Record<string, unknown> & { readonly id: string; readonly name?: string };
 
+/** Every `assetId`/`fontId` naming a bound slot under `value`, with its dotted path. */
 function collect(value: unknown, slots: SlotIndex, path: string[], out: { slot: string; path: string }[]): void {
   if (Array.isArray(value)) {
     value.forEach((item, index) => collect(item, slots, [...path, String(index)], out));
@@ -139,6 +139,10 @@ export function gameAssetCatalog(document: AnyGameDocument): GameAssetCatalog {
   const documentHits: { slot: string; path: string }[] = [];
   collect(rest, slots, [], documentHits);
   for (const { slot, path } of documentHits) { add(slot, { kind: "document", path }); }
+  // The mixer names audio slots by key rather than under `assetId`, so the walk above cannot see them.
+  for (const slot of Object.keys(document.audio?.mixer?.assetBuses ?? {})) {
+    add(slot, { kind: "document", path: `audio.mixer.assetBuses.${slot}` });
+  }
 
   const instances = isRecord(authoring) && Array.isArray(authoring["instances"]) ? authoring["instances"].filter(isRecord) : [];
   const prefabUsers = (prefabId: string): GameAssetReference[] => instances

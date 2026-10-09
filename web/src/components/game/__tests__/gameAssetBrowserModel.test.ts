@@ -1,6 +1,6 @@
 import { gameRenderFrame3D } from "@nodetool-ai/protocol";
 
-import { candidatesForSlot, lookAtQuaternion, modelThumbnailFrame, panelGenerationKind, waveformPeaks,
+import { BoundedPromiseCache, candidatesForSlot, lookAtQuaternion, modelThumbnailFrame, panelGenerationKind, waveformPeaks,
   type GameAssetCandidate } from "../panels/assets/gameAssetBrowserModel";
 
 function rotate(rotation: readonly number[], vector: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
@@ -64,5 +64,27 @@ describe("game asset browser model", () => {
     expect(Math.asin(radius / distance)).toBeLessThanOrEqual((projection.fov * Math.PI) / 360);
     expect(projection.near).toBeLessThan(distance - radius);
     expect(projection.far).toBeGreaterThan(distance + radius);
+  });
+
+  it("retries a failed load and evicts the least recently used entry", async () => {
+    const released: string[] = [];
+    const cache = new BoundedPromiseCache<string>(2, (value) => { released.push(value); });
+    let attempts = 0;
+    const flaky = async (): Promise<string> => {
+      attempts += 1;
+      if (attempts === 1) { throw new Error("offline"); }
+      return "loaded";
+    };
+    expect(await cache.get("a", flaky)).toBeNull();
+    expect(await cache.get("a", flaky)).toBe("loaded");
+    expect(await cache.get("a", flaky)).toBe("loaded");
+    expect(attempts).toBe(2);
+    await cache.get("b", async () => "b");
+    await cache.get("a", async () => "unused");
+    await cache.get("c", async () => "c");
+    await Promise.resolve();
+    expect(cache.size).toBe(2);
+    expect(released).toEqual(["b"]);
+    expect(await cache.get("a", async () => "reloaded")).toBe("loaded");
   });
 });
