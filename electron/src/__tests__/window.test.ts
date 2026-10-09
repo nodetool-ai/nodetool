@@ -237,58 +237,59 @@ describe('Window Module', () => {
   });
   
   describe('handleActivation', () => {
-    it('should create a new window if no visible windows exist', () => {
-      // Mock no visible windows
-      (BrowserWindow.getAllWindows as any).mockReturnValue([]);
+    const makeMainWindow = (minimized: boolean) => ({
+      isDestroyed: jest.fn().mockReturnValue(false),
+      isMinimized: jest.fn().mockReturnValue(minimized),
+      restore: jest.fn(),
+      show: jest.fn(),
+      focus: jest.fn(),
+    });
+
+    it('creates a window when there is no main window', () => {
+      (getMainWindow as jest.Mock).mockReturnValue(null);
       (BrowserWindow as any).mockClear();
 
       handleActivation();
 
       expect(BrowserWindow).toHaveBeenCalled();
     });
-    
-    it('should show, restore and focus existing main window on macOS if minimized', () => {
-      // Mock platform as darwin (macOS)
-      Object.defineProperty(process, 'platform', { value: 'darwin' });
-      
-      // Mock a minimized main window
-      const mockMainWindow = {
-        isMinimized: jest.fn().mockReturnValue(true),
-        restore: jest.fn(),
-        show: jest.fn(),
-        focus: jest.fn(),
-      };
-      (getMainWindow as jest.Mock).mockReturnValue(mockMainWindow);
-      
-      // Mock at least one visible window
-      (BrowserWindow.getAllWindows as any).mockReturnValue([{ isDestroyed: () => false, isVisible: () => true }]);
-      
-      handleActivation();
-      
-      // Should restore, show and focus the window
-      expect(mockMainWindow.restore).toHaveBeenCalled();
-      expect(mockMainWindow.show).toHaveBeenCalled();
-      expect(mockMainWindow.focus).toHaveBeenCalled();
-    });
-    
-    it('should create a new window on macOS if main window is null', () => {
-      // Mock platform as darwin (macOS)
-      Object.defineProperty(process, 'platform', { value: 'darwin' });
-      
-      // Mock main window as null
-      (getMainWindow as jest.Mock).mockReturnValue(null);
-      
-      // Mock at least one visible window
-      (BrowserWindow.getAllWindows as any).mockReturnValue([{ isDestroyed: () => false, isVisible: () => true }]);
-      
-      // Clear previous mock calls
+
+    it('creates a window when the main window was destroyed', () => {
+      (getMainWindow as jest.Mock).mockReturnValue({ isDestroyed: () => true });
       (BrowserWindow as any).mockClear();
-      
+
       handleActivation();
-      
-      // Should attempt to create a new window
-      // We're not actually testing the createWindow function again, just that it's called
-      expect(getMainWindow).toHaveBeenCalled();
+
+      expect(BrowserWindow).toHaveBeenCalled();
+    });
+
+    it.each(['darwin', 'win32', 'linux'])(
+      'restores, shows and focuses a minimized main window on %s',
+      (platform) => {
+        Object.defineProperty(process, 'platform', { value: platform });
+        const mockMainWindow = makeMainWindow(true);
+        (getMainWindow as jest.Mock).mockReturnValue(mockMainWindow);
+        (BrowserWindow as any).mockClear();
+
+        handleActivation();
+
+        expect(mockMainWindow.restore).toHaveBeenCalled();
+        expect(mockMainWindow.show).toHaveBeenCalled();
+        expect(mockMainWindow.focus).toHaveBeenCalled();
+        expect(BrowserWindow).not.toHaveBeenCalled();
+      },
+    );
+
+    it('shows a hidden main window instead of opening a second one', () => {
+      const mockMainWindow = makeMainWindow(false);
+      (getMainWindow as jest.Mock).mockReturnValue(mockMainWindow);
+      (BrowserWindow.getAllWindows as any).mockReturnValue([]);
+      (BrowserWindow as any).mockClear();
+
+      handleActivation();
+
+      expect(mockMainWindow.show).toHaveBeenCalled();
+      expect(BrowserWindow).not.toHaveBeenCalled();
     });
   });
 

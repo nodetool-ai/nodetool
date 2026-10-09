@@ -114,7 +114,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
     useGlobalChatStore(
       useShallow((state) => ({
         isLoading: state.isLoadingThreads,
-        threadsError: state.error,
+        threadsError: state.threadsError,
         threads: state.threads,
         messageCache: state.messageCache,
         deleteThread: state.deleteThread

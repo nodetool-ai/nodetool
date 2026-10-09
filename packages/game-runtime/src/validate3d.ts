@@ -7,6 +7,7 @@ import { gameScriptParamValueOf } from "@nodetool-ai/protocol";
 import { scriptParamReferenceIssues } from "./script-params.js";
 import { GAME_ENGINE_4_UNAVAILABLE, validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
+import { validateAnimationGraph3D, validateAnimatorGraph3D } from "./validate-animation-graph3d.js";
 
 export interface GameValidationResult3D {
   readonly valid: boolean;
@@ -61,6 +62,9 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           add("ambiguous_selector", ["assets", slot], "Prepared node and clip IDs must be unique");
         }
       }
+    }
+    for (const [graphId, graph] of Object.entries(document.animationGraphs ?? {})) {
+      validateAnimationGraph3D(graph, ["animationGraphs", graphId], add);
     }
 
     function validateEntities(entities: readonly GameEntity3D[], path: (string | number)[], prefab?: GamePrefab3D): void {
@@ -159,6 +163,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           if (entity.animator3d.initialClip && !(entity.animator3d.initialClip in entity.animator3d.clips)) {
             add("missing_animation_clip", [...entityPath, "animator3d", "initialClip"], "Initial clip alias does not exist");
           }
+          validateAnimatorGraph3D(document, entity, asset || undefined, [...entityPath, "animator3d"], add);
         }
         for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
           if (behavior.kind === "script") {

@@ -10,7 +10,7 @@ import { GameSkyRenderer3D, type GameSkySources3D } from "./environment/sky.js";
 import { paintGameHud } from "./hud/paint.js";
 import { applyDistanceCulling3D } from "./culling.js";
 export { interpolateGameTransform3D } from "./scene-sync.js";
-export { sampleGameAnimation3D } from "./animation/index.js";
+export { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
 import * as THREE from "three";
 import type { GameRenderFrame3D } from "@nodetool-ai/protocol";
 

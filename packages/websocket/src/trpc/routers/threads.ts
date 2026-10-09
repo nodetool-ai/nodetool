@@ -9,6 +9,7 @@
 import { Thread, Message, Memory, Project } from "@nodetool-ai/models";
 import type { Thread as ThreadModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
+import { chatTurnRegistry } from "../../chat-turn-registry.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
@@ -158,6 +159,9 @@ export const threadsRouter = router({
       if (!thread) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Thread not found");
       }
+      // A turn still running would keep writing messages and memories into
+      // the deleted thread, so it stops first.
+      chatTurnRegistry.abortThreads(ctx.userId, new Set([input.id]));
       // Delete all messages in the thread
       await Message.deleteByThread(input.id);
       // Drop the thread's durable memories along with it so per-conversation

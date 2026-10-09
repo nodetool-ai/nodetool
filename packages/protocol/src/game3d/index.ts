@@ -13,6 +13,7 @@ import { gameCharacter3D } from "./components/character.js";
 import { gameCameraProjection3D, gameCamera3D } from "./components/camera.js";
 import { gameLight3D } from "./components/light.js";
 import { gameAnimator3D } from "./components/animator.js";
+import { gameAnimationGraphRuntime3D, gameAnimationGraphs3D, gameAnimationPose3D } from "./components/animation-graph.js";
 import { gameEnvironment3D } from "./components/environment.js";
 import { gameAssetBinding3D } from "./components/assets.js";
 import { gamePerformance3D, gameRenderCulling3D } from "./components/performance.js";
@@ -73,6 +74,7 @@ export const gameDocument3D = z.strictObject({
   inputActions: z.array(id).max(64), inputAxes: z.array(id).max(16).default(["moveX", "moveZ"]), inputBindings: gameInputBindings.optional(),
   collisionLayers: z.array(id).max(16).optional(), assets: z.record(id, gameAssetBinding3D),
   prefabs: z.record(id, gamePrefab3D).default({}), scenes: z.array(gameScene3D).min(1).max(64),
+  animationGraphs: gameAnimationGraphs3D.optional(),
   audio: gameAudioSettings.optional(),
   performance: gamePerformance3D.optional()
 });
@@ -137,7 +139,7 @@ export const gameRenderFrame3D = z.strictObject({
   dimension: z.literal("3d"), gameId: id, sceneId: id, tick, presentation: gamePresentation3D,
   camera: z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D.optional(), projection: gameCameraProjection3D }),
   entities: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D,
-    primitive: gamePrimitive3D.optional(), model: gameModel3D.optional(), animation: gameAnimationState3D.optional(), opacity: finite.min(0).max(1).optional(),
+    primitive: gamePrimitive3D.optional(), model: gameModel3D.optional(), animation: gameAnimationState3D.optional(), animationPose: gameAnimationPose3D.optional(), opacity: finite.min(0).max(1).optional(),
     particles: gameEntity.shape.particles,
     cullDistance: positive.optional().describe("Camera distance beyond which the renderer hides this entity, resolved from renderCulling.") })),
   lights: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, light: gameLight3D })),
@@ -151,7 +153,8 @@ export const gameEntityState3D = z.strictObject({
   transform: gameTransform3D, previousTransform: gameTransform3D, velocity: gameVector3, angularVelocity: gameVector3,
   active: z.boolean(), props: gameEntityProps.optional(), health: z.number().int().optional(), grounded: z.boolean().default(false),
   controller: z.strictObject({ coyoteRemaining: tick, jumpBufferRemaining: tick, verticalVelocity: finite, supportId: id.optional() }).optional(),
-  animation: gameAnimationState3D.optional(), localTransform: gameTransform3D.optional(), opacity: finite.min(0).max(1).optional()
+  animation: gameAnimationState3D.optional(), localTransform: gameTransform3D.optional(), opacity: finite.min(0).max(1).optional(),
+  animationGraph: gameAnimationGraphRuntime3D.optional()
 });
 
 export type GameEntityState3D = z.infer<typeof gameEntityState3D>;
@@ -200,7 +203,8 @@ export const gameScriptCommand3D = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("rayQuery"), queryId: id.max(64), origin: gameVector3, direction: gameVector3, maxDistance: positive.max(10000), mask: layerBits.default(0xffff) }),
   z.strictObject({ kind: z.literal("shapeQuery"), queryId: id.max(64), shape: gameQueryShape3D,
     position: gameVector3, rotation: gameQuaternion3D.default([0, 0, 0, 1]), mask: layerBits.default(0xffff),
-    includeSensors: z.boolean().default(false), maximumResults: z.number().int().min(1).max(32).default(16) })
+    includeSensors: z.boolean().default(false), maximumResults: z.number().int().min(1).max(32).default(16) }),
+  z.strictObject({ kind: z.literal("setAnimParam"), name: id.max(64), value: z.union([finite.min(-1e6).max(1e6), z.boolean()]) })
 ]);
 
 export type GameScriptCommand3D = z.infer<typeof gameScriptCommand3D>;
@@ -264,6 +268,14 @@ export { gameCameraProjection3D, gameCamera3D, type GameCamera3D } from "./compo
 export { gameLight3D, type GameLight3D } from "./components/light.js";
 
 export { gameAnimator3D } from "./components/animator.js";
+
+export {
+  gameAnimationParameter3D, type GameAnimationParameter3D, gameAnimationMotion3D, type GameAnimationMotion3D,
+  gameAnimationGraphNode3D, type GameAnimationGraphNode3D, gameAnimationCondition3D, type GameAnimationCondition3D,
+  gameAnimationTransition3D, type GameAnimationTransition3D, gameAnimationLayer3D, type GameAnimationLayer3D,
+  gameAnimationGraph3D, type GameAnimationGraph3D, gameAnimationGraphs3D, gameAnimationGraphRuntime3D, type GameAnimationGraphRuntime3D,
+  gameAnimationPose3D, type GameAnimationPose3D
+} from "./components/animation-graph.js";
 
 export { gameEnvironment3D, type GameEnvironment3D, gameSky3D, type GameSky3D } from "./components/environment.js";
 

@@ -21,9 +21,10 @@ const extensionDistPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "chrome-extension")
   : path.join(__dirname, "..", "..", "chrome-extension", "dist");
 
-// PID file configuration for server process management
-// Note: E2E tests in tests/e2e/ must use the same paths for proper cleanup
-const PID_DIRECTORY: string = path.join(app.getPath("temp"), "nodetool-electron");
+// PID file of the backend this app launched. It lives in the per-user app
+// data directory: on Linux the temp directory is the shared /tmp, where
+// another account could plant or block the file.
+const PID_DIRECTORY: string = app.getPath("userData");
 const PID_FILE_PATH: string = path.join(PID_DIRECTORY, "server.pid");
 
 // Returns a sane default install location if settings do not define CONDA_ENV
@@ -457,6 +458,16 @@ const getLocalFileRootsEnv = (
 ): string => env["NODETOOL_LOCAL_FILE_ROOTS"] || "*";
 
 /**
+ * Persists a new conda env location. The path is cached for the life of the
+ * process, so writing only the setting would leave installs and status reads
+ * on the old location until the next launch.
+ */
+const setCondaEnvPath = (location: string): void => {
+  updateSetting("CONDA_ENV", location);
+  cachedCondaEnvPath = location;
+};
+
+/**
  * Resets the cached conda env path. Intended for use in tests only so that
  * each test case starts with a clean slate.
  */
@@ -466,6 +477,7 @@ const _resetCondaEnvCache = (): void => {
 
 export {
   getCondaEnvPath,
+  setCondaEnvPath,
   getNodePath,
   getPythonPath,
   getUVPath,
