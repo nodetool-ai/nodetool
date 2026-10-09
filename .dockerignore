@@ -1,5 +1,7 @@
-node_modules
-web/node_modules
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+**/.turbo
 .git
 electron
 # The root postinstall runs this script during `npm ci` in the image, so it

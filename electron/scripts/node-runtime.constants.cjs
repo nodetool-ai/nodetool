@@ -9,7 +9,7 @@ const path = require("path");
 // Pinned to .nvmrc. The backend runs on this exact Node; better-sqlite3 is
 // rebuilt against its ABI, so bumping this requires re-fetching binaries and
 // rebuilding native modules.
-const NODE_RUNTIME_VERSION = "22.22.1";
+const NODE_RUNTIME_VERSION = "24.18.0";
 
 /** All platforms electron-builder can target; used when prefetching every arch. */
 const ALL_NODE_RUNTIME_TARGETS = [

@@ -13,6 +13,9 @@
     },
     {
       "path": "../runtime"
+    },
+    {
+      "path": "../config"
     }
   ]
 }

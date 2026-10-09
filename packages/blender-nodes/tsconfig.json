@@ -10,6 +10,8 @@
     { "path": "../protocol" },
     { "path": "../runtime" },
     { "path": "../node-sdk" },
-    { "path": "../nodes-utils" }
+    { "path": "../nodes-utils" },
+    { "path": "../model3d" },
+    { "path": "../timeline" }
   ]
 }

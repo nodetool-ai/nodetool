@@ -26,6 +26,12 @@
     },
     {
       "path": "../node-sdk"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../atlascloud-nodes"
     }
   ]
 }

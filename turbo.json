@@ -12,6 +12,8 @@
     ".nvmrc",
     "package-lock.json",
     "scripts/build-typescript-workspace.mjs",
+    "scripts/resolve-tsc.mjs",
+    "scripts/run-tsc.mjs",
     "scripts/copy-manifests.mjs",
     // Files that package tests read from outside any package. These must live
     // here, not in a task's `inputs`: the PR gate runs `turbo run test
@@ -39,6 +41,53 @@
         "src/**/*.json"
       ],
       "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
+    },
+    // The web app (workspace name `nodetool`) is built by Vite, which reads
+    // config, HTML and static files outside `src/`, plus build-time env:
+    // GIT_COMMIT_HASH / BUILD_NUMBER in vite.config.ts and VITE_* inlined
+    // into `import.meta.env`.
+    "nodetool#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "scripts/**",
+        "tsconfig*.json",
+        "package.json",
+        "vite.config.ts",
+        "index.html",
+        "public/**",
+        "vite-node-stubs/**",
+        ".env*"
+      ],
+      "outputs": ["dist/**"],
+      "env": ["GIT_COMMIT_HASH", "BUILD_NUMBER", "VITE_*"]
+    },
+    // The desktop app runs tsc, Vite (main, preload and the renderer pages),
+    // the root backend/MCPB bundlers, then electron-builder.
+    "nodetool-electron#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "scripts/**",
+        "tsconfig*.json",
+        "package.json",
+        "vite.config.ts",
+        "index.html",
+        "pages/**",
+        "assets/**",
+        "resources/**",
+        "electron-builder.json",
+        "$TURBO_ROOT$/scripts/bundle-backend.mjs",
+        "$TURBO_ROOT$/scripts/build-mcpb.mjs"
+      ],
+      "outputs": [
+        "dist/**",
+        "dist-electron/**",
+        "dist-web/**",
+        "backend-bundle/**",
+        "mcpb/**"
+      ],
+      "env": ["NODETOOL_BUNDLE_ARCH", "NODETOOL_BUNDLE_PLATFORM"]
     },
     "test": {
       // Also the package's OWN build: 84 test files across 13 node packages

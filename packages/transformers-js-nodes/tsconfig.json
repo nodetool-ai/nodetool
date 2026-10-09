@@ -20,6 +20,18 @@
     },
     {
       "path": "../config"
+    },
+    {
+      "path": "../audio-nodes"
+    },
+    {
+      "path": "../nodes-utils"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../runtime"
     }
   ]
 }

@@ -12,6 +12,8 @@
     { "path": "../runtime" },
     { "path": "../node-sdk" },
     { "path": "../nodes-utils" },
-    { "path": "../image-nodes" }
+    { "path": "../image-nodes" },
+    { "path": "../browser" },
+    { "path": "../config" }
   ]
 }

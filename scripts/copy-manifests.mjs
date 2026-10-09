@@ -1,39 +1,55 @@
 #!/usr/bin/env node
 /**
- * Copy node-package manifest JSON files from each package's `src/` into its
- * `dist/` after a TypeScript build. `tsc` only emits `.js`/`.d.ts`, so these
- * hand-authored manifests (consumed at runtime by the node registry) must be
- * copied alongside the compiled output.
+ * Finish `npm run build:packages:tsc` after `tsc --build tsconfig.build.json`.
  *
- * Centralized here so the manifest list lives in one place instead of being
- * duplicated as inline `fs.cpSync` calls across root package.json scripts.
+ * A package build is `node ../../scripts/build-typescript-workspace.mjs`,
+ * sometimes followed by `&& <post-tsc steps>`: copying manifests and generated
+ * JSON into dist/, generating the protocol schema, or bundling browser pages.
+ * The root `tsc --build` replaces only the first command, so this script runs
+ * each package's remaining steps from its own `build` script. Reading them from
+ * package.json keeps one list of post-tsc steps for both build paths.
  */
-import { cpSync, existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const TSC_STEP = "node ../../scripts/build-typescript-workspace.mjs";
 
-/** Packages that ship a `<name>-manifest.json` in src/ to be copied into dist/. */
-const MANIFESTS = [
-  ["replicate-nodes", "replicate-manifest.json"],
-  ["fal-nodes", "fal-manifest.json"],
-  ["kie-nodes", "kie-manifest.json"],
-  ["topaz-nodes", "topaz-manifest.json"],
-  ["atlascloud-nodes", "atlascloud-manifest.json"],
-  ["together-nodes", "together-manifest.json"]
-];
+const rootManifest = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8"));
 
-let copied = 0;
-for (const [pkg, file] of MANIFESTS) {
-  const from = resolve(repoRoot, "packages", pkg, "src", file);
-  const to = resolve(repoRoot, "packages", pkg, "dist", file);
-  if (!existsSync(from)) {
-    console.warn(`copy-manifests: source missing, skipping ${pkg}/src/${file}`);
+let inspected = 0;
+let ran = 0;
+for (const workspace of rootManifest.workspaces) {
+  if (!workspace.startsWith("packages/")) {
     continue;
   }
-  cpSync(from, to);
-  copied++;
+  const dir = resolve(repoRoot, workspace);
+  const manifest = JSON.parse(readFileSync(resolve(dir, "package.json"), "utf8"));
+  const build = manifest.scripts?.build ?? "";
+  if (!build.startsWith(TSC_STEP)) {
+    continue;
+  }
+  inspected++;
+  const rest = build.slice(TSC_STEP.length).trim();
+  if (rest === "") {
+    continue;
+  }
+  if (!rest.startsWith("&&")) {
+    throw new Error(`copy-manifests: unexpected build script in ${workspace}: ${build}`);
+  }
+  const command = rest.slice(2).trim();
+  console.log(`copy-manifests: ${workspace}: ${command}`);
+  const result = spawnSync(command, { cwd: dir, shell: true, stdio: "inherit" });
+  if (result.status !== 0) {
+    console.error(`copy-manifests: post-tsc step failed in ${workspace}`);
+    process.exit(result.status ?? 1);
+  }
+  ran++;
 }
 
-console.log(`copy-manifests: copied ${copied}/${MANIFESTS.length} manifest(s)`);
+if (inspected === 0) {
+  throw new Error("copy-manifests: found no package build scripts to inspect");
+}
+console.log(`copy-manifests: ran post-tsc steps for ${ran}/${inspected} package(s)`);

@@ -78,6 +78,54 @@
     },
     {
       "path": "../telegram"
+    },
+    {
+      "path": "../atlascloud-nodes"
+    },
+    {
+      "path": "../browser"
+    },
+    {
+      "path": "../app-runtime"
+    },
+    {
+      "path": "../compute"
+    },
+    {
+      "path": "../deploy"
+    },
+    {
+      "path": "../game-runtime"
+    },
+    {
+      "path": "../game-renderer"
+    },
+    {
+      "path": "../huggingface"
+    },
+    {
+      "path": "../huggingface-nodes"
+    },
+    {
+      "path": "../reve-nodes"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../transformers-js-provider"
+    },
+    {
+      "path": "../vectorstore"
+    },
+    {
+      "path": "../video-nodes"
+    },
+    {
+      "path": "../websocket"
+    },
+    {
+      "path": "../whisper-cpp"
     }
   ]
 }

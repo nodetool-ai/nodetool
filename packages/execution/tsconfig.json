@@ -28,6 +28,21 @@
     },
     {
       "path": "../runtime"
+    },
+    {
+      "path": "../app-runtime"
+    },
+    {
+      "path": "../model-pricing"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../timeline"
     }
   ]
 }

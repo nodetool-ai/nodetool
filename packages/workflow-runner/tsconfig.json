@@ -11,6 +11,10 @@
     { "path": "../protocol" },
     { "path": "../runtime" },
     { "path": "../kernel" },
-    { "path": "../node-sdk" }
+    { "path": "../node-sdk" },
+    { "path": "../agents" },
+    { "path": "../base-nodes" },
+    { "path": "../code-nodes" },
+    { "path": "../gpu" }
   ]
 }

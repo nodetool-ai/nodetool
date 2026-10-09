@@ -67,17 +67,6 @@ jobs:
             flatpak-sdk-${{ runner.os }}-24.08-
             flatpak-sdk-${{ runner.os }}-
       
-      - name: Cache node_modules
-        uses: actions/cache@v6
-        with:
-          path: |
-            web/node_modules
-            electron/node_modules
-            ~/.npm
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            node-modules-${{ runner.os }}-
-      
       - name: Install Flatpak dependencies
         run: |
           # Add Flathub repository

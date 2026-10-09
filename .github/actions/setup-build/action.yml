@@ -108,3 +108,15 @@ runs:
       if: inputs.build-packages == 'true'
       shell: bash
       run: npm run build:packages
+
+    # The cache step saves `.turbo/cache` under a new per-SHA key after
+    # restoring the newest one, so without pruning it carries every entry ever
+    # written. Drop entries older than a week before the save. tar restores
+    # each entry's own mtime, so a cache hit does not refresh it, and an entry
+    # for an unchanged package is rebuilt at most once a week.
+    - name: Prune old Turbo build outputs
+      if: inputs.build-packages == 'true'
+      shell: bash
+      run: |
+        find .turbo/cache -maxdepth 1 -type f -mtime +7 -delete
+        echo "$(find .turbo/cache -maxdepth 1 -type f | wc -l) entries, $(du -sh .turbo/cache | cut -f1)"

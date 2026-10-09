@@ -13,8 +13,7 @@
         "dist-electron/**/*",
         "dist-web/**/*",
         "!dist-web/**/*.map",
-        "!dist-electron/**/*.map",
-        "app-update.yml"
+        "!dist-electron/**/*.map"
     ],
     "extraResources": [
         {
@@ -27,7 +26,11 @@
         },
         {
             "from": "../chrome-extension/dist",
-            "to": "chrome-extension"
+            "to": "chrome-extension",
+            "filter": [
+                "**/*",
+                "!**/*.map"
+            ]
         },
         {
             "from": "backend-bundle",

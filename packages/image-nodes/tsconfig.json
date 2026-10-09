@@ -13,6 +13,7 @@
     { "path": "../runtime" },
     { "path": "../node-sdk" },
     { "path": "../nodes-utils" },
-    { "path": "../gpu" }
+    { "path": "../gpu" },
+    { "path": "../config" }
   ]
 }
