@@ -116,15 +116,35 @@ describe("HDRI sky in real Chromium", () => {
         };
         const decoded = await capture(true, [frames.hdri, frames.rotated, frames.color, frames.plain, frames.missing]);
         const undecoded = await capture(false, [frames.hdri, frames.color]);
-        return { decoded, undecoded, decodes };
+        const movingRenderer = await window.skyHarness.factory({ canvas });
+        const textureCounts: number[] = [];
+        const targets = new Set<unknown>();
+        try {
+          movingRenderer.resize(192, 128);
+          for (const frame of frames.moving) {
+            textureCounts.push((await movingRenderer.render(frame, 1)).textures);
+            targets.add(movingRenderer.getScene().background);
+            targets.add(movingRenderer.getScene().environment);
+          }
+        } finally { movingRenderer.dispose(); }
+        return { decoded, undecoded, decodes, textureCounts, movingTargets: targets.size };
       }, { frames: { hdri, rotated: sphereFrame({ kind: "hdri", assetId: "studio", rotation: Math.PI, intensity: 1 }),
-        color: sphereFrame({ kind: "color" }), plain: sphereFrame(), missing: sphereFrame({ kind: "hdri", assetId: "absent", rotation: 0, intensity: 1 }) },
+        color: sphereFrame({ kind: "color" }), plain: sphereFrame(), missing: sphereFrame({ kind: "hdri", assetId: "absent", rotation: 0, intensity: 1 }),
+        moving: [0, 0.2, 0.4, 0.6, 0.8].map((angle) => {
+          const frame = sphereFrame({ kind: "procedural", sunEntityId: "sun", turbidity: 10, rayleigh: 2, groundColor: "#3d3a36", intensity: 1 });
+          frame.lights = [{ entityId: "sun", transform: { ...transform, rotation: [Math.sin(-0.3 - angle), 0, 0, Math.cos(-0.3 - angle)] },
+            light: { kind: "directional", color: "#ffffff", intensity: 1, castShadow: false } }];
+          return frame;
+        }) },
       pixels: equirectangularPixels() });
       expect(pageErrors).toEqual([]);
       const png = (dataUrl: string | undefined): Buffer => Buffer.from((dataUrl ?? "").replace(/^data:image\/png;base64,/, ""), "base64");
       const [lit, rotated, color, plain, missing] = result.decoded.images.map(png);
       if (!lit || !rotated || !color || !plain || !missing) { throw new Error("Sky captures are missing"); }
       expect(result.decodes).toBe(1);
+      // A sun that moves every frame re-renders into the retained cube and PMREM targets instead of allocating new ones.
+      expect(new Set(result.textureCounts).size).toBe(1);
+      expect(result.movingTargets).toBe(2);
       expect(result.decoded.environments).toEqual([true, true, false, false, false]);
       expect(result.decoded.diagnostics).toEqual(["HDRI sky absent is missing; rendering the background color"]);
       if (process.env["UPDATE_NATIVE_GAME_GOLDENS"] === "1") { await writeFile(golden, lit); }

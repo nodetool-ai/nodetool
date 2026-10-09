@@ -31,7 +31,7 @@ interface LoadedHdri {
 export class GameSkyRenderer3D {
   private applied: string | undefined;
   private pmrem: THREE.PMREMGenerator | undefined;
-  private procedural: { readonly key: string; readonly cube: THREE.WebGLCubeRenderTarget; readonly environment: THREE.WebGLRenderTarget } | undefined;
+  private procedural: { key: string; readonly cube: THREE.WebGLCubeRenderTarget; readonly camera: THREE.CubeCamera; readonly environment: THREE.WebGLRenderTarget } | undefined;
   private proceduralScene: { readonly scene: THREE.Scene; readonly sky: Sky; readonly ground: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial> } | undefined;
   private readonly hdris = new Map<string, Promise<LoadedHdri | null>>();
   private readonly reported = new Set<string>();
@@ -43,8 +43,14 @@ export class GameSkyRenderer3D {
     const sky = frame.environment.sky;
     if (sky?.kind === "procedural") { this.applyProcedural(scene, sky, frame); return; }
     if (sky?.kind === "hdri") {
-      const loaded = await this.loadHdri(sky);
-      this.signal.throwIfAborted();
+      let pending: Promise<LoadedHdri | null>;
+      let loaded: LoadedHdri | null;
+      // A reset or invalidation during the await disposes the awaited result, so load the slot again.
+      do {
+        pending = this.loadHdri(sky);
+        loaded = await pending;
+        this.signal.throwIfAborted();
+      } while (this.hdris.get(sky.assetId) !== pending);
       if (loaded) { this.applyHdri(scene, sky, loaded); return; }
     }
     this.clear(scene);
@@ -100,11 +106,8 @@ export class GameSkyRenderer3D {
   private applyProcedural(scene: THREE.Scene, sky: ProceduralSky3D, frame: GameRenderFrame3D): void {
     const sun = gameSkySunDirection3D(sky, frame);
     const key = JSON.stringify([sky.turbidity, sky.rayleigh, sky.groundColor, sun.x, sun.y, sun.z]);
-    if (this.procedural?.key !== key) {
-      this.releaseProcedural();
-      const target = this.proceduralTarget(sky, sun);
-      this.procedural = { key, ...target };
-    }
+    if (this.procedural?.key !== key) { this.renderProcedural(key, sky, sun); }
+    if (!this.procedural) { throw new Error("Procedural sky targets are missing"); }
     const { cube, environment } = this.procedural;
     scene.background = cube.texture;
     scene.environment = environment.texture;
@@ -115,7 +118,8 @@ export class GameSkyRenderer3D {
     this.applied = "procedural";
   }
 
-  private proceduralTarget(sky: ProceduralSky3D, sun: THREE.Vector3): { cube: THREE.WebGLCubeRenderTarget; environment: THREE.WebGLRenderTarget } {
+  /** Renders the sky into the retained cube and PMREM targets, allocating them only on first use. */
+  private renderProcedural(key: string, sky: ProceduralSky3D, sun: THREE.Vector3): void {
     if (!this.proceduralScene) {
       const skyMesh = new Sky();
       skyMesh.scale.setScalar(10);
@@ -134,13 +138,15 @@ export class GameSkyRenderer3D {
     skyMesh.material.uniforms.rayleigh.value = sky.rayleigh;
     skyMesh.material.uniforms.sunPosition.value.copy(sun);
     ground.material.color.set(sky.groundColor);
-    const cube = new THREE.WebGLCubeRenderTarget(PROCEDURAL_CUBE_SIZE, { type: THREE.HalfFloatType, generateMipmaps: false });
-    const camera = new THREE.CubeCamera(0.1, 100, cube);
+    const existing = this.procedural;
+    const cube = existing?.cube ?? new THREE.WebGLCubeRenderTarget(PROCEDURAL_CUBE_SIZE, { type: THREE.HalfFloatType, generateMipmaps: false });
+    const camera = existing?.camera ?? new THREE.CubeCamera(0.1, 100, cube);
     const autoClear = this.renderer.autoClear;
     this.renderer.autoClear = true;
     try { camera.update(this.renderer, scene); }
     finally { this.renderer.autoClear = autoClear; }
-    return { cube, environment: this.generator().fromCubemap(cube.texture) };
+    const environment = this.generator().fromCubemap(cube.texture, existing?.environment ?? null);
+    this.procedural = { key, cube, camera, environment };
   }
 
   private applyHdri(scene: THREE.Scene, sky: HdriSky3D, loaded: LoadedHdri): void {
