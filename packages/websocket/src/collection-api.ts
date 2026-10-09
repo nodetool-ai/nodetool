@@ -111,12 +111,6 @@ export async function handleCollectionRequest(
       typeof embeddingProvider === "string" ? embeddingProvider : null,
       { userId }
     );
-    if (!embeddingFunction) {
-      return errorResponse(
-        400,
-        `No provider is configured for embedding model '${embeddingModel}'.`
-      );
-    }
 
     const formData = await request.formData();
     const file = formData.get("file");
