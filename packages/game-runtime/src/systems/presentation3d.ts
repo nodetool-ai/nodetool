@@ -10,10 +10,10 @@ import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { type EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { animationPose3D } from "./animation-graph3d.js";
-type PresentationContext3D = Readonly<Pick<GameSystemContext3D, "tick" | "events" | "frame" | "scriptStats">> &
+type PresentationContext3D = Readonly<Pick<GameSystemContext3D, "tick" | "events" | "frame" | "scriptStats" | "queues">> &
   Pick<GameSystemContext3D, "presentationEvents" | "result">;
 export function stepPresentation3D(context: PresentationContext3D): void {
-  context.presentationEvents = structuredClone(context.events);
+  context.presentationEvents = [...structuredClone(context.events), ...(context.queues.particles ?? [])];
   context.result = {
     tick: context.tick,
     events: context.events,
@@ -97,6 +97,9 @@ export function frame3D(
           entity.animationPose = pose;
         } else if (state.animation) {
           entity.animation = structuredClone(state.animation);
+        }
+        if (state.definition.particles) {
+          entity.particles = state.definition.particles;
         }
         return entity;
       }),

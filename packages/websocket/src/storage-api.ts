@@ -12,7 +12,7 @@ import {
   callerOwnsStorageKey,
   canReadStorageKey
 } from "./lib/storage-access.js";
-import { isString } from "./lib/wire-values.js";
+import { streamedResponse } from "./lib/bridge.js";
 import { lookupExternalAssetPath } from "./lib/external-asset-lookup.js";
 
 // ── MIME types ────────────────────────────────────────────────────
@@ -208,31 +208,6 @@ export function parseRangeHeader(
   return { start, end };
 }
 
-// ── Node.js ReadableStream wrapper around fs.createReadStream ─────
-
-export function nodeStreamToWebStream(
-  filePath: string,
-  options?: { start?: number; end?: number }
-): ReadableStream<Uint8Array> {
-  const nodeStream = createReadStream(filePath, options);
-  return new ReadableStream<Uint8Array>({
-    start(controller) {
-      nodeStream.on("data", (chunk) => {
-        if (isString(chunk)) {
-          controller.enqueue(Buffer.from(chunk));
-        } else {
-          controller.enqueue(chunk);
-        }
-      });
-      nodeStream.on("end", () => controller.close());
-      nodeStream.on("error", (err) => controller.error(err));
-    },
-    cancel() {
-      nodeStream.destroy();
-    }
-  });
-}
-
 // ── Per-store handler ─────────────────────────────────────────────
 
 async function handleStorageRequest(
@@ -402,8 +377,7 @@ async function handleStorageRequest(
   if (range) {
     const { start, end } = range;
     const chunkSize = end - start + 1;
-    const body = nodeStreamToWebStream(filePath, { start, end });
-    return new Response(body, {
+    return streamedResponse(createReadStream(filePath, { start, end }), {
       status: 206,
       headers: {
         ...cors,
@@ -418,8 +392,7 @@ async function handleStorageRequest(
   }
 
   // Full file
-  const body = nodeStreamToWebStream(filePath);
-  return new Response(body, {
+  return streamedResponse(createReadStream(filePath), {
     status: 200,
     headers: {
       ...cors,

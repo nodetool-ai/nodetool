@@ -17,6 +17,22 @@ export const applyGameAuthoringSpec: CapabilitySpec = {
   category: "write", userMessage: () => "Applying game construction"
 };
 
+export const BROWSE_GAME_ASSET_KINDS = ["image", "audio", "font", "model", "collider", "hdri"] as const;
+
+export const browseGameAssetsSpec: CapabilitySpec = {
+  name: "browse_native_game_assets",
+  description: "List a game draft's assets with where each is used, its prefabs and scenes, staged candidates under the game's assets folder, and the generation request (kind, prompt, preparation) for each slot. Filter with query and kind. Pass digest (and slot) to get one candidate's installable binding for install_native_game_asset.",
+  inputSchema: { type: "object", properties: {
+    game_id: { type: "string", description: "Full game id or exact 12-character prefix." },
+    query: { type: "string", description: "Case-insensitive match on slot, digest prefix or user name." },
+    kind: { type: "string", enum: [...BROWSE_GAME_ASSET_KINDS] },
+    digest: { type: "string", description: "A staged candidate's 64-character content digest." },
+    slot: { type: "string", description: "With digest: the slot the candidate will replace. Its pivot and sampling carry over." }
+  }, required: ["game_id"] },
+  category: "read",
+  userMessage: () => "Browsing game assets"
+};
+
 export const gameSpecs: readonly CapabilitySpec[] = [
   {
     name: "create_native_game",
@@ -77,7 +93,7 @@ export const gameSpecs: readonly CapabilitySpec[] = [
   {
     name: "generate_game_asset",
     description: "Generate or import game assets, prepare images as aligned sprite sheets, edge tilesets, or grade LUTs, and bind the result to a draft. Audio is speech, music is a music model, sfx uses an explicit sound-effect node_type and params, and font imports a TTF/OTF input_file. For 3D model generation, pass an explicit provider node_type and params or an owned glTF/GLB input_file. Model import preparation accepts scale, forward (-z, +z, +x, -x), and origin (preserve, ground, centerGround). Source dependencies resolve from sibling workspace files or dependency_files mappings to owned files/assets. Collider imports use preparation.shape and accept prepared JSON or glTF/GLB geometry. 3D results are verified candidates requiring explicit install_native_game_asset. For background media generations, resume with generation_id and the same preparation.",
-    inputSchema: { type: "object", properties: { game_id: id, slot: { type: "string" }, kind: { type: "string", enum: ["image", "audio", "music", "sfx", "font", "model", "collider"] }, prompt: { type: "string" }, input_file: { type: "string", description: "Owned asset URI or current workspace path to import. Required for font." }, node_type: { type: "string", description: "Registered provider node for sfx or model generation." }, params: { type: "object" }, dependency_files: { type: "object", additionalProperties: { type: "string" }, description: "Map a glTF buffer/image URI to an owned asset URI or current workspace path." }, reference_slot: { type: "string" }, preparation: { type: "object" }, provider: { type: "string" }, model: { type: "string" }, background: { type: "boolean" }, generation_id: { type: "string" } }, required: ["game_id", "slot", "kind"] },
+    inputSchema: { type: "object", properties: { game_id: id, slot: { type: "string" }, kind: { type: "string", enum: ["image", "audio", "music", "sfx", "font", "model", "collider"] }, prompt: { type: "string" }, input_file: { type: "string", description: "Owned asset URI or current workspace path to import. Required for font." }, node_type: { type: "string", description: "Registered provider node for sfx or model generation." }, params: { type: "object" }, dependency_files: { type: "object", additionalProperties: { type: "string" }, description: "Map a glTF buffer/image URI to an owned asset URI or current workspace path." }, reference_slot: { type: "string" }, preparation: { type: "object" }, provider: { type: "string" }, model: { type: "string" }, background: { type: "boolean" }, generation_id: { type: "string" }, install: { type: "boolean", description: "false stages a 2D candidate and returns its binding, frames and tiles without binding it. Default true." } }, required: ["game_id", "slot", "kind"] },
     category: "write",
     userMessage: () => "Generating game asset"
   },
@@ -110,5 +126,6 @@ export const gameSpecs: readonly CapabilitySpec[] = [
     userMessage: () => "Finding a game route"
   },
   previewGameAuthoringSpec,
-  applyGameAuthoringSpec
+  applyGameAuthoringSpec,
+  browseGameAssetsSpec
 ];

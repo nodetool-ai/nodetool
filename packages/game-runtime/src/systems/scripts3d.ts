@@ -1,4 +1,4 @@
-import type { GameEntityProps } from "@nodetool-ai/protocol";
+import { gameParticleEmissionOf, type GameEntityProps } from "@nodetool-ai/protocol";
 import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecycle.js";
@@ -166,6 +166,9 @@ export function stepScripts3D(context: GameSystemContext3D): void {
               throw new Error(`Duplicate query ID ${command.queryId}`);
             }
             context.spatialQueries.push({ entityId: result.entityId, command });
+            break;
+          case "emitParticles":
+            (context.queues.particles ??= []).push(gameParticleEmissionOf(command, result.entityId));
             break;
           default:
             applyGameplayCommand(command, result.entityId, context.queues, context.hud, context.emit);

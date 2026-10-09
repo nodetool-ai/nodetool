@@ -16,7 +16,8 @@ import { persistOutput } from "../tools/asset-persist.js";
 import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../game-examples.js";
 import { previewGameAuthoring, applyGameAuthoring } from "../game-authoring.js";
 import { gameDocumentDigest } from "../game-code-bake.js";
-import { previewGameAuthoringSpec, applyGameAuthoringSpec } from "./game.specs.js";
+import { previewGameAuthoringSpec, applyGameAuthoringSpec, browseGameAssetsSpec } from "./game.specs.js";
+import { browseGameAssets } from "./game-asset-browser.js";
 
 const log = createLogger("capabilities.game");
 
@@ -939,6 +940,17 @@ const generateAsset: CapabilityExport = {
       return { game_id: shortResourceId(game.id), slot, binding: parsedBinding.data, candidate_workspace_id: game.workspace_id,
         draft_updated_at: draft.game.draft_updated_at, installed: false, next: "Call install_native_game_asset with this binding to install the candidate." };
     }
+    if (args["install"] === false) {
+      const parsedBinding = legacyAssetBinding.safeParse(binding);
+      if (!parsedBinding.success) { return { error: "Invalid asset binding", diagnostics: parsedBinding.error.issues }; }
+      const staged: Record<string, unknown> = { game_id: shortResourceId(game.id), slot, binding: parsedBinding.data, candidate_workspace_id: game.workspace_id,
+        draft_updated_at: draft.game.draft_updated_at, installed: false, generation_id: generated.generation_id,
+        next: "Call install_native_game_asset with this binding to install the candidate." };
+      if (frames) { staged.frames = frames; }
+      if (tiles) { staged.tiles = tiles; }
+      if (lutSize) { staged.lut_size = lutSize; }
+      return staged;
+    }
     const installed = await install.impl(run, { game_id: game.id, slot, binding, base_updated_at: draft.game.draft_updated_at });
     if (typeof installed !== "object" || installed === null) { return { generation_id: generated.generation_id, result: installed }; }
     const extras: Record<string, unknown> = {};
@@ -1193,5 +1205,6 @@ export const module: CapabilityModule = {
   module: "game",
   exports: [create, get, save, install, playtest, buildGame, edit, capture, generateAsset, listExamples, getExample, installExample, autoplay,
     { spec: previewGameAuthoringSpec, impl: previewGameAuthoring },
-    { spec: applyGameAuthoringSpec, impl: applyGameAuthoring }].map(withDraftRecovery)
+    { spec: applyGameAuthoringSpec, impl: applyGameAuthoring },
+    { spec: browseGameAssetsSpec, impl: browseGameAssets }].map(withDraftRecovery)
 };

@@ -3,7 +3,7 @@ import { applyGameOps3D, gameDocumentOp3D, type GameDocumentOp3D } from "@nodeto
 import { diffGameOwnership } from "./diffGameOwnership";
 
 const NULLABLE_COMPONENTS = ["primitive", "model", "body3d", "collider3d", "character3d", "camera3d",
-  "light3d", "animator3d", "interactionActor", "audioSource", "parentId"] as const;
+  "light3d", "animator3d", "interactionActor", "audioSource", "parentId", "particles"] as const;
 
 function changed(from: unknown, to: unknown): boolean {
   return JSON.stringify(from) !== JSON.stringify(to);

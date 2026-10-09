@@ -7,6 +7,7 @@ import { resolveFills } from "../fills.js";
 import { getNativeTemplate, listNativeTemplates } from "../templates.js";
 import { imagePreparationMetadata, imagePreparationSettings, prepareGameImage, type ImagePreparationInput } from "../image-preparation.js";
 import { gameFontFormat } from "../font-preparation.js";
+import { recordStagedGameCandidate } from "../staged-candidates.js";
 
 const TEMPLATE_IDS = listNativeTemplates().map((template) => template.id);
 const trimmed = (value: string | undefined): string => isString(value) ? value.trim() : "";
@@ -159,6 +160,7 @@ export class StageGameAssetsNode extends BaseNode {
       if (prepared && requested !== undefined) binding.originalDimensions = { width: prepared.originalWidth, height: prepared.originalHeight };
       if (referenceAssetId) binding.referenceAssetId = referenceAssetId;
       bindings[slot.slot_id] = binding;
+      await recordStagedGameCandidate(context.workspace, `games/${gameId}`, { digest, slot: slot.slot_id, binding, source: "stage" });
     }
     for (const [fontId, uri] of Object.entries(this.fonts ?? {})) {
       if (!/^[a-z][a-z0-9_.-]*$/.test(fontId) || !isString(uri) || !uri.trim()) {
@@ -176,6 +178,7 @@ export class StageGameAssetsNode extends BaseNode {
       bindings[fontId] = { assetId: uri, digest, mediaKind: "font", fontFormat, width: 1, height: 1,
         pivot: { x: 0.5, y: 0.5 }, sampling: "nearest", required: true,
         provenance: `font:${fontId}` };
+      await recordStagedGameCandidate(context.workspace, `games/${gameId}`, { digest, slot: fontId, binding: bindings[fontId], source: "stage" });
     }
     return { output: { gameId, bindings }, bindings, paths };
   }
