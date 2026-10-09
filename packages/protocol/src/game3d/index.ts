@@ -16,6 +16,7 @@ import { gameAnimator3D } from "./components/animator.js";
 import { gameEnvironment3D } from "./components/environment.js";
 import { gameAssetBinding3D } from "./components/assets.js";
 import { gameAuthoring } from "../game-authoring.js";
+import { gameEmitParticlesCommand } from "../game-particles.js";
 import { gameDocument, gameEntity, gameEvent, gameHudLabel, gameScene, gameSnapshot } from "../game.js";
 
 const diagnosticPath = z.array(z.union([z.string(), z.number(), z.symbol().transform((value) => value.toString())]));
@@ -25,7 +26,8 @@ const entityComponents = {
   body3d: gameBody3D.optional(), collider3d: gameCollider3D.optional(), character3d: gameCharacter3D.optional(),
   camera3d: gameCamera3D.optional(), light3d: gameLight3D.optional(), animator3d: gameAnimator3D.optional(),
   interactionActor: gameInteractionActor3DComponent,
-  audioSource: gameEntity.shape.audioSource
+  audioSource: gameEntity.shape.audioSource,
+  particles: gameEntity.shape.particles
 };
 
 export const gameEntity3D = z.strictObject({
@@ -128,7 +130,8 @@ export const gameRenderFrame3D = z.strictObject({
   dimension: z.literal("3d"), gameId: id, sceneId: id, tick, presentation: gamePresentation3D,
   camera: z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D.optional(), projection: gameCameraProjection3D }),
   entities: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D,
-    primitive: gamePrimitive3D.optional(), model: gameModel3D.optional(), animation: gameAnimationState3D.optional(), opacity: finite.min(0).max(1).optional() })),
+    primitive: gamePrimitive3D.optional(), model: gameModel3D.optional(), animation: gameAnimationState3D.optional(), opacity: finite.min(0).max(1).optional(),
+    particles: gameEntity.shape.particles })),
   lights: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, light: gameLight3D })),
   environment: gameEnvironment3D, hud: z.array(gameHudLabel), fonts: z.record(id, gameAssetBinding3D.options[3]).optional()
 });
@@ -163,7 +166,8 @@ export const gameNonSpatialScriptCommand = z.discriminatedUnion("kind", [
       context.addIssue({ code: "custom", message: "Invalid entity property value" });
     }
   }),
-  z.strictObject({ kind: z.literal("removeProp"), key: z.string().min(1).max(128).refine((key) => !["__proto__", "constructor", "prototype"].includes(key)) })
+  z.strictObject({ kind: z.literal("removeProp"), key: z.string().min(1).max(128).refine((key) => !["__proto__", "constructor", "prototype"].includes(key)) }),
+  gameEmitParticlesCommand
 ]);
 
 export type GameNonSpatialScriptCommand = z.infer<typeof gameNonSpatialScriptCommand>;

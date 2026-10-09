@@ -13,3 +13,19 @@ it("scores native entity metadata authored through the public edit surface", asy
   await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{tags:["hero"],props:{health:10,nested:{nullable:null}}}}]});
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it("scores a particles component authored through the public edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="particle-emitter");
+  if (!candidate) { throw new Error("Particle eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Particle eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const result = await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{particles:{emitters:[
+    {id:"trail",rate:20,onDeath:[{emitter:"sparks",count:3}]},{id:"sparks",playOnStart:false,rate:0}
+  ]}}}]});
+  expect(result).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});

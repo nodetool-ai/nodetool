@@ -37,6 +37,7 @@ const entitySet = preservingPatch(gameEntity.partial().extend({
   visualAnimation: gameEntity.shape.visualAnimation.unwrap().partial().nullable().optional(),
   audioSource: gameEntity.shape.audioSource.unwrap().partial().nullable().optional(),
   light2d: gameEntity.shape.light2d.unwrap().partial().nullable().optional(),
+  particles: gameEntity.shape.particles.unwrap().partial().nullable().optional(),
   parentId: id.nullable().optional()
 }));
 const sceneSet = preservingPatch(z.strictObject({ name: gameScene.shape.name.optional(), music: gameScene.shape.music.nullable().optional(),
@@ -218,7 +219,7 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
           if (op.set[key] === null) { delete merged[key]; }
           else if (op.set[key] !== undefined) { merged[key] = structuredClone(op.set[key]); }
         }
-        for (const key of ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "parentId"] as const) {
+        for (const key of ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "particles", "parentId"] as const) {
           if (merged[key] === null) { delete merged[key]; }
         }
         const next = gameEntity.safeParse(merged);

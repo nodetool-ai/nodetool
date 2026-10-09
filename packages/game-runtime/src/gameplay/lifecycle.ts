@@ -1,4 +1,4 @@
-import type { GameEvent, GameHudLabel } from "@nodetool-ai/protocol";
+import type { GameEvent, GameHudLabel, GameParticleEmission } from "@nodetool-ai/protocol";
 
 export const MAX_GAME_EVENTS_PER_TICK = 512;
 export const MAX_GAME_SPAWNED_INSTANCES = 1024;
@@ -37,6 +37,8 @@ export interface GameplayQueues<S extends GameplaySpawn = GameplaySpawn> {
   readonly despawns: Set<string>;
   readonly spawns: S[];
   transitionTo?: string;
+  /** Presentation-only particle requests from this tick's scripts. Never snapshotted. */
+  particles?: GameParticleEmission[];
 }
 
 export interface GameplayScore {

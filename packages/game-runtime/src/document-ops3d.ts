@@ -33,7 +33,8 @@ const entitySet = preservingPatch(gameEntity3D.partial().extend({
   light3d: z.union(gameLight3D.options.map((schema) => schema.partial())).nullable().optional(),
   animator3d: gameEntity3D.shape.animator3d.unwrap().partial().nullable().optional(),
   interactionActor: gameEntity3D.shape.interactionActor.unwrap().partial().nullable().optional(),
-  audioSource: gameEntity3D.shape.audioSource.unwrap().partial().nullable().optional()
+  audioSource: gameEntity3D.shape.audioSource.unwrap().partial().nullable().optional(),
+  particles: gameEntity3D.shape.particles.unwrap().partial().nullable().optional()
 }));
 export const gameDocumentOp3D = z.discriminatedUnion("op", [
   overrideMembershipOp, authoringMembershipOp,

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { gameAuthoring, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameAuthoring, gameParticles, type GameDocument3D } from "@nodetool-ai/protocol";
 import { anyGameDocumentOp, applyAnyGameOps, applyGameOps3D, createNative3DGame, gameDocumentOp3D } from "@nodetool-ai/game-runtime";
 import { diffAnyGameDocuments } from "../diffAnyGameDocuments";
 
@@ -227,4 +227,19 @@ it("round-trips removal of optional collision layers through JSON operations", (
   const after = structuredClone(before);
   delete after.collisionLayers;
   roundTrip(before, after);
+});
+
+it("round-trips adding, editing and removing a particles component", () => {
+  const before = createNative3DGame("diff3d-particles");
+  const withParticles = structuredClone(before);
+  const player = withParticles.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (!player) { throw new Error("Fixture entity missing"); }
+  player.particles = gameParticles.parse({ emitters: [{ id: "trail", rate: 12, onDeath: [{ emitter: "spark" }] }, { id: "spark", playOnStart: false }] });
+  roundTrip(before, withParticles);
+  const edited = structuredClone(withParticles);
+  const editedPlayer = edited.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (!editedPlayer?.particles) { throw new Error("Fixture particles missing"); }
+  editedPlayer.particles.emitters = [editedPlayer.particles.emitters[0]];
+  editedPlayer.particles.emitters[0].onDeath = [];
+  roundTrip(withParticles, edited);
 });

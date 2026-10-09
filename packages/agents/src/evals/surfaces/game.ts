@@ -55,4 +55,20 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<GameDocument>[] = [
         return z.object({ tags: z.tuple([z.literal("hero")]), props: z.strictObject({ health: z.literal(10), nested: z.strictObject({ nullable: z.null() }) }) }).safeParse(player).success;
       } }]
   }
+}, {
+  id: "particle-emitter",
+  description: "Author a particles component with a death sub-emitter through public edit ops.",
+  objective: "Give player a particles component: a looping emitter trail at rate 20 whose particles fire 3 particles from a second emitter sparks on death. sparks does not play on start.",
+  createBridge: () => createGameToolBridge({ ...createTopDownRoomGame("particles-eval"), schemaVersion: 2 }),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole particles component as { emitters: [...] }. onDeath lists { emitter, count } for emitters of the same component.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerParticles", detail: "Player has no trail emitter that fires sparks on death.",
+      test: document => {
+        const emitters = document.scenes[0].entities.find(entity => entity.id === "player")?.particles?.emitters ?? [];
+        const trail = emitters.find(emitter => emitter.id === "trail");
+        const sparks = emitters.find(emitter => emitter.id === "sparks");
+        return trail?.rate === 20 && trail.loop && trail.onDeath.some(sub => sub.emitter === "sparks" && sub.count === 3) && sparks?.playOnStart === false;
+      } }]
+  }
 }];

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createGameSession, createScriptedGameSession, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { gameParticles } from "@nodetool-ai/protocol";
 import { registerGameCommands } from "../src/commands/game.js";
 
 vi.mock("@nodetool-ai/game-runtime", async (importOriginal) => {
@@ -277,4 +278,18 @@ it("simulates authored metadata commands and verifies property snapshot replay",
     for (let tick=0;tick<3;tick+=1) { session.step({pressed:[]}); }
     expect(session.snapshot().entities.find(entity=>entity.id==="player")?.props).toEqual({health:7});
   } finally { session.dispose(); }
+});
+
+it("simulates particle emitters and emitParticles commands with a verified replay", async () => {
+  const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+  vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);
+  const document = createTopDownRoomGame("a".repeat(32));
+  document.schemaVersion = 2;
+  const player = document.scenes[0].entities.find(entity=>entity.id==="player");
+  if (!player) { throw new Error("CLI fixture requires player"); }
+  player.particles = gameParticles.parse({ emitters: [{ id: "dust", rate: 12, lifetime: { min: 0.2, max: 0.6 } }] });
+  player.behaviors = [{kind:"script",source:"({tick})=>({state:null,commands:tick%10===0?[{kind:'emitParticles',count:4}]:[]})",maxCommands:1,maxTickMs:50}];
+  await writeFile(gamePath,JSON.stringify(document));
+  const report = await runSimulation("--ticks","30","--verify-replay");
+  expect(report).toMatchObject({ok:true,replay:{verified:true}});
 });

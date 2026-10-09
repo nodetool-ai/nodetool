@@ -6,6 +6,7 @@ import {
   type GameEntity3D,
   type GameEntityState3D,
   type GameEvent3D,
+  type GameParticleEmission,
   type GameInputFrame3D,
   type GameInspection3D,
   type GameInspectionQuery3D,
@@ -48,7 +49,7 @@ export interface GameSession3DOptions {
 
 export interface GameSession3D {
   step(input: GameInputFrame3D): GameStepResult3D & { readonly scriptStats?: GameScriptStats };
-  takePresentationEvents(): readonly GameEvent3D[];
+  takePresentationEvents(): readonly (GameEvent3D | GameParticleEmission)[];
   frame(): GameRenderFrame3D;
   inspect(query?: GameInspectionQuery3D): GameInspection3D;
   snapshot(): GameSnapshot3D;
@@ -308,7 +309,7 @@ export async function createGameSession3D(
         physics: physicsState.physics
       };
     };
-    let presentationEvents: GameEvent3D[] = [];
+    let presentationEvents: (GameEvent3D | GameParticleEmission)[] = [];
     const captureScripts = () => ({
       scriptState: structuredClone(scriptState),
       rngState,
@@ -584,7 +585,7 @@ export async function createGameSession3D(
       frame
     };
     return {
-      takePresentationEvents(): readonly GameEvent3D[] {
+      takePresentationEvents(): readonly (GameEvent3D | GameParticleEmission)[] {
         const pending = presentationEvents;
         presentationEvents = [];
         return pending;
