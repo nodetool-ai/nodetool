@@ -890,7 +890,9 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
     }, [editText, onResend, message]);
     const handleEditKeyDown = useCallback(
       (event: React.KeyboardEvent) => {
-        if (event.nativeEvent.isComposing) {
+        // Safari reports isComposing=false on the Enter that confirms an IME
+        // candidate, so keyCode 229 is checked too, as in the composer.
+        if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) {
           return;
         }
         if (event.key === "Escape") {
@@ -943,7 +945,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                   const parsedThought = parseThoughtContent(parsedContent);
 
                   if (parsedThought) {
-                    const key = `thought-${index}-${i}`;
+                    const key = `thought-${message.id ?? ""}-${index}-${i}`;
                     const isExpanded = isThoughtExpanded(key);
 
                     return (
@@ -991,7 +993,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
         const parsedThought = parseThoughtContent(parsedContent);
 
         if (parsedThought) {
-          const key = `thought-${index}`;
+          const key = `thought-${message.id ?? ""}-${index}`;
           const isExpanded = isThoughtExpanded(key);
 
           return (
@@ -1010,7 +1012,13 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
           (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined);
         return <ChatMarkdown content={parsedContent} onInsertCode={handler} />;
       },
-      [isThoughtExpanded, createToggleHandler, onInsertCode, insertIntoEditor]
+      [
+        message.id,
+        isThoughtExpanded,
+        createToggleHandler,
+        onInsertCode,
+        insertIntoEditor
+      ]
     );
 
     // A compaction record is stored as a user message so the model reads it as
