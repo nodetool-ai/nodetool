@@ -280,12 +280,6 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
       {inputProperties.length > 0 && (
         <HandleColumn id={id} properties={inputProperties} layout="stacked" />
       )}
-      <NodeModelChips
-        id={id}
-        nodeType={nodeType}
-        nodeMetadata={nodeMetadata}
-        data={data}
-      />
       <div className="list-header">
         <FormatListNumberedRoundedIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
         <span>
@@ -350,6 +344,12 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
         </div>
       )}
 
+      <NodeModelChips
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+      />
       {!isOutputNode && (
         <div className="outputs-row">
           <NodeOutputs id={id} outputs={nodeMetadata.outputs} />

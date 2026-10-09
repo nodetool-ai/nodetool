@@ -832,13 +832,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       data-node-sized={isNodeSized ? "true" : undefined}
       data-streaming={status === "running" ? "true" : undefined}
     >
-      <NodeModelChips
-        id={id}
-        nodeType={nodeType}
-        nodeMetadata={nodeMetadata}
-        data={data}
-      />
-
       <div className="preview-area">
         {usesHistoryNavigator ? (
           <NodeHistoryViewer
@@ -860,6 +853,13 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             colliding with inline-field rows below. */}
         <HandleColumn id={id} properties={handleProps} connectedEdges={connectedEdges} />
       </div>
+
+      <NodeModelChips
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+      />
 
       {/* Inline fields: rendered as full editors in normal flow under preview.
           Labels are visible here (no display: none). Dynamic inputs are

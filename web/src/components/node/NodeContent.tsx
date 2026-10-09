@@ -153,12 +153,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
         layout="stacked"
         connectedEdges={connectedEdges}
       />
-      <NodeModelChips
-        id={id}
-        nodeType={nodeType}
-        nodeMetadata={nodeMetadata}
-        data={data}
-      />
       <NodeInputs
         id={id}
         nodeMetadata={nodeMetadata}
@@ -173,6 +167,12 @@ const NodeContent: React.FC<NodeContentProps> = ({
         nodeType={nodeType}
         data={data}
         properties={allProperties}
+      />
+      <NodeModelChips
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
       />
       {(nodeMetadata?.supports_dynamic_inputs || nodeMetadata?.supports_dynamic_outputs) && (
         <NodePropertyForm
