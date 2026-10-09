@@ -199,6 +199,7 @@ describe("cloud provider + pack allowlists", () => {
       "groq",
       "openrouter",
       "requesty",
+      "opper",
       "fal_ai",
       "kie",
       "replicate",
