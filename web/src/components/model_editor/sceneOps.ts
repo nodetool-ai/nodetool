@@ -24,6 +24,8 @@ export const cloneObjectDeep = (source: THREE.Object3D): THREE.Object3D => {
   const copies: THREE.Object3D[] = [];
   source.traverse((node) => sources.push(node));
   copy.traverse((node) => copies.push(node));
+  const copyOf = new Map<THREE.Object3D, THREE.Object3D>();
+  sources.forEach((node, index) => copyOf.set(node, copies[index]));
   copies.forEach((node, index) => {
     const original = sources[index];
     // The headless scene tools address objects by this id. A copy is a new
@@ -32,6 +34,16 @@ export const cloneObjectDeep = (source: THREE.Object3D): THREE.Object3D => {
     if (node instanceof THREE.Mesh && original instanceof THREE.Mesh) {
       node.geometry = original.geometry.clone();
       node.material = cloneMaterial(original.material);
+    }
+    // `clone` keeps the original's skeleton, so the copy would deform with the
+    // source's bones and stay where the source is. Bind it to the copied
+    // bones; a bone outside the copied subtree stays shared.
+    if (node instanceof THREE.SkinnedMesh && original instanceof THREE.SkinnedMesh) {
+      const bones = original.skeleton.bones.map(
+        (bone) => (copyOf.get(bone) as THREE.Bone | undefined) ?? bone
+      );
+      const inverses = original.skeleton.boneInverses.map((matrix) => matrix.clone());
+      node.bind(new THREE.Skeleton(bones, inverses), original.bindMatrix);
     }
     // A cloned directional or spot light gets a fresh target that is not in
     // the tree. Point it back at the copy of the original's target child.

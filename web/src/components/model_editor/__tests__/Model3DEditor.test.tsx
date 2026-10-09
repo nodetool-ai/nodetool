@@ -19,6 +19,9 @@ jest.mock("@react-three/drei", () => ({
   TransformControls: () => null
 }));
 
+// Set per test: when true, the loaded model carries a clip that lifts Box to y = 5.
+const mockLoader = { animated: false };
+
 jest.mock("three/examples/jsm/loaders/GLTFLoader.js", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const three = require("three") as typeof THREE;
@@ -29,7 +32,14 @@ jest.mock("three/examples/jsm/loaders/GLTFLoader.js", () => {
         const box = new three.Mesh();
         box.name = "Box";
         scene.add(box);
-        onLoad({ scene, animations: [] });
+        const animations = mockLoader.animated
+          ? [
+              new three.AnimationClip("Lift", 1, [
+                new three.VectorKeyframeTrack("Box.position", [0, 1], [0, 5, 0, 0, 5, 0])
+              ])
+            ]
+          : [];
+        onLoad({ scene, animations });
       }
     }))
   };
@@ -75,6 +85,7 @@ describe("Model3DEditor", () => {
 
   afterEach(() => {
     detachKeys();
+    mockLoader.animated = false;
   });
 
   it("saves on Ctrl+S when it is the visible tab", async () => {
@@ -223,6 +234,39 @@ describe("Model3DEditor", () => {
       handler.undo();
     });
     expect(handler.getObject("Crate").parentUuid).toBeNull();
+  });
+
+  it("saves on Ctrl+S while an input in the editor has focus", async () => {
+    const { onSave, getByLabelText } = renderEditor();
+    const filter = getByLabelText("Filter scene objects");
+    filter.focus();
+
+    await act(async () => {
+      pressSave();
+    });
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  });
+
+  it("keeps a transform made during animation playback when saving", async () => {
+    mockLoader.animated = true;
+    const { onSave, getByRole } = renderEditor();
+    const handler = getModel3DToolHandler();
+
+    act(() => {
+      fireEvent.click(getByRole("button", { name: "Play animation" }));
+    });
+    expect(handler.listScene()[0].position).toEqual([0, 5, 0]);
+
+    act(() => {
+      handler.setTransform("Box", { position: [1, 2, 3] });
+    });
+    await act(async () => {
+      pressSave();
+    });
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(handler.listScene()[0].position).toEqual([1, 2, 3]);
   });
 
   it("refuses to parent an object under its own child", () => {

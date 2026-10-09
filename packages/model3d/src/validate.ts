@@ -59,6 +59,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 /** Check a glTF document. Never throws: a broken file is a report, not a crash. */
 export function validateModel3D(json: GltfJson): Model3DValidation {
+  try {
+    return checkDocument(json);
+  } catch (cause) {
+    // The checks below trust the shape of each array they walk. A document
+    // malformed past that (a null node, a number where a list belongs) is
+    // reported here rather than thrown at the caller.
+    const detail = cause instanceof Error ? cause.message : String(cause);
+    return {
+      ok: false,
+      errors: [{ severity: "error", message: `The document is malformed: ${detail}.` }],
+      warnings: [],
+      objectCount: 0
+    };
+  }
+}
+
+function checkDocument(json: GltfJson): Model3DValidation {
   const errors: Model3DIssue[] = [];
   const warnings: Model3DIssue[] = [];
   const issue = (
@@ -325,7 +342,7 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
     }
     // Matrices of 1- and 2-byte components pad their columns; skip those
     // rather than report a false overrun.
-    const padded = accessor.type.startsWith("MAT") && (componentBytes ?? 4) < 4;
+    const padded = typeof accessor.type === "string" && accessor.type.startsWith("MAT") && (componentBytes ?? 4) < 4;
     if (components === undefined || componentBytes === undefined || padded || accessor.count < 1) {
       return;
     }
@@ -400,9 +417,11 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
     );
   }
 
+  // Only a node's own name addresses it. The listing shows an unnamed node
+  // under its type, but that fallback is not something a target can match.
   const byName = new Map<string, number>();
-  for (const object of objects) {
-    const key = object.name.trim().toLowerCase();
+  for (const node of nodes) {
+    const key = (node.name ?? "").trim().toLowerCase();
     if (!key) {
       continue;
     }
