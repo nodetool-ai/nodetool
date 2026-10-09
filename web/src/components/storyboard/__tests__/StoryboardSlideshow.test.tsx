@@ -125,6 +125,29 @@ describe("StoryboardSlideshow", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("steps with a sideways swipe on the stage and ignores a vertical one", () => {
+    renderSlideshow();
+    fireEvent.click(screen.getByLabelText("Autoplay"));
+    const stage = screen.getByTestId("slideshow-stage");
+    const swipe = (from: [number, number], to: [number, number]) => {
+      fireEvent.touchStart(stage, {
+        touches: [{ clientX: from[0], clientY: from[1] }]
+      });
+      fireEvent.touchEnd(stage, {
+        changedTouches: [{ clientX: to[0], clientY: to[1] }]
+      });
+    };
+
+    swipe([300, 200], [100, 210]);
+    expect(screen.getByText("Scene 1, Shot 2")).toBeInTheDocument();
+
+    swipe([200, 100], [190, 400]);
+    expect(screen.getByText("Scene 1, Shot 2")).toBeInTheDocument();
+
+    swipe([100, 200], [300, 200]);
+    expect(screen.getByText("Scene 1, Shot 1")).toBeInTheDocument();
+  });
+
   it("offers no editing on a read-only board", () => {
     renderSlideshow();
     expect(

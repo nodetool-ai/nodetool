@@ -504,6 +504,31 @@ Capture the scene to review the result.
 
 ### A: Audio
 
+Set the document mix with `set_audio {mixer}` in 2D and 3D. `set_audio
+{mixer: null}` removes it. Every mixer has the buses `master`, `music`, `sfx`,
+`voice` and `ui`. Add buses under `mixer.buses` with `parent` (default
+`master`), `volume` (linear, 1 is unity), `muted`, `lowpassHz` and
+`reverbSend`. A bus multiplies its parent's gain, so muting `sfx` silences its
+children. Scene music plays on `music` and other audio on `sfx` unless
+`mixer.assetBuses` maps the asset slot to another bus.
+
+The master bus ends in a limiter at `limiter.thresholdDb` (default -1 dB) that
+does not change levels below the threshold. The default ducking rule lowers
+`music` to 0.35 while a voice plays on `voice` or a child of it. Replace
+`ducking` to change or remove that rule.
+
+A mixer snapshot under `mixer.snapshots` overrides named fields of named buses.
+`transitions` move to a snapshot over `fadeTicks` when the simulation emits a
+`trigger` event, a `win` event, or enters a scene. The snapshot `base` returns
+to the base mix. Restarting or restoring a session returns to the base mix or
+the scene's snapshot without a fade.
+
+The mix is presentation state. The player reads simulation events for
+transitions but never writes back, and the mix is not saved in game snapshots,
+so a mixer edit never changes `nodetool game simulate` results or replay.
+Players can scale and mute a bus at runtime through `GameAudioPlayer`
+`setBusVolume` and `setBusMuted`.
+
 ### N: Animation
 
 ### S: Scripting and gameplay

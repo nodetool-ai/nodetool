@@ -63,7 +63,8 @@ async function start(): Promise<void> {
     assets: game.assets,
     tickRate: game.tickRate,
     resolveAsset: async (binding) => binding.assetId.startsWith("./assets/") ? binding.assetId : null,
-    status: showStatus
+    status: showStatus,
+    mixer: game.audio?.mixer
   });
   audio.preload();
   function unlockAudio(): void { void audio.unlock(); }

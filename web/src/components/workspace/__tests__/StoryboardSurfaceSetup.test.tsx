@@ -42,9 +42,12 @@ jest.mock("../../../components/setup/storyboard/EntitiesStep", () => ({
   EntitiesStep: () => null
 }));
 
-jest.mock("../../storyboard/StoryboardBoard", () => ({
-  __esModule: true,
-  default: ({
+// Counts board mounts, so a test can tell a re-render from a remount.
+let mockBoardMounts = 0;
+
+jest.mock("../../storyboard/StoryboardBoard", () => {
+  const { useEffect } = jest.requireActual<typeof import("react")>("react");
+  const MockBoard = ({
     reviewRequest,
     assistantOpen,
     onToggleAssistant
@@ -52,24 +55,30 @@ jest.mock("../../storyboard/StoryboardBoard", () => ({
     reviewRequest?: { shotId: string; requestId: string } | null;
     assistantOpen?: boolean;
     onToggleAssistant?: () => void;
-  }) => (
-    <div
-      data-testid="board"
-      data-review-shot={reviewRequest?.shotId}
-      data-review-request={reviewRequest?.requestId}
-    >
-      {onToggleAssistant && (
-        <button
-          type="button"
-          aria-pressed={assistantOpen}
-          onClick={onToggleAssistant}
-        >
-          Assistant
-        </button>
-      )}
-    </div>
-  )
-}));
+  }) => {
+    useEffect(() => {
+      mockBoardMounts += 1;
+    }, []);
+    return (
+      <div
+        data-testid="board"
+        data-review-shot={reviewRequest?.shotId}
+        data-review-request={reviewRequest?.requestId}
+      >
+        {onToggleAssistant && (
+          <button
+            type="button"
+            aria-pressed={assistantOpen}
+            onClick={onToggleAssistant}
+          >
+            Assistant
+          </button>
+        )}
+      </div>
+    );
+  };
+  return { __esModule: true, default: MockBoard };
+});
 jest.mock("../../storyboard/StoryboardAgentPanel", () => ({
   __esModule: true,
   default: () => <div data-testid="agent-panel" />
@@ -190,6 +199,7 @@ const renderSurface = (mode: "edit" | "view" = "edit") =>
 beforeEach(() => {
   useStoryboardStore.setState({ boards: {} });
   mockMobile = false;
+  mockBoardMounts = 0;
   mockDocumentConflicts.items = [];
   mockDocumentConflicts.accept.mockClear();
   mockDocumentConflicts.discard.mockClear();
@@ -288,6 +298,26 @@ describe("StoryboardSurface setup stages", () => {
       "data-review-shot",
       "shot-review"
     );
+  });
+
+  it("keeps the board mounted across the phone breakpoint", () => {
+    seedBoard("done");
+    const { rerender } = renderSurface();
+    expect(mockBoardMounts).toBe(1);
+
+    const surface = (
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardSurface refId={BOARD_ID} mode="edit" active />
+      </ThemeProvider>
+    );
+    mockMobile = true;
+    rerender(surface);
+    expect(screen.getByRole("tab", { name: "Board" })).toBeInTheDocument();
+    mockMobile = false;
+    rerender(surface);
+
+    // A remount would drop the open shot editor and its unsaved draft.
+    expect(mockBoardMounts).toBe(1);
   });
 
   it("mounts the board for a document with no stage field", () => {
