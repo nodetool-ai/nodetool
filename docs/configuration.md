@@ -221,6 +221,17 @@ image that installs `nodetool-core` and point `NODETOOL_PYTHON` at that
 interpreter. See
 [Self-hosted deployment](self-hosted-deployment.md#mcp-over-http-and-python-nodes).
 
+By default the server starts the worker at launch when a Python interpreter is
+available. Set `NODETOOL_PYTHON_ON_DEMAND=true` to start it the first time a
+run needs a Python node instead. Python-only providers such as
+`huggingface-local` appear once the worker has started. It is also a setting in
+the Execution group, and the value is read at startup, so restart the backend
+after changing it.
+
+```bash
+NODETOOL_PYTHON_ON_DEMAND=true nodetool serve
+```
+
 The three `NODETOOL_PYTHON_*_TIMEOUT_MS` variables bound how long the server
 waits on the worker. Raise `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` past its
 12-minute default for nodes that legitimately run longer.
@@ -642,6 +653,7 @@ missing binary.
 | `NODETOOL_PYTHON_ON_DEMAND` | Start the Python worker on first use instead of at server start | no | `true` or `false`, default `false`. With `true`, `huggingface-local` and MLX models appear only after a workflow has started the worker. Restart after changing it |
 | `NODETOOL_ALLOW_PRIVATE_MEDIA_FETCH` | Let a media ref be fetched from a private address or over plain http | no | Off unless set to exactly `1`. Media refs are otherwise fetched under NodeTool's default egress policy — https, to a public host, every redirect hop re-checked. Turn it on for a self-hosted install that serves media off its own LAN. It applies to media-ref fetches only; every other screened surface is unaffected. See [URL egress inventory](url-egress-inventory.md) |
 | `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION` | Let the Python bridge connect when `NODETOOL_ENV=production` | no | Off unless set to exactly `1`. Otherwise a production server refuses to spawn the worker: Python nodes are a local-only feature |
+| `NODETOOL_PYTHON_ON_DEMAND` | Start the Python worker on first use instead of at server launch | no | `true` or `false`, default `false`. Read at startup. See [Python Nodes](#python-nodes) |
 | `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` | How long one Python node invocation may run | no | Default `720000` (12 minutes) |
 | `NODETOOL_PYTHON_STATUS_TIMEOUT_MS` | How long a worker status request waits | no | Default `30000` |
 | `NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS` | Silence from a worker-side model download before it is abandoned | no | Default `300000` (5 minutes). Idle time, not total — a slow download that keeps reporting progress is not cut off |

@@ -16,9 +16,6 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 import {
   IpcChannels,
   IpcEvents,
-  LocalhostProxyWsCloseRequest,
-  LocalhostProxyWsOpenRequest,
-  LocalhostProxyWsSendRequest,
   MenuEventData,
   PythonPackages,
   Workflow,
@@ -26,7 +23,6 @@ import {
   SystemDirectory,
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
-  LocalhostProxyRequest,
   RuntimePackageId,
 } from "./types.d";
 import { isString } from "./typePredicates";
@@ -642,21 +638,6 @@ const api = {
   mcp: {
     /** Install the bundled NodeTool `.mcpb` into Claude Desktop. */
     installBundle: () => ipcRenderer.invoke(IpcChannels.MCP_INSTALL_BUNDLE),
-  },
-
-  // ============================================================================
-  // localhostProxy: Generic localhost-only HTTP requests via main process
-  // ============================================================================
-  localhostProxy: {
-    request: (request: LocalhostProxyRequest) =>
-      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_REQUEST, request),
-    wsOpen: (request: LocalhostProxyWsOpenRequest) =>
-      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_WS_OPEN, request),
-    wsSend: (request: LocalhostProxyWsSendRequest) =>
-      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_WS_SEND, request),
-    wsClose: (request: LocalhostProxyWsCloseRequest) =>
-      ipcRenderer.invoke(IpcChannels.LOCALHOST_PROXY_WS_CLOSE, request),
-    onWsEvent: createEventSubscription(IpcChannels.LOCALHOST_PROXY_WS_EVENT),
   },
 
   // ============================================================================
