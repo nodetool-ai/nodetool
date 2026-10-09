@@ -4,10 +4,10 @@ import { z } from "zod";
 import sharp from "sharp";
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, InvalidGameDocumentError, MissingGameDraftSourceError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
-import { exampleGameSummary, anyGameAssetBinding, gameAssetBinding, gameAssetBinding3D, gamePreparedCollider3D, gameModelImportSettings3D, parseGameDocument, anyGameDocument as gameDocument, installExampleGameInput, type AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
+import { exampleGameSummary, anyGameAssetBinding, gameAssetBinding, gameAssetBinding3D, gameAssetSiblingRebinds, gamePreparedCollider3D, gameModelImportSettings3D, parseGameDocument, anyGameDocument as gameDocument, installExampleGameInput, stagedGameCandidateRecord, stagedGameCandidateRecordPath, type AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame, anyGameDocumentOp as gameDocumentOp, GameOpError, decodePreparedGameCollider3D, trackGameAuthoringEdits, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { normalizeGameModel3D, prepareGameModelBinding3D } from "@nodetool-ai/game-renderer/preparation3d";
-import { createCapabilityRun, gateFromContext } from "@nodetool-ai/agents";
+import { contextSecretAvailability, createCapabilityRun, gateFromContext } from "@nodetool-ai/agents";
 import { gameAuthoringCandidate, gameAuthoringProgram, gameAuthoringConflict } from "@nodetool-ai/protocol";
 import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
@@ -15,6 +15,8 @@ import { getAssetAdapter } from "../../lib/storage.js";
 import { getAssetStorageKey, retrieveAssetBytes } from "../../lib/asset-paths.js";
 import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../../lib/example-games.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
+import { loadConfiguredProviders } from "../../configured-providers.js";
+import { createRuntimeContext } from "../../session/model-interfaces.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -52,6 +54,27 @@ const authoringPreview = z.object({
   changed_dependencies: z.array(z.string()),
   restart_required: z.boolean()
 });
+const assetBrowserInfo = z.object({
+  dimension: z.enum(["2d", "3d"]),
+  draft_updated_at: z.string(),
+  candidate_workspace_id: z.string(),
+  candidates: z.array(z.object({
+    digest: z.string(), extension: z.string(), media_kind: z.enum(["image", "audio", "font", "model", "collider"]), path: z.string(),
+    size: z.number(), modified_at: z.string(), bound_slots: z.array(z.string()), slot: z.string().optional(), prompt: z.string().optional(),
+    source: z.string().optional(), recorded: z.boolean()
+  })),
+  slot_requests: z.record(z.string(), z.object({ kind: z.string(), prompt: z.string().optional(),
+    preparation: z.record(z.string(), z.unknown()).optional(), source: z.string() }))
+});
+const assetFrame = z.object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() });
+const generatedAssetResult = z.object({
+  error: z.string().optional(),
+  binding: anyGameAssetBinding.optional(),
+  frames: z.array(assetFrame).optional(),
+  tiles: z.array(z.object({ mask: z.number().int(), frame: assetFrame })).optional()
+}).loose();
+const stagedCandidateBinding = z.object({ error: z.string().optional(), binding: anyGameAssetBinding.optional() }).loose();
+const generatedAsset = gameWithDocument.extend({ stagedDigest: z.string().nullable(), installed: z.boolean() });
 const gameRevisionInfo = z.object({ revision: z.string(), modifiedAt: z.number(), current: z.boolean(), message: z.string().nullable() });
 
 function info(game: Game): z.infer<typeof gameInfo> {
@@ -76,6 +99,14 @@ function authoringRun(userId: string) {
   const context = new ProcessingContext({ jobId: `game-authoring-${randomUUID()}`, userId });
   context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("game.authoring"));
   return createCapabilityRun({ context, gate: gateFromContext(context, "game.authoring") });
+}
+
+/** A run that can reach the user's configured media providers, for editor-initiated asset generation. */
+async function assetGenerationRun(userId: string, game: Game, workspace: RunWorkspace) {
+  const context = createRuntimeContext({ jobId: `game-asset-${randomUUID()}`, userId, projectId: game.project_id, workspace });
+  context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("game.assets"));
+  return createCapabilityRun({ context, gate: gateFromContext(context, "game.assets"), projectId: game.project_id,
+    availableSecrets: contextSecretAvailability(context), providers: await loadConfiguredProviders(userId) });
 }
 
 function checkAuthoringResult(result: unknown): void {
@@ -121,10 +152,14 @@ async function gameWorkspace(userId: string, game: Game): Promise<RunWorkspace> 
   return workspace;
 }
 
+/** Maps the installed 2D binding to the frame and tile bindings written with it. */
+type SiblingBindings = (installed: z.infer<typeof gameAssetBinding>) => Record<string, z.infer<typeof gameAssetBinding>>;
+const CONCURRENT_DRAFT_EDIT = "Game draft was modified concurrently";
+
 async function persistGameAsset(
   userId: string, game: Game, workspace: RunWorkspace, draftUpdatedAt: string,
   slot: string, binding: z.infer<typeof anyGameAssetBinding>, bytes: Uint8Array,
-  extension: string, contentType: string
+  extension: string, contentType: string, siblingBindings?: SiblingBindings
 ): Promise<z.infer<typeof gameWithDocument>> {
   await workspace.write(`${game.source_root}/assets/${binding.digest}.${extension}`, bytes, contentType);
   const installed = await Asset.create({
@@ -139,8 +174,12 @@ async function persistGameAsset(
   try {
     uri = await storage.store(getAssetStorageKey(userId, installed.id, contentType), bytes, contentType);
     const op = gameDocumentOp.parse({ op: "bind_asset", slot, binding: { ...binding, assetId: installed.id } });
-    const saved = await Game.updateDraft(userId, game.id, draftUpdatedAt, [op], workspace, { actor: "user" });
-    if (!saved) { throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently"); }
+    const parent = siblingBindings ? gameAssetBinding.safeParse({ ...binding, assetId: installed.id }) : null;
+    const siblings = siblingBindings && parent?.success
+      ? Object.entries(siblingBindings(parent.data)).map(([sibling, siblingBinding]) =>
+        gameDocumentOp.parse({ op: "bind_asset", slot: sibling, binding: siblingBinding })) : [];
+    const saved = await Game.updateDraft(userId, game.id, draftUpdatedAt, [op, ...siblings], workspace, { actor: "user" });
+    if (!saved) { throwApiError(ApiErrorCode.ALREADY_EXISTS, CONCURRENT_DRAFT_EDIT); }
     return { game: info(saved.game), document: saved.document };
   } catch (error) {
     if (uri) { await storage.delete(uri); }
@@ -303,6 +342,151 @@ async function createGame(
   });
   if (!game) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game already exists");
   return { game: info(game), document };
+}
+
+const installCandidateInput = idInput.extend({
+  baseRevision: z.string().optional(),
+  baseUpdatedAt: z.string().optional(),
+  slot: z.string().min(1),
+  candidateWorkspaceId: z.string().optional(),
+  binding: anyGameAssetBinding
+});
+
+interface InstallCandidateOptions {
+  /** Move the slot's existing frame and tile bindings onto the new bytes. */
+  readonly replaceInPlace?: boolean;
+  /** Frame or tile rectangles a sheet or tileset preparation produced. They replace `replaceInPlace`. */
+  readonly frames?: readonly z.infer<typeof assetFrame>[];
+  readonly tiles?: readonly { readonly mask: number; readonly frame: z.infer<typeof assetFrame> }[];
+}
+
+function siblingBindingsFor(slot: string, assets: Record<string, z.infer<typeof gameAssetBinding>>,
+  options: InstallCandidateOptions): SiblingBindings | undefined {
+  const { frames, tiles } = options;
+  if (frames?.length) {
+    return (installed) => Object.fromEntries(frames.map((frame, index) => [`${slot}.frame.${index}`, { ...installed, frame }]));
+  }
+  if (tiles?.length) {
+    return (installed) => Object.fromEntries(tiles.map((tile) => [`${slot}.tile.${tile.mask}`, { ...installed, frame: tile.frame }]));
+  }
+  if (!options.replaceInPlace) { return undefined; }
+  return (installed) => Object.fromEntries(gameAssetSiblingRebinds(assets, slot, installed).ops.map((op) => [op.slot, op.binding]));
+}
+
+/** Install a staged candidate's bytes into the draft, with the sibling bindings `options` names. */
+async function installCandidateBinding(userId: string, input: z.infer<typeof installCandidateInput>,
+  options: InstallCandidateOptions = {}): Promise<z.infer<typeof gameWithDocument>> {
+  const ctx = { userId };
+  const game = await ownedGame(ctx.userId, input.id);
+  const workspace = await gameWorkspace(ctx.userId, game);
+  const candidateRow = input.candidateWorkspaceId
+    ? await Workspace.find(ctx.userId, input.candidateWorkspaceId)
+    : null;
+  if (input.candidateWorkspaceId && (!candidateRow || candidateRow.project_id !== game.project_id)) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "Candidate workspace not found");
+  }
+  const candidateWorkspace = candidateRow ? workspaceFromRow(candidateRow) : workspace;
+  if (!candidateWorkspace) {
+    throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, "Candidate workspace storage is unavailable");
+  }
+  const digest = input.binding.digest;
+  if (!/^[a-f0-9]{64}$/.test(digest)) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Invalid candidate digest");
+  }
+  if (input.binding.mediaKind === "font" && !input.binding.fontFormat) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Font binding needs a TrueType or OpenType format");
+  }
+  if (input.binding.mediaKind === "hdri") {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "HDRI candidates cannot be installed until HDRI preparation verifies their bytes and dimensions");
+  }
+  const formats = input.binding.mediaKind === "model"
+    ? [["glb", "model/gltf-binary"]]
+    : input.binding.mediaKind === "collider"
+      ? [["json", "application/json"]]
+      : input.binding.mediaKind === "audio"
+    ? [["wav", "audio/wav"], ["mp3", "audio/mpeg"], ["ogg", "audio/ogg"]]
+    : input.binding.mediaKind === "font"
+      ? [[input.binding.fontFormat, `font/${input.binding.fontFormat}`]]
+      : [["png", "image/png"], ["jpg", "image/jpeg"], ["webp", "image/webp"]];
+  let candidate: { extension: string; contentType: string; bytes: Uint8Array } | null = null;
+  for (const [extension, contentType] of formats) {
+    if (!extension || !contentType) continue;
+    const path = `${game.source_root}/assets/${digest}.${extension}`;
+    const bytes = await candidateWorkspace.read(path);
+    if (bytes) {
+      candidate = { extension, contentType, bytes };
+      break;
+    }
+  }
+  if (!candidate || createHash("sha256").update(candidate.bytes).digest("hex") !== digest) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Candidate asset is missing or changed");
+  }
+  const { extension, contentType, bytes } = candidate;
+  let binding = input.binding;
+  if (binding.mediaKind === "model") {
+    const prepared = await prepareGameModelBinding3D(bytes, { assetId: binding.assetId, expectedDigest: digest });
+    if (!prepared.ok) { throwApiError(ApiErrorCode.INVALID_INPUT, prepared.diagnostics.map((issue) => issue.message).join("; ")); }
+    const sourceAsset = binding.sourceAssetId ? await Asset.find(ctx.userId, binding.sourceAssetId) : null;
+    if (binding.sourceAssetId && !sourceAsset) { throwApiError(ApiErrorCode.INVALID_INPUT, "Model source asset is not owned"); }
+    const canonical = { ...prepared.binding, required: binding.required };
+    if (binding.provenance) { canonical.provenance = binding.provenance; }
+    if (binding.importSettings) { canonical.importSettings = binding.importSettings; }
+    if (binding.sourceDigest) { canonical.sourceDigest = binding.sourceDigest; }
+    if (sourceAsset) { canonical.sourceAssetId = sourceAsset.id; }
+    binding = canonical;
+  } else if (binding.mediaKind === "collider") {
+    let geometry: unknown;
+    try { geometry = JSON.parse(new TextDecoder().decode(bytes)); }
+    catch { throwApiError(ApiErrorCode.INVALID_INPUT, "Prepared collider is not valid JSON"); }
+    const parsed = gamePreparedCollider3D.safeParse(geometry);
+    if (!parsed.success || binding.shape === "triangleMesh" && !parsed.data.indices?.length) {
+      throwApiError(ApiErrorCode.INVALID_INPUT, "Prepared collider has invalid vertices or triangle indices");
+    }
+    const { vertices, indices } = parsed.data;
+    const minimum = { x: Infinity, y: Infinity, z: Infinity };
+    const maximum = { x: -Infinity, y: -Infinity, z: -Infinity };
+    for (let index = 0; index < vertices.length; index += 3) {
+      minimum.x = Math.min(minimum.x, vertices[index]); maximum.x = Math.max(maximum.x, vertices[index]);
+      minimum.y = Math.min(minimum.y, vertices[index + 1]); maximum.y = Math.max(maximum.y, vertices[index + 1]);
+      minimum.z = Math.min(minimum.z, vertices[index + 2]); maximum.z = Math.max(maximum.z, vertices[index + 2]);
+    }
+    binding = { ...binding, preparationVersion: "1", bounds: { min: minimum, max: maximum }, vertices: vertices.length / 3, triangles: (indices?.length ?? 0) / 3 };
+    try { await decodePreparedGameCollider3D(bytes, gameAssetBinding3D.options[1].parse(binding)); }
+    catch (error) { throwApiError(ApiErrorCode.INVALID_INPUT, error instanceof Error ? error.message : "Prepared collider is invalid"); }
+  }
+  if (input.baseRevision && game.current_revision !== input.baseRevision) {
+    throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
+  }
+  const draft = await Game.readDraft(ctx.userId, game.id, workspace);
+  if (!draft) throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
+  if (input.baseUpdatedAt && draft.game.draft_updated_at !== input.baseUpdatedAt) {
+    throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+  }
+  const targetBinding = draft.document.schemaVersion === 3 ? gameAssetBinding3D.safeParse(binding) :
+    gameAssetBinding.safeParse(binding);
+  if (!targetBinding.success || draft.document.schemaVersion !== 3 && (binding.mediaKind === "model" || binding.mediaKind === "collider")) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Asset binding does not match the game dimension");
+  }
+  return persistGameAsset(ctx.userId, game, workspace, draft.game.draft_updated_at, input.slot,
+    targetBinding.data, bytes, extension, contentType,
+    draft.document.schemaVersion !== 3 ? siblingBindingsFor(input.slot, draft.document.assets, options) : undefined);
+}
+
+/**
+ * Install into whichever draft is current when the bytes are ready. An editor
+ * session saves while a generation runs, so a slot binding must not depend on
+ * the draft token the request started from. The write itself stays a
+ * compare-and-swap, retried when a save lands between the read and the write.
+ */
+async function installOnLatestDraft(userId: string, input: Omit<z.infer<typeof installCandidateInput>, "baseUpdatedAt">,
+  options: InstallCandidateOptions): Promise<z.infer<typeof gameWithDocument>> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await installCandidateBinding(userId, input, options);
+    } catch (error) {
+      if (attempt >= 3 || !(error instanceof Error) || error.message !== CONCURRENT_DRAFT_EDIT) { throw error; }
+    }
+  }
 }
 
 export const gamesRouter = router({
@@ -585,106 +769,71 @@ export const gamesRouter = router({
     }),
 
   installCandidate: gameProcedure
-    .input(idInput.extend({
-      baseRevision: z.string().optional(),
-      baseUpdatedAt: z.string().optional(),
-      slot: z.string().min(1),
-      candidateWorkspaceId: z.string().optional(),
-      binding: anyGameAssetBinding
-    }))
+    .input(installCandidateInput)
     .output(gameWithDocument)
+    .mutation(async ({ ctx, input }) => installCandidateBinding(ctx.userId, input)),
+
+  /** Staged candidates and per-slot generation requests for the asset browser. The catalog itself is computed client-side from the draft. */
+  assetBrowser: gameProcedure
+    .input(idInput)
+    .output(assetBrowserInfo)
+    .query(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      const result = await authoringRun(ctx.userId).invoke("browse_native_game_assets", { game_id: game.id });
+      checkAuthoringResult(result);
+      return assetBrowserInfo.parse(result);
+    }),
+
+  /**
+   * Generate an asset for one slot through `generate_game_asset`, record the
+   * prompt beside the staged bytes, and bind it in place on the draft that is
+   * current when the bytes are ready. The editor keeps saving while a
+   * generation runs, so the request carries no draft token: a sheet's frame
+   * bindings, or the slot's existing frame and tile bindings, are written in
+   * the same compare-and-swap as the slot, as the user who asked.
+   */
+  generateAsset: gameProcedure
+    .input(idInput.extend({
+      slot: z.string().min(1),
+      kind: z.enum(["image", "audio", "music"]),
+      prompt: z.string().trim().min(1).max(4000),
+      preparation: z.record(z.string(), z.unknown()).optional()
+    }).strict())
+    .output(generatedAsset)
     .mutation(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
       const workspace = await gameWorkspace(ctx.userId, game);
-      const candidateRow = input.candidateWorkspaceId
-        ? await Workspace.find(ctx.userId, input.candidateWorkspaceId)
-        : null;
-      if (input.candidateWorkspaceId && (!candidateRow || candidateRow.project_id !== game.project_id)) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Candidate workspace not found");
-      }
-      const candidateWorkspace = candidateRow ? workspaceFromRow(candidateRow) : workspace;
-      if (!candidateWorkspace) {
-        throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, "Candidate workspace storage is unavailable");
-      }
-      const digest = input.binding.digest;
-      if (!/^[a-f0-9]{64}$/.test(digest)) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Invalid candidate digest");
-      }
-      if (input.binding.mediaKind === "font" && !input.binding.fontFormat) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Font binding needs a TrueType or OpenType format");
-      }
-      if (input.binding.mediaKind === "hdri") {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "HDRI candidates cannot be installed until HDRI preparation verifies their bytes and dimensions");
-      }
-      const formats = input.binding.mediaKind === "model"
-        ? [["glb", "model/gltf-binary"]]
-        : input.binding.mediaKind === "collider"
-          ? [["json", "application/json"]]
-          : input.binding.mediaKind === "audio"
-        ? [["wav", "audio/wav"], ["mp3", "audio/mpeg"], ["ogg", "audio/ogg"]]
-        : input.binding.mediaKind === "font"
-          ? [[input.binding.fontFormat, `font/${input.binding.fontFormat}`]]
-          : [["png", "image/png"], ["jpg", "image/jpeg"], ["webp", "image/webp"]];
-      let candidate: { extension: string; contentType: string; bytes: Uint8Array } | null = null;
-      for (const [extension, contentType] of formats) {
-        if (!extension || !contentType) continue;
-        const path = `${game.source_root}/assets/${digest}.${extension}`;
-        const bytes = await candidateWorkspace.read(path);
-        if (bytes) {
-          candidate = { extension, contentType, bytes };
-          break;
-        }
-      }
-      if (!candidate || createHash("sha256").update(candidate.bytes).digest("hex") !== digest) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Candidate asset is missing or changed");
-      }
-      const { extension, contentType, bytes } = candidate;
-      let binding = input.binding;
-      if (binding.mediaKind === "model") {
-        const prepared = await prepareGameModelBinding3D(bytes, { assetId: binding.assetId, expectedDigest: digest });
-        if (!prepared.ok) { throwApiError(ApiErrorCode.INVALID_INPUT, prepared.diagnostics.map((issue) => issue.message).join("; ")); }
-        const sourceAsset = binding.sourceAssetId ? await Asset.find(ctx.userId, binding.sourceAssetId) : null;
-        if (binding.sourceAssetId && !sourceAsset) { throwApiError(ApiErrorCode.INVALID_INPUT, "Model source asset is not owned"); }
-        const canonical = { ...prepared.binding, required: binding.required };
-        if (binding.provenance) { canonical.provenance = binding.provenance; }
-        if (binding.importSettings) { canonical.importSettings = binding.importSettings; }
-        if (binding.sourceDigest) { canonical.sourceDigest = binding.sourceDigest; }
-        if (sourceAsset) { canonical.sourceAssetId = sourceAsset.id; }
-        binding = canonical;
-      } else if (binding.mediaKind === "collider") {
-        let geometry: unknown;
-        try { geometry = JSON.parse(new TextDecoder().decode(bytes)); }
-        catch { throwApiError(ApiErrorCode.INVALID_INPUT, "Prepared collider is not valid JSON"); }
-        const parsed = gamePreparedCollider3D.safeParse(geometry);
-        if (!parsed.success || binding.shape === "triangleMesh" && !parsed.data.indices?.length) {
-          throwApiError(ApiErrorCode.INVALID_INPUT, "Prepared collider has invalid vertices or triangle indices");
-        }
-        const { vertices, indices } = parsed.data;
-        const minimum = { x: Infinity, y: Infinity, z: Infinity };
-        const maximum = { x: -Infinity, y: -Infinity, z: -Infinity };
-        for (let index = 0; index < vertices.length; index += 3) {
-          minimum.x = Math.min(minimum.x, vertices[index]); maximum.x = Math.max(maximum.x, vertices[index]);
-          minimum.y = Math.min(minimum.y, vertices[index + 1]); maximum.y = Math.max(maximum.y, vertices[index + 1]);
-          minimum.z = Math.min(minimum.z, vertices[index + 2]); maximum.z = Math.max(maximum.z, vertices[index + 2]);
-        }
-        binding = { ...binding, preparationVersion: "1", bounds: { min: minimum, max: maximum }, vertices: vertices.length / 3, triangles: (indices?.length ?? 0) / 3 };
-        try { await decodePreparedGameCollider3D(bytes, gameAssetBinding3D.options[1].parse(binding)); }
-        catch (error) { throwApiError(ApiErrorCode.INVALID_INPUT, error instanceof Error ? error.message : "Prepared collider is invalid"); }
-      }
-      if (input.baseRevision && game.current_revision !== input.baseRevision) {
-        throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
-      }
-      const draft = await Game.readDraft(ctx.userId, game.id, workspace);
-      if (!draft) throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
-      if (input.baseUpdatedAt && draft.game.draft_updated_at !== input.baseUpdatedAt) {
-        throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
-      }
-      const targetBinding = draft.document.schemaVersion === 3 ? gameAssetBinding3D.safeParse(binding) :
-        gameAssetBinding.safeParse(binding);
-      if (!targetBinding.success || draft.document.schemaVersion !== 3 && (binding.mediaKind === "model" || binding.mediaKind === "collider")) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Asset binding does not match the game dimension");
-      }
-      return persistGameAsset(ctx.userId, game, workspace, draft.game.draft_updated_at, input.slot,
-        targetBinding.data, bytes, extension, contentType);
+      const args: Record<string, unknown> = { game_id: game.id, slot: input.slot, kind: input.kind, prompt: input.prompt, install: false };
+      if (input.preparation) { args["preparation"] = input.preparation; }
+      const run = await assetGenerationRun(ctx.userId, game, workspace);
+      const result = generatedAssetResult.safeParse(await run.invoke("generate_game_asset", args));
+      if (!result.success) { throwApiError(ApiErrorCode.INTERNAL_ERROR, "Asset generation returned an invalid result"); }
+      checkAuthoringResult(result.data);
+      const { binding, frames, tiles } = result.data;
+      if (!binding) { throwApiError(ApiErrorCode.INTERNAL_ERROR, "Asset generation did not stage an asset"); }
+      await workspace.write(stagedGameCandidateRecordPath(game.source_root, binding.digest), JSON.stringify(stagedGameCandidateRecord.parse({
+        version: 1, digest: binding.digest, slot: input.slot, prompt: input.prompt, source: "generate", stagedAt: new Date().toISOString(), binding
+      })), "application/json");
+      const installed = await installOnLatestDraft(ctx.userId, { id: game.id, slot: input.slot, binding },
+        { replaceInPlace: true, frames, tiles });
+      return { ...installed, stagedDigest: binding.digest, installed: true };
+    }),
+
+  /** Bind a staged candidate to a slot on the current draft. A 2D slot's frame and tile bindings move onto the new bytes. */
+  installStagedCandidate: gameProcedure
+    .input(idInput.extend({
+      slot: z.string().min(1),
+      digest: z.string().regex(/^[a-f0-9]{64}$/)
+    }).strict())
+    .output(gameWithDocument)
+    .mutation(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      const picked = stagedCandidateBinding.safeParse(await authoringRun(ctx.userId).invoke("browse_native_game_assets", {
+        game_id: game.id, digest: input.digest, slot: input.slot
+      }));
+      if (!picked.success) { throwApiError(ApiErrorCode.INTERNAL_ERROR, "Candidate lookup returned an invalid result"); }
+      checkAuthoringResult(picked.data);
+      if (!picked.data.binding) { throwApiError(ApiErrorCode.NOT_FOUND, "Staged candidate not found"); }
+      return installOnLatestDraft(ctx.userId, { id: game.id, slot: input.slot, binding: picked.data.binding }, { replaceInPlace: true });
     })
 });

@@ -1,4 +1,4 @@
-import type { GameEntityProps } from "@nodetool-ai/protocol";
+import { gameParticleEmissionOf, type GameEntityProps } from "@nodetool-ai/protocol";
 import { evaluateVisual } from "../visual-animation.js";
 import { gravityScaleOf, touchingOf } from "./collision2d.js";
 import type { EntityState } from "./state2d.js";
@@ -149,6 +149,8 @@ export function stepScripts2D(context: GameSystemContext2D): void {
             state.animation = command.clip;
             state.animationTick = context.tick + 1;
           }
+        } else if (command.kind === "emitParticles") {
+          (context.queues.particles ??= []).push(gameParticleEmissionOf(command, item.entityId));
         } else {
           applyGameplayCommand(command, item.entityId, context.queues, context.hud, context.emit);
         }

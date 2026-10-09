@@ -987,6 +987,13 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "games.previewAuthoring": { capability: "preview_native_game_authoring" },
   "games.applyAuthoring": { capability: "apply_native_game_authoring" },
+  "games.assetBrowser": { capability: "browse_native_game_assets" },
+  "games.generateAsset": {
+    elsewhere: "generate_game_asset generates and stages the asset; install_native_game_asset binds a 3D candidate and edit_native_game binds sheet frames."
+  },
+  "games.installStagedCandidate": {
+    elsewhere: "browse_native_game_assets with digest returns the binding and install_native_game_asset installs it."
+  },
   "storyboards.create": { capability: "create_storyboard" },
   "storyboards.delete": { capability: "delete_storyboard" },
   "storyboards.examples": {
