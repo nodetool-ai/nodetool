@@ -250,3 +250,11 @@ it("round-trips document animation graphs and the animator reference to them", (
   expect(diffAnyGameDocuments(before, after).map((op) => op.op)).toContain("set_animation_graph");
   expect(diffAnyGameDocuments(after, before).map((op) => op.op)).toContain("remove_animation_graph");
 });
+
+it("round-trips adding and removing the audio mixer through JSON operations", () => {
+  const before = createNative3DGame("diff3d-audio-mixer");
+  const after = structuredClone(before);
+  after.audio = { mixer: { buses: { ambience: { parent: "sfx", volume: 0.5, muted: false, reverbSend: 0.2 } }, assetBuses: {},
+    limiter: { enabled: true, thresholdDb: -3 }, reverb: { decaySeconds: 1.8 }, ducking: [], snapshots: {}, transitions: [] } };
+  roundTrip(before, after);
+});

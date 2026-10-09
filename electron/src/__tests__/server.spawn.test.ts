@@ -95,7 +95,7 @@ describe("backend utilityProcess spawn contract", () => {
       NODETOOL_PYTHON: "",
       NODE_ENV: "production",
       NODETOOL_PACKS_REQUIRE_ALLOWLIST: "1",
-      NODE_OPTIONS: "--conditions=nodetool-dev",
+      NODE_OPTIONS: "",
       NODE_PATH: "/mock/backend/node_modules",
     } satisfies Record<string, string>;
 

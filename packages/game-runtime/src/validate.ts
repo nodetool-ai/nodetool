@@ -1,5 +1,6 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
+import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 
 export interface GameValidationResult {
   readonly valid: boolean;
@@ -63,6 +64,10 @@ export function validateGame(value: unknown): GameValidationResult {
   if (document.schemaVersion === 1 && ((document.renderEffects?.length ?? 0) > 1 ||
     document.renderEffects?.some((effect) => effect.kind !== "brightnessContrast") || document.hudEffectOrder)) {
     errors.push("Effect chains, bloom, and HUD effect order require game schema version 2");
+  }
+  for (const issue of audioMixerReferenceIssues(document.audio, document.assets, new Set(document.scenes.map((scene) => scene.id)))) {
+    issueOverrides.set(errors.length, issue);
+    errors.push(`${issue.path.join(".")}: ${issue.message}`);
   }
   for (const [index, effect] of (document.renderEffects ?? []).entries()) {
     if (effect.kind !== "lut") {

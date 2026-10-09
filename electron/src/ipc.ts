@@ -114,8 +114,6 @@ const MIME_TYPE_MAP: Record<string, string> = {
   html: "text/html",
 };
 
-import WebSocket from "ws";
-
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
  * and renderer processes. It provides type-safe wrappers for IPC handlers and initializes
@@ -140,6 +138,9 @@ type IpcMainHandler<T extends keyof IpcRequest & keyof IpcResponse> = (
   data: IpcRequest[T],
 ) => Promise<IpcResponse[T]>;
 
+/** The runtime install folder the user last picked in the folder dialog. */
+let selectedRuntimeInstallLocation: string | null = null;
+
 // Channels that should have their payloads redacted for security
 const SENSITIVE_CHANNELS = ["clipboard:write-text", "clipboard:read-text"];
 // High-frequency channels that only log on error to reduce noise
@@ -147,16 +148,6 @@ const QUIET_CHANNELS = [
   "settings-get-close-behavior",
   "frontend-log",
 ];
-const LOCALHOST_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
-const LOCALHOST_PROXY_WS_STATES = new Map<
-  string,
-  {
-    senderId: number;
-    socket: WebSocket;
-  }
->();
-const LOCALHOST_PROXY_WS_IDS_BY_SENDER = new Map<number, Set<string>>();
-
 /**
  * Defense-in-depth check for URLs passed to `shell.openExternal` / browser.
  * The preload already filters schemes, but a compromised renderer could
@@ -178,88 +169,6 @@ function isSafeExternalUrl(urlValue: unknown): boolean {
     return SAFE_EXTERNAL_PROTOCOLS.has(parsed.protocol);
   } catch {
     return false;
-  }
-}
-
-function assertLocalhostUrl(
-  urlValue: string,
-  allowedProtocols: string[] = ["http:", "https:"],
-): URL {
-  let parsed: URL;
-  try {
-    parsed = new URL(urlValue);
-  } catch {
-    throw new Error("Invalid proxy URL");
-  }
-
-  if (!allowedProtocols.includes(parsed.protocol)) {
-    throw new Error(
-      `Only ${allowedProtocols.join("/")} URLs are allowed`,
-    );
-  }
-  if (!LOCALHOST_HOSTNAMES.has(parsed.hostname)) {
-    throw new Error("Only localhost URLs are allowed");
-  }
-  return parsed;
-}
-
-function sanitizeProxyMethod(method?: string): string {
-  const normalized = (method || "GET").toUpperCase();
-  const allowedMethods = new Set([
-    "GET",
-    "POST",
-    "PUT",
-    "PATCH",
-    "DELETE",
-    "HEAD",
-    "OPTIONS",
-  ]);
-  if (!allowedMethods.has(normalized)) {
-    throw new Error(`Unsupported method: ${normalized}`);
-  }
-  return normalized;
-}
-
-function cleanupLocalhostProxyWsConnection(connectionId: string): void {
-  const existing = LOCALHOST_PROXY_WS_STATES.get(connectionId);
-  if (!existing) {
-    return;
-  }
-
-  const senderConnections = LOCALHOST_PROXY_WS_IDS_BY_SENDER.get(
-    existing.senderId,
-  );
-  if (senderConnections) {
-    senderConnections.delete(connectionId);
-    if (senderConnections.size === 0) {
-      LOCALHOST_PROXY_WS_IDS_BY_SENDER.delete(existing.senderId);
-    }
-  }
-
-  LOCALHOST_PROXY_WS_STATES.delete(connectionId);
-}
-
-function closeAllLocalhostProxyWsForSender(senderId: number): void {
-  const senderConnections = LOCALHOST_PROXY_WS_IDS_BY_SENDER.get(senderId);
-  if (!senderConnections) {
-    return;
-  }
-
-  for (const connectionId of senderConnections) {
-    const existing = LOCALHOST_PROXY_WS_STATES.get(connectionId);
-    if (existing) {
-      try {
-        existing.socket.close();
-      } catch (error) {
-        logMessage(
-          `Error closing localhost proxy websocket ${connectionId}: ${String(
-            error,
-          )}`,
-          "warn",
-        );
-      }
-    }
-    cleanupLocalhostProxyWsConnection(connectionId);
   }
 }
 
@@ -949,6 +858,17 @@ export function initializeIpcHandlers(): void {
       if (!isRuntimePackageId(data.packageId)) {
         return { success: false, message: `Unknown package ID: ${data.packageId}` };
       }
+      // The location becomes CONDA_ENV, from which the app later runs `uv`.
+      // Take only a folder the user picked in this process's own dialog.
+      if (
+        data.installLocation !== undefined &&
+        data.installLocation !== selectedRuntimeInstallLocation
+      ) {
+        return {
+          success: false,
+          message: "Choose the install location with the folder picker",
+        };
+      }
       logMessage(`Installing runtime package: ${data.packageId}`);
       return await installRuntimePackage(
         data.packageId,
@@ -996,7 +916,8 @@ export function initializeIpcHandlers(): void {
       if (canceled || !filePaths?.[0]) {
         return null;
       }
-      return path.join(filePaths[0], "nodetool-env");
+      selectedRuntimeInstallLocation = path.join(filePaths[0], "nodetool-env");
+      return selectedRuntimeInstallLocation;
     },
   );
 
@@ -1022,213 +943,6 @@ export function initializeIpcHandlers(): void {
         : data.message;
     logMessage(`${source}${message}`, data.level);
   });
-
-  createIpcMainHandler(
-    IpcChannels.LOCALHOST_PROXY_REQUEST,
-    async (_event, request) => {
-      const parsedUrl = assertLocalhostUrl(request.url);
-      const method = sanitizeProxyMethod(request.method);
-      const responseType = request.responseType || "text";
-      logMessage(
-        `[localhost-proxy] HTTP ${method} ${parsedUrl.toString()}`,
-        "info",
-      );
-
-      let response: Response;
-      try {
-        response = await fetch(parsedUrl.toString(), {
-          method,
-          headers: request.headers,
-          body: request.body,
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        logMessage(
-          `[localhost-proxy] HTTP ${method} ${parsedUrl.toString()} failed: ${message}`,
-          "warn",
-        );
-        return {
-          status: 0,
-          ok: false,
-          headers: {
-            "status-text": message,
-            "x-localhost-proxy-error": "1",
-          },
-          error: message,
-          data: responseType === "json" ? null : "",
-        };
-      }
-
-      const responseHeaders: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
-      });
-
-      const data =
-        responseType === "json"
-          ? await response.json()
-          : await response.text();
-
-      logMessage(
-        `[localhost-proxy] HTTP ${method} ${parsedUrl.toString()} -> ${response.status}`,
-        response.ok ? "info" : "warn",
-      );
-
-      return {
-        status: response.status,
-        ok: response.ok,
-        headers: responseHeaders,
-        data,
-      };
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.LOCALHOST_PROXY_WS_OPEN,
-    async (event, request) => {
-      const parsedUrl = assertLocalhostUrl(request.url, ["ws:", "wss:"]);
-      const senderId = event.sender.id;
-      const connectionId = randomUUID();
-      logMessage(
-        `[localhost-proxy] WS open requested ${parsedUrl.toString()} (sender=${senderId})`,
-        "info",
-      );
-      const socket = new WebSocket(parsedUrl.toString(), request.protocols, {
-        headers: request.headers,
-      });
-
-      LOCALHOST_PROXY_WS_STATES.set(connectionId, { senderId, socket });
-      let senderConnections = LOCALHOST_PROXY_WS_IDS_BY_SENDER.get(senderId);
-      if (!senderConnections) {
-        senderConnections = new Set<string>();
-        LOCALHOST_PROXY_WS_IDS_BY_SENDER.set(senderId, senderConnections);
-        event.sender.once("destroyed", () => {
-          closeAllLocalhostProxyWsForSender(senderId);
-        });
-      }
-      senderConnections.add(connectionId);
-
-      socket.on("open", () => {
-        logMessage(
-          `[localhost-proxy] WS open ${connectionId} ${parsedUrl.toString()}`,
-          "info",
-        );
-        if (!event.sender.isDestroyed()) {
-          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-            connectionId,
-            event: "open",
-          });
-        }
-      });
-
-      socket.on("message", (data) => {
-        const textData =
-          isString(data)
-            ? data
-            : Array.isArray(data)
-              ? Buffer.concat(data).toString("utf8")
-              : Buffer.from(data as ArrayBuffer | SharedArrayBuffer).toString("utf8");
-        if (!event.sender.isDestroyed()) {
-          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-            connectionId,
-            event: "message",
-            data: textData,
-          });
-        }
-        logMessage(
-          `[localhost-proxy] WS message ${connectionId} (${textData.length} bytes)`,
-          "info",
-        );
-      });
-
-      socket.on("error", (error) => {
-        logMessage(
-          `[localhost-proxy] WS error ${connectionId}: ${error.message}`,
-          "error",
-        );
-        if (!event.sender.isDestroyed()) {
-          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-            connectionId,
-            event: "error",
-            error: error.message,
-          });
-        }
-      });
-
-      socket.on("close", (code, reason) => {
-        logMessage(
-          `[localhost-proxy] WS close ${connectionId} code=${code} reason=${reason.toString("utf8")}`,
-          "info",
-        );
-        if (!event.sender.isDestroyed()) {
-          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-            connectionId,
-            event: "close",
-            code,
-            reason: reason.toString("utf8"),
-          });
-        }
-        cleanupLocalhostProxyWsConnection(connectionId);
-      });
-
-      return { connectionId };
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.LOCALHOST_PROXY_WS_SEND,
-    async (event, request) => {
-      logMessage(
-        `[localhost-proxy] WS send ${request.connectionId} (${request.data.length} bytes)`,
-        "info",
-      );
-      const connection = LOCALHOST_PROXY_WS_STATES.get(request.connectionId);
-      if (!connection) {
-        logMessage(
-          `[localhost-proxy] WS send failed: connection ${request.connectionId} not found`,
-          "warn",
-        );
-        throw new Error("WebSocket connection not found");
-      }
-      if (connection.senderId !== event.sender.id) {
-        logMessage(
-          `[localhost-proxy] WS send denied for ${request.connectionId}: sender mismatch`,
-          "warn",
-        );
-        throw new Error("WebSocket connection belongs to another renderer");
-      }
-      if (connection.socket.readyState !== WebSocket.OPEN) {
-        logMessage(
-          `[localhost-proxy] WS send failed for ${request.connectionId}: socket not open`,
-          "warn",
-        );
-        throw new Error("WebSocket is not open");
-      }
-      connection.socket.send(request.data);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.LOCALHOST_PROXY_WS_CLOSE,
-    async (event, request) => {
-      logMessage(
-        `[localhost-proxy] WS close requested ${request.connectionId}`,
-        "info",
-      );
-      const connection = LOCALHOST_PROXY_WS_STATES.get(request.connectionId);
-      if (!connection) {
-        logMessage(
-          `[localhost-proxy] WS close noop: ${request.connectionId} not found`,
-          "warn",
-        );
-        return;
-      }
-      if (connection.senderId !== event.sender.id) {
-        throw new Error("WebSocket connection belongs to another renderer");
-      }
-      connection.socket.close(request.code, request.reason);
-    },
-  );
 
   // Shell module handlers
   createIpcMainHandler(

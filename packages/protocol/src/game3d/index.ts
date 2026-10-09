@@ -17,6 +17,7 @@ import { gameAnimationGraphRuntime3D, gameAnimationGraphs3D, gameAnimationPose3D
 import { gameEnvironment3D } from "./components/environment.js";
 import { gameAssetBinding3D } from "./components/assets.js";
 import { gameAuthoring } from "../game-authoring.js";
+import { gameAudioSettings } from "../game2d/components/audio.js";
 import { gameDocument, gameEntity, gameEvent, gameHudLabel, gameScene, gameSnapshot } from "../game.js";
 
 const diagnosticPath = z.array(z.union([z.string(), z.number(), z.symbol().transform((value) => value.toString())]));
@@ -68,7 +69,8 @@ export const gameDocument3D = z.strictObject({
   inputActions: z.array(id).max(64), inputAxes: z.array(id).max(16).default(["moveX", "moveZ"]),
   collisionLayers: z.array(id).max(16).optional(), assets: z.record(id, gameAssetBinding3D),
   prefabs: z.record(id, gamePrefab3D).default({}), scenes: z.array(gameScene3D).min(1).max(64),
-  animationGraphs: gameAnimationGraphs3D.optional()
+  animationGraphs: gameAnimationGraphs3D.optional(),
+  audio: gameAudioSettings.optional()
 });
 
 export type GameDocument3D = z.infer<typeof gameDocument3D>;
