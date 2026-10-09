@@ -1,6 +1,13 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
-import { gameDocument, gameInputBindingIssues, type GameDocument } from "@nodetool-ai/protocol";
+import { scriptParamReferenceIssues } from "./script-params.js";
+import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameInputBindingIssues, type GameDocument } from "@nodetool-ai/protocol";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
+
+/**
+ * Schema 5 reserves engine 4 for Rapier 2D physics. Until that physics exists, engine 4
+ * documents are refused rather than simulated on another engine's physics.
+ */
+export const GAME_ENGINE_4_UNAVAILABLE = "engine version 4 (Rapier 2D physics) is not available in this runtime";
 
 export interface GameValidationResult {
   readonly valid: boolean;
@@ -55,8 +62,12 @@ export function validateGame(value: unknown): GameValidationResult {
     } catch (error) { errors.push(`authoring: ${error instanceof Error ? error.message : "Invalid authoring metadata"}`); }
   }
   const issueOverrides = new Map<number, GameValidationIssue>();
-  if ((document.schemaVersion === 4) !== (document.engineVersion === "3")) {
-    errors.push(`engineVersion: schema version ${document.schemaVersion} requires engine version ${document.schemaVersion === 4 ? "3" : "1"}`);
+  const engineVersion = GAME_2D_ENGINE_BY_SCHEMA[document.schemaVersion];
+  if (document.engineVersion !== engineVersion) {
+    errors.push(`engineVersion: schema version ${document.schemaVersion} requires engine version ${engineVersion}`);
+  } else if (engineVersion === "4") {
+    issueOverrides.set(errors.length, { path: ["engineVersion"], message: GAME_ENGINE_4_UNAVAILABLE });
+    errors.push(`engineVersion: ${GAME_ENGINE_4_UNAVAILABLE}`);
   }
   if (document.schemaVersion === 1 && document.collisionLayers) {
     errors.push("collisionLayers: requires schema version 2");
@@ -234,8 +245,8 @@ export function validateGame(value: unknown): GameValidationResult {
       }
       if (entity.visualAnimation && !entity.sprite) errors.push(`${path}.visualAnimation: requires a sprite`);
       if (document.schemaVersion === 1 && entity.visualAnimation) errors.push(`${path}.visualAnimation: requires schema version 2`);
-      if (document.schemaVersion !== 4 && entity.tags !== undefined) errors.push(`${path}.tags: requires schema version 4`);
-      if (document.schemaVersion !== 4 && entity.props !== undefined) errors.push(`${path}.props: requires schema version 4`);
+      if (document.schemaVersion < 4 && entity.tags !== undefined) errors.push(`${path}.tags: requires schema version 4`);
+      if (document.schemaVersion < 4 && entity.props !== undefined) errors.push(`${path}.props: requires schema version 4`);
       if (document.schemaVersion === 1 && entity.sprite?.unlit !== undefined) errors.push(`${path}.sprite.unlit: requires schema version 2`);
       if (document.schemaVersion === 1) {
         for (const [field, present] of [
@@ -280,6 +291,12 @@ export function validateGame(value: unknown): GameValidationResult {
         if (behavior.kind === "script") {
           scriptCount += 1;
           scriptSourceBytes += encoder.encode(behavior.source).byteLength;
+          if (document.schemaVersion !== 4 && (behavior.params !== undefined || behavior.values !== undefined)) {
+            errors.push(`${path}.behaviors.${behaviorIndex}.params: requires schema version 4`);
+          }
+          for (const issue of scriptParamReferenceIssues(behavior, (id) => entities.has(id), (slot) => document.assets[slot]?.mediaKind)) {
+            errors.push(`${path}.behaviors.${behaviorIndex}.${issue.path.join(".")}: ${issue.message}`);
+          }
         }
         if (behavior.kind === "movement") {
           for (const action of [behavior.left, behavior.right, behavior.up, behavior.down]) {

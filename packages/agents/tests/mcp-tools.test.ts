@@ -877,6 +877,35 @@ describe("run_workflow", () => {
     expect(result.job_id).toEqual(expect.any(String));
     expect(await Job.find(USER, String(result.job_id))).not.toBeNull();
   });
+
+  // A malformed selection must not fall back to running, and billing, the
+  // whole workflow.
+  it.each([
+    ["a string", { node_ids: "n1" }],
+    ["an empty list", { node_ids: [] }],
+    ["a non-boolean reuse_results", { node_ids: ["n1"], reuse_results: "no" }]
+  ])("refuses node_ids given as %s before running anything", async (_label, args) => {
+    const saved = await saveWorkflow({ graph: { nodes: [], edges: [] } });
+    const tool = capTool("run_workflow", { nodeRegistry: stubRegistry });
+    const result = (await tool.process(ctx, {
+      workflow_id: saved.id,
+      ...args
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toMatch(/node_ids|reuse_results/);
+    const [jobs] = await Job.paginate(USER, { workflowId: saved.id });
+    expect(jobs).toHaveLength(0);
+  });
+
+  it("passes node_ids to the service, which names an unknown id", async () => {
+    const saved = await saveWorkflow({ graph: { nodes: [], edges: [] } });
+    const tool = capTool("run_workflow", { nodeRegistry: stubRegistry });
+    const result = (await tool.process(ctx, {
+      workflow_id: saved.id,
+      node_ids: ["missing-node"]
+    })) as Record<string, unknown>;
+    expect(result.status).toBe(400);
+    expect(String(result.error)).toContain("missing-node");
+  });
 });
 
 describe("debug_workflow", () => {

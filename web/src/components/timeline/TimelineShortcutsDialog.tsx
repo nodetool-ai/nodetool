@@ -37,7 +37,7 @@ import {
   type TimelineKeyboardPreset
 } from "./timelineKeymap";
 
-interface Row {
+export interface Row {
   /** The action whose bindings fill the key column, or fixed keys for a
    *  pointer gesture that has no keyboard binding. */
   action?: TimelineAction;
@@ -45,12 +45,12 @@ interface Row {
   label: string;
 }
 
-interface Group {
+export interface Group {
   title: string;
   rows: Row[];
 }
 
-const GROUPS: Group[] = [
+export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
   {
     title: "Tools",
     rows: [
@@ -279,7 +279,7 @@ export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
             "@media (max-width: 560px)": { gridTemplateColumns: "1fr" }
           })}
         >
-          {GROUPS.map((group) => (
+          {TIMELINE_SHORTCUT_GROUPS.map((group) => (
             <FlexColumn key={group.title} gap={0.5} css={groupStyles}>
               <Caption sx={groupTitleSx}>{group.title}</Caption>
               {group.rows.map((row) => (

@@ -139,7 +139,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "run_workflow",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "759c359135dc",
+    contract: "7b1bf01fe074",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/nodetool-api-workflows.test.ts",
@@ -156,7 +156,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "debug_workflow",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "8a74fbe490d0",
+    contract: "3f7fa54dfdc5",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/mcp-tools.test.ts",
@@ -199,7 +199,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "start_background_job",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "ca27ce2245d7",
+    contract: "3ab70a6e5607",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/mcp-tools.test.ts",
@@ -2736,7 +2736,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "b25cb691f4b9",
+    contract: "8b12724da2d9",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",

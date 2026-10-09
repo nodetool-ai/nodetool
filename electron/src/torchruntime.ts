@@ -1,48 +1,156 @@
 import { spawn } from "child_process";
+import { z } from "zod";
 import { logMessage } from "./logger";
-import { getPythonPath, getProcessEnv } from "./config";
+import { getPythonPath, getProcessEnv, getUVPath } from "./config";
 import { emitBootMessage } from "./events";
 
-export type TorchPlatform = 
-  | "cu118" | "cu124" | "cu128" | "cu129"  // NVIDIA CUDA
-  | "rocm5.2" | "rocm5.7" | "rocm6.2" | "rocm6.4"  // AMD ROCm
-  | "mps"  // Apple Silicon
-  | "cpu";  // CPU fallback
+/**
+ * GPU platform detection for the PyTorch install, and the mapping from what
+ * torchruntime reports to a PyTorch wheel index.
+ *
+ * The packs pin torch 2.14.x. download.pytorch.org publishes each torch
+ * release only for a few CUDA and ROCm versions, so the platform name
+ * torchruntime returns (it can say cu118, cu124, rocm5.2, directml, ...) is
+ * not always an index that carries torch 2.14. {@link mapTorchPlatform}
+ * turns every value torchruntime 2.x can return into the newest index of the
+ * matching family.
+ *
+ * Assumption, not verified from this build environment (download.pytorch.org
+ * was unreachable when this table was written): torch 2.14 is published for
+ * cu126, cu128 and cu130, ROCm 7.2, xpu and cpu. If a release drops one of
+ * these, the install fails with a resolver error naming the index. It does not
+ * fall back to a CPU wheel, because the install passes the index to uv as
+ * `--torch-backend`, which takes torch packages only from that index. Update
+ * {@link TORCH_INDEX_FAMILIES} when the torch pin moves.
+ */
 
-export interface TorchruntimeDetectionResult {
-  platform: TorchPlatform;
-  indexUrl: string | null;
-  detectedAt?: string;
-  error?: string;
+/** A `uv pip install --torch-backend` value, which is also the index name. */
+export type TorchBackend =
+  | "cpu"
+  | "cu126"
+  | "cu128"
+  | "cu130"
+  | "rocm7.2"
+  | "xpu"
+  | "auto";
+
+/** The newest index of each family that carries the pinned torch. */
+export const TORCH_INDEX_FAMILIES = {
+  /**
+   * NVIDIA cards older than Turing (Maxwell, Pascal, Volta; torchruntime says
+   * cu124). CUDA 12.8+ builds no longer ship kernels for them, CUDA 12.6
+   * builds still do.
+   */
+  cudaLegacy: "cu126",
+  /** Turing and newer with a CUDA 12 driver (torchruntime says cu128/cu129). */
+  cuda12: "cu128",
+  /** A CUDA 13 platform (driver 580+). */
+  cuda13: "cu130",
+  /** AMD Navi 2/3/4 and RDNA APUs on Linux. */
+  rocm: "rocm7.2",
+  /** Intel Arc and Intel integrated GPUs (Windows and Linux). */
+  intel: "xpu",
+} as const satisfies Record<string, TorchBackend>;
+
+export interface TorchPlatformMapping {
+  /**
+   * The `--torch-backend` to install with, or null to use the default PyPI
+   * wheels (macOS, where those wheels carry MPS).
+   */
+  backend: TorchBackend | null;
+  /** Why the GPU cannot be used, when the mapping falls back to CPU. */
+  warning?: string;
 }
 
-const TORCH_PLATFORMS: readonly TorchPlatform[] = [
-  "cu118", "cu124", "cu128", "cu129",
-  "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
-  "mps", "cpu"
-];
+/**
+ * Map a torchruntime platform name to the PyTorch index to install from.
+ * Every value torchruntime 2.x returns is handled; anything unknown maps to
+ * CPU with a warning.
+ */
+export function mapTorchPlatform(platform: string): TorchPlatformMapping {
+  const value = platform.trim().toLowerCase();
+  if (value === "mps") {
+    return { backend: null };
+  }
+  if (value === "cpu") {
+    return { backend: "cpu" };
+  }
+  if (value === "xpu" || value === "ipex") {
+    // ipex (intel-extension-for-pytorch) is superseded by the native xpu build.
+    return { backend: TORCH_INDEX_FAMILIES.intel };
+  }
+  if (value === "directml") {
+    return {
+      backend: "cpu",
+      warning:
+        "This GPU is supported by PyTorch only through DirectML, which has no build for the current torch version. Python nodes will run on the CPU.",
+    };
+  }
+  const cuda = /^cu(\d+)$/.exec(value);
+  if (cuda) {
+    const code = Number(cuda[1]);
+    // cu118: Kepler (compute 3.7). No current torch build runs on it.
+    if (code < 120) {
+      return {
+        backend: "cpu",
+        warning:
+          "This NVIDIA GPU is too old for current PyTorch CUDA builds. Python nodes will run on the CPU.",
+      };
+    }
+    if (code < 128) {
+      return { backend: TORCH_INDEX_FAMILIES.cudaLegacy };
+    }
+    if (code < 130) {
+      return { backend: TORCH_INDEX_FAMILIES.cuda12 };
+    }
+    return { backend: TORCH_INDEX_FAMILIES.cuda13 };
+  }
+  const rocm = /^rocm(\d+)(?:\.(\d+))?/.exec(value);
+  if (rocm) {
+    // torchruntime returns rocm6.x for Navi 2/3/4 and RDNA APUs, and rocm4/5
+    // for Polaris, Vega and Navi 1, which current ROCm builds do not support.
+    if (Number(rocm[1]) >= 6) {
+      return { backend: TORCH_INDEX_FAMILIES.rocm };
+    }
+    return {
+      backend: "cpu",
+      warning:
+        "This AMD GPU is not supported by current PyTorch ROCm builds. Python nodes will run on the CPU.",
+    };
+  }
+  return {
+    backend: "cpu",
+    warning: `Unrecognised GPU platform '${platform}'. Python nodes will run on the CPU.`,
+  };
+}
 
-function isTorchPlatform(value: string): value is TorchPlatform {
-  return (TORCH_PLATFORMS as readonly string[]).includes(value);
+/** Backend to use when detection itself failed: uv's own GPU probe off macOS. */
+export function fallbackTorchBackend(
+  platform: NodeJS.Platform = process.platform
+): TorchBackend | null {
+  return platform === "darwin" ? null : "auto";
 }
 
 const PYTORCH_INDEX_BASE = "https://download.pytorch.org/whl";
 
-function getPyTorchIndexUrl(platform: TorchPlatform): string | null {
-  const indexMap: Record<TorchPlatform, string | null> = {
-    "cu118": `${PYTORCH_INDEX_BASE}/cu118`,
-    "cu124": `${PYTORCH_INDEX_BASE}/cu124`,
-    "cu128": `${PYTORCH_INDEX_BASE}/cu128`,
-    "cu129": `${PYTORCH_INDEX_BASE}/cu129`,
-    "rocm5.2": `${PYTORCH_INDEX_BASE}/rocm5.2`,
-    "rocm5.7": `${PYTORCH_INDEX_BASE}/rocm5.7`,
-    "rocm6.2": `${PYTORCH_INDEX_BASE}/rocm6.2`,
-    "rocm6.4": `${PYTORCH_INDEX_BASE}/rocm6.4`,
-    "mps": null,
-    "cpu": `${PYTORCH_INDEX_BASE}/cpu`,
-  };
-  
-  return indexMap[platform];
+/** The index URL a backend installs from, for logs and the UI. */
+export function torchIndexUrl(backend: TorchBackend | null): string | null {
+  if (backend === null || backend === "auto") {
+    return null;
+  }
+  return `${PYTORCH_INDEX_BASE}/${backend}`;
+}
+
+export interface TorchruntimeDetectionResult {
+  /** What torchruntime reported (for example `cu124` or `directml`). */
+  platform: string;
+  /** The `--torch-backend` derived from `platform`, null for PyPI wheels. */
+  backend: TorchBackend | null;
+  indexUrl: string | null;
+  warning?: string;
+  detectedAt?: string;
+  /** Set when detection failed. A failed result is never saved. */
+  error?: string;
 }
 
 async function isTorchruntimeInstalled(): Promise<boolean> {
@@ -88,9 +196,11 @@ async function installTorchruntime(): Promise<void> {
   const torchruntimeSpec = "torchruntime~=2.0";
 
   return new Promise((resolve, reject) => {
+    // The Python runtime ships uv, not pip, so install through uv into the
+    // runtime's interpreter.
     const installProcess = spawn(
-      pythonPath,
-      ["-m", "pip", "install", "--quiet", torchruntimeSpec],
+      getUVPath(),
+      ["pip", "install", "--python", pythonPath, "--quiet", torchruntimeSpec],
       {
         env: getProcessEnv(),
         stdio: "pipe",
@@ -121,14 +231,20 @@ async function installTorchruntime(): Promise<void> {
     });
 
     installProcess.on("error", (error) => {
-      const errorMsg = `Failed to spawn pip for torchruntime: ${error.message}`;
+      const errorMsg = `Failed to spawn uv for torchruntime: ${error.message}`;
       logMessage(errorMsg, "error");
       reject(new Error(errorMsg));
     });
   });
 }
 
-async function detectPlatformWithTorchruntime(): Promise<TorchPlatform> {
+const detectionResultSchema = z.object({
+  platform: z.string().nullish(),
+  gpu_count: z.number().optional(),
+  error: z.string().optional()
+});
+
+async function detectPlatformWithTorchruntime(): Promise<string> {
   const pythonPath = getPythonPath();
   
   const detectionScript = `
@@ -183,11 +299,12 @@ except Exception as e:
       }
 
       try {
-        const result = JSON.parse(stdout.trim()) as {
-          platform?: string;
-          gpu_count?: number;
-          error?: string;
-        };
+        const parsed = detectionResultSchema.safeParse(JSON.parse(stdout.trim()));
+        if (!parsed.success) {
+          reject(new Error(`Unexpected torchruntime output: ${stdout}`));
+          return;
+        }
+        const result = parsed.data;
 
         if (result.error) {
           logMessage(`Torchruntime detection error: ${result.error}`, "error");
@@ -195,17 +312,12 @@ except Exception as e:
           return;
         }
 
-        const rawPlatform: string = String(result.platform);
-        logMessage(`Detected torch platform: ${rawPlatform} (GPUs: ${result.gpu_count})`);
-
-        if (!isTorchPlatform(rawPlatform)) {
-          const error = `Unknown platform '${rawPlatform}' detected by torchruntime`;
-          logMessage(error, "warn");
-          reject(new Error(error));
+        if (!result.platform) {
+          reject(new Error(`torchruntime returned no platform: ${stdout}`));
           return;
         }
-
-        resolve(rawPlatform);
+        logMessage(`Detected torch platform: ${result.platform} (GPUs: ${result.gpu_count})`);
+        resolve(result.platform);
       } catch (parseError) {
         logMessage(`Failed to parse torchruntime output: ${parseError}`, "error");
         reject(new Error(`Failed to parse detection result: ${stdout}`));
@@ -234,29 +346,36 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
     }
 
     const platform = await detectPlatformWithTorchruntime();
-    const indexUrl = getPyTorchIndexUrl(platform);
+    const { backend, warning } = mapTorchPlatform(platform);
+    const indexUrl = torchIndexUrl(backend);
 
-    logMessage(`Platform detection complete: ${platform}`);
-    if (indexUrl) {
-      logMessage(`PyTorch index URL: ${indexUrl}`);
-    } else {
-      logMessage("Using default PyPI index (no extra index needed)");
+    logMessage(`Platform detection complete: ${platform} -> ${backend ?? "PyPI default"}`);
+    if (warning) {
+      logMessage(warning, "warn");
+      emitBootMessage(warning);
     }
 
-    return {
-      platform,
-      indexUrl,
-    };
+    const result: TorchruntimeDetectionResult = { platform, backend, indexUrl };
+    if (warning) {
+      result.warning = warning;
+    }
+    return result;
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
+    const backend = fallbackTorchBackend();
     logMessage(`GPU detection failed: ${errorMsg}`, "error");
-    logMessage("Falling back to CPU-only installation", "warn");
-    
+    logMessage(
+      backend === "auto"
+        ? "Letting uv pick the PyTorch index from the installed GPU driver"
+        : "Using the default PyPI torch wheels",
+      "warn"
+    );
+
     return {
-      platform: "cpu",
-      indexUrl: getPyTorchIndexUrl("cpu"),
+      platform: "unknown",
+      backend,
+      indexUrl: torchIndexUrl(backend),
       error: errorMsg,
     };
   }
 }
-

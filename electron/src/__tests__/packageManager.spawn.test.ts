@@ -39,7 +39,7 @@ jest.spyOn(events, "emitBootMessage").mockImplementation(() => {});
 
 jest.spyOn(utils, "fileExists").mockResolvedValue(true);
 
-jest.spyOn(torchPlatformCache, "getTorchIndexUrl").mockReturnValue("");
+jest.spyOn(torchPlatformCache, "getTorchBackend").mockReturnValue(null);
 
 const { spawn } = require("child_process");
 

@@ -7,6 +7,7 @@
 
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { getHfHubCacheDir } from "@nodetool-ai/config";
 import type { DockerDeployment } from "./deployment-config.js";
 import { DockerDeploymentSchema } from "./deployment-config.js";
 
@@ -15,19 +16,13 @@ import { DockerDeploymentSchema } from "./deployment-config.js";
 // ============================================================================
 
 /**
- * Detect the default HuggingFace cache directory.
- *
- * Checks the HF_HOME / HF_HUB_CACHE env vars, falling back to
- * ~/.cache/huggingface/hub.
+ * Detect the default HuggingFace hub cache directory, resolved the way
+ * Python `huggingface_hub` does (`getHfHubCacheDir` in `@nodetool-ai/config`:
+ * HF_HUB_CACHE, HUGGINGFACE_HUB_CACHE, HF_HOME/hub, XDG_CACHE_HOME/huggingface/hub,
+ * then ~/.cache/huggingface/hub).
  */
 export function detectHfCacheDefault(): string {
-  if (process.env["HF_HUB_CACHE"]) {
-    return process.env["HF_HUB_CACHE"];
-  }
-  if (process.env["HF_HOME"]) {
-    return join(process.env["HF_HOME"], "hub");
-  }
-  return join(homedir(), ".cache", "huggingface", "hub");
+  return getHfHubCacheDir();
 }
 
 // ============================================================================
