@@ -76,6 +76,21 @@ describe("native game tools in 3D", () => {
     expect(await run.invoke("autoplay_native_game", { game_id: shortId })).toMatchObject({ status: "unsupported", code: "autoplay_3d_unsupported" });
   });
 
+  it("sets presentation-only render culling and frame budgets through edit_native_game", async () => {
+    const { run } = await agent();
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Culling", dimension: "3d" }));
+    const missingLayer = readRecord(await run.invoke("edit_native_game", { game_id: created.document.id,
+      ops: [{ op: "update_entity", entity_id: "crate", set: { renderCulling: { layer: "props" } } }] }));
+    expect(JSON.stringify(missingLayer)).toContain("Cull layer props is not declared");
+    const edited = replyDocument(await run.invoke("edit_native_game", { game_id: created.document.id, ops: [
+      { op: "set_performance", performance: { cullLayers: { props: { maxDistance: 40 } }, budgets: { drawCalls: 300 } } },
+      { op: "update_entity", entity_id: "crate", set: { renderCulling: { layer: "props" } } }
+    ] }));
+    if (edited.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    expect(edited.document.performance).toEqual({ cullLayers: { props: { maxDistance: 40 } }, budgets: { drawCalls: 300 } });
+    expect(edited.document.scenes[0].entities.find((entity) => entity.id === "crate")?.renderCulling).toEqual({ layer: "props" });
+  });
+
   it("consumes analog input and restores the same physics/script snapshot hash", async () => {
     const { run } = await agent();
     const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Replay", dimension: "3d" }));
