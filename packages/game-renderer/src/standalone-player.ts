@@ -191,11 +191,11 @@ async function start(): Promise<void> {
   }
 
   window.addEventListener("keydown", (event) => {
-    if (!input.handlesKey(game, event.code)) {
+    if (!input.handlesKey(game, event.code, event.key)) {
       return;
     }
     event.preventDefault();
-    input.keyDown(event.code);
+    input.keyDown(event.code, event.key);
   });
   window.addEventListener("keyup", (event) => input.keyUp(event.code));
   window.addEventListener("blur", releaseAll);

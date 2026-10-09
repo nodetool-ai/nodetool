@@ -17,7 +17,10 @@ const US_KEYS: Record<string, string> = {
   ArrowLeft: "ArrowLeft", ArrowRight: "ArrowRight", ArrowUp: "ArrowUp", ArrowDown: "ArrowDown", Space: " ", Enter: "Enter",
   Escape: "Escape", ShiftLeft: "Shift", Tab: "Tab", Minus: "-", Comma: ",", Mouse0: "", Mouse2: ""
 };
-const CODES = Object.keys(US_KEYS);
+// Physical presses as code and key value: US keys, the QWERTZ z/y swap, AZERTY a/q and z/w, `+` typed as Shift+=, and Numpad digits.
+const PRESSES: readonly (readonly [string, string])[] = [
+  ...Object.entries(US_KEYS), ["KeyY", "z"], ["KeyZ", "y"], ["Equal", "+"], ["Equal", "="], ["Numpad1", "1"], ["Numpad5", "5"], ["KeyQ", "Q"], ["KeyQ", "a"], ["KeyW", "z"]
+];
 
 /** The 3D mapping before input bindings existed, kept as the oracle for generated defaults. */
 function legacyFrame3D(document: GameDocument3D, keys: ReadonlySet<string>, newlyPressed: ReadonlySet<string>, look: { x: number; y: number }): GameInputFrame3D {
@@ -45,10 +48,12 @@ function pad(buttons: readonly number[], axes: readonly number[]): GamepadLike {
 }
 
 describe("input bindings", () => {
-  it("reproduces the earlier keyboard and mouse frames for every shipped example game", () => {
+  it("reproduces the earlier keyboard and mouse frames for every shipped example game and any keyboard layout", () => {
     const shipped = examples();
     expect(shipped.length).toBeGreaterThanOrEqual(5);
-    for (const { name, document } of shipped) {
+    // Also a 2D game whose actions are named after layout-dependent keys.
+    const layout = { ...createTopDownRoomGame("layout"), inputActions: ["up", "left", "z", "y", "+", "1", "5", "q", "a", "space", "enter"] };
+    for (const { name, document } of [...shipped, { name: "layout", document: layout }]) {
       const input = new GameInput();
       const next = random(name.length);
       const keys = new Set<string>();
@@ -57,12 +62,14 @@ describe("input bindings", () => {
       const legacyNew2D = new Set<string>();
       for (let tick = 0; tick < 600; tick += 1) {
         for (let event = Math.floor(next() * 3); event > 0; event -= 1) {
-          const code = CODES[Math.floor(next() * CODES.length)];
+          const [code, key] = PRESSES[Math.floor(next() * PRESSES.length)];
           if (next() < 0.6) {
-            if (!keys.has(code)) { newly.add(code); }
+            // A held key repeats without a new keydown value.
+            if (keys.has(code)) { input.keyDown(code, key); continue; }
+            newly.add(code);
             keys.add(code);
-            input.keyDown(code);
-            const action = gameKeyAction(code, US_KEYS[code]);
+            input.keyDown(code, key);
+            const action = gameKeyAction(code, key);
             if (document.inputActions.includes(action)) {
               if (!legacy2D.has(code)) { legacyNew2D.add(action); }
               legacy2D.set(code, action);
@@ -78,9 +85,8 @@ describe("input bindings", () => {
           input.look(look.x, look.y);
           expect(input.sample(document), `${name} tick ${tick}`).toEqual(legacyFrame3D(document, keys, newly, { x: 0 + look.x, y: 0 + look.y }));
         } else {
-          const frame = input.sample2D(document);
-          expect(new Set(frame.pressed), `${name} tick ${tick}`).toEqual(new Set(legacy2D.values()));
-          expect(new Set(frame.justPressed), `${name} tick ${tick}`).toEqual(legacyNew2D);
+          // The earlier 2D mapping listed actions in press order.
+          expect(input.sample2D(document), `${name} tick ${tick}`).toEqual({ pressed: [...new Set(legacy2D.values())], justPressed: [...legacyNew2D] });
           legacyNew2D.clear();
         }
         newly.clear();
@@ -88,22 +94,40 @@ describe("input bindings", () => {
     }
   });
 
-  it("generates 2D defaults by inverting the key naming rule", () => {
-    const document = { ...createTopDownRoomGame("defaults"), inputActions: ["left", "space", "e", "enter", "shift", "1", "a"] };
+  it("generates 2D defaults from the key naming rule: positions for directions and Space, key values for the rest", () => {
+    const document = { ...createTopDownRoomGame("defaults"), inputActions: ["left", "space", "e", "enter", "+", "1", "a"] };
     const actions = Object.fromEntries(resolveGameInputBindings(document).actions.map(({ action, bindings }) => [action, bindings]));
     expect(actions.left).toEqual([{ kind: "key", code: "KeyA" }, { kind: "key", code: "ArrowLeft" }, { kind: "gamepadButton", button: 14 },
       { kind: "gamepadAxis", axis: 0, direction: "negative", threshold: 0.5 }, { kind: "touchStick", direction: "left" }]);
     expect(actions.space).toEqual([{ kind: "key", code: "Space" }, { kind: "gamepadButton", button: 0 }, { kind: "touchButton" }]);
-    expect(actions.enter).toEqual([{ kind: "key", code: "Enter" }, { kind: "key", code: "NumpadEnter" }, { kind: "touchButton" }]);
-    expect(actions.shift).toEqual([{ kind: "key", code: "ShiftLeft" }, { kind: "key", code: "ShiftRight" }, { kind: "touchButton" }]);
-    // KeyA has always meant "left" in 2D, so an action named "a" keeps no key.
-    expect(actions.a).toEqual([{ kind: "touchButton" }]);
+    expect(actions.e).toEqual([{ kind: "keyValue", key: "e" }, { kind: "touchButton" }]);
+    expect(actions.enter).toEqual([{ kind: "keyValue", key: "enter" }, { kind: "touchButton" }]);
+    const input = new GameInput();
+    // KeyA has always meant "left" in 2D. On AZERTY the key that types "a" is KeyQ, and it presses "a".
+    input.keyDown("KeyA", "a"); input.keyDown("Equal", "+"); input.keyDown("Numpad1", "1"); input.keyDown("NumpadEnter", "Enter");
+    expect(input.sample2D(document).pressed).toEqual(["left", "+", "1", "enter"]);
+    input.keyDown("KeyQ", "a");
+    expect(input.sample2D(document)).toEqual({ pressed: ["left", "+", "1", "enter", "a"], justPressed: ["a"] });
+    expect(input.handlesKey(document, "KeyY", "Y")).toBe(false);
+    expect(input.handlesKey(document, "Numpad1", "1")).toBe(true);
+  });
+
+  it("lists 2D actions in press order", () => {
+    const document = createTopDownRoomGame("press-order");
+    const input = new GameInput();
+    input.keyDown("ArrowUp", "ArrowUp");
+    expect(input.sample2D(document).pressed).toEqual(["up"]);
+    input.keyDown("ArrowLeft", "ArrowLeft");
+    expect(input.sample2D(document)).toEqual({ pressed: ["up", "left"], justPressed: ["left"] });
+    // An action held by two keys takes its place from the earlier key that is still held.
+    input.keyDown("KeyW", "w"); input.keyUp("ArrowUp");
+    expect(input.sample2D(document).pressed).toEqual(["left", "up"]);
   });
 
   it("keeps a quick 2D tap until the next game frame", () => {
     const document = { ...createTopDownRoomGame("quick-tap"), inputActions: ["space", "e"] };
     const input = new GameInput();
-    input.keyDown("Space"); input.keyDown("KeyE");
+    input.keyDown("Space", " "); input.keyDown("KeyE", "e");
     expect(input.sample2D(document)).toEqual({ pressed: ["space", "e"], justPressed: ["space", "e"] });
     expect(input.sample2D(document).justPressed).toEqual([]);
     input.keyUp("Space"); input.keyUp("KeyE");

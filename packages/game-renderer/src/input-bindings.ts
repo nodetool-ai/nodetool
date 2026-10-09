@@ -43,23 +43,40 @@ function flip(value: number, invert: boolean): number {
   return invert && value !== 0 ? -value : value;
 }
 
+/** Keys that a `key` binding names by code. Such a key never also matches a `keyValue` binding. */
+function boundCodes(bindings: ResolvedGameInputBindings): Set<string> {
+  const codes = new Set<string>();
+  for (const { bindings: list } of bindings.actions) {
+    for (const binding of list) { if (binding.kind === "key") { codes.add(binding.code); } }
+  }
+  return codes;
+}
+
 /**
  * Turns physical keyboard, mouse, gamepad and touch input into input frames through a document's
  * input bindings. Physical input is sampled once per simulation tick, and edges and look deltas are
  * consumed by the sample. While disabled (paused play), input is dropped instead of queued.
  */
 export class GameInput {
-  private readonly keys = new Set<string>();
-  private readonly newSources = new Set<string>();
-  private readonly previousPressed = new Set<string>();
-  private readonly gamepadButtons = new Set<number>();
+  // Held keys by `KeyboardEvent.code`, with the lowercase key value at keydown and the press stamp.
+  private readonly keys = new Map<string, { readonly value?: string; readonly since: number }>();
+  // Digital sources pressed since the last sample, with the stamp of their first press.
+  private readonly newSources = new Map<string, number>();
+  // Key values of keys pressed since the last sample, so a quick tap still produces an edge.
+  private readonly newKeyValues = new Map<string, string>();
+  private readonly previousPressed = new Map<string, number>();
+  private readonly gamepadButtons = new Map<number, number>();
+  private readonly touchSince = new Map<string, number>();
   private gamepadAxes: number[] = [];
   private touch: TouchInputState = EMPTY_TOUCH;
+  private stickSince: number | undefined;
   private mouseX = 0;
   private mouseY = 0;
   private touchX = 0;
   private touchY = 0;
   private enabled = true;
+  // Orders presses, so 2D frames list actions in the order they were pressed.
+  private clock = 0;
 
   /** Disabling releases everything held and ignores input until enabled again. */
   setEnabled(enabled: boolean): void {
@@ -67,11 +84,14 @@ export class GameInput {
     this.enabled = enabled;
   }
 
-  /** `code` is a `KeyboardEvent.code`. `Mouse<n>` is accepted for mouse button n. */
-  keyDown(code: string): void {
-    if (!this.enabled) { return; }
-    if (!this.keys.has(code)) { this.newSources.add(`key:${code}`); }
-    this.keys.add(code);
+  /** `code` is a `KeyboardEvent.code` and `key` its `KeyboardEvent.key`. `Mouse<n>` is accepted for mouse button n. */
+  keyDown(code: string, key?: string): void {
+    if (!this.enabled || this.keys.has(code)) { return; }
+    const since = ++this.clock;
+    const value = key?.toLowerCase();
+    this.keys.set(code, { value, since });
+    if (!this.newSources.has(`key:${code}`)) { this.newSources.set(`key:${code}`, since); }
+    if (value !== undefined) { this.newKeyValues.set(code, value); }
   }
 
   keyUp(code: string): void { this.keys.delete(code); }
@@ -96,8 +116,17 @@ export class GameInput {
 
   setTouch(state: TouchInputState): void {
     if (!this.enabled) { return; }
+    // The stick counts as pressed when the thumb lands, before buttons the same touch update holds.
+    if (!state.stick) { this.stickSince = undefined; }
+    else if (this.stickSince === undefined) { this.stickSince = ++this.clock; }
     for (const action of state.buttons) {
-      if (!this.touch.buttons.has(action)) { this.newSources.add(`touch:${action}`); }
+      if (this.touchSince.has(action)) { continue; }
+      const since = ++this.clock;
+      this.touchSince.set(action, since);
+      if (!this.newSources.has(`touch:${action}`)) { this.newSources.set(`touch:${action}`, since); }
+    }
+    for (const action of [...this.touchSince.keys()]) {
+      if (!state.buttons.has(action)) { this.touchSince.delete(action); }
     }
     this.touch = state;
   }
@@ -115,21 +144,28 @@ export class GameInput {
         });
       }
     }
-    for (const button of buttons) {
-      if (!this.gamepadButtons.has(button)) { this.newSources.add(`gamepad:${button}`); }
+    for (const button of [...this.gamepadButtons.keys()]) {
+      if (!buttons.has(button)) { this.gamepadButtons.delete(button); }
     }
-    this.gamepadButtons.clear();
-    buttons.forEach((button) => this.gamepadButtons.add(button));
+    for (const button of buttons) {
+      if (this.gamepadButtons.has(button)) { continue; }
+      const since = ++this.clock;
+      this.gamepadButtons.set(button, since);
+      if (!this.newSources.has(`gamepad:${button}`)) { this.newSources.set(`gamepad:${button}`, since); }
+    }
     this.gamepadAxes = axes;
   }
 
   release(): void {
     this.keys.clear();
     this.newSources.clear();
+    this.newKeyValues.clear();
     this.previousPressed.clear();
     this.gamepadButtons.clear();
+    this.touchSince.clear();
     this.gamepadAxes = [];
     this.touch = EMPTY_TOUCH;
+    this.stickSince = undefined;
     this.mouseX = 0;
     this.mouseY = 0;
     this.touchX = 0;
@@ -137,76 +173,114 @@ export class GameInput {
   }
 
   /** Whether a key is bound in this document, so the host can stop the browser's default action. */
-  handlesKey(document: GameDocument | GameDocument3D, code: string): boolean {
+  handlesKey(document: GameDocument | GameDocument3D, code: string, key?: string): boolean {
     const bindings = resolveGameInputBindings(document);
-    return bindings.actions.some(({ bindings: list }) => list.some((binding) => binding.kind === "key" && binding.code === code)) ||
+    const value = key?.toLowerCase();
+    const matchesValue = value !== undefined && !boundCodes(bindings).has(code);
+    return bindings.actions.some(({ bindings: list }) => list.some((binding) =>
+      (binding.kind === "key" && binding.code === code) || (matchesValue && binding.kind === "keyValue" && binding.key.toLowerCase() === value))) ||
       bindings.axes.some(({ bindings: list }) => list.some((binding) => binding.kind === "keys" && (binding.negative.includes(code) || binding.positive.includes(code))));
   }
 
   sample(document: GameDocument3D): GameInputFrame3D {
     const bindings = resolveGameInputBindings(document);
-    const { pressed, justPressed } = this.sampleActions(bindings);
+    const { pressed, justPressed } = this.sampleActions(bindings, false);
     const axes = Object.fromEntries(bindings.axes.map(({ axis, bindings: list }) => [axis, this.axisValue(list)]));
     const look = this.sampleLook(bindings);
     this.consume();
     return { pressed, justPressed, axes, look };
   }
 
+  /** 2D frames list actions in press order, as the fixed 2D key mapping did. */
   sample2D(document: GameDocument): GameInputFrame {
-    const frame = this.sampleActions(resolveGameInputBindings(document));
+    const frame = this.sampleActions(resolveGameInputBindings(document), true);
     this.consume();
     return frame;
   }
 
   private consume(): void {
     this.newSources.clear();
+    this.newKeyValues.clear();
     this.mouseX = 0;
     this.mouseY = 0;
     this.touchX = 0;
     this.touchY = 0;
   }
 
-  private sampleActions(bindings: ResolvedGameInputBindings): { pressed: string[]; justPressed: string[] } {
-    const pressed: string[] = [];
-    const justPressed: string[] = [];
+  private sampleActions(bindings: ResolvedGameInputBindings, pressOrder: boolean): { pressed: string[]; justPressed: string[] } {
+    const codes = boundCodes(bindings);
+    const sampledAt = ++this.clock;
+    const previous = new Map(this.previousPressed);
+    this.previousPressed.clear();
+    const pressed: { action: string; since: number }[] = [];
+    const justPressed: { action: string; since: number }[] = [];
     for (const { action, bindings: list } of bindings.actions) {
-      const held = list.some((binding) => this.held(binding, action));
-      if (held) { pressed.push(action); }
+      let held = Infinity;
+      let fresh = Infinity;
+      for (const binding of list) {
+        const since = this.heldSince(binding, action, codes);
+        // An action held by analog input is ordered from the first sample that saw it on.
+        held = Math.min(held, since === "analog" ? previous.get(action) ?? sampledAt : since ?? Infinity);
+        fresh = Math.min(fresh, this.pressedSince(binding, action, codes) ?? Infinity);
+      }
+      if (held !== Infinity) {
+        pressed.push({ action, since: held });
+        this.previousPressed.set(action, held);
+      }
       // A digital control pressed since the last sample is an edge even if it was released again.
       // Analog and touch-stick controls produce an edge when the action turns on.
-      if (list.some((binding) => this.newSources.has(this.sourceOf(binding, action))) || (held && !this.previousPressed.has(action))) {
-        justPressed.push(action);
+      if (fresh !== Infinity || (held !== Infinity && !previous.has(action))) {
+        justPressed.push({ action, since: fresh !== Infinity ? fresh : held });
       }
     }
-    this.previousPressed.clear();
-    pressed.forEach((action) => this.previousPressed.add(action));
-    return { pressed, justPressed };
+    const order = (entries: { action: string; since: number }[]): string[] =>
+      (pressOrder ? [...entries].sort((left, right) => left.since - right.since) : entries).map((entry) => entry.action);
+    return { pressed: order(pressed), justPressed: order(justPressed) };
   }
 
-  private sourceOf(binding: GameInputBinding, action: string): string {
+  /** The press stamp of a held digital control, "analog" for a held analog control, or undefined when it is not held. */
+  private heldSince(binding: GameInputBinding, action: string, codes: ReadonlySet<string>): number | "analog" | undefined {
     switch (binding.kind) {
-      case "key": return `key:${binding.code}`;
-      case "mouseButton": return `key:Mouse${binding.button}`;
-      case "gamepadButton": return `gamepad:${binding.button}`;
-      case "touchButton": return `touch:${action}`;
-      default: return "";
-    }
-  }
-
-  private held(binding: GameInputBinding, action: string): boolean {
-    switch (binding.kind) {
-      case "key": return this.keys.has(binding.code);
-      case "mouseButton": return this.keys.has(`Mouse${binding.button}`);
-      case "gamepadButton": return this.gamepadButtons.has(binding.button);
+      case "key": return this.keys.get(binding.code)?.since;
+      case "keyValue": {
+        const value = binding.key.toLowerCase();
+        let since: number | undefined;
+        for (const [code, held] of this.keys) {
+          if (held.value === value && !codes.has(code)) { since = Math.min(since ?? Infinity, held.since); }
+        }
+        return since;
+      }
+      case "mouseButton": return this.keys.get(`Mouse${binding.button}`)?.since;
+      case "gamepadButton": return this.gamepadButtons.get(binding.button);
       case "gamepadAxis": {
         const value = this.gamepadAxes[binding.axis] ?? 0;
-        return binding.direction === "positive" ? value >= binding.threshold : value <= -binding.threshold;
+        return (binding.direction === "positive" ? value >= binding.threshold : value <= -binding.threshold) ? "analog" : undefined;
       }
-      case "touchButton": return this.touch.buttons.has(action);
+      case "touchButton": return this.touchSince.get(action);
       case "touchStick": {
         const stick = this.touch.stick;
-        return stick !== undefined && stickActions(stick.x, stick.y, TOUCH_STICK_DEAD_ZONE).includes(binding.direction);
+        return stick !== undefined && stickActions(stick.x, stick.y, TOUCH_STICK_DEAD_ZONE).includes(binding.direction) ? this.stickSince : undefined;
       }
+    }
+  }
+
+  /** The first press stamp of a digital control pressed since the last sample. */
+  private pressedSince(binding: GameInputBinding, action: string, codes: ReadonlySet<string>): number | undefined {
+    switch (binding.kind) {
+      case "key": return this.newSources.get(`key:${binding.code}`);
+      case "keyValue": {
+        const value = binding.key.toLowerCase();
+        let since: number | undefined;
+        for (const [code, pressedValue] of this.newKeyValues) {
+          const stamp = this.newSources.get(`key:${code}`);
+          if (pressedValue === value && !codes.has(code) && stamp !== undefined) { since = Math.min(since ?? Infinity, stamp); }
+        }
+        return since;
+      }
+      case "mouseButton": return this.newSources.get(`key:Mouse${binding.button}`);
+      case "gamepadButton": return this.newSources.get(`gamepad:${binding.button}`);
+      case "touchButton": return this.newSources.get(`touch:${action}`);
+      default: return undefined;
     }
   }
 

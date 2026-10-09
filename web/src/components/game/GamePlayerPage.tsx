@@ -29,8 +29,8 @@ export function GamePlayer({ gameId, name, document, active = true, setsDocument
   }, [name, setsDocumentTitle]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
-    if (playing && inputRef.current.handlesKey(document, event.code)) {
-      inputRef.current.keyDown(event.code);
+    if (playing && inputRef.current.handlesKey(document, event.code, event.key)) {
+      inputRef.current.keyDown(event.code, event.key);
       event.preventDefault();
     }
   };

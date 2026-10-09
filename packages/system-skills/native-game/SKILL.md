@@ -517,7 +517,9 @@ document-level `inputBindings` maps each name to physical controls. Set it with
 defaults. The op replaces the whole map:
 
 - `actions`: `{ action: [binding] }`. A binding is `{kind: "key", code}` with a
-  `KeyboardEvent.code` such as `KeyJ`, `{kind: "mouseButton", button}`,
+  `KeyboardEvent.code` such as `KeyJ`, `{kind: "keyValue", key}` with a
+  `KeyboardEvent.key` such as `z` or `+` (letter case is ignored, and a key
+  that a `key` binding names by code does not also match), `{kind: "mouseButton", button}`,
   `{kind: "gamepadButton", button}` in the standard gamepad layout,
   `{kind: "gamepadAxis", axis, direction: "negative"|"positive", threshold?}`,
   `{kind: "touchButton", label?}` or `{kind: "touchStick", direction}`.
@@ -532,8 +534,9 @@ defaults. The op replaces the whole map:
 
 A listed action or axis uses exactly the listed bindings, and an empty list
 unbinds it. An unlisted one keeps the defaults generated from its name. In 2D,
-arrows and WASD are `left`/`right`/`up`/`down`, Space is `space`, and any other
-key is its lowercase key name. In 3D, `fire` is the left mouse button and F,
+arrows and WASD are `left`/`right`/`up`/`down` and Space is `space`, by key
+position. Any other action is a `keyValue` binding of its name, so it follows the
+player's keyboard layout. In 3D, `fire` is the left mouse button and F,
 `jump` is Space, `respawn` is R, and `moveX`/`moveZ` read WASD and arrows.
 Defaults add the gamepad d-pad and left stick for directions and movement,
 button 0 for `jump`/`space`, the right trigger for `fire`, the right stick for

@@ -4,7 +4,7 @@ import { gameDocument3D, resolveGameInputBindings, type GameInputFrame3D, type G
 import { createGameRenderer3D } from "./browser3d.js";
 import { GameInput3D } from "./input3d.js";
 import { browserGamepads } from "./input-bindings.js";
-import { mountTouchControls, touchLayout, TOUCH_CONTROLS_CSS } from "./touch-controls.js";
+import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { GameAudioPlayer } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
 
@@ -84,33 +84,31 @@ async function start(): Promise<void> {
   let dragging = false;
   const release = (): void => { input.release(); dragging = false; };
   window.addEventListener("keydown", (event) => {
-    input.keyDown(event.code);
-    if (input.handlesKey(game, event.code)) { event.preventDefault(); }
+    input.keyDown(event.code, event.key);
+    if (input.handlesKey(game, event.code, event.key)) { event.preventDefault(); }
   }, { signal: controller.signal });
   window.addEventListener("keyup", (event) => { input.keyUp(event.code); }, { signal: controller.signal });
   const mouseFire = game.inputActions.includes("fire");
   const bindings = resolveGameInputBindings(game);
   const mouseLook = bindings.look.some((binding) => binding.kind === "mouse");
-  let touchMode = false;
+  let unmountTouch: (() => void) | undefined;
+  // The touch layer is styled by the staged style.css, because the export CSP blocks inline styles.
   const enableTouch = (): void => {
-    if (touchMode) { return; }
-    touchMode = true;
-    const style = document.createElement("style");
-    style.textContent = TOUCH_CONTROLS_CSS;
+    if (unmountTouch) { return; }
     const layer = document.createElement("div");
     layer.className = "touch-layer";
-    document.head.append(style);
     document.body.append(layer);
-    mountTouchControls(layer, { layout: touchLayout(bindings), onChange: (state) => input.setTouch(state), onLook: (x, y) => input.touchLook(x, y) });
+    const unmount = mountTouchControls(layer, { layout: touchLayout(bindings), onChange: (state) => input.setTouch(state), onLook: (x, y) => input.touchLook(x, y) });
+    unmountTouch = () => { unmount(); layer.remove(); };
   };
   if (window.matchMedia("(pointer: coarse)").matches) { enableTouch(); }
   window.addEventListener("touchstart", enableTouch, { passive: true, signal: controller.signal });
+  // A touch that reaches the canvas, outside the touch zones or before they appear, fires on tap and turns the camera on drag.
   canvas.addEventListener("pointerdown", (event) => {
-    if (event.pointerType === "touch") { return; }
     dragging = true;
     canvas.setPointerCapture(event.pointerId);
     input.mouseDown(event.button);
-    if ((mouseFire || mouseLook) && document.pointerLockElement !== canvas) {
+    if (event.pointerType !== "touch" && (mouseFire || mouseLook) && document.pointerLockElement !== canvas) {
       void canvas.requestPointerLock().catch(() => { status(mouseFire ? "Mouse capture unavailable. Hold and drag to aim, or press F to fire." : "Mouse capture unavailable. Drag to turn the camera."); });
     }
   }, { signal: controller.signal });
@@ -154,13 +152,21 @@ async function start(): Promise<void> {
   }, { signal: controller.signal });
   document.getElementById("reset")?.addEventListener("click", () => {
     paused = true;
-    void open().then((replacement) => { session.dispose(); session = replacement; audio.reset(session.snapshot()); frame = session.frame(); clock.reset(); release(); paused = false; void render(1); })
+    void open().then((replacement) => {
+      session.dispose(); session = replacement; audio.reset(session.snapshot()); frame = session.frame(); clock.reset(); release();
+      // Reset resumes play, so input dropped by an earlier pause is accepted again.
+      paused = false; input.setEnabled(true);
+      const pause = document.getElementById("pause");
+      if (pause) { pause.textContent = "Pause"; }
+      void render(1);
+    })
       .catch((error) => status(error instanceof Error ? error.message : "Reset failed"));
   }, { signal: controller.signal });
   window.addEventListener("beforeunload", () => {
     disposed = true;
     cancelAnimationFrame(animationId);
     controller.abort();
+    unmountTouch?.();
     session.dispose();
     renderer.dispose();
     audio.dispose();

@@ -362,8 +362,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
 
   const onViewportKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>): void => {
     if (!active || !playDocument) return;
-    if (inputRef.current.handlesKey(playDocument, event.code)) {
-      inputRef.current.keyDown(event.code);
+    if (inputRef.current.handlesKey(playDocument, event.code, event.key)) {
+      inputRef.current.keyDown(event.code, event.key);
       event.preventDefault();
     }
   };

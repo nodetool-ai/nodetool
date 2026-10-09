@@ -61,7 +61,9 @@ export const TOUCH_CONTROLS_CSS = ".touch-layer{position:fixed;inset:0;z-index:2
   ".touch-knob{position:absolute;left:50%;top:50%;width:3.25rem;height:3.25rem;margin:-1.625rem 0 0 -1.625rem;border-radius:50%;background:#fff8;box-shadow:0 0 1rem #fff6}" +
   ".touch-buttons{position:absolute;right:max(1.25rem,env(safe-area-inset-right));bottom:max(1.25rem,env(safe-area-inset-bottom));display:flex;flex-direction:column-reverse;gap:1rem;pointer-events:auto}" +
   ".touch-button{width:5.25rem;height:5.25rem;border-radius:50%;border:2px solid #fff6;background:#ffffff1f;color:#fff;font:600 .8rem system-ui,sans-serif;letter-spacing:.05em;touch-action:none;box-shadow:0 0 1.25rem #0008}" +
-  ".touch-button.active{background:#ffffff59;transform:scale(.94)}";
+  ".touch-button.active{background:#ffffff59;transform:scale(.94)}" +
+  // After mouse movement the layer lets clicks through, so a mouse on a touchscreen laptop reaches the game.
+  ".touch-layer[data-pointer=mouse] *{pointer-events:none}";
 
 /**
  * A floating stick on the left half of the screen and action buttons on the right.
@@ -73,6 +75,18 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
   const held = new Set<string>();
   const emit = (): void => { options.onChange({ stick, buttons: new Set(held) }); };
   const cleanups: Array<() => void> = [];
+  // A mouse that moves over the page switches the layer to pass-through. The next touch or pen switches it back.
+  const pointerMode = (event: PointerEvent): void => {
+    const mode = event.pointerType === "mouse" ? "mouse" : "touch";
+    if (root.dataset.pointer !== mode) { root.dataset.pointer = mode; }
+  };
+  window.addEventListener("pointermove", pointerMode, { capture: true, passive: true });
+  window.addEventListener("pointerdown", pointerMode, { capture: true, passive: true });
+  cleanups.push(() => {
+    window.removeEventListener("pointermove", pointerMode, { capture: true });
+    window.removeEventListener("pointerdown", pointerMode, { capture: true });
+    delete root.dataset.pointer;
+  });
   const listen = <K extends keyof HTMLElementEventMap>(target: HTMLElement, type: K, handler: (event: HTMLElementEventMap[K]) => void): void => {
     target.addEventListener(type, handler, { passive: false });
     cleanups.push(() => target.removeEventListener(type, handler));
@@ -88,6 +102,7 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
     let lastY = 0;
     const end = (event: PointerEvent): void => { if (event.pointerId === pointerId) pointerId = undefined; };
     listen(zone, "pointerdown", (event) => {
+      if (event.pointerType === "mouse") return;
       event.preventDefault();
       if (pointerId !== undefined) return;
       pointerId = event.pointerId;
@@ -141,6 +156,7 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
       emit();
     };
     listen(zone, "pointerdown", (event) => {
+      if (event.pointerType === "mouse") return;
       event.preventDefault();
       if (pointerId !== undefined) return;
       pointerId = event.pointerId;
@@ -174,6 +190,7 @@ export function mountTouchControls(root: HTMLElement, options: TouchControlsOpti
       emit();
     };
     listen(button, "pointerdown", (event) => {
+      if (event.pointerType === "mouse") return;
       event.preventDefault();
       button.setPointerCapture(event.pointerId);
       button.classList.add("active");

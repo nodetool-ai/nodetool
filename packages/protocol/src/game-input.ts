@@ -10,6 +10,9 @@ const stickDirection = z.enum(["left", "right", "up", "down"]);
 /** One physical control that holds an action. */
 export const gameInputBinding = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("key"), code: keyCode }),
+  // Matches `KeyboardEvent.key`, ignoring letter case, so the binding follows the keyboard layout. A physical key
+  // that a `key` binding in the same document names by code does not also match by key value.
+  z.strictObject({ kind: z.literal("keyValue"), key: z.string().min(1).max(32) }),
   z.strictObject({ kind: z.literal("mouseButton"), button: z.number().int().min(0).max(4) }),
   z.strictObject({ kind: z.literal("gamepadButton"), button: gamepadButton }),
   z.strictObject({ kind: z.literal("gamepadAxis"), axis: gamepadAxis, direction: z.enum(["negative", "positive"]),
@@ -78,19 +81,10 @@ export function gameKeyAction(code: string, key: string): string {
   }
 }
 
-// US-layout key value for each code, so the 2D naming rule can be inverted into code bindings.
-const US_KEYS: readonly (readonly [string, string])[] = [
-  ...Array.from({ length: 26 }, (_, index) => { const letter = String.fromCharCode(97 + index); return [`Key${letter.toUpperCase()}`, letter] as const; }),
-  ...Array.from({ length: 10 }, (_, digit) => [`Digit${digit}`, String(digit)] as const),
-  ...Array.from({ length: 12 }, (_, index) => [`F${index + 1}`, `F${index + 1}`] as const),
-  ["ArrowLeft", "ArrowLeft"], ["ArrowRight", "ArrowRight"], ["ArrowUp", "ArrowUp"], ["ArrowDown", "ArrowDown"], ["Space", " "],
-  ["Enter", "Enter"], ["NumpadEnter", "Enter"], ["Escape", "Escape"], ["Tab", "Tab"], ["Backspace", "Backspace"], ["Delete", "Delete"],
-  ["Insert", "Insert"], ["Home", "Home"], ["End", "End"], ["PageUp", "PageUp"], ["PageDown", "PageDown"], ["CapsLock", "CapsLock"],
-  ["ShiftLeft", "Shift"], ["ShiftRight", "Shift"], ["ControlLeft", "Control"], ["ControlRight", "Control"],
-  ["AltLeft", "Alt"], ["AltRight", "Alt"], ["MetaLeft", "Meta"], ["MetaRight", "Meta"],
-  ["Minus", "-"], ["Equal", "="], ["BracketLeft", "["], ["BracketRight", "]"], ["Backslash", "\\"], ["Semicolon", ";"],
-  ["Quote", "'"], ["Comma", ","], ["Period", "."], ["Slash", "/"], ["Backquote", "`"]
-];
+// Keys the 2D naming rule reads by physical position. Every other 2D action follows the key value, as before.
+const CODE_ACTIONS_2D: Readonly<Record<string, readonly string[]>> = {
+  left: ["KeyA", "ArrowLeft"], right: ["KeyD", "ArrowRight"], up: ["KeyW", "ArrowUp"], down: ["KeyS", "ArrowDown"], space: ["Space"]
+};
 
 const DIRECTION_GAMEPAD: Readonly<Record<string, { readonly button: number; readonly axis: number; readonly direction: "negative" | "positive" }>> = {
   left: { button: 14, axis: 0, direction: "negative" }, right: { button: 15, axis: 0, direction: "positive" },
@@ -110,9 +104,9 @@ function defaultActionBindings(action: string, threeD: boolean): GameInputBindin
     else if (action === "respawn") { bindings.push(key("KeyR")); }
     else { bindings.push(key(`Key${action.toUpperCase()}`), key(action)); }
   } else {
-    for (const [code, value] of US_KEYS) {
-      if (gameKeyAction(code, value) === action) { bindings.push(key(code)); }
-    }
+    const codes = CODE_ACTIONS_2D[action];
+    if (codes) { bindings.push(...codes.map(key)); }
+    else { bindings.push({ kind: "keyValue", key: action }); }
   }
   const direction = DIRECTION_GAMEPAD[action];
   if (direction && !threeD) {

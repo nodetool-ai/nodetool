@@ -335,8 +335,8 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
       <Box component="canvas" ref={host.canvasRef} data-game-undo-scope tabIndex={0} aria-label="3D game viewport"
         onKeyDown={(event) => {
           if (host.playDocument && host.playing) {
-            host.inputRef.current.keyDown(event.code);
-            if (host.inputRef.current.handlesKey(host.playDocument, event.code)) { event.preventDefault(); }
+            host.inputRef.current.keyDown(event.code, event.key);
+            if (host.inputRef.current.handlesKey(host.playDocument, event.code, event.key)) { event.preventDefault(); }
           }
         }}
         onKeyUp={(event) => host.inputRef.current.keyUp(event.code)}
