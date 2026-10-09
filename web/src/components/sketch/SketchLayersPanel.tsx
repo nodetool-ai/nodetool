@@ -51,6 +51,8 @@ import {
   FormControl
 } from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import TrashIconSvg from "../../icons/trash.svg?react";
@@ -88,6 +90,10 @@ import { useSketchStore } from "./state/useSketchStore";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
 import { CreateGeneratedLayerDialog } from "./Inspector/CreateGeneratedLayerDialog";
+import {
+  GenerateSvgLayerDialog,
+  SvgLayerImport
+} from "./Inspector/VectorLayerPanel";
 import { isFunction } from "../../utils/typePredicates";
 
 /**
@@ -217,19 +223,53 @@ const GENERATE_ACTION_SX = {
   }
 };
 
-/**
- * Structural add-row actions (new group, generate from a workflow): the same
- * flat muted icon language as the ops toolbar, sized for the tighter add row.
- */
+/** Primary "New layer" action: one labeled button instead of a swatch row. */
+const NEW_LAYER_ACTION_SX = {
+  ...GENERATE_ACTION_SX,
+  justifyContent: "flex-start",
+  backgroundColor: "grey.800",
+  "&:hover": { backgroundColor: "grey.700" }
+};
+
+/** Opens the menu with every other way to add a layer. */
 const ADD_ACTION_ICON_SX = {
-  width: 26,
-  height: 26,
+  width: 32,
+  height: 32,
   padding: 0,
   borderRadius: BORDER_RADIUS.lg,
   color: "grey.400",
   transition: `${MOTION.background}, color ${MOTION.fast}`,
   ...reducedMotion({ transition: MOTION.none }),
   "&:hover": { backgroundColor: "grey.800", color: "grey.100" }
+};
+
+/** Fill presets offered in the add-layer menu; `null` is transparent. */
+const NEW_LAYER_FILLS: readonly { label: string; fill: string | null }[] = [
+  { label: "Transparent layer", fill: null },
+  { label: "White layer", fill: "#ffffff" },
+  { label: "Black layer", fill: "#000000" },
+  { label: "Gray layer", fill: "#808080" }
+];
+
+const ADD_MENU_ITEM_SX = {
+  fontSize: "var(--fontSizeSmall)",
+  gap: getSpacingPx(SPACING.sm),
+  py: getSpacingPx(SPACING.xs),
+  minHeight: 0
+};
+
+const ADD_MENU_SWATCH_SX = {
+  width: 16,
+  height: 16,
+  flexShrink: 0,
+  borderRadius: BORDER_RADIUS.xs,
+  border: "1px solid",
+  borderColor: "grey.600"
+};
+
+const ADD_MENU_ICON_SX = {
+  fontSize: "var(--fontSizeBig)",
+  color: "text.secondary"
 };
 
 const styles = (theme: Theme) =>
@@ -511,6 +551,14 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     return statuses;
   }, shallow);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [svgDialogOpen, setSvgDialogOpen] = useState(false);
+  const [addMenuAnchor, setAddMenuAnchor] = useState<HTMLElement | null>(null);
+  const svgImportInputRef = useRef<HTMLInputElement>(null);
+  const closeAddMenu = useCallback(() => setAddMenuAnchor(null), []);
+  const runAddMenuAction = useCallback((action: () => void) => {
+    setAddMenuAnchor(null);
+    action();
+  }, []);
 
   // ─── Direct-generation layers (text-to-image, image-to-image) ─────
   const upsertBinding = useSketchSessionStore((s) => s.upsertBinding);
@@ -1020,158 +1068,101 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <FlexRow
           className="sketch-layers-panel__add-layers-row"
           align="center"
-          wrap
           gap={SPACING.xs}
         >
           <Tooltip
-            title="Add Transparent Layer"
+            title="Add a transparent layer"
             enterDelay={SKETCH_TOOLTIP_DELAY_MS}
             enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
-            <IconButton
-              aria-label="Add Transparent Layer"
-              size="small"
+            <Button
+              aria-label="New layer"
               onClick={() => onAddLayer(null)}
-              sx={{
-                width: 26,
-                height: 26,
-                padding: 0,
-                borderRadius: BORDER_RADIUS.lg,
-                border: `1px solid ${theme.vars.palette.grey[500]}`,
-                background: `repeating-conic-gradient(${theme.vars.palette.grey[600]} 0% 25%, ${theme.vars.palette.grey[800]} 0% 50%) 50% / 8px 8px`,
-                "&:hover": { borderColor: theme.vars.palette.grey[300] }
-              }}
+              data-testid="layers-panel-new-layer"
+              startIcon={<AddIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+              sx={NEW_LAYER_ACTION_SX}
             >
-              <AddIcon
-                sx={{
-                  fontSize: "var(--fontSizeNormal)",
-                  color: theme.vars.palette.grey[400]
-                }}
-              />
-            </IconButton>
+              New layer
+            </Button>
           </Tooltip>
           <Tooltip
-            title="Add Black Layer"
+            title="More ways to add a layer"
             enterDelay={SKETCH_TOOLTIP_DELAY_MS}
             enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
           >
             <IconButton
-              aria-label="Add Black Layer"
+              aria-label="More ways to add a layer"
+              aria-haspopup="menu"
+              aria-expanded={addMenuAnchor !== null}
               size="small"
-              onClick={() => onAddLayer("#000000")}
-              sx={{
-                width: 26,
-                height: 26,
-                padding: 0,
-                borderRadius: BORDER_RADIUS.lg,
-                border: `1px solid ${theme.vars.palette.grey[500]}`,
-                backgroundColor: "#000000",
-                "&:hover": {
-                  borderColor: theme.vars.palette.grey[300],
-                  backgroundColor: "#111111"
-                }
-              }}
-            >
-              <AddIcon
-                sx={{
-                  fontSize: "var(--fontSizeNormal)",
-                  color: theme.vars.palette.grey[500]
-                }}
-              />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title="Add White Layer"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <IconButton
-              aria-label="Add White Layer"
-              size="small"
-              onClick={() => onAddLayer("#ffffff")}
-              sx={{
-                width: 26,
-                height: 26,
-                padding: 0,
-                borderRadius: BORDER_RADIUS.lg,
-                border: `1px solid ${theme.vars.palette.grey[500]}`,
-                backgroundColor: "#ffffff",
-                "&:hover": {
-                  borderColor: theme.vars.palette.grey[300],
-                  backgroundColor: "#eeeeee"
-                }
-              }}
-            >
-              <AddIcon
-                sx={{
-                  fontSize: "var(--fontSizeNormal)",
-                  color: theme.vars.palette.grey[600]
-                }}
-              />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title="Add Gray Layer"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <IconButton
-              aria-label="Add Gray Layer"
-              size="small"
-              onClick={() => onAddLayer("#808080")}
-              sx={{
-                width: 26,
-                height: 26,
-                padding: 0,
-                borderRadius: BORDER_RADIUS.lg,
-                border: `1px solid ${theme.vars.palette.grey[500]}`,
-                backgroundColor: "#808080",
-                "&:hover": {
-                  borderColor: theme.vars.palette.grey[300],
-                  backgroundColor: "#999999"
-                }
-              }}
-            >
-              <AddIcon
-                sx={{
-                  fontSize: "var(--fontSizeNormal)",
-                  color: theme.vars.palette.grey[300]
-                }}
-              />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title="New empty layer group (folder)"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <IconButton
-              aria-label="New empty layer group (folder)"
-              size="small"
-              onClick={() => onAddGroup()}
+              onClick={(e) => setAddMenuAnchor(e.currentTarget)}
+              data-testid="layers-panel-add-menu"
               sx={ADD_ACTION_ICON_SX}
             >
-              <CreateNewFolderIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title="Generate Layer from any workflow with image output"
-            enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-            enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-          >
-            <IconButton
-              aria-label="Generate Layer (Text-to-Image)"
-              size="small"
-              onClick={() => setGenerateDialogOpen(true)}
-              data-testid="layers-panel-generate-layer"
-              sx={ADD_ACTION_ICON_SX}
-            >
-              <AddPhotoAlternateIcon
-                sx={{ fontSize: "var(--fontSizeNormal)" }}
-              />
+              <ExpandMoreIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
         </FlexRow>
+        <Menu
+          className="sketch-layers-panel__add-menu"
+          anchorEl={addMenuAnchor}
+          open={addMenuAnchor !== null}
+          onClose={closeAddMenu}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+          slotProps={{ paper: { sx: { minWidth: 200 } } }}
+        >
+          {NEW_LAYER_FILLS.map(({ label, fill }) => (
+            <MenuItem
+              key={label}
+              sx={ADD_MENU_ITEM_SX}
+              onClick={() => runAddMenuAction(() => onAddLayer(fill))}
+            >
+              <Box
+                component="span"
+                aria-hidden
+                sx={{
+                  ...ADD_MENU_SWATCH_SX,
+                  ...(fill ? { backgroundColor: fill } : SKETCH_CHECKERBOARD)
+                }}
+              />
+              {label}
+            </MenuItem>
+          ))}
+          <MenuItem
+            sx={ADD_MENU_ITEM_SX}
+            onClick={() => runAddMenuAction(() => onAddGroup())}
+          >
+            <CreateNewFolderIcon sx={ADD_MENU_ICON_SX} />
+            Layer group
+          </MenuItem>
+          <Divider sx={{ my: getSpacingPx(SPACING.xs) }} />
+          <MenuItem
+            sx={ADD_MENU_ITEM_SX}
+            onClick={() =>
+              runAddMenuAction(() => svgImportInputRef.current?.click())
+            }
+          >
+            <UploadFileIcon sx={ADD_MENU_ICON_SX} />
+            Import SVG file…
+          </MenuItem>
+          <MenuItem
+            sx={ADD_MENU_ITEM_SX}
+            onClick={() => runAddMenuAction(() => setSvgDialogOpen(true))}
+          >
+            <AutoAwesomeIcon sx={ADD_MENU_ICON_SX} />
+            Generate SVG layer…
+          </MenuItem>
+          <MenuItem
+            sx={ADD_MENU_ITEM_SX}
+            data-testid="layers-panel-generate-layer"
+            onClick={() => runAddMenuAction(() => setGenerateDialogOpen(true))}
+          >
+            <AddPhotoAlternateIcon sx={ADD_MENU_ICON_SX} />
+            Layer from workflow…
+          </MenuItem>
+        </Menu>
+        <SvgLayerImport inputRef={svgImportInputRef} />
       </Box>
 
       {/* Layer list: cap height (~half viewport) so many layers scroll without stretching the panel */}
@@ -1697,6 +1688,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       <CreateGeneratedLayerDialog
         open={generateDialogOpen}
         onClose={() => setGenerateDialogOpen(false)}
+      />
+      <GenerateSvgLayerDialog
+        open={svgDialogOpen}
+        onClose={() => setSvgDialogOpen(false)}
       />
     </Box>
   );

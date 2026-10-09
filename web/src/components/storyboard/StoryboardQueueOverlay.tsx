@@ -252,6 +252,8 @@ const overlayStyles = (theme: Theme) =>
     bottom: getSpacingPx(SPACING.xl),
     right: getSpacingPx(SPACING.xl),
     width: getSpacingPx(76),
+    // Stay inside a narrow board column instead of spilling past its edge.
+    maxWidth: `calc(100% - ${getSpacingPx(SPACING.xl)} * 2)`,
     maxHeight: `min(420px, calc(100% - ${getSpacingPx(SPACING.xxxl)}))`,
     display: "flex",
     flexDirection: "column",

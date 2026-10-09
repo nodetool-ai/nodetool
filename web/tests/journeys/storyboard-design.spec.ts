@@ -120,6 +120,7 @@ test("Storyboard reviews exact composed graphics and saves semantic edits withou
   await expect(
     editor.getByRole("button", { name: "Save", exact: true })
   ).toBeDisabled();
+  await editor.getByRole("button", { name: "Advanced", exact: true }).click();
   await editor
     .getByRole("textbox", { name: "Exact text: headline", exact: true })
     .fill("  Save €25  ");

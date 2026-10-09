@@ -28,12 +28,12 @@ import {
   app,
   ipcMain,
   dialog,
-  shell,
   systemPreferences,
   BrowserWindow,
   globalShortcut,
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
+import { getMainWindow } from "./state";
 import { hardenWebContents } from "./windowSecurity";
 import { setupAutoUpdater } from "./updater";
 import { logMessage, closeLogStream } from "./logger";
@@ -116,13 +116,18 @@ if (process.env.NODE_ENV !== "test" && !isElectronDevMode()) {
     app.quit();
   } else {
     app.on("second-instance", () => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        if (mainWindow.isMinimized()) {
-          mainWindow.restore();
-        }
-        mainWindow.show();
-        mainWindow.focus();
+      // Closing the main window destroys it, so read the current one from
+      // state and recreate it when the app is running in the background.
+      const window = getMainWindow();
+      if (!window || window.isDestroyed()) {
+        createWindow();
+        return;
       }
+      if (window.isMinimized()) {
+        window.restore();
+      }
+      window.show();
+      window.focus();
     });
   }
 }
@@ -183,10 +188,11 @@ function logUnexpectedError(prefix: string, error: unknown): string {
 async function notifyPackageUpdates(): Promise<void> {
   try {
     const updates = await checkForPackageUpdates();
-    if (!updates.length || !mainWindow || mainWindow.isDestroyed()) {
+    const window = getMainWindow();
+    if (!updates.length || !window || window.isDestroyed()) {
       return;
     }
-    mainWindow.webContents.send(IpcChannels.PACKAGE_UPDATES_AVAILABLE, updates);
+    window.webContents.send(IpcChannels.PACKAGE_UPDATES_AVAILABLE, updates);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logMessage(
@@ -430,48 +436,29 @@ async function initialize(): Promise<void> {
   }
 }
 
+/**
+ * Asks macOS for microphone access the first time the app runs. A user who
+ * already answered is not asked again, and System Settings is never opened
+ * on launch: the OS shows its own prompt, and a later denial is the user's
+ * choice. Windows grants desktop apps access unless the user disabled it.
+ */
 async function checkMediaPermissions(): Promise<void> {
-  if (process.platform === "win32" || process.platform === "darwin") {
-    try {
-      logMessage("Starting microphone permission check");
-
-      const microphoneStatus =
-        systemPreferences.getMediaAccessStatus("microphone");
-      logMessage(`Current microphone status: ${microphoneStatus}`);
-
-      if (microphoneStatus !== "granted") {
-        logMessage(
-          `Microphone not granted, current status: ${microphoneStatus}`,
-        );
-
-        if (process.platform === "darwin") {
-          logMessage("Requesting microphone access on macOS");
-          const granted =
-            await systemPreferences.askForMediaAccess("microphone");
-          logMessage(`Microphone permission request result: ${granted}`);
-
-          if (!granted) {
-            logMessage("Opening system preferences for microphone access");
-            shell.openExternal(
-              "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
-            );
-          }
-        } else if (process.platform === "win32") {
-          logMessage("Opening Windows privacy settings for microphone");
-          shell.openExternal("ms-settings:privacy-microphone");
-        }
-      } else {
-        logMessage("Microphone permission already granted");
-      }
-    } catch (error) {
-      logMessage(
-        `Error handling microphone permissions: ${errorMessage(error)}`,
-        "error",
-      );
+  if (process.platform !== "darwin") {
+    return;
+  }
+  try {
+    const microphoneStatus =
+      systemPreferences.getMediaAccessStatus("microphone");
+    logMessage(`Current microphone status: ${microphoneStatus}`);
+    if (microphoneStatus !== "not-determined") {
+      return;
     }
-  } else {
+    const granted = await systemPreferences.askForMediaAccess("microphone");
+    logMessage(`Microphone permission request result: ${granted}`);
+  } catch (error) {
     logMessage(
-      `Platform ${process.platform} does not require explicit microphone permissions`,
+      `Error handling microphone permissions: ${errorMessage(error)}`,
+      "error",
     );
   }
 }
@@ -527,11 +514,25 @@ ipcMain.handle("update-installed", async () => {
     });
 });
 
-app.on("before-quit", () => {
-  if (!isAppQuitting) {
-    isAppQuitting = true;
-    stopServer();
+/** Upper bound on how long quitting waits for the backend to exit. */
+const QUIT_SERVER_STOP_TIMEOUT_MS = 10000;
+
+app.on("before-quit", (event) => {
+  if (isAppQuitting) {
+    return;
   }
+  isAppQuitting = true;
+  // Hold the quit until the backend has shut down, so it can finish writes
+  // and remove its pid file instead of being cut off mid-shutdown.
+  event.preventDefault();
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, QUIT_SERVER_STOP_TIMEOUT_MS);
+  });
+  void Promise.race([stopServer(), timeout]).finally(() => {
+    clearTimeout(timer);
+    app.quit();
+  });
 });
 
 app.on("window-all-closed", async () => {

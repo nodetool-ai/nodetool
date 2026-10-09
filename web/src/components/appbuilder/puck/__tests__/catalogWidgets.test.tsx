@@ -145,6 +145,24 @@ describe("DownloadWidget", () => {
   });
 });
 
+describe("empty media placeholder", () => {
+  it("stays short in a running app until its operation starts", () => {
+    renderWidget(<VideoWidget id="v1" binding="result" placeholder="Your video appears here" />);
+    expect(screen.getByText("Your video appears here")).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("says the result is on its way while the operation that fills it runs", () => {
+    renderWidget(<VideoWidget id="v1" binding="result" placeholder="Your video appears here" />, {
+      invocations: {
+        j1: { id: "j1", operationId: "main", status: "running", startedAt: 0 }
+      },
+      activeInvocation: { main: "j1" }
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Generating…");
+  });
+});
+
 describe("media output downloads", () => {
   it("offers a download link alongside a video player", () => {
     renderWidget(

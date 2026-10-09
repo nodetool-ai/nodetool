@@ -3,6 +3,7 @@ const MEDIA = "/app-preview/media/video-post-house";
 
 export const VIDEO_POST_HOUSE_APP = {
   slug: "video-post-house",
+  steps: true,
   name: "AI Video Post House",
   emoji: "🎞️",
   featured: true,

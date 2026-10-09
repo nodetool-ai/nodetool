@@ -1,6 +1,9 @@
 import { registerChatRunTrace, registerWorkflowRunTrace, withRegisteredRunTrace, settleRegisteredRunTrace } from "@nodetool-ai/execution";
 import { getRunTraceScope, suppressRunTraceContent } from "@nodetool-ai/runtime";
-import { TRACE_RESTRICTED_CAPABILITY_MODULES } from "@nodetool-ai/protocol";
+import {
+  TRACE_RESTRICTED_CAPABILITY_MODULES,
+  isFullResourceId
+} from "@nodetool-ai/protocol";
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { settleRunTrace, registerRunTraceParent, registerRunTraceParents, threadHasTraceContentTools } from "@nodetool-ai/models";
 import { capabilityModuleOf, listCapabilitySpecs } from "@nodetool-ai/agents";
@@ -822,9 +825,11 @@ export class ChatTurnHandler {
    * Mirrors Python's _save_message_to_db_async: pops id, type, user_id before create.
    */
   private async saveMessageToDb(
-    messageData: Record<string, unknown>
+    messageData: Record<string, unknown>,
+    options: { keepClientId?: boolean } = {}
   ): Promise<Message> {
     const data = { ...messageData };
+    const clientId = data.id;
     delete data.id;
     delete data.type;
     const threadId = isString(data.thread_id) ? data.thread_id : "";
@@ -832,6 +837,17 @@ export class ChatTurnHandler {
     const userId = this.session.requireUserId();
     delete data.user_id;
 
+    // The user's own turn keeps the id the client minted for it, so the client
+    // can name that turn later (Regenerate, edit a sent message) without a
+    // round-trip. Anything that is not a fresh 32-hex id is replaced.
+    if (
+      options.keepClientId &&
+      isString(clientId) &&
+      isFullResourceId(clientId) &&
+      !(await Message.find(clientId))
+    ) {
+      data.id = clientId;
+    }
     const message = await Message.create<Message>({ thread_id: threadId, user_id: userId, ...data });
     const scope = getRunTraceScope();
     if (scope) { await registerRunTraceParent(userId, scope.runId, { kind: "message", id: message.id }); }
@@ -1483,7 +1499,7 @@ export class ChatTurnHandler {
     log.debug("Chat message", { threadId, model, provider: providerId });
 
     // Save user message to DB — matches Python's _save_message_to_db_async(data)
-    const turnMessage = await this.saveMessageToDb(data);
+    const turnMessage = await this.saveMessageToDb(data, { keepClientId: true });
 
     const rootContext = createRuntimeContext({ jobId: turnMessage.id, threadId, workflowId, userId, workspace: null });
     await registerChatRunTrace(rootContext, { messageId: turnMessage.id, threadId });

@@ -104,6 +104,7 @@
         "__tests__/**",
         "tests/**",
         "test/**",
+        "bench/**",
         "scripts/**",
         "schema/**",
         "fixtures/**",

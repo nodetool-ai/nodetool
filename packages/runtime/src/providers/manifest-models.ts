@@ -502,9 +502,9 @@ export function inferImageTasks(name: string, id: string): string[] {
   // Mask-guided editors that don't declare their mask field. `buildImageModels`
   // tags `inpainting` from a declared mask input, which is the reliable signal;
   // this catches the endpoints whose manifest entry carries no mask field but
-  // whose id says what they are (`fal-ai/lora/inpaint`, `bria/genfill`). The
-  // tag is added, not substituted: these take a prompt and an image like any
-  // other editor, so they stay answers to an image_to_image request too.
+  // whose id says what they are (`fal-ai/lora/inpaint`, `bria/genfill`).
+  // `buildImageModels` then drops `image_to_image` from these: without a mask
+  // they fail on a whole-image request.
   const tasks = ["text_to_image", "image_to_image"];
   if (matchesAny(hay, "inpaint", "genfill", "eraser")) {
     tasks.push("inpainting");
@@ -588,6 +588,15 @@ export function requiresMediaInput(
  *
  * Only ever subtracts. Explicit `supportedTasks` never reach this.
  */
+/** True when a manifest entry lists its inputs under any convention. */
+function declaresInputs(n: ManifestNode): boolean {
+  return (
+    (n.inputFields?.length ?? 0) > 0 ||
+    (n.fields?.length ?? 0) > 0 ||
+    (n.uploads?.length ?? 0) > 0
+  );
+}
+
 export function narrowTasksByRequiredInputs(
   tasks: string[],
   n: ManifestNode,
@@ -611,6 +620,17 @@ export function narrowTasksByRequiredInputs(
     return ["reference_to_video"];
   }
   if (requiresMediaInput(n, "image")) drop.add(generationTask);
+  // The other direction: an entry that declares its inputs and none of them
+  // is an image has nothing to edit, so it cannot answer an editing picker.
+  // An entry that declares no inputs at all keeps what inference said.
+  if (
+    kind === "image" &&
+    declaresInputs(n) &&
+    !manifestEntryMediaInputs(n).some((field) => field.kind === "image")
+  ) {
+    drop.add("image_to_image");
+    drop.add("inpainting");
+  }
   if (kind === "video" && requiresMediaInput(n, "video")) {
     drop.add("text_to_video");
     drop.add("image_to_video");
@@ -1245,6 +1265,27 @@ export function loadImageModels(
   return buildImageModels(loadManifest(packageName, exportPath), provider);
 }
 
+// Id tokens of an endpoint that changes only a masked area: a fill, an eraser,
+// an object remover. Such an endpoint reads a mask, so a whole-image
+// image_to_image request with no mask fails (flux-fill-dev reads a missing
+// mask and crashes). A generator that only accepts an optional mask
+// (sdxl, ideogram) has no such token and keeps image_to_image.
+const INPAINT_ONLY_TOKENS = new Set([
+  "inpaint",
+  "inpainting",
+  "fill",
+  "genfill",
+  "erase",
+  "eraser"
+]);
+
+/** Whether an endpoint id names a mask-only edit. */
+export function isInpaintOnlyEndpoint(id: string): boolean {
+  const lower = id.toLowerCase();
+  if (matchesAny(lower, "object-removal", "object_remover")) return true;
+  return lower.split(/[/_.-]+/).some((token) => INPAINT_ONLY_TOKENS.has(token));
+}
+
 /** Pure transform: manifest nodes → deduplicated, task-tagged image models. */
 export function buildImageModels(
   manifest: ManifestNode[],
@@ -1270,6 +1311,14 @@ export function buildImageModels(
       selectMaskImageInput(manifestEntryImageInputs(n))
     ) {
       tasks.push("inpainting");
+    }
+    if (
+      !explicitTasks(n) &&
+      tasks.includes("inpainting") &&
+      isInpaintOnlyEndpoint(id)
+    ) {
+      const i2i = tasks.indexOf("image_to_image");
+      if (i2i !== -1) tasks.splice(i2i, 1);
     }
     // Image-typed entries always qualify. `dict`-typed entries (FAL endpoints
     // whose response schema is an object, e.g. clarity-upscaler) are salvaged

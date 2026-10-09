@@ -194,6 +194,8 @@ export const generateMediaDataSchema = z
     /**
      * "image" = text-to-image; "image_edit" = image-to-image;
      * "inpaint" = image-to-image confined to `mask_asset_id`;
+     * "upscale" = enlarge `source_asset_id` by `scale`;
+     * "outpaint" = extend `source_asset_id` by `padding` or to `aspect_ratio`;
      * "video" = text-to-video; "audio" = text-to-speech.
      */
     mode: z
@@ -201,6 +203,8 @@ export const generateMediaDataSchema = z
         "image",
         "image_edit",
         "inpaint",
+        "upscale",
+        "outpaint",
         "video",
         "video_edit",
         "video_extend",
@@ -234,7 +238,10 @@ export const generateMediaDataSchema = z
       )
       .optional(),
     use_reference_video_audio: z.boolean().optional(),
-    /** Required for "image_edit" and "inpaint". Bytes are loaded server-side. */
+    /**
+     * Required for "image_edit", "inpaint", "upscale" and "outpaint". Bytes
+     * are loaded server-side.
+     */
     source_asset_id: z.string().optional(),
     timeline_context: z.object({
       sequence_id: z.string().min(1),
@@ -256,6 +263,17 @@ export const generateMediaDataSchema = z
       .optional(),
     /** The region to repaint, for "inpaint". */
     mask_asset_id: z.string().optional(),
+    /** Magnification for "upscale", e.g. 2 or 4. */
+    scale: z.number().optional(),
+    /** Source pixels to add on each side, for "outpaint". */
+    padding: z
+      .object({
+        left: z.number().optional(),
+        right: z.number().optional(),
+        top: z.number().optional(),
+        bottom: z.number().optional()
+      })
+      .optional(),
     width: z.number().optional(),
     height: z.number().optional(),
     aspect_ratio: z.string().optional(),

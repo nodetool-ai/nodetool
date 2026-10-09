@@ -214,14 +214,7 @@ declare global {
             logUsage?: boolean;
           },
         ) => Promise<void>;
-        trashItem: (path: string) => Promise<void>;
         beep: () => void;
-        writeShortcutLink: (
-          shortcutPath: string,
-          operation?: "create" | "update" | "replace",
-          options?: ShortcutDetails,
-        ) => boolean;
-        readShortcutLink: (shortcutPath: string) => ShortcutDetails;
       };
 
       // Generic localhost-only HTTP proxy via main process
@@ -451,17 +444,6 @@ export interface FileExplorerResult {
   message?: string;
 }
 
-export interface ShortcutDetails {
-  target: string;
-  cwd?: string;
-  args?: string;
-  description?: string;
-  icon?: string;
-  iconIndex?: number;
-  appUserModelId?: string;
-  toastActivatorClsid?: string;
-}
-
 export type LocalhostProxyMethod =
   | "GET"
   | "POST"
@@ -594,10 +576,7 @@ export enum IpcChannels {
   SHELL_SHOW_ITEM_IN_FOLDER = "shell-show-item-in-folder",
   SHELL_OPEN_PATH = "shell-open-path",
   SHELL_OPEN_EXTERNAL = "shell-open-external",
-  SHELL_TRASH_ITEM = "shell-trash-item",
   SHELL_BEEP = "shell-beep",
-  SHELL_WRITE_SHORTCUT_LINK = "shell-write-shortcut-link",
-  SHELL_READ_SHORTCUT_LINK = "shell-read-shortcut-link",
   // Settings channels
   SETTINGS_GET_CLOSE_BEHAVIOR = "settings-get-close-behavior",
   SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
@@ -773,14 +752,7 @@ export interface IpcRequest {
       logUsage?: boolean;
     };
   };
-  [IpcChannels.SHELL_TRASH_ITEM]: string; // path
   [IpcChannels.SHELL_BEEP]: void;
-  [IpcChannels.SHELL_WRITE_SHORTCUT_LINK]: {
-    shortcutPath: string;
-    operation?: "create" | "update" | "replace";
-    options?: ShortcutDetails;
-  };
-  [IpcChannels.SHELL_READ_SHORTCUT_LINK]: string; // shortcutPath
   // Settings
   [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: void;
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
@@ -880,10 +852,7 @@ export interface IpcResponse {
   [IpcChannels.SHELL_SHOW_ITEM_IN_FOLDER]: void;
   [IpcChannels.SHELL_OPEN_PATH]: string; // error message or empty string
   [IpcChannels.SHELL_OPEN_EXTERNAL]: void;
-  [IpcChannels.SHELL_TRASH_ITEM]: void;
   [IpcChannels.SHELL_BEEP]: void;
-  [IpcChannels.SHELL_WRITE_SHORTCUT_LINK]: boolean;
-  [IpcChannels.SHELL_READ_SHORTCUT_LINK]: ShortcutDetails;
   // Settings
   [IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR]: WindowCloseAction;
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;

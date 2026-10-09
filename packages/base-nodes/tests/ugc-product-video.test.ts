@@ -15,6 +15,7 @@ interface Component {
     modelKind?: string;
     options?: Array<{ value: string }>;
     right?: Component[];
+    text?: string;
     title?: string;
   };
 }
@@ -158,8 +159,8 @@ describe("UGC Product Video recipe", () => {
     expect(
       components.some(
         (component) =>
-          component.type === "Container" &&
-          component.props.title === "3 · Finish the social cut"
+          component.type === "Heading" &&
+          component.props.text === "Finish the social cut"
       )
     ).toBe(true);
     expect([...operations.keys()]).toEqual(["copy", "creator", "brand"]);
@@ -168,9 +169,13 @@ describe("UGC Product Video recipe", () => {
   it("guards every run and exposes every failure", () => {
     const bundle = read<AppBundle>("apps/ugc-product-video.app.json");
     const components = flatten(bundle.app.ui.content);
+    // Step navigation buttons carry setVariable events only.
     const buttons = components.filter(
-      (component) => component.type === "Button"
+      (component) =>
+        component.type === "Button" &&
+        (component.props.events ?? []).some((event) => event.kind === "run")
     );
+    expect(buttons).toHaveLength(3);
 
     for (const button of buttons) {
       const [run] = (button.props.events ?? []).filter(

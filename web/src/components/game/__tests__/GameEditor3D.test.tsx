@@ -7,13 +7,20 @@ import { gameDocument3D, gameAuthoring } from "@nodetool-ai/protocol";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
+import { getGamePanelLayoutStore } from "../../../stores/game/useGamePanelLayoutStore";
+import useAuth from "../../../stores/useAuth";
 import GameEditor3D from "../GameEditor3D";
 import type GameViewport3D from "../viewport3d/GameViewport3D";
 import type GameHierarchy3D from "../panels/hierarchy/GameHierarchy3D";
 import type GameInspector3D from "../panels/inspector/GameInspector3D";
 import type GameScriptPane from "../panels/scripts/GameScriptPane";
+import type { ScriptFailure } from "../useGamePlaySession";
 
 let mockViewportProps: ComponentProps<typeof GameViewport3D> | undefined;
+let mockPlayDocument: ReturnType<typeof createNative3DGame> | null = null;
+let mockDiagnosticFailure: ScriptFailure | null = null;
+let mockHostError: string | null = null;
+const mockReplay = jest.fn();
 
 const mockDocument = createNative3DGame("controller3d");
 let mockFixtureId = 0;
@@ -54,12 +61,12 @@ jest.mock("../../../hooks/useDocumentConflicts", () => ({ useDocumentConflicts: 
 jest.mock("../useGamePlaySession3D", () => ({
   EMPTY_INPUT_3D: { pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 } },
   useGamePlaySession3D: () => ({
-    playing: false, playDocument: null, inspection: null, frame: null, backend: "Test", error: null,
-    beginPlay: jest.fn(), stop: jest.fn(), step: jest.fn(), save: jest.fn(), load: jest.fn(), replayBeforeError: jest.fn()
+    playing: false, playDocument: mockPlayDocument, inspection: { tick: 30, entities: [] }, frame: null, backend: "Test", error: mockHostError,
+    beginPlay: jest.fn(), stop: jest.fn(), step: jest.fn(), save: jest.fn(), load: jest.fn(), replayBeforeError: mockReplay
   })
 }));
 jest.mock("../panels/scripts/useGameScriptDiagnostics", () => ({
-  useGameScriptDiagnostics: () => ({ run: jest.fn(), running: false, summary: null, error: null, byEntity: [] })
+  useGameScriptDiagnostics: () => ({ run: jest.fn(), running: false, summary: null, error: mockDiagnosticFailure, byEntity: [] })
 }), { virtual: true });
 jest.mock("../viewport3d/GameViewport3D", () => ({ __esModule: true, default: (props: ComponentProps<typeof GameViewport3D>) => {
   mockViewportProps = props;
@@ -78,15 +85,20 @@ jest.mock("../panels/authoring/GameAuthoringPreview", () => ({ __esModule: true,
 jest.mock("../panels/changes/GameChanges", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/agent/GameAgentPanel", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/scripts/GameScriptPane", () => ({
-  __esModule: true, default: ({ entityId, behavior, onChange }: ComponentProps<typeof GameScriptPane>) => <>
+  __esModule: true, default: ({ entityId, behavior, onChange, onReplay }: ComponentProps<typeof GameScriptPane>) => <>
     <p>Editing {entityId}</p>
+    {onReplay && <button onClick={onReplay}>Replay displayed error</button>}
     <textarea aria-label="Anchored script" value={behavior.source} onChange={(event) => onChange(event.target.value)} />
   </>
 }));
 
 beforeEach(() => {
   jest.clearAllMocks();
+  getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().selectLayout("Default");
   mockViewportProps = undefined;
+  mockPlayDocument = null;
+  mockDiagnosticFailure = null;
+  mockHostError = null;
   mockDraftUnavailable = false;
   mockDocument.id = `controller3d-${++mockFixtureId}`;
   mockServer.game.id = mockDocument.id;
@@ -96,6 +108,25 @@ beforeEach(() => {
     entity.behaviors = [{ kind: "script", source: "original", maxCommands: 16, maxTickMs: 8 }];
   }
   getGameDraftStore(mockDocument.id).getState().load(mockDocument, mockToken);
+});
+
+it.each(["host", "diagnostic"])("offers 3D host replay only for host failures: %s", async (provenance) => {
+  const user = userEvent.setup();
+  mockPlayDocument = mockDocument;
+  mockHostError = "Game script failed";
+  if (provenance === "diagnostic") {
+    mockDiagnosticFailure = { message: "Game script diagnostic failed", entityId: "player", tick: 500 };
+  }
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Select player" }));
+  await user.click(screen.getByRole("button", { name: "Edit selected script" }));
+  if (provenance === "diagnostic") {
+    expect(screen.queryByRole("button", { name: "Replay displayed error" })).not.toBeInTheDocument();
+    expect(mockReplay).not.toHaveBeenCalled();
+  } else {
+    await user.click(screen.getByRole("button", { name: "Replay displayed error" }));
+    expect(mockReplay).toHaveBeenCalledWith(expect.objectContaining({ tick: 31 }));
+  }
 });
 
 type RenameOp = { op: "update_entity"; scene_id: string; entity_id: string; set: { name: string } };
@@ -245,6 +276,7 @@ it("confirms restore, flushes edits and uses the acknowledged token before reset
   await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
   const store = getGameDraftStore(mockDocument.id);
   expect(store.getState().commandHistory.past.length).toBeGreaterThan(0);
+  await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
   await user.click(screen.getByRole("button", { name: "Revisions" }));
   await user.click(screen.getByRole("button", { name: "Restore to draft" }));
   expect(mockRestore).not.toHaveBeenCalled();
@@ -258,19 +290,31 @@ it("confirms restore, flushes edits and uses the acknowledged token before reset
 });
 
 it("keeps inspector-button undo outside the 3D editor keyboard scope", async () => {
-  const user = userEvent.setup();
-  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
-  await user.click(screen.getByRole("button", { name: "Select player" }));
-  await user.click(screen.getByRole("button", { name: "Edit selected script" }));
-  await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
-  const store = getGameDraftStore(mockDocument.id);
-  const history = store.getState().commandHistory.past.length;
-  expect(history).toBeGreaterThan(0);
-  await user.click(screen.getByRole("button", { name: "Edit selected script" }));
-  await user.keyboard("{Control>}z{/Control}");
-  expect(store.getState().document?.scenes[0].entities.find((entity) => entity.id === "player")?.behaviors[0]).toMatchObject({ source: "original changed" });
-  expect(store.getState().commandHistory.past).toHaveLength(history);
-  expect(store.getState().pendingOps).toHaveLength(1);
+  // Debounced autosave may send the edit at any point in this real-time test. Holding every save request open keeps
+  // the unacknowledged op queued, so the final assertion measures the ignored undo rather than the test's duration.
+  const acknowledgements: Array<() => void> = [];
+  const save = mockSave.getMockImplementation();
+  mockSave.mockImplementation((request) => new Promise((resolve) => {
+    acknowledgements.push(() => resolve({ document: getGameDraftStore(request.id).getState().document, game: { draftUpdatedAt: mockSavedToken } }));
+  }));
+  try {
+    const user = userEvent.setup();
+    render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+    await user.click(screen.getByRole("button", { name: "Select player" }));
+    await user.click(screen.getByRole("button", { name: "Edit selected script" }));
+    await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
+    const store = getGameDraftStore(mockDocument.id);
+    const history = store.getState().commandHistory.past.length;
+    expect(history).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: "Edit selected script" }));
+    await user.keyboard("{Control>}z{/Control}");
+    expect(store.getState().document?.scenes[0].entities.find((entity) => entity.id === "player")?.behaviors[0]).toMatchObject({ source: "original changed" });
+    expect(store.getState().commandHistory.past).toHaveLength(history);
+    expect(store.getState().pendingOps).toHaveLength(1);
+  } finally {
+    if (save) { mockSave.mockImplementation(save); }
+    await act(async () => { for (const acknowledge of acknowledgements) { acknowledge(); } });
+  }
 });
 
 

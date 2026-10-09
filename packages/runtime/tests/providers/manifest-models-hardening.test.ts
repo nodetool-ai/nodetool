@@ -23,7 +23,8 @@ import {
   loadImageModels,
   loadManifest,
   manifestEntryImageInputs,
-  selectPrimaryImageInput
+  selectPrimaryImageInput,
+  isInpaintOnlyEndpoint
 } from "../../src/providers/manifest-models.js";
 import type { ModelImageInput } from "../../src/providers/manifest-models.js";
 
@@ -291,6 +292,56 @@ describe("buildImageModels", () => {
     expect(out[0].supportedTasks).toContain("image_to_image");
   });
 
+  it("keeps mask-only endpoints out of image_to_image", () => {
+    const maskEntry = (endpointId: string) => ({
+      outputType: "image",
+      endpointId,
+      inputFields: [
+        { name: "image", propType: "image", required: true },
+        { name: "mask", propType: "image" },
+        { name: "prompt", propType: "str" }
+      ]
+    });
+    const out = buildImageModels(
+      [
+        maskEntry("black-forest-labs/flux-fill-dev"),
+        maskEntry("stability-ai/stable-diffusion-inpainting"),
+        maskEntry("fal-ai/object-removal/mask"),
+        maskEntry("stability-ai/sdxl")
+      ],
+      "p"
+    );
+    const tasksOf = (id: string) =>
+      out.find((model) => model.id === id)?.supportedTasks;
+    expect(tasksOf("black-forest-labs/flux-fill-dev")).toEqual(["inpainting"]);
+    expect(tasksOf("stability-ai/stable-diffusion-inpainting")).toEqual([
+      "inpainting"
+    ]);
+    expect(tasksOf("fal-ai/object-removal/mask")).toEqual(["inpainting"]);
+    // An optional mask on a generator leaves its image_to_image in place.
+    expect(tasksOf("stability-ai/sdxl")).toEqual([
+      "image_to_image",
+      "inpainting"
+    ]);
+  });
+
+  it("keeps text_to_image on a fill endpoint that also generates", () => {
+    const out = buildImageModels(
+      [
+        {
+          outputType: "image",
+          endpointId: "bria/genfill",
+          inputFields: [
+            { name: "image", propType: "image" },
+            { name: "prompt", propType: "str" }
+          ]
+        }
+      ],
+      "p"
+    );
+    expect(out[0].supportedTasks).toEqual(["text_to_image", "inpainting"]);
+  });
+
   it("does not tag inpainting when no mask input is declared", () => {
     const out = buildImageModels(
       [
@@ -447,6 +498,47 @@ describe("narrowTasksByRequiredInputs", () => {
     ], "atlascloud");
     expect(model.id).toBe("openai/gpt-image-2/edit");
     expect(model.supportedTasks).toEqual(["image_to_image"]);
+  });
+
+  // The still editor's model picker filters on image_to_image and listed
+  // every "— Text to Image" endpoint: the name-based default tags both
+  // directions, and nothing read that the entry declares no image to edit.
+  it("a text-only endpoint stops qualifying as an image editor", () => {
+    const [model] = buildImageModels([
+      {
+        outputType: "image",
+        modelId: "openai/gpt-image-2/text-to-image",
+        fields: [
+          { name: "prompt", type: "str", required: true },
+          { name: "size", type: "enum" }
+        ]
+      }
+    ], "atlascloud");
+    expect(model.supportedTasks).toEqual(["text_to_image"]);
+  });
+
+  it("drops inpainting with image_to_image when no image is declared", () => {
+    expect(
+      narrowTasksByRequiredInputs(
+        ["text_to_image", "image_to_image", "inpainting"],
+        {
+          outputType: "image",
+          endpointId: "fal-ai/lora/inpaint",
+          inputFields: [{ name: "prompt", propType: "str", required: true }]
+        },
+        "image"
+      )
+    ).toEqual(["text_to_image"]);
+  });
+
+  it("keeps both directions when the entry declares no inputs at all", () => {
+    expect(
+      narrowTasksByRequiredInputs(
+        ["text_to_image", "image_to_image"],
+        { outputType: "image", endpointId: "vendor/model" },
+        "image"
+      )
+    ).toEqual(["text_to_image", "image_to_image"]);
   });
 
   it("drops text_to_video from a video endpoint that requires an image", () => {
@@ -819,5 +911,16 @@ describe("selectPrimaryImageInput", () => {
     expect(
       selectPrimaryImageInput([inp("img"), inp("image")], 2)?.name
     ).toBe("image");
+  });
+});
+
+describe("isInpaintOnlyEndpoint", () => {
+  it("reads whole id tokens", () => {
+    expect(isInpaintOnlyEndpoint("fal-ai/flux-pro/v1/fill-finetuned")).toBe(true);
+    expect(isInpaintOnlyEndpoint("lucataco/ip_adapter-face-inpaint")).toBe(true);
+    expect(isInpaintOnlyEndpoint("fal-ai/finegrain-eraser/bbox")).toBe(true);
+    expect(isInpaintOnlyEndpoint("codeplugtech/object_remover")).toBe(true);
+    expect(isInpaintOnlyEndpoint("fofr/fillmore-style")).toBe(false);
+    expect(isInpaintOnlyEndpoint("black-forest-labs/flux-dev")).toBe(false);
   });
 });

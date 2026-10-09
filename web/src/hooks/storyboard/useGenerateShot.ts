@@ -113,6 +113,34 @@ const entityTokenSuffix = (entities: Entity[]): string =>
 const hasReferenceImage = (entities: Entity[]): boolean =>
   entities.some((e) => (e.reference_images?.length ?? 0) > 0);
 
+/** The model-backed changes a shot's current still can go through. */
+export type StillVariantMode = "image_edit" | "inpaint" | "upscale" | "outpaint";
+
+export interface StillVariantRequest {
+  mode: StillVariantMode;
+  model: ShotModelRef;
+  /** The still the change starts from. */
+  sourceAssetId: string;
+  /** What to change; upscale and outpaint fall back to a generic hint. */
+  prompt?: string;
+  /** The painted area, for `inpaint`. */
+  maskAssetId?: string;
+  /** The new frame, for `outpaint`. */
+  aspectRatio?: string;
+  /** Source pixels to add on each side, for `outpaint`. */
+  padding?: { left: number; right: number; top: number; bottom: number };
+  /** Magnification, for `upscale`. */
+  scale?: number;
+}
+
+/** The catalog task each change is remembered under in the model picker. */
+const STILL_VARIANT_TASKS: Record<StillVariantMode, string> = {
+  image_edit: "image_to_image",
+  inpaint: "inpainting",
+  upscale: "upscale",
+  outpaint: "outpaint"
+};
+
 interface UseGenerateShotResult {
   generateKeyframe: (
     boardId: string,
@@ -131,6 +159,11 @@ interface UseGenerateShotResult {
     shot: Shot,
     instruction: string,
     model?: ShotModelRef
+  ) => Promise<void>;
+  generateStillVariant: (
+    boardId: string,
+    shot: Shot,
+    request: StillVariantRequest
   ) => Promise<void>;
   retryFailedRequest: (requestId: string, batchId?: string) => Promise<void>;
 }
@@ -678,6 +711,61 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     [startDirectGeneration, recordStartFailure, videoModels]
   );
 
+  /**
+   * Render a change of the shot's current still: an edit (optionally inside a
+   * mask), an upscale, or a reframe. It runs as the shot's keyframe job, so
+   * the card and the queue show it like any render, and the result lands as a
+   * take beside the current still rather than replacing it.
+   */
+  const generateStillVariant = useCallback(
+    async (
+      boardId: string,
+      shot: Shot,
+      request: StillVariantRequest
+    ): Promise<void> => {
+      assertProductionGenerationAllowed(shot.production, "image_to_image");
+      const board = useStoryboardStore.getState().getBoard(boardId);
+      const data: Record<string, unknown> = {
+        mode: request.mode,
+        provider: request.model.provider,
+        model: request.model.id,
+        prompt: request.prompt?.trim() ?? "",
+        source_asset_id: request.sourceAssetId,
+        variations: 1
+      };
+      if (request.mode === "image_edit" || request.mode === "inpaint") {
+        data.resolution = STILL_RESOLUTION;
+        data.aspect_ratio = board?.aspectRatio ?? "16:9";
+      }
+      if (request.maskAssetId) {
+        data.mask_asset_id = request.maskAssetId;
+      }
+      if (request.aspectRatio) {
+        data.aspect_ratio = request.aspectRatio;
+      }
+      if (request.padding) {
+        data.padding = request.padding;
+      }
+      if (request.scale) {
+        data.scale = request.scale;
+      }
+      useLastModelStore
+        .getState()
+        .rememberForTask("image", STILL_VARIANT_TASKS[request.mode], {
+          provider: request.model.provider,
+          model: request.model.id
+        });
+      await startDirectGeneration(
+        boardId,
+        shot,
+        "keyframe",
+        data,
+        renderContext(board, shot)
+      );
+    },
+    [startDirectGeneration, renderContext]
+  );
+
   const retryFailedRequest = useCallback(
     async (requestId: string, batchId?: string): Promise<void> => {
       const record =
@@ -756,6 +844,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     generateKeyframe,
     generateClip,
     generateRevisedClip,
+    generateStillVariant,
     retryFailedRequest
   };
 };

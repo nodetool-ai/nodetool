@@ -19,7 +19,7 @@ import {
   initializeBackendServer,
   stopServer,
 } from "./server";
-import { assertSafeReadablePath } from "./utils";
+import { assertSafeOpenablePath, assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
 import {
   IpcChannels,
@@ -172,15 +172,6 @@ const SAFE_EXTERNAL_PROTOCOLS = new Set([
 function isSafeExternalUrl(urlValue: unknown): boolean {
   if (!isNonEmptyString(urlValue)) {
     return false;
-  }
-  // Allow well-known OS-preference deep links used by our own code paths.
-  // These are expected to come from the main process, not the renderer, so
-  // we accept them here for completeness and log any unexpected call.
-  if (
-    urlValue.startsWith("x-apple.systempreferences:") ||
-    urlValue.startsWith("ms-settings:")
-  ) {
-    return true;
   }
   try {
     const parsed = new URL(urlValue);
@@ -1251,7 +1242,7 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.SHELL_OPEN_PATH, async (_event, path) => {
     let safePath: string;
     try {
-      safePath = assertSafeReadablePath(path);
+      safePath = assertSafeOpenablePath(path);
     } catch (error) {
       logMessage(
         `Refusing SHELL_OPEN_PATH for ${String(path)}: ${String(error)}`,
@@ -1279,11 +1270,6 @@ export function initializeIpcHandlers(): void {
     },
   );
 
-  createIpcMainHandler(IpcChannels.SHELL_TRASH_ITEM, async (_event, path) => {
-    logMessage(`Moving to trash: ${path}`);
-    await shell.trashItem(path);
-  });
-
   // Hand the bundled NodeTool .mcpb to the OS so Claude Desktop can install it.
   createIpcMainHandler(IpcChannels.MCP_INSTALL_BUNDLE, async () => {
     logMessage("Installing NodeTool MCP bundle (.mcpb)");
@@ -1293,34 +1279,6 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {
     shell.beep();
   });
-
-  createIpcMainHandler(
-    IpcChannels.SHELL_WRITE_SHORTCUT_LINK,
-    async (_event, request) => {
-      if (process.platform !== "win32") {
-        logMessage("Shortcut links are only supported on Windows", "warn");
-        return false;
-      }
-      logMessage(`Writing shortcut: ${request.shortcutPath}`);
-      return shell.writeShortcutLink(
-        request.shortcutPath,
-        request.operation || "create",
-        request.options || { target: "" },
-      );
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.SHELL_READ_SHORTCUT_LINK,
-    async (_event, shortcutPath) => {
-      if (process.platform !== "win32") {
-        logMessage("Shortcut links are only supported on Windows", "warn");
-        throw new Error("Shortcut links are only supported on Windows");
-      }
-      logMessage(`Reading shortcut: ${shortcutPath}`);
-      return shell.readShortcutLink(shortcutPath);
-    },
-  );
 
   // Settings handlers
   createIpcMainHandler(IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR, async () => {

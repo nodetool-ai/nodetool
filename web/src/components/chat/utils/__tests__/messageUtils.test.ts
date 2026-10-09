@@ -3,8 +3,12 @@ import {
   stripContextContent,
   parseThoughtContent,
   getMessageClass,
-  formatMessageTimestamp
+  formatMessageTimestamp,
+  hasVisibleContent,
+  messageText,
+  replyEnds
 } from "../messageUtils";
+import type { Message } from "../../../../stores/ApiTypes";
 
 describe("stripContextContent", () => {
   it("removes editor_context block with closing tag", () => {
@@ -129,5 +133,76 @@ describe("formatMessageTimestamp", () => {
 
   it("returns null for an unparseable date", () => {
     expect(formatMessageTimestamp("not a date", now)).toBeNull();
+  });
+});
+
+describe("hasVisibleContent", () => {
+  const message = (content: unknown) =>
+    ({ role: "assistant", content }) as unknown as Message;
+
+  it("is true for non-blank text", () => {
+    expect(hasVisibleContent(message("hello"))).toBe(true);
+  });
+
+  it("is false for blank or missing content", () => {
+    expect(hasVisibleContent(message("  \n"))).toBe(false);
+    expect(hasVisibleContent(message(null))).toBe(false);
+    expect(hasVisibleContent(message([{ type: "text", text: " " }]))).toBe(
+      false
+    );
+  });
+
+  it("is true for a non-text block", () => {
+    expect(
+      hasVisibleContent(
+        message([{ type: "image_url", image: { uri: "asset://a" } }])
+      )
+    ).toBe(true);
+  });
+});
+
+describe("messageText", () => {
+  it("joins the text blocks and skips the rest", () => {
+    expect(
+      messageText({
+        role: "assistant",
+        content: [
+          { type: "text", text: "one" },
+          { type: "image_url", image: { uri: "asset://a" } },
+          { type: "text", text: "two" }
+        ]
+      } as unknown as Message)
+    ).toBe("one\ntwo");
+  });
+});
+
+describe("replyEnds", () => {
+  const msg = (role: string, content: unknown, extra = {}) =>
+    ({ role, content, ...extra }) as unknown as Message;
+
+  it("gives each reply one end that copies every text segment", () => {
+    const ends = replyEnds([
+      msg("user", "build it"),
+      msg("assistant", "Starting.", { tool_calls: [{ id: "a" }] }),
+      msg("assistant", "", { tool_calls: [{ id: "b" }] }),
+      msg("assistant", "Done."),
+      msg("user", "thanks"),
+      msg("assistant", "Any time.")
+    ]);
+
+    expect([...ends.entries()]).toEqual([
+      [3, "Starting.\n\nDone."],
+      [5, "Any time."]
+    ]);
+  });
+
+  it("ends a reply on its last message with content, not a trailing tool call", () => {
+    const ends = replyEnds([
+      msg("user", "go"),
+      msg("assistant", "Working on it."),
+      msg("assistant", "", { tool_calls: [{ id: "c" }] })
+    ]);
+
+    expect([...ends.entries()]).toEqual([[1, "Working on it."]]);
   });
 });

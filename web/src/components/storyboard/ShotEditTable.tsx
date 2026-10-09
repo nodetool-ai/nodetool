@@ -1,26 +1,27 @@
 /**
  * ShotEditTable
  *
- * The twelve columns of PRD § 7.7.2, as the Edit Shot dialog's table row.
- * Every cell writes into the dialog's draft — nothing here touches the store,
+ * The fields of PRD § 7.7.2 as the shot editor's form column: what the shot
+ * shows and says first, then the camera specs. Notes and graphics sit under
+ * the editor's Advanced section.
+ * Every field writes into the editor's draft — nothing here touches the store,
  * so one `Save` upstream is one undo step (D11).
  *
- * Three cells are not free text. Scene and Shot are the derived numbering
- * (`displayNumber`), so they read rather than edit. Aspect ratio belongs to the
- * board, not the shot, and is shown with the way to change it instead of a
- * control that would silently apply to every other shot.
+ * Scene and Shot are the derived numbering (`displayNumber`), so the editor's
+ * header shows them rather than a field here.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   Box,
+  Card,
   Caption,
   Chip,
   EditorButton,
   FlexColumn,
-  FlexRow,
   Label,
   SelectField,
+  FormSection,
   Text,
   TextInput,
   BORDER_RADIUS,
@@ -44,10 +45,8 @@ import {
 interface ShotEditTableProps {
   draft: ShotDraft;
   onChange: (draft: ShotDraft) => void;
-  /** `Scene N` and `Shot N`, derived from the board's one order. */
-  numbering: { scene: number; shot: number };
-  /** The board's ratio. Read-only here — it applies to every shot. */
-  aspectRatio: string;
+  /** Shown under the description: the cast and places in the shot. */
+  entities?: React.ReactNode;
   /** True on a board whose linked script owns the words (PRD D9). */
   linksLines: boolean;
   /** The takes' duration, shown as the placeholder while ERT is unpinned. */
@@ -57,34 +56,32 @@ interface ShotEditTableProps {
   focusDialogue?: boolean;
   /** Opens the linked script at this shot's first line. Set when linked. */
   onEditInScript?: () => void;
-  /** Opens the board's settings, where the aspect ratio is set. */
-  onOpenBoardSettings?: () => void;
 }
 
-/** One cell: its column heading above the control, on the 4px grid. */
+/** One field: its label above the control. */
 const Cell: React.FC<{
   label: string;
-  span?: number;
   children: React.ReactNode;
-}> = ({ label, span = 1, children }) => (
-  <FlexColumn gap={SPACING.xs} sx={{ gridColumn: `span ${span}`, minWidth: 0 }}>
+}> = ({ label, children }) => (
+  <FlexColumn gap={SPACING.xs} sx={{ minWidth: 0 }}>
     <Label sx={{ color: "text.secondary" }}>{label}</Label>
     {children}
   </FlexColumn>
 );
 
-const gridSx = {
+/** Two fields to a row, as the specs read in pairs. */
+const pairGridSx = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(9rem, 1fr))",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: SPACING.lg,
   alignItems: "start"
 } as const;
 
-const readOnlyCellSx = {
-  minHeight: "2rem",
-  display: "grid",
-  alignItems: "center"
-} as const;
+const RENDER_MODE_OPTIONS = [
+  { value: "keyframe", label: "Keyframe" },
+  { value: "direct", label: "Direct" },
+  { value: "reference", label: "Reference" }
+];
 
 const chipSx = {
   borderRadius: BORDER_RADIUS.pill,
@@ -96,19 +93,13 @@ const chipSx = {
 const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   draft,
   onChange,
-  numbering,
-  aspectRatio,
+  entities,
   linksLines,
   takesDuration,
   readOnly,
   focusDialogue,
-  onEditInScript,
-  onOpenBoardSettings
+  onEditInScript
 }) => {
-  // Notes reads as `Add +` until there is one, so an empty column does not
-  // look like a field somebody forgot to fill in.
-  const [notesOpen, setNotesOpen] = useState(draft.notes.trim().length > 0);
-
   const set = useCallback(
     (patch: Partial<ShotDraft>) => onChange({ ...draft, ...patch }),
     [onChange, draft]
@@ -148,215 +139,211 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   const pinned = draft.durationSource === "manual";
 
   return (
-    <Box sx={gridSx} data-testid="shot-edit-table">
-      <Cell label="Scene">
-        <Text sx={readOnlyCellSx} data-testid="cell-scene">
-          {numbering.scene || "—"}
-        </Text>
-      </Cell>
-      <Cell label="Shot">
-        <Text sx={readOnlyCellSx} data-testid="cell-shot">
-          {numbering.shot || "—"}
-        </Text>
-      </Cell>
-
-      <Cell label="Description" span={2}>
-        <TextInput
-          compact
-          size="small"
-          multiline
-          minRows={2}
-          label="Description"
-          hideLabel
-          placeholder="What the shot shows"
-          disabled={readOnly}
-          value={draft.action}
-          onChange={(event) => set({ action: event.target.value })}
-        />
-      </Cell>
-
-      <Cell label="Dialogue" span={2}>
-        {linksLines ? (
-          <FlexColumn gap={SPACING.xs}>
-            <Text sx={{ whiteSpace: "pre-wrap" }} data-testid="shot-dialogue-readonly">
-              {draft.dialogue || "—"}
-            </Text>
-            <Caption color="muted">
-              The script owns these words.
-            </Caption>
-            <EditorButton
-              size="small"
-              onClick={onEditInScript}
-              sx={{ alignSelf: "flex-start" }}
-            >
-              Edit in script
-            </EditorButton>
-          </FlexColumn>
-        ) : (
-          <TextInput
-            compact
-            size="small"
-            multiline
-            minRows={2}
-            label="Dialogue"
-            hideLabel
-            placeholder="What is said in shot"
-            disabled={readOnly}
-            autoFocus={focusDialogue}
-            value={draft.dialogue}
-            onChange={(event) => set({ dialogue: event.target.value })}
-          />
-        )}
-      </Cell>
-
-      <Cell label="ERT">
-        <FlexColumn gap={SPACING.xs}>
-          <TextInput
-            compact
-            size="small"
-            type="number"
-            label="Estimated running time in seconds"
-            hideLabel
-            placeholder={
-              !pinned && takesDuration != null ? String(takesDuration) : "auto"
-            }
-            disabled={readOnly}
-            value={draft.durationSeconds}
-            onChange={handleDuration}
-            errorMessage={
-              isDurationInvalid(draft.durationSeconds)
-                ? "Enter a length above 0 seconds"
-                : undefined
-            }
-            inputProps={{
-              min: 1,
-              step: 1,
-              "aria-label": "Estimated running time in seconds"
-            }}
-          />
-          {linksLines && (
-            <Chip
+    <FlexColumn gap={SPACING.lg} data-testid="shot-edit-table">
+      <Card variant="outlined" padding="normal">
+        <FlexColumn gap={SPACING.lg}>
+          <Cell label="Description">
+            <TextInput
               compact
-              variant="outlined"
-              label={pinned ? "pinned" : "from takes"}
-              sx={chipSx}
-              title={
-                pinned
-                  ? "Length is pinned to the shot's own value. Click to take it from the lines this shot covers."
-                  : "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own value."
-              }
-              onClick={readOnly ? undefined : handleToggleDurationSource}
-            />
-          )}
-        </FlexColumn>
-      </Cell>
-
-      <Cell label="Size">
-        <SelectField
-          size="small"
-          label="Size"
-          hideLabel
-          disabled={readOnly}
-          value={draft.framing}
-          onChange={(value) => set({ framing: value })}
-          options={framingOptions}
-        />
-      </Cell>
-      <Cell label="Perspective">
-        <SelectField
-          size="small"
-          label="Perspective"
-          hideLabel
-          disabled={readOnly}
-          value={draft.angle}
-          onChange={(value) => set({ angle: value })}
-          options={angleOptions}
-        />
-      </Cell>
-      <Cell label="Movement">
-        <SelectField
-          size="small"
-          label="Movement"
-          hideLabel
-          disabled={readOnly}
-          value={draft.movement}
-          onChange={(value) => set({ movement: value })}
-          options={movementOptions}
-        />
-      </Cell>
-      <Cell label="Equipment">
-        <SelectField
-          size="small"
-          label="Equipment"
-          hideLabel
-          disabled={readOnly}
-          value={draft.equipment}
-          onChange={(value) => set({ equipment: value })}
-          options={equipmentOptions}
-        />
-      </Cell>
-      <Cell label="Focal length">
-        <SelectField
-          size="small"
-          label="Focal length"
-          hideLabel
-          disabled={readOnly}
-          value={draft.lens}
-          onChange={(value) => set({ lens: value })}
-          options={lensOptions}
-        />
-      </Cell>
-
-      <Cell label="Aspect ratio">
-        <FlexRow align="center" gap={SPACING.sm} wrap>
-          <Text sx={readOnlyCellSx} data-testid="cell-aspect-ratio">
-            {aspectRatio}
-          </Text>
-          {/* The ratio is the board's. Where no caller can open the settings
-              form, say where it lives rather than offer a dead control. */}
-          {onOpenBoardSettings ? (
-            <EditorButton
               size="small"
-              onClick={onOpenBoardSettings}
-              title="Aspect ratio is set once for the whole board"
-            >
-              Board settings
-            </EditorButton>
-          ) : (
-            <Caption color="muted">Set in Board settings</Caption>
-          )}
-        </FlexRow>
-      </Cell>
+              multiline
+              minRows={4}
+              label="Description"
+              hideLabel
+              placeholder="What the shot shows"
+              disabled={readOnly}
+              value={draft.action}
+              onChange={(event) => set({ action: event.target.value })}
+            />
+          </Cell>
 
-      <Cell label="Notes" span={2}>
-        {notesOpen ? (
-          <TextInput
-            compact
-            size="small"
-            multiline
-            minRows={2}
-            label="Notes"
-            hideLabel
-            placeholder="Anything the render should not read as direction"
-            disabled={readOnly}
-            autoFocus={draft.notes === ""}
-            value={draft.notes}
-            onChange={(event) => set({ notes: event.target.value })}
-          />
-        ) : (
-          <EditorButton
-            size="small"
-            disabled={readOnly}
-            onClick={() => setNotesOpen(true)}
-            sx={{ alignSelf: "flex-start" }}
-          >
-            Add +
-          </EditorButton>
-        )}
-      </Cell>
-    </Box>
+          <Cell label="Dialogue">
+            {linksLines ? (
+              <FlexColumn gap={SPACING.xs}>
+                <Text
+                  sx={{ whiteSpace: "pre-wrap" }}
+                  data-testid="shot-dialogue-readonly"
+                >
+                  {draft.dialogue || "—"}
+                </Text>
+                <Caption color="muted">The script owns these words.</Caption>
+                <EditorButton
+                  size="small"
+                  onClick={onEditInScript}
+                  sx={{ alignSelf: "flex-start" }}
+                >
+                  Edit in script
+                </EditorButton>
+              </FlexColumn>
+            ) : (
+              <TextInput
+                compact
+                size="small"
+                multiline
+                minRows={2}
+                label="Dialogue"
+                hideLabel
+                placeholder="What is said in shot"
+                disabled={readOnly}
+                autoFocus={focusDialogue}
+                value={draft.dialogue}
+                onChange={(event) => set({ dialogue: event.target.value })}
+              />
+            )}
+          </Cell>
+        </FlexColumn>
+      </Card>
+
+      {entities && (
+        <Card variant="outlined" padding="normal">
+          {entities}
+        </Card>
+      )}
+
+      <Card variant="outlined" padding="normal">
+        <FormSection label="Shot details">
+          <Box sx={pairGridSx}>
+            <Cell label="Size">
+              <SelectField
+                size="small"
+                label="Size"
+                hideLabel
+                disabled={readOnly}
+                value={draft.framing}
+                onChange={(value) => set({ framing: value })}
+                options={framingOptions}
+              />
+            </Cell>
+            <Cell label="Focal length">
+              <SelectField
+                size="small"
+                label="Focal length"
+                hideLabel
+                disabled={readOnly}
+                value={draft.lens}
+                onChange={(value) => set({ lens: value })}
+                options={lensOptions}
+              />
+            </Cell>
+            <Cell label="Perspective">
+              <SelectField
+                size="small"
+                label="Perspective"
+                hideLabel
+                disabled={readOnly}
+                value={draft.angle}
+                onChange={(value) => set({ angle: value })}
+                options={angleOptions}
+              />
+            </Cell>
+            <Cell label="Movement">
+              <SelectField
+                size="small"
+                label="Movement"
+                hideLabel
+                disabled={readOnly}
+                value={draft.movement}
+                onChange={(value) => set({ movement: value })}
+                options={movementOptions}
+              />
+            </Cell>
+            <Cell label="Equipment">
+              <SelectField
+                size="small"
+                label="Equipment"
+                hideLabel
+                disabled={readOnly}
+                value={draft.equipment}
+                onChange={(value) => set({ equipment: value })}
+                options={equipmentOptions}
+              />
+            </Cell>
+            <Cell label="ERT">
+              <FlexColumn gap={SPACING.xs}>
+                <TextInput
+                  compact
+                  size="small"
+                  type="number"
+                  label="Estimated running time in seconds"
+                  hideLabel
+                  placeholder={
+                    !pinned && takesDuration != null
+                      ? String(takesDuration)
+                      : "auto"
+                  }
+                  disabled={readOnly}
+                  value={draft.durationSeconds}
+                  onChange={handleDuration}
+                  errorMessage={
+                    isDurationInvalid(draft.durationSeconds)
+                      ? "Enter a length above 0 seconds"
+                      : undefined
+                  }
+                  inputProps={{
+                    min: 1,
+                    step: 1,
+                    "aria-label": "Estimated running time in seconds"
+                  }}
+                />
+                {linksLines && (
+                  <Chip
+                    compact
+                    variant="outlined"
+                    label={pinned ? "pinned" : "from takes"}
+                    sx={chipSx}
+                    title={
+                      pinned
+                        ? "Length is pinned to the shot's own value. Click to take it from the lines this shot covers."
+                        : "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own value."
+                    }
+                    onClick={readOnly ? undefined : handleToggleDurationSource}
+                  />
+                )}
+              </FlexColumn>
+            </Cell>
+          </Box>
+        </FormSection>
+      </Card>
+    </FlexColumn>
   );
 };
+
+/** The shot's title and render mode: the Advanced section's pair. */
+const ShotAdvancedFieldsInner: React.FC<{
+  draft: ShotDraft;
+  onChange: (draft: ShotDraft) => void;
+  readOnly?: boolean;
+}> = ({ draft, onChange, readOnly }) => (
+  <Box sx={pairGridSx}>
+    <Cell label="Shot title">
+      <TextInput
+        compact
+        size="small"
+        label="Shot title"
+        hideLabel
+        placeholder="Untitled shot"
+        disabled={readOnly}
+        value={draft.slug}
+        onChange={(event) => onChange({ ...draft, slug: event.target.value })}
+      />
+    </Cell>
+    <Cell label="Render mode">
+      <SelectField
+        size="small"
+        label="Render mode"
+        hideLabel
+        disabled={readOnly}
+        value={draft.renderMode}
+        onChange={(value) =>
+          onChange({ ...draft, renderMode: value as ShotDraft["renderMode"] })
+        }
+        options={RENDER_MODE_OPTIONS}
+      />
+    </Cell>
+  </Box>
+);
+
+export const ShotAdvancedFields = memo(ShotAdvancedFieldsInner);
 
 export const ShotEditTable = memo(ShotEditTableInner);
 ShotEditTable.displayName = "ShotEditTable";

@@ -709,3 +709,65 @@ describe("picking from a second batch", () => {
     }
   });
 });
+
+// The overlay pulls focus in from the editor underneath, but a step field that
+// already took focus on mount (the brief) keeps it.
+describe("focus on entry", () => {
+  it("leaves focus on the brief field", () => {
+    seed({ stage: "idea", brief: "a dripper" });
+    renderOverlay();
+    expect(screen.getByRole("textbox", { name: "Your image" })).toHaveFocus();
+  });
+});
+
+// F4: a "Make more" batch that lands after the creator left the sheet must
+// not bring the sheet back over the look step.
+describe("make more after leaving the sheet", () => {
+  it("keeps the look step when the late batch lands", async () => {
+    seed({ stage: "look", brief: "a dripper", use_case: "product" });
+    const original = imageSetupFlow.useImageSetupFlow;
+    let generated: ((layerIds: readonly string[]) => void) | undefined;
+    let landMore: (layerIds: string[]) => void = () => {};
+    const generateMore = jest.fn(
+      () =>
+        new Promise<string[]>((resolve) => {
+          landMore = resolve;
+        })
+    );
+    const spy = jest
+      .spyOn(imageSetupFlow, "useImageSetupFlow")
+      .mockImplementation((options) => {
+        generated = options.onGenerated;
+        const flow = original(options);
+        return { ...flow, look: { ...flow.look, generate: generateMore } };
+      });
+    try {
+      renderOverlay();
+      const first = useSketchStore.getState().addLayer("Variation 1");
+      act(() => {
+        useSketchStore.getState().setSetup({ stage: "done" });
+        generated?.([first]);
+      });
+      await userEvent.click(
+        screen.getByRole("button", { name: "Make more variations" })
+      );
+      expect(generateMore).toHaveBeenCalledTimes(1);
+      await userEvent.click(
+        screen.getByRole("button", { name: "Back to generation settings" })
+      );
+      const second = useSketchStore.getState().addLayer("Variation 2");
+      await act(async () => {
+        landMore([second]);
+        await Promise.resolve();
+      });
+      expect(
+        screen.getByRole("heading", { name: "Choose the look" })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Make more variations" })
+      ).not.toBeInTheDocument();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});

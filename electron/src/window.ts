@@ -5,7 +5,7 @@ import path from "path";
 import { logMessage } from "./logger";
 import { isAppQuitting } from "./main";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
-import { hardenWebContents } from "./windowSecurity";
+import { hardenWebContents, isTrustedAppOrigin } from "./windowSecurity";
 
 /**
  * Shared secure webPreferences for all windows.
@@ -145,41 +145,22 @@ function initializePermissionHandlers(): void {
   if (permissionHandlersInitialized) return;
   permissionHandlersInitialized = true;
 
-  const allowedPermissions: string[] = [
+  // Harmless for any frame, including third-party embeds.
+  const alwaysAllowedPermissions = new Set(["fullscreen", "mediaKeySystem"]);
+  // Camera/microphone, device enumeration and clipboard writes are granted
+  // only to the app's own pages, never to a third-party <iframe> they embed.
+  const appOnlyPermissions = new Set([
     "media",
     "enumerate-devices",
-    "mediaKeySystem",
-    "fullscreen",
-  ];
-  const clipboardSanitizedWritePermission = "clipboard-sanitized-write";
+    "clipboard-sanitized-write",
+  ]);
 
-  const isTrustedLocalBackendUrl = (urlOrOrigin: string): boolean => {
-    try {
-      const url = new URL(urlOrOrigin);
-      const isTrustedHost =
-        url.hostname === "127.0.0.1" || url.hostname === "localhost";
-      if (url.protocol !== "http:" || !isTrustedHost) {
-        return false;
-      }
-
-      const trustedPort = String(serverState?.serverPort ?? 7777);
-      if (url.port === trustedPort) {
-        return true;
-      }
-
-      if (!isElectronDevMode()) {
-        return false;
-      }
-
-      const devUrl = new URL(getWebDevServerUrl());
-      return (
-        (devUrl.hostname === "127.0.0.1" || devUrl.hostname === "localhost") &&
-        url.port === devUrl.port
-      );
-    } catch {
-      return false;
-    }
-  };
+  const isPermissionAllowed = (
+    permission: string,
+    urlOrOrigin: string,
+  ): boolean =>
+    alwaysAllowedPermissions.has(permission) ||
+    (appOnlyPermissions.has(permission) && isTrustedAppOrigin(urlOrOrigin));
 
   session.defaultSession.setPermissionRequestHandler(
     (
@@ -191,32 +172,9 @@ function initializePermissionHandlers(): void {
       logMessage(
         `Permission requested: ${permission} from ${details.requestingUrl}`
       );
-
-      // Special handling for media permissions
-      if (permission === allowedPermissions[0]) {
-        logMessage(`Granting media permission with all capabilities`);
-        callback(true);
-        return;
-      }
-
-      if (allowedPermissions.includes(permission)) {
-        logMessage(`Granting permission: ${permission}`);
-        callback(true);
-        return;
-      }
-
-      // Allow sanitized clipboard writes from the trusted local backend/editor origin
-      if (
-        permission === clipboardSanitizedWritePermission &&
-        isTrustedLocalBackendUrl(details.requestingUrl)
-      ) {
-        logMessage(`Granting permission: ${permission}`);
-        callback(true);
-        return;
-      }
-
-      logMessage(`Denying permission: ${permission}`);
-      callback(false);
+      const granted = isPermissionAllowed(permission, details.requestingUrl);
+      logMessage(`${granted ? "Granting" : "Denying"} permission: ${permission}`);
+      callback(granted);
     }
   );
 
@@ -225,52 +183,26 @@ function initializePermissionHandlers(): void {
       _webContents: WebContents | null,
       permission: string,
       requestingOrigin: string
-    ): boolean => {
-      // Always allow
-      if (
-        permission === allowedPermissions[0] ||
-        permission === allowedPermissions[1]
-      ) {
-        return true;
-      }
-
-      if (
-        permission === clipboardSanitizedWritePermission &&
-        isTrustedLocalBackendUrl(requestingOrigin)
-      ) {
-        return true;
-      }
-
-      return allowedPermissions.includes(permission);
-    }
+    ): boolean => isPermissionAllowed(permission, requestingOrigin)
   );
 
-  // Add CORS headers for localhost API requests to allow cross-origin access.
-  // This handles the localhost vs 127.0.0.1 mismatch. Restrict to trusted localhost
-  // origins only for security - do not use wildcard.
+  // The app's own pages talk to local services (the backend, and in dev the
+  // Vite server) across localhost/127.0.0.1 origins. Relax CORS only for
+  // requests made by those pages: the requesting frame decides, not the
+  // Referer header, which any page can suppress with `referrerpolicy`.
   session.defaultSession.webRequest.onHeadersReceived(
     { urls: ["http://localhost:*/*", "http://127.0.0.1:*/*"] },
     (details, callback) => {
-      // Only set CORS headers for requests from trusted localhost origins
-      const requestingOrigin = details.referrer || "";
-      const isTrustedOrigin =
-        requestingOrigin.startsWith("http://localhost:") ||
-        requestingOrigin.startsWith("http://127.0.0.1:") ||
-        requestingOrigin === "" || // Allow requests with no referrer (e.g., same-origin)
-        requestingOrigin.startsWith("file://"); // Allow local file requests
-
-      if (isTrustedOrigin) {
-        const responseHeaders = { ...details.responseHeaders };
-        // For localhost, we can use a wildcard since it's a trusted local environment
-        // This handles the localhost vs 127.0.0.1 mismatch correctly
-        responseHeaders["Access-Control-Allow-Origin"] = ["*"];
-        responseHeaders["Access-Control-Allow-Methods"] = ["GET, POST, PUT, DELETE, OPTIONS"];
-        responseHeaders["Access-Control-Allow-Headers"] = ["*"];
-        callback({ responseHeaders });
-      } else {
-        // Don't modify headers for untrusted origins
+      const frameUrl = details.frame?.url;
+      if (!frameUrl || !isTrustedAppOrigin(frameUrl)) {
         callback({ responseHeaders: details.responseHeaders });
+        return;
       }
+      const responseHeaders = { ...details.responseHeaders };
+      responseHeaders["Access-Control-Allow-Origin"] = ["*"];
+      responseHeaders["Access-Control-Allow-Methods"] = ["GET, POST, PUT, DELETE, OPTIONS"];
+      responseHeaders["Access-Control-Allow-Headers"] = ["*"];
+      callback({ responseHeaders });
     }
   );
 

@@ -202,16 +202,18 @@ const startFromExample = jest.fn(
 
 const Harness = ({
   providerConfigured = () => true,
+  modelChoices = roleChoices,
   onFinish
 }: {
   providerConfigured?: (role: string) => boolean;
+  modelChoices?: (role: string) => ModelRoleAvailability;
   onFinish?: () => void;
 }) => {
   const config = useWorkflowSetupFlow({
     workflowId: "w1",
     defaultPlannerModel: { provider: "p", id: "m" },
     providerConfigured,
-    modelChoices: roleChoices,
+    modelChoices,
     chosenModel: (role: string, tileId: string | null) => {
       chosenModelCalls.push([role, tileId]);
       return { type: "language_model", id: tileId };
@@ -364,6 +366,8 @@ describe("useWorkflowSetupFlow", () => {
 
     // A copy cannot be stopped, so the shell offers no Cancel for it. One
     // used to replace the picker with a canceled screen and a disabled Retry.
+    // Going back is held too: the copy would open over the idea when it
+    // landed.
     it("keeps the picker in reach while an example is being copied", async () => {
       let land: (id: string | null) => void = () => undefined;
       startFromExample.mockReturnValueOnce(
@@ -377,11 +381,14 @@ describe("useWorkflowSetupFlow", () => {
       expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
       expect(
         screen.getByRole("button", { name: "Back to your idea" })
-      ).toBeEnabled();
+      ).toBeDisabled();
       land(null);
       await waitFor(() =>
         expect(screen.queryByText("Copying the example…")).toBeNull()
       );
+      expect(
+        screen.getByRole("button", { name: "Back to your idea" })
+      ).toBeEnabled();
       expect(screen.getByText("Summarize a PDF")).toBeInTheDocument();
     });
 
@@ -746,6 +753,43 @@ describe("useWorkflowSetupFlow", () => {
     );
     await waitFor(() => expect(buildFromPlan).toHaveBeenCalledTimes(1));
     expect(chosenModelCalls).toContainEqual(["language", "p:other"]);
+  });
+
+  // The build assigns one model per role. With none to assign it would place
+  // nodes that cannot run, so Build waits and says why.
+  it.each([
+    ["loading", "Reading the models your providers offer"],
+    ["error", "Try reading the models again above"],
+    ["empty", "Connect a provider for every model above"]
+  ] as const)(
+    "holds Build while a role's models are %s",
+    (status, reason) => {
+      settings = writeWorkflowSetup(
+        {},
+        { stage: "setup", brief: "b", plan: PLAN_WITH_ROLE }
+      );
+      renderFlow({
+        modelChoices: (role) => ({
+          ...roleChoices(role),
+          tiles: [],
+          status
+        })
+      });
+      expect(
+        screen.getByRole("button", { name: "Build your workflow" })
+      ).toBeDisabled();
+      expect(screen.getByText(reason)).toBeInTheDocument();
+    }
+  );
+
+  it("offers only a workflow JSON file to import", () => {
+    settings = writeWorkflowSetup({}, { stage: "idea", brief: "b" });
+    renderFlow();
+    expect(screen.getByText("A workflow JSON file")).toBeInTheDocument();
+    expect(screen.getByLabelText("Import a workflow")).toHaveAttribute(
+      "accept",
+      ".json,application/json"
+    );
   });
 
   // F20: the review lets a step be added and edited, so it can be left holding

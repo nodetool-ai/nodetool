@@ -187,6 +187,116 @@ Tick p95 differs by 2.29%, within the 10% requirement.
 | animation | 0.041658 | 0.052058 | 0.064361 | 0.030988 | 0.049273 | 0.056626 |
 | presentation | 0.435951 | 0.524288 | 0.626871 | 0.423799 | 0.468332 | 0.598518 |
 
+## S1 script execution comparison
+
+These measurements compare baseline commit
+`0d460e01d6573b1332411e72a6f89e8c684146ed` with the S1 candidate in
+`/home/mg/nodetool-game-s1-persistent`, based on `40c814ce`. Both ran on the Linux x64 Ryzen 5 3600
+host with Node 24.18.0, using the headless simulation backend and instrumented
+stage timings. Each command warmed up 300 ticks and measured 1,200 ticks with
+seed 1. All six commands exited 0, with no retries. The fixed order was all
+three baseline fixtures, then all three candidate fixtures, in the table order.
+The fixture SHA-256 values matched between trees.
+
+For each fixture, run this command in each tree:
+
+```bash
+npm run dev:nodetool -- game bench packages/game-runtime/bench/bench-3d-64-scripted.json --ticks 1200 --warmup 300 --seed 1 --json
+```
+
+The preserved evidence directory is
+`/home/mg/native-game-verification/s1-bench-v2/`. `plan.json` records each
+command and tree, `reports.json` holds the unrounded benchmark output, and
+`results.json` and individual `.exit` files record producer exit status.
+Individual `.log` files retain raw output. `fixture-sha256.json` records the
+fixture comparison. The tables below round latency to six decimal places.
+
+### Tick and scripts-stage latency
+
+All latency columns are milliseconds. The scripts-stage values are
+`perSystemMs.scripts`, including host work in that stage, rather than the
+narrower `scriptMs` batch metric.
+
+| Fixture | Version | Tick p50 | Tick p95 | Tick p99 | Scripts-stage p50 | Scripts-stage p95 | Scripts-stage p99 |
+|---|---|---:|---:|---:|---:|---:|---:|
+| bench-2d-500 | Baseline | 16.856454 | 23.725450 | 25.552892 | 16.466530 | 23.019691 | 24.980584 |
+| bench-2d-500 | S1 | 4.558845 | 11.679936 | 13.684731 | 4.127222 | 11.227555 | 13.261465 |
+| bench-3d-1000 | Baseline | 11.184954 | 12.932535 | 14.244866 | 0.017333 | 0.046387 | 0.067407 |
+| bench-3d-1000 | S1 | 11.291975 | 12.958364 | 13.835095 | 0.018144 | 0.044194 | 0.053621 |
+| bench-3d-64-scripted | Baseline | 30.709824 | 37.006212 | 40.006171 | 29.605855 | 35.893166 | 38.881433 |
+| bench-3d-64-scripted | S1 | 4.887033 | 11.771258 | 13.144434 | 3.927657 | 10.556241 | 11.939486 |
+
+The scripted 3D candidate's scripts-stage p99 is 11.939486 ms, below the
+[S1 acceptance target](native-game-implementation-plan.md#stream-s-scripting-and-gameplay-runtime)
+of 25 ms. The no-script scale fixture still performs scripts-stage bookkeeping,
+so its stage time is nonzero while its script batch time is zero.
+
+### Script batches and allocation samples
+
+| Fixture | Version | Script p50 ms | Script p95 ms | Script p99 ms | Script calls | Heap delta bytes | Sampled allocation bytes |
+|---|---|---:|---:|---:|---:|---:|---:|
+| bench-2d-500 | Baseline | 16.387742 | 22.901769 | 24.764216 | 38400 | 350683704 | 37384608 |
+| bench-2d-500 | S1 | 4.029318 | 11.051893 | 12.922686 | 38400 | 382348640 | 42770456 |
+| bench-3d-1000 | Baseline | 0.000000 | 0.000000 | 0.000000 | 0 | -4624184 | 52636320 |
+| bench-3d-1000 | S1 | 0.000000 | 0.000000 | 0.000000 | 0 | -3901520 | 50575096 |
+| bench-3d-64-scripted | Baseline | 29.548737 | 35.843954 | 38.820819 | 36000 | 336398792 | 40364256 |
+| bench-3d-64-scripted | S1 | 3.882923 | 10.503922 | 11.887397 | 36000 | 349136928 | 37639104 |
+
+Allocation samples use the separate 10-tick V8 sampling pass with a 32,768-byte
+interval. They include collected allocations and exclude WASM allocations.
+Heap delta varies with collection timing. These measurements show mixed
+allocation and heap changes, not a general reduction in memory use.
+
+### Scope of the comparison
+
+This is one sequential before/after pair per fixture, not a repeatability study
+or a claim about all authored scripts. No concurrent repository build, test,
+or capture ran during the measurements, but the host was not idle. The preserved
+`*.load-before` files show one-minute system load averages from 2.13 to 3.34.
+The fixed run order does not remove background load or thermal effects.
+
+The approved scripted fixtures use the positive AST fast path. Only input-only
+expressions proven unable to retain hidden state qualify. Sources are validated
+in temporary contexts during preparation. A qualifying behavior gets its
+resident function on the first active call, then reuses it while active.
+Arbitrary sources retain fresh-context execution and existing guest JSON
+parsing through native string arguments. The resident path passes native
+objects and lazily copies legacy `input.world`. Both paths retain JSON
+normalization and existing budgets. These warm measurements exclude first-call
+compilation from their measured ticks.
+
+### Fresh-context follow-up
+
+The external-review follow-up combines trusted helper initialization into one
+evaluation, removes a discarded fallback input copy, and skips the full 2D
+query snapshot when no scripts are active. The unchanged canonical commands
+above each exited 0 on this candidate. Scripts-stage p99 was 11.633391 ms for
+2D 500/32, 0.051327 ms for 3D 1000/0, and 11.697422 ms for 3D 64/30.
+These are additional candidate observations against the historical baseline,
+not a newly paired before/after comparison.
+
+A separate serial probe measured one fresh-context call per batch using
+`Math.abs` and a local binding, an empty world, seed 1, 100 warmup calls, and
+1,000 measured calls. Three rounds rotated the original baseline, published
+S1 commit `ea8ca86abc`, and the follow-up candidate. All nine commands exited 0
+with the original 20 ms call and 50 ms batch limits.
+
+| Runtime | Mean batch time range across rounds, ms |
+|---|---:|
+| Original baseline | 0.623996–0.637125 |
+| Published S1 | 0.712999–0.731253 |
+| Follow-up | 0.671325–0.710250 |
+
+The follow-up reduced mean cost by 2.9–5.8% relative to published S1 in this probe.
+It remained 7.6–11.5% above the original baseline. This small empty-world workload
+therefore does not establish fallback performance parity. It also does not
+reproduce the external review microbenchmark, whose exact command was not
+available. The canonical scripted fixtures exercise the persistent path.
+
+Raw samples, commands, actual exits, load readings, and the candidate source
+manifest are preserved in
+`/home/mg/native-game-verification/s1-external-review-v1/`.
+
 ## Browser rendering measurements
 
 These runs use Chromium 148.0.7778.96 on the same machine, the WebGL2 backend,

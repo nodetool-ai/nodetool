@@ -56,7 +56,7 @@ the Jest tests in `src/__tests__/`. Browser-level E2E lives in `web/`.
 
 | Library | Version | Purpose |
 |---------|---------|---------|
-| Electron | 39.8.10 | Desktop shell |
+| Electron | [`package.json`](../package.json) | Desktop shell |
 | React | 19.2 | UI framework |
 | TypeScript | 7 native CLI / 6 API compatibility | Type safety and compiler tooling |
 | Zustand | 5.0 | State management |

@@ -198,7 +198,7 @@ These are core to Unity and Unreal but do not fit a browser-delivered, agent-aut
 
 **G61. P1. 2D and 3D editors diverge.** They have different panels, shortcuts, toolbars and feature sets (see the audit's 3D gap list). Unity and Unreal use one editor for both. A shared shell with mode-specific viewport and inspector sections would halve future UI work and remove the inconsistency.
 
-**G62. P1. Layout is fixed.** Panels can be toggled, not docked, tabbed, resized and saved as layouts. Unity's and Unreal's docking layouts are expected for a professional tool, especially with more panels arriving (asset browser, console, profiler).
+**G62. P1. Layout is fixed.** Panels can be toggled, not docked, tabbed, resized and saved as layouts. Unity's and Unreal's docking layouts are expected for a professional tool, especially with more panels arriving (asset browser, console, profiler). E1 adds tabbed, resizable, drag-to-dock regions, per-user layout persistence and named layouts.
 
 **G63. P2. No in-editor onboarding.** No empty-scene guidance, no tooltips that explain components, no sample-scene starter beyond templates.
 
@@ -219,7 +219,7 @@ Matthias supplied a technology-agnostic engine feature spec on 2026-10-06. Each 
 
 | Spec item | Status | Notes |
 |---|---|---|
-| Docking workspace and layout persistence | Partial | Fixed Unity-style layout with toggles (G62). No Game view separate from Scene view (G49), no Asset Browser (G50), no Profiler (G51). |
+| Docking workspace and layout persistence | Partial | Tabbed, resizable, drag-to-dock regions with per-user persistence and named layouts (G62, E1). No Game view separate from Scene view (G49), no Asset Browser (G50), no Profiler (G51). |
 | Project and file management | Have, by design | NodeTool projects and workspace tabs own this. A separate launcher is out of scope. |
 | Visual asset browser | Missing | G50. Thumbnails, breadcrumbs, metadata tooltips and drag-and-drop are all part of it. |
 | Flycam, orbit, pan, frame selection | Have (3D) | Orbit, fly and F to frame exist. Orbit pivots on the last target, not the selection (G46). |

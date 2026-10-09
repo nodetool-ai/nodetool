@@ -538,7 +538,7 @@ These commands return a single `rpc_response` frame that carries the
 | `list_nodes` | `namespace`, `query`, `fields` (`"summary"` or `"full"`), `limit` | `nodes.list` |
 | `get_node` | `node_type` | `nodes.get` |
 | `generate_text` | `provider`, `model`, `prompt`, `system`, `messages`, `max_tokens`, `schema`, `schema_name`, `schema_description` | `{ "text": string, "data": object \| null }`. With `schema` the model answers through one forced tool and `data` carries the parsed object |
-| `generate_media` | `mode` (`image`, `image_edit`, `inpaint`, `video`, `video_edit`, `video_extend`, `audio`, `music`), `provider`, `model`, `prompt`, plus size, seed, reference, and voice fields | `{ "asset_ids": string[] }`. Creates no thread or message row |
+| `generate_media` | `mode` (`image`, `image_edit`, `inpaint`, `upscale`, `outpaint`, `video`, `video_edit`, `video_extend`, `audio`, `music`), `provider`, `model`, `prompt` (optional for `upscale` and `outpaint`), plus size, seed, `scale`, `padding`, reference, and voice fields | `{ "asset_ids": string[] }`. Creates no thread or message row |
 | `transcribe_audio` | `provider`, `model`, `asset_id`, `language` | Transcript of a stored audio asset |
 | `lookup_generations` | `request_ids` | `{ "generations": [...] }` with `request_id`, `generation_id`, `status`, `asset_ids`, and `error` for each id that has a row. A client that reloaded mid-render uses it to recover results the closed socket never received |
 

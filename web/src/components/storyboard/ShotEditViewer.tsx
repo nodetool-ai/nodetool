@@ -30,6 +30,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  MagicGenerationFill,
   ResponsiveImage,
   ToggleGroup,
   ToggleOption,
@@ -45,6 +46,7 @@ import {
   sameMediaRef,
   useStoryboardStore
 } from "../../stores/storyboard/StoryboardStore";
+import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -52,6 +54,7 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
 import { getErrorMessage } from "../../utils/errorHandling";
 import ShotDesignFrame from "./ShotDesignFrame";
+import { isShotGenerating } from "./ShotStatusPill";
 import { copiedStill, flippedStill } from "./shotImageEdits";
 import { syncShotClipToTimeline } from "../../stores/storyboard/timelineSync";
 
@@ -163,6 +166,26 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
   const [previewState, setPreviewState] = useState(() =>
     initialPreviewState(shot)
   );
+  // A take that lands while the viewer is open (a still edit, a re-render,
+  // a flip) is the one the creator is waiting for: show it. It stays a
+  // preview; "Set current" makes it the shot's still.
+  const [seenStills, setSeenStills] = useState(() => ({
+    shotId: shot.id,
+    count: stillVersions.length
+  }));
+  if (seenStills.shotId !== shot.id) {
+    setSeenStills({ shotId: shot.id, count: stillVersions.length });
+  } else if (stillVersions.length !== seenStills.count) {
+    setSeenStills({ shotId: shot.id, count: stillVersions.length });
+    if (stillVersions.length > seenStills.count) {
+      const newest = stillVersions.length - 1;
+      setPreviewState((previous) => ({
+        ...(previous.shotId === shot.id ? previous : initialPreviewState(shot)),
+        still: newest
+      }));
+      setMediumState({ shotId: shot.id, value: "still" });
+    }
+  }
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [busy, setBusy] = useState(false);
@@ -405,12 +428,18 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
   ]);
 
   const canEditStill = !readOnly && !!stillUrl && !busy;
+  const jobActive = useStoryboardGenerationStore((state) => {
+    const status = state.shotJobs[shot.id]?.status;
+    return status === "queued" || status === "running";
+  });
+  const generating = jobActive || isShotGenerating(shot);
 
   return (
     <FlexColumn gap={SPACING.md} fullHeight sx={{ minWidth: 0 }}>
       <Box
         sx={stageSx}
         role="region"
+        aria-busy={generating || undefined}
         aria-label={`${shown === "clip" ? "Clip" : "Still"} take preview. Focus this region to browse takes with the left and right arrow keys.`}
         tabIndex={0}
         data-panning={panFrom.current ? "true" : undefined}
@@ -456,6 +485,12 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
             <Caption color="muted">No still yet</Caption>
           )}
         </Box>
+        {generating && (
+          <MagicGenerationFill
+            borderRadius={BORDER_RADIUS.lg}
+            data-testid="shot-edit-generating"
+          />
+        )}
       </Box>
 
       <FlexRow align="center" gap={SPACING.sm} wrap>

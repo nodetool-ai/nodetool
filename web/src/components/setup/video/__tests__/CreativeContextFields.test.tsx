@@ -38,4 +38,20 @@ describe("CreativeContextFields", () => {
       expect.objectContaining({ product_name: "Paper boat" })
     );
   });
+
+  it("leaves an untouched field out of the context on blur", async () => {
+    const user = userEvent.setup();
+    const onChange = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <CreativeContextFields value={undefined} onChange={onChange} />
+      </ThemeProvider>
+    );
+
+    await user.click(screen.getByText("Creative context (optional)"));
+    await user.click(screen.getByRole("textbox", { name: "Product name" }));
+    await user.tab();
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });
