@@ -16,6 +16,8 @@ let runThrows: Error | null = null;
 let runResponse: unknown = { ok: true, job_id: "job-1" };
 let deferredToolName: string | null = null;
 let releaseDeferredTool: () => void = () => undefined;
+let failingToolName: string | null = null;
+let runFinalState: "completed" | "cancelled" = "completed";
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
     call: jest.fn(async (name: string, args: Record<string, unknown>) => {
@@ -25,6 +27,9 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
         await new Promise<void>((resolve) => {
           releaseDeferredTool = resolve;
         });
+      }
+      if (name === failingToolName) {
+        throw new Error(`${name} failed`);
       }
       if (name === "ui_get_graph") {
         return { validation: graphValidation };
@@ -45,7 +50,7 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
           results
             .getState()
             .setOutputResult("w1", "job-1", "output_1", "hello");
-          runs.getState().updateRunState("w1", "job-1", "completed");
+          runs.getState().updateRunState("w1", "job-1", runFinalState);
         }
         return runResponse;
       }
@@ -99,7 +104,11 @@ jest.mock("../../../stores/MetadataStore", () => ({
 }));
 
 import { readWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import { useBuildFromPlan } from "../useBuildFromPlan";
+import {
+  useBuildFromPlan,
+  workflowBuildRecord,
+  workflowBuildResult
+} from "../useBuildFromPlan";
 import type { BuildFromPlanResult } from "../useBuildFromPlan";
 
 const PLAN: WorkflowSetupPlan = {
@@ -144,6 +153,8 @@ beforeEach(() => {
   runResponse = { ok: true, job_id: "job-1" };
   deferredToolName = null;
   releaseDeferredTool = () => undefined;
+  failingToolName = null;
+  runFinalState = "completed";
 });
 
 describe("buildFromPlan", () => {
@@ -303,5 +314,72 @@ describe("buildFromPlan", () => {
     ).toEqual(["step_1", "input_1"]);
     expect(readWorkflowSetup(settings)?.stage).toBe("setup");
     expect(calls.some((call) => call.name === "ui_run_workflow")).toBe(false);
+  });
+
+  it("rolls back placed nodes when wiring fails, so a rebuild starts clean", async () => {
+    failingToolName = "ui_connect_nodes";
+    const { result } = renderHook(() => useBuildFromPlan("w1"));
+    await act(async () => {
+      await expect(
+        result.current.buildFromPlan({ plan: PLAN })
+      ).rejects.toThrow("ui_connect_nodes failed");
+    });
+
+    expect(
+      calls
+        .filter((call) => call.name === "ui_delete_node")
+        .map((call) => call.args["node_id"])
+    ).toEqual(["output_1", "step_1", "input_1"]);
+    expect(readWorkflowSetup(settings)?.stage).toBe("setup");
+  });
+
+  it("cancels before the test run has a job id, and never starts the run", async () => {
+    deferredToolName = "ui_get_graph";
+    const { result } = renderHook(() => useBuildFromPlan("w1"));
+    let buildPromise: Promise<BuildFromPlanResult> | null = null;
+    act(() => {
+      buildPromise = result.current.buildFromPlan({ plan: PLAN });
+    });
+    await waitFor(() =>
+      expect(calls.some((call) => call.name === "ui_get_graph")).toBe(true)
+    );
+
+    let built: BuildFromPlanResult | undefined;
+    await act(async () => {
+      await result.current.cancelBuild();
+      releaseDeferredTool();
+      built = await buildPromise!;
+    });
+
+    expect(calls.some((call) => call.name === "ui_run_workflow")).toBe(false);
+    expect(built?.status).toBe("canceled");
+    expect(built?.testRun).toEqual({ started: false, error: null });
+    // The graph stays on the canvas: the stage was already `done`.
+    expect(calls.some((call) => call.name === "ui_delete_node")).toBe(false);
+    const setup = readWorkflowSetup(settings);
+    expect(setup?.stage).toBe("done");
+    expect(setup?.["build"]).toMatchObject({ status: "canceled" });
+  });
+
+  it("records a canceled job as canceled, not as a failed run", async () => {
+    runFinalState = "cancelled";
+    const built = await build();
+    expect(built.status).toBe("canceled");
+    expect(built.testRun.error).toBeNull();
+  });
+
+  it("reads an in-progress record with no live build as unrecorded", () => {
+    const record = workflowBuildRecord({
+      status: "running",
+      nodeCount: 3,
+      issues: [],
+      validationErrors: [],
+      testRun: { started: true, error: null },
+      explanation: "The sample run is running."
+    });
+    expect(workflowBuildResult(record).status).toBe("running");
+    expect(workflowBuildResult(record, { live: false }).status).toBe(
+      "unrecorded"
+    );
   });
 });

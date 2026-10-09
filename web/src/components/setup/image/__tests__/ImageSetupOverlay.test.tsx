@@ -370,6 +370,24 @@ describe("step 1 alternatives (criterion 1)", () => {
     expect(useSketchStore.getState().document.setup?.stage).toBe("done");
   });
 
+  // The editor's window shortcuts would act on the hidden document (nudge,
+  // clear layer, undo), so the host pauses them while the flow covers it.
+  it("reports when it covers the editor and when it hands back", async () => {
+    seed({ stage: "idea", brief: "" });
+    const onCoveringChange = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ImageSetupOverlay onCoveringChange={onCoveringChange} />
+      </ThemeProvider>
+    );
+    expect(onCoveringChange).toHaveBeenLastCalledWith(true);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Start with a blank canvas/ })
+    );
+    expect(onCoveringChange).toHaveBeenLastCalledWith(false);
+  });
+
   it("an upload lands as the first layer and opens the editor", async () => {
     seed({ stage: "idea", brief: "" });
     renderOverlay();

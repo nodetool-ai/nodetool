@@ -296,7 +296,8 @@ Each Playwright suite has its own workflow:
 They all follow the same shape: check out, set up Node from `.nvmrc`, install
 dependencies, build the TypeScript backend packages (`npm run build:packages`),
 install Playwright's Chromium, run the suite, and upload the report as an
-artifact.
+artifact. The first three run on a pull request only when it has the
+`browser-suites` label. See the [workflows README](../.github/workflows/README.md).
 
 ### Debugging E2E Test Failures in CI
 

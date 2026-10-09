@@ -253,7 +253,7 @@ export const useGuidedFlowStarters = (
   const startEntity = useCallback(
     () =>
       runStart("entity", async () => {
-        useEntityLibraryStore.getState().setCreating(true);
+        useEntityLibraryStore.getState().requestCreate();
         openPageTab("entities");
       }),
     [runStart]

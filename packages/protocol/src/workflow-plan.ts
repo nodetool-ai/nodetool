@@ -24,9 +24,11 @@
  * run's output, not the validation.
  */
 
+import { z } from "zod";
 import { isRecord, isString } from "./predicates.js";
 import {
   workflowSetupPlan,
+  type WorkflowPlanInput,
   type WorkflowPlanStep,
   type WorkflowSetupPlan
 } from "./api-schemas/workflows.js";
@@ -385,6 +387,44 @@ const position = (column: number, row: number) => ({
   y: 80 + row * ROW_HEIGHT
 });
 
+/** Plan input types whose sample is a file the creator uploads, never text. */
+const MEDIA_INPUT_TYPES = new Set(["image", "audio", "video", "document"]);
+
+/** A sample value an input node can hold. */
+export type PlanInputSampleValue = string | number | boolean;
+
+const planSampleValue = z.union([z.string(), z.number(), z.boolean()]);
+
+/**
+ * A plan input's sample as the value its input node takes. The planner writes
+ * every sample as a string, but a number input is a `FloatInput` whose value
+ * must be a number, so it is converted here, and dropped when it does not
+ * parse. A media input takes an upload, so a sample on one is dropped.
+ */
+export function planInputSample(
+  input: WorkflowPlanInput
+): PlanInputSampleValue | undefined {
+  const parsed = planSampleValue.safeParse(input.sample);
+  if (!parsed.success || MEDIA_INPUT_TYPES.has(input.type)) {
+    return undefined;
+  }
+  const sample = parsed.data;
+  const text = String(sample).trim();
+  if (input.type === "number" || input.type === "integer") {
+    const value = text.length > 0 ? Number(text) : Number.NaN;
+    if (!Number.isFinite(value)) {
+      return undefined;
+    }
+    return input.type === "integer" && !Number.isInteger(value)
+      ? undefined
+      : value;
+  }
+  if (input.type === "boolean") {
+    return text === "true" ? true : text === "false" ? false : undefined;
+  }
+  return sample;
+}
+
 /**
  * Turn a plan into the nodes and edges that make it run.
  *
@@ -421,8 +461,9 @@ export function planToPlacement(
     const nodeType = INPUT_NODE_TYPES[input.type] ?? INPUT_NODE_TYPES["string"];
     const id = `input_${index + 1}`;
     const properties: Record<string, unknown> = { name: input.name };
-    if (input.sample !== undefined) {
-      properties["value"] = input.sample;
+    const sample = planInputSample(input);
+    if (sample !== undefined) {
+      properties["value"] = sample;
     }
     nodes.push({ id, type: nodeType, position: position(0, index), properties });
     const shape = lookup(nodeType);

@@ -8,6 +8,7 @@ name: User Journeys
 # slower and has more moving parts than the page-load smoke suite.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     branches: [main]
     paths:
       - "web/src/**"
@@ -35,12 +36,22 @@ permissions:
 # blocks the release. Same reasoning (and same expression) as docker.yml.
 # Elsewhere — PR branches, tags — superseded runs are still cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Adding any other label to a PR also triggers a run, whose jobs skip. It
+  # gets a group of its own so it cannot cancel a run that is testing.
+  group: ${{ github.workflow }}-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'browser-suites' && format('-{0}', github.run_id) || '' }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   journeys:
     name: Drive the app the way a user does
+    # Advisory on pull requests and opt-in there: a PR runs this suite only
+    # with the `browser-suites` label, which saves its runner time on the
+    # many PRs that do not need it. Pushes to main, nightly and manual runs
+    # always run it.
+    if: >-
+      ${{ github.event_name != 'pull_request'
+      || (contains(github.event.pull_request.labels.*.name, 'browser-suites')
+      && (github.event.action != 'labeled' || github.event.label.name == 'browser-suites')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 

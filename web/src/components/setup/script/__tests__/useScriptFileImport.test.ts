@@ -1,7 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 
+const restFetch = jest.fn();
 jest.mock("../../../../lib/rest-fetch", () => ({
-  restFetch: jest.fn()
+  restFetch: (...args: unknown[]) => restFetch(...(args as []))
 }));
 
 import {
@@ -49,5 +50,50 @@ describe("useScriptFileImport", () => {
     expect(sourceNow()?.lines.map((line) => line.text)).toEqual([
       "The tide came in at noon."
     ]);
+  });
+
+  it("clears the last import error when text is pasted (F11)", async () => {
+    const { result } = renderHook(() => useScriptFileImport(SCRIPT_ID));
+    await act(async () => {
+      await result.current.importText(upload("empty.txt", "  \n"));
+    });
+    expect(result.current.error).not.toBeNull();
+
+    act(() => {
+      result.current.pasteText("Pasted words win.");
+    });
+
+    expect(result.current.error).toBeNull();
+  });
+
+  it("drops a file that finishes reading after newer words were pasted (F8)", async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    restFetch.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const { result } = renderHook(() => useScriptFileImport(SCRIPT_ID));
+
+    let pending: Promise<void> = Promise.resolve();
+    act(() => {
+      pending = result.current.importText(
+        new File(["%PDF-1.7"], "late.pdf", { type: "application/pdf" })
+      );
+    });
+    expect(result.current.importing).toBe(true);
+
+    act(() => {
+      result.current.pasteText("Pasted words win.");
+    });
+    await act(async () => {
+      finish({ ok: true, json: async () => ({ text: "Late file words." }) });
+      await pending;
+    });
+
+    expect(sourceNow()?.lines.map((line) => line.text)).toEqual([
+      "Pasted words win."
+    ]);
+    expect(result.current.importing).toBe(false);
   });
 });

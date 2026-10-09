@@ -1,3 +1,4 @@
+import { context, ROOT_CONTEXT } from "@opentelemetry/api";
 import { createLogger } from "@nodetool-ai/config";
 import {
   invocationBelongsToApplication,
@@ -29,7 +30,7 @@ import type { HttpApiOptions } from "../http-api.js";
 import type { JobRunExecutionHooks } from "../job-run-registry.js";
 import type { ChatTurnHandler } from "./chat-turn.js";
 import type { ClientSession } from "./client-session.js";
-import type { MessageContent } from "@nodetool-ai/runtime";
+import { withSpan, type MessageContent } from "@nodetool-ai/runtime";
 import type {
   DirectInferenceHandler,
   DirectMediaSourceContext,
@@ -261,7 +262,14 @@ export class CommandRouter {
 
     const handler = this.handlers[command];
     if (!handler) return { error: "Unknown command" };
-    return handler({ command, data, jobId, workflowId, requestId });
+    const run = () => handler({ command, data, jobId, workflowId, requestId });
+    // `stream_input` carries one frame of a streamed input, so a span per frame is noise.
+    if (command === "stream_input") return run();
+    // Like an HTTP request span, a command span starts its own trace. A run it
+    // starts registers its own root (see `withRunTrace`).
+    return context.with(ROOT_CONTEXT, () =>
+      withSpan("ws.command", { "rpc.system": "websocket", "rpc.method": command }, run)
+    );
   }
 
   /**
