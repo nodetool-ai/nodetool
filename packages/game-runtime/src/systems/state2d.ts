@@ -15,6 +15,7 @@ export interface EntityState {
   velocityX: number;
   velocityY: number;
   active: boolean;
+  props?: GameEntity["props"];
   health?: number;
   patrolOrigin?: number;
   patrolDirection?: -1 | 1;

@@ -124,6 +124,26 @@ describe("game scripts", () => {
     session.dispose();
   });
 
+  it("passes JSON data without exposing a mutable transport global", async () => {
+    const runner = await prepareGameScripts(scriptedGame(`(() => {
+      Object.defineProperty(globalThis, '__gameInputJson', {
+        set() { throw new Error('transport intercepted'); }, configurable: false
+      });
+      return ({state}) => ({state, commands: []});
+    })()`));
+    const sourceKey = scriptSourceKey("room", "player", 0);
+    const state = { text: 'Unicode 🔥 \"quotes\" \u0000 \u2028', nested: { value: null } };
+    const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state,
+      x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false },
+      tags: [], props: {}, rotation: 0, active: true, maxCommands: 8, maxTickMs: 30 };
+    try {
+      const result = runner.run([call, call], { tick: 3, pressed: [], justPressed: [], events: [], world: [] }, 1);
+      expect(result.results.map(item => item.state)).toEqual([state, state]);
+    } finally {
+      runner.dispose();
+    }
+  });
+
   it("measures script input and output limits in UTF-8 bytes", async () => {
     const sourceKey = scriptSourceKey("room", "player", 0);
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
