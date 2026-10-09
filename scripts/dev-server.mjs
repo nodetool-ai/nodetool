@@ -15,11 +15,11 @@
 
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { registerChildShutdownHandlers } from "./child-shutdown.mjs";
 import { getTsxWatchCommand } from "./dev-commands.mjs";
+import { ensurePortsFree, findListenerPids } from "./dev-ports.mjs";
 
 const mode = process.argv[2] ?? "server";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -85,19 +85,10 @@ if (!(mode in entrypoints)) {
   process.exit(1);
 }
 
-function isPortInUse(hostname, portNumber) {
-  return new Promise((resolveCheck) => {
-    const socket = net.createConnection({ host: hostname, port: portNumber });
-    socket.setTimeout(2000);
-    socket.once("connect", () => { socket.end(); resolveCheck(true); });
-    socket.once("timeout", () => { socket.destroy(); resolveCheck(false); });
-    socket.once("error", (error) => {
-      resolveCheck(!["ECONNREFUSED", "EHOSTUNREACH", "ETIMEDOUT"].includes(error.code));
-    });
-  });
-}
-
-if (await isPortInUse(host, port)) {
+// `npm run dev` runs this under concurrently (no TTY), after the
+// scripts/dev-ports.mjs preflight has already offered to free the port.
+await ensurePortsFree([{ label: "backend", port, reusable: true }]);
+if (findListenerPids(port).length > 0) {
   console.log(`Port ${port} already in use — dev server may already be running.`);
   console.log(`Stop the existing process or set PORT=<other> to use a different port.`);
   process.exit(0);

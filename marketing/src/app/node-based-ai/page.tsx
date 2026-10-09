@@ -217,7 +217,14 @@ export default function NodeBasedAiPage() {
             workflow is not a transcript of what you asked for — it is a file
             you keep, re-run, hand to someone else, or call as an API. That is
             the difference that matters in practice: a prompt gives you one
-            result, a graph gives you a process.
+            result, a graph gives you a process. See{" "}
+            <a
+              href="/node-based-workflows"
+              className="text-blue-300 underline decoration-blue-500/40 underline-offset-2 transition-colors hover:text-blue-200"
+            >
+              node-based workflows in NodeTool
+            </a>{" "}
+            for one built, checked, and run end to end.
           </p>
           <p className="mt-4 leading-relaxed text-slate-300">
             Three different things get searched for with the same words, so to

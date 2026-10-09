@@ -21,7 +21,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Sci-fi Outpost Expansion\n\nA matching sci-fi model pack with a rover, sentry turret, reactor, satellite dish, airlock and station props. Run to expose each GLB as a named output. No provider or API key required.\n\nUse these alongside Sci-fi Game Model Starter Pack. Models use meters, Y up, forward -Z, ground-level origins and a 2 m station grid. These are static visuals. Add physics, interactions and vehicle behavior in the game. Download a model output and upload it to your project before importing it into a 3D game."
+          "comment": "# Sci-fi Outpost Expansion\n\nA matching sci-fi model pack with a rover, sentry turret, reactor, satellite dish, airlock and station props. Use it alongside Sci-fi Game Model Starter Pack to fill out an outpost level.\n\n**How it works:** Twelve Model3D constant nodes, from \"Exploration rover\" to \"Navigation marker\", each load one shipped GLB and connect to a matching output such as \"Reactor output\". Running exposes each model as a named output. Models use meters, Y up, forward -Z, ground-level origins and a 2 m station grid. They are static visuals, so add physics, interactions and vehicle behavior in the game. It runs locally with no model or key.\n\n**Try this:** Run it, download \"Landing pad output\" and \"Exploration rover output\", upload both to your project, and place the rover on the pad in a 3D game to compare their scale."
         },
         "ui_properties": {
           "position": {

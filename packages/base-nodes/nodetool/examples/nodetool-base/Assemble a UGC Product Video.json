@@ -40,7 +40,10 @@
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "creator_clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+          },
           "description": "Continuous 15-second creator testimonial"
         },
         "ui_properties": {
@@ -61,7 +64,10 @@
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "product_clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "Silent vertical product proof overlay"
         },
         "ui_properties": {

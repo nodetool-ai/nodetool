@@ -2,11 +2,18 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { platform } from "node:os";
+import { ensurePortsFree, resolveTargets } from "./dev-ports.mjs";
 
 const requiredNode = readFileSync(new URL("../.nvmrc", import.meta.url), "utf8").trim();
 if (process.versions.node !== requiredNode) {
   console.error(`ERROR: Node.js ${requiredNode} required (found ${process.version})`);
   console.error("  Run: nvm use");
+  process.exit(1);
+}
+
+// Electron's dev mode refuses a busy 7777 (the Vite proxy is pinned there),
+// and Vite runs with --strictPort on 3000, so neither port is reusable.
+if (!(await ensurePortsFree(resolveTargets(["api", "web"]), { strict: true }))) {
   process.exit(1);
 }
 

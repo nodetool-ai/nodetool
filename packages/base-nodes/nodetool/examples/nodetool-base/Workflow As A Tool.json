@@ -5,7 +5,7 @@
   "updated_at": "2026-07-17T09:00:00.000Z",
   "name": "Workflow As A Tool",
   "tool_name": null,
-  "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+  "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager, on a model you pick, decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
   "tags": [
     "agents",
     "composition",
@@ -21,7 +21,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🧩 Workflow As A Tool\n\nThe **orchestrator** (center) is an agent that owns the goal but does none of the specialist work itself. Two other agents are wired to it with **control edges** — the dashed connections into their `__control__` port — which turns each one into a *callable tool*. The orchestrator invokes them by name, passing a task string, and reads back their result.\n\n**Why this shape:** each specialist is a small, self-contained workflow with its own model and system prompt. Exposing it as a tool lets you compose capabilities instead of hard-wiring a fixed pipeline — the manager decides *whether* and *in what order* to call research and editing.\n\n**Cross-workflow version:** a workflow saved with `run_mode: \"tool\"` and a `tool_name` can be called from a *different* graph by adding its name to an agent's Tools list. That needs two saved workflows, so this single-file example uses control edges to show the same idea in one place.\n\n**Try this:** change the topic, or edit the orchestrator's system prompt to call only one specialist."
+          "comment": "# 🧩 Workflow As A Tool\n\nShows how one agent can call other agents as tools inside a single graph. Use this shape when a manager should decide whether and in what order specialists run, instead of a fixed pipeline.\n\n**How it works:** \"Topic\" fills \"Objective\", which asks for a 250 to 350 word explainer and tells the orchestrator to research, draft, then edit. \"Orchestrator\" receives it as its prompt. Control edges from its __control__ port into \"Tool: Research (Gemini)\" and \"Tool: Copy Editor (Claude)\" turn those agents into tools it calls by name with a task string. The research agent runs Gemini 3.5 Flash and returns a bulleted fact brief. The copy editor runs Claude Sonnet 5 and returns a tightened draft. The orchestrator's text goes to \"Final article\". Pick a language model on \"Orchestrator\". The specialists need Gemini and Anthropic keys.\n\n**Try this:** Change \"Topic\", or edit the orchestrator's system prompt to call only research_specialist and compare the unedited result."
         },
         "ui_properties": {
           "selected": false,

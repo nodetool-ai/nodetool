@@ -1815,7 +1815,15 @@ export class TextToImageNode extends BaseNode {
   declare resolution: string;
 
   async process(context?: ProcessingContext): Promise<TextToImageNodeOutputs> {
-    const prompt = this.prompt;
+    // The Prompt composer writes entity and text-asset mentions as tokens.
+    // Expand them here, as ImageToImage does, or the model reads the literal
+    // `entity://<id>`.
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: this.prompt }],
+      [],
+      context
+    );
+    const prompt = isString(overrides.prompt) ? overrides.prompt : this.prompt;
     const aspectRatio = this.aspect_ratio;
     const resolution = this.resolution;
     const { width, height } = resolveImageSize(resolution, aspectRatio);
@@ -1907,13 +1915,13 @@ export class ImageToImageNode extends BaseNode {
   declare negative_prompt: string;
 
   @prop({
-    type: "list[dict]",
+    type: "list[entity]",
     default: [],
     title: "Entities",
     description:
       "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt and whose reference images are appended to the input images"
   })
-  declare entities: Record<string, unknown>[];
+  declare entities: Entity[];
 
   @prop({
     type: "float",
@@ -1984,11 +1992,13 @@ export class ImageToImageNode extends BaseNode {
     ).filter((b) => b.length > 0);
     // Entities may supply the source images: their reference images are
     // appended to the list at the provider layer, so an empty wired input is
-    // fine as long as an entity carries an image.
-    const entities = Array.isArray(this.entities) ? this.entities : [];
+    // fine as long as an entity carries an image. A picked entity carries only
+    // its id, so resolve against the library before looking for one.
+    const entities = await resolveEntities(this.entities, context);
     const entityHasImage = entities.some(
-      (e: { image?: unknown; reference_images?: unknown[] } | null) =>
-        !!e?.image || (e?.reference_images?.length ?? 0) > 0
+      (e) =>
+        !!(e as { image?: unknown }).image ||
+        (e.reference_images?.length ?? 0) > 0
     );
     if (bytesList.length === 0 && !entityHasImage) {
       throw new Error("The input image is empty.");

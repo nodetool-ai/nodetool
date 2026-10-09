@@ -103,9 +103,21 @@ function defaultFakeFetch(): (
   };
 }
 
+/** File extensions for the media types fake providers emit. */
+const FAKE_ASSET_EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "video/mp4": "mp4",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/mpeg": "mp3",
+  "model/gltf-binary": "glb"
+};
+
 /**
  * Build a ProcessingContext wired to in-memory storage, an in-memory cache,
- * a fake-provider resolver, and a stubbed `fetch`. The returned handle owns
+ * in-memory asset creation, a fake-provider resolver, and a stubbed `fetch`. The returned handle owns
  * the temp workspace dir; call `cleanup()` when done.
  */
 export function createFakeContext(
@@ -121,12 +133,18 @@ export function createFakeContext(
     providers.set(id, prov);
   }
 
+  const userId = "fake-user";
+  const storage = new InMemoryStorageAdapter();
+  let assetCounter = 0;
+  let sequenceCounter = 0;
+  const sequences = new Map<string, { id: string }>();
+
   const context = new ProcessingContext({
     jobId: options.jobId ?? "fake-job",
-    userId: "fake-user",
+    userId,
     workspaceDir,
     cache: new MemoryCache(),
-    storage: new InMemoryStorageAdapter(),
+    storage,
     workspaceStorage: new InMemoryStorageAdapter(),
     variables: options.variables ?? {},
     persistOutputAssets: options.persistOutputAssets ?? true,
@@ -142,6 +160,45 @@ export function createFakeContext(
       // credential. Providers don't consult this resolver because the
       // provider-resolver short-circuits the secret lookup.
       return "";
+    },
+    modelInterfaces: {
+      // Generated media is saved as an asset and handed downstream as
+      // `asset://<id>.<ext>`. Store the bytes in the in-memory storage under
+      // every key that ref can resolve to, so the next node reads them back.
+      createAsset: async (args) => {
+        assetCounter += 1;
+        const id = `fakeasset${String(assetCounter).padStart(23, "0")}`;
+        const exts = new Set<string>([
+          path.extname(args.name).slice(1),
+          FAKE_ASSET_EXT[args.contentType] ?? ""
+        ]);
+        await storage.store(`${userId}/${id}`, args.content, args.contentType);
+        for (const ext of exts) {
+          if (ext) {
+            await storage.store(
+              `${userId}/${id}.${ext}`,
+              args.content,
+              args.contentType
+            );
+          }
+        }
+        return { id, name: args.name, content_type: args.contentType };
+      },
+      // Timeline nodes save a sequence document and read it back by id.
+      createTimelineSequence: async ({ sequence }) => {
+        sequenceCounter += 1;
+        const id = `fake-sequence-${sequenceCounter}`;
+        const saved = { ...(sequence as Record<string, unknown>), id };
+        sequences.set(id, saved);
+        return saved;
+      },
+      getTimelineSequence: async ({ id }) => sequences.get(id) ?? null,
+      updateTimelineSequence: async ({ id, sequence }) => {
+        if (!sequences.has(id)) return null;
+        const saved = { ...(sequence as Record<string, unknown>), id };
+        sequences.set(id, saved);
+        return saved;
+      }
     }
   });
 

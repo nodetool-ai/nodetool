@@ -221,7 +221,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Music Video Visualizer\n\nAdd a track, choose a visual style, and set the scene count. The workflow reads the lyrics and creates a sequence of images. Each image is sized to 720p, saved as PNG, and held long enough to fill the track.\n\nChange the style for a new look. Add more scenes for faster cuts."
+          "comment": "# Music Video Visualizer\n\nTurns a track into a sequence of AI images timed to the audio. Use it for a quick lyric-driven visualizer for a song.\n\n**How it works:** \"2️⃣ Transcribe lyrics\" runs Whisper on \"1️⃣ Song audio\". \"3️⃣ Analyze mood\" reads the lyrics with \"Genre hint\" and \"Visual style\" and writes creative direction. \"4️⃣ Generate frame prompts\" writes as many prompts as \"Frame count\" (8). A \"ForEach\" sends each to \"5️⃣ Render frames\" (FLUX Schnell). \"ResizeImage\" fits each frame to 1280x720 and \"SaveImageFile\" stores it as PNG before \"Collect\" gathers them. \"Normalize\" levels the track and \"GetAudioInfo\" measures its length. A \"Code\" node divides the duration at 24 fps by the frame count, and \"RepeatValue\" holds each frame that many times. \"6️⃣ Frames to video\" builds a 24 fps video and \"7️⃣ Add audio\" lays the track under it. Pick models on \"3️⃣ Analyze mood\" and \"4️⃣ Generate frame prompts\".\n\n**Try this:** Set \"Frame count\" to 16 for faster cuts, and each image stays on screen half as long."
         },
         "ui_properties": {
           "position": {
@@ -230,7 +230,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 200,
+          "height": 423,
           "selectable": true,
           "bypassed": false
         },
@@ -251,7 +251,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 283
+            "y": 506
           },
           "zIndex": 0,
           "width": 280,
@@ -273,7 +273,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 601
+            "y": 824
           },
           "zIndex": 0,
           "width": 280,
@@ -295,7 +295,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 826
+            "y": 1049
           },
           "zIndex": 0,
           "width": 280,
@@ -317,7 +317,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1051
+            "y": 1274
           },
           "zIndex": 0,
           "width": 280,
@@ -343,7 +343,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 445
+            "y": 668
           },
           "zIndex": 0,
           "width": 280,
@@ -363,7 +363,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 280
+            "y": 503
           },
           "zIndex": 0,
           "width": 280,
@@ -395,7 +395,7 @@
         "ui_properties": {
           "position": {
             "x": 1140,
-            "y": 690
+            "y": 913
           },
           "zIndex": 0,
           "width": 280,
@@ -415,7 +415,7 @@
         "ui_properties": {
           "position": {
             "x": 1520,
-            "y": 547
+            "y": 770
           },
           "zIndex": 0,
           "width": 280,
@@ -448,7 +448,7 @@
         "ui_properties": {
           "position": {
             "x": 1900,
-            "y": 827
+            "y": 1050
           },
           "zIndex": 0,
           "width": 280,
@@ -467,7 +467,7 @@
         "ui_properties": {
           "position": {
             "x": 2280,
-            "y": 995
+            "y": 1218
           },
           "zIndex": 0,
           "width": 280,
@@ -495,7 +495,7 @@
         "ui_properties": {
           "position": {
             "x": 2660,
-            "y": 828
+            "y": 1051
           },
           "zIndex": 0,
           "width": 384,
@@ -514,7 +514,7 @@
         "ui_properties": {
           "position": {
             "x": 3904,
-            "y": 1004
+            "y": 1227
           },
           "zIndex": 0,
           "width": 280,
@@ -533,7 +533,7 @@
         "ui_properties": {
           "position": {
             "x": 5044,
-            "y": 767
+            "y": 990
           },
           "zIndex": 0,
           "width": 416,
@@ -555,7 +555,7 @@
         "ui_properties": {
           "position": {
             "x": 5560,
-            "y": 714
+            "y": 937
           },
           "zIndex": 0,
           "width": 416,
@@ -577,7 +577,7 @@
         "ui_properties": {
           "position": {
             "x": 6076,
-            "y": 857
+            "y": 1080
           },
           "selectable": true
         }
@@ -593,7 +593,7 @@
         "ui_properties": {
           "position": {
             "x": 3144,
-            "y": 947
+            "y": 1170
           },
           "width": 280
         },
@@ -611,7 +611,7 @@
         "ui_properties": {
           "position": {
             "x": 3524,
-            "y": 909
+            "y": 1132
           },
           "width": 280
         },
@@ -626,7 +626,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 981
+            "y": 1204
           },
           "width": 280
         },
@@ -644,7 +644,7 @@
         "ui_properties": {
           "position": {
             "x": 4284,
-            "y": 654
+            "y": 877
           },
           "width": 280
         },
@@ -668,7 +668,7 @@
         "ui_properties": {
           "position": {
             "x": 4664,
-            "y": 968
+            "y": 1191
           },
           "width": 280
         },
@@ -683,7 +683,7 @@
         "ui_properties": {
           "position": {
             "x": 4284,
-            "y": 1143
+            "y": 1366
           },
           "width": 280
         },
@@ -697,7 +697,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 762
+            "y": 985
           },
           "width": 280
         },

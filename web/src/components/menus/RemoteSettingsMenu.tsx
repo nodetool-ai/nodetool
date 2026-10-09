@@ -329,7 +329,7 @@ const SettingItem = memo(function SettingItem({
             }
           >
             {SETTING_BUTTON_TITLES[setting.env_var] ||
-              "GET YOUR API KEY"}
+              "Get your API key"}
           </ExternalLink>
         </div>
       )}
@@ -485,6 +485,21 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
     setSettingValues((prev) => ({ ...prev, [envVar]: value }));
   }, []);
 
+  // Restore every edited field to its saved value.
+  const handleDiscard = useCallback(() => {
+    if (!data) return;
+    setSettingValues((prev) => {
+      const next = { ...prev };
+      for (const setting of data) {
+        if (setting.env_var in next) {
+          next[setting.env_var] =
+            setting.value != null ? String(setting.value) : "";
+        }
+      }
+      return next;
+    });
+  }, [data]);
+
   const handleSave = useCallback(() => {
     const settings: Record<string, string> = {};
     const secrets: Record<string, string> = {};
@@ -507,7 +522,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
       {
         onSuccess: () => {
           addNotification({
-            content: "Your settings have been saved successfully",
+            content: "Settings saved",
             type: "success",
             alert: true
           });
@@ -581,6 +596,14 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
 
             {isDirty && (
               <div className="save-button-container">
+                <Text className="save-bar-message">Unsaved changes</Text>
+                <EditorButton
+                  variant="text"
+                  onClick={handleDiscard}
+                  disabled={updateSettingsMutation.isPending}
+                >
+                  Discard
+                </EditorButton>
                 <EditorButton
                   variant="contained"
                   color="primary"
@@ -589,7 +612,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                   startIcon={<SaveIcon />}
                   disabled={updateSettingsMutation.isPending}
                 >
-                  SAVE SETTINGS
+                  {updateSettingsMutation.isPending ? "Saving…" : "Save changes"}
                 </EditorButton>
               </div>
             )}

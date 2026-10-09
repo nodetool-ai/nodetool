@@ -19,7 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Lip-sync a Clip to a Voice Track\n\nSync your presenter clip to a voice track you already have. The audio is levelled and its edges are softened first. Lip-sync is billed per second of footage."
+          "comment": "# Lip-sync a Clip to a Voice Track\n\nSyncs your presenter clip to a voice track you already have. Use it to re-voice footage without reshooting.\n\n**How it works:** \"Voice track\" passes through \"Even out volume\" (Normalize), then \"Soften the start\" with a 0.01 second fade-in and \"Soften the ending\" with a 0.03 second fade-out. \"Lip-sync to the voice track\" matches the mouth movement in \"Presenter clip\" to that audio with fal sync-lipsync v2 pro, and \"Re-voiced clip\" shows the result. The audio steps run locally. Lip-sync is a paid step billed per second of footage.\n\n**Try this:** Set \"duration\" on \"Soften the ending\" to 0.3. The voice fades out more gently at the end of the clip."
         },
         "ui_properties": {
           "position": {
@@ -29,7 +29,7 @@
           "zIndex": 0,
           "width": 560,
           "selectable": true,
-          "height": 153
+          "height": 341
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -48,7 +48,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 233
+            "y": 421
           },
           "zIndex": 0,
           "width": 280,
@@ -72,7 +72,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 599
+            "y": 787
           },
           "zIndex": 0,
           "width": 280,
@@ -89,7 +89,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 614
+            "y": 802
           },
           "width": 300,
           "title": "Even out volume"
@@ -106,7 +106,7 @@
         "ui_properties": {
           "position": {
             "x": 780,
-            "y": 538
+            "y": 726
           },
           "width": 300,
           "title": "Soften the start"
@@ -123,7 +123,7 @@
         "ui_properties": {
           "position": {
             "x": 1180,
-            "y": 471
+            "y": 659
           },
           "width": 300,
           "title": "Soften the ending"
@@ -147,7 +147,7 @@
         "ui_properties": {
           "position": {
             "x": 1580,
-            "y": 381
+            "y": 569
           },
           "zIndex": 0,
           "width": 280,
@@ -166,7 +166,7 @@
         "ui_properties": {
           "position": {
             "x": 1960,
-            "y": 400
+            "y": 588
           },
           "zIndex": 0,
           "width": 240,

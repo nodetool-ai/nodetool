@@ -20,7 +20,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📄 Meeting Transcript Summarizer\n\nTurn a meeting into clean notes and a to-do list — from either a recording or an already-typed transcript.\n\n**Pipeline:** Recording OR Transcript → (transcribe if needed) → merge → Summarize + Extract action items\n\nOnly one of the two inputs is required. If you paste a transcript, Whisper is skipped entirely — that's why this replaces the old 'Summarize Audio' template rather than sitting next to it.\n\n**Try this:** paste minutes from a call instead of uploading audio, or ask for action items grouped by owner."
+          "comment": "# 📄 Meeting Transcript Summarizer\n\nTurns a meeting into clean notes and a to-do list, from either a recording or a pasted transcript.\n\n**How it works:** \"Recording (optional)\" ships with a short sample meeting and goes to \"Transcribe recording\" (Whisper large v3 on fal). \"Check: transcript pasted?\" tests whether \"Or paste a transcript (optional)\" is empty. Only one of the two \"If\" nodes fires: the pasted text wins when there is any, otherwise the transcribed text passes. \"Pick the transcript\" keeps whichever arrives, shown in \"Transcript\". \"Summarize\" writes Markdown notes with an overview, key points and open questions. \"Build action-item prompt\" feeds \"Extract action items\", a DataGenerator that returns rows with action, owner and due_date columns. Pick language models on \"Summarize\" and \"Extract action items\".\n\n**Try this:** Paste the minutes of a recent call into \"Or paste a transcript (optional)\" and run. \"Action Items\" lists each task with its owner, or \"Unassigned\" when none was named."
         },
         "ui_properties": {
           "selected": false,
@@ -30,7 +30,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 313,
+          "height": 403,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -44,7 +44,7 @@
           "name": "Recording",
           "description": "A meeting recording to transcribe. Leave empty if you paste a transcript below instead.",
           "value": {
-            "uri": "https://app.nodetool.ai/examples/remove_silence.mp3",
+            "uri": "package://nodetool-base/recipe-inputs/meeting.wav",
             "type": "audio"
           }
         },
@@ -52,7 +52,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 611
+            "y": 701
           },
           "zIndex": 0,
           "width": 280,
@@ -76,7 +76,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 1010
+            "y": 1100
           },
           "zIndex": 0,
           "width": 280,
@@ -103,7 +103,7 @@
           "selected": false,
           "position": {
             "x": 380,
-            "y": 675
+            "y": 765
           },
           "zIndex": 0,
           "width": 280,
@@ -125,7 +125,7 @@
           "selected": false,
           "position": {
             "x": 380,
-            "y": 901
+            "y": 991
           },
           "zIndex": 0,
           "width": 280,
@@ -152,7 +152,7 @@
           "selected": false,
           "position": {
             "x": 760,
-            "y": 817
+            "y": 907
           },
           "zIndex": 0,
           "width": 280,
@@ -171,7 +171,7 @@
           "selected": false,
           "position": {
             "x": 760,
-            "y": 1032
+            "y": 1122
           },
           "zIndex": 0,
           "width": 280,
@@ -200,7 +200,7 @@
           "selected": false,
           "position": {
             "x": 1520,
-            "y": 864
+            "y": 954
           },
           "zIndex": 0,
           "width": 280,
@@ -221,7 +221,7 @@
           "selected": false,
           "position": {
             "x": 1520,
-            "y": 393
+            "y": 483
           },
           "zIndex": 0,
           "width": 280,
@@ -273,7 +273,7 @@
           "selected": false,
           "position": {
             "x": 1900,
-            "y": 561
+            "y": 651
           },
           "zIndex": 0,
           "width": 280,
@@ -291,7 +291,7 @@
         "ui_properties": {
           "position": {
             "x": 1520,
-            "y": 1116
+            "y": 1206
           },
           "zIndex": 0,
           "width": 280,
@@ -311,7 +311,7 @@
         "ui_properties": {
           "position": {
             "x": 1900,
-            "y": 913
+            "y": 1003
           },
           "zIndex": 0,
           "width": 280,
@@ -331,7 +331,7 @@
         "ui_properties": {
           "position": {
             "x": 2280,
-            "y": 604
+            "y": 694
           },
           "zIndex": 0,
           "width": 280,
@@ -346,19 +346,18 @@
         "id": "transcript_join",
         "type": "nodetool.code.Code",
         "data": {
-          "code": "const list = Array.isArray(inputs.strings) ? inputs.strings : [];\nreturn { output: list.map(v => String(v ?? \"\")).join(String(inputs.separator ?? \"\")) };",
+          "code": "// Only one If branch fires, so this receives a single string.\nconst v = inputs.strings;\nconst list = Array.isArray(v) ? v : v == null ? [] : [v];\nreturn { output: list.map((s) => String(s ?? \"\")).join(\"\\n\") };",
           "packages": []
         },
         "ui_properties": {
           "position": {
             "x": 1140,
-            "y": 727
+            "y": 817
           },
-          "selectable": true
+          "selectable": true,
+          "title": "Pick the transcript"
         },
-        "dynamic_properties": {
-          "separator": ""
-        },
+        "dynamic_properties": {},
         "dynamic_inputs": {
           "strings": {
             "type": {

@@ -28,7 +28,8 @@ name: nodetool
 
 services:
   nodetool:
-    # Pin a release with NODETOOL_VERSION (e.g. NODETOOL_VERSION=v1.2.3), or
+    # Pin a release with NODETOOL_VERSION (e.g. NODETOOL_VERSION=1.2.3; image
+    # tags drop the git tag's leading "v"), or
     # point NODETOOL_IMAGE at a locally built image (e.g.
     # NODETOOL_IMAGE=nodetool:dev) to test your own build.
     image: "${NODETOOL_IMAGE:-ghcr.io/nodetool-ai/nodetool:${NODETOOL_VERSION:-latest}}"
@@ -45,8 +46,14 @@ services:
       - "${NODETOOL_PORT:-17777}:7777"
     volumes:
       - nodetool-data:/workspace
+    # Every key in .env reaches the server (Supabase login, storage, extra
+    # provider keys). The `environment` block below wins where both set a key.
+    env_file:
+      - path: .env
+        required: false
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:7777/health"]
+      # HTTPS first for a server started with TLS_CERT/TLS_KEY, then HTTP.
+      test: ["CMD-SHELL", "curl -fsSk https://127.0.0.1:7777/health || curl -fsS http://127.0.0.1:7777/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -119,8 +126,9 @@ services:
       # └────────────────────────────────────────────────────────────────────┘
       NODETOOL_TRUST_LOCAL_NETWORKS: "${NODETOOL_TRUST_LOCAL_NETWORKS:-172.16.0.0/12,192.168.65.0/24}"
 
-      # To require login (multi-user or remote access), point these at your
-      # Supabase project. The server enforces a valid Supabase JWT on every
+      # To require login (multi-user or remote access), set these in .env (the
+      # env_file above forwards them) or uncomment them here. Point them at
+      # your Supabase project. The server enforces a valid Supabase JWT on every
       # request and the web UI shows the login screen. SUPABASE_KEY is the
       # service-role key (server-only, never sent to the browser);
       # SUPABASE_ANON_KEY is the public key the login screen uses. See
@@ -144,7 +152,7 @@ services:
       # alone does nothing: derive an image that installs nodetool-core and
       # point NODETOOL_PYTHON at its interpreter.
       # NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION: "1"
-      # NODETOOL_PYTHON: "/usr/local/bin/python3"
+      # NODETOOL_PYTHON: "/opt/venv/bin/python"
 
       # Model provider keys — only the ones you use. Values come from .env.
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
@@ -230,7 +238,7 @@ services:
 
   # Uncomment to run Postgres alongside the server. The image ships psql, so
   # you can inspect the database with:
-  #   docker compose exec nodetool psql "$DATABASE_URL"
+  #   docker compose exec nodetool sh -c 'psql "$DATABASE_URL"'
   # postgres:
   #   image: postgres:17
   #   container_name: nodetool-postgres

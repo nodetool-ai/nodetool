@@ -17,7 +17,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and pick a row count — an AI agent returns structured rows matching your schema, not a wall of prose.\n\n**Pipeline:** Topic + row count → build prompt → generate rows → table\n\n**Try this:** change the topic, or edit/add columns on the generator node to reshape the dataset. Pick a model first."
+          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and pick a row count. An AI returns structured rows matching your columns instead of a wall of prose.\n\n**How it works:** \"Topic\" and \"Row count\" (8 by default, 3 to 30) fill the placeholders in \"Build prompt\", which asks for exactly that many distinct rows. \"Generate rows\" is a DataGenerator with two columns, name and color, and returns a table that \"View table\" shows. Pick a language model on \"Generate rows\" before you run it.\n\n**Try this:** On \"Generate rows\", add a third column named \"season\" with type string. Run again and the table gains a season value for each vegetable."
         },
         "ui_properties": {
           "position": {
@@ -26,7 +26,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 227,
+          "height": 321,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -44,7 +44,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 353
+            "y": 447
           },
           "zIndex": 0,
           "width": 280,
@@ -69,7 +69,7 @@
           "selected": false,
           "position": {
             "x": 0,
-            "y": 578
+            "y": 672
           },
           "zIndex": 0,
           "width": 280,
@@ -90,7 +90,7 @@
           "selected": false,
           "position": {
             "x": 380,
-            "y": 307
+            "y": 401
           },
           "zIndex": 0,
           "width": 280,
@@ -138,7 +138,7 @@
           "selected": false,
           "position": {
             "x": 760,
-            "y": 450
+            "y": 544
           },
           "zIndex": 0,
           "width": 280,
@@ -157,7 +157,7 @@
         "ui_properties": {
           "position": {
             "x": 1140,
-            "y": 468
+            "y": 562
           },
           "zIndex": 0,
           "width": 280,

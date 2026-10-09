@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Product Mockup Generator",
   "tool_name": null,
-  "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+  "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then Nano Banana composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
   "tags": [
     "product-mockup",
     "mockup",
@@ -136,7 +136,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out.\n\n**Why the extra stages:** a single image prompt gives you one look. Here an art-director agent first invents *distinct* scene concepts from the product brief (studio, lifestyle, flat-lay, outdoor…), a second prompt turns each concept into a photography-grade image prompt, and a list generator splits them so every scene renders in parallel.\n\n**Two outputs per scene:** a pure text-to-image render (the *scene*), and an image-to-image pass that composites your real product photo into it (the *mockup*), finished with a brightness/contrast polish.\n\n**Try this:** raise the scene count, or change the target audience to shift the whole shot list."
+          "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out. Use it when you need several distinct scenes for one product instead of one prompt and one image.\n\n**How it works:** \"1️⃣ Product name\", \"5️⃣ Product description\", \"4️⃣ Target audience\" and \"2️⃣ Scene count\" (6) fill \"6️⃣ Build scene prompt\". \"7️⃣ Scene concept agent\" invents distinct scenes, and \"8️⃣ Build image prompt\" turns them into photography prompts. \"9️⃣ Split into per-scene prompts\" emits one prompt per scene to two branches. \"🔟 Render scene (text-to-image)\" draws the empty scene with FLUX Schnell for the \"scene\" output. \"🅰️ Composite product into scene (image-to-image)\" places \"3️⃣ Product image\" into the scene with Nano Banana at strength 0.65. Two Brightness/Contrast passes, \"🅱️ Brightness / contrast polish\" and \"©️ Final color adjust → mockup\" (contrast 1.1), finish the \"mockup\" output. Pick models on \"7️⃣ Scene concept agent\" and \"9️⃣ Split into per-scene prompts\".\n\n**Try this:** Change \"4️⃣ Target audience\" to \"college students on a budget\" and watch the whole shot list shift."
         },
         "ui_properties": {
           "selected": false,
@@ -146,7 +146,7 @@
           },
           "zIndex": 0,
           "width": 560,
-          "height": 352,
+          "height": 423,
           "selectable": true,
           "bypassed": false
         },
@@ -163,7 +163,7 @@
         "ui_properties": {
           "position": {
             "x": 2764,
-            "y": 730
+            "y": 801
           },
           "zIndex": 0,
           "width": 280,
@@ -184,7 +184,7 @@
         "ui_properties": {
           "position": {
             "x": 2384,
-            "y": 703
+            "y": 774
           },
           "zIndex": 0,
           "width": 280,
@@ -216,7 +216,7 @@
         "ui_properties": {
           "position": {
             "x": 1900,
-            "y": 517
+            "y": 588
           },
           "zIndex": 0,
           "width": 384,
@@ -236,17 +236,14 @@
           "name": "product_image",
           "value": {
             "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
           },
           "description": "The product image to place in scenes"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 432
+            "y": 503
           },
           "zIndex": 0,
           "width": 280,
@@ -275,7 +272,7 @@
         "ui_properties": {
           "position": {
             "x": 1520,
-            "y": 854
+            "y": 925
           },
           "zIndex": 0,
           "width": 280,
@@ -295,7 +292,7 @@
         "ui_properties": {
           "position": {
             "x": 1140,
-            "y": 668
+            "y": 739
           },
           "zIndex": 0,
           "width": 280,
@@ -344,7 +341,7 @@
         "ui_properties": {
           "position": {
             "x": 760,
-            "y": 996
+            "y": 1067
           },
           "zIndex": 0,
           "width": 280,
@@ -364,7 +361,7 @@
         "ui_properties": {
           "position": {
             "x": 380,
-            "y": 759
+            "y": 830
           },
           "zIndex": 0,
           "width": 280,
@@ -391,7 +388,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 797
+            "y": 868
           },
           "zIndex": 0,
           "width": 280,
@@ -413,7 +410,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1022
+            "y": 1093
           },
           "zIndex": 0,
           "width": 280,
@@ -435,7 +432,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1247
+            "y": 1318
           },
           "zIndex": 0,
           "width": 280,
@@ -459,7 +456,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1472
+            "y": 1543
           },
           "zIndex": 0,
           "width": 280,
@@ -489,7 +486,7 @@
         "ui_properties": {
           "position": {
             "x": 1900,
-            "y": 1032
+            "y": 1103
           },
           "zIndex": 0,
           "width": 384,
@@ -510,7 +507,7 @@
         "ui_properties": {
           "position": {
             "x": 3144,
-            "y": 776
+            "y": 847
           },
           "selectable": true
         }
@@ -524,7 +521,7 @@
         "ui_properties": {
           "position": {
             "x": 2384,
-            "y": 1233
+            "y": 1304
           },
           "selectable": true
         }

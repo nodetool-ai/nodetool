@@ -748,7 +748,7 @@
     {
       "id": "",
       "name": "Conditional Logic Engine",
-      "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
+      "description": "Routes one number to a low, medium or high output with two Code comparisons and If nodes. Teaches branching and how two If nodes chained on their false handles form an else branch. No model runs.",
       "tags": [
         "boolean"
       ]
