@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Trailer Beats from a Premise",
   "tool_name": null,
-  "description": "The beat structure a trailer needs \u2014 hook, escalation, turn, title card \u2014 written before any footage is paid for.",
+  "description": "The beat structure a trailer needs — hook, escalation, turn, title card — written before any footage is paid for.",
   "tags": [
     "text",
     "video",
@@ -15,6 +15,25 @@
   "thumbnail_url": null,
   "graph": {
     "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Trailer Beats from a Premise\n\nWrites the beat structure of a trailer from a one-line premise, before any footage is paid for. Each beat gets a short description and a duration.\n\n**How it works:** Type the premise into \"1 Input\". \"2 Agent\" lays out the hook, setup, escalation, turn and title card in order, and \"3 Output\" returns the beats as text.\n\n**Try this:** Pick a model on \"2 Agent\" and edit its system prompt to add a target total length, such as 60 seconds."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "in",
         "type": "nodetool.input.StringInput",
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -60,8 +79,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 327
           },
           "zIndex": 0,
           "width": 300,
@@ -79,8 +98,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 358
           },
           "zIndex": 0,
           "width": 300,

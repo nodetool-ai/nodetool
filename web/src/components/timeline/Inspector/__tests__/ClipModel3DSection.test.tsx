@@ -192,13 +192,13 @@ describe("ClipModel3DSection", () => {
     await resolveSession();
 
     await user.click(screen.getByRole("button", { name: /^keyframes$/i }));
-    expect(screen.getByLabelText("Camera Azimuth at playhead")).toBeTruthy();
-    expect(screen.getByLabelText("Camera Elevation at playhead")).toBeTruthy();
-    expect(screen.getByLabelText("Camera Zoom at playhead")).toBeTruthy();
+    expect(screen.getByLabelText("Camera azimuth at playhead")).toBeTruthy();
+    expect(screen.getByLabelText("Camera elevation at playhead")).toBeTruthy();
+    expect(screen.getByLabelText("Camera zoom at playhead")).toBeTruthy();
     expect(screen.getByLabelText("Camera FOV at playhead")).toBeTruthy();
 
     seedVideoClip();
-    expect(screen.queryByLabelText("Camera Azimuth at playhead")).toBeNull();
+    expect(screen.queryByLabelText("Camera azimuth at playhead")).toBeNull();
     expect(screen.getByLabelText("Opacity at playhead")).toBeTruthy();
   });
 });

@@ -412,7 +412,7 @@ export class DockerDeployer {
         ? {
             usersFile: d.persistent_paths.users_file,
             dbPath: d.persistent_paths.db_path,
-            chromaPath: d.persistent_paths.chroma_path,
+            vectorstoreDbPath: d.persistent_paths.vectorstore_db_path,
             hfCache: d.persistent_paths.hf_cache,
             assetBucket: d.persistent_paths.asset_bucket,
             logsPath: d.persistent_paths.logs_path

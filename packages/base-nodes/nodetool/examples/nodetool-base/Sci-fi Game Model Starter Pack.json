@@ -21,17 +21,17 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Sci-fi Game Model Starter Pack\n\nReusable sci-fi GLB models: a scout robot with an idle animation, a drone, cargo, crystals, and modular station pieces. Run to expose each model as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z, and ground-level origins. Station pieces use a 2 m grid. These are visual assets, so add gameplay colliders separately. Download a model from its preview and upload it to your project before importing it into a 3D game. Keep the model on a visual child of the physics root. The robot has an Idle clip, with no skeleton or locomotion clips."
+          "comment": "# Sci-fi Game Model Starter Pack\n\nReusable sci-fi GLB models: a scout robot with an idle animation, a drone, cargo, crystals and modular station pieces. Use them to block out or dress a 3D game level without generating assets first.\n\n**How it works:** Fourteen Model3D constant nodes, from \"Scout robot\" to \"Beacon\", each load one shipped GLB and connect to a matching output such as \"Scout robot output\". Running exposes every model as a named output. Models use meters, Y up, forward -Z and ground-level origins, and station pieces sit on a 2 m grid. They are visuals only, so add gameplay colliders separately and keep the model on a visual child of the physics root. The robot has an Idle clip, with no skeleton or locomotion clips. It runs locally with no model or key.\n\n**Try this:** Run it, download \"Floor tile output\" from its preview, upload it to your project, and import it into a 3D game next to \"Wall panel output\" to check the 2 m grid lines up."
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": -420
+            "y": 0
           },
           "width": 940,
           "selectable": true,
           "title": "Sci-fi Game Model Starter Pack",
-          "height": 360
+          "height": 219
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -48,7 +48,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 0
+            "y": 299
           },
           "width": 300,
           "selectable": true,
@@ -65,8 +65,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 0
+            "x": 400,
+            "y": 300
           },
           "width": 300,
           "selectable": true,
@@ -86,8 +86,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 0
+            "x": 840,
+            "y": 299
           },
           "width": 300,
           "selectable": true,
@@ -104,8 +104,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1060,
-            "y": 0
+            "x": 1240,
+            "y": 300
           },
           "width": 300,
           "selectable": true,
@@ -125,8 +125,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1440,
-            "y": 0
+            "x": 1680,
+            "y": 299
           },
           "width": 300,
           "selectable": true,
@@ -143,8 +143,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1780,
-            "y": 0
+            "x": 2080,
+            "y": 300
           },
           "width": 300,
           "selectable": true,
@@ -164,8 +164,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2160,
-            "y": 0
+            "x": 0,
+            "y": 571
           },
           "width": 300,
           "selectable": true,
@@ -182,8 +182,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2500,
-            "y": 0
+            "x": 400,
+            "y": 572
           },
           "width": 300,
           "selectable": true,
@@ -203,8 +203,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 450
+            "x": 840,
+            "y": 571
           },
           "width": 300,
           "selectable": true,
@@ -221,8 +221,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 450
+            "x": 1240,
+            "y": 572
           },
           "width": 300,
           "selectable": true,
@@ -242,8 +242,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 450
+            "x": 1680,
+            "y": 571
           },
           "width": 300,
           "selectable": true,
@@ -260,8 +260,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1060,
-            "y": 450
+            "x": 2080,
+            "y": 572
           },
           "width": 300,
           "selectable": true,
@@ -281,8 +281,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1440,
-            "y": 450
+            "x": 0,
+            "y": 843
           },
           "width": 300,
           "selectable": true,
@@ -299,8 +299,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1780,
-            "y": 450
+            "x": 400,
+            "y": 844
           },
           "width": 300,
           "selectable": true,
@@ -320,8 +320,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2160,
-            "y": 450
+            "x": 840,
+            "y": 843
           },
           "width": 300,
           "selectable": true,
@@ -338,8 +338,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2500,
-            "y": 450
+            "x": 1240,
+            "y": 844
           },
           "width": 300,
           "selectable": true,
@@ -359,8 +359,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 900
+            "x": 1680,
+            "y": 843
           },
           "width": 300,
           "selectable": true,
@@ -377,8 +377,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 900
+            "x": 2080,
+            "y": 844
           },
           "width": 300,
           "selectable": true,
@@ -398,8 +398,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 900
+            "x": 0,
+            "y": 1115
           },
           "width": 300,
           "selectable": true,
@@ -416,8 +416,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1060,
-            "y": 900
+            "x": 400,
+            "y": 1116
           },
           "width": 300,
           "selectable": true,
@@ -437,8 +437,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1440,
-            "y": 900
+            "x": 840,
+            "y": 1115
           },
           "width": 300,
           "selectable": true,
@@ -455,8 +455,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1780,
-            "y": 900
+            "x": 1240,
+            "y": 1116
           },
           "width": 300,
           "selectable": true,
@@ -476,8 +476,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2160,
-            "y": 900
+            "x": 1680,
+            "y": 1115
           },
           "width": 300,
           "selectable": true,
@@ -494,8 +494,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2500,
-            "y": 900
+            "x": 2080,
+            "y": 1116
           },
           "width": 300,
           "selectable": true,
@@ -516,7 +516,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 1350
+            "y": 1387
           },
           "width": 300,
           "selectable": true,
@@ -533,8 +533,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 1350
+            "x": 400,
+            "y": 1388
           },
           "width": 300,
           "selectable": true,
@@ -554,8 +554,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 1350
+            "x": 840,
+            "y": 1387
           },
           "width": 300,
           "selectable": true,
@@ -572,8 +572,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1060,
-            "y": 1350
+            "x": 1240,
+            "y": 1388
           },
           "width": 300,
           "selectable": true,

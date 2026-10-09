@@ -90,4 +90,17 @@ describe("shipped gallery examples produce what they claim", () => {
     expect(out["numbers"]?.[0]).toEqual(["2026", "08", "02", "3"]);
   });
 
+  it("Conditional Logic Engine routes 75 to the medium message only", async () => {
+    const out = await run("Conditional Logic Engine");
+    // The medium message passes both if_false gates. The low and high If
+    // nodes emit nothing, so only the report and one message come back.
+    const values = Object.values(out).flat().map(String);
+    expect(values).toHaveLength(2);
+    expect(values[0]).toContain("Less than 50? false");
+    expect(values[0]).toContain("Greater than 100? false");
+    expect(values[1]).toBe(
+      "🟡 MEDIUM VALUE: 75 is between 50 and 100. Balanced processing selected."
+    );
+  });
+
 });

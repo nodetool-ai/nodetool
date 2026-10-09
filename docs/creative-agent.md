@@ -191,6 +191,7 @@ unless the run derived it, so a batch cannot draw over the template.
 | `nodetool.entity.CreateEntity` | `image`, `kind`, `name`, `descriptor`, `key` | `entity`, `created` — upserts on `key`, so a re-run reuses the row |
 | `nodetool.storyboard.LoadStoryboard` | `storyboard` | `shots`, `entities`, `style`, `aspect_ratio`, `name`, both models, `shot_count` |
 | `nodetool.storyboard.StoryboardShots` | `storyboard` | streams `shot`, `index`, `slug`, `keyframe`, `clip` |
+| `nodetool.storyboard.CreateStoryboard` | `screenplay` (from `Director`), `name`, `cast`, both models, `reuse_existing` | a new writable `storyboard`, `shots`, `created` — a re-run returns the board it made |
 | `nodetool.storyboard.RecastStoryboard` | `storyboard`, `cast`, `replaces`, `reuse_existing` | the copy, `invalidated`, `kept` — keeps every frame whose prompt did not move |
 | `nodetool.storyboard.RenderStills` | the derived `storyboard`, `targets`, `max_shots`, `only_stale` | `keyframes`, `rendered`, `skipped`, `failed` |
 | `nodetool.storyboard.RenderClips` | the same, plus `require_keyframe` | `clips`, `rendered`, `skipped`, `failed` |

@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Pixelate a Still\n\nBreaks an image into large square blocks. Use it to redact faces or text, where a bigger cell size hides more detail.\n\n**How it works:** The \"Image\" input goes to \"Pixelate\", which averages each 16 by 16 pixel cell into one color. \"Result\" shows the pixelated image. It runs locally with no model or key.\n\n**Try this:** Raise cell_size on \"Pixelate\" to 32 and check whether text in the image is still readable."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "picture",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The image to pixelate"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 375
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +65,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -62,8 +84,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 383
           },
           "zIndex": 0,
           "width": 280,

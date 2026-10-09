@@ -272,6 +272,7 @@ export const ClipTransitionSection: React.FC<ClipTransitionSectionProps> = memo(
                 value={readNumber(transition, "softness") ?? 0}
                 display={(readNumber(transition, "softness") ?? 0).toFixed(2)}
                 onChange={(softness) => patchField({ softness })}
+                origin={0}
               />
             )}
 

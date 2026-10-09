@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Turn a Talk into a Blog Post\n\nTurns a recorded talk into a written blog post. The agent restructures the content instead of tidying the transcript, so it reads like prose.\n\n**How it works:** \"1 Recording\" takes the video. \"2 Extract audio\" pulls the soundtrack, \"3 Transcribe\" turns speech into English text, and \"4 Agent\" rewrites it as a title, an opening, three headed sections and a close. \"5 Output\" returns the post.\n\n**Try this:** Pick models on \"3 Transcribe\" and \"4 Agent\", then edit the agent's system prompt to ask for five sections."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "recording",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/meeting.mp4"
+          },
           "description": "The recording to work from"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 370
           },
           "zIndex": 0,
           "width": 300,
@@ -42,8 +64,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 394
           },
           "zIndex": 0,
           "width": 300,
@@ -70,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 364
           },
           "zIndex": 0,
           "width": 300,
@@ -105,8 +127,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -124,8 +146,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 1600,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

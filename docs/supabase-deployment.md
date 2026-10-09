@@ -90,7 +90,8 @@ nodetool deploy apply <target-name>
 ```
 
 `apply` recreates the container with the new `container.environment`. For
-Docker Compose, put the variables in `.env` and run `docker compose up -d`. See
+Docker Compose, put the variables in `.env`, which the bundled
+`docker-compose.yml` forwards through `env_file`, and run `docker compose up -d`. See
 [Self-Hosted Deployment](self-hosted-deployment.md#authentication--login-screen).
 
 ---

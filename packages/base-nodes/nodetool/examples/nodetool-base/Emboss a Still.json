@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Emboss a Still\n\nTurns an image into a relief effect. Emboss reads brightness changes rather than colour, so flat areas go grey and only the edges stand out.\n\n**How it works:** \"Image\" passes the picture to \"Emboss\", which applies the relief filter. \"Result\" shows the embossed image. It is local pixel processing with no model or key.\n\n**Try this:** Run it on a photo with strong outlines, such as architecture or text on a sign, and compare it with a soft portrait to see how much the effect depends on edges."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "picture",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The image to emboss"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 371
           },
           "zIndex": 0,
           "width": 280,
@@ -41,8 +63,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -60,8 +82,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 379
           },
           "zIndex": 0,
           "width": 280,

@@ -193,6 +193,32 @@ describe("example workflow inventory", () => {
   });
 });
 
+// CommentNode renders only `comment`, as a Markdown string or a saved Lexical
+// state. A `headline` field is never shown, and a list of strings renders an
+// empty note.
+function isRenderableComment(comment: unknown): boolean {
+  if (typeof comment === "string") return comment.trim().length > 0;
+  return (
+    typeof comment === "object" &&
+    comment !== null &&
+    !Array.isArray(comment) &&
+    "root" in comment
+  );
+}
+
+describe.each(baseWorkflows)("example $fileName", ({ data }) => {
+  it("has an intro comment the canvas can render", () => {
+    const comments = data.graph.nodes.filter(
+      (node) => node.type === "nodetool.workflows.base_node.Comment"
+    );
+    expect(comments.length).toBeGreaterThan(0);
+    for (const comment of comments) {
+      const props = comment.data as Record<string, unknown> | undefined;
+      expect(isRenderableComment(props?.comment)).toBe(true);
+    }
+  });
+});
+
 describe.each(workflows)("workflow $fileName", ({ data, fileName }) => {
   const nodes = data.graph?.nodes ?? [];
   const edges = data.graph?.edges ?? [];

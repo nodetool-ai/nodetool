@@ -15,6 +15,7 @@ import { useDirectGenPendingStore } from "../../../hooks/timeline/directGenPendi
 import { useLineDeliveryRevision } from "../../../hooks/timeline/useLineDeliveryRevision";
 import { useScriptStore, effectiveVoice } from "../../../stores/script/ScriptStore";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
+import { usePersistedFold } from "./usePersistedFold";
 
 interface LineDeliveryPanelProps {
   clipId: string;
@@ -42,6 +43,7 @@ const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
         )
       : false
   );
+  const [open, setOpen] = usePersistedFold("line-delivery", true);
   const [instructions, setInstructions] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +54,8 @@ const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
     return (
       <CollapsibleSection
         title={<InspectorSectionTitle title="Change line delivery" icon={<AutoAwesomeOutlinedIcon />} />}
-        defaultOpen
+        open={open}
+        onToggle={setOpen}
       >
         <EmptyState
           variant="empty"
@@ -81,7 +84,8 @@ const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
   return (
     <CollapsibleSection
       title={<InspectorSectionTitle title="Change line delivery" icon={<AutoAwesomeOutlinedIcon />} />}
-      defaultOpen
+      open={open}
+      onToggle={setOpen}
     >
       <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.md }}>
         <Caption color="secondary">

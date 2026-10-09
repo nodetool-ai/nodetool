@@ -17,17 +17,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Inspect a Clip\n\nReads a clip's header to report its duration. Use it as a cheap check before an expensive generation step, so you know what you have before paying to transform it.\n\n**How it works:** \"Clip\" passes the video to \"Read the header\", which reads its properties without decoding the frames. \"Duration\" shows the length in seconds. It is local processing with no model or key.\n\n**Try this:** Connect another output of \"Read the header\", such as width, height or frame rate, to a new Output node to see more of the clip's properties."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "The clip to inspect"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -43,8 +65,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 390
           },
           "zIndex": 0,
           "width": 280,
@@ -62,8 +84,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 374
           },
           "zIndex": 0,
           "width": 240,

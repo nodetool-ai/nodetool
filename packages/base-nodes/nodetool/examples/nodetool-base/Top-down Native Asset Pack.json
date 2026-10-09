@@ -18,6 +18,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Top-down Native Asset Pack\n\nGenerates sprite sheets, tilesets, images, sound effects and music for a top-down game. Checked assets are staged so you can install them into a game revision.\n\n**How it works:** \"1 Template slots\" streams every slot. Five filters split them by kind, and each branch builds a \"Prompt\" from the slot, \"2 Style entity\" and \"3 Cast entity\", runs \"Generate\", then checks the result. \"27 Every checked fill\" and \"28 One list of fills\" gather everything for \"29 Stage game assets\".\n\n**Try this:** Fill in \"2 Style entity\" and \"3 Cast entity\", and pick a model on each \"Generate\" node."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "template",
         "type": "nodetool.game.LoadGameTemplate",
         "data": {
@@ -26,7 +45,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 400
+            "y": 1026
           },
           "zIndex": 0,
           "width": 240,
@@ -50,8 +69,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 0
+            "x": 340,
+            "y": 821
           },
           "zIndex": 0,
           "width": 240,
@@ -75,8 +94,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 160
+            "x": 340,
+            "y": 1005
           },
           "zIndex": 0,
           "width": 240,
@@ -94,8 +113,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 300,
-            "y": 0
+            "x": 340,
+            "y": 454
           },
           "zIndex": 0,
           "width": 220,
@@ -111,8 +130,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 560,
-            "y": 0
+            "x": 680,
+            "y": 500
           },
           "zIndex": 0,
           "width": 220,
@@ -139,8 +158,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 820,
-            "y": 0
+            "x": 1000,
+            "y": 416
           },
           "zIndex": 0,
           "width": 220,
@@ -156,8 +175,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 0
+            "x": 1320,
+            "y": 482
           },
           "zIndex": 0,
           "width": 200,
@@ -173,8 +192,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 0
+            "x": 1640,
+            "y": 366
           },
           "zIndex": 0,
           "width": 220,
@@ -192,8 +211,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 300,
-            "y": 200
+            "x": 340,
+            "y": 653
           },
           "zIndex": 0,
           "width": 220,
@@ -209,8 +228,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 560,
-            "y": 200
+            "x": 680,
+            "y": 724
           },
           "zIndex": 0,
           "width": 220,
@@ -237,8 +256,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 820,
-            "y": 200
+            "x": 1000,
+            "y": 689
           },
           "zIndex": 0,
           "width": 220,
@@ -254,8 +273,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 200
+            "x": 1320,
+            "y": 803
           },
           "zIndex": 0,
           "width": 200,
@@ -271,8 +290,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 200
+            "x": 1640,
+            "y": 738
           },
           "zIndex": 0,
           "width": 220,
@@ -290,8 +309,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 300,
-            "y": 400
+            "x": 340,
+            "y": 1189
           },
           "zIndex": 0,
           "width": 220,
@@ -307,8 +326,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 560,
-            "y": 400
+            "x": 680,
+            "y": 948
           },
           "zIndex": 0,
           "width": 220,
@@ -335,8 +354,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 820,
-            "y": 400
+            "x": 1000,
+            "y": 968
           },
           "zIndex": 0,
           "width": 220,
@@ -352,8 +371,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 400
+            "x": 1320,
+            "y": 1137
           },
           "zIndex": 0,
           "width": 200,
@@ -369,8 +388,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 400
+            "x": 1640,
+            "y": 1110
           },
           "zIndex": 0,
           "width": 220,
@@ -388,8 +407,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 300,
-            "y": 600
+            "x": 340,
+            "y": 1357
           },
           "zIndex": 0,
           "width": 220,
@@ -405,8 +424,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 560,
-            "y": 600
+            "x": 680,
+            "y": 1172
           },
           "zIndex": 0,
           "width": 220,
@@ -431,8 +450,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 820,
-            "y": 600
+            "x": 1000,
+            "y": 1194
           },
           "zIndex": 0,
           "width": 220,
@@ -448,8 +467,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 600
+            "x": 1320,
+            "y": 1207
           },
           "zIndex": 0,
           "width": 220,
@@ -467,8 +486,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 300,
-            "y": 800
+            "x": 340,
+            "y": 1525
           },
           "zIndex": 0,
           "width": 220,
@@ -484,8 +503,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 560,
-            "y": 800
+            "x": 680,
+            "y": 1396
           },
           "zIndex": 0,
           "width": 220,
@@ -510,8 +529,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 820,
-            "y": 800
+            "x": 1000,
+            "y": 1446
           },
           "zIndex": 0,
           "width": 220,
@@ -529,8 +548,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1080,
-            "y": 800
+            "x": 1320,
+            "y": 1403
           },
           "zIndex": 0,
           "width": 220,
@@ -546,8 +565,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1620,
-            "y": 300
+            "x": 1960,
+            "y": 1003
           },
           "zIndex": 0,
           "width": 220,
@@ -563,8 +582,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1880,
-            "y": 300
+            "x": 2280,
+            "y": 985
           },
           "zIndex": 0,
           "width": 220,
@@ -583,8 +602,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2140,
-            "y": 300
+            "x": 2600,
+            "y": 860
           },
           "zIndex": 0,
           "width": 240,

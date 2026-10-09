@@ -16,7 +16,6 @@ import {
   Caption,
   CollapsibleSection,
   FlexColumn,
-  SPACING,
   TextInput,
   BatchedColorInput
 } from "../../ui_primitives";
@@ -27,8 +26,10 @@ import {
   InspectorRow,
   InspectorSectionTitle,
   InspectorSelect,
-  InspectorToggleRow
+  InspectorToggleRow,
+  INSPECTOR_SECTION_CONTENT_SX
 } from "./InspectorPrimitives";
+import { parseFiniteNumber } from "./InspectorPrimitives.helpers";
 import { FillFields } from "./InspectorMotionFields";
 import { FontPicker } from "./FontPicker";
 
@@ -43,6 +44,27 @@ const VERTICAL_ALIGNMENTS = [
   { value: "middle", label: "Middle" },
   { value: "bottom", label: "Bottom" }
 ] as const;
+
+const FONT_WEIGHTS = [
+  { value: "100", label: "Thin (100)" },
+  { value: "200", label: "Extra light (200)" },
+  { value: "300", label: "Light (300)" },
+  { value: "400", label: "Regular (400)" },
+  { value: "500", label: "Medium (500)" },
+  { value: "600", label: "Semibold (600)" },
+  { value: "700", label: "Bold (700)" },
+  { value: "800", label: "Extra bold (800)" },
+  { value: "900", label: "Black (900)" }
+] as const;
+
+/**
+ * The weight menu, plus the stored weight when it is off the 100 grid (an
+ * agent or an import can write 450), so the select still shows what renders.
+ */
+const fontWeightOptions = (weight: number) =>
+  FONT_WEIGHTS.some((option) => option.value === String(weight))
+    ? FONT_WEIGHTS
+    : [...FONT_WEIGHTS, { value: String(weight), label: `Custom (${weight})` }];
 
 const FONT_STYLES = [
   { value: "normal", label: "Normal" },
@@ -137,16 +159,16 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
     );
     const handleFontSizeCommit = useCallback(
       (raw: string) => {
-        const fontSizePx = Number(raw);
-        if (!Number.isFinite(fontSizePx) || fontSizePx < 1) return;
+        const fontSizePx = parseFiniteNumber(raw);
+        if (fontSizePx === null || fontSizePx < 1) return;
         patchStyle({ fontSizePx });
       },
       [patchStyle]
     );
-    const handleFontWeightCommit = useCallback(
+    const handleFontWeightChange = useCallback(
       (raw: string) => {
-        const fontWeight = Number(raw);
-        if (!Number.isFinite(fontWeight) || fontWeight < 1) return;
+        const fontWeight = parseFiniteNumber(raw);
+        if (fontWeight === null || fontWeight < 1) return;
         patchStyle({ fontWeight });
       },
       [patchStyle]
@@ -175,16 +197,16 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
     );
     const handleLetterSpacingCommit = useCallback(
       (raw: string) => {
-        const letterSpacingPx = Number(raw);
-        if (!Number.isFinite(letterSpacingPx)) return;
+        const letterSpacingPx = parseFiniteNumber(raw);
+        if (letterSpacingPx === null) return;
         patchStyle({ letterSpacingPx });
       },
       [patchStyle]
     );
     const handleLineHeightCommit = useCallback(
       (raw: string) => {
-        const lineHeight = Number(raw);
-        if (!Number.isFinite(lineHeight) || lineHeight <= 0) return;
+        const lineHeight = parseFiniteNumber(raw);
+        if (lineHeight === null || lineHeight <= 0) return;
         patchStyle({ lineHeight });
       },
       [patchStyle]
@@ -206,8 +228,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
     );
     const handleStrokeWidthCommit = useCallback(
       (raw: string) => {
-        const widthPx = Number(raw);
-        if (!Number.isFinite(widthPx) || widthPx < 0) return;
+        const widthPx = parseFiniteNumber(raw);
+        if (widthPx === null || widthPx < 0) return;
         patchStroke({ widthPx });
       },
       [patchStroke]
@@ -224,24 +246,24 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
     );
     const handleShadowBlurCommit = useCallback(
       (raw: string) => {
-        const blurPx = Number(raw);
-        if (!Number.isFinite(blurPx) || blurPx < 0) return;
+        const blurPx = parseFiniteNumber(raw);
+        if (blurPx === null || blurPx < 0) return;
         patchShadow({ blurPx });
       },
       [patchShadow]
     );
     const handleShadowOffsetXCommit = useCallback(
       (raw: string) => {
-        const offsetX = Number(raw);
-        if (!Number.isFinite(offsetX)) return;
+        const offsetX = parseFiniteNumber(raw);
+        if (offsetX === null) return;
         patchShadow({ offsetX });
       },
       [patchShadow]
     );
     const handleShadowOffsetYCommit = useCallback(
       (raw: string) => {
-        const offsetY = Number(raw);
-        if (!Number.isFinite(offsetY)) return;
+        const offsetY = parseFiniteNumber(raw);
+        if (offsetY === null) return;
         patchShadow({ offsetY });
       },
       [patchShadow]
@@ -259,16 +281,16 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
     );
     const handleBackgroundPaddingCommit = useCallback(
       (raw: string) => {
-        const paddingPx = Number(raw);
-        if (!Number.isFinite(paddingPx) || paddingPx < 0) return;
+        const paddingPx = parseFiniteNumber(raw);
+        if (paddingPx === null || paddingPx < 0) return;
         patchBackground({ paddingPx });
       },
       [patchBackground]
     );
     const handleBackgroundRadiusCommit = useCallback(
       (raw: string) => {
-        const radiusPx = Number(raw);
-        if (!Number.isFinite(radiusPx) || radiusPx < 0) return;
+        const radiusPx = parseFiniteNumber(raw);
+        if (radiusPx === null || radiusPx < 0) return;
         patchBackground({ radiusPx });
       },
       [patchBackground]
@@ -284,7 +306,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
           onToggle={setOpen}
           unmountOnExit
         >
-          <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs, pl: SPACING.xxxl }}>
+          <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
             <TextInput
               value={textStyle.text}
               multiline
@@ -310,10 +332,11 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
               />
             </InspectorRow>
             <InspectorRow label="Weight">
-              <InspectorPillInput
+              <InspectorSelect
+                label="Text font weight"
                 value={String(textStyle.fontWeight ?? 400)}
-                onCommit={handleFontWeightCommit}
-                ariaLabel="Text font weight"
+                options={fontWeightOptions(textStyle.fontWeight ?? 400)}
+                onChange={handleFontWeightChange}
               />
             </InspectorRow>
             <InspectorRow label="Style">
@@ -482,7 +505,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
               onChange={handleFillChange}
             />
             <Caption color="muted">
-              A gradient fill is drawn instead of the colour above.
+              A gradient fill is drawn instead of the color above.
             </Caption>
           </FlexColumn>
         </CollapsibleSection>

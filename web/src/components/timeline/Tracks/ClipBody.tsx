@@ -28,6 +28,9 @@ import {
   getSpacingPx,
   MagicGenerationFill,
   FONT_SIZE_MONO,
+  FONT_SIZE_SANS,
+  FONT_WEIGHT,
+  TYPOGRAPHY,
   MOTION,
   Z_INDEX
 } from "../../ui_primitives";
@@ -156,8 +159,8 @@ const clipDotStyles = (accent: string) =>
 
 const clipNameStyles = (theme: Theme) =>
   css({
-    fontSize: "var(--fontSizeSmaller)",
-    fontWeight: 500,
+    fontSize: FONT_SIZE_SANS.caption,
+    fontWeight: FONT_WEIGHT.medium,
     letterSpacing: "-0.005em",
     color: theme.vars.palette.text.primary,
     whiteSpace: "nowrap",
@@ -173,10 +176,9 @@ const clipNameStyles = (theme: Theme) =>
 const clipDurationStyles = (theme: Theme) =>
   css({
     flexShrink: 0,
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: "var(--fontSizeSmaller)",
-    fontWeight: 500,
+    fontFamily: TYPOGRAPHY.mono.caption.fontFamily,
+    fontSize: FONT_SIZE_MONO.caption,
+    fontWeight: FONT_WEIGHT.medium,
     color: theme.vars.palette.text.secondary,
     letterSpacing: "0",
     textShadow: `0 1px 2px ${theme.vars.palette.c_scrim}`
@@ -390,10 +392,9 @@ const transitionWedgeStyles = (theme: Theme, tint: string, accent: string) =>
       position: "absolute",
       left: getSpacingPx(SPACING.sm),
       bottom: getSpacingPx(SPACING.xs),
-      fontFamily:
-        "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+      fontFamily: TYPOGRAPHY.mono.caption.fontFamily,
       fontSize: FONT_SIZE_MONO.caption,
-      fontWeight: 500,
+      fontWeight: FONT_WEIGHT.medium,
       lineHeight: 1,
       color: theme.vars.palette.text.secondary,
       textShadow: `0 1px 2px ${theme.vars.palette.c_scrim}`,
@@ -414,7 +415,14 @@ const keyframeDiamondStyles = (theme: Theme) =>
     border: `1px solid ${theme.vars.palette.background.paper}`,
     cursor: "pointer",
     padding: 0,
-    zIndex: Z_INDEX.base + 3
+    zIndex: Z_INDEX.base + 3,
+    // 7px is too small to hit reliably; widen the target, not the diamond,
+    // the same way the fade handles do.
+    "&::after": {
+      content: '""',
+      position: "absolute",
+      inset: -6
+    }
   });
 
 /**
@@ -876,6 +884,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         role="option"
         tabIndex={0}
         aria-label={clip.name || `Clip ${clip.id}`}
+        title={displayName || undefined}
       >
         {filmstripCells && (
           <div css={filmstripStyles}>

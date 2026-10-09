@@ -188,8 +188,14 @@ export const getSharedSettingsStyles = (theme: Theme): CSSObject => ({
     zIndex: Z_INDEX.sticky,
     padding: `${SPACING.sm + 0.25}em 0`,
     display: "flex",
+    alignItems: "center",
     justifyContent: "flex-end",
-    background: `linear-gradient(transparent, ${theme.vars.palette.background.default} 30%)`
+    gap: getSpacingPx(SPACING.md),
+    background: `linear-gradient(transparent, ${theme.vars.palette.background.default} 30%)`,
+    ".save-bar-message": {
+      marginRight: "auto",
+      color: theme.vars.palette.text.secondary
+    }
   },
 
   ".save-button": {
@@ -305,6 +311,11 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
         fontSize: theme.fontSizeSmall
       }
     }
+  },
+  ".settings-autosave-note": {
+    display: "block",
+    margin: `0 0 ${getSpacingPx(SPACING.md)}`,
+    color: theme.vars.palette.text.secondary
   },
   ".settings-search-alts": {
     display: "flex",

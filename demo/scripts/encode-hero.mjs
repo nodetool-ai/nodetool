@@ -7,7 +7,7 @@
 // `remotion render` writes visually lossless masters (a 22 s reel comes out
 // around 12 MB); the hero autoplays on first paint, so it ships re-encoded at
 // roughly a third of that, in both codecs, with the WebP posters the
-// <img> srcSet needs. Reads `out/hero-project*.mp4`, `out/sizzle.mp4`, `out/heroflow.mp4` and `out/redo.mp4`, and
+// <img> srcSet needs. Reads `out/hero-project*.mp4`, `out/sizzle.mp4`, `out/heroflow.mp4`, `out/nodes-hero.mp4` and `out/redo.mp4`, and
 // writes into `marketing/public/`.
 //
 // ffmpeg comes from Remotion's bundled binary, so this needs nothing on PATH
@@ -111,6 +111,9 @@ const REELS = [
   // The agents section: the wide shot of the board after the redo, with the
   // night card among five unchanged ones.
   { master: "redo", slug: "agent-redo", frame: 395, widths: [[1920, ""], [960, "-960"]] },
+  // The /node-based-workflows hero (src/nodeshero), posted mid-run with
+  // stills and clips in their nodes.
+  { master: "nodes-hero", slug: "hero-nodes", frame: 330, widths: [[1920, ""], [960, "-960"]] },
   // The developers page: an agent session making the Kindle game's assets.
   // It plays with controls and sound. The poster is the hero mid-run.
   { master: "vibe-race", slug: "vibe-race", frame: 1515, fps: 60, audio: true, widths: [[1920, ""], [960, "-960"]] }

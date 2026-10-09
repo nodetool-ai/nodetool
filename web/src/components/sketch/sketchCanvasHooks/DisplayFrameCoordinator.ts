@@ -188,7 +188,6 @@ export class DisplayFrameCoordinator {
   private rafId: number | null = null;
   private pendingFullRedraw = false;
   private pendingDirty: { x: number; y: number; w: number; h: number } | null = null;
-  private hasLiveBufferedStroke = false;
 
   // ── Callbacks (wired after mount) ──────────────────────────────────
   private callbacks: FrameCoordinatorCallbacks | null = null;
@@ -276,11 +275,6 @@ export class DisplayFrameCoordinator {
     this.backend = backend;
   }
 
-  // ─── Stroke tracking ─────────────────────────────────────────────
-  setHasLiveBufferedStroke(active: boolean): void {
-    this.hasLiveBufferedStroke = active;
-  }
-
   // ─── Frame requests ───────────────────────────────────────────────
 
   /**
@@ -316,15 +310,24 @@ export class DisplayFrameCoordinator {
       return;
     }
     // Cancel any pending rAF — immediate wins.
+    // This frame replaces the scheduled one, so it must also cover whatever
+    // that frame was going to repaint.
+    let dirtyRect = request.dirtyRect ?? null;
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
+      if (this.pendingFullRedraw) {
+        dirtyRect = null;
+      } else if (dirtyRect && this.pendingDirty) {
+        this.mergeDirty(dirtyRect);
+        dirtyRect = this.pendingDirty;
+      }
     }
     this.pendingFullRedraw = false;
     this.pendingDirty = null;
 
     this.callbacks.drainPendingStroke();
-    const didComposite = this.callbacks.compositeImmediate(request.dirtyRect);
+    const didComposite = this.callbacks.compositeImmediate(dirtyRect);
     if (didComposite !== false) {
       this.onFrameComposited();
     }
@@ -356,9 +359,8 @@ export class DisplayFrameCoordinator {
 
       this.callbacks.drainPendingStroke();
 
-      const useFull = isFull || !dirty || this.hasLiveBufferedStroke;
       const didComposite = this.callbacks.compositeImmediate(
-        useFull ? null : dirty
+        isFull ? null : dirty
       );
       if (didComposite !== false) {
         this.onFrameComposited();

@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Write a Listing from the Product Photo",
   "tool_name": null,
-  "description": "Hand the model the photograph rather than a description of it. Marketplace copy written from the actual image catches details a spec sheet omits \u2014 finish, proportion, what it sits next to.",
+  "description": "Hand the model the photograph rather than a description of it. Marketplace copy written from the actual image catches details a spec sheet omits — finish, proportion, what it sits next to.",
   "tags": [
     "text",
     "image",
@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Write a Listing from the Product Photo\n\nWrites a marketplace listing from the product photo itself. Working from the image catches details a spec sheet leaves out, such as finish and proportion.\n\n**How it works:** Drop the photo into \"1 Photo\". \"2 Copywriter\" looks at it and writes a title under 70 characters and a description of about 80 words, without superlatives or invented specs. \"3 Listing\" returns the text.\n\n**Try this:** Pick a vision-capable model on \"2 Copywriter\" and change its prompt to ask for five bullet points instead."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
           "name": "photo",
-          "value": null,
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+          },
           "description": "The product photo"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 370
           },
           "zIndex": 0,
           "width": 300,
@@ -60,8 +82,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -79,8 +101,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Trim a Clip\n\nCuts a video down to an in point and an out point. It runs locally through ffmpeg, so there is no API key and no per-run cost.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Trim\" keeps the part from 1.0 to 5.0 seconds, with accurate turned on so the cut lands on the exact frame instead of the nearest keyframe. \"3 Result\" returns the shorter clip.\n\n**Try this:** Turn off accurate on \"2 Trim\" for a faster cut that snaps to keyframes."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "clip",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+          },
           "description": "The clip to process"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 180
+            "y": 327
           },
           "zIndex": 0,
           "width": 280,
@@ -46,8 +68,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 180
+            "x": 380,
+            "y": 351
           },
           "zIndex": 0,
           "width": 280,
@@ -65,8 +87,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 720,
-            "y": 200
+            "x": 760,
+            "y": 335
           },
           "zIndex": 0,
           "width": 240,

@@ -46,6 +46,28 @@ export const INSPECTOR_ROW_BUTTON_SX = {
   height: CONTROL.height.xs
 } as const;
 
+/**
+ * Body of a collapsible inspector section: rows indented past the section
+ * icon, with one gap between them. `sectionContentStyles` is the Emotion form
+ * for files that use the `css` prop; `INSPECTOR_SECTION_CONTENT_SX` is the same
+ * box as an `sx` object. Keep the two in step.
+ */
+export const sectionContentStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexDirection: "column",
+    gap: getSpacingPx(SPACING.micro),
+    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md, SPACING.xxxl)
+  });
+
+export const INSPECTOR_SECTION_CONTENT_SX = {
+  gap: SPACING.micro,
+  pt: SPACING.micro,
+  pr: SPACING.none,
+  pb: SPACING.md,
+  pl: SPACING.xxxl
+} as const;
+
 // ── Header ─────────────────────────────────────────────────────────────────
 
 const headerStyles = css({
@@ -74,8 +96,8 @@ const headerActionsStyles = css({
 
 const headerIconButtonStyles = (theme: Theme) =>
   css({
-    width: 24,
-    height: 20,
+    width: CONTROL.height.xs,
+    height: CONTROL.height.xs,
     background: "transparent",
     border: "1px solid transparent",
     color: theme.vars.palette.text.secondary,
@@ -383,11 +405,17 @@ interface InspectorSliderRowProps {
    * neutral point, and double-clicking the rail resets the value to it.
    */
   origin?: number;
+  /**
+   * Double-click reset target when the default sits at an end of the range
+   * (opacity 1, strength 1) and a fill from that end would read backwards.
+   * Defaults to `origin`.
+   */
+  resetValue?: number;
 }
 
 /** Label + full-width precision slider + mono value readout. */
 export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
-  ({ label, value, display, min, max, step, disabled, onChange, origin }) => {
+  ({ label, value, display, min, max, step, disabled, onChange, origin, resetValue }) => {
     const theme = useTheme();
     const sliderSx = useMemo(() => precisionSliderSx(theme), [theme]);
     const gesture = useBatchedGesture(onChange);
@@ -421,9 +449,10 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
     } as React.CSSProperties;
 
     // Double-click reset is a single, discrete write — left un-batched.
+    const resetTarget = resetValue ?? origin;
     const handleReset = useCallback(() => {
-      if (origin !== undefined) onChange(origin);
-    }, [origin, onChange]);
+      if (resetTarget !== undefined && !disabled) onChange(resetTarget);
+    }, [resetTarget, disabled, onChange]);
 
     // Dragging the slider re-renders this row once per animation frame.
     const rowCss = useMemo(() => sliderRowStyles(theme), [theme]);
@@ -438,7 +467,7 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
         <div
           css={sliderTrackStyles}
           style={fillVars}
-          onDoubleClick={origin !== undefined ? handleReset : undefined}
+          onDoubleClick={resetTarget !== undefined ? handleReset : undefined}
         >
           <NodeSlider
             min={min}
@@ -470,22 +499,26 @@ const sectionTitleStyles = (theme: Theme, dimmed: boolean) =>
     minWidth: 0,
     gap: getSpacingPx(SPACING.sm),
     color: dimmed
-      ? theme.vars.palette.text.disabled
+      ? theme.vars.palette.text.secondary
       : theme.vars.palette.text.primary,
     ...TYPOGRAPHY.sans.label,
     letterSpacing: "0.06em",
     textTransform: "uppercase",
     transition: `color ${MOTION.fast}`,
-    // Reset action stays hidden until the header is hovered or the button
-    // itself is keyboard-focused (FCP reveals per-section controls on hover).
+    // The reset action stays visible at half strength so it can be found
+    // without hovering, and goes to full strength on header hover or keyboard
+    // focus. Touch screens have no hover, so they always show it in full.
     "& .inspector-section-action": {
-      opacity: 0,
+      opacity: 0.5,
       transition: `opacity ${MOTION.fast}`
     },
     "&:hover .inspector-section-action, & .inspector-section-action:focus-visible":
       {
         opacity: 1
-      }
+      },
+    "@media (hover: none)": {
+      "& .inspector-section-action": { opacity: 1 }
+    }
   });
 
 const sectionTitleIconStyles = (theme: Theme) =>
@@ -495,39 +528,60 @@ const sectionTitleIconStyles = (theme: Theme) =>
     "& svg": { fontSize: FONT_SIZE_SANS.caption }
   });
 
+/**
+ * The activation checkbox keeps its small visual box (drawn by `::before`)
+ * inside a 24px button, so the hit target meets the minimum without the
+ * header growing. Negative margins stop the larger box from shifting the
+ * title.
+ */
+const CHECKBOX_BOX = 13;
+const CHECKBOX_INSET = (CONTROL.height.xs - CHECKBOX_BOX) / 2;
+
 const sectionCheckboxStyles = (theme: Theme, checked: boolean) =>
   css({
-    width: 13,
-    height: 13,
+    position: "relative",
+    width: CONTROL.height.xs,
+    height: CONTROL.height.xs,
+    margin: -CHECKBOX_INSET,
     flexShrink: 0,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     padding: 0,
     cursor: "pointer",
-    borderRadius: BORDER_RADIUS.xs,
-    border: `1px solid ${
-      checked
-        ? theme.vars.palette.primary.main
-        : theme.vars.palette.c_overlay_strong
-    }`,
-    backgroundColor: checked ? theme.vars.palette.primary.main : "transparent",
+    border: "none",
+    background: "transparent",
     color: theme.vars.palette.primary.contrastText,
-    transition: `background-color ${MOTION.fast}, border-color ${MOTION.fast}`,
-    "&:hover": {
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      inset: CHECKBOX_INSET,
+      boxSizing: "border-box",
+      borderRadius: BORDER_RADIUS.xs,
+      border: `1px solid ${
+        checked
+          ? theme.vars.palette.primary.main
+          : theme.vars.palette.c_overlay_strong
+      }`,
+      backgroundColor: checked ? theme.vars.palette.primary.main : "transparent",
+      transition: `background-color ${MOTION.fast}, border-color ${MOTION.fast}`
+    },
+    "&:hover::before": {
       borderColor: theme.vars.palette.primary.main
     },
     "&:focus-visible": {
-      outline: "none",
+      outline: "none"
+    },
+    "&:focus-visible::before": {
       boxShadow: `0 0 0 2px rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`
     },
-    "& svg": { fontSize: FONT_SIZE_SANS.caption }
+    "& svg": { position: "relative", fontSize: FONT_SIZE_SANS.caption }
   });
 
 const sectionActionStyles = (theme: Theme) =>
   css({
-    width: 22,
-    height: 18,
+    width: CONTROL.height.xs,
+    height: CONTROL.height.xs,
     flexShrink: 0,
     background: "transparent",
     border: "1px solid transparent",

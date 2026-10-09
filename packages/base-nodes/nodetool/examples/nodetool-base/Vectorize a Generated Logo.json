@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Vectorize a Generated Logo\n\nGenerates a flat logo mark and traces it into vector art. Image generators only produce pixels, so drawing and tracing are separate steps.\n\n**How it works:** \"1 Prompt\" describes a two-color fox head logo. \"2 Draw the mark\" generates a square image from it, \"3 Trace to SVG\" converts that image into vector paths, and \"4 SVG out\" returns the SVG.\n\n**Try this:** Pick a model on \"2 Draw the mark\" and rewrite \"1 Prompt\" for your own mark, keeping the flat colors and solid background."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "p",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 381
           },
           "zIndex": 0,
           "width": 280,
@@ -53,8 +72,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -79,8 +98,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 346
           },
           "zIndex": 0,
           "width": 280,
@@ -98,8 +117,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 359
           },
           "zIndex": 0,
           "width": 280,

@@ -16,17 +16,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Summarise a Recorded Call\n\nTurns a recorded call into a short summary of decisions, open questions, and next steps. Someone who missed the call can read it instead of listening again.\n\n**How it works:** \"Recording\" takes the video of the call. \"Extract audio\" pulls out the soundtrack, and \"Transcribe\" converts it to English text. \"Agent\" writes the three labelled sections, and \"Output\" returns the summary.\n\n**Try this:** Pick models on \"Transcribe\" and \"Agent\", then add an \"Owners\" section to the system prompt on \"Agent\" so each next step names a person."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 266
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.VideoInput",
         "data": {
           "name": "recording",
-          "value": null,
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/meeting.mp4"
+          },
           "description": "The recording to work from"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 370
           },
           "zIndex": 0,
           "width": 300,
@@ -42,8 +64,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 394
           },
           "zIndex": 0,
           "width": 300,
@@ -70,8 +92,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 364
           },
           "zIndex": 0,
           "width": 300,
@@ -105,8 +127,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 346
           },
           "zIndex": 0,
           "width": 300,
@@ -124,8 +146,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 1600,
+            "y": 378
           },
           "zIndex": 0,
           "width": 300,

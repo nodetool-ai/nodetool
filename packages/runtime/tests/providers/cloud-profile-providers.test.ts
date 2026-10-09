@@ -11,6 +11,7 @@ const CLOUD = [
   "xai",
   "openrouter",
   "requesty",
+  "opper",
   "fal_ai",
   "kie",
   "replicate",

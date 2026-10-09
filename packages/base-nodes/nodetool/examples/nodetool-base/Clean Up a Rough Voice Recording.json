@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Clean Up a Rough Voice Recording",
   "tool_name": null,
-  "description": "The repair chain for a recording made in a real room: gate the noise floor, cut the rumble below speech, even out the level, then stop it clipping. Every step is cheap and local \u2014 no model involved.",
+  "description": "The repair chain for a recording made in a real room: gate the noise floor, cut the rumble below speech, even out the level, then stop it clipping. Every step is cheap and local — no model involved.",
   "tags": [
     "audio",
     "example"
@@ -15,17 +15,39 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Clean Up a Rough Voice Recording\n\nRepairs a voice recording made in an ordinary room. Every step is local signal processing with no model.\n\n**How it works:** \"1 Recording\" takes the audio. \"2 Gate\" silences noise below -48 dB, \"3 Cut rumble\" removes everything under 90 Hz, \"4 Even it out\" compresses at a 3:1 ratio, and \"5 Limit\" caps peaks at -1 dB. \"6 Cleaned\" plays the result.\n\n**Try this:** If quiet words get cut off, lower threshold_db on \"2 Gate\" to -55."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 247
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.AudioInput",
         "data": {
           "name": "audio",
-          "value": null,
+          "value": {
+            "type": "audio",
+            "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+          },
           "description": "The rough recording"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 362
           },
           "zIndex": 0,
           "width": 300,
@@ -45,8 +67,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 383
           },
           "zIndex": 0,
           "width": 300,
@@ -64,8 +86,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 383
           },
           "zIndex": 0,
           "width": 300,
@@ -87,8 +109,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 327
           },
           "zIndex": 0,
           "width": 300,
@@ -108,8 +130,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 0,
-            "y": 330
+            "x": 1600,
+            "y": 369
           },
           "zIndex": 0,
           "width": 300,
@@ -127,8 +149,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 330
+            "x": 2000,
+            "y": 421
           },
           "zIndex": 0,
           "width": 300,

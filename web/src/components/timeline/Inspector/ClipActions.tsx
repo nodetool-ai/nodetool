@@ -15,14 +15,14 @@ import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
-import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast } from "../../ui_primitives";
+import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast, SPACING } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 const actionsRowStyles = (theme: Theme) =>
   css({
-    padding: theme.spacing(0.5, 1),
-    gap: theme.spacing(0.5),
+    padding: theme.spacing(SPACING.micro, SPACING.xs),
+    gap: theme.spacing(SPACING.micro),
     flexWrap: "wrap",
     alignItems: "center"
   });
@@ -165,8 +165,8 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
             }
             tooltip={
               clip.locked
-                ? "Locked — successful generations do not replace current output"
-                : "Unlocked — successful generations replace current output"
+                ? "Locked: timing is frozen and successful generations do not replace the current output"
+                : "Unlocked: lock to freeze timing and keep successful generations from replacing the current output"
             }
             active={clip.locked}
             onClick={handleToggleLock}
@@ -176,7 +176,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
 
           <ToolbarIconButton
             icon={<ImageIcon fontSize="small" />}
-            tooltip="Replace Output… — pick an existing asset without regenerating"
+            tooltip="Replace output… Pick an existing asset without regenerating"
             onClick={handleOpenReplace}
             aria-label="Replace clip output"
             data-testid="clip-action-replace-output"
@@ -185,7 +185,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
           {clip.workflowId && sequenceId && (
             <ToolbarIconButton
               icon={<OpenInNewIcon fontSize="small" />}
-              tooltip="Open in Node Editor"
+              tooltip="Open in node editor"
               onClick={handleOpenInNodeEditor}
               aria-label="Open clip workflow in node editor"
               data-testid="clip-action-open-in-editor"
@@ -193,18 +193,18 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
           )}
         </FlexRow>
 
-        {/* Replace Output dialog */}
+        {/* Replace output dialog */}
         <Dialog
           open={replaceOpen}
           onClose={handleCancelReplace}
-          title="Replace Output"
+          title="Replace output"
           onConfirm={handleConfirmReplace}
           onCancel={handleCancelReplace}
           confirmText="Replace"
           cancelText="Cancel"
           showActions
         >
-          <Text size="small" sx={{ mb: 1 }}>
+          <Text size="small" sx={{ mb: SPACING.xs }}>
             Enter the asset ID to use as the clip&apos;s current output. The
             generation state and param overrides will not be changed.
           </Text>

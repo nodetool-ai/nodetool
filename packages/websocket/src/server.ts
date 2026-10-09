@@ -15,8 +15,8 @@ import {
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
+import { flushCompileCache } from "node:module";
 import crypto from "node:crypto";
 import {
   createLogger,
@@ -36,6 +36,10 @@ import {
 import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import { isPublicAuthExemptRoute } from "./lib/public-routes.js";
+import {
+  matchesServerAuthToken,
+  resolveServerAuthToken
+} from "./lib/server-auth-token.js";
 import {
   isWebSocketUpgrade,
   denyUnauthorized,
@@ -203,12 +207,14 @@ import kieWebhookRoute from "./routes/kie-webhook.js";
 import falWebhookRoute from "./routes/fal-webhook.js";
 import atlasCloudWebhookRoute from "./routes/atlascloud-webhook.js";
 import { createIntegrationRoutes } from "./routes/integrations.js";
-import { isNonEmptyString, isString } from "./lib/wire-values.js";
+import { isString } from "./lib/wire-values.js";
 import {
   logTrpcRequestError,
   traceTrpcRequestError
 } from "./trpc/error-logging.js";
 import { captureError, startErrorTraceMaintenance } from "./error-traces.js";
+import { detectPipMetadataRoots } from "./lib/python-metadata-roots.js";
+import { getSetting } from "./settings-registry.js";
 
 /** The Node `process` as Electron extends it. `type` is absent elsewhere. */
 type ElectronProcess = typeof process & { readonly type?: string };
@@ -247,6 +253,10 @@ const log = createLogger("nodetool.websocket.server");
 // initialises eagerly, but an explicit call here picks up any env mutations
 // made by the process launcher before this point).
 configureLogging();
+
+// The Python interpreter scan runs while telemetry starts and the database
+// opens and migrates. The node registry below is the first reader.
+const pipMetadataRoots = detectPipMetadataRoots();
 
 await ensureRunTraceTelemetry();
 const startupT0 = performance.now();
@@ -461,73 +471,7 @@ try {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Python pip metadata root detection
-// ---------------------------------------------------------------------------
-
-function detectPipMetadataRoots(): string[] {
-  const script = `
-import json, pathlib, subprocess, sys
-roots = set()
-try:
-    # Discover all nodetool-* packages
-    list_proc = subprocess.run(
-        [sys.executable, "-m", "pip", "list", "--format=json"],
-        capture_output=True, text=True, check=False,
-    )
-    pkg_names = [
-        p["name"] for p in json.loads(list_proc.stdout or "[]")
-        if p["name"].startswith("nodetool-")
-    ] or ["nodetool-core", "nodetool-base"]
-    proc = subprocess.run(
-        [sys.executable, "-m", "pip", "show", "-f"] + pkg_names,
-        capture_output=True, text=True, check=False,
-    )
-    output = proc.stdout or ""
-except Exception:
-    output = ""
-location = None
-in_files = False
-for raw in output.splitlines():
-    line = raw.rstrip("\\n")
-    if line.startswith("Name: "):
-        location = None; in_files = False; continue
-    if line.startswith("Location: "):
-        location = line.split(":", 1)[1].strip(); continue
-    if line.startswith("Editable project location: "):
-        editable = line.split(":", 1)[1].strip()
-        if editable: roots.add(editable)
-        continue
-    if line.startswith("Files:"): in_files = True; continue
-    if line.startswith("---"):
-        location = None; in_files = False; continue
-    if not in_files or not location or not line.startswith("  "): continue
-    rel = line.strip().replace("\\\\", "/")
-    if "package_metadata" not in rel: continue
-    abs_path = (pathlib.Path(location) / rel).resolve()
-    metadata_dir = abs_path if abs_path.is_dir() else abs_path.parent
-    roots.add(str(metadata_dir))
-print(json.dumps(sorted(roots)))
-`;
-  for (const python of ["python3", "python"]) {
-    const proc = spawnSync(python, ["-c", script], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"]
-    });
-    if (proc.status !== 0 || !proc.stdout) continue;
-    try {
-      const roots = JSON.parse(proc.stdout.trim()) as string[];
-      if (Array.isArray(roots)) {
-        return roots.filter((p) => isNonEmptyString(p) && existsSync(p));
-      }
-    } catch {
-      // try next python executable
-    }
-  }
-  return [];
-}
-
-const metadataRoots = detectPipMetadataRoots();
+const metadataRoots = await pipMetadataRoots;
 
 // Also scan local TS node packages that have nodetool/package_metadata
 const localPackagesDir = resolve(
@@ -990,6 +934,19 @@ const trustLocalNetworks = enforceAuth
   ? []
   : parseTrustedLocalNetworks(process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]);
 
+// The bearer token `nodetool deploy` starts a container with. Local mode only,
+// like the trusted networks above: Supabase mode needs a real login.
+const serverAuthToken = enforceAuth
+  ? null
+  : resolveServerAuthToken(process.env["SERVER_AUTH_TOKEN"]);
+
+if (enforceAuth && process.env["SERVER_AUTH_TOKEN"]) {
+  log.warn(
+    "SERVER_AUTH_TOKEN is set while auth is enforced (Supabase mode); it is " +
+      "ignored. Clients must sign in."
+  );
+}
+
 if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
   log.warn(
     "NODETOOL_TRUST_LOCAL_NETWORKS is set while auth is enforced (Supabase " +
@@ -1232,6 +1189,12 @@ app.addHook("onRequest", async (req, reply) => {
       return;
     }
     req.userId = result.userId ?? null;
+    req.authToken = token;
+    return;
+  }
+
+  if (matchesServerAuthToken(token, serverAuthToken)) {
+    req.userId = "1";
     req.authToken = token;
     return;
   }
@@ -1895,6 +1858,10 @@ app.listen({ port, host }, (err) => {
   log.info(
     `WebSocket endpoint: ${tlsEnabled ? "wss" : "ws"}://${host}:${port}/ws`
   );
+  // When the launcher sets NODE_COMPILE_CACHE, Node writes the V8 code cache
+  // only on a clean exit. Writing it once startup has compiled the server keeps
+  // it for the next start even when this process is killed. No-op otherwise.
+  flushCompileCache();
 });
 
 // ---------------------------------------------------------------------------
@@ -2054,8 +2021,16 @@ if (process.platform === "win32") {
   process.on("SIGBREAK", () => void shutdown("SIGBREAK"));
 }
 
-// Start Python bridge eagerly if a worker is available.
-if (pythonBridge.isAvailable()) {
+// Start the Python bridge eagerly if a worker is available, unless the user
+// chose to start it on first use. Runs that need it start it through
+// `ensurePythonBridge` either way.
+const pythonOnDemand =
+  (await getSetting("NODETOOL_PYTHON_ON_DEMAND")) === "true";
+if (pythonBridge.isAvailable() && pythonOnDemand) {
+  log.info(
+    "Python bridge starts on first use (NODETOOL_PYTHON_ON_DEMAND=true)"
+  );
+} else if (pythonBridge.isAvailable()) {
   log.info(`Starting Python bridge eagerly [${startupMs()}]`);
   pythonBridge
     .ensureConnected()

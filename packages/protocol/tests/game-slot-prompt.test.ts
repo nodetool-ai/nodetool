@@ -209,6 +209,18 @@ describe("slotPrompt entity seasoning", () => {
     expect(hits).toBe(1);
   });
 
+  it("hands the generator the cast's reference images after the style's", () => {
+    const styleImage = { type: "image" as const, asset_id: "style-img", uri: "asset://style-img.png" };
+    const pipImage = { type: "image" as const, asset_id: "pip-img", uri: "asset://pip-img.png" };
+    const result = slotPrompt(
+      slot("player"),
+      { ...CAVE_PIXEL, reference_images: [styleImage] },
+      [{ ...PIP, reference_images: [pipImage] }]
+    );
+    expect(result.referenceImages).toEqual([styleImage, pipImage]);
+    expect(result.referenceAssetId).toBe("style-img");
+  });
+
   it("leaves the prompt unseasoned when nothing applies", () => {
     const plain = slotPrompt(slot("music.level"), null, []).prompt;
     expect(plain).not.toContain("Consistency references");

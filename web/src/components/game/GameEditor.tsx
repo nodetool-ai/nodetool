@@ -6,7 +6,6 @@ import type { GameDocument, GameEntity } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { trpc, trpcClient } from "../../trpc/client";
-import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
@@ -29,6 +28,9 @@ import GameSceneTree from "./panels/hierarchy/GameSceneTree";
 import GameRuntimeInspector from "./panels/inspector/GameRuntimeInspector";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
 import GameEditorShell from "./shell/GameEditorShell";
+import type { GameCommandHandler, GameCommandHandlers } from "./shell/gameCommands";
+import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
+import { gamePlaytestPrompt, gameScriptErrorPrompt, gameSelectionPrompt } from "./gameAssistantPrompt";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
 import GameViewport from "./viewport2d/GameViewport";
@@ -71,13 +73,14 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const diagnostics = useGameScriptDiagnostics(document, openGameDiagnosticSession2D);
   const scriptError = diagnostics.error ?? hostScriptError;
   const layoutStore = useGamePanelLayoutStore();
+  const assistant = useGameAssistantDraft(layoutStore);
+  const canUndo = useStore(getGameDraftStore(refId), (state) => state.canUndo);
+  const canRedo = useStore(getGameDraftStore(refId), (state) => state.canRedo);
   const assistantOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("assistant"));
   const sceneTreeOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("hierarchy") || !state.layout.hidden.includes("revisions"));
   const inspectorOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("inspector"));
   const [focusMessage, setFocusMessage] = useState<{ threadId: string; messageId: string; requestId: number } | null>(null);
   const focusRequestRef = useRef(0);
-  const [assistantThreadId, setAssistantThreadId] = useState<string | null>(null);
-  const pendingAssistantPromptRef = useRef<string | null>(null);
   const publishFlight = useRef<Promise<void> | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishMessage, setPublishMessage] = useState("");
@@ -109,13 +112,6 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     store.getState().load(data.document, data.game.draftUpdatedAt);
     loadedTokenRef.current = data.game.draftUpdatedAt;
   }, [data, refId]);
-
-  useEffect(() => {
-    const prompt = pendingAssistantPromptRef.current;
-    if (!assistantThreadId || !prompt) return;
-    useChatDraftStore.getState().setDraft(assistantThreadId, prompt);
-    pendingAssistantPromptRef.current = null;
-  }, [assistantThreadId]);
 
   useEffect(() => {
     const pull = (): Promise<void> => pullGameDraft(savingPromiseRef, async () => {
@@ -219,10 +215,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
 
   const askAssistant = () => {
     if (!scriptError || !scriptKey) return;
-    const prompt = `Help fix this game script error. Scene: ${scriptKey.sceneId}. Entity: ${scriptKey.entityId}. Behavior index: ${scriptKey.index}. Tick: ${scriptError.tick}. Error: ${scriptError.message}`;
-    if (assistantThreadId) useChatDraftStore.getState().setDraft(assistantThreadId, prompt);
-    else pendingAssistantPromptRef.current = prompt;
-    layoutStore.getState().dispatch({ type: "reveal", panelId: "assistant" });
+    assistant.draft(gameScriptErrorPrompt(scriptKey, scriptError));
   };
 
   const restoreRevision = async (revision: string): Promise<void> => {
@@ -303,76 +296,69 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       { label: set.radius === undefined ? "Move Light" : "Resize Light", mergeKey: "transform-light", gestureId });
   };
 
-  const onEditorKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (!active || !document) return;
-    if (playDocument) return;
-    const command = event.metaKey || event.ctrlKey;
-    if (command && event.code === "KeyZ") {
-      event.preventDefault();
-      if (event.shiftKey) getGameDraftStore(refId).getState().redo();
-      else getGameDraftStore(refId).getState().undo();
-      return;
-    }
-    if (!(event.target instanceof HTMLElement) || !event.target.closest('[data-game-panel="viewport"]')) { return; }
-    if (event.code === "Home") {
-      event.preventDefault();
-      resetCamera();
-      return;
-    }
-    if (command && event.code === "KeyC") {
-      event.preventDefault();
-      clipboardRef.current = document.scenes.flatMap((entry) => entry.entities)
-        .filter((entry) => selectedIds.includes(entry.id)).map((entry) => structuredClone(entry));
-      return;
-    }
-    if (command && event.code === "KeyV") {
-      event.preventDefault();
-      const sceneId = document.scenes.find((entry) => entry.entities.some((entity) => selectedIds.includes(entity.id)))?.id ?? document.entrySceneId;
-      const targetIds = document.scenes.find((entry) => entry.id === sceneId)?.entities.map((entity) => entity.id) ?? [];
-      onOps(pastedEntities(clipboardRef.current, targetIds, () => crypto.randomUUID().replaceAll("-", ""))
-        .map((entity) => ({ op: "add_entity", scene_id: sceneId, entity })));
-      return;
-    }
-    const selectedId = selectedIds[0];
-    const scene = document.scenes.find((entry) => entry.entities.some((entity) => entity.id === selectedId));
-    const entity = scene?.entities.find((entry) => entry.id === selectedId);
-    if (!entity || !scene) return;
-    if (event.code === "KeyF") {
-      event.preventDefault();
-      const transforms = worldTransforms(scene);
-      const selected = scene.entities.filter(entry => selectedIds.includes(entry.id)).flatMap(entry => {
-        const transform = transforms.get(entry.id);
-        return transform ? [transform] : [];
-      });
-      if (selected.length) onCamera({ x: selected.reduce((sum, entry) => sum + entry.x, 0) / selected.length,
-        y: selected.reduce((sum, entry) => sum + entry.y, 0) / selected.length, zoom: frame?.camera.zoom ?? 1 });
-      return;
-    }
-    if (command && event.code === "KeyD") {
-      event.preventDefault();
-      onOps([{ op: "duplicate_entity", entity_id: entity.id, scene_id: scene.id,
+  const selectedScene = document?.scenes.find((entry) => entry.entities.some((entity) => entity.id === selectedIds[0]));
+  const selectedEntity = selectedScene?.entities.find((entry) => entry.id === selectedIds[0]);
+  const editable = Boolean(active && document && !playDocument);
+  const editingSelection = editable && Boolean(selectedEntity && selectedScene);
+
+  const frameSelection = (): void => {
+    if (!selectedScene) { return; }
+    const transforms = worldTransforms(selectedScene);
+    const selected = selectedScene.entities.filter(entry => selectedIds.includes(entry.id)).flatMap(entry => {
+      const transform = transforms.get(entry.id);
+      return transform ? [transform] : [];
+    });
+    if (selected.length) onCamera({ x: selected.reduce((sum, entry) => sum + entry.x, 0) / selected.length,
+      y: selected.reduce((sum, entry) => sum + entry.y, 0) / selected.length, zoom: frame?.camera.zoom ?? 1 });
+  };
+
+  const copySelection = (): void => {
+    if (!document) { return; }
+    clipboardRef.current = document.scenes.flatMap((entry) => entry.entities)
+      .filter((entry) => selectedIds.includes(entry.id)).map((entry) => structuredClone(entry));
+  };
+
+  const paste = (): void => {
+    if (!document) { return; }
+    const sceneId = selectedScene?.id ?? document.entrySceneId;
+    const targetIds = document.scenes.find((entry) => entry.id === sceneId)?.entities.map((entity) => entity.id) ?? [];
+    onOps(pastedEntities(clipboardRef.current, targetIds, () => crypto.randomUUID().replaceAll("-", ""))
+      .map((entity) => ({ op: "add_entity", scene_id: sceneId, entity })));
+  };
+
+  const nudge = (dx: number, dy: number): GameCommandHandler => ({ enabled: editingSelection, run: () => {
+    if (!selectedScene) { return; }
+    const transforms = worldTransforms(selectedScene);
+    onOps(selectionRoots(selectedScene, selectedIds).flatMap(entry => {
+      const world = transforms.get(entry.id);
+      if (!world) return [];
+      const local = localTransform(selectedScene, entry.parentId, { ...world, x: world.x + dx, y: world.y + dy }, transforms);
+      return [{ op: "update_entity" as const, entity_id: entry.id, scene_id: selectedScene.id, set: { transform2d: { x: local.x, y: local.y } } }];
+    }));
+  } });
+
+  const selectedEntities = document?.scenes.flatMap((entry) => entry.entities).filter((entry) => selectedIds.includes(entry.id)) ?? [];
+  const editorCommands: GameCommandHandlers = {
+    "edit.undo": { run: () => getGameDraftStore(refId).getState().undo(), enabled: editable && canUndo },
+    "edit.redo": { run: () => getGameDraftStore(refId).getState().redo(), enabled: editable && canRedo },
+    "view.resetCamera": { run: resetCamera, enabled: editable },
+    "edit.copy": { run: copySelection, enabled: editable && selectedIds.length > 0 },
+    "edit.paste": { run: paste, enabled: editable },
+    "view.frameSelection": { run: frameSelection, enabled: editingSelection },
+    "edit.duplicate": { enabled: editingSelection, run: () => {
+      if (!selectedEntity || !selectedScene) { return; }
+      onOps([{ op: "duplicate_entity", entity_id: selectedEntity.id, scene_id: selectedScene.id,
         new_id: crypto.randomUUID().replaceAll("-", ""), offset: { x: 0.25, y: 0.25 } }]);
-      return;
-    }
-    const distance = event.shiftKey ? 2.5 : 0.25;
-    const direction: Record<string, [number, number]> = {
-      ArrowLeft: [-distance, 0], ArrowRight: [distance, 0],
-      ArrowUp: [0, distance], ArrowDown: [0, -distance]
-    };
-    const delta = direction[event.code];
-    if (delta) {
-      event.preventDefault();
-      const transforms = worldTransforms(scene);
-      onOps(selectionRoots(scene, selectedIds).flatMap(entry => {
-        const world = transforms.get(entry.id);
-        if (!world) return [];
-        const local = localTransform(scene, entry.parentId, { ...world, x: world.x + delta[0], y: world.y + delta[1] }, transforms);
-        return [{ op: "update_entity" as const, entity_id: entry.id, scene_id: scene.id, set: { transform2d: { x: local.x, y: local.y } } }];
-      }));
-    } else if (event.code === "Delete" || event.code === "Backspace") {
-      event.preventDefault();
-      onOps(selectionRoots(scene, selectedIds).map(entry => ({ op: "remove_entity", entity_id: entry.id, scene_id: scene.id, children: "remove" })));
-    }
+    } },
+    "edit.delete": { enabled: editingSelection, run: () => {
+      if (!selectedScene) { return; }
+      onOps(selectionRoots(selectedScene, selectedIds).map(entry => ({ op: "remove_entity", entity_id: entry.id, scene_id: selectedScene.id, children: "remove" })));
+    } },
+    "edit.nudgeLeft": nudge(-0.25, 0), "edit.nudgeRight": nudge(0.25, 0), "edit.nudgeUp": nudge(0, 0.25), "edit.nudgeDown": nudge(0, -0.25),
+    "edit.nudgeLeftFar": nudge(-2.5, 0), "edit.nudgeRightFar": nudge(2.5, 0), "edit.nudgeUpFar": nudge(0, 2.5), "edit.nudgeDownFar": nudge(0, -2.5),
+    "assistant.playtest": { run: () => assistant.draft(gamePlaytestPrompt()) },
+    "assistant.explainSelection": { run: () => assistant.draft(gameSelectionPrompt(selectedEntities)), enabled: selectedEntities.length > 0 },
+    "assistant.fixScriptError": { run: askAssistant, enabled: Boolean(scriptError && scriptKey) }
   };
 
   const onViewportKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>): void => {
@@ -480,10 +466,10 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
         </> },
       { id: "assistant", visible: !isMobile,
         node: <>
-          <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
+          <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={assistant.onThreadId} focusMessage={focusMessage} />
         </> }
     ]}
-    onKeyDown={onEditorKeyDown}
+    commands={editorCommands}
     mobile={<>
       {isMobile && <>
         {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}
@@ -494,7 +480,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           onSceneChange={selectScene} issues={validationIssues} onOps={onOps}
           onEditScript={(sceneId, entityId, index) => { setScriptKey({ sceneId, entityId, index }); layoutStore.getState().dispatch({ type: "reveal", panelId: "scripts" }); }} />
         <MobileBottomSheet open={assistantOpen} onClose={() => layoutStore.getState().dispatch({ type: "hide", panelId: "assistant" })} title="Game assistant" ariaLabel="Game assistant panel">
-          <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
+          <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={assistant.onThreadId} focusMessage={focusMessage} />
         </MobileBottomSheet>
       </>}
     </>}

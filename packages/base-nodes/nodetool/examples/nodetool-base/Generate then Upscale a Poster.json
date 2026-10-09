@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Generate then Upscale a Poster\n\nGenerates a poster at low resolution and upscales only the version you keep. Drafting at 1K and upscaling once costs far less than generating every draft at full size.\n\n**How it works:** \"Prompt\" holds a description of a retro travel poster. \"Draft\" generates a 3:4 image at 1K from it. \"Upscale 2x\" doubles its resolution, and \"Poster\" shows the result. Pick a model on \"Draft\" before running.\n\n**Try this:** Change the \"Prompt\" text to your own poster idea, or set the \"Draft\" aspect ratio to 2:3 for a taller print."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "p",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 401
           },
           "zIndex": 0,
           "width": 280,
@@ -53,8 +72,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -81,8 +100,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -100,8 +119,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 120
+            "x": 1140,
+            "y": 379
           },
           "zIndex": 0,
           "width": 280,

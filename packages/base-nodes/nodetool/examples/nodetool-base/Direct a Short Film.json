@@ -5,7 +5,7 @@
   "updated_at": "2026-08-03T10:00:00.000Z",
   "name": "Direct a Short Film",
   "tool_name": null,
-  "description": "Type a brief; get a cut film. A language model directs \u2014 it writes the screenplay, the shot list and the narration \u2014 then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count \u2014 at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
+  "description": "Type a brief; get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count — at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
   "tags": [
     "video",
     "example"
@@ -15,18 +15,37 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Direct a Short Film\n\nTurns a one-line brief into a rendered short film. A language model writes the screenplay and narration, then each shot is filmed and cut together.\n\n**How it works:** \"Your brief\" feeds \"Creative director\", which returns a screenplay, a title and narration. \"Shot list\" splits the screenplay into shots. \"Film the shots\" generates each clip, seeding later shots from the previous clip's last frame. \"Assemble\" places the clips on a timeline, \"Render\" exports it, and the three outputs show the film, title and narration.\n\n**Try this:** Change the \"Creative director\" shot count from 3 to 5. Cost grows with each shot."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 305
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "brief",
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "brief",
           "value": "A lighthouse keeper's last night before the light is automated.",
-          "description": "What the film is about. One or two sentences is enough \u2014 the director writes the shots.",
+          "description": "What the film is about. One or two sentences is enough — the director writes the shots.",
           "line_mode": "multi"
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 560
           },
           "zIndex": 0,
           "width": 300,
@@ -54,8 +73,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 340,
-            "y": 120
+            "x": 400,
+            "y": 546
           },
           "zIndex": 0,
           "width": 300,
@@ -74,8 +93,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 680,
-            "y": 120
+            "x": 800,
+            "y": 785
           },
           "zIndex": 0,
           "width": 300,
@@ -110,8 +129,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1020,
-            "y": 120
+            "x": 1200,
+            "y": 741
           },
           "zIndex": 0,
           "width": 300,
@@ -130,8 +149,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1360,
-            "y": 120
+            "x": 1600,
+            "y": 662
           },
           "zIndex": 0,
           "width": 300,
@@ -149,8 +168,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1700,
-            "y": 120
+            "x": 2000,
+            "y": 686
           },
           "zIndex": 0,
           "width": 300,
@@ -168,8 +187,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2040,
-            "y": 60
+            "x": 2400,
+            "y": 694
           },
           "zIndex": 0,
           "width": 300,
@@ -187,8 +206,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2040,
-            "y": 240
+            "x": 800,
+            "y": 385
           },
           "zIndex": 0,
           "width": 300,
@@ -206,8 +225,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2040,
-            "y": 400
+            "x": 800,
+            "y": 585
           },
           "zIndex": 0,
           "width": 300,

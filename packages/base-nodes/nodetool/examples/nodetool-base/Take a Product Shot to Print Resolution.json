@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Take a Product Shot to Print Resolution\n\nUpscales an approved product photo four times and adds a light sharpening pass for print. The result is saved as a PNG in the workspace.\n\n**How it works:** \"Photo\" starts with a sample coffee image. \"Upscale 4x\" enlarges it, then \"Sharpen fine detail\" applies an unsharp mask whose amount comes from the \"Sharpness\" input. \"Save finished PNG\" writes a timestamped file, and \"Result\" shows it.\n\n**Try this:** Pick a model on \"Upscale 4x\", then set \"Sharpness\" to 0 to compare the upscale with no sharpening."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -28,7 +47,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -55,8 +74,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 433
           },
           "zIndex": 0,
           "width": 300,
@@ -74,8 +93,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 120
+            "x": 1600,
+            "y": 507
           },
           "zIndex": 0,
           "width": 300,
@@ -94,8 +113,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 120
+            "x": 800,
+            "y": 463
           },
           "width": 300,
           "title": "Sharpen fine detail"
@@ -115,8 +134,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 440
+            "x": 0,
+            "y": 590
           },
           "width": 300,
           "title": "Sharpness"
@@ -133,8 +152,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 427
           },
           "width": 300,
           "title": "Save finished PNG"

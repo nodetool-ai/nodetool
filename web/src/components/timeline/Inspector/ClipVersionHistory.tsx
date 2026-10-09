@@ -48,6 +48,7 @@ import {
   getSpacingPx
 } from "../../ui_primitives";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
+import { usePersistedFold } from "./usePersistedFold";
 
 const TILE_PX = 56;
 
@@ -337,6 +338,7 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
     const renameTake = useTimelineStore((s) => s.renameTake);
     const deleteTake = useTimelineStore((s) => s.deleteTake);
     const addNotification = useNotificationStore((s) => s.addNotification);
+    const [open, setOpen] = usePersistedFold("version-history", true);
 
     const [editingVersionId, setEditingVersionId] = useState<string | null>(
       null
@@ -415,10 +417,11 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
             icon={<HistoryOutlinedIcon />}
           />
         }
-        defaultOpen
+        open={open}
+        onToggle={setOpen}
       >
         {clip.locked && (
-          <Caption color="secondary" sx={{ px: 1, pt: 0.5 }}>
+          <Caption color="secondary" sx={{ px: SPACING.xs, pt: SPACING.micro }}>
             Unlock the clip to swap generations.
           </Caption>
         )}

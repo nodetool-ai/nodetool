@@ -23,6 +23,9 @@ export const staticEntries: PageEntry[] = [
   // finding 2). Priority sits with the segment landings, above the comparison
   // pages it feeds.
   { route: "/node-based-ai", title: "Node-based AI", description: "Build AI workflows with nodes, not prompts.", priority: 0.9, changeFrequency: "monthly", indexable: true },
+  // The landing page for "node based workflow" searches: why the graph can be
+  // trusted with paid runs, with the rendered workflow reel as its hero.
+  { route: "/node-based-workflows", title: "Node-based workflows", description: "Node-based workflows you can check, run, and rerun.", priority: 0.9, changeFrequency: "monthly", indexable: true },
   { route: "/agents", title: "AI Agents", description: "Build planning agents on a visual canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/developers", title: "For Developers", description: "Give your coding agent images, video, speech, and workflows over MCP.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },

@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Put a Product on a Studio Backdrop\n\nCuts a product out of its photo and places it in a new studio scene. Use it to restyle product shots without a reshoot.\n\n**How it works:** \"Photo\" goes to \"Cut out\", which removes the background. \"Soften cutout edge\" blurs the mask by the \"Edge softness\" value, and \"Keep product detail\" puts that softer mask back on the product. \"Place on backdrop\" generates a concrete plinth scene around it, and \"Result\" shows the image.\n\n**Try this:** Pick a model on \"Place on backdrop\", then change its prompt to \"white marble countertop, morning window light\"."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "in",
         "type": "nodetool.input.ImageInput",
         "data": {
@@ -28,7 +47,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 366
           },
           "zIndex": 0,
           "width": 300,
@@ -53,8 +72,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 120
+            "x": 400,
+            "y": 441
           },
           "zIndex": 0,
           "width": 300,
@@ -85,8 +104,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 120
+            "x": 1600,
+            "y": 459
           },
           "zIndex": 0,
           "width": 300,
@@ -104,8 +123,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1650,
-            "y": 120
+            "x": 2000,
+            "y": 468
           },
           "zIndex": 0,
           "width": 300,
@@ -127,8 +146,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 330,
-            "y": 460
+            "x": 0,
+            "y": 590
           },
           "width": 300,
           "title": "Edge softness"
@@ -145,8 +164,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 660,
-            "y": 300
+            "x": 800,
+            "y": 455
           },
           "width": 300,
           "title": "Soften cutout edge"
@@ -162,8 +181,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 120
+            "x": 1200,
+            "y": 465
           },
           "width": 300,
           "title": "Keep product detail"

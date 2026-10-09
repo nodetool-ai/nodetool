@@ -195,6 +195,7 @@ const SETTING_LINKS: Record<string, string> = {
   GEMINI_API_KEY: "https://aistudio.google.com/app/apikey",
   OPENROUTER_API_KEY: "https://openrouter.ai/keys",
   REQUESTY_API_KEY: "https://app.requesty.ai/api-keys",
+  OPPER_API_KEY: "https://platform.opper.ai",
   HF_TOKEN: "https://huggingface.co/settings/tokens",
   REPLICATE_API_TOKEN: "https://replicate.com/account/api-tokens",
   GOOGLE_APP_PASSWORD: "https://myaccount.google.com/apppasswords",
@@ -216,6 +217,7 @@ const SETTING_BUTTON_TITLES: Record<string, string> = {
   GEMINI_API_KEY: "Get Gemini API Key",
   OPENROUTER_API_KEY: "Get OpenRouter API Key",
   REQUESTY_API_KEY: "Get Requesty API Key",
+  OPPER_API_KEY: "Get Opper API Key",
   HF_TOKEN: "Get Hugging Face Token",
   REPLICATE_API_TOKEN: "Get Replicate API Token",
   GOOGLE_APP_PASSWORD: "Get Google App Password",
@@ -236,6 +238,7 @@ const SETTING_TOOLTIPS: Record<string, string> = {
   GEMINI_API_KEY: "Go to Google AI Studio to get your API key",
   OPENROUTER_API_KEY: "Go to OpenRouter keys page",
   REQUESTY_API_KEY: "Go to Requesty API keys page",
+  OPPER_API_KEY: "Go to Opper platform to get your API key",
   HF_TOKEN: "Go to Hugging Face tokens page",
   REPLICATE_API_TOKEN: "Go to Replicate API tokens page",
   GOOGLE_APP_PASSWORD: "Go to Google account app passwords page",
@@ -326,7 +329,7 @@ const SettingItem = memo(function SettingItem({
             }
           >
             {SETTING_BUTTON_TITLES[setting.env_var] ||
-              "GET YOUR API KEY"}
+              "Get your API key"}
           </ExternalLink>
         </div>
       )}
@@ -482,6 +485,21 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
     setSettingValues((prev) => ({ ...prev, [envVar]: value }));
   }, []);
 
+  // Restore every edited field to its saved value.
+  const handleDiscard = useCallback(() => {
+    if (!data) return;
+    setSettingValues((prev) => {
+      const next = { ...prev };
+      for (const setting of data) {
+        if (setting.env_var in next) {
+          next[setting.env_var] =
+            setting.value != null ? String(setting.value) : "";
+        }
+      }
+      return next;
+    });
+  }, [data]);
+
   const handleSave = useCallback(() => {
     const settings: Record<string, string> = {};
     const secrets: Record<string, string> = {};
@@ -504,7 +522,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
       {
         onSuccess: () => {
           addNotification({
-            content: "Your settings have been saved successfully",
+            content: "Settings saved",
             type: "success",
             alert: true
           });
@@ -578,6 +596,14 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
 
             {isDirty && (
               <div className="save-button-container">
+                <Text className="save-bar-message">Unsaved changes</Text>
+                <EditorButton
+                  variant="text"
+                  onClick={handleDiscard}
+                  disabled={updateSettingsMutation.isPending}
+                >
+                  Discard
+                </EditorButton>
                 <EditorButton
                   variant="contained"
                   color="primary"
@@ -586,7 +612,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                   startIcon={<SaveIcon />}
                   disabled={updateSettingsMutation.isPending}
                 >
-                  SAVE SETTINGS
+                  {updateSettingsMutation.isPending ? "Saving…" : "Save changes"}
                 </EditorButton>
               </div>
             )}

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { TextInput, Text } from "../ui_primitives";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { formatRangeHint } from "./NumberSetting";
 
 interface ServerNumberSettingProps {
   /** Registry env var key (e.g. MAX_CONCURRENT_RUNS_PER_WORKFLOW). */
@@ -31,6 +33,7 @@ export const ServerNumberSetting = React.memo(function ServerNumberSetting({
 }: ServerNumberSettingProps) {
   const fetchSettings = useRemoteSettingsStore((s) => s.fetchSettings);
   const updateSettings = useRemoteSettingsStore((s) => s.updateSettings);
+  const addNotification = useNotificationStore((s) => s.addNotification);
   // Shared ["settings"] cache: dedupes with the API & Keys tab's own query.
   useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
 
@@ -47,9 +50,39 @@ export const ServerNumberSetting = React.memo(function ServerNumberSetting({
     const clamped = Math.max(min, Math.min(max, Number(local) || defaultValue));
     setLocal(String(clamped));
     if (String(clamped) !== (value ?? "")) {
-      void updateSettings({ [envVar]: String(clamped) });
+      updateSettings({ [envVar]: String(clamped) }).catch((error: unknown) => {
+        setLocal(
+          value != null && value !== "" ? String(value) : String(defaultValue)
+        );
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not save ${label}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+      });
     }
-  }, [local, min, max, defaultValue, value, updateSettings, envVar]);
+  }, [
+    local,
+    min,
+    max,
+    defaultValue,
+    value,
+    updateSettings,
+    envVar,
+    addNotification,
+    label
+  ]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter") {
+        commit();
+      }
+    },
+    [commit]
+  );
 
   return (
     <>
@@ -62,10 +95,13 @@ export const ServerNumberSetting = React.memo(function ServerNumberSetting({
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         onBlur={commit}
+        onKeyDown={handleKeyDown}
         variant="standard"
         size="small"
       />
-      <Text className="description">{description}</Text>
+      <Text className="description">
+        {description} {formatRangeHint(min, max, defaultValue)}
+      </Text>
     </>
   );
 });

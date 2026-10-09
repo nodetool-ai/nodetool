@@ -15,6 +15,25 @@
   "graph": {
     "nodes": [
       {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Find Every Number in a Sentence\n\nReturns every match of a regular expression in a text, not just the first. Use it to pull figures out of a report.\n\n**How it works:** \"Sentence\" holds a line about revenue across regions. \"Find all digits\" is a Code node that runs a global regular expression over it and returns each match as a list item. \"Matches\" shows the numbers 12, 47 and 3. It runs locally with no model or key.\n\n**Try this:** Change the \"Sentence\" value to a line with decimals such as 4.5 and adjust the pattern on \"Find all digits\" so it keeps the decimal point."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 560,
+          "selectable": true,
+          "height": 286
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "s",
         "type": "nodetool.constant.String",
         "data": {
@@ -23,7 +42,7 @@
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 120
+            "y": 520
           },
           "zIndex": 0,
           "width": 280,
@@ -42,8 +61,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 320,
-            "y": 120
+            "x": 380,
+            "y": 366
           },
           "zIndex": 0,
           "width": 280,
@@ -70,8 +89,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 640,
-            "y": 120
+            "x": 760,
+            "y": 498
           },
           "zIndex": 0,
           "width": 280,
