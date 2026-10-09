@@ -507,11 +507,14 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       });
       try {
         execute(warmupCalls, { tick: 0, world: [] } as unknown as Input, 0, [], WARMUP_BATCH_MS);
+        warmedCommandSchemas.add(commandSchema);
+      } catch {
+        // The warm-up is only an optimization. Its error path already disposed every realm, including the
+        // prepared ones, so batches create realms on demand as they do past PREPARED_REALM_LIMIT. The next runner warms again.
       } finally {
         retain(new Set());
         for (const [key] of WARMUP_SOURCES) { sources.delete(key); persistentSources.delete(key); }
       }
-      warmedCommandSchemas.add(commandSchema);
     }
     return {
       retain,
