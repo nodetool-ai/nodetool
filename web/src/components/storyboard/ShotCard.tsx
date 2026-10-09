@@ -222,9 +222,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const stillRendering = shot.status === "keyframe_generating";
   // A rendered take can be previewed before the creator accepts it as the
   // shot's clip. Use the latest take when there is no accepted clip yet.
-  const previewClip = resolveEffectiveProductionRequirement(undefined, shot.production)?.media_strategy === "still_motion_graphics"
-    ? undefined
-    : shot.clip ?? shot.clip_versions?.at(-1);
+  const previewClip =
+    resolveEffectiveProductionRequirement(undefined, shot.production)
+      ?.media_strategy === "still_motion_graphics"
+      ? undefined
+      : (shot.clip ?? shot.clip_versions?.at(-1));
   const clipUri = useResolvedMediaUri(previewClip);
   // Download needs a URL, not a locator, and the still's is not otherwise
   // resolved here — the preview primitive resolves its own. Both forms of the
@@ -468,7 +470,14 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         onDoubleClick={previewMedia ? handleOpenViewer : undefined}
       >
         {shot.graphics && shot.graphics.mode !== "none" ? (
-          <ShotDesignFrame boardId={boardId} shot={previewClip && previewClip !== shot.clip ? { ...shot, clip: previewClip } : shot} />
+          <ShotDesignFrame
+            boardId={boardId}
+            shot={
+              previewClip && previewClip !== shot.clip
+                ? { ...shot, clip: previewClip }
+                : shot
+            }
+          />
         ) : previewClip ? (
           <Box sx={{ width: "100%", height: "100%" }} onClick={swallowClick}>
             <VideoPlayer
@@ -625,7 +634,17 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             right: "auto",
             p: SPACING.xs,
             bgcolor: "c_scrim",
-            borderRadius: BORDER_RADIUS.sm
+            borderRadius: BORDER_RADIUS.sm,
+            // A touch screen cannot hover, so the row is always shown. Over
+            // the still it would cover the picture under the shot actions,
+            // so it drops below the description as a plain footer.
+            "@media (pointer: coarse)": {
+              position: "static",
+              px: SPACING.md,
+              pt: 0,
+              pb: SPACING.md,
+              bgcolor: "transparent"
+            }
           }}
         >
           {onEdit && (

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  gameAssetBinding3D, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameDocument3D,
+  gameAssetBinding3D, gameAudioMixer, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameDocument3D,
   gameEntity3D, gameLight3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTransform3D, gameVector3,
   type AnyGameDocument, type GameDocument, type GameDocument3D, type GameEntity3D, type GamePrefab3D, type GameTransform3D
 } from "@nodetool-ai/protocol";
@@ -59,6 +59,7 @@ export const gameDocumentOp3D = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("remove_prefab"), prefab_id: id }),
   z.strictObject({ op: z.literal("instantiate_prefab"), scene_id: id, prefab_id: id, instance_id: id, transform: gameTransform3D.optional() }),
   z.strictObject({ op: z.literal("set_game"), presentation: preservingPatch(gameDocument3D.shape.presentation.partial()).optional(), input_actions: gameDocument3D.shape.inputActions.optional(), input_axes: gameDocument3D.shape.inputAxes.optional(), entry_scene_id: id.optional(), collision_layers: gameDocument3D.shape.collisionLayers.nullable().optional() }),
+  z.strictObject({ op: z.literal("set_audio"), mixer: gameAudioMixer.nullable() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding3D }),
   z.strictObject({ op: z.literal("unbind_asset"), slot: id })
 ]);
@@ -289,6 +290,11 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         if (op.entry_scene_id) { draft.entrySceneId = op.entry_scene_id; }
         if (op.collision_layers === null) { delete draft.collisionLayers; }
         else if (op.collision_layers !== undefined) { draft.collisionLayers = op.collision_layers; }
+        break;
+      }
+      case "set_audio": {
+        if (op.mixer === null) { delete draft.audio; }
+        else { draft.audio = { ...draft.audio, mixer: op.mixer }; }
         break;
       }
       case "bind_asset": draft.assets[op.slot] = op.binding; break;

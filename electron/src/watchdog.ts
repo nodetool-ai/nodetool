@@ -136,7 +136,9 @@ export class Watchdog {
       await new Promise((r) => setTimeout(r, 100));
     }
 
-    if (this.childProcess && !this.childProcess.killed) {
+    // `killed` turns true as soon as SIGTERM is delivered, so it cannot tell
+    // whether the process is still running. Ask the OS instead.
+    if (this.childProcess && (await this.isPidAlive())) {
       try {
         this.childProcess.kill("SIGKILL");
       } catch (error) {

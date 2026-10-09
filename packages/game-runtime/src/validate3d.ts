@@ -6,6 +6,7 @@ import {
 import { gameScriptParamValueOf } from "@nodetool-ai/protocol";
 import { scriptParamReferenceIssues } from "./script-params.js";
 import { validateGame } from "./validate.js";
+import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 
 export interface GameValidationResult3D {
   readonly valid: boolean;
@@ -41,6 +42,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
       scenes.add(scene.id);
     }
     if (!scenes.has(document.entrySceneId)) { add("missing_scene", ["entrySceneId"], `Scene ${document.entrySceneId} does not exist`); }
+    for (const issue of audioMixerReferenceIssues(document.audio, document.assets, scenes)) { add("invalid_audio_mixer", issue.path, issue.message); }
     for (const key of ["inputActions", "inputAxes", "collisionLayers"] as const) {
       const names = document[key] ?? [];
       if (new Set(names).size !== names.length) { add("duplicate_name", [key], "Names must be unique"); }
