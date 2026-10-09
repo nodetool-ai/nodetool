@@ -119,7 +119,7 @@ it("routes editor keys once and preserves editable, handled and gameplay input",
   const undo = jest.fn();
   const view = (playSession: boolean) => <ThemeProvider theme={mockTheme}>
     <Shell dimension="2d" registry={registry} toolbar={{ ...toolbar, playSession }} status={status}
-      onKeyDown={(event) => { if (event.ctrlKey && event.code === "KeyZ") { event.preventDefault(); undo(); } }}
+      commands={{ "edit.undo": { run: undo } }}
       panels={[{ id: "viewport", keyboardScope: true, node: <>
         <button>Editor canvas</button>
         <button onKeyDown={(event) => event.preventDefault()}>Handled input</button>
@@ -145,12 +145,15 @@ it("keeps unscoped inspector controls outside editor shortcut routing", async ()
   const user = userEvent.setup();
   const registry = createGamePanelRegistry();
   registry.register({ id: "inspector", title: "Inspector", icon: null, dimensions: ["2d"], defaultRegion: "right" });
-  const onKeyDown = jest.fn();
+  const undo = jest.fn();
+  const remove = jest.fn();
   render(<ThemeProvider theme={mockTheme}><Shell dimension="2d" registry={registry} toolbar={toolbar}
-    status={status} onKeyDown={onKeyDown} panels={[{ id: "inspector", node: <button>Inspector action</button> }]} /></ThemeProvider>);
+    status={status} commands={{ "edit.undo": { run: undo }, "edit.delete": { run: remove } }}
+    panels={[{ id: "inspector", node: <button>Inspector action</button> }]} /></ThemeProvider>);
   await user.click(screen.getByRole("button", { name: "Inspector action" }));
   await user.keyboard("{Control>}z{/Control}{Delete}");
-  expect(onKeyDown).not.toHaveBeenCalled();
+  expect(undo).not.toHaveBeenCalled();
+  expect(remove).not.toHaveBeenCalled();
 });
 
 it.each([
@@ -161,20 +164,20 @@ it.each([
   for (const id of ["hierarchy", "revisions"]) {
     registry.register({ id, title: id, icon: null, dimensions: [dimension], defaultRegion: region });
   }
-  const onKeyDown = jest.fn();
+  const undo = jest.fn();
   render(<ThemeProvider theme={mockTheme}><Shell dimension={dimension} registry={registry}
-    toolbar={toolbar} status={status} onKeyDown={onKeyDown} panels={[
+    toolbar={toolbar} status={status} commands={{ "edit.undo": { run: undo } }} panels={[
       { id: "hierarchy", keyboardScope: true, node: <button>Hierarchy selection</button> },
       { id: "revisions", node: <button>Restore to draft</button> }
     ]} /></ThemeProvider>);
   await user.click(screen.getByRole("tab", { name: "revisions" }));
   await user.click(screen.getByRole("button", { name: "Restore to draft" }));
-  await user.keyboard("{Control>}z{/Control}{Delete}");
-  expect(onKeyDown).not.toHaveBeenCalled();
+  await user.keyboard("{Control>}z{/Control}");
+  expect(undo).not.toHaveBeenCalled();
   await user.click(screen.getByRole("tab", { name: "hierarchy" }));
   await user.click(screen.getByRole("button", { name: "Hierarchy selection" }));
-  await user.keyboard("{Delete}");
-  expect(onKeyDown).toHaveBeenCalledTimes(1);
+  await user.keyboard("{Control>}z{/Control}");
+  expect(undo).toHaveBeenCalledTimes(1);
 });
 
 
@@ -242,13 +245,8 @@ it("marks each docked panel host with data-game-panel so 2D viewport shortcuts f
   registry.register({ id: "viewport", title: "Viewport", icon: null, dimensions: ["2d"], defaultRegion: "viewport" });
   registry.register({ id: "inspector", title: "Inspector", icon: null, dimensions: ["2d"], defaultRegion: "right" });
   const viewportShortcut = jest.fn();
-  const onKeyDown = jest.fn((event: { code: string; target: EventTarget }) => {
-    if (event.target instanceof HTMLElement && event.target.closest('[data-game-panel="viewport"]') && event.code === "Home") {
-      viewportShortcut();
-    }
-  });
   render(<ThemeProvider theme={mockTheme}><Shell dimension="2d" registry={registry} toolbar={toolbar}
-    status={status} onKeyDown={onKeyDown} panels={[
+    status={status} commands={{ "view.resetCamera": { run: viewportShortcut } }} panels={[
       { id: "viewport", keyboardScope: true, node: <button>Editor viewport</button> },
       { id: "inspector", node: <button>Inspector action</button> }
     ]} /></ThemeProvider>);
@@ -256,6 +254,9 @@ it("marks each docked panel host with data-game-panel so 2D viewport shortcuts f
   expect(viewport.closest("[data-game-panel]")).toHaveAttribute("data-game-panel", "viewport");
   expect(screen.getByRole("button", { name: "Inspector action" }).closest("[data-game-panel]"))
     .toHaveAttribute("data-game-panel", "inspector");
+  await user.click(screen.getByRole("button", { name: "Inspector action" }));
+  await user.keyboard("{Home}");
+  expect(viewportShortcut).not.toHaveBeenCalled();
   await user.click(viewport);
   await user.keyboard("{Home}");
   expect(viewportShortcut).toHaveBeenCalledTimes(1);
