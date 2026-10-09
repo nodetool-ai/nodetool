@@ -220,7 +220,7 @@ describe("TracksRegion keyboard shortcuts", () => {
       useTimelineStore.setState({ clips });
       useTimelinePlaybackStore.getState().seek(1000);
       useTimelinePlaybackStore.getState().setTimeMs(5000);
-      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      fireEvent.keyDown(window, { key: "K", ctrlKey: true, shiftKey: true });
     });
 
     expect(

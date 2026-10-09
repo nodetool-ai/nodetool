@@ -252,7 +252,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const restart = useMemo(() => host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document),
     [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
-  return <GameEditorShell layoutStore={layoutStore} dimension="3d"
+  return <GameEditorShell layoutStore={layoutStore} dimension="3d" active={active}
     toolbar={{ name: name,
         playing: host.playing,
         playSession: Boolean(host.playDocument),

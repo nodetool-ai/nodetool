@@ -474,9 +474,39 @@ for the machine-readable report.
 
 ### R: 3D rendering
 
+A 3D scene's `environment.sky` sets its background and image-based lighting.
+Omit it, or use `{ kind: "color" }`, for the solid `background` color without
+environment lighting. That is the default and renders exactly as before.
+
+`{ kind: "procedural", sunEntityId?, turbidity, rayleigh, groundColor, intensity }`
+renders a physical sky. Its sun follows `sunEntityId`, which must name a
+directional light in the same scene. Without it, the sun follows the scene's
+first directional light. Rotate that light to move the sun. `turbidity` (1 to 20,
+default 10) adds haze. `rayleigh` (0 to 4, default 2) deepens blue and sunset
+tones. `groundColor` fills the lower hemisphere.
+
+`{ kind: "hdri", assetId, rotation, intensity }` uses an `hdri` asset binding: a
+2:1 equirectangular `.hdr` or `.exr` of at most 2048×1024 and 16 MiB. `rotation`
+turns it about +Y in radians. HDRI candidates cannot be installed until HDRI
+preparation ships. A renderer without an HDRI decoder draws the background color
+and reports a diagnostic in the capture stats.
+
+`intensity` (0 to 8, default 1) scales both the sky background and its
+reflections. Metal and glossy materials reflect the sky. Ambient light still
+adds on top, so lower `ambient.intensity` when the sky lights the scene. Set the
+sky with `update_scene`. It replaces the whole `environment`, so send the
+existing `background`, `ambient`, `fog` and `shadows` with the new `sky`.
+Capture the scene to review the result.
+
 ### V: 2D rendering and visual effects
 
 ### P: Physics
+
+2D `schemaVersion: 5` with `engineVersion: "4"` is reserved for Rapier 2D
+physics. This runtime does not provide that engine yet, so validation and
+sessions refuse such a document with the `engine_unavailable` diagnostic. Do not
+author schema 5. Keep 2D games on schema 4 with engine 3, or on schemas 1 and 2
+with engine 1. A schema must use its own engine version.
 
 ### A: Audio
 
@@ -508,6 +538,34 @@ Players can scale and mute a bus at runtime through `GameAudioPlayer`
 ### N: Animation
 
 ### S: Scripting and gameplay
+
+#### Script parameters
+
+Declare a script's tunables as `params` on its script behavior instead of
+constants in the source. The inspector edits them and scripts read the values
+on `input.params`. Set them with `set_script_params {entity_id, scene_id?,
+index, params?, values?}`. `params` replaces the declarations and `null`
+removes them with their values. `values` merges stored values, and a `null`
+value returns one to its default. 2D games need schema 4. 3D games accept
+params on schema 3.
+
+```json
+{"op": "set_script_params", "entity_id": "player", "index": 0,
+ "params": {"speed": {"type": "number", "default": 3, "minimum": 0, "maximum": 10},
+            "target": {"type": "entity"}, "hit": {"type": "asset", "kind": "audio"}},
+ "values": {"speed": 5, "target": "goal"}}
+```
+
+Types are `number` (`minimum`, `maximum`, `integer`), `boolean`, `color`
+(`#rrggbb`), `enum` (`options`, default the first option), `entity`, `asset`
+(optional `kind`) and `vector` (`dimensions` 2 or 3). A behavior declares at
+most 32 params with identifier names. `input.params` holds the stored value,
+else the default. An `entity` or `asset` param without either is `null`.
+Validation rejects an entity reference outside the behavior's scene, a missing
+asset slot, an asset of the wrong `kind`, and in 3D an entity reference inside
+a prefab or an undeclared prefab asset. A behavior without `params` has no
+`input.params` key. Params count once per behavior definition toward the
+64 KiB script input limit.
 
 ### U: Input and game UI
 

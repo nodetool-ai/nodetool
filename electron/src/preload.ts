@@ -558,13 +558,11 @@ const api = {
     install: (
       location: string,
       packages: PythonPackages,
-      modelBackend?: "ollama" | "llama_cpp" | "none",
       installLlamaCpp?: boolean,
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
         packages,
-        modelBackend,
         installLlamaCpp,
       }),
 

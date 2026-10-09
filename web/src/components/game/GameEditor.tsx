@@ -392,7 +392,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     return <EmptyState variant="error" title="Could not load game" description={loadError?.message ?? "The game may have been deleted."} />;
   }
 
-  return <GameEditorShell layoutStore={layoutStore} dimension="2d"
+  return <GameEditorShell layoutStore={layoutStore} dimension="2d" active={active}
     toolbar={{
         name: data.game.name,
         playing: playing,

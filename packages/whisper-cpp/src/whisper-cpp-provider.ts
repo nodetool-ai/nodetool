@@ -75,7 +75,7 @@ export class WhisperCppProvider extends BaseProvider {
   ): Promise<ASRResult> {
     return contextCache.withContext(
       modelPath,
-      resolveVariant(this.gpuBackend),
+      await resolveVariant(this.gpuBackend),
       this.gpuBackend !== "cpu",
       async (context) => {
         signal?.throwIfAborted();

@@ -41,10 +41,13 @@ import { useImageSetupFlow } from "./useImageSetupFlow";
 export interface ImageSetupOverlayProps {
   /** Runs whenever the flow hands the document back to the editor. */
   onFinish?: () => void;
+  /** Told whether the flow is covering the editor, so its shortcuts pause. */
+  onCoveringChange?: (covering: boolean) => void;
 }
 
 export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
-  onFinish
+  onFinish,
+  onCoveringChange
 }) => {
   const theme = useTheme();
   const createWorkflow = useWorkflowManager((state) => state.create);
@@ -168,6 +171,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
       const name = animate ? "Image to video" : "Image canvas";
       const workflow = await createWorkflow({
         name,
+        project_id: projectId,
         description: "",
         tags: [],
         access: "private",
@@ -198,6 +202,10 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
   // Nothing to show once the flow is finished and its batch has been picked
   // from: the editor underneath is the whole surface.
   const covering = batch.length > 0 || config.stage !== "done";
+
+  useEffect(() => {
+    onCoveringChange?.(covering);
+  }, [covering, onCoveringChange]);
 
   useEffect(() => {
     const surface = surfaceRef.current;
@@ -257,6 +265,8 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
                 siblingLayerIds={sessionLayers}
                 onPick={pickRenderedImage}
                 onMakeMore={makeMore}
+                makeMoreDetail={look.primaryDetail}
+                regenerateDetail={look.perImageDetail}
                 makeMorePending={makingMore}
                 makeMoreError={makeMoreError}
                 onBackToSettings={backToSettings}

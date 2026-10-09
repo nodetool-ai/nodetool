@@ -82,6 +82,7 @@ function fallbackLabel(ops: readonly GameDocumentOp[]): string {
   const op = ops[0];
   if (ops.length !== 1 || !op) { return "Edit Game"; }
   if (op.op === "set_script") { return "Edit Script"; }
+  if (op.op === "set_script_params") { return "Change Script Parameters"; }
   if (op.op === "update_entity") { return "Change Entity"; }
   if (op.op === "update_scene") { return "Change Scene"; }
   if (op.op === "add_entity") { return "Add Entity"; }

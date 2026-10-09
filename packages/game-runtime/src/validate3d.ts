@@ -3,7 +3,9 @@ import {
   gameDocument3D, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
-import { validateGame } from "./validate.js";
+import { gameScriptParamValueOf } from "@nodetool-ai/protocol";
+import { scriptParamReferenceIssues } from "./script-params.js";
+import { GAME_ENGINE_4_UNAVAILABLE, validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 
 export interface GameValidationResult3D {
@@ -154,6 +156,17 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           }
         }
         for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
+          if (behavior.kind === "script") {
+            for (const issue of scriptParamReferenceIssues(behavior, prefab ? null : (target) => byId.has(target), (slot) => document.assets[slot]?.mediaKind)) {
+              add("invalid_script_param_reference", [...entityPath, "behaviors", behaviorIndex, ...issue.path], issue.message);
+            }
+            for (const [name, param] of Object.entries(behavior.params ?? {})) {
+              const slot = param.type === "asset" ? gameScriptParamValueOf(param, behavior.values && Object.hasOwn(behavior.values, name) ? behavior.values[name] : undefined) : null;
+              if (prefab && typeof slot === "string" && !prefab.externalAssets.includes(slot)) {
+                add("undeclared_external_asset", [...entityPath, "behaviors", behaviorIndex, "params", name], `Prefab must declare asset ${slot}`);
+              }
+            }
+          }
           if (behavior.kind === "spawn" && !document.prefabs[behavior.prefabId] && (prefab || !byId.get(behavior.prefabId)?.templateOnly)) {
             add("missing_prefab", [...entityPath, "behaviors", behaviorIndex, "prefabId"], `Prefab ${behavior.prefabId} does not exist`);
           }
@@ -173,6 +186,12 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
         add("shadow_budget", [...path, "entities"], "Only one directional light may cast shadows");
       }
       if (scene.environment.fog && scene.environment.fog.near >= scene.environment.fog.far) { add("invalid_fog", [...path, "environment", "fog"], "Fog near must be less than far"); }
+      const sky = scene.environment.sky;
+      if (sky?.kind === "hdri" && document.assets[sky.assetId]?.mediaKind !== "hdri") { add("missing_asset", [...path, "environment", "sky", "assetId"], "HDRI sky requires an hdri binding"); }
+      if (sky?.kind === "procedural" && sky.sunEntityId !== undefined) {
+        const sun = scene.entities.find((entity) => entity.id === sky.sunEntityId);
+        if (!sun || sun.templateOnly || sun.light3d?.kind !== "directional") { add("invalid_sky_sun", [...path, "environment", "sky", "sunEntityId"], "Procedural sky sun must select a directional light in the scene"); }
+      }
       if (scene.music && document.assets[scene.music.assetId]?.mediaKind !== "audio") { add("missing_asset", [...path, "music", "assetId"], "Scene music requires an audio binding"); }
     }
     for (const [prefabId, prefab] of Object.entries(document.prefabs)) {
@@ -201,6 +220,9 @@ export function validateAnyGame(value: unknown): AnyGameValidationResult {
   if (parsed.document.schemaVersion === 3) {
     const result = validateGame3D(parsed.document);
     return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [] } : { valid: false, diagnostics: result.diagnostics };
+  }
+  if (parsed.document.engineVersion === "4") {
+    return { valid: false, diagnostics: [{ code: "engine_unavailable", path: ["engineVersion"], message: GAME_ENGINE_4_UNAVAILABLE }] };
   }
   const result = validateGame(parsed.document);
   return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [] } :

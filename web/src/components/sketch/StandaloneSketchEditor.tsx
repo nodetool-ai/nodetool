@@ -86,6 +86,12 @@ interface StandaloneSketchEditorProps {
    * whichever editor happens to be active.
    */
   overlay?: React.ReactNode;
+  /**
+   * Stops the editor's window shortcuts while something covers the canvas,
+   * such as the guided image flow. Keys pressed there must not nudge, clear
+   * or undo the hidden document.
+   */
+  suspendKeyboardShortcuts?: boolean;
 }
 
 /**
@@ -118,7 +124,8 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
     documentId,
     headerActions,
     overlay,
-    active = true
+    active = true,
+    suspendKeyboardShortcuts = false
   }) {
     const theme = useTheme();
     const styles = useMemo(() => containerStyles(theme), [theme]);
@@ -280,7 +287,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
           menuItems={documentMenuItems}
           // Inactive workspace tabs stay mounted, so their window key
           // listeners must not act on keys meant for the focused tab.
-          suspendKeyboardShortcuts={!active}
+          suspendKeyboardShortcuts={!active || suspendKeyboardShortcuts}
         />
         <SaveToFolderMenu
           anchorEl={saveAsAssetAnchor}

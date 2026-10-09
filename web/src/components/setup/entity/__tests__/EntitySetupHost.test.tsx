@@ -238,7 +238,14 @@ describe("EntitySetupHost", () => {
     expect(
       screen.getByRole("heading", { name: /Generate a reference image/ })
     ).toBeInTheDocument();
+    // A dead button says why it is off.
+    expect(
+      screen.getByText("Pick an image model to generate the reference.")
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Select image model" }));
+    expect(
+      screen.queryByText("Pick an image model to generate the reference.")
+    ).toBeNull();
     await user.click(
       screen.getByRole("button", { name: "Generate reference" })
     );

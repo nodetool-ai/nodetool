@@ -272,6 +272,57 @@ describe("writeScript", () => {
     ]);
   });
 
+  it("keeps the voices picked for an attributed import when it is prepared again", async () => {
+    setSource({
+      kind: "fdx",
+      preserve: "verbatim",
+      label: "Final Draft screenplay",
+      lines: [
+        { text: "Are you coming or not?", speakerName: "SOPHIA" },
+        { text: "Give me a minute.", speakerName: "MARCUS" }
+      ],
+      speakers: ["SOPHIA", "MARCUS"],
+      attributed: true,
+      text: "Are you coming or not?\nGive me a minute."
+    });
+    const { result } = renderHook(() => useWriteScript());
+    await act(async () => {
+      expect(await result.current.write(SCRIPT)).toBe(true);
+    });
+    const sophia = scriptNow().cast.find((s) => s.name === "SOPHIA")!;
+    const voice = { provider: "elevenlabs", model: "eleven_v3", voice: "v-1" };
+    useScriptStore.getState().updateSpeaker(SCRIPT, sophia.id, { voice });
+
+    await act(async () => {
+      expect(await result.current.write(SCRIPT)).toBe(true);
+    });
+
+    const again = scriptNow().cast.find((s) => s.name === "SOPHIA")!;
+    expect(again.id).toBe(sophia.id);
+    expect(again.voice).toEqual(voice);
+    expect(linesNow()[0].speakerId).toBe(sophia.id);
+  });
+
+  it("leaves language out of the signature of an attributed import", () => {
+    const source: ImportedScript = {
+      kind: "fdx",
+      preserve: "verbatim",
+      label: "Final Draft screenplay",
+      lines: [{ text: "Give me a minute.", speakerName: "MARCUS" }],
+      speakers: ["MARCUS"],
+      attributed: true,
+      text: "Give me a minute."
+    };
+    const setup = scriptNow().setup!;
+    expect(writerSignature({ ...setup, language: "de" }, source)).toBe(
+      writerSignature({ ...setup, language: "fr" }, source)
+    );
+    // Text that goes to a model still counts the language.
+    expect(writerSignature({ ...setup, language: "de" }, null)).not.toBe(
+      writerSignature({ ...setup, language: "fr" }, null)
+    );
+  });
+
   it("turns an SRT's cues into lines that carry their timings", async () => {
     const srt = [
       "1",

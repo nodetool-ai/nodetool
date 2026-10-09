@@ -33,13 +33,13 @@ NodeTool reaches cloud models from more than 30 providers, including OpenAI, Ant
 Yes, with local models. The desktop app runs its server on your machine, and local models run without a connection once they are downloaded. Cloud providers need internet. See [Models and Providers](models-and-providers.md#local-vs-cloud).
 
 ### Do I need a GPU?
-No. Cloud providers need no graphics card. For local models, NVIDIA cards run Nunchaku and llama.cpp, Apple Silicon runs MLX, and a CPU works but slowly. See [What different tasks need](installation.md#what-different-tasks-need).
+No. Cloud providers need no graphics card. For local models, NVIDIA cards run the HuggingFace pack, llama.cpp, and Ollama, Apple Silicon Macs also run MLX, and a CPU works but slowly. See [What different tasks need](installation.md#what-different-tasks-need) and [GPU requirements](installation.md#gpu-requirements).
 
 ### How big are local models?
 Expect 4 to 20 GB per model. Models, Python, and model runners download only when you install them. See [What downloads later](installation.md#what-downloads-later) and [Models Manager](models-manager.md).
 
 ### Can I run Ollama or llama.cpp models?
-Yes. Install Ollama, pull a model with `ollama pull <model>`, and it appears in NodeTool. llama.cpp installs from the Package Manager. See [Connect an AI provider](installation.md#connect-an-ai-provider).
+Yes. Install Ollama from [ollama.com](https://ollama.com), pull a model with `ollama pull <model>`, and it appears in NodeTool while Ollama runs. In-process llama.cpp installs from **Package Manager → Software**. A `llama-server` you run yourself connects through `LLAMA_CPP_URL`. See [Connect an AI provider](installation.md#connect-an-ai-provider).
 
 ## Data and privacy
 

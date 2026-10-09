@@ -14,7 +14,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### Ollama
 
-**Ollama** pulls and runs GGUF chat and embedding models by name. The desktop app bundles it. Models you pull appear in NodeTool automatically, and the Model Manager lists them under the `llama_model` type.
+**Ollama** pulls and runs GGUF chat and embedding models by name. It is a separate program: download it from [ollama.com](https://ollama.com) and keep it running. NodeTool does not ship or start it. NodeTool connects to `http://127.0.0.1:11434`, or to the `OLLAMA_API_URL` setting. Models you pull appear in NodeTool automatically, and the Model Manager lists them under the `llama_model` type.
 
 ### llama.cpp & GGUF Format
 
@@ -26,7 +26,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### MLX Framework (Apple Silicon)
 
-**MLX** is Apple's open-source machine learning framework, optimized for Apple Silicon's unified memory. It is Apple Silicon only and runs through the Python worker.
+**MLX** is Apple's open-source machine learning framework, optimized for Apple Silicon's unified memory. It runs through the Python worker and needs the optional MLX pack: in the desktop app, install **MLX** from **Tools → Package Manager → Python packs**, which sets up Python first if it is missing. The Package Manager offers the pack only on Apple Silicon Macs, and it needs macOS 14 or newer.
 
 **Capabilities**:
 
@@ -34,13 +34,13 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 - **Vision**: Multimodal models and FastVLM support.
 - **Image Gen**: FLUX models ported to MLX for faster generation.
 
-### Nunchaku (NVIDIA GPU)
-
-**Nunchaku** is an inference engine for 4-bit diffusion models on NVIDIA GPUs. It implements SVDQuant to keep visual fidelity while cutting memory use compared to BF16 models, which makes large diffusion models such as FLUX.1 practical on consumer NVIDIA GPUs.
-
 ### HuggingFace Transformers
 
-**Transformers** and **Diffusers** are the Python libraries behind the optional `nodetool-huggingface` node pack, which you install from the Package Manager. They run Hub models locally on GPU, Apple Silicon, or CPU. See [HuggingFace Integration](huggingface.md).
+**Transformers** and **Diffusers** are the Python libraries behind the optional `nodetool-huggingface` node pack, which you install from the Package Manager. They run Hub models locally on GPU, Apple Silicon, or CPU on PyTorch 2.14. See [HuggingFace Integration](huggingface.md) and [GPU requirements](installation.md#gpu-requirements).
+
+### Wan2GP
+
+**Wan2GP** runs Wan video models in a server you start yourself. The optional Wan2GP pack calls it over MCP, so no model loads inside NodeTool. See [Wan2GP](wan2gp.md).
 
 ### Comparison Matrix
 
@@ -50,7 +50,6 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 | **llama.cpp**    | GGUF                     | CPU, GPU      | Quantized models, edge devices |
 | **Transformers.js** | ONNX                  | Any           | Small models, no Python        |
 | **MLX**          | MLX                      | Apple Silicon | Mac on-device models           |
-| **Nunchaku**     | 4-bit diffusion weights  | NVIDIA GPU    | Large diffusion models         |
 | **Transformers / Diffusers** | Safetensors, PyTorch | Any   | Research, flexibility          |
 
 ______________________________________________________________________
@@ -63,21 +62,20 @@ NodeTool supports a wide range of model types across different domains. Below is
 
 - **Full Precision**: Standard execution using HuggingFace Transformers/Diffusers (supports CUDA, MPS, CPU).
 - **MLX**: Optimized execution for Apple Silicon (M-series chips).
-- **Nunchaku**: High-performance 4-bit quantization for NVIDIA GPUs.
 
 ### Image Generation
 
 | Model Type | Description | Variants |
 | :--- | :--- | :--- |
-| **Flux** | Text-to-image generation | ✅ Full Precision<br>✅ MLX<br>✅ Nunchaku |
+| **Flux** | Text-to-image generation | ✅ Full Precision<br>✅ MLX |
 | **Flux Fill** | Inpainting/Outpainting for Flux | ✅ Full Precision<br>✅ MLX |
 | **Flux Depth** | Depth-guided generation | ✅ Full Precision<br>✅ MLX |
 | **Flux Redux** | Image variation and mixing | ✅ Full Precision<br>✅ MLX |
 | **Flux Kontext** | Context-aware generation | ✅ Full Precision<br>✅ MLX |
-| **Stable Diffusion XL** | SDXL base and refiner models | ✅ Full Precision<br>✅ Nunchaku |
+| **Stable Diffusion XL** | SDXL base and refiner models | ✅ Full Precision |
 | **Stable Diffusion 3** | Latest Stable Diffusion architecture | ✅ Full Precision |
 | **Stable Diffusion** | SD 1.5, 2.1, and variants | ✅ Full Precision |
-| **Qwen Image** | Qwen-based text-to-image | ✅ Full Precision<br>✅ MLX<br>✅ Nunchaku |
+| **Qwen Image** | Qwen-based text-to-image | ✅ Full Precision<br>✅ MLX |
 | **Qwen Image Edit** | Instruction-based image editing | ✅ Full Precision<br>✅ MLX |
 | **ControlNet** | Structural guidance (Canny, Depth, etc.) | ✅ Full Precision<br>✅ MLX (Flux) |
 | **Text to Image** | Generic text-to-image models | ✅ Full Precision |

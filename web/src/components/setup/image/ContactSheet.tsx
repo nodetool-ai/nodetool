@@ -55,6 +55,10 @@ export interface ContactSheetProps {
   onPick: (layerId: string) => void;
   /** Enqueue another batch with the same settings. */
   onMakeMore: () => void;
+  /** What another batch costs, as the look step priced it. */
+  makeMoreDetail?: string;
+  /** What one Regenerate costs. */
+  regenerateDetail?: string;
   /** True while another batch is being enqueued. */
   makeMorePending?: boolean;
   /** Why the last `Make more variations` was refused. */
@@ -68,25 +72,45 @@ export interface ContactSheetProps {
   onOpenCanvas: (layerId: string, animate: boolean) => Promise<void>;
 }
 
+/** File extensions for the image types a provider returns. */
+const IMAGE_EXTENSION: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/avif": "avif"
+};
+
 /**
  * Save one variation's asset to disk. An `asset://` id is not a URL, so the
- * anchor gets the resolved one — the same rule the preview download follows.
+ * resolved one is fetched to a blob first: a browser ignores `download` on a
+ * cross-origin link and would open the picture instead, and the blob's type
+ * names the file's real extension. Throws when the picture cannot be read.
  */
-const downloadVariation = async (
+export const downloadVariation = async (
   assetId: string,
   label: string
 ): Promise<void> => {
   const url = await resolveMediaUri(`asset://${assetId}`);
   if (!url) {
-    return;
+    throw new Error("Its file could not be found.");
   }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`The file could not be read (${response.status}).`);
+  }
+  const blob = await response.blob();
+  const extension = IMAGE_EXTENSION[blob.type] ?? "png";
+  const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `${label.replace(/\s+/g, "-").toLowerCase()}.png`;
+  anchor.href = objectUrl;
+  anchor.download = `${label.replace(/\s+/g, "-").toLowerCase()}.${extension}`;
   anchor.rel = "noopener";
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
+  // Revoked after the click has handed the blob to the download.
+  setTimeout(() => URL.revokeObjectURL(objectUrl));
 };
 
 /** Status wording that says what is happening rather than naming a state. */
@@ -115,6 +139,8 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
   siblingLayerIds = NO_SIBLINGS,
   onPick,
   onMakeMore,
+  makeMoreDetail,
+  regenerateDetail,
   makeMorePending = false,
   makeMoreError = null,
   onBackToSettings,
@@ -410,13 +436,27 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                 onClick={() => regenerate(tile.layerId, tile.failed)}
               >
                 {tile.failed ? `Try ${tile.label} again` : "Regenerate"}
+                {/* Another render is paid for, so its price sits on the button. */}
+                {regenerateDetail ? ` · ${regenerateDetail}` : ""}
               </EditorButton>
               <EditorButton
                 variant="text"
                 disabled={!tile.assetId}
                 onClick={() => {
                   if (tile.assetId) {
-                    void downloadVariation(tile.assetId, tile.label);
+                    downloadVariation(tile.assetId, tile.label).catch(
+                      (cause: unknown) => {
+                        const reason =
+                          cause instanceof Error ? ` ${cause.message}` : "";
+                        setActions((current) => ({
+                          ...current,
+                          [tile.layerId]: {
+                            state: "failed",
+                            message: `Could not download ${tile.label}.${reason}`
+                          }
+                        }));
+                      }
+                    );
                   }
                 }}
               >
@@ -445,6 +485,11 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
         >
           {makeMorePending ? "Making more…" : "Make more variations"}
         </EditorButton>
+        {makeMoreDetail && !makeMorePending ? (
+          <Caption color="secondary" sx={{ alignSelf: "center" }}>
+            {makeMoreDetail}
+          </Caption>
+        ) : null}
         <EditorButton variant="text" onClick={onBackToSettings}>
           Back to generation settings
         </EditorButton>
