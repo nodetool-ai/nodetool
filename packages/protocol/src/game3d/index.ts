@@ -89,11 +89,12 @@ export function parseGameDocument(value: unknown): ParseGameDocumentResult {
   if (!version.success) {
     return { ok: false, diagnostics: [{ code: "invalid_document", path: [], message: "Game document must include schemaVersion and engineVersion" }] };
   }
-  const schemaVersion = version.data.schemaVersion;
-  if (schemaVersion !== 3 && !(typeof schemaVersion === "number" && Object.hasOwn(GAME_2D_ENGINE_BY_SCHEMA, schemaVersion))) {
-    return { ok: false, diagnostics: [{ code: "unsupported_schema_version", path: ["schemaVersion"], message: `Unsupported game schema version ${String(schemaVersion)}` }] };
+  const known = z.union([gameDocument3D.shape.schemaVersion, gameDocument.shape.schemaVersion]).safeParse(version.data.schemaVersion);
+  if (!known.success) {
+    return { ok: false, diagnostics: [{ code: "unsupported_schema_version", path: ["schemaVersion"], message: `Unsupported game schema version ${String(version.data.schemaVersion)}` }] };
   }
-  const engineVersion = schemaVersion === 3 ? "2" : GAME_2D_ENGINE_BY_SCHEMA[schemaVersion as keyof typeof GAME_2D_ENGINE_BY_SCHEMA];
+  const schemaVersion = known.data;
+  const engineVersion = schemaVersion === 3 ? "2" : GAME_2D_ENGINE_BY_SCHEMA[schemaVersion];
   if (version.data.engineVersion !== engineVersion) {
     return { ok: false, diagnostics: [{ code: "unsupported_engine_version", path: ["engineVersion"], message: `Schema ${schemaVersion} requires engine version ${engineVersion}` }] };
   }
