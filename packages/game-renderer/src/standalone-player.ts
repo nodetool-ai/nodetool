@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-const PLAYER_VERSION = "1";
+const PLAYER_VERSIONS: readonly string[] = ["1", "3"];
 
 function element(id: string): HTMLElement {
   const found = document.getElementById(id);
@@ -50,8 +50,8 @@ async function start(): Promise<void> {
     throw new Error(`Game document is invalid: ${validation.errors.join("; ")}`);
   }
   const game = validation.document;
-  if (game.engineVersion !== PLAYER_VERSION) {
-    throw new Error(`This player supports engine version ${PLAYER_VERSION}`);
+  if (!PLAYER_VERSIONS.includes(game.engineVersion)) {
+    throw new Error(`This player supports engine versions ${PLAYER_VERSIONS.join(" and ")}`);
   }
   const fonts = await loadBrowserGameFonts(game, async (assetId) =>
     assetId.startsWith("./assets/") ? assetId : null);

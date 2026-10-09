@@ -35,7 +35,7 @@ const INVENTORY: ThumbSurface[] = [
   // Storyboard: shot cards and the takes strip under them.
   { surface: "storyboard shot card", file: "components/storyboard/ShotCard.tsx", via: "preferThumbnail" },
   { surface: "storyboard takes strip", file: "components/storyboard/ShotTakesGallery.tsx", via: "preferThumbnail" },
-  { surface: "storyboard entity tile", file: "components/storyboard/EntityTilesField.tsx", via: "preferThumbnail" },
+  { surface: "storyboard entity avatar", file: "components/storyboard/EntityTilesField.tsx", via: "preferThumbnail" },
   // Script: the 44x26 keyframe chip beside a line.
   { surface: "script shot chip", file: "components/script/ScriptShotChip.tsx", via: "preferThumbnail" },
   // Projects: still grids on cards and document previews.

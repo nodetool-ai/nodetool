@@ -4,7 +4,7 @@ name: Deploy to Docker
 # Pages follows this workflow's successful "Deploy server" job.
 on:
   workflow_run:
-    workflows: ["Docker", "User Journeys"]
+    workflows: ["Docker", "User Journeys", "Test"]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -39,7 +39,7 @@ jobs:
       RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       RELEASE_REPO: ${{ github.repository }}
     steps:
-      - name: Check both workflows on the exact commit
+      - name: Check release workflows on the exact commit
         id: poll
         shell: bash
         run: |
@@ -50,8 +50,15 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
           conclusion_for() {
-            gh api "repos/$repo/actions/workflows/$1/runs?head_sha=$sha&status=completed&per_page=1" \
+            gh api "repos/$repo/actions/workflows/$1/runs?head_sha=$sha&event=push&status=completed&per_page=1" \
               --jq '.workflow_runs[0].conclusion // "pending"'
+          }
+
+          # Test filters its push trigger by path, so a commit may have no run.
+          # "none" passes. A run still in progress reruns this gate when it ends.
+          test_conclusion_for() {
+            gh api "repos/$repo/actions/workflows/test.yml/runs?head_sha=$sha&event=push&per_page=1" \
+              --jq '.workflow_runs[0] | if . == null then "none" elif .status != "completed" then "pending" else .conclusion end'
           }
 
           if [[ "$(gh api "repos/$repo/commits/main" --jq .sha)" != "$sha" ]]; then
@@ -61,12 +68,14 @@ jobs:
           fi
           docker_conclusion="$(conclusion_for docker.yml)"
           journeys_conclusion="$(conclusion_for user-journeys.yml)"
-          echo "Docker=$docker_conclusion User Journeys=$journeys_conclusion"
-          if [[ "$docker_conclusion" == success && "$journeys_conclusion" == success ]]; then
+          test_conclusion="$(test_conclusion_for)"
+          echo "Docker=$docker_conclusion User Journeys=$journeys_conclusion Test=$test_conclusion"
+          if [[ "$docker_conclusion" == success && "$journeys_conclusion" == success &&
+                ( "$test_conclusion" == success || "$test_conclusion" == none ) ]]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          for conclusion in "$docker_conclusion" "$journeys_conclusion"; do
+          for conclusion in "$docker_conclusion" "$journeys_conclusion" "$test_conclusion"; do
             case "$conclusion" in
               failure|cancelled|timed_out|action_required|startup_failure|stale)
                 echo "::error::Release checks did not pass for $sha."

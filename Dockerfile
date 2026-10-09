@@ -103,7 +103,10 @@ ENV NODE_ENV=production \
 #   poppler-utils     — PDF agents, pdf-to-image nodes (pdftoppm/pdftotext)
 #   qpdf              — PDF agents (split/merge/optimize/check)
 #   pandoc            — document conversion nodes
-#   postgresql-client — psql/pg_dump for DATABASE_URL deployments
+#   postgresql-client-17 — psql/pg_dump for DATABASE_URL deployments, from
+#                     PGDG: pg_dump refuses servers newer than itself, and
+#                     bookworm ships 15 while docker-compose
+#                     runs postgres:17.
 #   jq/zip/unzip      — everyday shell plumbing for agents
 #   mesa-vulkan-drivers — lavapipe, a software Vulkan device. The image nodes
 #                     and the timeline compositor run their shaders on Dawn,
@@ -125,10 +128,18 @@ ENV NODE_ENV=production \
 RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
       > /etc/apt/sources.list.d/backports.list \
     && apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl wget \
+    ca-certificates curl \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+       https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    && . /etc/os-release \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    wget \
     ffmpeg git jq zip unzip \
     poppler-utils qpdf pandoc \
-    postgresql-client \
+    postgresql-client-17 \
     python3 python3-venv \
     chromium fonts-liberation fonts-noto-color-emoji \
     libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
@@ -152,7 +163,8 @@ ENV NODETOOL_OPTIONAL_NODE_MODULES=/app/backend/optional-node/node_modules
 # runs this same image with NODETOOL_NODE_PROFILE=full and keeps both.
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir \
-       yt-dlp pypdf pdfplumber pypdfium2 reportlab \
+       yt-dlp==2026.8.19 pypdf==6.19.0 pdfplumber==0.11.10 \
+       pypdfium2==5.14.0 reportlab==5.0.1 \
     && rm -rf /root/.cache
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -161,7 +173,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # any workspace directory without a per-run npm install. NODE_PATH only
 # affects CommonJS resolution as a last-resort fallback; the ESM server
 # ignores it, so /app/backend/node_modules resolution is unchanged.
-RUN npm install -g pdf-lib docx && npm cache clean --force
+RUN npm install -g pdf-lib@1.17.1 docx@9.7.1 && npm cache clean --force
 ENV NODE_PATH=/usr/local/lib/node_modules
 
 WORKDIR /app

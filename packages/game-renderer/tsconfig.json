@@ -5,5 +5,11 @@
     "rootDir": "src",
     "types": ["node", "@webgpu/types"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    { "path": "../game-runtime" },
+    { "path": "../gpu" },
+    { "path": "../protocol" },
+    { "path": "../config" }
+  ]
 }

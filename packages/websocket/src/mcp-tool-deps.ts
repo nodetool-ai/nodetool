@@ -50,12 +50,19 @@ export function createExampleWorkflowCatalog(
         : all;
       return limit === undefined ? filtered : filtered.slice(0, limit);
     },
-    get: async (packageName, exampleName) =>
-      loadExampleGraph(
-        packageName || defaultExamplePackageName(options) || "nodetool-base",
-        exampleName,
-        options
-      ) ?? null
+    // The name is agent input, and `loadExampleGraph` joins it onto the
+    // examples directory as a path, so a separator would let `../` read any
+    // JSON file this process can reach. No shipped example is named that way.
+    get: async (packageName, exampleName) => {
+      if (/[\\/]/.test(exampleName)) return null;
+      return (
+        loadExampleGraph(
+          packageName || defaultExamplePackageName(options) || "nodetool-base",
+          exampleName,
+          options
+        ) ?? null
+      );
+    }
   };
 }
 

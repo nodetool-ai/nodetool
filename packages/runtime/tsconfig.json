@@ -19,6 +19,9 @@
     },
     {
       "path": "../storage"
+    },
+    {
+      "path": "../browser"
     }
   ]
 }

@@ -242,8 +242,9 @@ const cliAgentProviders = await buildConfiguredProviders();
 
 // Stdin mode: activated when stdin is piped (not a TTY)
 if (!process.stdin.isTTY) {
+  let exitCode = 1;
   try {
-    await runStdinMode({
+    exitCode = await runStdinMode({
       provider,
       model,
       workspaceDir: workspace,
@@ -258,7 +259,7 @@ if (!process.stdin.isTTY) {
   } finally {
     await shutdownTelemetry();
   }
-  process.exit(0);
+  process.exit(exitCode);
 }
 
 const restoreScreen = enterTerminalScreen(process.stdout);

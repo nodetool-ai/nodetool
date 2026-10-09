@@ -134,6 +134,25 @@ export async function promptHidden(message: string): Promise<string> {
   });
 }
 
+/**
+ * Read a secret value: hidden input on a TTY, else the first line of stdin.
+ * Rejects when stdin ends before a line arrives, so `secrets store < /dev/null`
+ * fails instead of exiting 0 with nothing stored.
+ */
+export async function readSecretValue(
+  message: string,
+  input: NodeJS.ReadableStream & { isTTY?: boolean } = process.stdin
+): Promise<string> {
+  if (input.isTTY) return promptHidden(message);
+  const rl = createInterface({ input, terminal: false });
+  try {
+    for await (const line of rl) return line;
+  } finally {
+    rl.close();
+  }
+  throw new Error("stdin ended before a value was read");
+}
+
 /** Yes/no confirm. Non-TTY returns the `force` value (default: false). */
 export async function confirm(
   message: string,

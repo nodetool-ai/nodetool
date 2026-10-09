@@ -20,6 +20,21 @@
     { "path": "../video-nodes" },
     { "path": "../integration-nodes" },
     { "path": "../code-nodes" },
-    { "path": "../automation-nodes" }
+    { "path": "../automation-nodes" },
+    { "path": "../atlascloud-nodes" },
+    { "path": "../blender-nodes" },
+    { "path": "../elevenlabs-nodes" },
+    { "path": "../fal-nodes" },
+    { "path": "../higgsfield-nodes" },
+    { "path": "../huggingface-nodes" },
+    { "path": "../kie-nodes" },
+    { "path": "../minimax-nodes" },
+    { "path": "../replicate-nodes" },
+    { "path": "../reve-nodes" },
+    { "path": "../together-nodes" },
+    { "path": "../topaz-nodes" },
+    { "path": "../transformers-js-nodes" },
+    { "path": "../whisper-cpp" },
+    { "path": "../execution" }
   ]
 }

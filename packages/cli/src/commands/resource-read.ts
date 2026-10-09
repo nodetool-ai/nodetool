@@ -18,6 +18,7 @@ import type { Command } from "commander";
 import { Workflow, Job, Asset } from "@nodetool-ai/models";
 import { createApiClient } from "../api-client.js";
 import { printCommandError } from "../command-errors.js";
+import { parseNumericOption } from "../numeric-options.js";
 import { printTable, asJson } from "./output.js";
 
 export interface ResourceReadDeps {
@@ -128,7 +129,10 @@ function emitOne(
 }
 
 function parseLimit(limit: string | undefined): number {
-  return Number.parseInt(limit ?? "100", 10);
+  return parseNumericOption(limit ?? "100", "--limit", {
+    integer: true,
+    min: 1
+  });
 }
 
 export function registerResourceReadCommands(

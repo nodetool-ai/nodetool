@@ -39,6 +39,45 @@
     },
     {
       "path": "../runtime"
+    },
+    {
+      "path": "../blender-nodes"
+    },
+    {
+      "path": "../browser"
+    },
+    {
+      "path": "../execution"
+    },
+    {
+      "path": "../kernel"
+    },
+    {
+      "path": "../model3d"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../storyboard"
+    },
+    {
+      "path": "../timeline"
+    },
+    {
+      "path": "../video-nodes"
+    },
+    {
+      "path": "../vectorstore"
+    },
+    {
+      "path": "../audio-nodes"
+    },
+    {
+      "path": "../gpu"
     }
   ]
 }

@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 export const TYPESCRIPT_API_SPEC = "npm:@typescript/typescript6@6.0.2";
 export const TYPESCRIPT_NATIVE_SPEC = "npm:typescript@7.0.2";
@@ -89,6 +91,73 @@ export function auditManifests(entries) {
     }
   }
   return errors;
+}
+
+/**
+ * `tsc --build` orders and rebuilds projects only through `references`, so a
+ * package must reference every workspace it depends on, and the root build
+ * file must list every package project.
+ *
+ * @param {Array<{ dir: string, manifest: object, references: string[] }>} projects
+ *   Package projects: repo-relative `dir`, its package.json, and the
+ *   repo-relative directories its tsconfig.json references.
+ * @param {Map<string, string>} workspaceDirs Workspace name to repo-relative
+ *   directory, for workspaces that have a tsconfig.json.
+ * @param {string[]} buildReferences Directories listed in tsconfig.build.json.
+ */
+export function auditProjectReferences(projects, workspaceDirs, buildReferences) {
+  const errors = [];
+  const listed = new Set(buildReferences);
+  for (const { dir, manifest, references } of projects) {
+    if (!listed.has(dir)) {
+      errors.push(`tsconfig.build.json: missing reference to ${dir}`);
+    }
+    const referenced = new Set(references);
+    const dependencies = new Set([
+      ...Object.keys(manifest.dependencies ?? {}),
+      ...Object.keys(manifest.devDependencies ?? {}),
+      ...Object.keys(manifest.optionalDependencies ?? {})
+    ]);
+    for (const name of dependencies) {
+      const target = workspaceDirs.get(name);
+      if (target && target !== dir && !referenced.has(target)) {
+        errors.push(`${dir}/tsconfig.json: depends on ${name} but does not reference ${target}`);
+      }
+    }
+  }
+  return errors;
+}
+
+async function readTsconfig(path) {
+  const result = ts.parseConfigFileTextToJson(path, await readFile(path, "utf8"));
+  if (result.error) {
+    throw new Error(`${path}: ${ts.flattenDiagnosticMessageText(result.error.messageText, "\n")}`);
+  }
+  return result.config;
+}
+
+function referencedDirs(fromDir, config) {
+  return (config.references ?? []).map((reference) =>
+    relative(repoRoot, resolve(repoRoot, fromDir, reference.path)).replace(/\\/g, "/")
+  );
+}
+
+async function collectPackageProjects(workspaces) {
+  const workspaceDirs = new Map();
+  const projects = [];
+  for (const dir of workspaces) {
+    if (!existsSync(resolve(repoRoot, dir, "tsconfig.json"))) {
+      continue;
+    }
+    const manifest = await readJson(resolve(repoRoot, dir, "package.json"));
+    workspaceDirs.set(manifest.name, dir);
+    if (dir.startsWith("packages/")) {
+      const config = await readTsconfig(resolve(repoRoot, dir, "tsconfig.json"));
+      projects.push({ dir, manifest, references: referencedDirs(dir, config) });
+    }
+  }
+  const buildConfig = await readTsconfig(resolve(repoRoot, "tsconfig.build.json"));
+  return { projects, workspaceDirs, buildReferences: referencedDirs(".", buildConfig) };
 }
 
 export function isAuditExempt(root, path) {
@@ -210,6 +279,11 @@ export async function checkTypeScriptPolicy() {
   );
   const errors = auditManifests(manifestEntries);
 
+  const { projects, workspaceDirs, buildReferences } = await collectPackageProjects(
+    rootManifest.workspaces
+  );
+  errors.push(...auditProjectReferences(projects, workspaceDirs, buildReferences));
+
   const requiredDualProjects = new Set(["package.json", "mobile/package.json", "marketing/package.json"]);
   for (const entry of manifestEntries) {
     if (requiredDualProjects.has(entry.path)) {
@@ -241,8 +315,8 @@ export async function checkTypeScriptPolicy() {
     errors.push(...auditLockfile(path, await readJson(resolve(repoRoot, path)), { apiRequired }));
   }
 
-  if (manifestEntries.length === 0 || sourceFiles.length === 0) {
-    throw new Error("TypeScript policy audit inspected no manifests or source files");
+  if (manifestEntries.length === 0 || sourceFiles.length === 0 || projects.length === 0) {
+    throw new Error("TypeScript policy audit inspected no manifests, source files or package projects");
   }
   if (errors.length > 0) {
     throw new Error(`TypeScript policy violations:\n- ${errors.join("\n- ")}`);
@@ -250,7 +324,7 @@ export async function checkTypeScriptPolicy() {
 
   const roles = verifyCompilerRoles();
   console.log(
-    `TypeScript policy passed for ${manifestEntries.length} manifests and ${sourceFiles.length} source files. ` +
+    `TypeScript policy passed for ${manifestEntries.length} manifests, ${projects.length} package project references and ${sourceFiles.length} source files. ` +
       `CLI roles: ${roles.tsc7Version} / ${roles.tsc6Version}; API: ${roles.apiVersion}.`
   );
 }

@@ -103,7 +103,7 @@ export function frameFor(
         layer: entity.sprite.layer
       };
       const spriteFrame = animationFrame(state, tick) ?? entity.sprite.frame ?? binding?.frame;
-      if (document.schemaVersion === 2 && binding) {
+      if (document.schemaVersion !== 1 && binding) {
         const sourceWidth = spriteFrame?.width ?? binding.trim?.sourceWidth ?? binding.width;
         const sourceHeight = spriteFrame?.height ?? binding.trim?.sourceHeight ?? binding.height;
         const renderedWidth = spriteFrame?.width ?? binding.width;

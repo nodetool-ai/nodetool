@@ -9,6 +9,9 @@
     { "path": "../protocol" },
     { "path": "../runtime" },
     { "path": "../node-sdk" },
-    { "path": "../nodes-utils" }
+    { "path": "../nodes-utils" },
+    { "path": "../audio-nodes" },
+    { "path": "../image-nodes" },
+    { "path": "../storage" }
   ]
 }

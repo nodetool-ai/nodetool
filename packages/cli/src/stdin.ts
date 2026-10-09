@@ -221,7 +221,13 @@ async function handleSlashCommand(
   }
 }
 
-export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
+/**
+ * Run piped chat until stdin ends. Resolves to the process exit code: 1 when a
+ * server turn reported an error, so a script piping into `nodetool chat --url`
+ * can tell a failed turn from an answered one.
+ */
+export async function runStdinMode(opts: StdinModeOptions): Promise<number> {
+  let failed = false;
   const wsClient = opts.wsUrl ? new WebSocketChatClient(opts.wsUrl) : null;
   if (wsClient) {
     await wsClient.connect();
@@ -417,6 +423,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           process.stdout.write("\n");
         } else if (event.type === "error") {
           process.stderr.write(`Error: ${event.message}\n`);
+          failed = true;
           break;
         } else if (event.type === "done") {
           break;
@@ -443,4 +450,5 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   }
 
   wsClient?.disconnect();
+  return failed ? 1 : 0;
 }

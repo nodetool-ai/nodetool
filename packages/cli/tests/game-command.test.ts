@@ -257,3 +257,24 @@ describe("game build assets", () => {
     expect((await readdir(join(outDir, "assets"))).some((file) => file.endsWith(".ttf"))).toBe(true);
   }, 60000);
 });
+
+it("simulates authored metadata commands and verifies property snapshot replay", async () => {
+  const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+  vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);
+  const document = createTopDownRoomGame("a".repeat(32));
+  document.schemaVersion = 4;
+  document.engineVersion = "3";
+  const player = document.scenes[0].entities.find(entity=>entity.id==="player");
+  if (!player) { throw new Error("CLI fixture requires player"); }
+  player.tags = ["hero"];
+  player.props = {health:10};
+  player.behaviors = [{kind:"script",source:"({entity})=>({state:{tags:entity.tags,health:entity.props.health},commands:[{kind:'setProp',key:'health',value:entity.props.health-1}]})",maxCommands:1,maxTickMs:30}];
+  await writeFile(gamePath,JSON.stringify(document));
+  const report = await runSimulation("--ticks","3","--verify-replay");
+  expect(report).toMatchObject({ok:true,replay:{verified:true}});
+  const session = await createScriptedGameSession(document,1);
+  try {
+    for (let tick=0;tick<3;tick+=1) { session.step({pressed:[]}); }
+    expect(session.snapshot().entities.find(entity=>entity.id==="player")?.props).toEqual({health:7});
+  } finally { session.dispose(); }
+});

@@ -22,6 +22,9 @@
     },
     {
       "path": "../storage"
+    },
+    {
+      "path": "../websocket"
     }
   ]
 }

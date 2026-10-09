@@ -176,6 +176,7 @@ export function registerMcpClientCommands(mcp: Command): void {
           status: removed ? "Removed" : "Not installed"
         };
       } catch (error) {
+        process.exitCode = 1;
         return { target: MCP_CLIENT_LABELS[id], status: `Error: ${String(error)}` };
       }
     });
@@ -217,6 +218,7 @@ export function registerMcpClientCommands(mcp: Command): void {
             const probe = await probeMcpLaunch(launch);
             status = `OK: ${probe.tools.length} tools`;
           } catch (error) {
+            process.exitCode = 1;
             status = `Failed: ${(error instanceof Error ? error.message : String(error)).split("\n")[0]}`;
           }
         }

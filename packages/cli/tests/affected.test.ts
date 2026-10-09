@@ -1,5 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { describe, it, expect, vi } from "vitest";
+import { Command } from "commander";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -159,6 +161,36 @@ describe("EXTRA_WORKSPACE_PATHS", () => {
         }
       });
       expect(owner, `no workspace is named ${name}`).toBeDefined();
+    }
+  });
+});
+
+describe("nodetool affected --base", () => {
+  it("hands the ref to git as an argument, never to a shell", async () => {
+    const { registerAffectedCommand } = await import(
+      "../src/commands/affected.js"
+    );
+    const dir = mkdtempSync(join(tmpdir(), "affected-base-"));
+    const marker = join(dir, "pwned");
+    const exit = vi
+      .spyOn(process, "exit")
+      .mockImplementation((() => undefined) as never);
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const program = new Command();
+      program.exitOverride();
+      registerAffectedCommand(program);
+      await program.parseAsync(
+        ["affected", "--base", `HEAD;touch ${marker};`, "--json"],
+        { from: "user" }
+      );
+      expect(existsSync(marker)).toBe(false);
+    } finally {
+      exit.mockRestore();
+      err.mockRestore();
+      log.mockRestore();
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });

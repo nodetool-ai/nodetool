@@ -177,6 +177,8 @@ let _mockChatSpy = vi.fn();
 let _mockCancelJobSpy = vi.fn();
 let _mockGetStatusSpy = vi.fn();
 let _mockStopSpy = vi.fn();
+/** What the next WebSocket chat turn streams; null keeps the default reply. */
+let _nextChatEvents: Array<{ type: string; content?: string; message?: string }> | null = null;
 
 vi.mock("../src/websocket-client.js", () => ({
   WebSocketChatClient: class {
@@ -187,6 +189,10 @@ vi.mock("../src/websocket-client.js", () => ({
       ...args: unknown[]
     ): AsyncGenerator<{ type: string; content?: string }> {
       _mockChatSpy(...args);
+      if (_nextChatEvents) {
+        yield* _nextChatEvents;
+        return;
+      }
       yield { type: "chunk", content: "ws-response" };
       yield { type: "done" };
     }
@@ -257,7 +263,7 @@ describe("runStdinMode — empty / whitespace input", () => {
         model: "gpt-4o",
         workspaceDir: "/tmp"
       })
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(0);
   });
 });
 
@@ -481,6 +487,36 @@ describe("runStdinMode — WebSocket chat", () => {
       wsUrl: "ws://test"
     });
     expect(stdoutLines.some((s) => s.includes("ws-response"))).toBe(true);
+  });
+
+  it("resolves 0 when every turn is answered", async () => {
+    _nextLines = ["Hello WS"];
+    const code = await runStdinMode({
+      provider: "openai",
+      model: "gpt-4o",
+      workspaceDir: "/tmp",
+      wsUrl: "ws://test"
+    });
+    expect(code).toBe(0);
+  });
+
+  // A server-side failure (bad key, dropped socket) used to print `Error:` and
+  // still exit 0, so a script could not tell it from an answer.
+  it("resolves 1 when the server reports an error for a turn", async () => {
+    _nextLines = ["Hello WS"];
+    _nextChatEvents = [{ type: "error", message: "provider rejected the key" }];
+    try {
+      const code = await runStdinMode({
+        provider: "openai",
+        model: "gpt-4o",
+        workspaceDir: "/tmp",
+        wsUrl: "ws://test"
+      });
+      expect(code).toBe(1);
+      expect(stderrLines.join("")).toContain("provider rejected the key");
+    } finally {
+      _nextChatEvents = null;
+    }
   });
 
   it("sends --permission-mode to the server, which holds the gate", async () => {

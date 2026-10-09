@@ -990,3 +990,5 @@ export type {
 } from "./tools/external-mcp-tools.js";
 
 export { nativeCapabilityTool } from "./capabilities/lazy-tool.js";
+
+export { GAME_TOOL_LOOP_CASES, createGameToolBridge } from "./evals/surfaces/game.js";

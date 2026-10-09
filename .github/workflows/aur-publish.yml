@@ -147,7 +147,7 @@ jobs:
 
       # Publishes the exact PKGBUILD and checksums the test job verified.
       - name: Publish to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
+        uses: KSXGitHub/github-actions-deploy-aur@084b0d9b15415bf9cdb65d44dad1efe37a354050  # v4.2.0
         with:
           pkgname: nodetool-bin
           asset_dir: aur-pkg

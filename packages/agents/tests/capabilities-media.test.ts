@@ -10,7 +10,8 @@
 
 import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import { describe, expect, it, vi } from "vitest";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
@@ -654,6 +655,30 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it.each(["absolute path", "file URI"])(
+    "ffmpeg does not stage a host file named by %s in inputs",
+    async (kind) => {
+      // On a remote MCP session or a cloud chat the host disk is not the
+      // caller's. A staged copy would land in the workspace, readable back.
+      const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-host-"));
+      const outside = await mkdtemp(join(tmpdir(), "ffmpeg-host-secret-"));
+      try {
+        const secret = join(outside, "secret.txt");
+        await writeFile(secret, "do-not-leak");
+        const ref = kind === "file URI" ? pathToFileURL(secret).href : secret;
+        const result = (await asTool(ffmpeg).process(workspaceContext(dir), {
+          args: ["-i", "a.txt", "out.mp4"],
+          inputs: { "a.txt": ref }
+        })) as Record<string, unknown>;
+        expect(String(result["error"])).toMatch(/could not read/);
+        await expect(readFile(join(dir, "a.txt"), "utf8")).rejects.toThrow();
+      } finally {
+        await rm(dir, { recursive: true, force: true });
+        await rm(outside, { recursive: true, force: true });
+      }
+    }
+  );
 
   it("ffmpeg refuses an inputs name that escapes the workspace", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-"));

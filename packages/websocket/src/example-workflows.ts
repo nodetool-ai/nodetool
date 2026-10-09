@@ -67,6 +67,12 @@ export function resolveExampleJsonPath(
       ];
 
   for (const candidate of directCandidates) {
+    // The ref is caller input: a candidate outside the examples directory
+    // (`../../x`) would read any JSON file on the host.
+    const rel = nodePath.relative(examplesDir, candidate);
+    if (!rel || rel.startsWith("..") || nodePath.isAbsolute(rel)) {
+      continue;
+    }
     if (existsSync(candidate)) {
       return candidate;
     }

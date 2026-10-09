@@ -103,7 +103,6 @@ import {
   DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
   JobExecutionManager,
   resolveRunJobExecutionOptions,
-  resolveRunJobUserId,
   type RunJobExecutionOptions,
   type RunJobRequest,
   type SdkExecutionCapacitySnapshot
@@ -112,8 +111,7 @@ import {
 // re-exported here so every existing import path keeps working.
 export {
   DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
-  resolveRunJobExecutionOptions,
-  resolveRunJobUserId
+  resolveRunJobExecutionOptions
 };
 export type {
   RunJobExecutionOptions,

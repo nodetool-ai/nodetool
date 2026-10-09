@@ -16,9 +16,11 @@ checked out at `/home/claude/nodetool-deploy` on that host.
 
 ## Release chain
 
-A push to `main` starts the Docker image build and User Journeys independently.
-The **Deploy to Docker** workflow runs when either completes and deploys only
-when both have succeeded for that exact commit. It does not wait: the second
+A push to `main` starts the Docker image build, User Journeys, and Test
+independently. The **Deploy to Docker** workflow runs when any of them
+completes. It deploys only when Docker and User Journeys have succeeded for
+that exact commit and Test has succeeded or has no run, because Test filters
+its push trigger by path. It counts only push runs. It does not wait: the last
 workflow to finish triggers the release. It rejects a commit superseded on
 `main`. It retains the historical filename
 [fly-deploy.yml](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/fly-deploy.yml), but does not invoke Fly or

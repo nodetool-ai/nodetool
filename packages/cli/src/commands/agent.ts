@@ -54,6 +54,7 @@ import {
   type TraceSpanLite
 } from "../diagnose.js";
 import { isRecord, isString } from "../predicates.js";
+import { parseNumericOption } from "../numeric-options.js";
 
 const PROVIDER_ALIASES: Record<string, string> = {
   google: "gemini",
@@ -225,6 +226,16 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     throw new Error("No model specified. Use --model <id>.");
   }
 
+  // `Number("ten")` is NaN, and a NaN round limit runs no rounds at all: the
+  // run then failed as if the model had answered nothing.
+  const maxIterations =
+    opts.maxIterations === undefined
+      ? undefined
+      : parseNumericOption(opts.maxIterations, "--max-iterations", {
+          integer: true,
+          min: 1
+        });
+
   const objective = opts.objective ?? (await readObjectiveFromStdin());
   if (!objective) {
     throw new Error(
@@ -344,8 +355,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
       context,
       tools: turn.tools,
       turnBudget: budget,
-      maxIterations:
-        opts.maxIterations === undefined ? undefined : Number(opts.maxIterations),
+      maxIterations,
       callbacks: {
         onChunk: (content) => {
           emit({ type: "chunk", content, done: false });

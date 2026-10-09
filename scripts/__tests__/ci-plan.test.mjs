@@ -128,8 +128,26 @@ describe("buildCiPlan", () => {
     expect(plan(["scripts/docker-smoke.mjs"]).docker).toBe(true);
   });
 
-  it("runs everything except docker for a root config change", () => {
-    expect(plan(["package-lock.json"])).toEqual({ ...fullCiPlan(), docker: false });
+  it("runs the docker leg for the manifests and build scripts the Dockerfile copies", () => {
+    for (const file of [
+      "package.json",
+      "package-lock.json",
+      "packages/storage/package.json",
+      "reliability/harness/package.json",
+      "web/package.json",
+      "electron/scripts/rebuild-native.mjs",
+      "tsconfig.build.json",
+      "turbo.json",
+      "scripts/bundle-backend.mjs",
+      "scripts/verify-backend-bundle.mjs"
+    ]) {
+      expect(plan([file]).docker).toBe(true);
+    }
+    expect(plan(["packages/storage/src/package.json"]).docker).toBe(false);
+  });
+
+  it("runs everything for a root config change", () => {
+    expect(plan(["package-lock.json"])).toEqual(fullCiPlan());
     expect(plan(["turbo.json"]).full).toBe(true);
   });
 

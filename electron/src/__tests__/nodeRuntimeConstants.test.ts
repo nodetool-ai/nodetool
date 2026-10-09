@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as path from "path";
 
 const c = require("../../scripts/node-runtime.constants.cjs") as {
@@ -26,8 +27,12 @@ const c = require("../../scripts/node-runtime.constants.cjs") as {
 };
 
 describe("node-runtime.constants", () => {
-  it("pins the Node version to 22.22.1", () => {
-    expect(c.NODE_RUNTIME_VERSION).toBe("22.22.1");
+  it("pins the Node version to .nvmrc", () => {
+    const nvmrc = fs
+      .readFileSync(path.join(__dirname, "../../../.nvmrc"), "utf8")
+      .trim()
+      .replace(/^v/, "");
+    expect(c.NODE_RUNTIME_VERSION).toBe(nvmrc);
   });
 
   it("names the node binary per platform", () => {
@@ -38,25 +43,25 @@ describe("node-runtime.constants", () => {
 
   it("builds nodejs.org archive info per target", () => {
     const mac = c.nodeArchive("darwin", "arm64");
-    expect(mac.dir).toBe("node-v22.22.1-darwin-arm64");
-    expect(mac.archive).toBe("node-v22.22.1-darwin-arm64.tar.gz");
-    expect(mac.binaryInArchive).toBe("node-v22.22.1-darwin-arm64/bin/node");
+    expect(mac.dir).toBe("node-v24.18.0-darwin-arm64");
+    expect(mac.archive).toBe("node-v24.18.0-darwin-arm64.tar.gz");
+    expect(mac.binaryInArchive).toBe("node-v24.18.0-darwin-arm64/bin/node");
 
     const win = c.nodeArchive("win32", "x64");
-    expect(win.dir).toBe("node-v22.22.1-win-x64");
-    expect(win.archive).toBe("node-v22.22.1-win-x64.zip");
-    expect(win.binaryInArchive).toBe("node-v22.22.1-win-x64/node.exe");
+    expect(win.dir).toBe("node-v24.18.0-win-x64");
+    expect(win.archive).toBe("node-v24.18.0-win-x64.zip");
+    expect(win.binaryInArchive).toBe("node-v24.18.0-win-x64/node.exe");
   });
 
   it("locates the npm package inside each archive layout", () => {
-    expect(c.npmDirInArchive("darwin", "node-v22.22.1-darwin-arm64")).toBe(
-      "node-v22.22.1-darwin-arm64/lib/node_modules/npm"
+    expect(c.npmDirInArchive("darwin", "node-v24.18.0-darwin-arm64")).toBe(
+      "node-v24.18.0-darwin-arm64/lib/node_modules/npm"
     );
-    expect(c.npmDirInArchive("linux", "node-v22.22.1-linux-x64")).toBe(
-      "node-v22.22.1-linux-x64/lib/node_modules/npm"
+    expect(c.npmDirInArchive("linux", "node-v24.18.0-linux-x64")).toBe(
+      "node-v24.18.0-linux-x64/lib/node_modules/npm"
     );
-    expect(c.npmDirInArchive("win32", "node-v22.22.1-win-x64")).toBe(
-      "node-v22.22.1-win-x64/node_modules/npm"
+    expect(c.npmDirInArchive("win32", "node-v24.18.0-win-x64")).toBe(
+      "node-v24.18.0-win-x64/node_modules/npm"
     );
   });
 
