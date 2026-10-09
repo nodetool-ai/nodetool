@@ -13,6 +13,7 @@ import ReportBugButton from "../../../support/ReportBugButton";
 import SchemaFields from "../../inspector/SchemaFields";
 import { COMPONENT_SECTION_SX } from "../../inspector/componentSection";
 import GameOverrideFields from "../../GameOverrideFields";
+import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
 import { gameSchemaFields } from "../../inspector/schemaForm";
 
 interface GameInspector3DProps {
@@ -126,6 +127,9 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
             {behavior.kind === "script" && <EditorButton onClick={() => onScript(index)}>Edit script</EditorButton>}
             <EditorButton onClick={() => onOps([{ op: "remove_behavior", scene_id: sceneId, entity_id: entity.id, index }])}>Remove</EditorButton>
           </FlexRow>
+          {behavior.kind === "script" && behavior.params && <ScriptParamsEditor params={behavior.params} values={behavior.values} assets={document.assets}
+            entities={scene?.entities ?? []} issues={validation.issues}
+            issuePath={["scenes", document.scenes.findIndex((item) => item.id === sceneId), "entities", scene?.entities.indexOf(entity) ?? -1, "behaviors", index]} onValues={(values) => onOps([{ op: "set_script_params", scene_id: sceneId, entity_id: entity.id, index, values }])} />}
           {behavior.kind !== "script" && <SchemaFields schema={gameSchemaFields(gameEntity3D.shape.behaviors.unwrap().element)} value={behavior}
             onChange={(value) => onOps([gameDocumentOp3D.parse({ op: "update_behavior", scene_id: sceneId, entity_id: entity.id, index, behavior: value })])} />}
         </FlexColumn>)}

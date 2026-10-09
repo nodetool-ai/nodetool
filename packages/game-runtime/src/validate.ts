@@ -1,4 +1,5 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
+import { scriptParamReferenceIssues } from "./script-params.js";
 import { gameDocument, gameParticleIssues, type GameDocument } from "@nodetool-ai/protocol";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 
@@ -279,6 +280,12 @@ export function validateGame(value: unknown): GameValidationResult {
         if (behavior.kind === "script") {
           scriptCount += 1;
           scriptSourceBytes += encoder.encode(behavior.source).byteLength;
+          if (document.schemaVersion !== 4 && (behavior.params !== undefined || behavior.values !== undefined)) {
+            errors.push(`${path}.behaviors.${behaviorIndex}.params: requires schema version 4`);
+          }
+          for (const issue of scriptParamReferenceIssues(behavior, (id) => entities.has(id), (slot) => document.assets[slot]?.mediaKind)) {
+            errors.push(`${path}.behaviors.${behaviorIndex}.${issue.path.join(".")}: ${issue.message}`);
+          }
         }
         if (behavior.kind === "movement") {
           for (const action of [behavior.left, behavior.right, behavior.up, behavior.down]) {

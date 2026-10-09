@@ -5,6 +5,7 @@ import { validateGame, type GameDocumentOp, type GameValidationIssue } from "@no
 import { Caption, CollapsibleSection, Divider, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, Label, SPACING, TabGroup, Text, TextInput, TYPOGRAPHY } from "../../../ui_primitives";
 import SchemaFields from "../../inspector/SchemaFields";
 import GameOverrideFields from "../../GameOverrideFields";
+import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
 import { gameSchemaFields, schemaVariant } from "../../inspector/schemaForm";
 
 import { parentCandidates, reparentTransform } from "../../viewport2d/viewportGeometry";
@@ -236,6 +237,8 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
           <SchemaFields schema={BEHAVIOR_SCHEMA.oneOf?.find((variant) => variant.properties?.kind?.const === "script")?.properties?.maxTickMs ?? { type: "integer" }}
             value={behavior.maxTickMs} path="maxTickMs" issuePath={[...entityPath, "behaviors", index, "maxTickMs"]} issues={issues}
             onChange={(value) => onOps([{ op: "update_behavior", ...target, index, behavior: { maxTickMs: value } }])} />
+          {behavior.params && <ScriptParamsEditor params={behavior.params} values={behavior.values} assets={document.assets} entities={scene.entities}
+            issuePath={[...entityPath, "behaviors", index]} issues={issues} onValues={(values) => onOps([{ op: "set_script_params", ...target, index, values }])} />}
         </> : <SchemaFields schema={schemaVariant(BEHAVIOR_SCHEMA, behavior)} value={behavior} path={`behaviors.${index}`}
           issuePath={[...entityPath, "behaviors", index]} issues={issues} assets={document.assets}
           onChange={(value) => onOps([{ op: "update_behavior", ...target, index, behavior: value as Record<string, unknown> }])} />}

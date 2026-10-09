@@ -8,12 +8,15 @@ import {
   gameEntity,
   gameRenderEffect,
   gameScene,
+  gameScriptParamValue,
+  gameScriptParams,
   type GameDocument,
   type GameEntity
 } from "@nodetool-ai/protocol";
 import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnershipDeltaState, overrideMembershipOp, reconcileGameOwnershipDeltas } from "./ownership-ops.js";
 import { applyGameAuthoringOperation } from "./authoring-reconcile.js";
 import { validateGame, type GameValidationIssue } from "./validate.js";
+import { editScriptParams } from "./script-params.js";
 
 const id = z.string().min(1);
 const index = z.number().int().nonnegative();
@@ -63,6 +66,7 @@ export const gameDocumentOp = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("remove_behavior"), ...target, index }),
   z.strictObject({ op: z.literal("move_behavior"), ...target, index, to_index: index }),
   z.strictObject({ op: z.literal("set_script"), ...target, index, source: z.string(), max_commands: z.number().int().optional(), max_tick_ms: z.number().int().optional() }),
+  z.strictObject({ op: z.literal("set_script_params"), ...target, index, params: gameScriptParams.nullable().optional(), values: z.record(z.string(), gameScriptParamValue.nullable()).optional() }),
   z.strictObject({ op: z.literal("add_scene"), scene_id: id, scene: gameScene.partial().optional(), index: index.optional() }),
   z.strictObject({ op: z.literal("update_scene"), scene_id: id, set: sceneSet }),
   z.strictObject({ op: z.literal("remove_scene"), scene_id: id }),
@@ -308,6 +312,16 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         if (behavior.kind !== "script") { fail(opIndex, ["index"], "Behavior is not a script"); }
         const next = gameBehavior.safeParse({ ...behavior, source: op.source, maxCommands: op.max_commands ?? behavior.maxCommands, maxTickMs: op.max_tick_ms ?? behavior.maxTickMs });
         if (!next.success) { fail(opIndex, ["source", ...pathOf(next.error.issues[0].path)], next.error.issues[0].message); }
+        entity.behaviors[op.index] = next.data;
+        break;
+      }
+      case "set_script_params": {
+        const { entity } = findEntity(draft, entityIndexesByScene, op.entity_id, op.scene_id, opIndex);
+        existingIndex(entity.behaviors, op.index, opIndex, ["index"]);
+        const behavior = entity.behaviors[op.index];
+        if (behavior.kind !== "script") { fail(opIndex, ["index"], "Behavior is not a script"); }
+        const next = gameBehavior.safeParse(editScriptParams(behavior, op));
+        if (!next.success) { fail(opIndex, pathOf(next.error.issues[0].path), next.error.issues[0].message); }
         entity.behaviors[op.index] = next.data;
         break;
       }

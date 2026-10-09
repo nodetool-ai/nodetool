@@ -3,6 +3,8 @@ import {
   gameDocument3D, gameParticleIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
+import { gameScriptParamValueOf } from "@nodetool-ai/protocol";
+import { scriptParamReferenceIssues } from "./script-params.js";
 import { validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 
@@ -155,6 +157,17 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           }
         }
         for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
+          if (behavior.kind === "script") {
+            for (const issue of scriptParamReferenceIssues(behavior, prefab ? null : (target) => byId.has(target), (slot) => document.assets[slot]?.mediaKind)) {
+              add("invalid_script_param_reference", [...entityPath, "behaviors", behaviorIndex, ...issue.path], issue.message);
+            }
+            for (const [name, param] of Object.entries(behavior.params ?? {})) {
+              const slot = param.type === "asset" ? gameScriptParamValueOf(param, behavior.values && Object.hasOwn(behavior.values, name) ? behavior.values[name] : undefined) : null;
+              if (prefab && typeof slot === "string" && !prefab.externalAssets.includes(slot)) {
+                add("undeclared_external_asset", [...entityPath, "behaviors", behaviorIndex, "params", name], `Prefab must declare asset ${slot}`);
+              }
+            }
+          }
           if (behavior.kind === "spawn" && !document.prefabs[behavior.prefabId] && (prefab || !byId.get(behavior.prefabId)?.templateOnly)) {
             add("missing_prefab", [...entityPath, "behaviors", behaviorIndex, "prefabId"], `Prefab ${behavior.prefabId} does not exist`);
           }

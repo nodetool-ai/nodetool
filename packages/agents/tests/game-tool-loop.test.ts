@@ -49,6 +49,21 @@ it("scores a procedural sky authored through the public 3D edit surface", async 
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
 
+it("scores script params set through the public edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="script-parameters");
+  if (!candidate) { throw new Error("Script params eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Script params eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const index = bridge.finalState().scenes[0].entities.find(entity=>entity.id==="player")?.behaviors.findIndex(behavior=>behavior.kind==="script");
+  expect(await edit.execute({ops:[{op:"set_script_params",entity_id:"player",index,values:{target:"nowhere"}}]})).toMatchObject({error:expect.stringContaining("missing entity nowhere")});
+  await edit.execute({ops:[{op:"set_script_params",entity_id:"player",index,values:{speed:6,target:"gem"}}]});
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
 it("scores a particles component authored through the public edit surface", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="particle-emitter");
   if (!candidate) { throw new Error("Particle eval case must exist"); }

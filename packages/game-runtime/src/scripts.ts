@@ -1,6 +1,6 @@
 import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
-import { gameNonSpatialScriptCommand, type GameDocument, type GameEntityProps, type GameSnapshot } from "@nodetool-ai/protocol";
+import { gameNonSpatialScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
 
 import { canPersistGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
@@ -198,7 +198,10 @@ function disposeRealm(realm: ScriptRealm): void {
 interface ScriptDefinitions {
   readonly entrySceneId?: string;
   readonly scenes: readonly { readonly id: string; readonly entities: readonly {
-    readonly id: string; readonly behaviors: readonly { readonly kind: string; readonly source?: string }[]
+    readonly id: string; readonly behaviors: readonly {
+      readonly kind: string; readonly source?: string;
+      readonly params?: Readonly<Record<string, GameScriptParam>>; readonly values?: Readonly<Record<string, GameScriptParamValue>>
+    }[]
   }[] }[];
 }
 
@@ -261,6 +264,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   runtime.setMemoryLimit(16 * 1024 * 1024);
   runtime.setMaxStackSize(256 * 1024);
   const sources = new Map<string, string>();
+  // Resolved `input.params` JSON per behavior definition. Values are document data, so this is serialized once per session.
+  const paramsJson = new Map<string, string>();
   const persistentSources = new Set<string>();
   const realms = new Map<string, ScriptRealm>();
   // Validated entry-scene realms, kept so the first tick does not compile every proven-safe script inside its budget.
@@ -347,6 +352,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             throw new Error(`Game script ${key} could not be prepared: ${error instanceof Error ? error.message : String(error)}`);
           }
           sources.set(key, behavior.source);
+          if (behavior.params !== undefined) { paramsJson.set(key, JSON.stringify(resolveGameScriptParams(behavior.params, behavior.values))); }
         });
       }
     }
@@ -356,7 +362,17 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       const batchDeadline = started + batchMs;
       // This limits the logical tick payload, which carries each entity's props once.
       // Each isolated call gets its own JSON copy with props attached to the entries scripts read.
-      const serialized = JSON.stringify({ calls, input, rngState });
+      // Params belong to a behavior definition, so calls that share one count its params once, as a table keyed by source.
+      let paramsTable = "";
+      const counted = new Set<string>();
+      for (const call of paramsJson.size === 0 ? [] : calls) {
+        const params = paramsJson.get(call.sourceKey);
+        if (params === undefined || counted.has(call.sourceKey)) { continue; }
+        paramsTable += `${counted.size > 0 ? "," : ""}${JSON.stringify(call.sourceKey)}:${params}`;
+        counted.add(call.sourceKey);
+      }
+      const logical = JSON.stringify({ calls, input, rngState });
+      const serialized = counted.size === 0 ? logical : `${logical.slice(0, -1)},"params":{${paramsTable}}}`;
       const inputBytes = encoder.encode(serialized).byteLength;
       if (inputBytes > 64 * 1024) {
         throw new Error(`Game script input exceeds 64 KiB (${inputBytes} bytes, ${calls.length} calls, tick ${input.tick})`);
@@ -434,7 +450,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
           checkCallDeadline();
           // The shared input is serialized once per tick; only the call is serialized per call.
-          const data = `{"call":${callJson(call)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}}`;
+          const params = paramsJson.get(call.sourceKey);
+          const data = `{"call":${callJson(call)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}${params === undefined ? "" : `,"params":${params}`}}`;
           checkCallDeadline();
           const normalized: unknown = persistent ? JSON.parse(data) : data;
           let argument: QuickJSHandle | undefined;
@@ -554,6 +571,7 @@ export function prepareGameScripts(document: GameDocument): Promise<GameScriptRu
       velocityX: data.call.velocityX, velocityY: data.call.velocityY, touching: data.call.touching,
       ...(data.call.props === undefined ? undefined
         : { tags: data.call.tags, props: data.call.props, rotation: data.call.rotation, active: data.call.active })
-    }, world: data.input.world, state: data.call.state, random: __gameRandom
+    }, world: data.input.world, state: data.call.state, random: __gameRandom,
+    ...(data.params === undefined ? undefined : { params: data.params })
   }`);
 }

@@ -10,6 +10,7 @@ import ContentCardBody from "../node_types/ContentCardBody";
 import CodeBody from "../node_types/CodeBody";
 import { getBespokeBody } from "../node_types/editing/bespokeRegistry";
 import HandleColumn from "./HandleColumn";
+import NodeModelChips from "./NodeModelChips";
 import { isSnippetCodeNode, isCodeBodyNode } from "./codeNodeUi";
 import {
   resolveExposedInputNames,
@@ -166,6 +167,12 @@ const NodeContent: React.FC<NodeContentProps> = ({
         nodeType={nodeType}
         data={data}
         properties={allProperties}
+      />
+      <NodeModelChips
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
       />
       {(nodeMetadata?.supports_dynamic_inputs || nodeMetadata?.supports_dynamic_outputs) && (
         <NodePropertyForm
