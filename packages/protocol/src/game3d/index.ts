@@ -17,7 +17,7 @@ import { gameEnvironment3D } from "./components/environment.js";
 import { gameAssetBinding3D } from "./components/assets.js";
 import { gameAuthoring } from "../game-authoring.js";
 import { gameAudioSettings } from "../game2d/components/audio.js";
-import { gameDocument, gameEntity, gameEvent, gameHudLabel, gameScene, gameSnapshot } from "../game.js";
+import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameEntity, gameEvent, gameHudLabel, gameScene, gameSnapshot } from "../game.js";
 
 const diagnosticPath = z.array(z.union([z.string(), z.number(), z.symbol().transform((value) => value.toString())]));
 
@@ -89,11 +89,12 @@ export function parseGameDocument(value: unknown): ParseGameDocumentResult {
   if (!version.success) {
     return { ok: false, diagnostics: [{ code: "invalid_document", path: [], message: "Game document must include schemaVersion and engineVersion" }] };
   }
-  const schemaVersion = version.data.schemaVersion;
-  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4) {
-    return { ok: false, diagnostics: [{ code: "unsupported_schema_version", path: ["schemaVersion"], message: `Unsupported game schema version ${String(schemaVersion)}` }] };
+  const known = z.union([gameDocument3D.shape.schemaVersion, gameDocument.shape.schemaVersion]).safeParse(version.data.schemaVersion);
+  if (!known.success) {
+    return { ok: false, diagnostics: [{ code: "unsupported_schema_version", path: ["schemaVersion"], message: `Unsupported game schema version ${String(version.data.schemaVersion)}` }] };
   }
-  const engineVersion = schemaVersion === 4 ? "3" : schemaVersion === 3 ? "2" : "1";
+  const schemaVersion = known.data;
+  const engineVersion = schemaVersion === 3 ? "2" : GAME_2D_ENGINE_BY_SCHEMA[schemaVersion];
   if (version.data.engineVersion !== engineVersion) {
     return { ok: false, diagnostics: [{ code: "unsupported_engine_version", path: ["engineVersion"], message: `Schema ${schemaVersion} requires engine version ${engineVersion}` }] };
   }
