@@ -97,6 +97,13 @@ export function frame3D(
         if (state.definition.particles) {
           entity.particles = state.definition.particles;
         }
+        const culling = state.definition.renderCulling;
+        if (culling) {
+          const cullDistance = culling.maxDistance ?? (culling.layer === undefined ? undefined : document.performance?.cullLayers?.[culling.layer]?.maxDistance);
+          if (cullDistance !== undefined) {
+            entity.cullDistance = cullDistance;
+          }
+        }
         return entity;
       }),
     lights: states

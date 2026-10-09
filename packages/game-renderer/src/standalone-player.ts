@@ -4,6 +4,7 @@ import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer } from "./audio.js";
 import { mountTouchControls } from "./touch-controls.js";
 import { gameKeyAction } from "./input.js";
+import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 
 declare global {
   interface Window {
@@ -67,6 +68,7 @@ async function start(): Promise<void> {
     mixer: game.audio?.mixer
   });
   audio.preload();
+  const budget = new GameFrameBudgetMonitor();
   function unlockAudio(): void { void audio.unlock(); }
   const renderer = await createGameRenderer({
     canvas,
@@ -160,7 +162,8 @@ async function start(): Promise<void> {
       return;
     }
     rendering = renderer.render(latest, interpolation)
-      .then(() => {
+      .then((stats) => {
+        budget.observe({ drawCalls: stats.drawCalls, voices: gameAudioVoiceCount(audio.mixerState()) });
         if (effects.some((effect) => !effect.required) && renderer.capabilities.fallbackReason) {
           showStatus("GPU effect omitted after WebGPU failure");
         }

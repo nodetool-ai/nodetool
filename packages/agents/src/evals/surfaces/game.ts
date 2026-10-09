@@ -163,4 +163,20 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         return trail?.rate === 20 && trail.loop && trail.onDeath.some(sub => sub.emitter === "sparks" && sub.count === 3) && sparks?.playOnStart === false;
       } }]
   }
+}, {
+  id: "render-culling",
+  description: "Author a 3D cull layer, a frame budget and per-entity distance culling through public edit ops.",
+  objective: "Declare a cull layer named props that hides entities beyond 40 units, put the crate and the pickup on it, hide the ramp beyond 25 units, and set a draw call budget of 300.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("culling-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_performance {performance} replaces document performance with cullLayers {name: {maxDistance}} and budgets {drawCalls?, triangles?, particles?, voices?}. update_entity sets renderCulling {layer?, maxDistance?} on an entity.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "renderCulling", detail: "The props layer, the entity culling settings or the draw call budget differ from the request.",
+      test: document => {
+        if (document.schemaVersion !== 3) { return false; }
+        const culling = (id: string) => document.scenes[0].entities.find(entity => entity.id === id)?.renderCulling;
+        return document.performance?.cullLayers?.props?.maxDistance === 40 && document.performance.budgets?.drawCalls === 300 &&
+          culling("crate")?.layer === "props" && culling("pickup")?.layer === "props" && culling("ramp")?.maxDistance === 25;
+      } }]
+  }
 }];

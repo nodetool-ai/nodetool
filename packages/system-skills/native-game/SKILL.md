@@ -627,4 +627,22 @@ Shortcuts are saved per user in the browser.
 
 ### D: Performance and delivery
 
+#### Distance culling and frame budgets (3D)
+
+Both are presentation only. They never change simulation, snapshots or replay.
+
+- `set_performance {performance}` replaces document `performance`. `null`
+  removes it. `cullLayers` maps a layer name to `{maxDistance}` (at most 32
+  layers). `budgets` sets `drawCalls`, `triangles`, `particles` and `voices`.
+- `update_entity` with `set: {renderCulling: {layer?, maxDistance?}}` hides
+  that entity when the game camera is farther away than the distance. The
+  entity's own `maxDistance` wins over its layer's. A layer must be declared,
+  or validation reports `missing_cull_layer`.
+- Cull large scenery and props, never the player or anything the player must
+  see to win. The editor camera shows every entity.
+- Budgets left out use the player defaults: 1000 draw calls, 1,000,000
+  triangles, 4096 particles and 24 voices. The standalone player warns in the
+  browser console once each time a budget is exceeded. `nodetool game capture`
+  reports `budget.overruns` for a 3D frame.
+
 ### M: Milestone games
