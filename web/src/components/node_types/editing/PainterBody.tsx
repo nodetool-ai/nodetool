@@ -49,7 +49,8 @@ import { SPACING,
   reducedMotion,
   Z_INDEX
 } from "../../ui_primitives";
-import NodePortBand from "../../node/NodePortBand";
+import HandleColumn from "../../node/HandleColumn";
+import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
 
@@ -113,7 +114,15 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(SPACING.micro),
       // Canvas is now full-bleed — no side toolbar column.
       width: "100%",
+      // HandleColumn lives here (sibling of `.paint-area`, not inside it) so
+      // `.paint-area { overflow: hidden }` doesn't clip the protruding
+      // handles at their negative-`left` position.
       position: "relative",
+      "& > .handle-column": {
+        top: 0,
+        bottom: 0,
+        left: 0
+      }
     },
     ".paint-area": {
       flex: "1 1 auto",
@@ -276,12 +285,17 @@ const styles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.action.focus
       }
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    },
     /*
      * Collapsed strip: hide the toolbar and canvas stage, shrink the
      * `.paint-row` / `.paint-area` to zero. We can't `display: none` the
-     * whole `.painter-body`: that would unmount the port band's handles and
+     * whole `.painter-body` because `<HandleColumn>` is mounted *inside*
+     * `.paint-area`; killing that subtree would unmount the handles and
      * orphan any connected edges. Keep the frame alive at 0 height so the
-     * handles still resolve their absolute position against the strip.
+     * handle column still resolves its absolute position against the strip.
+     * (Mirrors the `.preview-area` pattern in `collapsed.css`.)
      */
     ".node-body.collapsed &.painter-body": {
       height: 0,
@@ -946,11 +960,6 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
 
   return (
     <div css={cssStyles} className="painter-body" data-bespoke-body="Painter">
-      <NodePortBand
-        id={id}
-        properties={handleProperties}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
       <div className="paint-row">
         <div
           className="paint-area"
@@ -1021,6 +1030,10 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             </div>
           )}
         </div>
+        {/* HandleColumn is a sibling of `.paint-area` — not inside it —
+            so the area's `overflow: hidden` doesn't clip handles at their
+            negative-left protrusion. */}
+        <HandleColumn id={id} properties={handleProperties} />
       </div>
 
       <FlexColumn className="bottom-toolbar nodrag" gap={0.5}>
@@ -1172,6 +1185,14 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
         </FlexRow>
       </FlexColumn>
 
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs
+            id={id}
+            outputs={nodeMetadata.outputs}
+          />
+        </div>
+      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

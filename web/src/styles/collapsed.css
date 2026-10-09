@@ -121,8 +121,8 @@
   max-height: 0 !important;
   overflow: visible !important;
 }
-.react-flow__node.collapsed [data-bespoke-body] > *:not(.handle-column):not(.node-port-band):not(.preview-area):not(.outputs-row):not(.paint-row),
-.node-body.collapsed [data-bespoke-body] > *:not(.handle-column):not(.node-port-band):not(.preview-area):not(.outputs-row):not(.paint-row) {
+.react-flow__node.collapsed [data-bespoke-body] > *:not(.handle-column):not(.preview-area):not(.outputs-row):not(.paint-row),
+.node-body.collapsed [data-bespoke-body] > *:not(.handle-column):not(.preview-area):not(.outputs-row):not(.paint-row) {
   display: none !important;
 }
 .react-flow__node.collapsed [data-bespoke-body] > .preview-tab-bar,
@@ -131,8 +131,8 @@
 .node-body.collapsed [data-bespoke-body] > .controls {
   display: none !important;
 }
-.react-flow__node.collapsed .content-card-body > *:not(.preview-area):not(.outputs-row):not(.node-port-band),
-.node-body.collapsed .content-card-body > *:not(.preview-area):not(.outputs-row):not(.node-port-band) {
+.react-flow__node.collapsed .content-card-body > *:not(.preview-area):not(.outputs-row),
+.node-body.collapsed .content-card-body > *:not(.preview-area):not(.outputs-row) {
   display: none !important;
 }
 
@@ -514,19 +514,4 @@
 
 .react-flow__node-nodetool\.group\.Loop .loop-node.collapsed .tools {
   display: none;
-}
-
-/* Handle labels (HandleLabel): a collapsed node is a one-line strip, so its
-   handles stay as bare dots. */
-.react-flow__node.collapsed .handle-label,
-.node-body.collapsed .handle-label {
-  display: none;
-}
-
-/* NodePortBand reserves flow height for its port rows; the collapsed strip
-   pins the handles itself, so the band takes no space. */
-.react-flow__node.collapsed .node-port-band,
-.node-body.collapsed .node-port-band {
-  height: 0 !important;
-  margin: 0 !important;
 }

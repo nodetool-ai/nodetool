@@ -26,8 +26,9 @@ import { SPACING,
   RunModelButton,
   ToggleGroup,
   ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
-import NodePortBand from "../../node/NodePortBand";
+import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
+import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -62,6 +63,11 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
+    },
+    "& > .handle-column": {
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -100,6 +106,9 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "flex-end"
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    }
   });
 
 const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = memo(({
@@ -174,11 +183,7 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
       className="masks-extractor-body"
       data-bespoke-body="MasksExtractor"
     >
-      <NodePortBand
-        id={id}
-        properties={imageProperty}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
         {tab === "image" ? (
           <ImagePreview
@@ -221,6 +226,14 @@ const MasksExtractorBodyInner: React.FC<MasksExtractorBodyProps> = ({
         </div>
       </FlexColumn>
 
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs
+            id={id}
+            outputs={nodeMetadata.outputs}
+          />
+        </div>
+      )}
 
       {isRunning && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

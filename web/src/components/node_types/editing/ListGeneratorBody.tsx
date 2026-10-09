@@ -42,7 +42,8 @@ import {
   thinScrollbarStyles
 } from "../../ui_primitives";
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
-import NodePortBand from "../../node/NodePortBand";
+import { NodeOutputs } from "../../node/NodeOutputs";
+import HandleColumn from "../../node/HandleColumn";
 import NodeModelChips from "../../node/NodeModelChips";
 import NodeProgress from "../../node/NodeProgress";
 import FormatListNumberedRoundedIcon from "@mui/icons-material/FormatListNumberedRounded";
@@ -105,8 +106,15 @@ const styles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: theme.spacing(SPACING.sm),
-    // No top padding: the port band brings its own top margin.
+    // No top padding: the stacked input column brings its own top margin,
+    // which levels its first row with the first output.
     padding: `0 ${theme.spacing(SPACING.md)} ${theme.spacing(SPACING.md)}`,
+
+    // The input column sits inside this body's side padding: step the
+    // handle back to the node edge.
+    "& > .handle-column .react-flow__handle-left": {
+      left: `calc(-6px - var(--node-body-padding, 0px) - ${theme.spacing(SPACING.md)})`
+    },
 
     ".list-header": {
       display: "flex",
@@ -209,6 +217,9 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       padding: theme.spacing(SPACING.lg)
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    }
   });
 
 const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
@@ -266,11 +277,9 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
 
   return (
     <div css={bodyStyles} className="nodrag" data-bespoke-body="ListGenerator">
-      <NodePortBand
-        id={id}
-        properties={inputProperties}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
+      {inputProperties.length > 0 && (
+        <HandleColumn id={id} properties={inputProperties} layout="stacked" />
+      )}
       <NodeModelChips
         id={id}
         nodeType={nodeType}
@@ -341,6 +350,11 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
         </div>
       )}
 
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+        </div>
+      )}
       {isRunning && (
         <FlexRow>
           <NodeProgress id={id} workflowId={workflowId} />

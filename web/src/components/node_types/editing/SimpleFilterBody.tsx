@@ -16,17 +16,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
-import {
-  SPACING,
+import { SPACING,
   CheckerDropzone,
   FlexColumn,
   FlexRow,
   ToggleGroup,
-  ToggleOption,
-  BORDER_RADIUS
-} from "../../ui_primitives";
-import NodePortBand from "../../node/NodePortBand";
+  ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
+import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
+import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -49,6 +47,11 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
+    },
+    "& > .handle-column": {
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -92,6 +95,9 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       minHeight: 0
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    },
     /* Collapsed: co-locate with PainterBody — Emotion order beats global collapsed.css. */
     ".node-body.collapsed &.simple-filter-body": {
       padding: 0,
@@ -104,6 +110,14 @@ const styles = (theme: Theme) =>
       },
       "& > .preview-tab-bar, & > .controls": {
         display: "none"
+      },
+      "& > .outputs-row": {
+        height: 0,
+        minHeight: 0,
+        padding: 0,
+        margin: 0,
+        flex: "none",
+        overflow: "visible"
       }
     }
   });
@@ -179,11 +193,7 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
       className="simple-filter-body"
       data-bespoke-body="SimpleFilter"
     >
-      <NodePortBand
-        id={id}
-        properties={imageProperty}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
+      <HandleColumn id={id} properties={imageProperty} />
       <div className={`preview-area preview-${tab}`} data-preview-tab={tab}>
         {tab === "before" ? (
           <ImagePreview
@@ -203,7 +213,7 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
       <FlexColumn className="preview-tab-bar" gap={0.5}>
         <FlexRow className="tab-toggle-row" align="center" gap={0.5}>
           <ToggleGroup
-            quiet
+          quiet
             className="tab-toggle"
             size="small"
             value={tab}
@@ -228,6 +238,12 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
           </ToggleGroup>
         </FlexRow>
       </FlexColumn>
+
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+        </div>
+      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

@@ -14,7 +14,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { SPACING, BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
 
-import NodePortBand from "../../node/NodePortBand";
+import HandleColumn from "../../node/HandleColumn";
+import { NodeOutputs } from "../../node/NodeOutputs";
 import RealtimeAudioOutput from "../../node/output/RealtimeAudioOutput";
 
 import type { Chunk, NodeMetadata } from "../../../stores/ApiTypes";
@@ -34,6 +35,11 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(SPACING.xs),
       minHeight: 0,
       borderRadius: BORDER_RADIUS.sm
+    },
+    "& > .handle-column": {
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
+      left: 0
     },
     ".module-label": {
       alignSelf: "center",
@@ -61,6 +67,9 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       textAlign: "center"
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    },
     ".node-body.collapsed &.audio-out-body": {
       padding: 0,
       gap: 0,
@@ -69,6 +78,11 @@ const styles = (theme: Theme) =>
       overflow: "visible",
       "& > .module-label, & > .player, & > .idle-hint": {
         display: "none"
+      },
+      "& > .outputs-row": {
+        height: 0,
+        minHeight: 0,
+        padding: 0
       }
     }
   });
@@ -136,16 +150,8 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
   const firstMeta = chunks[0]?.content_metadata;
 
   return (
-    <div
-      css={cssStyles}
-      className="audio-out-body"
-      data-bespoke-body="AudioOut"
-    >
-      <NodePortBand
-        id={id}
-        properties={chunkProperty}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
+    <div css={cssStyles} className="audio-out-body" data-bespoke-body="AudioOut">
+      <HandleColumn id={id} properties={chunkProperty} />
       <span className="module-label">Out</span>
 
       {chunks.length > 0 ? (
@@ -161,6 +167,12 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
         </div>
       ) : (
         <div className="idle-hint">Run the patch to hear it</div>
+      )}
+
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+        </div>
       )}
     </div>
   );

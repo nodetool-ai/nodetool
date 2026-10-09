@@ -19,8 +19,9 @@ import { SPACING,
   FlexRow,
   ToggleGroup,
   ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
-import NodePortBand from "../../node/NodePortBand";
+import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
+import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -53,6 +54,11 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
+    "& > .handle-column": {
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
+      left: `calc(${theme.spacing(0)})`
+    },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
@@ -77,6 +83,9 @@ const styles = (theme: Theme) =>
     ".channel-toggle": {
       width: "100%"
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    }
   });
 
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
@@ -145,11 +154,7 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
       className="channels-body"
       data-bespoke-body="Channels"
     >
-      <NodePortBand
-        id={id}
-        properties={imageProperty}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
         <ImagePreview value={previewValue} />
       </div>
@@ -181,6 +186,14 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
         </FlexRow>
       </FlexColumn>
 
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs
+            id={id}
+            outputs={nodeMetadata.outputs}
+          />
+        </div>
+      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

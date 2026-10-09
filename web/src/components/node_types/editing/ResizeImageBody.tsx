@@ -20,8 +20,9 @@ import { SPACING,
   StateIconButton,
   ToggleGroup,
   ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
-import NodePortBand from "../../node/NodePortBand";
+import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
+import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
 
@@ -60,6 +61,11 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      "& > .handle-column": {
+        top: 0,
+        bottom: 0,
+        left: `calc(${theme.spacing(0)})`
+      },
       "& img": {
         display: "block",
         width: "100%",
@@ -143,6 +149,9 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.primary.main
       }
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    }
   });
 
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
@@ -280,11 +289,6 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
 
   return (
     <div css={cssStyles} className="resize-image-body" data-bespoke-body="ResizeImage">
-      <NodePortBand
-        id={id}
-        properties={imageProperty}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
       <div className="preview-area">
         <ImagePreview value={previewValue} />
         {previewRef?.width != null && previewRef.height != null && (
@@ -292,6 +296,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
             {previewRef.width} × {previewRef.height}
           </span>
         )}
+        <HandleColumn id={id} properties={imageProperty} />
       </div>
 
       <div className="mode-row">
@@ -398,6 +403,11 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
         </>
       )}
 
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+        </div>
+      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

@@ -21,12 +21,9 @@ import { Property } from "../../stores/ApiTypes";
 import type { Edge } from "@xyflow/react";
 import HandleOnlyField from "./HandleOnlyField";
 import { NODE_HEADER_MIN_HEIGHT } from "./NodeHeader";
-import { SPACING, SPACING_PX, Z_INDEX } from "../ui_primitives";
+import { SPACING, Z_INDEX } from "../ui_primitives";
 
-export const HANDLE_ROW_HEIGHT = 18;
-/** Row-to-row distance: row height, the row's bottom margin and the flex gap. */
-export const HANDLE_ROW_PITCH =
-  HANDLE_ROW_HEIGHT + SPACING_PX.md + SPACING_PX.micro;
+const HANDLE_ROW_HEIGHT = 18;
 /** Offset that centers the first handle row on the header row. */
 const HEADER_ALIGNED_TOP = (NODE_HEADER_MIN_HEIGHT - HANDLE_ROW_HEIGHT) / 2;
 
@@ -42,7 +39,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-start",
-      gap: theme.spacing(SPACING.micro)
+      gap: theme.spacing(0.5)
     },
     // Stacked (in-flow) variant: used by the generic body, where the column
     // shares the left edge with inline-field rows that carry their own
@@ -64,16 +61,11 @@ const styles = (theme: Theme) =>
     "&.handle-column.handle-column--header": {
       top: HEADER_ALIGNED_TOP
     },
-    // Band variant: the input side of `NodePortBand`, which owns the vertical
-    // space and positions both columns, so the column starts at its top.
-    "&.handle-column.handle-column--band": {
-      top: 0
-    },
     ".handle-only": {
       position: "relative",
       height: HANDLE_ROW_HEIGHT,
       flex: "0 0 auto",
-      marginBottom: theme.spacing(SPACING.md),
+      marginBottom: theme.spacing(2),
       pointerEvents: "auto"
     },
     ".handle-only:last-child": {
@@ -103,9 +95,8 @@ interface HandleColumnProps {
    * above sibling inline-field rows in the generic body and don't crowd their
    * handles. `"header"` pins the column so its first handle centers on the
    * node header row — for bodies that render the header themselves.
-   * `"band"` is the input side of `NodePortBand`.
    */
-  layout?: "floating" | "stacked" | "header" | "band";
+  layout?: "floating" | "stacked" | "header";
 }
 
 const HandleColumnImpl: React.FC<HandleColumnProps> = ({

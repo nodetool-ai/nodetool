@@ -5,25 +5,6 @@ import { BESPOKE_BODY_REGISTRY } from "../bespokeRegistry";
 
 // Resolve the node's settled output via useNodeOutput.
 let mockNodeOutput: unknown = undefined;
-jest.mock("../../../node/NodePortBand", () => ({
-  __esModule: true,
-  default: ({
-    properties = [],
-    outputs
-  }: {
-    properties?: Array<{ name: string }>;
-    outputs?: unknown[];
-  }) => (
-    <>
-      <div
-        data-testid="handle-column"
-        data-handles={properties.map((p) => p.name).join(",")}
-      />
-      {outputs && <div data-testid="node-outputs" />}
-    </>
-  )
-}));
-
 jest.mock("../../../../hooks/nodes/useNodeIO", () => ({
   useNodeOutput: () => mockNodeOutput
 }));
@@ -38,11 +19,22 @@ jest.mock("../../../../hooks/nodes/useLiveSliderWriter", () => ({
   })
 }));
 
+jest.mock("../../../node/HandleColumn", () => ({
+  __esModule: true,
+  default: ({ properties }: { properties: Array<{ name: string }> }) => (
+    <div data-testid="handle-column" data-handles={properties.map((p) => p.name).join(",")} />
+  )
+}));
+
 jest.mock("../../../node/ImageRefPreview", () => ({
   __esModule: true,
   default: ({ value }: { value: unknown }) => (
     <div data-testid="image-preview" data-has-value={value != null} />
   )
+}));
+
+jest.mock("../../../node/NodeOutputs", () => ({
+  NodeOutputs: () => <div data-testid="node-outputs" />
 }));
 
 jest.mock("../../../node/NodeProgress", () => ({

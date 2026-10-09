@@ -4,7 +4,7 @@ import { Box, Caption, FlexColumn, FlexRow, MOTION } from "../../ui_primitives";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useOpenSubgraph } from "../../../hooks/nodes/useOpenSubgraph";
 import { NodeInputs } from "../NodeInputs";
-import NodePortBand from "../NodePortBand";
+import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
 import NodePropertyForm from "../NodePropertyForm";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
@@ -59,7 +59,6 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
           paddingTop: 1
         }}
       >
-        <NodePortBand id={id} outputs={nodeMetadata.outputs} />
         <SubgraphSync nodeId={id} data={data} />
         <FlexColumn
           className="subgraph-node-inputs"
@@ -90,6 +89,9 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
             nodeType={nodeType}
           />
         )}
+        <Box sx={{ flexShrink: 0 }}>
+          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+        </Box>
         {status === "running" && (
           <NodeProgress id={id} workflowId={workflowId} />
         )}

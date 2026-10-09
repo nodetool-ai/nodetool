@@ -19,15 +19,9 @@ import NodeResizer from "../NodeResizer";
 import { ImageComparer } from "../../widgets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import HandleTooltip from "../../HandleTooltip";
-import HandleLabel from "../HandleLabel";
-import { HANDLE_ROW_HEIGHT, HANDLE_ROW_PITCH } from "../HandleColumn";
 import { Slugify } from "../../../utils/TypeHandler";
 import { createImageUrl, ImageData } from "../../../utils/imageUtils";
 import { isObjectLike } from "../../../utils/typePredicates";
-
-const PORT_ROWS_TOP = NODE_HEADER_MIN_HEIGHT + 4;
-/** Three output rows (comparison, score, equal) outnumber the two inputs. */
-const PORT_ROWS_HEIGHT = HANDLE_ROW_HEIGHT + 2 * HANDLE_ROW_PITCH;
 
 const styles = (theme: Theme) =>
   css({
@@ -45,9 +39,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.c_node_bg,
       position: "relative",
       // The body padding of every other node; handles step back by it.
-      "--node-body-padding": "8px",
-      // Handle labels size against the node's width (`cqw`).
-      containerType: "inline-size"
+      "--node-body-padding": "8px"
     },
     "&.compare-images-node.selected": {
       borderColor: theme.vars.palette.grey[100]
@@ -58,11 +50,9 @@ const styles = (theme: Theme) =>
       backgroundColor: "transparent",
       overflow: "visible"
     },
-    // The comparer starts under the labeled port rows, so no label sits on
-    // the images.
     ".content": {
       position: "absolute",
-      top: PORT_ROWS_TOP + PORT_ROWS_HEIGHT + 4,
+      top: NODE_HEADER_MIN_HEIGHT + 4,
       left: 0,
       right: 0,
       bottom: 0,
@@ -90,15 +80,13 @@ const styles = (theme: Theme) =>
       left: 0
     },
     ".handle-popup.image_a": {
-      top: PORT_ROWS_TOP,
-      height: HANDLE_ROW_HEIGHT
+      top: NODE_HEADER_MIN_HEIGHT + 4
     },
     ".handle-popup.image_b": {
-      top: PORT_ROWS_TOP + HANDLE_ROW_PITCH,
-      height: HANDLE_ROW_HEIGHT
+      top: NODE_HEADER_MIN_HEIGHT + 4 + 28
     },
     ".output-handle-column.output-handle-column": {
-      top: PORT_ROWS_TOP
+      top: NODE_HEADER_MIN_HEIGHT + 4
     }
   });
 
@@ -213,7 +201,6 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
               className={Slugify("image")}
             />
           </HandleTooltip>
-          <HandleLabel text="image_a" type="image" side="input" />
         </div>
 
         <div className="handle-popup image_b">
@@ -233,7 +220,6 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
               className={Slugify("image")}
             />
           </HandleTooltip>
-          <HandleLabel text="image_b" type="image" side="input" />
         </div>
 
         <NodeHeader

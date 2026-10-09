@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { Text, Caption, FlexColumn, Box } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
-import NodePortBand from "../NodePortBand";
+import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
 import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
@@ -48,7 +48,6 @@ export const DynamicComfySchemaContent: React.FC<DynamicComfySchemaContentProps>
           fullHeight
           sx={{ position: "relative", minHeight: 0 }}
         >
-          <NodePortBand id={id} outputs={isOutputNode ? undefined : nodeMetadata.outputs} />
           {!hasWorkflow && !hasOutputs && (
             <Box sx={{ px: 1.5, py: 1, opacity: 0.7 }}>
               <Text size="small" color="secondary">
@@ -90,6 +89,11 @@ export const DynamicComfySchemaContent: React.FC<DynamicComfySchemaContentProps>
               showHandle={!isConstantNode}
             />
           </FlexColumn>
+          {!isOutputNode && (
+            <Box sx={{ flexShrink: 0 }}>
+              <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+            </Box>
+          )}
           {status === "running" && (
             <NodeProgress id={id} workflowId={workflowId} />
           )}

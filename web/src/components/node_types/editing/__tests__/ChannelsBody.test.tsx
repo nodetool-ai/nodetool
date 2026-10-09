@@ -17,25 +17,6 @@ const mockSetPropertyComplete = jest.fn();
 // Media sources resolve through TanStack Query; these suites render no
 // QueryClientProvider, so use the manual mock (resolution itself is covered
 // by hooks/__tests__/useResolvedMediaUri.test.tsx).
-jest.mock("../../../node/NodePortBand", () => ({
-  __esModule: true,
-  default: ({
-    properties = [],
-    outputs
-  }: {
-    properties?: Array<{ name: string }>;
-    outputs?: unknown[];
-  }) => (
-    <>
-      <div
-        data-testid="handle-column"
-        data-handles={properties.map((p) => p.name).join(",")}
-      />
-      {outputs && <div data-testid="node-outputs" />}
-    </>
-  )
-}));
-
 jest.mock("../../../../hooks/useResolvedMediaUri");
 
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
@@ -53,11 +34,23 @@ jest.mock("../../../../hooks/nodes/useNodeIO", () => ({
   useNodeOutput: () => mockNodeOutput
 }));
 
+jest.mock("../../../node/HandleColumn", () => ({
+  __esModule: true,
+  default: ({ id }: { id: string }) => (
+    <div data-testid="handle-column">{id}</div>
+  )
+}));
+
 jest.mock("../../../node/ImageView", () => ({
   __esModule: true,
   default: ({ source }: { source?: string | Uint8Array }) => (
     <div data-testid="image-view">{mockIsString(source) ? source : "binary"}</div>
   )
+}));
+
+jest.mock("../../../node/NodeOutputs", () => ({
+  __esModule: true,
+  NodeOutputs: () => <div data-testid="node-outputs" />
 }));
 
 jest.mock("../../../node/NodeProgress", () => ({

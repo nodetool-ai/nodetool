@@ -40,9 +40,6 @@ export const generateCSS = (() => {
         .react-flow__handle-right.${slug} {
           background-color: ${color};
         }
-        .react-flow .handle-label.${slug} {
-          color: ${color};
-        }
       `;
     }
 

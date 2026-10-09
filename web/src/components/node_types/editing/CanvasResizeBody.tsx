@@ -19,8 +19,9 @@ import { SPACING,
   NodeSlider,
   ToggleGroup,
   ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
-import NodePortBand from "../../node/NodePortBand";
+import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
+import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
 
@@ -56,6 +57,11 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      "& > .handle-column": {
+        top: 0,
+        bottom: 0,
+        left: `calc(${theme.spacing(0)})`
+      },
       "& img": {
         display: "block",
         maxWidth: "100%",
@@ -96,6 +102,9 @@ const styles = (theme: Theme) =>
       flex: "1 1 45%",
       minWidth: 72
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    }
   });
 
 function toPx(val: number, dim: number, unit: PaddingUnit): number {
@@ -247,11 +256,6 @@ const CanvasResizeBodyInner: React.FC<CanvasResizeBodyProps> = ({
 
   return (
     <div css={cssStyles} className="canvas-resize-body" data-bespoke-body="CanvasResize">
-      <NodePortBand
-        id={id}
-        properties={imageProperty}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
       <div className="preview-area">
         <PreviewImage value={previewValue ?? sourceValue} />
         {overlayRect && (
@@ -270,6 +274,7 @@ const CanvasResizeBodyInner: React.FC<CanvasResizeBodyProps> = ({
             {badgeDims.width} × {badgeDims.height}
           </span>
         )}
+        <HandleColumn id={id} properties={imageProperty} />
       </div>
 
       <FlexColumn className="mode-row" gap={0.5}>
@@ -375,6 +380,11 @@ const CanvasResizeBodyInner: React.FC<CanvasResizeBodyProps> = ({
         )}
       </FlexColumn>
 
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+        </div>
+      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

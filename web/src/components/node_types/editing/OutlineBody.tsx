@@ -14,8 +14,9 @@ import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
 import { SPACING, CheckerDropzone, BORDER_RADIUS } from "../../ui_primitives";
-import NodePortBand from "../../node/NodePortBand";
+import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
+import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import ColorPicker from "../../inputs/ColorPicker";
 
@@ -48,6 +49,11 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
+    },
+    "& > .handle-column": {
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -88,6 +94,9 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)}`
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    }
   });
 
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
@@ -158,11 +167,7 @@ const OutlineBodyInner: React.FC<OutlineBodyProps> = ({
 
   return (
     <div css={cssStyles} className="outline-body" data-bespoke-body="Outline">
-      <NodePortBand
-        id={id}
-        properties={imageProperty}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
         <ImagePreview value={previewValue} />
       </div>
@@ -193,6 +198,11 @@ const OutlineBodyInner: React.FC<OutlineBodyProps> = ({
         })}
       </div>
 
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+        </div>
+      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>

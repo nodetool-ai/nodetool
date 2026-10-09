@@ -21,8 +21,9 @@ import { SPACING,
   Select,
   type SelectChangeEvent
 } from "../../ui_primitives";
-import NodePortBand from "../../node/NodePortBand";
+import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
+import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
@@ -66,6 +67,11 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(SPACING.micro),
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
+    },
+    "& > .handle-column": {
+      top: theme.spacing(SPACING.xs),
+      bottom: theme.spacing(SPACING.xs),
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -116,6 +122,9 @@ const styles = (theme: Theme) =>
         padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.micro)} 0`
       }
     },
+    ".outputs-row": {
+      flex: "0 0 auto"
+    }
   });
 
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
@@ -193,11 +202,7 @@ const HSLAdjustBodyInner: React.FC<HSLAdjustBodyProps> = ({
       className="hsl-adjust-body"
       data-bespoke-body="HSLAdjust"
     >
-      <NodePortBand
-        id={id}
-        properties={imageProperty}
-        outputs={isOutputNode ? undefined : nodeMetadata.outputs}
-      />
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
         <ImagePreview value={previewValue} />
       </div>
@@ -248,6 +253,11 @@ const HSLAdjustBodyInner: React.FC<HSLAdjustBodyProps> = ({
         })}
       </div>
 
+      {!isOutputNode && (
+        <div className="outputs-row">
+          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+        </div>
+      )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}
     </div>
