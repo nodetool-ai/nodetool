@@ -6,7 +6,7 @@ import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
 } from "./python";
-import { getCondaEnvPath } from "./config";
+import { getCondaEnvPath, setCondaEnvPath } from "./config";
 
 import { logMessage } from "./logger";
 import { isErrnoException, errorMessage } from "./utils";
@@ -14,7 +14,6 @@ import path from "path";
 import {
   readSettings,
   updateSettings,
-  updateSetting,
 } from "./settings";
 import { emitBootMessage, emitServerLog, emitUpdateProgress } from "./events";
 import os from "os";
@@ -748,7 +747,7 @@ async function removeCondaPackageBySpec(
  * Set the conda environment install location in settings.
  */
 function setCondaInstallLocation(location: string): void {
-  updateSetting("CONDA_ENV", location);
+  setCondaEnvPath(location);
   logMessage(`Conda environment location set to: ${location}`);
 }
 

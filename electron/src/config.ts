@@ -458,6 +458,16 @@ const getLocalFileRootsEnv = (
 ): string => env["NODETOOL_LOCAL_FILE_ROOTS"] || "*";
 
 /**
+ * Persists a new conda env location. The path is cached for the life of the
+ * process, so writing only the setting would leave installs and status reads
+ * on the old location until the next launch.
+ */
+const setCondaEnvPath = (location: string): void => {
+  updateSetting("CONDA_ENV", location);
+  cachedCondaEnvPath = location;
+};
+
+/**
  * Resets the cached conda env path. Intended for use in tests only so that
  * each test case starts with a clean slate.
  */
@@ -467,6 +477,7 @@ const _resetCondaEnvCache = (): void => {
 
 export {
   getCondaEnvPath,
+  setCondaEnvPath,
   getNodePath,
   getPythonPath,
   getUVPath,
