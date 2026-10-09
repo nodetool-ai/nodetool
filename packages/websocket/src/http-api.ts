@@ -649,6 +649,15 @@ export async function handleWorkflowRun(
     // The server's own import site, so a test that mocks it still governs.
     resolveWorkspace: resolveWorkflowWorkspace
   };
+  if (body?.nodes !== undefined) {
+    if (
+      !Array.isArray(body.nodes) ||
+      !body.nodes.every((id) => typeof id === "string")
+    ) {
+      return errorResponse(400, "nodes must be an array of node ids");
+    }
+    runOptions.nodes = body.nodes;
+  }
   if (body?.max_decisions !== undefined) {
     runOptions.maxDecisions = body.max_decisions;
   }

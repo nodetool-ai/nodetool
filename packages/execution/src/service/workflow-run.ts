@@ -29,6 +29,7 @@ import type {
   PythonJobLifecycle
 } from "@nodetool-ai/runtime";
 import { ExecutionSession } from "../session.js";
+import { selectRunSubgraph } from "./run-subgraph.js";
 import { normalizeGraph, toRawGraphInput } from "../normalize-graph.js";
 import type { RawGraphInput } from "../types.js";
 import {
@@ -180,6 +181,12 @@ export interface RunWorkflowOptions {
    */
   environment: WorkflowRunEnvironment | (() => Promise<WorkflowRunEnvironment>);
   params?: Record<string, unknown>;
+  /**
+   * Run only these nodes and what they depend on. The rest of the graph is
+   * not executed, so its providers are not billed. Every run starts from the
+   * stored graph. Nothing from an earlier job is reused.
+   */
+  nodes?: string[];
   /** Return the full debug report (summary + verdict) instead of the run row. */
   debug?: boolean;
   /**
@@ -553,6 +560,18 @@ export async function runWorkflow(
       };
     }
     runnableGraph = normalizeGraph(workflow.getGraph());
+  }
+
+  if (options.nodes && options.nodes.length > 0) {
+    const selection = selectRunSubgraph(runnableGraph, options.nodes);
+    if (!selection.ok) {
+      return {
+        kind: "error",
+        status: 400,
+        detail: `Unknown node id(s): ${selection.unknown.join(", ")}`
+      };
+    }
+    runnableGraph = selection.graph;
   }
 
   // The same refusal `ExecutionSession` raises, one layer up: a provider that

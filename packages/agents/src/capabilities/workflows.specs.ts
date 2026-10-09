@@ -120,6 +120,14 @@ export const RUN_WORKFLOW_SCHEMA: JsonSchema = {
       type: "object",
       description: "Dictionary of input parameters for the workflow"
     },
+    nodes: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "Run only these node ids and the nodes they depend on. The rest of " +
+        "the graph is skipped and not billed. Nothing from an earlier run is " +
+        "reused, so upstream nodes run again."
+    },
     interactive: {
       type: "boolean",
       description:

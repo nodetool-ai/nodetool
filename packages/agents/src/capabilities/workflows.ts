@@ -565,6 +565,9 @@ const runWorkflowCapability: CapabilityExport = {
       userId: userIdOf(run.context),
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...(Array.isArray(params["nodes"])
+        ? { nodes: params["nodes"].map(String) }
+        : {}),
       interactive: params["interactive"] === true,
       // A run started from a project's agent thread is that project's spend.
       projectId: run.projectId ?? null

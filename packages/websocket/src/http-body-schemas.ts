@@ -73,6 +73,8 @@ interface WorkflowGraphBody {
 export const workflowRunBodySchema = z.object({
   params: unchecked<Record<string, unknown>>(),
   background: unchecked<boolean>(),
+  /** Run only these node ids and their upstream dependencies. */
+  nodes: unchecked<string[]>(),
   /**
    * Bubble node failures up to the caller instead of resolving them
    * server-side: the response returns as soon as a node invocation escalates,
