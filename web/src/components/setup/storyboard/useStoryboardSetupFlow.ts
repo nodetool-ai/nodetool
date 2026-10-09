@@ -293,7 +293,12 @@ export const useStoryboardSetupFlow = ({
     hasScreenplay ? (shots?.length ?? shotCount) : shotCount
   );
   const rewriteControllerRef = useRef<AbortController | null>(null);
+  // The hook keeps one error for both buttons. A failed run on the genre step
+  // is reported there, so the review step only shows the failure of its own
+  // rewrite, not a genre-step failure the creator stepped past.
+  const [rewriteRan, setRewriteRan] = useState(false);
   const rewrite = useCallback(() => {
+    setRewriteRan(true);
     rewriteControllerRef.current?.abort();
     const controller = new AbortController();
     rewriteControllerRef.current = controller;
@@ -420,7 +425,8 @@ export const useStoryboardSetupFlow = ({
             boardId,
             readOnly: context?.readOnly,
             directing,
-            upToDate
+            upToDate,
+            cameraPass
           }),
         // The Director runs here, and a refused run must leave the creator on
         // genre with the reason on the button (PRD § 7.2). The hook resolves
@@ -430,6 +436,7 @@ export const useStoryboardSetupFlow = ({
         onAdvance: upToDate
           ? undefined
           : async (context) => {
+              setRewriteRan(false);
               const directed = await runDirector(shotCount, context?.signal);
               if (!directed) {
                 throw new Error(
@@ -449,19 +456,31 @@ export const useStoryboardSetupFlow = ({
         // shell has to read its wait: nothing may move the creator on while
         // the screenplay they are reading is being replaced (F2).
         pending: directing,
-        pendingLabel: `Rewriting ${rewriteShotCount} shots`,
-        onCancel: cancelRewrite,
+        // The shell's own wait here is `onReviewed`, which writes a linked
+        // script it cannot take back. Cancel stops the rewrite only, and the
+        // wait is named for what it is.
+        pendingLabel: directing
+          ? cameraPass
+            ? `Directing ${rewriteShotCount} shots`
+            : `Rewriting ${rewriteShotCount} shots`
+          : "Saving your screenplay",
+        onCancel: directing ? cancelRewrite : undefined,
+        cancelable: false,
         render: (context) =>
           createElement(ReviewStep, {
             boardId,
             readOnly: context?.readOnly,
             onRewrite: rewrite,
             rewriting: directing,
-            error: directError,
+            error: rewriteRan ? directError : null,
             usedFallback,
             onKeepFallback: acceptFallback,
             model: directorModel,
-            maxOutputTokens: DIRECTOR_MAX_OUTPUT_TOKENS,
+            // A script kept as written is re-run as the camera pass, which
+            // answers with less than a whole screenplay.
+            maxOutputTokens: cameraPass
+              ? CAMERA_PASS_MAX_OUTPUT_TOKENS
+              : DIRECTOR_MAX_OUTPUT_TOKENS,
             onValidationChange: setReviewError
           }),
         onAdvance: async () => {
@@ -548,6 +567,7 @@ export const useStoryboardSetupFlow = ({
       openTutorial,
       productionBlocker,
       reviewKey,
+      rewriteRan,
       setSetup,
       reviewBlockedReason,
       rewrite,

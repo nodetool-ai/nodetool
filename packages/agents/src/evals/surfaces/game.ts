@@ -179,4 +179,18 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           culling("crate")?.layer === "props" && culling("pickup")?.layer === "props" && culling("ramp")?.maxDistance === 25;
       } }]
   }
+}, {
+  id: "input-bindings",
+  description: "Author a document input map through set_game input_bindings while other actions keep their generated defaults.",
+  objective: "Bind the left action to the J key and gamepad button 14 only. Leave every other action on its default bindings.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("bindings-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game input_bindings replaces the whole input map: {actions: {action: [binding]}, axes: {}}. A key binding is {kind:\"key\", code} with a KeyboardEvent.code, a gamepad button is {kind:\"gamepadButton\", button}. Actions not listed keep their defaults.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "leftBinding", detail: "The input map does not bind left to exactly KeyJ and gamepad button 14, or it binds other actions.",
+      test: document => z.object({ actions: z.strictObject({ left: z.tuple([z.object({ kind: z.literal("key"), code: z.literal("KeyJ") }), z.object({ kind: z.literal("gamepadButton"), button: z.literal(14) })]) }) })
+        .safeParse(document.inputBindings).success
+        || z.object({ actions: z.strictObject({ left: z.tuple([z.object({ kind: z.literal("gamepadButton"), button: z.literal(14) }), z.object({ kind: z.literal("key"), code: z.literal("KeyJ") })]) }) })
+          .safeParse(document.inputBindings).success }]
+  }
 }];

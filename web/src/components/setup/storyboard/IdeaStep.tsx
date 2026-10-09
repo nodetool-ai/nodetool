@@ -162,16 +162,16 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         title: "Upload your file",
         description: "PDF, DOCX, FDX",
         onSelect: () => scriptInput.current?.click(),
-        disabled: readOnly || script.importing,
-        disabledReason: script.importing ? "Reading your file…" : undefined
+        disabled: readOnly || importing,
+        disabledReason: importing ? "Reading your file…" : undefined
       },
       {
         id: "shotlist",
         title: "Import your shotlist",
         description: "CSV, one row per shot",
         onSelect: () => shotlistInput.current?.click(),
-        disabled: readOnly || shotlist.importing,
-        disabledReason: shotlist.importing ? "Reading your file…" : undefined
+        disabled: readOnly || importing,
+        disabledReason: importing ? "Reading your file…" : undefined
       },
       {
         id: "blank",
@@ -187,13 +187,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         onSelect: onOpenTutorial
       }
     ],
-    [
-      onOpenTutorial,
-      onStartBlank,
-      readOnly,
-      script.importing,
-      shotlist.importing
-    ]
+    [importing, onOpenTutorial, onStartBlank, readOnly]
   );
 
   return (
@@ -245,7 +239,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   variant="outlined"
                   size="small"
                   onClick={replaceSource}
-                  disabled={readOnly}
+                  disabled={readOnly || importing}
                 >
                   Replace file
                 </EditorButton>
@@ -254,7 +248,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                     variant="text"
                     size="small"
                     onClick={editAsText}
-                    disabled={readOnly}
+                    disabled={readOnly || importing}
                   >
                     Edit as text
                   </EditorButton>
@@ -263,7 +257,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                     variant="text"
                     size="small"
                     onClick={removeSource}
-                    disabled={readOnly}
+                    disabled={readOnly || importing}
                   >
                     Remove the file
                   </EditorButton>

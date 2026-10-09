@@ -26,6 +26,10 @@ const write = jest.fn(async () => true);
 // two apart so a test can model that order.
 let writeError: string | null = null;
 const writeErrorRef: { current: string | null } = { current: null };
+const clearError = jest.fn(() => {
+  writeError = null;
+  writeErrorRef.current = null;
+});
 jest.mock("../../../../hooks/script/useWriteScript", () => ({
   useWriteScript: () => ({
     write,
@@ -33,7 +37,8 @@ jest.mock("../../../../hooks/script/useWriteScript", () => ({
     get error() {
       return writeError;
     },
-    errorRef: writeErrorRef
+    errorRef: writeErrorRef,
+    clearError
   })
 }));
 
@@ -525,6 +530,25 @@ describe("useScriptSetupFlow", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "The writer timed out."
     );
+  });
+
+  it("does not show a failed Rewrite again after leaving the review", async () => {
+    const user = userEvent.setup();
+    seedWrittenScript();
+    markWritten();
+    useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "review" });
+    writeError = "The writer timed out.";
+    renderFlow();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The writer timed out."
+    );
+
+    await user.click(screen.getByRole("button", { name: "Continue to voices" }));
+    expect(stageOf()).toBe("voices");
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(stageOf()).toBe("review");
+
+    expect(screen.queryByText("The writer timed out.")).not.toBeInTheDocument();
   });
 
   it("holds voicing while a line with words has no speaker (F7)", () => {

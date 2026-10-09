@@ -8,7 +8,7 @@
  * document with no `setup` at all opens as the editor and always has.
  */
 
-import { createElement, useCallback, useMemo } from "react";
+import { createElement, useCallback, useMemo, useState } from "react";
 import {
   composeImagePrompt,
   type SketchSetupStage
@@ -89,9 +89,12 @@ export const useImageSetupFlow = ({
     expandBrief,
     cancel,
     refining,
-    error: refineError,
     model: refineModel
   } = useRefineBrief();
+  // Only a failed `Re-refine` belongs on the review. A use-case refinement
+  // reports on the shell's button, and its failure must not greet a creator
+  // who reaches the review with the brief they already had.
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const upload = useUploadFirstLayer(onFinish);
   const look = useLookStep();
 
@@ -107,6 +110,7 @@ export const useImageSetupFlow = ({
 
   const refine = useCallback(
     async (context?: SetupOperationContext) => {
+      setReviewError(null);
       const outcome = await expandBrief(context?.signal);
       if (!outcome.ok) {
         throw new Error(outcome.error ?? "The model did not return a brief.");
@@ -118,7 +122,12 @@ export const useImageSetupFlow = ({
   // The review's fields are the creator's draft, so another pass polishes
   // them rather than replacing them with a fresh expansion (O4).
   const reRefine = useCallback(() => {
-    void expandBrief(undefined, { keepEdits: true });
+    setReviewError(null);
+    void expandBrief(undefined, { keepEdits: true }).then((outcome) => {
+      if (!outcome.ok) {
+        setReviewError(outcome.error);
+      }
+    });
   }, [expandBrief]);
 
   // Coming back to the use case and pressing its button again must not pay for
@@ -220,7 +229,7 @@ export const useImageSetupFlow = ({
             refining,
             // The failure belongs beside the control that asked for it, with
             // the edited brief still in the boxes (F9).
-            error: refineError,
+            error: reviewError,
             generation: reRefineSummary
           })
       },
@@ -255,10 +264,10 @@ export const useImageSetupFlow = ({
       promptIsWritable,
       reRefine,
       refine,
-      refineError,
       refineSummary,
       reRefineSummary,
       refining,
+      reviewError,
       startBlank,
       upload,
       useCase

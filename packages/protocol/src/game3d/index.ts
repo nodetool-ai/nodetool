@@ -19,6 +19,7 @@ import { gamePerformance3D, gameRenderCulling3D } from "./components/performance
 import { gameAuthoring } from "../game-authoring.js";
 import { gameEmitParticlesCommand } from "../game-particles.js";
 import { gameAudioSettings } from "../game2d/components/audio.js";
+import { gameInputBindings } from "../game-input.js";
 import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameEntity, gameEvent, gameHudLabel, gameScene, gameSnapshot } from "../game.js";
 
 const diagnosticPath = z.array(z.union([z.string(), z.number(), z.symbol().transform((value) => value.toString())]));
@@ -69,7 +70,7 @@ export const gameDocument3D = z.strictObject({
   authoring: gameAuthoring.optional(),
   schemaVersion: z.literal(3), engineVersion: z.literal("2"), dimension: z.literal("3d"),
   id, revision: id, entrySceneId: id, tickRate: z.literal(60), presentation: gamePresentation3D,
-  inputActions: z.array(id).max(64), inputAxes: z.array(id).max(16).default(["moveX", "moveZ"]),
+  inputActions: z.array(id).max(64), inputAxes: z.array(id).max(16).default(["moveX", "moveZ"]), inputBindings: gameInputBindings.optional(),
   collisionLayers: z.array(id).max(16).optional(), assets: z.record(id, gameAssetBinding3D),
   prefabs: z.record(id, gamePrefab3D).default({}), scenes: z.array(gameScene3D).min(1).max(64),
   audio: gameAudioSettings.optional(),

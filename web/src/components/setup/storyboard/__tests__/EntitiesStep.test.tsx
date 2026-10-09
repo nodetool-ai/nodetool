@@ -59,8 +59,13 @@ jest.mock("../../../../hooks/storyboard/useDefaultStillModel", () => ({
   useDefaultStillModel: jest.fn()
 }));
 const imageModels: unknown[] = [];
+const languageModels: unknown[] = [];
 jest.mock("../../../../hooks/useModelsByProvider", () => ({
-  useImageModelsByProvider: () => ({ models: imageModels })
+  useImageModelsByProvider: () => ({ models: imageModels }),
+  useLanguageModelsByProvider: () => ({
+    models: languageModels,
+    isLoading: false
+  })
 }));
 jest.mock("../../../properties/ImageModelSelect", () => ({
   __esModule: true,
@@ -96,6 +101,7 @@ jest.mock("../../../assets/AssetViewer", () => ({
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
 import { EntitiesStep } from "../EntitiesStep";
 import { MediaGalleryProvider } from "../../MediaGallery";
+import { clearSetupReports } from "../setupChoices";
 
 const BOARD_ID = "board";
 
@@ -119,6 +125,8 @@ const renderStep = () => {
 beforeEach(() => {
   jest.clearAllMocks();
   imageModels.length = 0;
+  languageModels.length = 0;
+  clearSetupReports(BOARD_ID);
   searchAssets.mockResolvedValue({ assets: entityAssets });
   getAsset.mockImplementation(async ({ id }: { id: string }) => ({
     id,
@@ -746,4 +754,69 @@ it("holds every pick and paid action in view mode", async () => {
   expect(
     await screen.findByRole("dialog", { name: "Gallery" })
   ).toBeInTheDocument();
+});
+
+// A shotlist import goes from step 1 straight to Look, past the genre step
+// that fills in the screenplay model. `Find entities` asks that model, so
+// without it the step could only say "Director model first" with no picker.
+it("fills in the screenplay model a shotlist import skipped", async () => {
+  useStoryboardStore.getState().setDirectorModel(BOARD_ID, null);
+  languageModels.push({ id: "catalog-model", provider: "openai", name: "Catalog" });
+  renderStep();
+
+  await waitFor(() =>
+    expect(
+      useStoryboardStore.getState().getBoard(BOARD_ID)?.directorModel?.id
+    ).toBe("catalog-model")
+  );
+});
+
+it("says the library failed to load rather than that it is empty", async () => {
+  searchAssets.mockRejectedValueOnce(new Error("The server is unreachable."));
+  const user = userEvent.setup();
+  renderStep();
+
+  expect(
+    await screen.findByText("Could not load your entities")
+  ).toBeInTheDocument();
+  expect(screen.queryByText("No entities yet")).toBeNull();
+
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  expect(
+    await screen.findByRole("checkbox", { name: "Mara · character" })
+  ).toBeInTheDocument();
+});
+
+// Cancel and Back both remount the step. The suggestions were paid for, so
+// they come back with it instead of asking for another Find.
+it("keeps found suggestions when the step remounts", async () => {
+  rpcRequest.mockResolvedValueOnce({
+    data: {
+      entities: [
+        {
+          name: "The Lantern",
+          kind: "prop",
+          descriptor: "A dented brass railway lantern with amber glass",
+          reference_prompt: "A dented brass railway lantern"
+        }
+      ]
+    }
+  });
+  const user = userEvent.setup();
+  const { unmount } = renderStep();
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  expect(
+    await screen.findByText("A dented brass railway lantern with amber glass")
+  ).toBeInTheDocument();
+  unmount();
+
+  renderStep();
+
+  expect(
+    await screen.findByText("A dented brass railway lantern with amber glass")
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Refresh suggestions" })
+  ).toBeInTheDocument();
+  expect(rpcRequest).toHaveBeenCalledTimes(1);
 });

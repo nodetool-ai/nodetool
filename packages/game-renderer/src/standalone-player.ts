@@ -2,8 +2,9 @@ import { createScriptedGameSession, validateGame } from "@nodetool-ai/game-runti
 import { gameSnapshot, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer } from "./audio.js";
-import { mountTouchControls } from "./touch-controls.js";
-import { gameKeyAction } from "./input.js";
+import { mountTouchControls, touchLayout } from "./touch-controls.js";
+import { browserGamepads, GameInput } from "./input-bindings.js";
+import { resolveGameInputBindings } from "@nodetool-ai/protocol";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 
 declare global {
@@ -102,24 +103,10 @@ async function start(): Promise<void> {
   document.documentElement.style.setProperty("--game-aspect", String(latest.width / latest.height));
   document.body.classList.toggle("landscape-game", latest.width > latest.height);
   let paused = false;
-  // Keyboard and touch hold actions independently; the simulation sees their union.
-  const keyboard = new Set<string>();
-  let touch: ReadonlySet<string> = new Set<string>();
-  const pressed = new Set<string>();
-  const justPressed = new Set<string>();
-  function syncPressed(): void {
-    const next = new Set([...keyboard, ...touch]);
-    for (const action of next) {
-      if (!pressed.has(action)) justPressed.add(action);
-    }
-    pressed.clear();
-    next.forEach((action) => pressed.add(action));
-  }
+  // Keyboard, gamepad and touch reach the simulation through the document's input bindings.
+  const input = new GameInput();
   function releaseAll(): void {
-    keyboard.clear();
-    touch = new Set();
-    pressed.clear();
-    justPressed.clear();
+    input.release();
   }
   const touchRoot = element("touch");
   function enableTouch(): void {
@@ -133,10 +120,7 @@ async function start(): Promise<void> {
     }
     element("pause").setAttribute("aria-label", "Pause");
     element("pause").textContent = pauseLabel(paused);
-    mountTouchControls(touchRoot, { inputActions: game.inputActions, onChange: (actions) => {
-      touch = actions;
-      syncPressed();
-    } });
+    mountTouchControls(touchRoot, { layout: touchLayout(resolveGameInputBindings(game)), onChange: (state) => input.setTouch(state) });
   }
   if (window.matchMedia("(pointer: coarse)").matches) enableTouch();
   window.addEventListener("touchstart", enableTouch, { passive: true });
@@ -174,8 +158,8 @@ async function start(): Promise<void> {
 
   function step(): boolean {
     try {
-      const result = session.step({ pressed: [...pressed], justPressed: [...justPressed] });
-      justPressed.clear();
+      input.pollGamepads(browserGamepads());
+      const result = session.step(input.sample2D(game));
       latest = result.frame;
       result.events.forEach((event) => audio.handle(event));
       audio.sync(session.snapshot());
@@ -210,18 +194,13 @@ async function start(): Promise<void> {
   }
 
   window.addEventListener("keydown", (event) => {
-    const action = gameKeyAction(event.code, event.key);
-    if (!game.inputActions.includes(action)) {
+    if (!input.handlesKey(game, event.code, event.key)) {
       return;
     }
     event.preventDefault();
-    keyboard.add(action);
-    syncPressed();
+    input.keyDown(event.code, event.key);
   });
-  window.addEventListener("keyup", (event) => {
-    keyboard.delete(gameKeyAction(event.code, event.key));
-    syncPressed();
-  });
+  window.addEventListener("keyup", (event) => input.keyUp(event.code));
   window.addEventListener("blur", releaseAll);
   document.addEventListener("visibilitychange", () => {
     releaseAll();
@@ -230,6 +209,8 @@ async function start(): Promise<void> {
   });
   element("pause").addEventListener("click", () => {
     paused = !paused;
+    // Input pressed while paused is dropped rather than delivered on resume.
+    input.setEnabled(!paused);
     if (paused) audio.pause();
     else audio.resume();
     element("pause").textContent = pauseLabel(paused);

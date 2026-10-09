@@ -52,6 +52,7 @@ import {
   dismissVoicingRun,
   readVoicingRun,
   retryVoicing,
+  useVoicingLive,
   voiceAll,
   type VoicingRun
 } from "../../stores/script/scriptVoicing";
@@ -539,6 +540,10 @@ const lineLabel = (text: string): string => {
  * a count, or completed — names every line that failed with the reason it gave,
  * and retries them through the same path that voiced the rest.
  *
+ * A queued or running record with no run going in this page was left by a page
+ * that closed mid-run. No take is still coming, so it reads as stopped rather
+ * than as a spinner that never ends.
+ *
  * A script nobody has voiced carries no record, and this renders nothing.
  */
 const VoicingStrip = ({
@@ -561,6 +566,7 @@ const VoicingStrip = ({
     })
   );
   const [retrying, setRetrying] = useState<readonly string[]>([]);
+  const live = useVoicingLive(scriptId);
 
   const run: VoicingRun | null = readVoicingRun(setup);
 
@@ -576,7 +582,9 @@ const VoicingStrip = ({
     return null;
   }
 
-  if (run.status === "queued") {
+  const stopped = run.status !== "completed" && !live;
+
+  if (run.status === "queued" && !stopped) {
     return (
       <AlertBanner severity="info" compact sx={{ marginX: SPACING.md }}>
         {`Voicing queued for ${run.total} ${run.total === 1 ? "line" : "lines"}.`}
@@ -584,7 +592,7 @@ const VoicingStrip = ({
     );
   }
 
-  if (run.status === "running") {
+  if (run.status === "running" && !stopped) {
     return (
       <AlertBanner severity="info" compact sx={{ marginX: SPACING.md }}>
         <FlexRow align="center" gap={SPACING.xs}>
@@ -599,9 +607,9 @@ const VoicingStrip = ({
     );
   }
 
-  const busy = retrying.length > 0;
+  const busy = retrying.length > 0 || live;
 
-  if (run.failed.length === 0) {
+  if (run.failed.length === 0 && !stopped) {
     return (
       <AlertBanner
         severity="success"
@@ -623,39 +631,45 @@ const VoicingStrip = ({
     >
       <FlexColumn gap={SPACING.xs}>
         <Text size="smaller">
-          {`Voiced ${run.voiced} of ${run.total} lines. ${run.failed.length} ${
-            run.failed.length === 1 ? "line" : "lines"
-          } could not be voiced.`}
+          {`${stopped ? "Voicing stopped before it finished. " : ""}Voiced ${run.voiced} of ${run.total} lines.${
+            run.failed.length > 0
+              ? ` ${run.failed.length} ${
+                  run.failed.length === 1 ? "line" : "lines"
+                } could not be voiced.`
+              : ""
+          }${stopped && !readOnly ? " Press Voice all to voice the rest." : ""}`}
         </Text>
-        <FlexColumn
-          gap={SPACING.xs}
-          component="ul"
-          sx={{ margin: 0, paddingLeft: 0, listStyle: "none" }}
-        >
-          {run.failed.map((failure) => (
-            <FlexRow
-              key={failure.lineId}
-              component="li"
-              gap={SPACING.sm}
-              align="center"
-              wrap
-            >
-              <Caption>
-                {`${lineLabel(lineText[failure.lineId] ?? "")} — ${failure.error}`}
-              </Caption>
-              {readOnly ? null : (
-                <EditorButton
-                  size="small"
-                  variant="text"
-                  disabled={busy}
-                  onClick={() => retry([failure.lineId])}
-                >
-                  Retry
-                </EditorButton>
-              )}
-            </FlexRow>
-          ))}
-        </FlexColumn>
+        {run.failed.length === 0 ? null : (
+          <FlexColumn
+            gap={SPACING.xs}
+            component="ul"
+            sx={{ margin: 0, paddingLeft: 0, listStyle: "none" }}
+          >
+            {run.failed.map((failure) => (
+              <FlexRow
+                key={failure.lineId}
+                component="li"
+                gap={SPACING.sm}
+                align="center"
+                wrap
+              >
+                <Caption>
+                  {`${lineLabel(lineText[failure.lineId] ?? "")} — ${failure.error}`}
+                </Caption>
+                {readOnly ? null : (
+                  <EditorButton
+                    size="small"
+                    variant="text"
+                    disabled={busy}
+                    onClick={() => retry([failure.lineId])}
+                  >
+                    Retry
+                  </EditorButton>
+                )}
+              </FlexRow>
+            ))}
+          </FlexColumn>
+        )}
         {readOnly || run.failed.length < 2 ? null : (
           <FlexRow>
             <EditorButton
@@ -664,7 +678,9 @@ const VoicingStrip = ({
               disabled={busy}
               onClick={() => retry(run.failed.map((failure) => failure.lineId))}
             >
-              {busy ? "Retrying…" : `Retry all ${run.failed.length}`}
+              {retrying.length > 0
+                ? "Retrying…"
+                : `Retry all ${run.failed.length}`}
             </EditorButton>
           </FlexRow>
         )}
@@ -704,6 +720,9 @@ const ScriptDocumentPane = ({
   const focusedLineId = useScriptLineFocus(scriptId, sections.length > 0);
   const highlightedLineId = currentLineId ?? focusedLineId;
   const [voicingAll, setVoicingAll] = useState(false);
+  // A run started elsewhere in this page, such as the guided flow's last step,
+  // is voicing these lines already: a second Voice all would pay for them twice.
+  const voicingLive = useVoicingLive(scriptId);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
@@ -938,7 +957,7 @@ const ScriptDocumentPane = ({
           />
         )}
         {!readOnly &&
-          (voicingAll ? (
+          (voicingAll || voicingLive ? (
             <FlexRow align="center" gap={SPACING.xs}>
               <LoadingSpinner size={18} />
               <Text size="smaller">Voicing…</Text>

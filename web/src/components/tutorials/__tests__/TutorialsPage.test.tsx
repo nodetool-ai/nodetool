@@ -2,13 +2,13 @@ import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import mockTheme from "../../../__mocks__/themeMock";
 import TutorialsPage from "../TutorialsPage";
 import { TUTORIALS } from "../tutorialsData";
 
 const MAX_WIDTH_QUERY = /max-width/;
-const mockStartGuidedFlow = jest.fn().mockResolvedValue(undefined);
+const mockStartGuidedFlow = jest.fn().mockResolvedValue(true);
 const mockCreateNewThread = jest.fn().mockResolvedValue("thread-new");
 const mockOpenTab = jest.fn();
 
@@ -106,6 +106,29 @@ describe("TutorialsPage video loading", () => {
     await userEvent.click(screen.getByRole("button", { name: "Open task" }));
 
     expect(mockStartGuidedFlow).toHaveBeenCalledWith("project-1");
+  });
+
+  // A failed start has already shown its toast. Moving on would leave the
+  // creator in a workspace with nothing opened.
+  it("stays on the tutorial when the guided flow fails to start", async () => {
+    setViewport(false);
+    mockStartGuidedFlow.mockResolvedValueOnce(false);
+    render(
+      <MemoryRouter initialEntries={["/tutorials"]}>
+        <ThemeProvider theme={mockTheme}>
+          <Routes>
+            <Route path="/tutorials" element={<TutorialsPage />} />
+            <Route path="/workspace" element={<p>workspace</p>} />
+          </Routes>
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Open task" }));
+
+    expect(mockStartGuidedFlow).toHaveBeenCalledWith("project-1");
+    expect(screen.queryByText("workspace")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open task" })).toBeInTheDocument();
   });
 });
 

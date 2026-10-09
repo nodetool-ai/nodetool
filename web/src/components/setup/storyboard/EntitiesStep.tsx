@@ -14,6 +14,8 @@ import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../../stores/storyboard/shotEntities";
 import { rpcRequest } from "../../../lib/websocket/rpcRequest";
 import { useDefaultStillModel } from "../../../hooks/storyboard/useDefaultStillModel";
+import { useDefaultDirectorModel } from "../../../hooks/storyboard/useDefaultDirectorModel";
+import { useInStudio } from "../../../studio/StudioContext";
 import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
 import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import EntityEditorDialog from "../../entities/EntityEditorDialog";
@@ -51,7 +53,12 @@ import {
   referenceImageModel,
   type ReferenceImageModel
 } from "./referenceImageModel";
-import { boardScreenplaySnapshot } from "./setupChoices";
+import {
+  boardScreenplaySnapshot,
+  getEntitySuggestions,
+  setEntitySuggestions,
+  useEntitySuggestions
+} from "./setupChoices";
 import {
   SETUP_FIELD_WIDTH,
   SETUP_MEDIA_WIDTH,
@@ -120,9 +127,20 @@ export const EntitiesStep = ({
   onCreationStart
 }: EntitiesStepProps) => {
   const theme = useTheme();
-  const { data: entities, isLoading } = useEntities();
+  const {
+    data: entities,
+    isLoading,
+    isError: entitiesFailed,
+    error: entitiesError,
+    refetch: refetchEntities
+  } = useEntities();
   const saveEntity = useSaveEntity();
   useDefaultStillModel(boardId, !readOnly);
+  // `Find entities` asks the screenplay model. A shotlist import skips the
+  // genre step that fills it in, so this step fills it in too. Studio pins
+  // its own.
+  const inStudio = useInStudio();
+  useDefaultDirectorModel(boardId, !readOnly && !inStudio);
   const board = useStoryboardStore((state) => state.boards[boardId]);
   const setEntityIds = useStoryboardStore((state) => state.setEntityIds);
   const updateShot = useStoryboardStore((state) => state.updateShot);
@@ -137,7 +155,14 @@ export const EntitiesStep = ({
   const [search, setSearch] = useState("");
   const [onlySelected, setOnlySelected] = useState(false);
   const [createdEntities, setCreatedEntities] = useState<Entity[]>([]);
-  const [suggestions, setSuggestions] = useState<EntitySuggestion[]>([]);
+  const suggestions = useEntitySuggestions(boardId);
+  const dropSuggestion = (key: string): void =>
+    setEntitySuggestions(
+      boardId,
+      getEntitySuggestions(boardId).filter(
+        (candidate) => `${candidate.kind}:${candidate.name}` !== key
+      )
+    );
   const [suggesting, setSuggesting] = useState(false);
   const [creatingKeys, setCreatingKeys] = useState<ReadonlySet<string>>(
     () => new Set()
@@ -221,7 +246,7 @@ export const EntitiesStep = ({
           "Visually important reusable entities found in a storyboard screenplay."
       });
       if (!mountedRef.current) return;
-      setSuggestions(parseEntitySuggestions(answer.data));
+      setEntitySuggestions(boardId, parseEntitySuggestions(answer.data));
     } catch (error) {
       if (!mountedRef.current) return;
       setAssistFailure("find");
@@ -251,11 +276,7 @@ export const EntitiesStep = ({
     );
     if (existing) {
       setBoardEntity(existing, true);
-      setSuggestions((current) =>
-        current.filter(
-          (candidate) => `${candidate.kind}:${candidate.name}` !== key
-        )
-      );
+      dropSuggestion(key);
       return;
     }
     const selected =
@@ -319,13 +340,9 @@ export const EntitiesStep = ({
       // The entity is saved and paid for, so it joins the board even when the
       // step has unmounted: the board is a store write, not component state.
       setBoardEntity(entity, true);
+      dropSuggestion(key);
       if (!mountedRef.current) return;
       setCreatedEntities((current) => [...current, entity]);
-      setSuggestions((current) =>
-        current.filter(
-          (candidate) => `${candidate.kind}:${candidate.name}` !== key
-        )
-      );
     } catch (error) {
       if (!mountedRef.current || signal?.aborted) return;
       setAssistFailure("create");
@@ -548,6 +565,25 @@ export const EntitiesStep = ({
 
       {isLoading ? (
         <LoadingSpinner text="Loading entities" />
+      ) : entitiesFailed && !entities ? (
+        // A failed load is not an empty library: saying "No entities yet"
+        // would send the creator to make again what they already have.
+        <AlertBanner
+          severity="error"
+          title="Could not load your entities"
+          action={
+            <EditorButton
+              variant="text"
+              size="small"
+              onClick={() => void refetchEntities()}
+            >
+              Try again
+            </EditorButton>
+          }
+        >
+          {entitiesError?.message ??
+            "The entity library did not load. Try again, or skip this step."}
+        </AlertBanner>
       ) : !entities || entities.length === 0 ? (
         <EmptyState
           variant="no-data"

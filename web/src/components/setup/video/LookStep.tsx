@@ -15,7 +15,7 @@
  * `modelSamples.ts`.
  */
 
-import React, { memo, useCallback, useEffect, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   AlertBanner,
@@ -461,6 +461,8 @@ export interface LookStepProps extends LookStepChoices {
   onMusicChange: (on: boolean) => void;
   /** From {@link LookStepControls}: false when no bed can be rendered. */
   musicAvailable?: boolean;
+  /** Why the last Generate stopped after the shell had handed over. */
+  error?: string;
 }
 
 const LookStepInternal: React.FC<LookStepProps> = ({
@@ -468,7 +470,8 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   musicOn,
   onVoiceChange,
   onMusicChange,
-  musicAvailable
+  musicAvailable,
+  error
 }) => {
   const width = useTimelineStore((state) => state.width);
   const height = useTimelineStore((state) => state.height);
@@ -614,9 +617,18 @@ const LookStepInternal: React.FC<LookStepProps> = ({
     [applyVoice]
   );
 
+  // A model with no preset voices hands back no voice. Applying it would
+  // leave the step asking for a voice the creator thinks they just picked.
+  const [noPresetVoice, setNoPresetVoice] = useState(false);
   const handleReportedVoice = useCallback(
-    (value: TTSModelValue) =>
-      applyVoice(value.provider, value.id, value.selected_voice),
+    (value: TTSModelValue) => {
+      if (!value.selected_voice) {
+        setNoPresetVoice(true);
+        return;
+      }
+      setNoPresetVoice(false);
+      applyVoice(value.provider, value.id, value.selected_voice);
+    },
     [applyVoice]
   );
 
@@ -631,6 +643,12 @@ const LookStepInternal: React.FC<LookStepProps> = ({
           spoken over. You can change all of it in the editor.
         </Text>
       </FlexColumn>
+
+      {error ? (
+        <AlertBanner severity="error" title="Your clips did not start">
+          {error}
+        </AlertBanner>
+      ) : null}
 
       <Box sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
         <SelectField
@@ -727,6 +745,11 @@ const LookStepInternal: React.FC<LookStepProps> = ({
                 value={voiceValue}
                 onChange={handleReportedVoice}
               />
+              {noPresetVoice ? (
+                <Caption color="warning" role="status">
+                  This model has no preset voices. Pick another model.
+                </Caption>
+              ) : null}
             </FormField>
           ) : null}
         </FlexColumn>

@@ -383,7 +383,9 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           multiline
           rows={5}
           disabled={readOnly}
-          label={source ? "Notes for the writer" : "Your script"}
+          // The words here are a brief the writer may reword. Named "Your
+          // script", it told a screen reader to put the script itself here.
+          label={source ? "Notes for the writer" : "What the script is about"}
           hideLabel
           placeholder={
             source

@@ -91,7 +91,8 @@ const realPackageTests = [
   "tests/local-model-interfaces-sketch.test.ts",
   "tests/local-model-interface-parity.test.ts",
   "src/commands/__tests__/timeline-render-audio.test.ts",
-  "src/commands/__tests__/timeline-render-completeness.test.ts"
+  "src/commands/__tests__/timeline-render-completeness.test.ts",
+  "tests/game-command-input-bindings.test.ts"
 ];
 
 export default defineConfig({

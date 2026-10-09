@@ -107,6 +107,7 @@ import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
 import StartExamples from "./StartExamples";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
+import ReportBugButton from "../support/ReportBugButton";
 import { openPageTab } from "../workspace/openPageTab";
 import {
   OPTION_CARD_CLASS,
@@ -1707,7 +1708,22 @@ const NewProjectSurface = ({
   if (setupTarget && finishError) {
     return (
       <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl, maxWidth: COLUMN_WIDTH }}>
-        <AlertBanner severity="error" title="Could not open it yet">
+        <AlertBanner
+          severity="error"
+          title="Could not open it yet"
+          action={
+            <ReportBugButton
+              label="Report this failure"
+              variant="outlined"
+              size="small"
+              context={{
+                source: "manual",
+                summary: `Guided ${SETUP_KIND_NOUN[setupTarget.kind]} flow could not open its project`,
+                errorText: finishError
+              }}
+            />
+          }
+        >
           {finishError}
         </AlertBanner>
         <EditorButton

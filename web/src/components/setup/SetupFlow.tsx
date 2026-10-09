@@ -131,6 +131,18 @@ export function SetupFlow<Stage extends string>({
   // Kept apart from the step's own error, whose "Try again" runs the step: a
   // failed discard is retried from "Change flow", not by advancing.
   const [changeFlowError, setChangeFlowError] = useState<string | null>(null);
+  // Every failure and the canceled notice belong to the stage that produced
+  // them. A stage reached any other way than the shell's own buttons (an
+  // import that jumps ahead, a second host, Continue after a failed Change
+  // flow) starts clean, so it never shows the old message or a "Try again"
+  // for a run it has not had.
+  const [shownStage, setShownStage] = useState(stage);
+  if (shownStage !== stage) {
+    setShownStage(stage);
+    setError(null);
+    setChangeFlowError(null);
+    setCanceledStage(null);
+  }
   const blockedReasonId = useId();
   // A phone cannot fit the controls, the estimate and the buttons on one
   // row, so the footer stacks there.
@@ -141,6 +153,7 @@ export function SetupFlow<Stage extends string>({
   const entries = useMemo(() => stepperEntries(steps), [steps]);
   const step = currentIndex >= 0 ? steps[currentIndex] : undefined;
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const primaryRef = useRef<HTMLButtonElement | null>(null);
 
   // A model call outlives the stage that asked for it. The stage plus a
   // counter that moves on every stage change is the token an in-flight action
@@ -354,6 +367,14 @@ export function SetupFlow<Stage extends string>({
     setAdvancing(false);
     setCanceledStage(step.stage);
     setCancelingStage(step.stage);
+    // Cancel leaves with the wait. A run the shell did not start saved no
+    // control to return to, so focus goes to the button that takes its place.
+    if (returnFocusRef.current === null && primaryRef.current) {
+      returnFocusRef.current = {
+        element: primaryRef.current,
+        stage: step.stage
+      };
+    }
     const operation = activeOperationRef.current;
     void Promise.allSettled([
       operation ?? Promise.resolve(),
@@ -796,6 +817,7 @@ export function SetupFlow<Stage extends string>({
                   </EditorButton>
                 ) : null}
                 <EditorButton
+                  ref={primaryRef}
                   variant="contained"
                   size="large"
                   onClick={() => void handlePrimaryAction()}

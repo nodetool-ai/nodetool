@@ -4,12 +4,11 @@ import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
-import { FixedTickClock, type GameRenderer } from "@nodetool-ai/game-renderer";
+import { browserGamepads, FixedTickClock, GameInput, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
 import { GameReplayHistory } from "./gameReplayHistory";
-import { gameInputFrame } from "./gameInputFrame";
 
 interface PlayState { tick: number; score: number; won: boolean; sceneId: string }
 export interface ScriptFailure { message: string; tick: number; entityId: string | null }
@@ -42,8 +41,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const sessionFailedRef = useRef(false);
   const rendererRef = useRef<GameRenderer | null>(null);
   const sessionGenerationRef = useRef(0);
-  const keysRef = useRef(new Map<string, string>());
-  const newlyPressedRef = useRef(new Set<string>());
+  const inputRef = useRef(new GameInput());
   const inputHistoryRef = useRef(new GameReplayHistory<GameInputFrame, GameSnapshot>());
   const lastTickRef = useRef(0);
   const lastPresentationRef = useRef<{ state: PlayState; frame: GameRenderFrame } | null>(null);
@@ -175,8 +173,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (!rendererRef.current) setBackend("Initializing");
     setError(null);
     setScriptError(null);
-    const keys = keysRef.current;
-    const newlyPressed = newlyPressedRef.current;
+    const input = inputRef.current;
     const audio = audioRef.current ?? new GameAudioPlayer({
       assets: sessionDocument.assets,
       tickRate: sessionDocument.tickRate,
@@ -244,8 +241,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     return () => {
       cancelled = true;
       sessionGenerationRef.current += 1;
-      keys.clear();
-      newlyPressed.clear();
+      input.release();
       disposeSession();
 
     };
@@ -275,8 +271,9 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   useEffect(() => {
     if (!active || !playing) audioRef.current?.pause();
     else audioRef.current?.resume();
+    // Paused input is dropped, not queued for the next tick (F23).
+    inputRef.current.setEnabled(active && playing);
     if (!active || !playing) {
-      keysRef.current.clear(); newlyPressedRef.current.clear();
       const presentation = lastPresentationRef.current;
       if (playDocument && presentation) {
         setPlayState(presentation.state);
@@ -291,8 +288,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const clock = new FixedTickClock(sessionDocument.tickRate);
     const animate = (now: number) => {
       clock.advance(now, () => {
-        step(gameInputFrame(keysRef.current, newlyPressedRef.current, sessionDocument));
-        newlyPressedRef.current.clear();
+        inputRef.current.pollGamepads(browserGamepads());
+        step(inputRef.current.sample2D(sessionDocument));
       });
       request = requestAnimationFrame(animate);
     };
@@ -304,8 +301,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
 
   const beginPlay = () => {
     if (playDocument && sessionFailedRef.current) { return; }
-    keysRef.current.clear();
-    newlyPressedRef.current.clear();
+    inputRef.current.release();
     if (!document) return;
     if (!playing && !playDocument) {
       inputHistoryRef.current.clear();
@@ -373,7 +369,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     catch { return null; }
   })();
 
-  return { canvasRef, keysRef, newlyPressedRef, playing, playDocument, playState, backend, error, setError,
+  return { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
     scriptError, setScriptError, frame, showCurrentFrame, onViewportAspect, onCamera, resetCamera,
     step, beginPlay, stop, save, load, replayBeforeError, runtimeEntities };
 }

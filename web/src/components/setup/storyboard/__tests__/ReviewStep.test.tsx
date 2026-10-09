@@ -7,7 +7,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -358,6 +358,25 @@ describe("ReviewStep", () => {
     expect(board()?.shots[1].duration_source).toBe("manual");
   });
 
+  it("shows the length a rewrite gave a shot, not the one typed before it", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.type(screen.getAllByLabelText("Seconds")[1], "4");
+    await user.tab();
+    expect(screen.getAllByLabelText("Seconds")[1]).toHaveValue("4");
+
+    // A rewrite keeps the shot's id and gives it another length.
+    act(() => {
+      const next = screenplay();
+      next.shots[1] = { ...next.shots[1], duration_seconds: 7 };
+      useStoryboardStore.getState().setScreenplay(BOARD, next);
+    });
+
+    expect(board()?.shots[1].duration_seconds).toBe(7);
+    expect(screen.getAllByLabelText("Seconds")[1]).toHaveValue("7");
+  });
+
   // F9: a locally built outline says so, and the creator decides.
   it("names a locally written outline and offers both ways out", async () => {
     const user = userEvent.setup();
@@ -562,8 +581,16 @@ describe("ReviewStep — an imported FDX", () => {
     });
     renderStep();
 
+    // The run is a camera pass over the imported words, so the button and its
+    // estimate say so rather than offering a rewrite from the brief.
+    expect(
+      screen.queryByRole("button", { name: "Rewrite from brief" })
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByLabelText(/Add camera direction to your script again/)
+    ).toBeInTheDocument();
     await user.click(
-      screen.getByRole("button", { name: "Rewrite from brief" })
+      screen.getByRole("button", { name: "Direct the camera again" })
     );
 
     await waitFor(() =>

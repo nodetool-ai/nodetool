@@ -96,7 +96,10 @@ export interface ModelRoleAvailability {
 export interface ModelRoleChoices extends ModelRoleAvailability {
   /** The tile id currently chosen, or null. */
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  /** The voice chosen for a voice model, or null for its first voice. */
+  selectedVoice?: string | null;
+  /** Picks a tile, and for a voice model the voice that goes with it. */
+  onSelect: (id: string, voice?: string) => void;
   /**
    * A remembered pick this install no longer offers — a provider that was
    * disconnected, a model that was retired. The row falls back to the first
@@ -252,8 +255,20 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
     role.onSelect(`${model.provider}:${model.id}`);
   const handleVideoChange = (model: VideoModelValue) =>
     role.onSelect(`${model.provider}:${model.id}`);
+  // The voice rides along with the model, so a voice picked here is the one
+  // the select shows and the one the built node speaks with.
   const handleAudioChange = (model: TTSModelValue) =>
-    role.onSelect(`${model.provider}:${model.id}`);
+    role.onSelect(`${model.provider}:${model.id}`, model.selected_voice);
+  const audioValue: TTSModelValue | string = selectedModel
+    ? {
+        type: "tts_model",
+        provider: (selectedProvider ?? "") as TTSModelValue["provider"],
+        id: selectedModel,
+        name: "",
+        voices: [],
+        selected_voice: role.selectedVoice ?? ""
+      }
+    : "";
 
   return (
     <FlexColumn gap={GAP.normal}>
@@ -332,7 +347,7 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
               onChange={handleVideoChange}
             />
           ) : role.role === "audio" ? (
-            <TTSModelSelect value={selectedModel} onChange={handleAudioChange} />
+            <TTSModelSelect value={audioValue} onChange={handleAudioChange} />
           ) : (
             <OptionCardGrid
               label={label}
