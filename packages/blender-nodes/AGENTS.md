@@ -9,6 +9,11 @@ contract, local and worker runner implementations, `runBlenderJob`, and the
 `blender_ops/` (`render_image`, `render_passes`, `render_animation`,
 `prepare_for_engine`, `export_model` plus shared `common`, `depth`, `exr`).
 
+- **CI runs the render suites only when this package changes, and nightly.**
+  Other diffs skip installing Blender, so suites guarded by
+  `blenderAvailable()` skip. `turbo.json` here hashes the Blender env vars so
+  a skipped run never replays as a pass. A change elsewhere that breaks a
+  render surfaces in the nightly `Test` run.
 - **Read only declared outputs.** `LocalBlenderRunner` stats each path in
   `job.outputs` before reading any byte; a `produced` name the job did not
   declare is ignored at warn, and nothing in `result.json` is ever opened

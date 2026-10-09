@@ -142,7 +142,7 @@ jobs:
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           if ! node scripts/ci-plan.mjs plan ${BASE:+--base "$BASE"}; then
             echo "::warning::ci-plan failed; running every leg."
-            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true}' >> "$GITHUB_OUTPUT"
+            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Detect non-documentation changes
