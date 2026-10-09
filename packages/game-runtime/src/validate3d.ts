@@ -3,7 +3,7 @@ import {
   gameDocument3D, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
-import { validateGame } from "./validate.js";
+import { GAME_ENGINE_4_UNAVAILABLE, validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 
 export interface GameValidationResult3D {
@@ -201,6 +201,9 @@ export function validateAnyGame(value: unknown): AnyGameValidationResult {
   if (parsed.document.schemaVersion === 3) {
     const result = validateGame3D(parsed.document);
     return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [] } : { valid: false, diagnostics: result.diagnostics };
+  }
+  if (parsed.document.engineVersion === "4") {
+    return { valid: false, diagnostics: [{ code: "engine_unavailable", path: ["engineVersion"], message: GAME_ENGINE_4_UNAVAILABLE }] };
   }
   const result = validateGame(parsed.document);
   return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [] } :

@@ -292,3 +292,13 @@ it("validates and simulates a document with an audio mixer and verifies replay",
   const report = await runSimulation("--ticks", "30", "--verify-replay");
   expect(report).toMatchObject({ ok: true, replay: { verified: true } });
 });
+
+it("reports a reserved 2D engine before any simulation starts", async () => {
+  await writeFile(gamePath, JSON.stringify({ ...createTopDownRoomGame("a".repeat(32)), schemaVersion: 5, engineVersion: "4" }));
+  const program = new Command();
+  registerGameCommands(program);
+  await program.parseAsync(["node", "nodetool", "game", "validate", gamePath, "--json"]);
+  expect(process.exitCode).toBe(1);
+  expect(JSON.parse(output.trim())).toMatchObject({ valid: false,
+    diagnostics: [{ code: "engine_unavailable", path: ["engineVersion"] }] });
+});
