@@ -20,10 +20,6 @@ export interface FieldSchema {
   pattern?: string;
   $ref?: string;
   $defs?: Record<string, FieldSchema>;
-  /** `game-entity` and `game-asset` strings render as reference selects. */
-  format?: "game-entity" | "game-asset";
-  /** Limits a `game-asset` select to one media kind. */
-  assetKind?: string;
 }
 
 export function gameSchemaFields(schema: z.ZodType): FieldSchema {

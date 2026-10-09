@@ -8,7 +8,7 @@ import { applyGameOps, applyGameOps3D, type GameDocumentOp, type GameDocumentOp3
 import mockTheme from "../../../../__mocks__/themeMock";
 import GameInspector from "../../panels/inspector/GameInspector";
 import GameInspector3D from "../../panels/inspector/GameInspector3D";
-import { scriptParamEdit } from "../editors/ScriptParamsEditor";
+import ScriptParamsEditor, { scriptParamEdit } from "../editors/ScriptParamsEditor";
 
 const SOURCE = "(input) => ({ state: input.params, commands: [{ kind: 'setVelocity', x: input.params.speed, y: 0 }] })";
 const PARAMS = {
@@ -92,6 +92,36 @@ describe("script parameters in the inspector", () => {
     await user.clear(speed);
     await user.type(speed, "3{Enter}");
     expect(received.at(-1)).toEqual([{ op: "set_script_params", scene_id: "scene", entity_id: "mover", index: 0, values: { speed: 3 } }]);
+  });
+
+  it("renders reference params as selects in the editor and clears them to null", async () => {
+    const user = userEvent.setup();
+    const onValues = jest.fn();
+    render(<ThemeProvider theme={mockTheme}><ScriptParamsEditor params={PARAMS} values={{ target: "goal", hit: "hit" }} assets={initial.assets}
+      entities={[{ id: "hero", name: "Hero" }, { id: "goal", name: "Goal" }]} onValues={onValues}
+      issuePath={["scenes", 0, "entities", 0, "behaviors", 0]}
+      issues={[{ path: ["scenes", 0, "entities", 0, "behaviors", 0, "values", "hit"], message: "Script parameter hit references missing asset hit" }]} /></ThemeProvider>);
+    expect(screen.getByText("Script parameter hit references missing asset hit")).toBeTruthy();
+    await user.click(screen.getByRole("combobox", { name: "Target" }));
+    expect(screen.getByRole("option", { name: "Hero" })).toBeTruthy();
+    await user.click(screen.getByRole("option", { name: "None" }));
+    expect(onValues).toHaveBeenLastCalledWith({ target: null });
+    await user.click(screen.getByRole("combobox", { name: "Hit" }));
+    expect(screen.queryByRole("option", { name: "image" })).toBeNull();
+    await user.click(screen.getByRole("option", { name: "None" }));
+    expect(onValues).toHaveBeenLastCalledWith({ hit: null });
+  });
+
+  it("shows 3D reference validation errors under the param", () => {
+    const document3D = gameDocument3D.parse({ schemaVersion: 3, engineVersion: "2", dimension: "3d", id: "three", revision: "draft", entrySceneId: "scene",
+      tickRate: 60, presentation: { aspectRatio: 1, hudWidth: 100, hudHeight: 100 }, inputActions: [], assets: {},
+      scenes: [{ id: "scene", name: "Scene", activeCameraId: "camera", entities: [
+        { id: "camera", transform3d: {}, camera3d: { projection: { kind: "perspective" } } },
+        { id: "mover", transform3d: {}, behaviors: [{ kind: "script", source: SOURCE, params: { target: PARAMS.target }, values: { target: "ghost" } }] }
+      ] }] });
+    render(<ThemeProvider theme={mockTheme}><GameInspector3D document={document3D} sceneId="scene" entityId="mover" onOperationError={() => undefined}
+      onScript={() => undefined} onOps={() => undefined} /></ThemeProvider>);
+    expect(screen.getByText("Script parameter target references missing entity ghost")).toBeTruthy();
   });
 
   it("stores null for a cleared reference and clears a value equal to its default", () => {
