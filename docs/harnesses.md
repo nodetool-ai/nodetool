@@ -1297,6 +1297,12 @@ asset slots. `SlotPrompt` prepares a request for one slot. `SpriteSheet`,
 the project workspace. Staging does not alter a published game revision.
 `install_native_game_asset` installs a selected candidate binding into the draft
 with a draft timestamp check. Existing scene and behavior edits remain in place.
+`browse_native_game_assets` lists the draft's assets with where each is used,
+its prefabs and scenes, the staged candidates, and each slot's generation
+prompt. With `digest` and `slot` it returns an installable binding for one
+candidate. The editor's Assets panel calls the same catalog and filter. Tests:
+`packages/agents/tests/capabilities-game-asset-browser.test.ts` and
+`packages/websocket/tests/trpc-game-asset-browser.test.ts`.
 
 Agents can build a complete document with `@nodetool-ai/sandbox-game` and save
 it through `edit_native_game`'s atomic `set_document` op. The builder supplies
