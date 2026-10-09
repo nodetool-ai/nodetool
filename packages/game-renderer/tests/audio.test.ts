@@ -7,23 +7,40 @@ class FakeParam {
   readonly calls: Array<[string, number, number]> = [];
   setValueAtTime(value: number, time: number): void { this.value = value; this.calls.push(["set", value, time]); }
   linearRampToValueAtTime(value: number, time: number): void { this.value = value; this.calls.push(["ramp", value, time]); }
+  exponentialRampToValueAtTime(value: number, time: number): void { this.value = value; this.calls.push(["exponential", value, time]); }
   cancelScheduledValues(time: number): void { this.calls.push(["cancel", this.value, time]); }
 }
 
-class FakeGain {
-  readonly gain = new FakeParam();
-  connect(destination: unknown): unknown { return destination; }
-  disconnect(): void {}
+class FakeNode {
+  readonly outputs: unknown[] = [];
+  connect<Destination>(destination: Destination): Destination { this.outputs.push(destination); return destination; }
+  disconnect(): void { this.outputs.length = 0; }
 }
 
-class FakeSource {
+class FakeGain extends FakeNode {
+  readonly gain = new FakeParam();
+}
+
+class FakeFilter extends FakeNode {
+  type = "lowpass";
+  readonly Q = new FakeParam();
+  readonly frequency = new FakeParam();
+}
+
+class FakeCompressor extends FakeNode {
+  readonly threshold = new FakeParam();
+  readonly knee = new FakeParam();
+  readonly ratio = new FakeParam();
+  readonly attack = new FakeParam();
+  readonly release = new FakeParam();
+}
+
+class FakeSource extends FakeNode {
   buffer: AudioBuffer | null = null;
   loop = false;
   onended: (() => void) | null = null;
   readonly starts: number[] = [];
   readonly stops: number[] = [];
-  connect(destination: unknown): unknown { return destination; }
-  disconnect(): void {}
   start(_when: number, offset = 0): void { this.starts.push(offset); }
   stop(when: number): void { this.stops.push(when); this.onended?.(); }
 }
@@ -31,11 +48,14 @@ class FakeSource {
 class FakeContext {
   state: AudioContextState = "suspended";
   currentTime = 5;
+  readonly sampleRate = 48000;
   readonly destination = {};
   readonly sources: FakeSource[] = [];
   readonly gains: FakeGain[] = [];
   createBufferSource(): FakeSource { const source = new FakeSource(); this.sources.push(source); return source; }
   createGain(): FakeGain { const gain = new FakeGain(); this.gains.push(gain); return gain; }
+  createBiquadFilter(): FakeFilter { return new FakeFilter(); }
+  createDynamicsCompressor(): FakeCompressor { return new FakeCompressor(); }
   decodeAudioData(): Promise<AudioBuffer> { return Promise.resolve({ duration: 2 } as AudioBuffer); }
   resume(): Promise<void> { this.state = "running"; return Promise.resolve(); }
   suspend(): Promise<void> { this.state = "suspended"; return Promise.resolve(); }
@@ -161,7 +181,7 @@ describe("shared game audio lifecycle", () => {
     await audio.unlock();
     audio.sync(snapshot(0, 0));
     await vi.waitFor(() => expect(context.sources).toHaveLength(1));
-    expect(context.gains[0].gain.calls).toEqual([["set", 0, 5], ["ramp", 0.4, 6]]);
+    expect((context.sources[0].outputs[0] as FakeGain).gain.calls).toEqual([["set", 0, 5], ["ramp", 0.4, 6]]);
     const event: GameEvent = { kind: "audio", action: "start", voiceId: "hit:1", assetId: "effect", loop: false,
       volume: 0.6, fadeInTicks: 0, fadeOutTicks: 0 };
     audio.handle(event);
@@ -219,3 +239,51 @@ for (const delayed of [false, true]) {
     audio.dispose();
   });
 }
+
+describe("game audio mixer routing", () => {
+  it("routes voices to their buses, ducks music under voice, and follows trigger events", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1]))));
+    const context = new FakeContext();
+    const effect = gameAssetBinding.parse({ assetId: "./line.wav", digest: "l", mediaKind: "audio", width: 1, height: 1 });
+    const music = gameAssetBinding.parse({ assetId: "./music.wav", digest: "m", mediaKind: "audio", width: 1, height: 1 });
+    const audio = new GameAudioPlayer({ context: context as unknown as AudioContext, tickRate: 60, assets: { line: effect, music },
+      resolveAsset: async (asset) => asset.assetId, status: vi.fn(),
+      mixer: { assetBuses: { line: "voice" }, snapshots: { calm: { buses: { music: { volume: 0.5 } } } },
+        transitions: [{ on: { kind: "trigger", event: "rest" }, snapshot: "calm" }] } });
+    await audio.unlock();
+    audio.sync(snapshot(0, 0));
+    await vi.waitFor(() => expect(context.sources).toHaveLength(1));
+    audio.handle({ kind: "audio", action: "start", voiceId: "line:1", assetId: "line", loop: false, volume: 1, fadeInTicks: 0, fadeOutTicks: 0 });
+    await vi.waitFor(() => expect(context.sources).toHaveLength(2));
+    const musicVoiceGain = context.sources[0].outputs[0] as FakeGain;
+    const lineVoiceGain = context.sources[1].outputs[0] as FakeGain;
+    expect(musicVoiceGain.outputs[0]).not.toBe(lineVoiceGain.outputs[0]);
+    expect(audio.mixerState().buses.voice.activeVoices).toBe(1);
+    expect(audio.mixerState().buses.music.activeVoices).toBe(1);
+    expect(audio.mixerState().buses.music.duckGain).toBeCloseTo(0.35);
+
+    audio.handle({ kind: "trigger", event: "rest", entityId: "bench" });
+    expect(context.sources).toHaveLength(2);
+    expect(audio.mixerState().snapshot).toBe("calm");
+    expect(audio.mixerState().buses.music.volume).toBe(0.5);
+
+    audio.handle({ kind: "audio", action: "stop", voiceId: "line:1", fadeOutTicks: 0 });
+    expect(audio.mixerState().buses.music.duckGain).toBe(1);
+    audio.reset(snapshot(10, 10));
+    expect(audio.mixerState().snapshot).toBe("base");
+    audio.dispose();
+  });
+
+  it("reports invalid mixer settings and plays through the default mix", () => {
+    const status = vi.fn();
+    const audio = new GameAudioPlayer({ context: new FakeContext() as unknown as AudioContext, tickRate: 60, assets: {},
+      resolveAsset: async () => null, status, mixer: { assetBuses: { line: "missing" } } });
+    expect(status).toHaveBeenCalledWith(expect.stringContaining("Audio mixer settings are invalid"));
+    expect(Object.keys(audio.mixerState().buses).sort()).toEqual(["master", "music", "sfx", "ui", "voice"]);
+    audio.updateMixer({ buses: { ambience: { volume: 0.5 } } });
+    expect(audio.mixerState().buses.ambience.volume).toBe(0.5);
+    audio.setBusVolume("music", 0.25);
+    expect(audio.mixerState().buses.music.userVolume).toBe(0.25);
+    audio.dispose();
+  });
+});

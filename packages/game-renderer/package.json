@@ -33,6 +33,7 @@
     "@playwright/test": "^1.60.0",
     "@types/three": "0.185.0",
     "@webgpu/types": "^0.1.70",
+    "node-web-audio-api": "^1.0.8",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1"
   },

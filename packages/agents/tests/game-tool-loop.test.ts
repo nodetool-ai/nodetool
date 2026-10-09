@@ -13,3 +13,17 @@ it("scores native entity metadata authored through the public edit surface", asy
   await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{tags:["hero"],props:{health:10,nested:{nullable:null}}}}]});
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it("scores an audio mixer authored through the public edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="audio-mixer-buses");
+  if (!candidate) { throw new Error("Mixer eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Mixer eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  await edit.execute({ops:[{op:"set_audio",mixer:{buses:{ambience:{parent:"sfx",volume:0.6}},assetBuses:{"sfx.collect":"ui"},
+    snapshots:{victory:{buses:{music:{volume:0.2}}}},transitions:[{on:{kind:"win"},snapshot:"victory",fadeTicks:30}]}}]});
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
