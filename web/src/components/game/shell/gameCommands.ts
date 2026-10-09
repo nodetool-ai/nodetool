@@ -40,7 +40,9 @@ function command(id: string, title: string, category: GameCommandCategory, dimen
 
 function nudge(direction: "Left" | "Right" | "Up" | "Down", far: boolean): GameCommandDefinition {
   return command(`edit.nudge${direction}${far ? "Far" : ""}`, `Nudge selection ${direction.toLowerCase()}${far ? " by 2.5 units" : ""}`,
-    "Edit", ONLY_2D, "viewport", [{ code: `Arrow${direction}`, ...(far ? { shift: true } : {}) }]);
+    "Edit", ONLY_2D, "viewport", [{ code: `Arrow${direction}`, ...(far ? { shift: true } : {}) },
+      // Alt+arrow also nudges in the viewport. The scene tree handles Alt+arrow itself to reorder entities.
+      { code: `Arrow${direction}`, alt: true, ...(far ? { shift: true } : {}) }]);
 }
 
 /** Every game editor command, in palette order. Both editors read their default shortcuts from this list. */
