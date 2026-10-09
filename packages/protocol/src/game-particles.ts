@@ -16,6 +16,8 @@ function range(bounds: z.ZodNumber) {
 
 export const gameParticleRange = range(finite);
 
+const rangeBounds = z.strictObject({ min: finite, max: finite });
+
 export type GameParticleRange = z.infer<typeof gameParticleRange>;
 
 /** Piecewise-linear keys over normalized particle age (0 at birth, 1 at death). */
@@ -109,8 +111,8 @@ export function gameParticleIssues(particles: GameParticles): { readonly path: (
     }
     ids.add(emitter.id);
     for (const field of ["lifetime", "speed", "size", "rotation", "angularVelocity"] as const) {
-      const value = emitter[field];
-      if (typeof value === "object" && value.min > value.max) {
+      const bounds = rangeBounds.safeParse(emitter[field]);
+      if (bounds.success && bounds.data.min > bounds.data.max) {
         issues.push({ path: ["emitters", index, field], message: "Range min must not exceed max" });
       }
     }
