@@ -7,7 +7,8 @@ import { WebGPURenderPipeline } from "./webgpu/pipeline.js";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { createDefaultRegistry, createExecutor, createGPUContextFromDevice, createLabeledTexture, createRecipeRunner, LabeledTexture } from "@nodetool-ai/gpu/pool";
 import { AssetCache, imageHeight, imageWidth, type GameImage } from "./canvas2d.js";
-import { parseTint, projectedCamera, visibleItems } from "./frame.js";
+import { parseTint, projectedCamera, sourceRect, visibleItems } from "./frame.js";
+import { PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
 import type { GameHudEffectOrder, GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
 
 /** Draws ordered sprites as consecutive texture batches on a private WebGPU device. */
@@ -47,6 +48,7 @@ export class WebGPUGameRenderer implements GameRenderer {
   private readonly textures = new Map<string, TextureEntry>();
   private readonly validatedLuts = new Set<string>();
   private readonly fallback: TextureEntry;
+  private readonly particleDot: TextureEntry;
   private readonly placeholders = new Map<string, TextureEntry>();
   private instanceBuffer: GPUBuffer | undefined;
   private instanceCapacity = 0;
@@ -167,6 +169,10 @@ export class WebGPUGameRenderer implements GameRenderer {
     const fallbackTexture = device.createTexture({ size: [1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
     device.queue.writeTexture({ texture: fallbackTexture }, new Uint8Array([255, 0, 255, 255]), { bytesPerRow: 4 }, [1, 1]);
     this.fallback = this.textureEntry(fallbackTexture, 1, 1);
+    const dotTexture = device.createTexture({ size: [PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE], format: "rgba8unorm",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+    device.queue.writeTexture({ texture: dotTexture }, particleDotPixels(), { bytesPerRow: PARTICLE_DOT_SIZE * 4 }, [PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE]);
+    this.particleDot = this.textureEntry(dotTexture, PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE, "linear");
     void device.lost.then(() => { this.lost = true; });
   }
 
@@ -319,6 +325,9 @@ export class WebGPUGameRenderer implements GameRenderer {
   }
 
   private async getTexture(assetId: string, sampling: "nearest" | "linear"): Promise<{ texture: TextureEntry; uploadedBytes: number }> {
+    if (assetId === PARTICLE_DOT_ASSET) {
+      return { texture: this.particleDot, uploadedBytes: 0 };
+    }
     const cached = this.textures.get(assetId);
     if (cached) {
       return { texture: cached, uploadedBytes: 0 };
@@ -379,14 +388,14 @@ export class WebGPUGameRenderer implements GameRenderer {
     return entry;
   }
 
-  async render(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats> {
+  async render(frame: GameRenderFrame, interpolation: number, particles?: GameParticleField): Promise<GameRendererStats> {
     if (this.disposed || this.lost) {
       throw new Error(this.lost ? "WebGPU device was lost" : "Game renderer is disposed");
     }
     this.device.pushErrorScope("validation");
     let popped = false;
     try {
-      const stats = await this.renderFrame(frame, interpolation);
+      const stats = await this.renderFrame(frame, interpolation, particles);
       const validationError = await this.device.popErrorScope();
       popped = true;
       if (validationError) {
@@ -402,11 +411,11 @@ export class WebGPUGameRenderer implements GameRenderer {
     }
   }
 
-  private async renderFrame(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats> {
+  private async renderFrame(frame: GameRenderFrame, interpolation: number, particles?: GameParticleField): Promise<GameRendererStats> {
     const bloomRadius = this.effects.reduce((maximum, effect) => effect.kind === "bloom" ? Math.max(maximum, effect.radius) : maximum, 0);
     const overscanPixels = Math.ceil(bloomRadius * 2);
     const overscanWorld = overscanPixels * frame.width / (Math.max(1, this.canvas.width) * projectedCamera(frame, interpolation).zoom);
-    const items = visibleItems(frame, interpolation, overscanWorld);
+    const items = visibleItems(frame, interpolation, overscanWorld, particles && { field: particles });
     const sampling = new Map(items.map((item) => [item.assetId, item.sampling]));
     const assetIds = [...sampling.keys()];
     const textureResults = await Promise.all(assetIds.map((assetId) => this.getTexture(assetId, sampling.get(assetId) ?? "nearest")));
@@ -423,10 +432,11 @@ export class WebGPUGameRenderer implements GameRenderer {
         continue;
       }
       const texture = result.texture;
-      const rect = texture.width === 1 && texture.height === 1 ? { x: 0, y: 0, width: 1, height: 1 } : item.frame ?? { x: 0, y: 0, width: texture.width, height: texture.height };
+      const rect = texture.width === 1 && texture.height === 1 ? { x: 0, y: 0, width: 1, height: 1 } : sourceRect(item, texture.width, texture.height);
       const tint = parseTint(item.tint);
-      const insetX = item.sampling === "linear" && item.frame && rect.width > 1 ? 0.5 : 0;
-      const insetY = item.sampling === "linear" && item.frame && rect.height > 1 ? 0.5 : 0;
+      const subRect = item.frame !== undefined || item.cell !== undefined;
+      const insetX = item.sampling === "linear" && subRect && rect.width > 1 ? 0.5 : 0;
+      const insetY = item.sampling === "linear" && subRect && rect.height > 1 ? 0.5 : 0;
       const u = (rect.x + insetX) / texture.width;
       const v = (rect.y + insetY) / texture.height;
       const du = (rect.width - 2 * insetX) / texture.width;
@@ -553,7 +563,7 @@ export class WebGPUGameRenderer implements GameRenderer {
       }
     });
     this.device.queue.submit([encoder.finish()]);
-    const textureBytes = [...this.textures.values(), ...this.placeholders.values(), this.fallback,
+    const textureBytes = [...this.textures.values(), ...this.placeholders.values(), this.fallback, this.particleDot,
       ...(this.hudTexture ? [this.hudTexture] : [])].reduce((sum, entry) => sum + entry.width * entry.height * 4, 0);
     return {
       backend: this.backend,
@@ -638,6 +648,7 @@ export class WebGPUGameRenderer implements GameRenderer {
     this.lightTarget?.destroy();
     this.lightFallback.destroy();
     this.fallback.texture.destroy();
+    this.particleDot.texture.destroy();
     this.hudTexture?.texture.destroy();
     for (const entry of this.placeholders.values()) {
       entry.texture.destroy();

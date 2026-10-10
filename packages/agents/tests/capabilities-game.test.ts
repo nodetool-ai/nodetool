@@ -139,6 +139,29 @@ describe("native game capabilities", () => {
     expect(cleared.document.inputBindings).toBeUndefined();
   });
 
+  it("authors spatial audio on an entity's audio source through edit_native_game", async () => {
+    const spec = gameModule.exports.find((entry) => entry.spec.name === "edit_native_game")?.spec;
+    expect(JSON.stringify(spec?.inputSchema)).toContain("update_entity set audioSource {spatial: true");
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Spatial" }) as GameReply;
+    const source = created.document.scenes.flatMap((scene) => scene.entities).find((entity) => entity.audioSource);
+    if (!source) { throw new Error("The starter game must have an audio source"); }
+    const cone = { innerAngle: 90, outerAngle: 180, outerGain: 0.2 };
+    const edited = await agent.invoke("edit_native_game", { game_id: created.game.id, ops: [{ op: "update_entity", entity_id: source.id,
+      set: { audioSource: { spatial: true, minDistance: 2, maxDistance: 24, rolloff: 0.5, distanceModel: "exponential", cone, doppler: 1 } } }] }) as GameReply;
+    expect(edited.document.scenes.flatMap((scene) => scene.entities).find((entity) => entity.id === source.id)?.audioSource)
+      .toMatchObject({ spatial: true, minDistance: 2, maxDistance: 24, rolloff: 0.5, distanceModel: "exponential", cone, doppler: 1 });
+    const rejected = await agent.invoke("edit_native_game", { game_id: created.game.id, base_updated_at: edited.draft_updated_at,
+      ops: [{ op: "update_entity", entity_id: source.id, set: { audioSource: { minDistance: 30 } } }] });
+    expect(JSON.stringify(rejected)).toContain("maxDistance (24) must be greater than minDistance (30)");
+    const cleared = await agent.invoke("edit_native_game", { game_id: created.game.id, base_updated_at: edited.draft_updated_at,
+      ops: [{ op: "update_entity", entity_id: source.id, set: { audioSource: { cone: null, doppler: null } } }] }) as GameReply;
+    const audio = cleared.document.scenes.flatMap((scene) => scene.entities).find((entity) => entity.id === source.id)?.audioSource;
+    expect(audio?.cone).toBeUndefined();
+    expect(audio?.doppler).toBeUndefined();
+    expect(audio?.spatial).toBe(true);
+  });
+
   it("edits the draft atomically, reads an outline, and captures the edited frame", async () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Draft room" }) as GameReply;
@@ -176,6 +199,35 @@ describe("native game capabilities", () => {
     const context = canvas.getContext("2d");
     context.drawImage(image, 0, 0);
     expect([...context.getImageData(288, 112, 1, 1).data].slice(0, 3)).toEqual([255, 196, 50]);
+  });
+
+  it("draws particles in captured frames", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Particle room" }) as GameReply;
+    const [scene, ...scenes] = created.document.scenes;
+    if (!scene) throw new Error("Scene missing");
+    const torch = { id: "torch", name: "Torch", transform2d: { x: 1, y: 1 },
+      particles: { emitters: [{ id: "glow", rate: 60, lifetime: 10, speed: 0, size: 1, color: "#00ff00", unlit: true }] } };
+    await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision,
+      base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at,
+      document: { ...created.document, schemaVersion: 2, engineVersion: "1", scenes: [{ ...scene, entities: [...scene.entities, torch] }, ...scenes] } });
+    const [row] = await Workspace.listByProject(USER, PROJECT);
+    if (!row) throw new Error("Project workspace missing");
+    const workspace = workspaceFromRow(row);
+    if (!workspace) throw new Error("Workspace storage missing");
+    const captureAgent = createCapabilityRun({ context: { userId: USER, workspace } as ProcessingContext, gate: UNGATED });
+    const captured = await captureAgent.invoke("capture_native_game_frame", { game_id: created.game.id, ticks: [30] }) as { frames: Array<{ image: { path: string } }> };
+    const imagePath = captured.frames[0]?.image.path;
+    if (!imagePath) throw new Error("Capture image path missing");
+    const imageBytes = await workspace.read(imagePath);
+    if (!imageBytes) throw new Error("Capture image missing");
+    const image = await loadImage(Buffer.from(imageBytes));
+    const canvas = createCanvas(image.width, image.height);
+    canvas.getContext("2d").drawImage(image, 0, 0);
+    const [red, green, blue] = canvas.getContext("2d").getImageData(288, 112, 1, 1).data;
+    expect(green).toBeGreaterThan(200);
+    expect(red).toBeLessThan(40);
+    expect(blue).toBeLessThan(40);
   });
 
   it("executes scripted behavior during agent playtests", async () => {

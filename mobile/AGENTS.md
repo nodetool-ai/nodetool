@@ -88,8 +88,12 @@ read the comment at the top of `metro.config.js` before changing any of it.
   `textOnPrimary`, never a literal white). Spacing, radius, type and touch-target sizes
   come from `utils/tokens.ts`. Full-screen loading, empty, failed and offline states use
   `components/ScreenState.tsx`; a failed refresh over data that is still shown uses
-  `LoadErrorBanner`. `App.tsx` wraps every screen in `withScreenBoundary`, so a render
+  `LoadErrorBanner`. `App.tsx` and `MainTabs.tsx` wrap every screen in `withScreenBoundary`, so a render
   error offers "Try again" and "Go back" instead of taking down the navigator.
+- **Navigation**: Apps, Chat, Documents, Jobs, and Assets are tabs in
+  `navigation/MainTabs.tsx`. Every other screen is pushed on the root stack above
+  the tab bar, and reaches a tab through `navigate('Main', { screen })`. See
+  [ARCHITECTURE.md § Tabs and the root stack](ARCHITECTURE.md#tabs-and-the-root-stack).
 - **Mini apps**: `components/app_runtime/` renders an application document (fetched over
   `/api/applications/*` by `hooks/useApplications.ts`) with native widgets on
   top of `@nodetool-ai/app-runtime` — the same core the web runtime and the CLI `app debug`

@@ -175,7 +175,11 @@ function writeSettings(settings: SettingsRecord): void {
   try {
     const settingsPath = getAppConfigPath("settings.yaml");
     const yamlString = yaml.dump(settings);
-    fs.writeFileSync(settingsPath, yamlString, "utf8");
+    // Write a sibling file and rename it over the original, so a crash
+    // mid-write leaves the previous settings instead of a truncated file.
+    const tempPath = `${settingsPath}.${process.pid}.tmp`;
+    fs.writeFileSync(tempPath, yamlString, "utf8");
+    fs.renameSync(tempPath, settingsPath);
     settingsCache = settings;
   } catch (error) {
     throw new Error(

@@ -4,6 +4,7 @@
  * wrote the job's status and the loop waited until unmount.
  */
 
+import React from "react";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
@@ -15,6 +16,10 @@ import { useSketchCanvasRefStore } from "../../../stores/sketch/SketchCanvasRefS
 import useErrorStore from "../../../stores/ErrorStore";
 import { __resetGenerateLayerSubscriptionsForTests } from "../useGenerateLayer";
 import { useRegenerateStaleLayers } from "../useRegenerateStaleLayers";
+import {
+  SketchProvider,
+  createSketchInstance
+} from "../../../stores/sketch/SketchInstance";
 
 const subscribeMock = jest.fn();
 const ensureConnectionMock = jest.fn(async () => {});
@@ -193,6 +198,73 @@ describe("useRegenerateStaleLayers", () => {
     expect(counts).toEqual({ started: 0, skipped: 0, failed: 1 });
     // Stopped before the second layer.
     expect(jobHandlers.has("job-2")).toBe(false);
+  });
+
+  it("keeps draining into its own tab after a tab switch", async () => {
+    // An inactive tab stays mounted but leaves the activation stack, so the
+    // drain must not look its layers up on whichever editor is focused.
+    // Layer ids no other test seeds, so the focused (default) editor cannot
+    // answer for them.
+    const tab = createSketchInstance();
+    const setLayerData = jest.fn();
+    tab.canvasRef.setState({ setLayerData: setLayerData as never });
+    tab.session.setState({
+      documentId: "doc-1",
+      bindings: {
+        "tab-layer-1": staleBinding("tab-layer-1"),
+        "tab-layer-2": staleBinding("tab-layer-2")
+      }
+    } as never);
+    let tabActive = true;
+    const Wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(
+        SketchProvider,
+        { instance: tab, active: tabActive } as React.ComponentProps<
+          typeof SketchProvider
+        >,
+        children
+      );
+    const { result, rerender } = renderHook(() => useRegenerateStaleLayers(), {
+      wrapper: Wrapper
+    });
+
+    // Started in a scope of its own: an `act` left open across the switch
+    // would hold back the effect that takes the tab off the stack.
+    let drain: Promise<{ started: number; skipped: number; failed: number }> =
+      Promise.resolve({ started: 0, skipped: 0, failed: 0 });
+    act(() => {
+      drain = result.current.regenerateStaleLayers();
+    });
+    await waitFor(() => expect(jobHandlers.has("job-1")).toBe(true));
+
+    tabActive = false;
+    rerender();
+
+    const finish = async (jobId: string): Promise<void> => {
+      await act(async () => {
+        jobHandlers.get(jobId)?.({
+          type: "output_update",
+          node_id: "output-1",
+          output_type: "image",
+          value: { type: "image", asset_id: "asset-1", uri: "" },
+          job_id: jobId
+        });
+        jobHandlers.get(jobId)?.({
+          type: "job_update",
+          status: "completed",
+          job_id: jobId
+        });
+      });
+    };
+    await finish("job-1");
+    await waitFor(() => expect(jobHandlers.has("job-2")).toBe(true));
+    await finish("job-2");
+
+    await expect(drain).resolves.toEqual({ started: 2, skipped: 0, failed: 0 });
+    const bindings = tab.session.getState().bindings;
+    expect(bindings["tab-layer-1"].status).toBe("generated");
+    expect(bindings["tab-layer-2"].status).toBe("generated");
+    await waitFor(() => expect(setLayerData).toHaveBeenCalledTimes(2));
   });
 
   it("gives up on unmount instead of hanging", async () => {

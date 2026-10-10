@@ -223,3 +223,16 @@ describe("the script flow through its tools", () => {
     unmount();
   });
 });
+
+describe("ui_script_write's description", () => {
+  // `rewrite: true` drops the import and rewrites the creator's words. The
+  // description used to promise imported words are never rewritten.
+  it("says a rewrite gives up imported words", () => {
+    const description =
+      FrontendToolRegistry.getManifest().find(
+        (tool) => tool.name === "ui_script_write"
+      )?.description ?? "";
+    expect(description).not.toContain("are never rewritten");
+    expect(description).toContain("A rewrite gives up the imported words");
+  });
+});

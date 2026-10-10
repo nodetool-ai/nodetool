@@ -31,6 +31,7 @@ import type {
   NodePackInfo
 } from "./types";
 import { isString } from "./typePredicates";
+import { runExclusive } from "./exclusive";
 
 /** The directory `npm install` runs in (parent of `node_modules`). */
 export function getNodePackInstallRoot(): string {
@@ -146,10 +147,13 @@ export async function installNodePack(
 ): Promise<NodePackActionResult> {
   try {
     assertValidSpec(spec);
-    await runNpm(["install", "--ignore-scripts", spec]);
     const name = packageNameFromSpec(spec);
-    const record = await classifyInstalledNodePack(name);
-    await writeLedgerRecord(record);
+    const record = await runExclusive(getNodePackInstallRoot(), async () => {
+      await runNpm(["install", "--ignore-scripts", spec]);
+      const installed = await classifyInstalledNodePack(name);
+      await writeLedgerRecord(installed);
+      return installed;
+    });
     const installation = nodePackInstallStatus(record);
     if (record.mode === "unknown") {
       return {
@@ -189,63 +193,69 @@ export async function installNodePack(
 export async function trustNodePack(name: string): Promise<NodePackActionResult> {
   try {
     assertValidName(name);
-    const ledger = await readLedger();
-    const recorded = ledger.packs[name];
-    if (recorded === undefined) {
-      return { success: false, message: `${name} was not installed by NodeTool, so there is no recorded artifact to verify.` };
-    }
-    if (recorded.mode === "unknown") {
-      return {
-        success: false,
-        message: `${name} does not declare a supported NodeTool manifest. Trust cannot be granted to an unknown pack.`,
-        installation: nodePackInstallStatus(recorded)
-      };
-    }
-    if (recorded.mode === "sandbox-only") {
-      return {
-        success: false,
-        message: `${name} is sandbox-only. It runs no host code and needs no lifecycle scripts.`,
-        installation: nodePackInstallStatus(recorded)
-      };
-    }
-
-    const current = await classifyInstalledNodePack(name);
-    if (current.mode !== recorded.mode) {
-      return {
-        success: false,
-        message: `${name} changed from ${recorded.mode} to ${current.mode} since it was installed. Reinstall it before approving trust.`,
-        installation: nodePackInstallStatus(current)
-      };
-    }
-    const drift = artifactDrift(recorded, current);
-    if (drift !== undefined) {
-      return {
-        success: false,
-        message: `${name} is not the artifact that was installed: ${drift}. Reinstall it before approving trust.`,
-        installation: nodePackInstallStatus(current)
-      };
-    }
-
-    const rebuildTargets = [name, ...(current.dependencies ?? []).map((entry) => entry.name)];
-    await runNpm(["rebuild", ...rebuildTargets]);
-
-    const approved: NodePackInstallRecord = {
-      ...current,
-      scripts: "ran",
-      active: true,
-      trustedAt: new Date().toISOString()
-    };
-    await writeLedgerRecord(approved);
-    return {
-      success: true,
-      message: `Approved ${name} and ran lifecycle scripts for it and ${rebuildTargets.length - 1} dependenc${rebuildTargets.length === 2 ? "y" : "ies"}. Add it to the pack allowlist in Settings → Packages, then restart the server to load it.`,
-      installation: nodePackInstallStatus(approved)
-    };
+    // The identity check and the script-enabled rebuild must see the same
+    // tree, so no other install may run between them.
+    return await runExclusive(getNodePackInstallRoot(), () => approveNodePack(name));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logMessage(`trustNodePack failed for ${name}: ${message}`, "warn");
     return { success: false, message };
   }
+}
+
+async function approveNodePack(name: string): Promise<NodePackActionResult> {
+  const ledger = await readLedger();
+  const recorded = ledger.packs[name];
+  if (recorded === undefined) {
+    return { success: false, message: `${name} was not installed by NodeTool, so there is no recorded artifact to verify.` };
+  }
+  if (recorded.mode === "unknown") {
+    return {
+      success: false,
+      message: `${name} does not declare a supported NodeTool manifest. Trust cannot be granted to an unknown pack.`,
+      installation: nodePackInstallStatus(recorded)
+    };
+  }
+  if (recorded.mode === "sandbox-only") {
+    return {
+      success: false,
+      message: `${name} is sandbox-only. It runs no host code and needs no lifecycle scripts.`,
+      installation: nodePackInstallStatus(recorded)
+    };
+  }
+
+  const current = await classifyInstalledNodePack(name);
+  if (current.mode !== recorded.mode) {
+    return {
+      success: false,
+      message: `${name} changed from ${recorded.mode} to ${current.mode} since it was installed. Reinstall it before approving trust.`,
+      installation: nodePackInstallStatus(current)
+    };
+  }
+  const drift = artifactDrift(recorded, current);
+  if (drift !== undefined) {
+    return {
+      success: false,
+      message: `${name} is not the artifact that was installed: ${drift}. Reinstall it before approving trust.`,
+      installation: nodePackInstallStatus(current)
+    };
+  }
+
+  const rebuildTargets = [name, ...(current.dependencies ?? []).map((entry) => entry.name)];
+  await runNpm(["rebuild", ...rebuildTargets]);
+
+  const approved: NodePackInstallRecord = {
+    ...current,
+    scripts: "ran",
+    active: true,
+    trustedAt: new Date().toISOString()
+  };
+  await writeLedgerRecord(approved);
+  return {
+    success: true,
+    message: `Approved ${name} and ran lifecycle scripts for it and ${rebuildTargets.length - 1} dependenc${rebuildTargets.length === 2 ? "y" : "ies"}. Add it to the pack allowlist in Settings → Packages, then restart the server to load it.`,
+    installation: nodePackInstallStatus(approved)
+  };
 }
 
 async function classifyInstalledNodePack(name: string): Promise<NodePackInstallRecord> {
@@ -490,12 +500,14 @@ export async function uninstallNodePack(
 ): Promise<NodePackActionResult> {
   try {
     assertValidName(name);
-    await runNpm(["uninstall", name]);
-    const ledger = await readLedger();
-    if (ledger.packs[name] !== undefined) {
-      const { [name]: _removed, ...rest } = ledger.packs;
-      await writeLedger({ version: 1, packs: rest });
-    }
+    await runExclusive(getNodePackInstallRoot(), async () => {
+      await runNpm(["uninstall", name]);
+      const ledger = await readLedger();
+      if (ledger.packs[name] !== undefined) {
+        const { [name]: _removed, ...rest } = ledger.packs;
+        await writeLedger({ version: 1, packs: rest });
+      }
+    });
     return {
       success: true,
       message: `Uninstalled ${name}. Restart the server to apply.`

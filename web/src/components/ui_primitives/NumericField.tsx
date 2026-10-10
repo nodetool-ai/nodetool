@@ -37,6 +37,10 @@ export function NumericField({
   // External changes, including gizmo drags, refresh the buffer without
   // replacing a partially typed value that already represents this number.
   const [prevValue, setPrevValue] = useState(value);
+  // Whether the user typed since the field last showed `value`. A blur with
+  // nothing typed commits nothing: the text is rounded for display, and
+  // committing it would change the value the user only looked at.
+  const [edited, setEdited] = useState(false);
   if (value !== prevValue) {
     setPrevValue(value);
     const parsed = parseFloat(text);
@@ -49,6 +53,7 @@ export function NumericField({
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const next = event.target.value;
       setText(next);
+      setEdited(true);
       const parsed = parseFloat(next);
       if (Number.isFinite(parsed)) {
         onCommit(integer ? Math.round(parsed) : parsed);
@@ -58,6 +63,10 @@ export function NumericField({
   );
 
   const handleBlur = useCallback(() => {
+    if (!edited) {
+      return;
+    }
+    setEdited(false);
     let parsed = parseFloat(text);
     if (!Number.isFinite(parsed)) {
       setText(String(roundTo(value)));
@@ -74,7 +83,7 @@ export function NumericField({
     }
     setText(String(integer ? parsed : roundTo(parsed)));
     onCommit(parsed);
-  }, [text, value, integer, min, max, onCommit]);
+  }, [edited, text, value, integer, min, max, onCommit]);
 
   return (
     <Box sx={[{ flex: 1, minWidth: 0, width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}>

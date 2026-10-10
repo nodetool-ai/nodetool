@@ -428,6 +428,33 @@ describe("nodePackManager", () => {
     });
   });
 
+  describe("concurrent operations", () => {
+    it("runs one npm command at a time in the shared install root", async () => {
+      const procs: FakeProc[] = [];
+      spawn.mockImplementation(() => {
+        const proc = makeProc();
+        procs.push(proc);
+        return proc;
+      });
+
+      const install = installNodePack("first-pack");
+      const uninstall = uninstallNodePack("second-pack");
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(spawn).toHaveBeenCalledTimes(1);
+
+      procs[0].emit("exit", 0);
+      await install;
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(spawn).toHaveBeenCalledTimes(2);
+      expect(spawn.mock.calls[1][1]).toEqual(
+        expect.arrayContaining(["uninstall", "second-pack"])
+      );
+
+      procs[1].emit("exit", 0);
+      await expect(uninstall).resolves.toMatchObject({ success: true });
+    });
+  });
+
   describe("uninstallNodePack", () => {
     it("rejects invalid name characters", async () => {
       const result = await uninstallNodePack("../../etc/passwd");

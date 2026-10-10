@@ -14,10 +14,8 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RootStackParamList } from '../navigation/types';
+import type { TabScreenNavigationProp, TabScreenRouteProp } from '../navigation/types';
 import { type JobResponse } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
@@ -26,9 +24,9 @@ import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState'
 import type { ThemeColors, ThemeShadows } from '../utils/theme';
 
 type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Jobs'>;
+  navigation: TabScreenNavigationProp<'Jobs'>;
   /** Optional: arriving from a trigger card narrows the list to one workflow. */
-  route?: RouteProp<RootStackParamList, 'Jobs'>;
+  route?: TabScreenRouteProp<'Jobs'>;
 };
 
 export type StatusVariant = 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'unknown';

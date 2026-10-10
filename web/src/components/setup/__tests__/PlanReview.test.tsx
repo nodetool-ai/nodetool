@@ -293,6 +293,35 @@ describe("PlanReview", () => {
     expect(screen.getByLabelText("Dialogue")).toHaveFocus();
   });
 
+  // A storyboard in view mode holds every field. "Add dialogue" opened an
+  // empty box there that took no typing.
+  it("offers no add control on a held field", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <PlanReview
+          sections={[
+            {
+              id: "shot-1",
+              header: "Shot 1",
+              rows: [
+                row("dialogue", {
+                  label: "Dialogue",
+                  addLabel: "Add dialogue",
+                  readOnly: true
+                })
+              ]
+            }
+          ]}
+        />
+      </ThemeProvider>
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Add dialogue" })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Dialogue")).not.toBeInTheDocument();
+  });
+
   // A duration parsed on every keystroke reads `900` as `9` on the way through
   // and writes 9 seconds nobody typed. `onChange` is the draft; `onCommit` is
   // the settled value.

@@ -30,6 +30,8 @@ import {
 import { maskInpaintResult } from "../../lib/sketch/maskInpaintResult";
 import { computeLayerDependencyHash } from "../../lib/sketch/dependencyHash";
 import { redactSecretsInText } from "../../utils/bugReportBundle";
+import { resolveMediaUri } from "../../utils/resolveMediaUri";
+import type { Layer, SketchDocument } from "../../components/sketch/types";
 import type {
   LayerVersion,
   LayerWorkflowBinding
@@ -84,6 +86,34 @@ function assetIdFromUri(uri: string | undefined | null): string | null {
   const rest = uri.slice("asset://".length);
   const dot = rest.indexOf(".");
   return dot > 0 ? rest.slice(0, dot) : rest;
+}
+
+/**
+ * The source layer's pixels as a file to upload. A placed image that nothing
+ * has painted on yet (the photo "Upload an image to edit" puts on the first
+ * layer) has `data === null`: its pixels are still the image it was placed
+ * from, so that image is the source.
+ */
+async function sourceLayerFile(
+  doc: SketchDocument,
+  layer: Layer
+): Promise<File | null> {
+  const name = layer.name || "source";
+  const placedUri = layer.data ? null : layer.imageReference?.uri;
+  if (placedUri) {
+    const url = await resolveMediaUri(placedUri);
+    if (!url) return null;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`The placed image could not be read (${response.status}).`);
+    }
+    const blob = await response.blob();
+    return new File([blob], name, { type: blob.type || "image/png" });
+  }
+  const canvas = await exportLayer(doc, layer.id);
+  if (!canvas) return null;
+  const blob = await canvasToBlob(canvas);
+  return new File([blob], `${name}.png`, { type: "image/png" });
 }
 
 interface DirectGenRpcResponse extends WebSocketMessage {
@@ -323,8 +353,8 @@ export function useDirectGenJob(): UseDirectGenJobApi {
           sourceAssetId = fromUri;
         } else {
           try {
-            const canvas = await exportLayer(sketch.document, sourceLayer.id);
-            if (!canvas) {
+            const file = await sourceLayerFile(sketch.document, sourceLayer);
+            if (!file) {
               failLayer(session, layerId, {
                 kind: "no-source",
                 message: "The source layer is empty, so there is nothing to work from.",
@@ -332,12 +362,6 @@ export function useDirectGenJob(): UseDirectGenJobApi {
               });
               return;
             }
-            const blob = await canvasToBlob(canvas);
-            const file = new File(
-              [blob],
-              `${sourceLayer.name || "source"}.png`,
-              { type: "image/png" }
-            );
             const uploaded = await useAssetStore
               .getState()
               .createAsset(file, undefined, undefined, undefined, "file");

@@ -231,7 +231,13 @@ describe("DOC_ONLY", () => {
     for (const doc of ["AGENTS.md", "docs/a/b.md", ".github/workflows/x.yml", "LICENSE"]) {
       expect(DOC_ONLY.test(doc), doc).toBe(true);
     }
-    for (const code of ["package.json", "scripts/build.mjs", "turbo.json", "web/src/a.ts"]) {
+    for (const code of [
+      "package.json",
+      "scripts/build.mjs",
+      "turbo.json",
+      "web/src/a.ts",
+      "packages/system-skills/api-agents/SKILL.md"
+    ]) {
       expect(DOC_ONLY.test(code), code).toBe(false);
     }
   });

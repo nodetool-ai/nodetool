@@ -1,6 +1,6 @@
 /**
- * The home screen after login: the app list, plus header actions into the
- * companion's other surfaces.
+ * The home tab after login: the app list, plus the settings gear in the
+ * header. The tab bar reaches the companion's other surfaces.
  */
 import React from 'react';
 import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
@@ -35,7 +35,7 @@ import AppsScreen from '../AppsScreen';
 type HeaderRight = () => React.ReactElement;
 
 describe('AppsScreen', () => {
-  it('offers chat, documents, jobs, assets, and settings from the header', async () => {
+  it('opens settings from the header', async () => {
     const navigate = jest.fn();
     let headerRight: HeaderRight | undefined;
     const navigation = {
@@ -54,16 +54,22 @@ describe('AppsScreen', () => {
     render(headerRight!());
 
     const user = userEvent.setup();
-    for (const [label, route] of [
-      ['Open chat', 'Chat'],
-      ['Open documents', 'Documents'],
-      ['Open jobs', 'Jobs'],
-      ['Open assets', 'Assets'],
-      ['Open settings', 'Settings'],
-    ] as const) {
-      await user.press(screen.getByLabelText(label));
-      expect(navigate).toHaveBeenLastCalledWith(route);
-    }
+    await user.press(screen.getByLabelText('Open settings'));
+    expect(navigate).toHaveBeenLastCalledWith('Settings');
+  });
+
+  it('gives each app a monogram tile and counts the list', () => {
+    mockApplications = {
+      data: [
+        { id: 'a1', name: 'Logo maker', operationCount: 2, updatedAt: new Date().toISOString() },
+        { id: 'a2', name: 'Fox', operationCount: 1, updatedAt: new Date().toISOString() },
+      ],
+      error: null,
+    };
+    renderScreen();
+    expect(screen.getByText('2 apps')).toBeTruthy();
+    expect(screen.getByText('LM')).toBeTruthy();
+    expect(screen.getByText('F')).toBeTruthy();
   });
 
   function renderScreen(navigate = jest.fn()) {

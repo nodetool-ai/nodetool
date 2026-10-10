@@ -12,3 +12,13 @@ export {
   type ParticleVector,
   type ParticleView
 } from "./simulator.js";
+export {
+  CANVAS2D_MAX_PARTICLES,
+  GameParticles2D,
+  PARTICLE_DOT_ASSET,
+  PARTICLE_DOT_SIZE,
+  particleCell,
+  particleDotPixels,
+  type GameParticleField,
+  type ParticleCell
+} from "./render2d.js";

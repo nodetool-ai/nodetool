@@ -87,6 +87,7 @@ function createMockProcess(exitCode: number, stdoutText?: string) {
       proc.stdout.emit("data", Buffer.from(stdoutText));
     }
     proc.emit("exit", exitCode);
+    proc.emit("close", exitCode);
   });
 
   return proc;

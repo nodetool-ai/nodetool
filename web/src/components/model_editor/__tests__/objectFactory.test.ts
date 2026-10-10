@@ -14,6 +14,12 @@ describe("createPrimitive", () => {
     expect(mesh.material).toBeInstanceOf(THREE.MeshStandardMaterial);
   });
 
+  it("builds a cone the cone geometry fields can edit", () => {
+    const cone = createPrimitive("cone") as THREE.Mesh;
+    expect(cone.geometry).toBeInstanceOf(THREE.ConeGeometry);
+    expect(cone.geometry.type).toBe("ConeGeometry");
+  });
+
   it("orients the plane to lie flat", () => {
     const plane = createPrimitive("plane");
     expect(plane.rotation.x).toBeCloseTo(-Math.PI / 2);

@@ -32,7 +32,8 @@ function fakeProcess(stdout: string, code: number, error?: Error) {
     },
     stderr: { on: jest.fn() },
     on: jest.fn((event, handler) => {
-      if (event === "exit") {
+      // Real children emit "exit" and then "close".
+      if (event === "exit" || event === "close") {
         handler(code);
       } else if (event === "error" && error) {
         handler(error);
@@ -107,6 +108,31 @@ describe("detectTorchPlatform", () => {
       indexUrl: "https://download.pytorch.org/whl/cu126",
     });
     expect(result.error).toBeUndefined();
+  });
+
+  it("reads the result from the last line when torchruntime printed warnings on stdout", async () => {
+    mockSpawn.mockReturnValue(
+      fakeProcess(
+        '[WARNING] Unsupported AMD graphics card: Radeon 610M\n{"platform": "cpu", "gpu_count": 1}\n',
+        0
+      )
+    );
+
+    const result = await detectTorchPlatform();
+
+    expect(result.error).toBeUndefined();
+    expect(result).toMatchObject({ platform: "cpu", backend: "cpu" });
+  });
+
+  it("keeps torchruntime's own output off stdout in the detection script", async () => {
+    mockSpawn.mockReturnValue(fakeProcess('{"platform": "cpu", "gpu_count": 0}', 0));
+
+    await detectTorchPlatform();
+
+    const script = mockSpawn.mock.calls
+      .map((call) => (call[1] as string[])[1])
+      .find((arg) => arg?.includes("get_torch_platform"));
+    expect(script).toContain("contextlib.redirect_stdout(sys.stderr)");
   });
 
   it("maps DirectML to CPU with a warning instead of failing", async () => {

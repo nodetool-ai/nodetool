@@ -313,10 +313,25 @@ describe("worker router", () => {
       else process.env["NODETOOL_ENV"] = saved;
     });
 
-    it("refuses every procedure on a multi-user server", async () => {
+    it("answers the page-load reads with no workers on a multi-user server", async () => {
       process.env["NODETOOL_ENV"] = "production";
       const caller = createCaller(makeCtx(manager, repoint));
-      await expect(caller.worker.instances.list()).rejects.toMatchObject({
+      await expect(caller.worker.instances.list()).resolves.toEqual([]);
+      await expect(caller.worker.profiles.list()).resolves.toEqual([]);
+      await expect(caller.worker.apiKeyStatus()).resolves.toEqual({
+        runpod: false,
+        vast: false,
+        verda: false
+      });
+      expect(manager.list).not.toHaveBeenCalled();
+      expect(manager.listProfiles).not.toHaveBeenCalled();
+      expect(manager.apiKeyStatus).not.toHaveBeenCalled();
+    });
+
+    it("refuses every other procedure on a multi-user server", async () => {
+      process.env["NODETOOL_ENV"] = "production";
+      const caller = createCaller(makeCtx(manager, repoint));
+      await expect(caller.worker.health({ id: "i1" })).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
       await expect(
@@ -328,7 +343,6 @@ describe("worker router", () => {
       await expect(caller.worker.stopAll()).rejects.toMatchObject({
         code: "FORBIDDEN"
       });
-      expect(manager.list).not.toHaveBeenCalled();
       expect(manager.provision).not.toHaveBeenCalled();
       expect(manager.attach).not.toHaveBeenCalled();
       expect(manager.stopAll).not.toHaveBeenCalled();

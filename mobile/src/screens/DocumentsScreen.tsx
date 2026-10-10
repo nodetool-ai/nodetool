@@ -25,11 +25,10 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DocumentKind } from '../documents/kinds';
 
-import { RootStackParamList } from '../navigation/types';
+import type { TabScreenNavigationProp } from '../navigation/types';
 import { ErrorState, LoadingState } from '../components/ScreenState';
 import LoadErrorBanner from '../components/LoadErrorBanner';
 import { useTheme } from '../hooks/useTheme';
@@ -44,7 +43,7 @@ import {
 } from '../documents/useDocuments';
 
 type DocumentsScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Documents'>;
+  navigation: TabScreenNavigationProp<'Documents'>;
 };
 
 type IconName = keyof typeof Ionicons.glyphMap;

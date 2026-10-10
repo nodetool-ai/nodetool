@@ -27,10 +27,12 @@ export interface ParticleSimulatorOptions {
   readonly maxSceneParticles?: number;
 }
 
-/** A live particle in world space. The object is reused between callbacks, so copy what you keep. */
+/** A live particle in world space. The object is reused between callbacks of one emitter, so copy what you keep. */
 export interface ParticleView {
   entityId: string;
   emitterId: string;
+  /** The emitter definition, for render settings such as blend and sprite. */
+  emitter: GameParticleEmitter;
   x: number;
   y: number;
   z: number;
@@ -91,7 +93,6 @@ export class ParticleSimulator {
   private total = 0;
   private readonly sample: ParticleShapeSample = { px: 0, py: 0, pz: 0, dx: 0, dy: 1, dz: 0 };
   private readonly color: ParticleColor = { r: 0, g: 0, b: 0 };
-  private readonly view: ParticleView = { entityId: "", emitterId: "", x: 0, y: 0, z: 0, size: 0, rotation: 0, r: 0, g: 0, b: 0, opacity: 0, life: 0 };
 
   constructor(options: ParticleSimulatorOptions) {
     this.dimension = options.dimension;
@@ -218,12 +219,11 @@ export class ParticleSimulator {
 
   /** Visits every live particle in world space. */
   forEachParticle(visit: (particle: Readonly<ParticleView>) => void): void {
-    const view = this.view;
     for (const instance of this.instances.values()) {
       const definition = instance.definition;
       const data = instance.data;
-      view.entityId = instance.entityId;
-      view.emitterId = definition.id;
+      const view: ParticleView = { entityId: instance.entityId, emitterId: definition.id, emitter: definition,
+        x: 0, y: 0, z: 0, size: 0, rotation: 0, r: 0, g: 0, b: 0, opacity: 0, life: 0 };
       for (let index = 0; index < instance.count; index += 1) {
         const base = index * STRIDE;
         const life = Math.min(1, data[base + AGE] / data[base + LIFE]);

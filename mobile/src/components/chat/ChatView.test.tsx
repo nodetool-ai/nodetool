@@ -76,8 +76,8 @@ describe('ChatView', () => {
     it('renders welcome message when no messages', () => {
       render(<ChatView {...defaultProps} />);
       
-      expect(screen.getByText('Start a Conversation')).toBeTruthy();
-      expect(screen.getByText('Ask questions, get help with tasks, or explore ideas with AI.')).toBeTruthy();
+      expect(screen.getByText('What can I help with?')).toBeTruthy();
+      expect(screen.getByText('Ask a question or start a draft. Switch to Image or Video below to generate media.')).toBeTruthy();
     });
 
     it('does not render message list when empty', () => {
@@ -128,7 +128,7 @@ describe('ChatView', () => {
       
       render(<ChatView {...defaultProps} messages={messages} />);
       
-      expect(screen.queryByText('Start a Conversation')).toBeNull();
+      expect(screen.queryByText('What can I help with?')).toBeNull();
     });
   });
 

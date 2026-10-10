@@ -46,10 +46,15 @@ import {
 import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
-import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
+import {
+  describeDirectGenFailure,
+  directGenFailure,
+  useDirectGenJob
+} from "../../../hooks/sketch/useDirectGenJob";
 import { useLayerCostEstimate } from "../../../hooks/sketch/useLayerCostEstimate";
 import CostEstimateLine from "../../costs/CostEstimateLine";
 import { generationCostLine } from "../../costs/costLine";
+import { directGenSourceLayers } from "./directGenSources";
 
 // Defaults for image-to-image controls when the binding has no explicit
 // value yet — same as the media chat composer's image_edit defaults.
@@ -69,6 +74,9 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   const patchBinding = useSketchSessionStore((s) => s.patchBinding);
   const layers = useSketchStore((s) => s.document.layers);
   const { start, cancel } = useDirectGenJob();
+  // Written before the status flips to failed, so this render already has it.
+  const failure =
+    binding.status === "failed" ? directGenFailure(layer.id) : null;
 
   const handleModelChange = useCallback(
     (v: ImageModelValue) => {
@@ -123,9 +131,10 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
 
   const sourceLayerOptions = useMemo(
     () =>
-      layers
-        .filter((l) => l.id !== layer.id && l.type === "raster" && l.data !== null)
-        .map((l) => ({ value: l.id, label: l.name })),
+      directGenSourceLayers(layers, layer.id).map((l) => ({
+        value: l.id,
+        label: l.name
+      })),
     [layers, layer.id]
   );
 
@@ -252,7 +261,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
         )}
         {binding.status === "failed" && (
           <Text size="small" sx={{ color: theme.vars.palette.error.main }}>
-            Generation failed.
+            {failure ? describeDirectGenFailure(failure) : "Generation failed."}
           </Text>
         )}
         {binding.status === "generated" && binding.currentAssetId && (

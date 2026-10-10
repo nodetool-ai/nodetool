@@ -123,6 +123,65 @@ describe("useDirectGenJob request payloads", () => {
     });
   });
 
+  it("image-to-image: uploads a placed photo nothing has painted on yet", async () => {
+    // "Upload an image to edit" leaves the photo on a layer whose pixels are
+    // still only the image it was placed from: `data` is null.
+    let photoId = "";
+    act(() => {
+      useSketchStore.getState().setDocument(createDefaultDocument(800, 600));
+      const doc = useSketchStore.getState().document;
+      photoId = doc.layers[0].id;
+      useSketchStore.getState().setDocument({
+        ...doc,
+        layers: doc.layers.map((layer) =>
+          layer.id === photoId
+            ? {
+                ...layer,
+                name: "holiday-photo.jpg",
+                data: null,
+                imageReference: {
+                  uri: "/api/storage/1/photo.jpg",
+                  naturalWidth: 800,
+                  naturalHeight: 600,
+                  objectFit: "contain"
+                }
+              }
+            : layer
+        )
+      });
+    });
+    const photo = new Blob(["jpeg bytes"], { type: "image/jpeg" });
+    const fetchMock = jest.fn(async (_url: string) => ({
+      ok: true,
+      status: 200,
+      blob: async () => photo
+    }));
+    global.fetch = fetchMock as never;
+    const createAsset = jest.fn(async (_file: File) => ({ id: "photo-upload" }));
+    useAssetStore.setState({ createAsset } as never);
+
+    seedBinding({
+      kind: "image-to-image",
+      provider: "prov",
+      model: "edit-1",
+      prompt: "make it a sunset",
+      sourceLayerId: photoId,
+      status: "draft"
+    } as never);
+    await start();
+
+    expect(directGenFailure("layer-1")).toBeNull();
+    expect(fetchMock.mock.calls[0][0]).toMatch(/\/api\/storage\/1\/photo\.jpg$/);
+    expect(createAsset.mock.calls[0][0]).toMatchObject({
+      name: "holiday-photo.jpg",
+      type: "image/jpeg"
+    });
+    expect(sentData()).toMatchObject({
+      mode: "image_edit",
+      source_asset_id: "photo-upload"
+    });
+  });
+
   it("inpaint: passes both the source and the mask", async () => {
     seedBinding({
       kind: "inpaint",

@@ -1120,6 +1120,42 @@ describe("SetupFlow", () => {
     ).not.toBeInTheDocument();
   });
 
+  // The dialog hands focus back to Change flow while the discard has it
+  // disabled, so a keyboard creator was left on the page after a failure.
+  it("returns focus to Change flow after a failed discard", async () => {
+    const user = userEvent.setup();
+    let fail: (error: Error) => void = () => undefined;
+    const onChangeFlow = jest.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          fail = reject;
+        })
+    );
+    renderFlow({}, onChangeFlow);
+
+    await user.click(screen.getByRole("button", { name: "Change flow" }));
+    await user.click(
+      screen.getByRole("button", { name: "Discard and choose" })
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // A browser drops focus to the page from the disabled button; jsdom
+    // keeps it there, so the test drops it the same way.
+    act(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    expect(document.body).toHaveFocus();
+    await act(async () => {
+      fail(new Error("offline"));
+    });
+
+    expect(
+      await screen.findByText("We couldn't discard this draft")
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Change flow" })).toHaveFocus()
+    );
+  });
+
   // A browser drops focus to the page when the focused button is disabled for
   // the run. A run that fails stays on the step, so focus comes back to it.
   it("returns focus to the control that started a run that failed", async () => {

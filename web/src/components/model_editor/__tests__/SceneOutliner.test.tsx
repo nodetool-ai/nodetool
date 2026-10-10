@@ -76,6 +76,12 @@ describe("SceneOutliner editing", () => {
     expect(screen.getByRole("treeitem", { name: "Crate (Mesh)" })).toBeInTheDocument();
   });
 
+  it("lets Tab reach the first row when nothing is selected", () => {
+    renderOutliner([node("Crate"), node("Pillar")]);
+    expect(screen.getByRole("treeitem", { name: "Crate (Mesh)" })).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("treeitem", { name: "Pillar (Mesh)" })).toHaveAttribute("tabindex", "-1");
+  });
+
   it("collapses a parent with the left arrow key", async () => {
     const crate = node("Crate", [], 1);
     const props = node("Props", [crate]);

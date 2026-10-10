@@ -39,6 +39,7 @@ import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
+import { runExclusive } from "./exclusive";
 import { probeHttpOk, waitForHttpOk } from "./httpProbe";
 import {
   ensureActiveVaultDirs,
@@ -564,7 +565,7 @@ async function isServerRunning(): Promise<boolean> {
  * Initializes the backend server, performing necessary checks and startup procedures
  * Handles server health checks, port availability, and process management
  */
-async function initializeBackendServer(): Promise<void> {
+async function initializeBackendServerNow(): Promise<void> {
   logMessage("Initializing backend server");
   backendKeychainErrorSeen = false;
   try {
@@ -772,7 +773,7 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
  * Gracefully stops the backend server process
  * Attempts SIGTERM first, followed by SIGKILL if necessary
  */
-async function stopServer(): Promise<void> {
+async function stopServerNow(): Promise<void> {
   logMessage("Initiating graceful shutdown");
 
   try {
@@ -822,9 +823,35 @@ export async function runApp(workflowId: string) {
   createWorkflowWindow(workflowId);
 }
 
+/**
+ * Start, stop and restart share one queue. Pack installs, vault switches and
+ * the tray can each restart the backend. Without the queue a second start sees
+ * the first one's PID before /health answers and kills it as unresponsive, or
+ * replaces `backendWatchdog` so the first backend is never stopped.
+ */
+const BACKEND_LIFECYCLE_KEY = "backend-lifecycle";
+
+function initializeBackendServer(): Promise<void> {
+  return runExclusive(BACKEND_LIFECYCLE_KEY, initializeBackendServerNow);
+}
+
+function stopServer(): Promise<void> {
+  return runExclusive(BACKEND_LIFECYCLE_KEY, stopServerNow);
+}
+
+/** Stop the backend, give the OS a moment to release the port and database, then start it. */
+function restartServer(): Promise<void> {
+  return runExclusive(BACKEND_LIFECYCLE_KEY, async () => {
+    await stopServerNow();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await initializeBackendServerNow();
+  });
+}
+
 export {
   serverState,
   initializeBackendServer,
+  restartServer,
   stopServer,
   isServerRunning,
 };

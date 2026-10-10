@@ -23,6 +23,7 @@ import {
 } from "react";
 import {
   isModelSelected,
+  type CreativeContext,
   type Entity,
   type ProductionReferenceBinding
 } from "@nodetool-ai/protocol";
@@ -50,6 +51,7 @@ import {
   Popover,
   ResponsiveImage,
   ScrollArea,
+  CONTROL,
   SPACING,
   SPACING_PX,
   Text,
@@ -167,6 +169,13 @@ const ENTRY_BACKGROUNDS: Partial<Record<EntryFlowId, string>> = {
 
 /** Width of the centered column, per the new-project mockup. */
 const COLUMN_WIDTH = 860;
+/** The measure of a centered line of intro copy, in px. */
+const INTRO_TEXT_WIDTH = 640;
+/** A dropped reference image's thumbnail, in px. */
+const REFERENCE_THUMB_SIZE = 48;
+/** The blank-document submenu's column, and the popover's room around it. */
+const SUBMENU_WIDTH = 320;
+const SUBMENU_MAX_WIDTH = 340;
 
 /** A starter pill at rest: outlined, quiet, the project's colour on hover. */
 const starterPillSx = {
@@ -1587,7 +1596,7 @@ const NewProjectSurface = ({
    * and the script's `Send to timeline` makes a sequence of its own.
    */
   const startScriptFromVideo = useCallback(
-    async (brief: string) => {
+    async (brief: string, creativeContext?: CreativeContext) => {
       const target = setupTargetRef.current;
       if (!target || starting) {
         return;
@@ -1610,7 +1619,8 @@ const NewProjectSurface = ({
                 contentType: type
               })
             ),
-            entityIds: target.carried?.entityIds ?? []
+            entityIds: target.carried?.entityIds ?? [],
+            creativeContext
           })
         });
         applySetupTarget({
@@ -1771,7 +1781,9 @@ const NewProjectSurface = ({
           sequenceId={setupTarget.id}
           active={active}
           onFinish={handleSetupFinished}
-          onStartFromScript={(brief) => void startScriptFromVideo(brief)}
+          onStartFromScript={(brief, creativeContext) =>
+            void startScriptFromVideo(brief, creativeContext)
+          }
           onChangeFlow={handleChangeFlow}
         />
       );
@@ -1859,7 +1871,7 @@ const NewProjectSurface = ({
               </Text>
               <Text
                 color="secondary"
-                sx={{ maxWidth: "640px", textAlign: "center" }}
+                sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
               >
                 An agent plans the documents and builds them while you watch.
                 Everything it makes stays editable.
@@ -1906,7 +1918,7 @@ const NewProjectSurface = ({
                         fit="cover"
                         borderRadius={BORDER_RADIUS.sm}
                         showErrorFallback
-                        sx={{ width: "48px", height: "48px" }}
+                        sx={{ width: REFERENCE_THUMB_SIZE, height: REFERENCE_THUMB_SIZE }}
                       />
                       <CloseButton
                         onClick={() => removeFile(file.id)}
@@ -2066,7 +2078,7 @@ const NewProjectSurface = ({
                 {starter ? (
                   <Caption
                     color="secondary"
-                    sx={{ maxWidth: "620px", textAlign: "center" }}
+                    sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
                   >
                     {starter.description}
                   </Caption>
@@ -2227,7 +2239,7 @@ const NewProjectSurface = ({
                   display: "flex",
                   alignItems: "center",
                   gap: (theme) => theme.spacing(SPACING.md),
-                  height: "32px",
+                  height: CONTROL.height.md,
                   px: SPACING.md,
                   cursor: "pointer",
                   border: "none",
@@ -2282,10 +2294,10 @@ const NewProjectSurface = ({
         anchorEl={submenu?.element ?? null}
         onClose={() => setSubmenu(null)}
         placement="top-left"
-        maxWidth={340}
+        maxWidth={SUBMENU_MAX_WIDTH}
         maxHeight="50vh"
       >
-        <FlexColumn sx={{ width: 320, py: SPACING.micro }}>
+        <FlexColumn sx={{ width: SUBMENU_WIDTH, py: SPACING.micro }}>
           {submenu?.kind === "texts" &&
             TEXT_FILE_TEMPLATES.map((template) => (
               <MenuItemPrimitive

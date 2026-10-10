@@ -505,5 +505,25 @@ describe("OpenAI-compatible API", () => {
       expect(getSecretSpy).toHaveBeenCalledWith("OPENAI_API_KEY", "user-2");
       expect(provider.apiKey).toBe("user-2-OPENAI_API_KEY");
     });
+
+    it("reads the default Ollama's URL and options from the user's settings", async () => {
+      const saved: Record<string, string> = {
+        OLLAMA_API_URL: "http://gpu-box:11434/",
+        OLLAMA_CONTEXT_LENGTH: "16384",
+        OLLAMA_KEEP_ALIVE: "30m"
+      };
+      vi.spyOn(models, "getSecret").mockImplementation(async (key, userId) =>
+        userId === "user-3" ? (saved[key] ?? null) : null
+      );
+
+      const provider = (await resolveProvider(
+        "llama3.2:3b",
+        undefined,
+        "user-3"
+      )) as { apiUrl: string; contextLength: number | null; keepAlive: string };
+      expect(provider.apiUrl).toBe("http://gpu-box:11434");
+      expect(provider.contextLength).toBe(16384);
+      expect(provider.keepAlive).toBe("30m");
+    });
   });
 });

@@ -94,7 +94,7 @@ const ThreadRow = React.memo(function ThreadRow({
         accessibilityLabel={`Delete thread ${thread.title || 'untitled'}`}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Ionicons name="trash-outline" size={18} color={colors.error} />
+        <Ionicons name="trash-outline" size={18} color={colors.textTertiary} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -129,11 +129,11 @@ export default function ThreadsScreen({ navigation }: Props) {
   }, [threads, query]);
 
   const handleOpen = useCallback((thread: Thread) => {
-    navigation.navigate('Chat', { threadId: thread.id });
+    navigation.navigate('Main', { screen: 'Chat', params: { threadId: thread.id } });
   }, [navigation]);
 
   const handleNew = useCallback(() => {
-    navigation.navigate('Chat', { threadId: undefined });
+    navigation.navigate('Main', { screen: 'Chat', params: { threadId: undefined } });
   }, [navigation]);
 
   const handleDelete = useCallback((thread: Thread) => {

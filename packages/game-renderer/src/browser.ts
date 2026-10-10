@@ -1,4 +1,5 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
+import type { GameParticleField } from "./particles/render2d.js";
 import { AssetCache, Canvas2DGameRenderer, type GameAssetResolver } from "./canvas2d.js";
 import type { GameHudEffectOrder, GameRenderer, GameRendererBackend, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
 import { WebGPUGameRenderer } from "./webgpu.js";
@@ -39,19 +40,19 @@ export class RecoveringGameRenderer implements GameRenderer {
     this.effects = effects;
   }
 
-  render(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats> {
+  render(frame: GameRenderFrame, interpolation: number, particles?: GameParticleField): Promise<GameRendererStats> {
     // A later frame can replace HUD textures while an earlier frame is still being encoded.
-    const result = this.renderTail.then(() => this.renderCurrent(frame, interpolation));
+    const result = this.renderTail.then(() => this.renderCurrent(frame, interpolation, particles));
     this.renderTail = result.then(() => undefined, () => undefined);
     return result;
   }
 
-  private async renderCurrent(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats> {
+  private async renderCurrent(frame: GameRenderFrame, interpolation: number, particles?: GameParticleField): Promise<GameRendererStats> {
     if (this.effects.some((effect) => effect.required) && !this.current.capabilities.gpuEffects) {
       throw new Error("Required GPU effect is unavailable after WebGPU failure");
     }
     try {
-      return await this.current.render(frame, interpolation);
+      return await this.current.render(frame, interpolation, particles);
     } catch (error) {
       if (this.current.backend !== "webgpu" || !(error instanceof Error) ||
         (error.message !== "WebGPU device was lost" && !error.message.startsWith("WebGPU game render failed"))) {
@@ -66,7 +67,7 @@ export class RecoveringGameRenderer implements GameRenderer {
         throw new Error("Required GPU effect is unavailable after WebGPU failure");
       }
       this.effects = [];
-      return this.current.render(frame, interpolation);
+      return this.current.render(frame, interpolation, particles);
     }
   }
 

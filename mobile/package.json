@@ -28,6 +28,7 @@
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/netinfo": "12.0.1",
     "@react-native-google-signin/google-signin": "^16.1.4",
+    "@react-navigation/bottom-tabs": "~7.18.18",
     "@react-navigation/native": "^7.3.10",
     "@react-navigation/native-stack": "^7.18.10",
     "@sentry/react-native": "~7.13.0",

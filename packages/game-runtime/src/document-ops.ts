@@ -18,6 +18,7 @@ import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnership
 import { applyGameAuthoringOperation } from "./authoring-reconcile.js";
 import { validateGame, type GameValidationIssue } from "./validate.js";
 import { editScriptParams } from "./script-params.js";
+import { clearAudioSourceNulls, gameAudioSourcePatch } from "./audio-source-ops.js";
 
 const id = z.string().min(1);
 const index = z.number().int().nonnegative();
@@ -40,7 +41,7 @@ const entitySet = preservingPatch(gameEntity.partial().extend({
   collider2d: gameEntity.shape.collider2d.unwrap().partial().nullable().optional(),
   animator: gameEntity.shape.animator.unwrap().partial().nullable().optional(),
   visualAnimation: gameEntity.shape.visualAnimation.unwrap().partial().nullable().optional(),
-  audioSource: gameEntity.shape.audioSource.unwrap().partial().nullable().optional(),
+  audioSource: gameAudioSourcePatch,
   light2d: gameEntity.shape.light2d.unwrap().partial().nullable().optional(),
   particles: gameEntity.shape.particles.unwrap().partial().nullable().optional(),
   parentId: id.nullable().optional()
@@ -231,6 +232,7 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         for (const key of ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "particles", "parentId"] as const) {
           if (merged[key] === null) { delete merged[key]; }
         }
+        clearAudioSourceNulls(merged);
         const next = gameEntity.safeParse(merged);
         if (!next.success) { fail(opIndex, ["set", ...pathOf(next.error.issues[0].path)], next.error.issues[0].message); }
         if (next.data.id !== entity.id && entityIndexesByScene.get(scene.id)?.has(next.data.id)) fail(opIndex, ["set", "id"], `Entity ${next.data.id} already exists`);

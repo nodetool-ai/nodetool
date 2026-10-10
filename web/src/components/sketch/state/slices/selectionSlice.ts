@@ -122,6 +122,24 @@ function finalizeMutatedSelection(sel: Selection): Selection {
 }
 
 /**
+ * Commit a GPU selection mutation and record it as one undo step. A result
+ * that lands after the selection changed (a new marquee, an undo) is stale
+ * and dropped, so it cannot overwrite the newer selection.
+ */
+function commitMutatedSelection(
+  get: () => SketchStore,
+  source: Selection,
+  result: Selection | null,
+  action: string
+): void {
+  if (!result || get().selection !== source) {
+    return;
+  }
+  get().setSelection(finalizeMutatedSelection(result));
+  get().pushHistory(action, undefined, { selectionOnly: true });
+}
+
+/**
  * How the active selection is rendered on the canvas.
  * - `ants`: classic marching-ants outline (default).
  * - `mask`: red @ 50% rubylith overlay over unselected pixels (Photoshop "Quick Mask" style).
@@ -269,10 +287,7 @@ export const createSelectionSlice: StateCreator<
     get().setSelection(padded);
 
     const result = await runtime.featherSelectionGpu(radius);
-    if (!result) {
-      return;
-    }
-    get().setSelection(finalizeMutatedSelection(result));
+    commitMutatedSelection(get, padded, result, "feather selection");
   },
 
   smoothCurrentSelectionBorders: async () => {
@@ -298,10 +313,7 @@ export const createSelectionSlice: StateCreator<
     get().setSelection(padded);
 
     const result = await runtime.smoothSelectionGpu(STRENGTH);
-    if (!result) {
-      return;
-    }
-    get().setSelection(finalizeMutatedSelection(result));
+    commitMutatedSelection(get, padded, result, "smooth selection");
   },
 
   convertSelectionToBorderOutline: () => {
@@ -321,6 +333,7 @@ export const createSelectionSlice: StateCreator<
       return;
     }
     get().setSelection(finalizeMutatedSelection(ring));
+    get().pushHistory("border selection", undefined, { selectionOnly: true });
   },
 
   expandCurrentSelection: async (px: number) => {
@@ -342,10 +355,7 @@ export const createSelectionSlice: StateCreator<
     get().setSelection(padded);
 
     const result = await runtime.expandSelectionGpu(r);
-    if (!result) {
-      return;
-    }
-    get().setSelection(finalizeMutatedSelection(result));
+    commitMutatedSelection(get, padded, result, "expand selection");
   },
 
   contractCurrentSelection: async (px: number) => {
@@ -367,9 +377,6 @@ export const createSelectionSlice: StateCreator<
     get().setSelection(padded);
 
     const result = await runtime.contractSelectionGpu(r);
-    if (!result) {
-      return;
-    }
-    get().setSelection(finalizeMutatedSelection(result));
+    commitMutatedSelection(get, padded, result, "contract selection");
   }
 });
