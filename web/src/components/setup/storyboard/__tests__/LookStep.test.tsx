@@ -110,9 +110,14 @@ jest.mock("../../../../serverState/useStylePresets", () => ({
 // The still-model picker reads the image-model catalog through TanStack
 // Query; this suite stands up no client. What the picker itself does is
 // pinned by `StillModelField` tests below, through the store.
+const languageModels: unknown[] = [];
 jest.mock("../../../../hooks/useModelsByProvider", () => ({
   __esModule: true,
-  useImageModelsByProvider: () => ({ models: [], isLoading: false })
+  useImageModelsByProvider: () => ({ models: [], isLoading: false }),
+  useLanguageModelsByProvider: () => ({
+    models: languageModels,
+    isLoading: false
+  })
 }));
 jest.mock("../../../properties/ImageModelSelect", () => ({
   __esModule: true,
@@ -237,6 +242,7 @@ beforeEach(() => {
   saveEntity.mockClear();
   uploadAsset.mockClear();
   rpcRequest.mockClear();
+  languageModels.length = 0;
   presets = [NOIR, COMIC];
   library = [asEntity(NOIR), asEntity(COMIC)];
   useStoryboardStore.setState({ boards: {}, history: {} } as never);
@@ -631,6 +637,25 @@ describe("LookStep — Add your own style", () => {
     await user.click(screen.getByRole("button", { name: "Add style" }));
   };
 
+  // A shotlist import lands here from step 1, past the genre step that fills
+  // in the screenplay model this dialog asks.
+  it("works on a board that skipped the genre step", async () => {
+    languageModels.push({
+      id: "catalog-model",
+      provider: "openai",
+      name: "Catalog"
+    });
+    renderStep();
+    await waitFor(() =>
+      expect(board().directorModel?.id).toBe("catalog-model")
+    );
+
+    await addOwnStyle();
+
+    await waitFor(() => expect(board().entityIds).toEqual(["e-mine"]));
+    expect(screen.queryByText(/Pick a model before adding a style/)).toBeNull();
+  });
+
   it("saves the model's descriptor as a user entity and applies it", async () => {
     seedOnNoir();
     renderStep();
@@ -682,6 +707,45 @@ describe("LookStep — Add your own style", () => {
     expect(board().entityIds).toEqual([NOIR.entityId]);
     expect(board().style).toBe(NOIR.descriptor);
     expect(saveEntity).not.toHaveBeenCalled();
+  });
+
+  // F8: the save goes on once the references are sent, so the dialog cannot
+  // be dismissed out from under it, and Generate waits for the style it
+  // applies.
+  it("stays open and holds Generate while the references are read", async () => {
+    seedOnNoir();
+    let answer: (value: { data: Record<string, unknown> }) => void = () =>
+      undefined;
+    rpcRequest.mockReturnValueOnce(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    renderStep();
+    const look = renderHook(() => useLookStep(BOARD));
+
+    await addOwnStyle();
+    await waitFor(() => expect(rpcRequest).toHaveBeenCalled());
+    expect(look.result.current.canAdvance).toBe(false);
+    expect(look.result.current.blockedReason).toBe("Saving your style");
+
+    const user = userEvent.setup();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(
+      screen.getByRole("dialog", { name: /Add your own style/ })
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      answer({
+        data: {
+          name: "Sun-bleached Super 8",
+          descriptor: "Grainy 16mm, warm halation."
+        }
+      });
+    });
+    await waitFor(() => expect(board().entityIds).toEqual(["e-mine"]));
+    expect(look.result.current.blockedReason).not.toBe("Saving your style");
   });
 });
 

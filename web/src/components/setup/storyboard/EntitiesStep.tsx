@@ -14,6 +14,8 @@ import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../../stores/storyboard/shotEntities";
 import { rpcRequest } from "../../../lib/websocket/rpcRequest";
 import { useDefaultStillModel } from "../../../hooks/storyboard/useDefaultStillModel";
+import { useDefaultDirectorModel } from "../../../hooks/storyboard/useDefaultDirectorModel";
+import { useInStudio } from "../../../studio/StudioContext";
 import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
 import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import EntityEditorDialog from "../../entities/EntityEditorDialog";
@@ -51,6 +53,12 @@ import {
   referenceImageModel,
   type ReferenceImageModel
 } from "./referenceImageModel";
+import {
+  boardScreenplaySnapshot,
+  getEntitySuggestions,
+  setEntitySuggestions,
+  useEntitySuggestions
+} from "./setupChoices";
 import {
   SETUP_FIELD_WIDTH,
   SETUP_MEDIA_WIDTH,
@@ -119,9 +127,20 @@ export const EntitiesStep = ({
   onCreationStart
 }: EntitiesStepProps) => {
   const theme = useTheme();
-  const { data: entities, isLoading } = useEntities();
+  const {
+    data: entities,
+    isLoading,
+    isError: entitiesFailed,
+    error: entitiesError,
+    refetch: refetchEntities
+  } = useEntities();
   const saveEntity = useSaveEntity();
   useDefaultStillModel(boardId, !readOnly);
+  // `Find entities` asks the screenplay model. A shotlist import skips the
+  // genre step that fills it in, so this step fills it in too. Studio pins
+  // its own.
+  const inStudio = useInStudio();
+  useDefaultDirectorModel(boardId, !readOnly && !inStudio);
   const board = useStoryboardStore((state) => state.boards[boardId]);
   const setEntityIds = useStoryboardStore((state) => state.setEntityIds);
   const updateShot = useStoryboardStore((state) => state.updateShot);
@@ -136,12 +155,24 @@ export const EntitiesStep = ({
   const [search, setSearch] = useState("");
   const [onlySelected, setOnlySelected] = useState(false);
   const [createdEntities, setCreatedEntities] = useState<Entity[]>([]);
-  const [suggestions, setSuggestions] = useState<EntitySuggestion[]>([]);
+  const suggestions = useEntitySuggestions(boardId);
+  const dropSuggestion = (key: string): void =>
+    setEntitySuggestions(
+      boardId,
+      getEntitySuggestions(boardId).filter(
+        (candidate) => `${candidate.kind}:${candidate.name}` !== key
+      )
+    );
   const [suggesting, setSuggesting] = useState(false);
   const [creatingKeys, setCreatingKeys] = useState<ReadonlySet<string>>(
     () => new Set()
   );
   const [assistError, setAssistError] = useState<string | null>(null);
+  // Which action failed, so the banner names it: finding entities or
+  // creating one.
+  const [assistFailure, setAssistFailure] = useState<"find" | "create">(
+    "create"
+  );
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -185,10 +216,16 @@ export const EntitiesStep = ({
   };
 
   const suggestFromStory = async (): Promise<void> => {
+    if (readOnly) {
+      return;
+    }
     const current = useStoryboardStore.getState().getBoard(boardId);
-    const screenplay = current?.screenplay;
+    // The reviewed board, not `board.screenplay`: review edits land on the
+    // board's own shots and title, and the envelope keeps the first draft (F11).
+    const screenplay = boardScreenplaySnapshot(current);
     const model = current?.directorModel;
     if (!screenplay || !model?.id) {
+      setAssistFailure("find");
       setAssistError(
         "The storyboard needs a screenplay and Director model first."
       );
@@ -209,9 +246,10 @@ export const EntitiesStep = ({
           "Visually important reusable entities found in a storyboard screenplay."
       });
       if (!mountedRef.current) return;
-      setSuggestions(parseEntitySuggestions(answer.data));
+      setEntitySuggestions(boardId, parseEntitySuggestions(answer.data));
     } catch (error) {
       if (!mountedRef.current) return;
+      setAssistFailure("find");
       setAssistError(
         error instanceof Error
           ? error.message
@@ -228,7 +266,7 @@ export const EntitiesStep = ({
     suggestion: EntitySuggestion
   ): Promise<void> => {
     const key = `${suggestion.kind}:${suggestion.name}`;
-    if (creatingKeys.has(key)) {
+    if (readOnly || creatingKeys.has(key)) {
       return;
     }
     const existing = availableEntities.find(
@@ -238,21 +276,19 @@ export const EntitiesStep = ({
     );
     if (existing) {
       setBoardEntity(existing, true);
-      setSuggestions((current) =>
-        current.filter(
-          (candidate) => `${candidate.kind}:${candidate.name}` !== key
-        )
-      );
+      dropSuggestion(key);
       return;
     }
     const selected =
       useStoryboardStore.getState().getBoard(boardId)?.imageModel ?? null;
     if (!selected?.id) {
+      setAssistFailure("create");
       setAssistError("Pick a reference image model first.");
       return;
     }
     const resolved = referenceImageModel(selected, imageModels);
     if (resolved.kind === "edit_only") {
+      setAssistFailure("create");
       setAssistError(editOnlyMessage(resolved.name));
       return;
     }
@@ -296,18 +332,20 @@ export const EntitiesStep = ({
       if (!entity) {
         throw new Error("The entity could not be saved.");
       }
+      // A creation canceled while it was being saved stays off the board: the
+      // creator asked for it to stop (F10).
+      if (signal?.aborted) {
+        return;
+      }
       // The entity is saved and paid for, so it joins the board even when the
       // step has unmounted: the board is a store write, not component state.
       setBoardEntity(entity, true);
+      dropSuggestion(key);
       if (!mountedRef.current) return;
       setCreatedEntities((current) => [...current, entity]);
-      setSuggestions((current) =>
-        current.filter(
-          (candidate) => `${candidate.kind}:${candidate.name}` !== key
-        )
-      );
     } catch (error) {
       if (!mountedRef.current || signal?.aborted) return;
+      setAssistFailure("create");
       setAssistError(
         error instanceof Error ? error.message : "The entity could not be made."
       );
@@ -385,7 +423,7 @@ export const EntitiesStep = ({
           <EditorButton
             variant="outlined"
             onClick={() => void suggestFromStory()}
-            disabled={suggesting}
+            disabled={readOnly || suggesting}
           >
             {suggesting
               ? "Finding entities"
@@ -398,12 +436,19 @@ export const EntitiesStep = ({
         {assistError ? (
           <AlertBanner
             severity="error"
-            title="Could not create entities"
+            title={
+              assistFailure === "find"
+                ? "Could not find entities"
+                : "Could not create entities"
+            }
             action={
               <ReportBugButton
                 context={{
                   source: "provider-call",
-                  summary: "Storyboard entity creation failed",
+                  summary:
+                    assistFailure === "find"
+                      ? "Storyboard entity suggestions failed"
+                      : "Storyboard entity creation failed",
                   errorText: assistError
                 }}
               />
@@ -477,7 +522,9 @@ export const EntitiesStep = ({
                     <EditorButton
                       variant="contained"
                       disabled={
-                        (!existing && !board?.imageModel?.id) || creating
+                        readOnly ||
+                        (!existing && !board?.imageModel?.id) ||
+                        creating
                       }
                       onClick={() => void createSuggestion(suggestion)}
                     >
@@ -510,6 +557,7 @@ export const EntitiesStep = ({
           variant="outlined"
           startIcon={<AddPhotoAlternateOutlinedIcon />}
           onClick={() => setPickerOpen(true)}
+          disabled={readOnly}
         >
           Create entity from an image
         </EditorButton>
@@ -517,6 +565,25 @@ export const EntitiesStep = ({
 
       {isLoading ? (
         <LoadingSpinner text="Loading entities" />
+      ) : entitiesFailed && !entities ? (
+        // A failed load is not an empty library: saying "No entities yet"
+        // would send the creator to make again what they already have.
+        <AlertBanner
+          severity="error"
+          title="Could not load your entities"
+          action={
+            <EditorButton
+              variant="text"
+              size="small"
+              onClick={() => void refetchEntities()}
+            >
+              Try again
+            </EditorButton>
+          }
+        >
+          {entitiesError?.message ??
+            "The entity library did not load. Try again, or skip this step."}
+        </AlertBanner>
       ) : !entities || entities.length === 0 ? (
         <EmptyState
           variant="no-data"
@@ -675,9 +742,12 @@ export const EntitiesStep = ({
                             <Checkbox
                               size="small"
                               checked={selectedSet.has(entity.id)}
-                              onChange={(_, checked) =>
-                                setBoardEntity(entity, checked)
-                              }
+                              disabled={readOnly}
+                              onChange={(_, checked) => {
+                                if (!readOnly) {
+                                  setBoardEntity(entity, checked);
+                                }
+                              }}
                               slotProps={{
                                 input: {
                                   "aria-label": `${entity.name} · ${entity.kind}`
@@ -803,9 +873,12 @@ export const EntitiesStep = ({
                           </FlexRow>
                         }
                         checked={shotIds.has(entity.id)}
-                        onChange={(_, checked) =>
-                          toggleShot(shot.id, entity.id, checked)
-                        }
+                        disabled={readOnly}
+                        onChange={(_, checked) => {
+                          if (!readOnly) {
+                            toggleShot(shot.id, entity.id, checked);
+                          }
+                        }}
                         labelProps={{
                           sx: {
                             m: SPACING.none,

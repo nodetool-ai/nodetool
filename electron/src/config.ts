@@ -21,9 +21,10 @@ const extensionDistPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "chrome-extension")
   : path.join(__dirname, "..", "..", "chrome-extension", "dist");
 
-// PID file configuration for server process management
-// Note: E2E tests in tests/e2e/ must use the same paths for proper cleanup
-const PID_DIRECTORY: string = path.join(app.getPath("temp"), "nodetool-electron");
+// PID file of the backend this app launched. It lives in the per-user app
+// data directory: on Linux the temp directory is the shared /tmp, where
+// another account could plant or block the file.
+const PID_DIRECTORY: string = app.getPath("userData");
 const PID_FILE_PATH: string = path.join(PID_DIRECTORY, "server.pid");
 
 // Returns a sane default install location if settings do not define CONDA_ENV
@@ -272,14 +273,18 @@ const getProcessEnv = (): ProcessEnv => {
   // Set HOME if not already set (needed on macOS for GUI processes)
   const homeDir = baseEnv.HOME || os.homedir();
 
-  // HuggingFace cache: Use env var if set, otherwise default to ~/.cache/huggingface
-  // This ensures consistency between Electron app and CLI usage
-  const hfHome = baseEnv.HF_HOME || path.join(homeDir, ".cache", "huggingface");
+  // HuggingFace home: the user's HF_HOME, else where huggingface_hub puts it
+  // ($XDG_CACHE_HOME/huggingface, else ~/.cache/huggingface), so the app, the
+  // CLI and a Python script outside the app share one model cache.
+  const userCacheHome = baseEnv.XDG_CACHE_HOME || path.join(homeDir, ".cache");
+  const hfHome = baseEnv.HF_HOME || path.join(userCacheHome, "huggingface");
 
-  // UV cache: store inside userData so it's writable by the Electron app
+  // UV cache: store inside userData so it's writable by the Electron app.
+  // XDG_CACHE_HOME is deliberately left as the user has it: overriding it
+  // split torch hub weights, llama.cpp downloads and other XDG caches between
+  // the app and the CLI.
   const userDataPath = app.getPath("userData");
   const uvCacheDir = path.join(userDataPath, "uv-cache");
-  const xdgCacheHome = path.join(userDataPath, "cache");
 
   // Python path for the conda environment
   const pythonLibPath =
@@ -291,7 +296,6 @@ const getProcessEnv = (): ProcessEnv => {
   try {
     fs.mkdirSync(hfHome, { recursive: true });
     fs.mkdirSync(uvCacheDir, { recursive: true });
-    fs.mkdirSync(xdgCacheHome, { recursive: true });
   } catch (error) {
     logMessage(`Warning: Failed to create cache directories: ${error}`, "warn");
   }
@@ -304,7 +308,6 @@ const getProcessEnv = (): ProcessEnv => {
     PYTHONUNBUFFERED: "1",
     PYTHONNOUSERSITE: "1",
     UV_CACHE_DIR: uvCacheDir,
-    XDG_CACHE_HOME: xdgCacheHome,
     NODETOOL_OPTIONAL_NODE_MODULES: getOptionalNodeModulesPath(),
     NODETOOL_EXTENSION_DIST: extensionDistPath,
     PATH:
@@ -455,6 +458,16 @@ const getLocalFileRootsEnv = (
 ): string => env["NODETOOL_LOCAL_FILE_ROOTS"] || "*";
 
 /**
+ * Persists a new conda env location. The path is cached for the life of the
+ * process, so writing only the setting would leave installs and status reads
+ * on the old location until the next launch.
+ */
+const setCondaEnvPath = (location: string): void => {
+  updateSetting("CONDA_ENV", location);
+  cachedCondaEnvPath = location;
+};
+
+/**
  * Resets the cached conda env path. Intended for use in tests only so that
  * each test case starts with a clean slate.
  */
@@ -464,6 +477,7 @@ const _resetCondaEnvCache = (): void => {
 
 export {
   getCondaEnvPath,
+  setCondaEnvPath,
   getNodePath,
   getPythonPath,
   getUVPath,

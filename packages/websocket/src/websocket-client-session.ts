@@ -1625,5 +1625,8 @@ export class WebSocketClientSession implements ClientSession {
           "All messages must include a 'command' field. Use 'chat_message' command for chat."
       });
     }
+    // A detached `generate_media` still answers before the connection is torn
+    // down, as it did when it held this loop.
+    await this.commands.settled();
   }
 }

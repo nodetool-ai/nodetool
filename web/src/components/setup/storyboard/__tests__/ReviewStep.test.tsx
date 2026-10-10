@@ -7,7 +7,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -88,8 +88,9 @@ const seed = (): void => {
  * its rewrite (F2). This is that wiring, so the step is exercised the way the
  * flow drives it.
  */
-const Harness: React.FC<{ usedFallback?: boolean }> = ({
-  usedFallback = false
+const Harness: React.FC<{ usedFallback?: boolean; readOnly?: boolean }> = ({
+  usedFallback = false,
+  readOnly = false
 }) => {
   const { direct, directing, error, acceptFallback } = useDirectScreenplay();
   return (
@@ -107,11 +108,14 @@ const Harness: React.FC<{ usedFallback?: boolean }> = ({
       onKeepFallback={acceptFallback}
       model={{ id: "claude-sonnet-5", provider: "anthropic" }}
       maxOutputTokens={8192}
+      readOnly={readOnly}
     />
   );
 };
 
-const renderStep = (props: { usedFallback?: boolean } = {}) =>
+const renderStep = (
+  props: { usedFallback?: boolean; readOnly?: boolean } = {}
+) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <Harness {...props} />
@@ -354,6 +358,25 @@ describe("ReviewStep", () => {
     expect(board()?.shots[1].duration_source).toBe("manual");
   });
 
+  it("shows the length a rewrite gave a shot, not the one typed before it", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.type(screen.getAllByLabelText("Seconds")[1], "4");
+    await user.tab();
+    expect(screen.getAllByLabelText("Seconds")[1]).toHaveValue("4");
+
+    // A rewrite keeps the shot's id and gives it another length.
+    act(() => {
+      const next = screenplay();
+      next.shots[1] = { ...next.shots[1], duration_seconds: 7 };
+      useStoryboardStore.getState().setScreenplay(BOARD, next);
+    });
+
+    expect(board()?.shots[1].duration_seconds).toBe(7);
+    expect(screen.getAllByLabelText("Seconds")[1]).toHaveValue("7");
+  });
+
   // F9: a locally built outline says so, and the creator decides.
   it("names a locally written outline and offers both ways out", async () => {
     const user = userEvent.setup();
@@ -380,6 +403,77 @@ describe("ReviewStep", () => {
     );
 
     expect(board()?.shots[0].action).toBe("The keeper climbs the stair");
+  });
+
+  // F14: the undo is for the story. Picks made on later steps the creator
+  // came back from stay as they are.
+  it("restores the story without reverting entities, style or aspect", async () => {
+    const user = userEvent.setup();
+    keepPreviousScreenplay(BOARD, {
+      ...screenplay(),
+      style_bible: "the old style",
+      aspect_ratio: "9:16",
+      entity_ids: ["e-old"]
+    });
+    const store = useStoryboardStore.getState();
+    store.updateShot(BOARD, "shot-0", { action: "Something else entirely" });
+    store.setEntityIds(BOARD, ["e-picked"]);
+    store.updateShot(BOARD, "shot-0", { entity_ids: ["e-picked"] });
+    store.setStyle(BOARD, "the picked style");
+    store.setAspectRatio(BOARD, "1:1");
+    renderStep();
+
+    await user.click(
+      screen.getByRole("button", { name: "Restore the previous screenplay" })
+    );
+
+    const restored = board();
+    expect(restored?.shots[0].action).toBe("The keeper climbs the stair");
+    expect(restored?.entityIds).toEqual(["e-picked"]);
+    expect(restored?.shots[0].entity_ids).toEqual(["e-picked"]);
+    expect(restored?.style).toBe("the picked style");
+    expect(restored?.aspectRatio).toBe("1:1");
+  });
+
+  // F14: a script kept as written is not rewritten from the brief.
+  it("names a camera pass over a kept script as directed from the script", () => {
+    setImportSource(BOARD, {
+      kind: "fdx",
+      fileName: "two-scenes.fdx",
+      importedAt: "2026-01-01T00:00:00.000Z",
+      preserveWords: true
+    });
+    keepPreviousScreenplay(BOARD, screenplay());
+    renderStep();
+
+    expect(screen.getByText("Directed from your script")).toBeInTheDocument();
+    expect(screen.queryByText("Rewritten from your brief")).toBeNull();
+  });
+
+  // F16: view mode reads the screenplay and changes nothing.
+  it("holds every field and the rewrite in view mode", async () => {
+    const user = userEvent.setup();
+    keepPreviousScreenplay(BOARD, screenplay());
+    renderStep({ readOnly: true });
+
+    const action = screen.getAllByLabelText("Shot 1 · Action")[0];
+    await user.type(action, " again");
+    await user.click(screen.getAllByLabelText("Title")[0]);
+    await user.type(screen.getAllByLabelText("Title")[0], "X");
+
+    expect(board()?.shots[0].action).toBe("The keeper climbs the stair");
+    expect(board()?.title).toBe("Dark Water");
+    expect(
+      screen.getByRole("button", { name: "Rewrite from brief" })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Restore the previous screenplay" })
+    ).toBeDisabled();
+    // Reading controls stay usable.
+    expect(
+      screen.getAllByRole("button", { name: "More options" })[0]
+    ).toBeEnabled();
+    expect(rpcRequest).not.toHaveBeenCalled();
   });
 
   it("shows a failed Re-direct instead of losing the screenplay", async () => {
@@ -487,8 +581,16 @@ describe("ReviewStep — an imported FDX", () => {
     });
     renderStep();
 
+    // The run is a camera pass over the imported words, so the button and its
+    // estimate say so rather than offering a rewrite from the brief.
+    expect(
+      screen.queryByRole("button", { name: "Rewrite from brief" })
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByLabelText(/Add camera direction to your script again/)
+    ).toBeInTheDocument();
     await user.click(
-      screen.getByRole("button", { name: "Rewrite from brief" })
+      screen.getByRole("button", { name: "Direct the camera again" })
     );
 
     await waitFor(() =>

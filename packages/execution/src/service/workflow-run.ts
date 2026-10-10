@@ -15,12 +15,14 @@ import { registerWorkflowRunTrace } from "./run-trace-lifecycle.js";
 
 import { createLogger } from "@nodetool-ai/config";
 import { BoundedHandle, type RunResult } from "@nodetool-ai/kernel";
-import { Job, Project, Workflow, getSecret } from "@nodetool-ai/models";
+import { Asset, Job, Project, Workflow, getSecret } from "@nodetool-ai/models";
 import {
   hydrateGraphNodeFlags,
   propertyTypesForMetadata,
+  type NodeMetadata,
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
+import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import type {
   NodeExecutor,
   ProcessingContext,
@@ -30,6 +32,14 @@ import type {
 } from "@nodetool-ai/runtime";
 import { ExecutionSession } from "../session.js";
 import { normalizeGraph, toRawGraphInput } from "../normalize-graph.js";
+import {
+  planPartialRun,
+  previousGenerationFromAssets,
+  unknownNodeIds,
+  type PartialRunDeps,
+  type PreviousGeneration,
+  type ReusedNode
+} from "../partial-run.js";
 import type { RawGraphInput } from "../types.js";
 import {
   collectPreflightIssues,
@@ -148,6 +158,28 @@ export interface WorkflowRunEnvironment {
    */
   assetStorage?: StorageAdapter | null;
   storage?: StorageAdapter | null;
+  /**
+   * Save one generation of an auto-saving node (`auto_save_asset`) as assets,
+   * as the editor's runs do. A later partial run reuses them in place of
+   * running the node again. The run awaits every save before it settles the
+   * job. Without it a saved-workflow run leaves no generations behind.
+   */
+  persistGeneration?: (generation: RunGeneration) => Promise<void>;
+}
+
+/** One committed result of an auto-saving node in a saved-workflow run. */
+export interface RunGeneration {
+  userId: string;
+  workflowId: string;
+  jobId: string;
+  nodeId: string;
+  nodeType: string;
+  /** k-th generation of this node in this run. */
+  index: number;
+  /** The result dict, as `process()` returned it. */
+  outputs: Record<string, unknown>;
+  /** Scalar inputs the node ran with, when the actor reported them. */
+  properties: Record<string, unknown> | null;
 }
 
 export interface RunWorkflowOptions {
@@ -180,6 +212,18 @@ export interface RunWorkflowOptions {
    */
   environment: WorkflowRunEnvironment | (() => Promise<WorkflowRunEnvironment>);
   params?: Record<string, unknown>;
+  /**
+   * Run only these nodes and what they need upstream. Unrelated branches and
+   * downstream nodes are not executed. Unknown ids are refused with a 400.
+   */
+  nodeIds?: string[];
+  /**
+   * With {@link RunWorkflowOptions.nodeIds}: feed an upstream generative node
+   * (`auto_save_asset`) from its previous saved generation instead of running
+   * it again. Defaults to true. Ignored for an inline graph run, which has no
+   * saved generations.
+   */
+  reuseResults?: boolean;
   /** Return the full debug report (summary + verdict) instead of the run row. */
   debug?: boolean;
   /**
@@ -504,6 +548,123 @@ export function debugSessionEventPayload(
   }
 }
 
+/** What a run with `node_ids` executed, and what it reused instead. */
+export interface PartialRunReport {
+  node_ids: string[];
+  /** Every node the run executed: the selection and what it needed upstream. */
+  ran: string[];
+  /** Upstream nodes fed from a previous generation instead of running. */
+  reused: ReusedNode[];
+}
+
+/** How many saved assets a generation lookup reads, newest first. */
+const PREVIOUS_GENERATION_SCAN = 50;
+
+/**
+ * The node's previous generation from the assets its earlier runs saved, in
+ * this workflow. A multi-selection (`selected_generations`) streams several
+ * generations in the editor; one run cannot reproduce that, so the node runs.
+ */
+async function loadPreviousGeneration(
+  userId: string,
+  workflowId: string,
+  node: NodeDescriptor,
+  metadata: NodeMetadata
+): Promise<PreviousGeneration | null> {
+  const ui = node.ui_properties ?? {};
+  const selected = ui["selected_generations"];
+  if (Array.isArray(selected) && selected.length >= 2) return null;
+  const pinned = ui["selected_generation"];
+  const [rows] = await Asset.paginate(userId, {
+    workflowId,
+    nodeId: node.id,
+    limit: PREVIOUS_GENERATION_SCAN
+  });
+  return previousGenerationFromAssets(
+    rows,
+    metadata,
+    isString(pinned) && pinned !== "" ? pinned : undefined
+  );
+}
+
+/** A run payload, with `partial_run` added when the run had `node_ids`. */
+function withPartialRun(
+  payload: Record<string, unknown>,
+  partialRun: PartialRunReport | null
+): Record<string, unknown> {
+  if (partialRun) {
+    payload["partial_run"] = partialRun;
+  }
+  return payload;
+}
+
+/**
+ * Copy the plain objects and arrays of an output value, sharing everything
+ * else (bytes, typed arrays, class instances). A host's save writes handles
+ * (`asset_id`, `uri`) onto the media records it stores, and the original
+ * records are still flowing to downstream nodes.
+ */
+function copyRecords(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(copyRecords);
+  if (!isRecord(value)) return value;
+  const prototype: unknown = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, copyRecords(item)])
+  );
+}
+
+interface GenerationSaves {
+  /** Resolves once every save started so far has finished. */
+  settle: () => Promise<void>;
+}
+
+/**
+ * Hand each `generation_complete` of an auto-saving node to the host's
+ * `persistGeneration`. A failed save is logged, never fails the run: the
+ * outputs are still on the job.
+ */
+function saveGenerations(
+  context: ProcessingContext,
+  registry: NodeRegistry,
+  persist: (generation: RunGeneration) => Promise<void>,
+  run: { userId: string; workflowId: string; jobId: string }
+): GenerationSaves {
+  const pending: Promise<void>[] = [];
+  const indexByNode = new Map<string, number>();
+  context.addMessageListener((msg) => {
+    if (msg.type !== "generation_complete") return;
+    if (!registry.getMetadata(msg.node_type)?.auto_save_asset) return;
+    const index = indexByNode.get(msg.node_id) ?? 0;
+    indexByNode.set(msg.node_id, index + 1);
+    pending.push(
+      persist({
+        ...run,
+        nodeId: msg.node_id,
+        nodeType: msg.node_type,
+        index,
+        outputs: Object.fromEntries(
+          Object.entries(msg.outputs).map(([key, value]) => [
+            key,
+            copyRecords(value)
+          ])
+        ),
+        properties: msg.properties ?? null
+      }).catch((error: unknown) => {
+        log.warn("generation save failed", {
+          nodeId: msg.node_id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      })
+    );
+  });
+  return {
+    settle: async () => {
+      await Promise.all(pending);
+    }
+  };
+}
+
 /**
  * Run a saved workflow end to end. Everything the HTTP route did except read
  * the request and write the response.
@@ -555,6 +716,57 @@ export async function runWorkflow(
     runnableGraph = normalizeGraph(workflow.getGraph());
   }
 
+  const nodeIds =
+    options.nodeIds && options.nodeIds.length > 0
+      ? [...new Set(options.nodeIds)]
+      : null;
+  if (nodeIds) {
+    const unknown = unknownNodeIds(runnableGraph, nodeIds);
+    if (unknown.length > 0) {
+      return {
+        kind: "error",
+        status: 400,
+        detail: `Unknown node ids in node_ids: ${unknown.join(", ")}`
+      };
+    }
+  }
+
+  // Resolve the environment only after the cheap checks: a 404 on a missing
+  // workflow or a 400 on a bad model selection must not depend on (or be
+  // masked by) a cold runtime bootstrap. A partial run needs the registry
+  // before the preflight, which must check only the nodes that will run.
+  let resolvedEnvironment: WorkflowRunEnvironment | null = null;
+  const resolveEnvironment = async (): Promise<WorkflowRunEnvironment> => {
+    resolvedEnvironment ??= isFunctionValue(options.environment)
+      ? await options.environment()
+      : options.environment;
+    return resolvedEnvironment;
+  };
+
+  let partialRun: PartialRunReport | null = null;
+  if (nodeIds) {
+    const { registry } = await resolveEnvironment();
+    const reuse =
+      options.reuseResults !== false && !options.graph && workflowId !== "";
+    const deps: PartialRunDeps = {
+      getMetadata: (nodeType) => registry.getMetadata(nodeType)
+    };
+    if (reuse) {
+      deps.loadPreviousGeneration = (node, metadata) =>
+        loadPreviousGeneration(userId, workflowId, node, metadata);
+    }
+    const plan = await planPartialRun(runnableGraph, nodeIds, deps);
+    if (plan.kind === "unknown_nodes") {
+      return {
+        kind: "error",
+        status: 400,
+        detail: `Unknown node ids in node_ids: ${plan.ids.join(", ")}`
+      };
+    }
+    runnableGraph = plan.graph;
+    partialRun = { node_ids: nodeIds, ran: plan.ran, reused: plan.reused };
+  }
+
   // The same refusal `ExecutionSession` raises, one layer up: a provider that
   // would construct without its key fails mid-run today, after the upstream
   // half of the graph is paid for. Refuse here, before the job row exists,
@@ -572,12 +784,7 @@ export async function runWorkflow(
     };
   }
 
-  // Resolve the environment only after the cheap checks: a 404 on a missing
-  // workflow or a 400 on a bad model selection must not depend on (or be
-  // masked by) a cold runtime bootstrap.
-  const environment = isFunctionValue(options.environment)
-    ? await options.environment()
-    : options.environment;
+  const environment = await resolveEnvironment();
 
   const registry = environment.registry;
   // The cheap preflight above ran before the registry existed. Unpicked models
@@ -620,6 +827,7 @@ export async function runWorkflow(
   let execution: ExecutionSession;
   let interactiveHandle: InteractiveEscalationHandle | null = null;
   let supervisorHandle: BoundedHandle | null = null;
+  let generationSaves: GenerationSaves | null = null;
   try {
     const workspace = await (
       options.resolveWorkspace ?? resolveWorkflowWorkspace
@@ -670,6 +878,14 @@ export async function runWorkflow(
       durableFalGenerations: true
     });
     environment.configureContext?.(executionContext);
+    if (environment.persistGeneration && !options.graph && workflowId) {
+      generationSaves = saveGenerations(
+        executionContext,
+        registry,
+        environment.persistGeneration,
+        { userId, workflowId, jobId: job.id }
+      );
+    }
     await registerWorkflowRunTrace(executionContext, { jobId: job.id, workflowId: workflowId || null, inlineGraph: Boolean(options.graph) });
     executionContext.addMessageListener(
       createJobProgressRecorder({
@@ -710,6 +926,7 @@ export async function runWorkflow(
     void (async () => {
       try {
         const result = await execution.result;
+        await generationSaves?.settle();
         await finalizeWorkflowRunJob(job, result);
       } catch (error) {
         await markJobFailed(
@@ -718,19 +935,17 @@ export async function runWorkflow(
         );
       }
     })();
-    return {
-      kind: "payload",
-      payload: {
-        job_id: job.id,
-        // The jobs API keys every other answer on `id`; a receipt that spells
-        // it only `job_id` sent callers to `get_job(undefined)`.
-        id: job.id,
-        workflow_id: workflowId,
-        status: "running",
-        background: true,
-        poll: `Poll get_job with job_id "${job.id}" until it settles; its outputs are on the settled job.`
-      }
+    const receipt = {
+      job_id: job.id,
+      // The jobs API keys every other answer on `id`; a receipt that spells
+      // it only `job_id` sent callers to `get_job(undefined)`.
+      id: job.id,
+      workflow_id: workflowId,
+      status: "running",
+      background: true,
+      poll: `Poll get_job with job_id "${job.id}" until it settles; its outputs are on the settled job.`
     };
+    return { kind: "payload", payload: withPartialRun(receipt, partialRun) };
   }
 
   if (!interactive) {
@@ -743,12 +958,16 @@ export async function runWorkflow(
       throw error instanceof Error ? error : new Error(message);
     }
 
+    await generationSaves?.settle();
     await finalizeWorkflowRunJob(job, result);
     return {
       kind: "payload",
-      payload: buildWorkflowRunPayload(job.id, workflowId, result, debug, {
-        background: options.background ?? false
-      })
+      payload: withPartialRun(
+        buildWorkflowRunPayload(job.id, workflowId, result, debug, {
+          background: options.background ?? false
+        }),
+        partialRun
+      )
     };
   }
 
@@ -758,10 +977,14 @@ export async function runWorkflow(
   const runPromise = (async (): Promise<Record<string, unknown>> => {
     try {
       const result = await execution.result;
+      await generationSaves?.settle();
       await finalizeWorkflowRunJob(job, result);
-      return buildWorkflowRunPayload(job.id, workflowId, result, debug, {
-        background: false
-      });
+      return withPartialRun(
+        buildWorkflowRunPayload(job.id, workflowId, result, debug, {
+          background: false
+        }),
+        partialRun
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await markJobFailed(job, message);
@@ -773,9 +996,12 @@ export async function runWorkflow(
         messages: [],
         outputs: {}
       };
-      return buildWorkflowRunPayload(job.id, workflowId, failed, debug, {
-        background: false
-      });
+      return withPartialRun(
+        buildWorkflowRunPayload(job.id, workflowId, failed, debug, {
+          background: false
+        }),
+        partialRun
+      );
     } finally {
       supervisorHandle?.close();
     }

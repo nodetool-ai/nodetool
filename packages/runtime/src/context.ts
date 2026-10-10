@@ -1,6 +1,7 @@
 import type { AppRunContext, AppRunCostAccount, AppRunDocumentRef } from "./run-context.js";
 import { getRunTraceScope, type RunTraceScope } from "./run-trace-context.js";
 import { withSpan } from "./tracing-helpers.js";
+import { traceStorageAdapter } from "./traced-storage.js";
 /**
  * ProcessingContext – runtime context for node execution.
  *
@@ -1369,8 +1370,8 @@ export class ProcessingContext {
     if (this.runTraceContext?.secretValues instanceof Set) { this._resolvedSecrets = this.runTraceContext.secretValues; }
     this.appRunCostAccount = opts.appRunCostAccount ?? (this.appRunContext ? { llmCostUsd: 0, unpriced: false } : null);
     this.cache = opts.cache ?? new MemoryCache();
-    this.storage = opts.storage ?? null;
-    this.assetStorage = opts.assetStorage ?? null;
+    this.storage = traceStorageAdapter(opts.storage ?? null);
+    this.assetStorage = traceStorageAdapter(opts.assetStorage ?? null);
     this.workspaceStorage = opts.workspaceStorage ?? null;
     if (opts.onMessage) {
       this._messageListeners.add(opts.onMessage);

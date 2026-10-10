@@ -36,9 +36,9 @@ The runner starts one Claude Agent SDK session and one fresh Chromium context.
 |---|---|
 | Instructions | `systemPrompt` is `references/participant.md` plus a tool guide. `settingSources: []`, so no `CLAUDE.md` or settings load. |
 | Memory and repository | `cwd` is a new empty temporary directory. Auto memory is off. The session is not persisted. |
-| Account | The CLI adds the logged-in account's email address to every session. With `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY` set, the session uses an empty `CLAUDE_CONFIG_DIR`, which removes it. Without one, `summary.json` records `accountContext: "account-email-visible"`. |
+| Account | The CLI adds the logged-in account's email address to every session. With `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY` set, or in a Claude Code cloud session (`CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST=1`, which authenticates through the host), the session uses an empty `CLAUDE_CONFIG_DIR`, which removes it. Otherwise `summary.json` records `accountContext: "account-email-visible"`. |
 | Tools | Built-in tools are off (`tools: []` plus `disallowedTools`). The only MCP server is the in-process `browser` server. `strictMcpConfig` and `ENABLE_CLAUDEAI_MCP_SERVERS=false` drop user and account connectors. `skills: []` hides every skill. |
-| Browser | Viewport screenshots only. Coordinate click, hover, drag, scroll, type, key press, bounded wait, Back, and file choice from packet assets. No URL navigation tool. |
+| Browser | Viewport screenshots only. Coordinate click, hover, drag, scroll, type, key press, bounded wait, Back, Forward, Reload, and file choice from packet assets. No URL navigation tool. The tool guide names the host platform, so the participant uses Control rather than Meta for editing shortcuts on Linux. |
 | Origins | Top-level navigations outside `allowedOrigins` are aborted and reported as a visible event. |
 | Limits | Actions past `maxActions` are refused. At `maxMinutes` every action is refused so the participant writes its account. The session is aborted three minutes later. |
 
@@ -79,13 +79,18 @@ including a link that opens another origin in a new tab.
   "maxActions": 20,
   "maxMinutes": 10,
   "allowedOrigins": ["http://127.0.0.1:3010"],
-  "permittedActions": "This is a disposable test copy. You may create, edit, and run things inside it. Do not enter real personal data, connect accounts, or pay.",
-  "assets": [{ "name": "holiday-photo.jpg", "path": "/abs/path/holiday-photo.jpg" }]
+  "permittedActions": "This is a disposable test copy. You may create, edit, and run things inside it, and paste the test key listed below if the app asks for one. Do not enter real personal data, sign in to other sites, or pay.",
+  "assets": [{ "name": "holiday-photo.jpg", "path": "/abs/path/holiday-photo.jpg" }],
+  "credentials": [{ "label": "OpenAI API key (test)", "value": "sk-test-4f9a2c7e1b" }]
 }
 ```
 
 `kind` is `discovery`, `task`, or `continuation`. `assets` is optional. The
-participant sees asset names only. Keep packet wording neutral: no product
+participant sees asset names only. `credentials` is optional: keys the persona
+owns and may paste when the app asks. Use it with `--state empty`, where the
+fake runtime accepts any key, so the participant goes through provider
+onboarding the way a new user with an API key does. Never put a real
+credential in a packet. Keep packet wording neutral: no product
 terms, feature names, routes, or expected steps.
 
 ### Run
@@ -100,7 +105,11 @@ npx tsx tests/agentic-qa/runParticipant.ts \
 
 The runner authenticates through `CLAUDE_CODE_OAUTH_TOKEN` or
 `ANTHROPIC_API_KEY` when set, and otherwise through the machine's Claude login.
-It removes nested-session variables from the child environment.
+It removes nested-session variables from the child environment. Where the
+Playwright-pinned Chromium is not installed (a cloud container ships its own
+build), set `PLAYWRIGHT_CHROMIUM_PATH`, for example
+`PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium`. A failed launch is written
+to `private/runner-error.txt`.
 
 ### Output
 
@@ -122,18 +131,29 @@ overhead, not human think time.
 
 ```bash
 cd web
-npx tsx tests/agentic-qa/serveApp.ts [--backend-port 7790] [--web-port 3010]
+npx tsx tests/agentic-qa/serveApp.ts [--state empty|seeded-demo] \
+  [--backend-port 7790] [--web-port 3010]
 ```
 
-This starts the journey suite's seeded backend
+Run `npm run build:packages` first. The backend imports built packages, and
+an unbuilt tree fails at startup with `ERR_MODULE_NOT_FOUND` for a
+`dist/index.js`.
+
+This starts the journey suite's backend
 (`packages/websocket/src/screenshot-server.ts`) with
 `NODETOOL_FAKE_PROVIDERS=1` and a Vite server proxied to it. The ports differ
 from a developer's `npm run dev`, so the live app on :7777 and :3000 is never
 touched. Set `NODETOOL_FAKE_PROVIDERS=0` only when the user approves provider spend.
 
-The state is `seeded-demo`: example workflows, threads, and assets exist. Label
-it that way in the report. Nothing seeds the browser, so onboarding, the model
-picker, and preferences are in their first-run state.
+Choose the data state per campaign and label it in the report:
+
+| `--state` | Data | Providers | Use for |
+|---|---|---|---|
+| `empty` | Nothing: no workflows, threads, assets, or keys | Unconnected until the participant pastes a key from `credentials` | First-time-user sessions (`empty-new-account`) |
+| `seeded-demo` (default) | Example workflows, threads, assets, and seven provider keys | Every provider connected | Returning-user or feature sessions |
+
+Nothing seeds the browser in either state, so onboarding, the model picker,
+and preferences are in their first-run state.
 
 Reset between sessions with:
 
@@ -142,15 +162,52 @@ curl -X POST http://127.0.0.1:7790/api/test/reset
 ```
 
 The backend is one in-memory database. Run app sessions in series and reset
-between them. A public-website session can run beside an app session because
+between them:
+
+```bash
+cd web
+R=test-results/agentic-qa/<run>
+for s in app-first-use task-automation; do
+  curl -s -X POST http://127.0.0.1:7790/api/test/reset >/dev/null
+  npx tsx tests/agentic-qa/runParticipant.ts --packet $R/packets/$s.json --out $R/$s
+done
+```
+
+Restart `serveApp.ts` after changing backend source such as
+`fake-runtime.ts`. Vite reloads web changes without a restart. To stop it, end
+the `serveApp.ts` process by its PID. `pkill -f` with a pattern that also
+appears in your own command line kills the calling shell. A public-website session can run beside an app session because
 it shares no state.
 
-Fake providers return deterministic placeholder output, and they list no
-models. Every model picker shows "No models available", seeded keys fail
-"Recheck", and package setup images return 404. A participant therefore cannot
-finish a generation goal on this app. Treat these as fixture artifacts, not
-findings. Until the fake runtime lists models, choose outcome goals that need
-no model, or run with `NODETOOL_FAKE_PROVIDERS=0` and approved spend.
+### What the fake runtime shows a participant
+
+The fakes in `packages/websocket/src/fake-runtime.ts` make every generation
+goal completable, with placeholder content:
+
+- OpenAI lists "Test Chat Model" and "Test Image Model". Anthropic lists "Test
+  Assistant Model". No other provider lists a model.
+- Chat replies read "deterministic e2e response". So does an Agent or other
+  node with a language-model setting, which runs for real against the fake
+  provider. Other faked nodes' text outputs read "deterministic e2e output".
+- The guided workflow planner gets a fixed plan that builds and runs: one text
+  input, a Code step that returns it in capital letters, and one output.
+- A request that forces a tool (structured output: an image brief, a workflow
+  plan, a Director screenplay) gets arguments that fit the schema, with the
+  string "fake" in every text field.
+- Generated images are a 256 × 256 colour gradient.
+- Any key passes the onboarding key check without a network call.
+
+Judge the outcome on mechanics (a result appeared, persisted, and can be found
+again), not on content quality. A participant that reports "fake" text, the
+fixed reply, or a missing GPT model list is describing the fixture. Record
+these as fixture artifacts, not findings. The same holds for these known
+fixture gaps:
+
+- `worker.*` tRPC calls answer 500 because the test server has no worker
+  manager, and `/api/config` answers 404. Neither is visible.
+- Execution bypasses the provider check. With `--state empty`, a request runs
+  through a fake even before a key is stored, while the pickers and the image
+  step still say no provider is connected.
 
 ## Brokered fallback
 

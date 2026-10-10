@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createGameSession, createScriptedGameSession, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { gameParticles } from "@nodetool-ai/protocol";
 import { registerGameCommands } from "../src/commands/game.js";
 
 vi.mock("@nodetool-ai/game-runtime", async (importOriginal) => {
@@ -277,4 +278,62 @@ it("simulates authored metadata commands and verifies property snapshot replay",
     for (let tick=0;tick<3;tick+=1) { session.step({pressed:[]}); }
     expect(session.snapshot().entities.find(entity=>entity.id==="player")?.props).toEqual({health:7});
   } finally { session.dispose(); }
+});
+
+it("validates and simulates a document with an audio mixer and verifies replay", async () => {
+  const document = createTopDownRoomGame("a".repeat(32));
+  await writeFile(gamePath, JSON.stringify({ ...document, audio: { mixer: { buses: { ambience: { parent: "sfx", volume: 0.6 } },
+    assetBuses: { "sfx.collect": "ui" }, snapshots: { victory: { buses: { music: { volume: 0.2 } } } },
+    transitions: [{ on: { kind: "win" }, snapshot: "victory", fadeTicks: 30 }] } } }));
+  const program = new Command();
+  registerGameCommands(program);
+  await program.parseAsync(["node", "nodetool", "game", "validate", gamePath, "--json"]);
+  expect(JSON.parse(output.trim())).toMatchObject({ valid: true });
+  output = "";
+  const report = await runSimulation("--ticks", "30", "--verify-replay");
+  expect(report).toMatchObject({ ok: true, replay: { verified: true } });
+});
+
+it("simulates script params and verifies replay", async () => {
+  const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+  vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);
+  const document = createTopDownRoomGame("b".repeat(32));
+  document.schemaVersion = 4;
+  document.engineVersion = "3";
+  const player = document.scenes[0].entities.find(entity=>entity.id==="player");
+  if (!player) { throw new Error("CLI fixture requires player"); }
+  player.behaviors = [{kind:"script",source:"(input)=>({state:input.params,commands:[{kind:'setVelocity',x:input.params.speed,y:0}]})",maxCommands:1,maxTickMs:30,
+    params:{speed:{type:"number",default:1,minimum:0,maximum:5},target:{type:"entity"}},values:{speed:3,target:"gem"}}];
+  await writeFile(gamePath,JSON.stringify(document));
+  const report = await runSimulation("--ticks","3","--verify-replay");
+  expect(report).toMatchObject({ok:true,replay:{verified:true}});
+  const session = await createScriptedGameSession(document,1);
+  try {
+    session.step({pressed:[]});
+    expect(Object.values(session.snapshot().scriptState)).toEqual([{speed:3,target:"gem"}]);
+  } finally { session.dispose(); }
+});
+
+it("reports a reserved 2D engine before any simulation starts", async () => {
+  await writeFile(gamePath, JSON.stringify({ ...createTopDownRoomGame("a".repeat(32)), schemaVersion: 5, engineVersion: "4" }));
+  const program = new Command();
+  registerGameCommands(program);
+  await program.parseAsync(["node", "nodetool", "game", "validate", gamePath, "--json"]);
+  expect(process.exitCode).toBe(1);
+  expect(JSON.parse(output.trim())).toMatchObject({ valid: false,
+    diagnostics: [{ code: "engine_unavailable", path: ["engineVersion"] }] });
+});
+
+it("simulates particle emitters and emitParticles commands with a verified replay", async () => {
+  const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+  vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);
+  const document = createTopDownRoomGame("a".repeat(32));
+  document.schemaVersion = 2;
+  const player = document.scenes[0].entities.find(entity=>entity.id==="player");
+  if (!player) { throw new Error("CLI fixture requires player"); }
+  player.particles = gameParticles.parse({ emitters: [{ id: "dust", rate: 12, lifetime: { min: 0.2, max: 0.6 } }] });
+  player.behaviors = [{kind:"script",source:"({tick})=>({state:null,commands:tick%10===0?[{kind:'emitParticles',count:4}]:[]})",maxCommands:1,maxTickMs:50}];
+  await writeFile(gamePath,JSON.stringify(document));
+  const report = await runSimulation("--ticks","30","--verify-replay");
+  expect(report).toMatchObject({ok:true,replay:{verified:true}});
 });

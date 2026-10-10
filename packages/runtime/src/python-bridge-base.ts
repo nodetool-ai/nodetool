@@ -49,6 +49,7 @@ const EventEmitter = (nodeEvents?.EventEmitter ??
   FallbackEmitter) as unknown as typeof import("node:events").EventEmitter;
 
 import { createLogger } from "@nodetool-ai/config";
+import { withSpan, withSpanGen } from "./tracing-helpers.js";
 
 import {
   BRIDGE_PROTOCOL_VERSION,
@@ -679,7 +680,21 @@ export abstract class PythonBridgeBase
     return payload;
   }
 
-  async execute(
+  execute(
+    nodeType: string,
+    fields: Record<string, unknown>,
+    secrets: Record<string, string>,
+    blobs: ExecuteInputBlobs,
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity,
+    options?: ExecuteOptions
+  ): Promise<ExecuteResult> {
+    return withSpan("python.execute", pythonSpanAttributes(nodeType, "execute"), () =>
+      this.executeRequest(nodeType, fields, secrets, blobs, onProgress, identity, options)
+    );
+  }
+
+  private async executeRequest(
     nodeType: string,
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
@@ -779,7 +794,21 @@ export abstract class PythonBridgeBase
     });
   }
 
-  async *executeStream(
+  executeStream(
+    nodeType: string,
+    fields: Record<string, unknown>,
+    secrets: Record<string, string>,
+    blobs: ExecuteInputBlobs,
+    onProgress?: (event: ProgressEvent) => void,
+    identity?: ExecuteIdentity,
+    options?: ExecuteOptions
+  ): AsyncGenerator<ExecuteResult> {
+    return withSpanGen("python.execute_stream", pythonSpanAttributes(nodeType, "execute_stream"), () =>
+      this.executeStreamRequest(nodeType, fields, secrets, blobs, onProgress, identity, options)
+    );
+  }
+
+  private async *executeStreamRequest(
     nodeType: string,
     fields: Record<string, unknown>,
     secrets: Record<string, string>,
@@ -2082,4 +2111,9 @@ export abstract class PythonBridgeBase
   getRecentStderrSummary(_limit = 12): string | null {
     return null;
   }
+}
+
+/** A Python worker request is an RPC to a node implementation in another process. */
+function pythonSpanAttributes(nodeType: string, method: string): Record<string, string> {
+  return { "node.type": nodeType, "rpc.system": "nodetool-python", "rpc.method": method };
 }

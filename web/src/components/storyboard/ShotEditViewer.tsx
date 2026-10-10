@@ -87,10 +87,12 @@ const stageSx = {
   bgcolor: "c_overlay_subtle",
   display: "grid",
   placeItems: "center",
-  touchAction: "none",
   cursor: "grab",
   "&[data-panning='true']": { cursor: "grabbing" }
 } as const;
+
+/** How far a finger has to travel sideways for a swipe to change the take. */
+const SWIPE_MIN_PX = 40;
 
 const pagerSx = {
   ...TYPOGRAPHY.mono.caption,
@@ -156,7 +158,10 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
 }) => {
   const stillVersions = stillVersionsOf(shot);
   const clipVersions = clipVersionsOf(shot);
-  const hasClip = clipVersions.length > 0 && resolveEffectiveProductionRequirement(undefined, shot.production)?.media_strategy !== "still_motion_graphics";
+  const hasClip =
+    clipVersions.length > 0 &&
+    resolveEffectiveProductionRequirement(undefined, shot.production)
+      ?.media_strategy !== "still_motion_graphics";
   const [mediumState, setMediumState] = useState(() => ({
     shotId: shot.id,
     value: defaultMedium(shot)
@@ -190,6 +195,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [busy, setBusy] = useState(false);
   const panFrom = useRef<{ x: number; y: number } | null>(null);
+  const swipeFrom = useRef<{ x: number; y: number } | null>(null);
 
   const acceptKeyframeVersion = useStoryboardStore(
     (state) => state.acceptKeyframeVersion
@@ -254,10 +260,16 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
       ) {
         return;
       }
+      // A finger on an unzoomed take swipes between takes; the page keeps
+      // its vertical scroll (the stage's touch-action is pan-y then).
+      if (event.pointerType === "touch" && zoom === 1) {
+        swipeFrom.current = { x: event.clientX, y: event.clientY };
+        return;
+      }
       panFrom.current = { x: event.clientX - pan.x, y: event.clientY - pan.y };
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [pan.x, pan.y]
+    [pan.x, pan.y, zoom]
   );
   const handlePointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -268,9 +280,22 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
     },
     []
   );
-  const handlePointerUp = useCallback(() => {
-    panFrom.current = null;
-  }, []);
+  const handlePointerUp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      panFrom.current = null;
+      const from = swipeFrom.current;
+      swipeFrom.current = null;
+      if (!from || event.type === "pointercancel") {
+        return;
+      }
+      const dx = event.clientX - from.x;
+      const dy = event.clientY - from.y;
+      if (Math.abs(dx) >= SWIPE_MIN_PX && Math.abs(dx) > Math.abs(dy)) {
+        step(dx < 0 ? 1 : -1);
+      }
+    },
+    [step]
+  );
 
   const nudgePan = useCallback((x: number, y: number) => {
     setPan((currentPan) => ({
@@ -437,7 +462,9 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
   return (
     <FlexColumn gap={SPACING.md} fullHeight sx={{ minWidth: 0 }}>
       <Box
-        sx={stageSx}
+        // Unzoomed, a vertical swipe scrolls the editor instead of being
+        // trapped by the stage.
+        sx={{ ...stageSx, touchAction: zoom > 1 ? "none" : "pan-y" }}
         role="region"
         aria-busy={generating || undefined}
         aria-label={`${shown === "clip" ? "Clip" : "Still"} take preview. Focus this region to browse takes with the left and right arrow keys.`}
@@ -455,8 +482,14 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
           sx={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: "center",
-            width: shot.graphics && shot.graphics.mode !== "none" ? "100%" : undefined,
-            height: shot.graphics && shot.graphics.mode !== "none" ? "100%" : undefined,
+            width:
+              shot.graphics && shot.graphics.mode !== "none"
+                ? "100%"
+                : undefined,
+            height:
+              shot.graphics && shot.graphics.mode !== "none"
+                ? "100%"
+                : undefined,
             maxWidth: "100%",
             maxHeight: "100%"
           }}
@@ -531,7 +564,14 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
           maxZoom={MAX_ZOOM}
           buttonSize="small"
         />
-        <FlexRow role="group" aria-label="Pan controls" gap={SPACING.micro}>
+        {/* Fingers drag the zoomed take directly; the buttons are for
+            pointers and keyboards. */}
+        <FlexRow
+          role="group"
+          aria-label="Pan controls"
+          gap={SPACING.micro}
+          sx={{ "@media (pointer: coarse)": { display: "none" } }}
+        >
           <ToolbarIconButton
             icon={<ArrowUpwardIcon sx={{ fontSize: "1em" }} />}
             tooltip="Pan up"

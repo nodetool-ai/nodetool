@@ -189,17 +189,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Edit a Still with Words\n\nChanges an image by describing the change in words. The model edits the picture in place, so composition and subject stay as they were.\n\n**How it works:** \"Image\" supplies the picture. \"Instruction\" and the optional \"Directions\" are joined by \"Prompt\" into one text. \"Edit\" applies that text to the image at a strength of 0.6, and \"Result\" shows the edited still. Pick a model on \"Edit\" before running.\n\n**Try this:** Change \"Instruction\" to \"Replace the sky with heavy overcast\" and leave the rest of the scene unmentioned."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 286
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "picture",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The image to edit"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 366
               },
               "zIndex": 0,
               "width": 280,
@@ -220,7 +242,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 340
+                "y": 582
               },
               "zIndex": 0,
               "width": 280,
@@ -241,7 +263,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 500
+                "y": 807
               },
               "zIndex": 0,
               "width": 280,
@@ -259,8 +281,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 400,
-                "y": 340
+                "x": 380,
+                "y": 634
               },
               "zIndex": 0,
               "width": 320,
@@ -292,7 +314,7 @@
             "ui_properties": {
               "position": {
                 "x": 800,
-                "y": 240
+                "y": 494
               },
               "zIndex": 0,
               "width": 280,
@@ -310,8 +332,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1160,
-                "y": 260
+                "x": 1180,
+                "y": 508
               },
               "zIndex": 0,
               "width": 240,

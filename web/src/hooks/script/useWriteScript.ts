@@ -93,14 +93,33 @@ function applyImportedAsIs(
     idPrefix: string;
     lineIds: readonly string[];
     sectionTitle: string;
+    /** The cast on the document. A speaker of the same name keeps its id, and
+     * with it the voice the creator picked. */
+    existingCast: ReadonlyArray<{ id: string; name: string }>;
   }
 ): WrittenScript {
+  const heldIds = new Map(
+    options.existingCast.map(
+      (member) => [member.name.trim().toLowerCase(), member.id] as const
+    )
+  );
   const cast: Array<{ id: string; name: string }> = [];
   const byName = new Map<string, string>();
-  imported.speakers.forEach((name, index) => {
-    const id = `${options.idPrefix}_spk_${index + 1}`;
+  // A screenplay whose dialogue names nobody still has to be read by someone.
+  // With no cast, the review asked for a speaker and offered none to pick, the
+  // rule `applyAttribution` already applies to pasted text.
+  const speakers =
+    imported.speakers.length > 0
+      ? imported.speakers
+      : imported.lines.length > 0
+        ? ["Narrator"]
+        : [];
+  const nobodyNamed = imported.speakers.length === 0;
+  speakers.forEach((name, index) => {
+    const key = name.trim().toLowerCase();
+    const id = heldIds.get(key) ?? `${options.idPrefix}_spk_${index + 1}`;
     cast.push({ id, name });
-    byName.set(name.toLowerCase(), id);
+    byName.set(key, id);
   });
   return {
     cast,
@@ -110,7 +129,10 @@ function applyImportedAsIs(
         title: options.sectionTitle,
         lines: imported.lines.map((line, index) => ({
           id: options.lineIds[index] ?? `${options.idPrefix}_line_${index + 1}`,
-          speakerId: byName.get(line.speakerName.toLowerCase()) ?? null,
+          speakerId:
+            byName.get(
+              nobodyNamed ? "narrator" : line.speakerName.trim().toLowerCase()
+            ) ?? null,
           text: line.text,
           direction: line.direction,
           targetDurationMs: line.targetDurationMs
@@ -138,6 +160,8 @@ export interface UseWriteScriptResult {
   cancel: () => void;
   writing: boolean;
   error: string | null;
+  /** Forget the last failure, once the step that showed it is left. */
+  clearError: () => void;
   /**
    * The same reason as `error`, set before `write` resolves. `error` is state
    * and reaches a caller's closure only after the next render, so code that
@@ -233,7 +257,8 @@ export const useWriteScript = (): UseWriteScriptResult => {
           written = applyImportedAsIs(imported, {
             idPrefix,
             lineIds: heldLineIds,
-            sectionTitle
+            sectionTitle,
+            existingCast: asWritten(script).cast
           });
         } else if (imported) {
           const texts = imported.lines.map((line) => line.text);
@@ -336,7 +361,9 @@ export const useWriteScript = (): UseWriteScriptResult => {
     [setError]
   );
 
-  return { write, cancel, writing, error, errorRef };
+  const clearError = useCallback(() => setError(null), [setError]);
+
+  return { write, cancel, writing, error, errorRef, clearError };
 };
 
 export default useWriteScript;

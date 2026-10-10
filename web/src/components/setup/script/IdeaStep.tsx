@@ -73,6 +73,8 @@ export interface IdeaStepProps {
   onStartBlank: () => void;
   /** Reports a file being read, so the flow can hold Continue until it lands. */
   onImportingChange?: (importing: boolean) => void;
+  /** A view-mode tab: the idea shows but cannot be changed. */
+  readOnly?: boolean;
 }
 
 /** What the panel says a source is, in one line. */
@@ -96,6 +98,7 @@ interface SourcePanelProps {
   source: ImportedScript;
   onReplace: () => void;
   onRemove: () => void;
+  readOnly: boolean;
 }
 
 /**
@@ -106,7 +109,8 @@ interface SourcePanelProps {
 const SourcePanel: React.FC<SourcePanelProps> = ({
   source,
   onReplace,
-  onRemove
+  onRemove,
+  readOnly
 }) => (
   <FlexColumn
     gap={GAP.normal}
@@ -142,10 +146,20 @@ const SourcePanel: React.FC<SourcePanelProps> = ({
       ) : null}
     </FlexColumn>
     <FlexRow gap={GAP.normal} wrap>
-      <EditorButton variant="outlined" size="small" onClick={onReplace}>
+      <EditorButton
+        variant="outlined"
+        size="small"
+        disabled={readOnly}
+        onClick={onReplace}
+      >
         Replace these words
       </EditorButton>
-      <EditorButton variant="text" size="small" onClick={onRemove}>
+      <EditorButton
+        variant="text"
+        size="small"
+        disabled={readOnly}
+        onClick={onRemove}
+      >
         Remove them
       </EditorButton>
     </FlexRow>
@@ -212,7 +226,8 @@ const replaceNote = (source: ImportedScript): string | null => {
 const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   scriptId,
   onStartBlank,
-  onImportingChange
+  onImportingChange,
+  readOnly = false
 }) => {
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
@@ -273,6 +288,15 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     setSetup(scriptId, scriptSourcePatch(null));
   }, [scriptId, setSetup]);
 
+  // Every way in writes to the script, so a view-mode tab offers none, and
+  // none while a file is still being read.
+  const startLocked = readOnly || imports.importing;
+  const startLockedReason = readOnly
+    ? "This tab is view only"
+    : imports.importing
+      ? "Reading your file…"
+      : undefined;
+
   const alternatives: AlternativeEntry[] = useMemo(
     () => [
       {
@@ -282,32 +306,36 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         onSelect: () => {
           setPasted("");
           setPasting(true);
-        }
+        },
+        disabled: startLocked,
+        disabledReason: startLockedReason
       },
       {
         id: "upload",
         title: "Upload a file",
         description: "TXT, PDF, DOCX or Final Draft",
         onSelect: () => textInput.current?.click(),
-        disabled: imports.importing,
-        disabledReason: imports.importing ? "Reading your file…" : undefined
+        disabled: startLocked,
+        disabledReason: startLockedReason
       },
       {
         id: "subtitles",
         title: "Import subtitles",
         description: "SRT or VTT — each cue becomes a timed line",
         onSelect: () => subtitleInput.current?.click(),
-        disabled: imports.importing,
-        disabledReason: imports.importing ? "Reading your file…" : undefined
+        disabled: startLocked,
+        disabledReason: startLockedReason
       },
       {
         id: "blank",
         title: "Start with a blank script",
         description: "Skip the questions and write it yourself",
-        onSelect: onStartBlank
+        onSelect: onStartBlank,
+        disabled: startLocked,
+        disabledReason: startLockedReason
       }
     ],
-    [imports.importing, onStartBlank, source]
+    [onStartBlank, source, startLocked, startLockedReason]
   );
 
   return (
@@ -344,6 +372,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
             source={source}
             onReplace={replaceSource}
             onRemove={removeSource}
+            readOnly={readOnly}
           />
         ) : null}
 
@@ -353,7 +382,10 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           autoFocus
           multiline
           rows={5}
-          label={source ? "Notes for the writer" : "Your script"}
+          disabled={readOnly}
+          // The words here are a brief the writer may reword. Named "Your
+          // script", it told a screen reader to put the script itself here.
+          label={source ? "Notes for the writer" : "What the script is about"}
           hideLabel
           placeholder={
             source
@@ -370,6 +402,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
 
         <ScriptCreativeContextFields
           value={creativeContext}
+          readOnly={readOnly}
           onChange={(next) => setCreativeContext(scriptId, next)}
         />
 
@@ -379,12 +412,14 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           </AlertBanner>
         ) : null}
 
-        <ExampleBriefs
-          examples={INSPIRATIONS}
-          brief={brief}
-          briefRef={briefField}
-          onSelect={(value) => setSetup(scriptId, { brief: value })}
-        />
+        {readOnly ? null : (
+          <ExampleBriefs
+            examples={INSPIRATIONS}
+            brief={brief}
+            briefRef={briefField}
+            onSelect={(value) => setSetup(scriptId, { brief: value })}
+          />
+        )}
       </FlexColumn>
 
       <AlternativesColumn

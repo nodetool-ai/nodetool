@@ -1286,7 +1286,8 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/stores/game/",
       "web/tests/journeys/native-game3d-editor.spec.ts",
       "web/src/components/workspace/GameSurface.tsx",
-      "web/src/components/projects/NewProjectSurface.tsx"
+      "web/src/components/projects/NewProjectSurface.tsx",
+      "packages/protocol/src/game-script-params.ts"
     ]
   },
   {

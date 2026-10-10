@@ -28,24 +28,27 @@ any other check required. The other pull-request workflows filter by path or
 skip `merge_group`, so a required check from one of them never reports on a
 diff outside its paths and blocks the merge.
 
-`user-journeys.yml`'s browser suite runs on pull requests, nightly, and manual
-dispatch. It is advisory on pull requests and has no retry or
-`continue-on-error` escape hatch. The same workflow's **`reliability-ring1`**
+The browser suites in `user-journeys.yml`, `page-load-smoke.yml`, and
+`e2e-runner.yml` run on pushes to `main`, nightly or on dispatch, and on a pull
+request only when it carries the `browser-suites` label. On pull requests they
+are advisory and have no retry or `continue-on-error` escape hatch. Add the
+label to a PR that changes those suites or the flows they drive. The same workflow's **`reliability-ring1`**
 job runs on every push to `main` and remains the merge-to-main gate described
 below.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
-| `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A nightly run and `merge_group` events are also wired | 0 | Required |
-| `quality-checks.yml` | Reusable gate: deps/lint static legs plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples, four `test-packages-*` shards of the backend suite, three web Jest shards or one related-tests leg, electron+mobile, bundle, harness gate). The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly | 0 | Required (infra called by `test.yml`) |
-| `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Advisory on PRs |
-| `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Advisory on PRs |
+| `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A push to `main` cancels the run of the push before it and diffs against the last `main` commit whose Test run passed. A nightly run and `merge_group` events are also wired | 0 | Required |
+| `quality-checks.yml` | Reusable gate: deps/lint static legs plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples, four `test-packages-*` shards of the backend suite, three web Jest shards or one related-tests leg, electron+mobile, bundle, harness gate). The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly. The nodes shard installs Blender, and so runs the Blender render suites, only when a diff touches `packages/blender-nodes/` and nightly | 0 | Required (infra called by `test.yml`) |
+| `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Advisory on PRs with the `browser-suites` label |
+| `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Advisory on PRs with the `browser-suites` label |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
 | `fly-deploy.yml` | **Deploy to Docker**: release the GHCR image to the production host over restricted SSH, gated on Docker + User Journeys succeeding for the same commit | 1 | Required |
 | `web-deploy.yml` | Build the web app and deploy to Cloudflare Pages | 1 | Required |
-| `user-journeys.yml` | `journeys`: Playwright journey suite on pull requests, nightly, and dispatch (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | `reliability-ring1` gates deploy; `journeys` advisory on PRs |
+| `user-journeys.yml` | `journeys`: Playwright journey suite on push to `main`, nightly, dispatch, and pull requests with the `browser-suites` label (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | `reliability-ring1` gates deploy; `journeys` advisory on labeled PRs |
 | `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, a packed-backend reliability journey per OS, updater assets | 2 | Required |
 | `example-smoke-debug.yml` | Nightly + manual real-provider smoke via `nodetool debug` | 2 | Nightly (spend-capped), also dispatch-only |
+| `codeql.yml` | CodeQL advanced setup: TypeScript and workflow files on pull requests, all three languages nightly on `main`. Replaces GitHub default setup, which must stay off | none/maintenance | Advisory |
 | `abstraction-improver.yaml` | Scheduled agent flattens single-implementation interfaces, forwarding wrappers, re-export-only barrels | none/maintenance | Advisory (`continue-on-error`) |
 | `abstraction-police.yaml` | Scheduled agent fixes layering violations found by `check:*` plus the import greps no script covers | none/maintenance | Advisory (`continue-on-error`) |
 | `anti-slop-ratchet.yaml` | Daily agent drives anti-slop (rule, tree) pairs to zero, regenerates the enforced overrides, and proves the new ratchet can fail. Every fourth run takes a large pair instead of a nearly-done tree — this is where the app trees' `as any` and missing return types are worked, since `type-safety.yaml` folded into it | none/maintenance | Advisory |

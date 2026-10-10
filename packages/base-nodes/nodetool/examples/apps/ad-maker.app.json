@@ -527,6 +527,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Ad Copy in Three Registers\n\nWrites the same offer three ways: plain, playful and premium. Use it to settle a debate about tone by comparing finished copy side by side.\n\n**How it works:** \"1 Input\" holds the offer, a reusable water bottle that stays cold all day. \"2 Agent\" writes three labelled versions of about 40 words each. \"3 Output\" shows them as text.\n\n**Try this:** Pick a model on the Agent and replace the offer in \"1 Input\" with your own product, or add a fourth register such as urgent to the system prompt."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.StringInput",
             "data": {
@@ -537,7 +556,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 365
               },
               "zIndex": 0,
               "width": 300,
@@ -571,8 +590,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -590,8 +609,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,
@@ -630,6 +649,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Five Headlines for a Landing Page\n\nWrites five headline variants for a landing page test. Each headline takes a stated angle, so the set differs in substance rather than in wording.\n\n**How it works:** \"Input\" takes a description of what the page sells. \"Agent\" writes five headlines under 60 characters, each from a different angle, and names the angle after each one. \"Output\" shows the list.\n\n**Try this:** Describe your own product in \"Input\", pick a model on \"Agent\", and edit its system prompt to require one headline that states a price."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.StringInput",
             "data": {
@@ -640,7 +678,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 365
               },
               "zIndex": 0,
               "width": 300,
@@ -674,8 +712,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -693,8 +731,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,
@@ -733,6 +771,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Write the Prompt, Then Make the Image\n\nTurns a plain-language idea into an image prompt, then generates the image. The written prompt stays visible, so you can correct it instead of guessing.\n\n**How it works:** Type the idea into \"1 Idea\". \"2 Write the prompt\" writes one sentence naming subject, lighting, lens and palette. It goes to \"3 Generate\" for a square image and to \"4 Prompt used\", and the picture appears in \"5 Image\".\n\n**Try this:** Pick models on \"2 Write the prompt\" and \"3 Generate\", then change aspect_ratio on \"3 Generate\" to 16:9."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.StringInput",
             "data": {
@@ -743,7 +800,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 463
               },
               "zIndex": 0,
               "width": 300,
@@ -777,8 +834,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 444
               },
               "zIndex": 0,
               "width": 300,
@@ -808,8 +865,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -827,8 +884,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
-                "y": 120
+                "x": 800,
+                "y": 572
               },
               "zIndex": 0,
               "width": 300,
@@ -846,8 +903,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 0,
-                "y": 330
+                "x": 1200,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,

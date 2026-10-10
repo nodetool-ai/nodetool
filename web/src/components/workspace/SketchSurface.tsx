@@ -7,6 +7,7 @@
  * the editor, exactly as it did.
  */
 
+import { useState } from "react";
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import StandaloneSketchEditor from "../sketch/StandaloneSketchEditor";
 import ImageSetupOverlay from "../setup/image/ImageSetupOverlay";
@@ -18,11 +19,15 @@ interface SketchSurfaceProps {
 }
 
 const SketchSurface = ({ refId, active }: SketchSurfaceProps) => {
+  // While the flow covers the editor, the editor's window shortcuts would act
+  // on the hidden document, so they are suspended until it hands back.
+  const [covered, setCovered] = useState(false);
   return (
     <StandaloneSketchEditor
       documentId={refId}
       active={active}
-      overlay={<ImageSetupOverlay />}
+      suspendKeyboardShortcuts={covered}
+      overlay={<ImageSetupOverlay onCoveringChange={setCovered} />}
     />
   );
 };

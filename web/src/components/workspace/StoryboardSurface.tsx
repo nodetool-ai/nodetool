@@ -14,6 +14,8 @@ import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay"
 import { useStoryboardServerSync } from "../../hooks/storyboard/useStoryboardServerSync";
 import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
 import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
+import { useContextCommands } from "../../hooks/useContextCommands";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
 import {
   Box,
   FlexColumn,
@@ -65,7 +67,7 @@ const isMobilePane = (value: string): value is MobilePane =>
  * On wide screens the board and assistant sit side by side. On phones two
  * columns don't fit, so edit mode collapses to a single pane with a
  * segmented switcher; every pane stays mounted (toggled via `display`) so
- * board, chat, and scroll state survive switches.
+ * board, chat, and scroll state survive switches and breakpoint crossings.
  */
 const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   const theme = useTheme();
@@ -93,7 +95,8 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     active,
     enabled: mode !== "view" && loadState === "ready",
     onUndo: useCallback(() => undo(refId), [undo, refId]),
-    onRedo: useCallback(() => redo(refId), [redo, refId])
+    onRedo: useCallback(() => redo(refId), [redo, refId]),
+    menuHeading: "Storyboard"
   });
 
   // Keep the tab label in sync with the board's title field.
@@ -159,6 +162,32 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   );
   const desktopAssistant = !isMobile && mode !== "view";
 
+  const menuCommands = useMemo<ContextCommand[]>(() => {
+    if (mode === "view" || loadState !== "ready" || setupStage !== "done") {
+      return [];
+    }
+    const commands: ContextCommand[] = [
+      { id: "assemble", label: "Assemble Timeline", run: handleAssemble }
+    ];
+    if (desktopAssistant) {
+      commands.push({
+        id: "assistant",
+        label: assistantOpen ? "Hide Assistant" : "Show Assistant",
+        run: toggleAssistant
+      });
+    }
+    return commands;
+  }, [
+    mode,
+    loadState,
+    setupStage,
+    handleAssemble,
+    desktopAssistant,
+    assistantOpen,
+    toggleAssistant
+  ]);
+  useContextCommands("Storyboard", menuCommands, active);
+
   const board = useMemo(
     () => (
       <StoryboardBoard
@@ -212,10 +241,28 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     );
   }
 
-  if (isMobile && mode !== "view") {
-    return (
-      <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
-        {conflictBanner}
+  // One tree for every width: the board keeps its place in it whether the
+  // phone switcher shows or not, so crossing the breakpoint (rotating a
+  // tablet, resizing a window) does not remount the board and lose an open
+  // shot editor's draft.
+  const mobileEdit = isMobile && mode !== "view";
+  const boardVisible = !mobileEdit || mobilePane === "board";
+  const assistantVisible = mobileEdit
+    ? mobilePane === "assistant"
+    : assistantOpen;
+
+  const queueOverlay = (
+    <StoryboardQueueOverlay
+      boardId={refId}
+      readOnly={mode === "view"}
+      onReviewCompleted={handleReviewCompleted}
+    />
+  );
+
+  return (
+    <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
+      {conflictBanner}
+      {mobileEdit && (
         <TabGroup
           tabs={MOBILE_TABS}
           value={mobilePane}
@@ -231,63 +278,49 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
             borderBottom: `1px solid ${theme.vars.palette.divider}`
           }}
         />
-        {/* One pane visible at a time; each fills the switcher body and its
-            child owns the layout, so plain block boxes (toggled via display)
-            suffice — no flex wrapper needed. */}
-        <Box sx={{ flex: 1, minHeight: 0 }}>
-          <Box
-            sx={{
-              height: "100%",
-              display: mobilePane === "board" ? "block" : "none"
-            }}
-          >
-            {board}
-          </Box>
-          <Box
-            sx={{
-              height: "100%",
-              display: mobilePane === "assistant" ? "block" : "none"
-            }}
-          >
-            <StoryboardAgentPanel boardId={refId} />
-          </Box>
-        </Box>
-        <StoryboardQueueOverlay
-          boardId={refId}
-          onReviewCompleted={handleReviewCompleted}
-        />
-      </FlexColumn>
-    );
-  }
-
-  return (
-    <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
-      {conflictBanner}
-      {/* The queue overlay anchors to the board column, not the whole row,
-          so it never floats over the assistant dock on the right. */}
-      <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, position: "relative" }}>
-        {board}
-        <StoryboardQueueOverlay
-          boardId={refId}
-          readOnly={mode === "view"}
-          onReviewCompleted={handleReviewCompleted}
-        />
-      </Box>
-      {mode !== "view" && (
-        // Hidden, not unmounted: the conversation survives a toggle.
-        <Box
-          data-testid="storyboard-assistant-dock"
-          sx={{ display: assistantOpen ? "flex" : "none", minHeight: 0 }}
-        >
-          <ResizableSideDock
-            storageKey="storyboard_assistant"
-            ariaLabel="Resize storyboard assistant"
-          >
-            <StoryboardAgentPanel boardId={refId} />
-          </ResizableSideDock>
-        </Box>
       )}
-    </FlexRow>
+      <FlexRow sx={{ flex: 1, minHeight: 0 }}>
+        {/* On wide screens the queue overlay anchors to the board column, so
+            it never floats over the assistant dock on the right. */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            position: "relative",
+            display: boardVisible ? "block" : "none"
+          }}
+        >
+          {board}
+          {!mobileEdit && queueOverlay}
+        </Box>
+        {mode !== "view" && (
+          // Hidden, not unmounted: the conversation survives a toggle.
+          <Box
+            data-testid="storyboard-assistant-dock"
+            sx={{
+              display: assistantVisible ? "flex" : "none",
+              // A phone gives the pane the whole width; the dock sizes itself.
+              flex: mobileEdit ? 1 : undefined,
+              flexDirection: mobileEdit ? "column" : "row",
+              minWidth: 0,
+              minHeight: 0
+            }}
+          >
+            <ResizableSideDock
+              storageKey="storyboard_assistant"
+              ariaLabel="Resize storyboard assistant"
+              enabled={!isMobile}
+            >
+              <StoryboardAgentPanel boardId={refId} />
+            </ResizableSideDock>
+          </Box>
+        )}
+      </FlexRow>
+      {/* On a phone it stays up over either pane, so a running batch is
+          visible from the assistant too. */}
+      {mobileEdit && queueOverlay}
+    </FlexColumn>
   );
 };
 

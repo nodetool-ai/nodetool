@@ -37,7 +37,8 @@ export function writerSignature(
     setup?.brief.trim() ?? "",
     setup?.format ?? "",
     String(setup?.length_seconds ?? ""),
-    setup?.language ?? "",
+    // An attributed import is applied as it is, so language never reaches it.
+    source?.attributed === true ? "" : (setup?.language ?? ""),
     // The slot pace used to fill stays empty, so a signature written before
     // pace left it, while pace was still unset, keeps matching.
     "",

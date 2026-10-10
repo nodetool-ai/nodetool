@@ -12,6 +12,7 @@ import { graph as graphSchema } from "@nodetool-ai/protocol/api-schemas/workflow
 import type { WorkflowManagerState } from "../../stores/WorkflowManagerStore";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
+import { queueWorkflowSave } from "./useWorkflowSetup";
 
 export interface ImportedWorkflowGraph {
   nodes: unknown[];
@@ -82,5 +83,7 @@ export async function importWorkflowGraph(
     );
     nodeStore.setEdges(graph.edges.map(graphEdgeToReactFlowEdge));
   }
-  await state.saveWorkflow(nodeStore?.getWorkflow() ?? next);
+  // Behind any setup save on the wire, which carries the same
+  // `expected_updated_at` and would refuse this one.
+  await queueWorkflowSave(state, workflowId);
 }

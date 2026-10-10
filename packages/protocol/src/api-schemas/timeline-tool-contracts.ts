@@ -300,8 +300,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       shape: {
         asset: z.string().trim().min(1),
         trackId: z.string().optional(),
-        startMs: z.number().optional(),
-        durationMs: z.number().optional(),
+        startMs: z.number().nonnegative().optional(),
+        durationMs: z.number().positive().optional(),
         name: z.string().optional(),
         transform: clipTransformPatchParam
       }
@@ -312,8 +312,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       shape: {
         text: z.string().trim().min(1),
         trackId: z.string().optional(),
-        startMs: z.number().optional(),
-        durationMs: z.number().optional(),
+        startMs: z.number().nonnegative().optional(),
+        durationMs: z.number().positive().optional(),
         opacity: clipOpacityParam,
         name: z.string().optional(),
         transform: clipTransformPatchParam,
@@ -332,8 +332,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         shape: shapeStyleParams.optional(),
         shapeStyle: shapeStyleParams.optional(),
         trackId: z.string().optional(),
-        startMs: z.number().optional(),
-        durationMs: z.number().optional(),
+        startMs: z.number().nonnegative().optional(),
+        durationMs: z.number().positive().optional(),
         opacity: clipOpacityParam,
         name: z.string().optional(),
         transform: clipTransformPatchParam,
@@ -351,8 +351,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
           .min(1)
           .describe("Asset id of the .glb/.gltf model (from list_assets)."),
         trackId: z.string().optional(),
-        startMs: z.number().optional(),
-        durationMs: z.number().optional(),
+        startMs: z.number().nonnegative().optional(),
+        durationMs: z.number().positive().optional(),
         transform: clipTransformPatchParam,
         style: model3dStyleParams.optional()
       },
@@ -383,8 +383,8 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         kind: z.enum(["text-to-video", "text-to-image", "text-to-audio"]),
         prompt: z.string(),
         trackId: z.string().optional(),
-        startMs: z.number().optional(),
-        durationMs: z.number().optional(),
+        startMs: z.number().nonnegative().optional(),
+        durationMs: z.number().positive().optional(),
         provider: z.string().optional(),
         model: z.string().optional(),
         voice: z.string().optional(),
@@ -461,7 +461,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         "Duplicate a clip. The copy is placed immediately after the source (add `gapMs` for a gap) and keeps its generation binding so you can tweak the copy for a variation.",
       shape: {
         target: targetParam,
-        gapMs: z.number().optional()
+        gapMs: z.number().finite().optional()
       }
     },
 
@@ -477,9 +477,9 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         outPointMs: z.number().optional(),
         fontSizePx: z.number().optional(),
         name: z.string().optional(),
-        opacity: z.number().optional(),
+        opacity: z.number().min(0).max(1).optional(),
         transform: clipTransformPatchParam,
-        speedMultiplier: z.number().optional(),
+        speedMultiplier: z.number().min(0.1).max(8).optional(),
         volumeDb: z.number().optional(),
         fadeInMs: z.number().optional(),
         fadeOutMs: z.number().optional(),

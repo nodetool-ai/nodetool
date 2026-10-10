@@ -48,13 +48,14 @@ on:
     - cron: "17 2 * * *"
   workflow_dispatch:
 
-# Cancel superseded runs of the same PR; the latest push is what matters.
-# Every other run gets a group of its own and is never cancelled: a push to
-# main tests only the diff since the previous push, so a cancelled run would
-# leave that commit's changes untested on main.
+# Cancel superseded runs of the same PR or of main; the latest push is what
+# matters. A push to main diffs against the last main commit whose Test run
+# passed (see the `changes` job), not the previous push, so a cancelled run
+# leaves nothing untested: the next run's diff covers its changes. Merge queue,
+# scheduled and manual runs get a group of their own and are never cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ (github.event_name == 'pull_request' || github.event_name == 'push') && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 jobs:
   # Does this push touch anything but prose? A documentation-only change has
@@ -93,6 +94,10 @@ jobs:
     name: changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      # Reads the last passing Test run on main, the base of a push run.
+      actions: read
     outputs:
       code: ${{ steps.filter.outputs.code || 'true' }}
       shared: ${{ steps.filter.outputs.shared || 'true' }}
@@ -111,23 +116,33 @@ jobs:
 
       # Which legs the diff needs: `scripts/ci-plan.mjs` applies the same
       # workspace mapping as `npm run test:affected`. The base is the PR base,
-      # the merge group base, or the commit before a push; a scheduled or
-      # manual run has none and runs everything. Fails open: if the planner
-      # errors, the plan is every leg.
+      # the merge group base, or for a push the last main commit whose Test
+      # push run passed, so the diff also covers commits whose runs were
+      # cancelled or failed. A scheduled or manual run has none and runs
+      # everything. Fails open: if the base lookup or the planner errors, the
+      # plan is every leg.
       - name: Plan the legs this diff needs
         id: plan
         env:
           BASE: >-
             ${{ github.event.pull_request.base.sha
             || github.event.merge_group.base_sha
-            || (github.event_name == 'push' && github.event.before)
             || '' }}
+          IS_PUSH: ${{ github.event_name == 'push' }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
+          if [[ "$IS_PUSH" == true ]]; then
+            BASE="$(gh api "repos/$REPO/actions/workflows/test.yml/runs?branch=main&event=push&status=success&per_page=1" \
+              --jq '.workflow_runs[0].head_sha // ""')" || BASE=""
+            [[ -z "$BASE" ]] && echo "::warning::No passing Test run on main found; running every leg."
+          fi
+          [[ "$BASE" =~ ^[0-9a-f]{40}$ ]] || BASE=""
           [[ "$BASE" =~ ^0+$ ]] && BASE=""
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           if ! node scripts/ci-plan.mjs plan ${BASE:+--base "$BASE"}; then
             echo "::warning::ci-plan failed; running every leg."
-            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true}' >> "$GITHUB_OUTPUT"
+            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Detect non-documentation changes

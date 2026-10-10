@@ -69,3 +69,22 @@ it("requires setProp values in both dimension editor contracts", async () => {
     }
   } finally { await rm(directory,{recursive:true,force:true}); }
 });
+
+it("declares optional input.params in both dimension editor contracts", async () => {
+  const {GAME_SCRIPT_TYPES_3D} = await import("../src/script-types3d.js");
+  const directory = await mkdtemp(join(tmpdir(),"game-params-editor-types-"));
+  try {
+    for (const [index,types,contract] of [[0,GAME_SCRIPT_TYPES,"GameScript"],[1,GAME_SCRIPT_TYPES_3D,"GameScript3D"]] as const) {
+      const declaration = join(directory,`types${index}.d.ts`);
+      const valid = join(directory,`valid${index}.js`);
+      const invalid = join(directory,`invalid${index}.js`);
+      await writeFile(declaration,types);
+      await writeFile(valid,`/** @type {${contract}} */\n(input)=>({state:[input.params?.speed,input.params?.target],commands:[]})`);
+      await writeFile(invalid,`/** @type {${contract}} */\n(input)=>({state:input.params.speed,commands:[]})`);
+      const program = ts.createProgram([declaration,valid,invalid],{allowJs:true,checkJs:true,noEmit:true,strict:true,skipLibCheck:true,target:ts.ScriptTarget.ES2020});
+      const diagnostics = ts.getPreEmitDiagnostics(program);
+      expect(diagnostics.filter(diagnostic=>diagnostic.file?.fileName===valid)).toEqual([]);
+      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalid)).toBe(true);
+    }
+  } finally { await rm(directory,{recursive:true,force:true}); }
+});

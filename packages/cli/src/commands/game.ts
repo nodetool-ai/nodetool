@@ -596,8 +596,12 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
       } });
     const path = resolve(options.out);
     await writeFile(path, captured.png);
+    const { formatGameFrameBudgetOverrun, gameFrameBudgetOverruns, resolveGameFrameBudgets } = await import("@nodetool-ai/game-renderer");
+    const limits = resolveGameFrameBudgets(document.performance?.budgets);
+    const overruns = gameFrameBudgetOverruns({ drawCalls: captured.stats.drawCalls, triangles: captured.stats.triangles }, limits);
     const report = { dimension: "3d", path, tick: frame.tick, bytes: captured.png.byteLength, state_hash: stateHash,
-      capabilities: captured.capabilities, stats: captured.stats, projected_bounds: captured.projectedBounds, diagnostics: [] };
+      capabilities: captured.capabilities, stats: captured.stats, budget: { limits, overruns }, projected_bounds: captured.projectedBounds, diagnostics: [] };
     process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : `Captured tick ${report.tick} to ${report.path}\n`);
+    if (!options.json) { for (const overrun of overruns) { process.stderr.write(`${formatGameFrameBudgetOverrun(overrun)}\n`); } }
   } finally { session.dispose(); }
 }

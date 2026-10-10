@@ -1,14 +1,10 @@
 #!/bin/bash
 # Flatpak wrapper script for NodeTool
-# This script launches the Electron application inside the Flatpak sandbox
+# Launches the packaged Electron app (electron-builder's linux-unpacked layout,
+# installed to /app/nodetool). zypak-wrapper comes from
+# org.electronjs.Electron2.BaseApp and lets Chromium's sandbox run inside the
+# Flatpak sandbox, where the setuid chrome-sandbox helper cannot.
 
 set -e
 
-# Set application directory
-APP_DIR="/app/nodetool"
-
-# Ensure we're using the correct node from the sandbox
-export PATH="/app/bin:$PATH"
-
-# Launch Electron application
-exec /app/bin/electron "$APP_DIR/dist-electron/main.js" "$@"
+exec zypak-wrapper /app/nodetool/nodetool-electron "$@"

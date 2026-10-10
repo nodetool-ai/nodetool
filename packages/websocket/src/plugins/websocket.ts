@@ -288,7 +288,9 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                   token: token ?? null,
                   allowPatterns: msg.allow_patterns ?? null,
                   ignorePatterns: msg.ignore_patterns ?? null,
-                  cacheDir: msg.cache_dir ?? null,
+                  // No client-chosen cache_dir: the Model Manager, the
+                  // download badges and every loader read only the shared
+                  // hub cache, so a download elsewhere was invisible.
                   modelType,
                   onProgress: (update) => {
                     try {

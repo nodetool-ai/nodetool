@@ -26,6 +26,10 @@ const write = jest.fn(async () => true);
 // two apart so a test can model that order.
 let writeError: string | null = null;
 const writeErrorRef: { current: string | null } = { current: null };
+const clearError = jest.fn(() => {
+  writeError = null;
+  writeErrorRef.current = null;
+});
 jest.mock("../../../../hooks/script/useWriteScript", () => ({
   useWriteScript: () => ({
     write,
@@ -33,9 +37,19 @@ jest.mock("../../../../hooks/script/useWriteScript", () => ({
     get error() {
       return writeError;
     },
-    errorRef: writeErrorRef
+    errorRef: writeErrorRef,
+    clearError
   })
 }));
+
+// Pass-through, so a test can read what the estimate priced.
+jest.mock("../../generationEstimate", () => {
+  const actual = jest.requireActual("../../generationEstimate");
+  return {
+    ...actual,
+    generationEstimate: jest.fn(actual.generationEstimate)
+  };
+});
 
 // The voices step reaches the TTS model list and the sample cache, neither of
 // which this suite stands up; `VoicesStep.test.tsx` covers what it renders.
@@ -67,9 +81,11 @@ import {
 } from "../../../../hooks/script/scriptWriteSignature";
 import { readVoicingRun } from "../../../../stores/script/scriptVoicing";
 import {
+  formatCost,
   newScriptSetupDocument,
   useScriptSetupFlow
 } from "../useScriptSetupFlow";
+import { generationEstimate } from "../../generationEstimate";
 
 const SCRIPT_ID = "s1";
 
@@ -214,12 +230,81 @@ describe("useScriptSetupFlow", () => {
     expect(
       screen.getByRole("group", { name: "Generation settings" })
     ).toHaveTextContent("gpt-5-mini");
+    // Lines on the script and no import: the button rewrites them (F13).
+    expect(summary).toHaveAttribute(
+      "title",
+      expect.stringContaining(
+        "Rewrite your 1 line for about 60 seconds of speech, keeping your edits as context"
+      )
+    );
+    expect(summary).toHaveTextContent("30–60s");
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("says it writes a new script when there are no lines yet (F13)", async () => {
+    useScriptStore.getState().setSetup(SCRIPT_ID, {
+      stage: "format",
+      brief: "How tide clocks work",
+      format: "voiceover",
+      writer_model: { id: "gpt-5-mini", provider: "openai" },
+      length_seconds: 60
+    });
+    renderFlow();
+    const summary = await screen.findByRole("group", {
+      name: "Before you generate"
+    });
     expect(summary).toHaveAttribute(
       "title",
       expect.stringContaining("Write a text script for about 60 seconds")
     );
-    expect(summary).toHaveTextContent("30–60s");
-    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("prices the lines a rewrite sends along with the brief (F7)", async () => {
+    seedWrittenScript();
+    useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "format" });
+    (generationEstimate as jest.Mock).mockClear();
+    renderFlow();
+    await screen.findByRole("group", { name: "Before you generate" });
+    const briefs = (generationEstimate as jest.Mock).mock.calls.map(
+      (call) => call[1] as string
+    );
+    expect(briefs.length).toBeGreaterThan(0);
+    expect(briefs.every((brief) => brief.includes("A tide clock has one hand."))).toBe(true);
+    expect(briefs.every((brief) => brief.includes("How tide clocks work"))).toBe(true);
+  });
+
+  it("prices the imported words the attribution call sends (F7)", async () => {
+    const store = useScriptStore.getState();
+    store.setSetup(SCRIPT_ID, {
+      stage: "format",
+      brief: "",
+      format: "voiceover",
+      writer_model: { id: "gpt-5-mini", provider: "openai" }
+    });
+    store.setSetup(
+      SCRIPT_ID,
+      scriptSourcePatch(
+        importedFromFile("notes.txt", "The tide came in at noon.\nIt left by six.")
+      )
+    );
+    (generationEstimate as jest.Mock).mockClear();
+    renderFlow();
+    await screen.findByRole("group", { name: "Before you generate" });
+    const briefs = (generationEstimate as jest.Mock).mock.calls.map(
+      (call) => call[1] as string
+    );
+    expect(briefs.length).toBeGreaterThan(0);
+    expect(briefs.every((brief) => brief.includes("It left by six."))).toBe(true);
+  });
+
+  it("says how many lines a partial voice estimate covers (F6)", () => {
+    expect(formatCost(0.42, 5, 3)).toBe(
+      "About $0.42 for 3 of 5 lines, the rest unpriced"
+    );
+    expect(formatCost(0.42, 5, 5)).toBe("About $0.42 to voice 5 lines");
+    expect(formatCost(0.1, 1, 1)).toBe("About $0.10 to voice 1 line");
+    expect(formatCost(0, 1, 0)).toBe("1 line to voice");
+    expect(formatCost(0, 0, 0)).toBeUndefined();
   });
 
   it("collapses format and review into one stepper entry", () => {
@@ -445,6 +530,25 @@ describe("useScriptSetupFlow", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "The writer timed out."
     );
+  });
+
+  it("does not show a failed Rewrite again after leaving the review", async () => {
+    const user = userEvent.setup();
+    seedWrittenScript();
+    markWritten();
+    useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "review" });
+    writeError = "The writer timed out.";
+    renderFlow();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The writer timed out."
+    );
+
+    await user.click(screen.getByRole("button", { name: "Continue to voices" }));
+    expect(stageOf()).toBe("voices");
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(stageOf()).toBe("review");
+
+    expect(screen.queryByText("The writer timed out.")).not.toBeInTheDocument();
   });
 
   it("holds voicing while a line with words has no speaker (F7)", () => {

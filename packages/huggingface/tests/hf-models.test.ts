@@ -929,10 +929,6 @@ describe("SINGLE_FILE_DIFFUSION_EXTENSIONS", () => {
   it("includes .ckpt", () => {
     expect(SINGLE_FILE_DIFFUSION_EXTENSIONS).toContain(".ckpt");
   });
-
-  it("includes .svdq", () => {
-    expect(SINGLE_FILE_DIFFUSION_EXTENSIONS).toContain(".svdq");
-  });
 });
 
 describe("HF_DEFAULT_FILE_PATTERNS", () => {

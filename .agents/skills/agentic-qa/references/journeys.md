@@ -34,9 +34,11 @@ Choose one per campaign. Rotate between campaigns.
 | `automation` | Set up something that takes a sentence you type and gives back a changed version of it, then try it with your own sentence. | A run with the participant's input and a visible output. |
 | `app` | Find a small ready-made tool in this app, use it with your own input, and see its result. | A visible result for the participant's own input. |
 
-With fake providers, `image` and `chat` cannot complete because no model is
-listed (see [runtime.md](runtime.md#disposable-app)). Use `automation` or `app`
-on the disposable app until the fake runtime lists models.
+With fake providers every goal can complete, with placeholder content (see
+[runtime.md](runtime.md#what-the-fake-runtime-shows-a-participant)). Judge
+`automation` on whether the participant's sentence reached a run and a visible
+output appeared. Only the guided planner's plan changes the sentence (it
+capitalizes it). A model step answers with the fixed reply whatever the input.
 
 ## Persistence and recovery
 

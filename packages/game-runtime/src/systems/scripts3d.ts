@@ -1,10 +1,11 @@
-import type { GameEntityProps } from "@nodetool-ai/protocol";
+import { gameParticleEmissionOf, type GameEntityProps } from "@nodetool-ai/protocol";
 import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecycle.js";
 import { planScriptProps } from "../script-props.js";
 import type { GameScriptCall3D } from "../scripts3d.js";
 import { scriptSourceKey } from "../scripts.js";
+import { playAnimationGraphState3D, setAnimationParameter3D } from "./animation-graph3d.js";
 
 const NO_TAGS: readonly string[] = Object.freeze([]);
 
@@ -131,7 +132,13 @@ export function stepScripts3D(context: GameSystemContext3D): void {
               state.opacity = command.opacity;
             }
             break;
+          case "setAnimParam":
+            setAnimationParameter3D(context.document, state, command.name, command.value);
+            break;
           case "playAnimation": {
+            if (playAnimationGraphState3D(context.document, state, command.clip, context.tick + 1)) {
+              break;
+            }
             const animator = state.definition.animator3d;
             const clipId = animator?.clips[command.clip];
             if (!animator || !clipId) {
@@ -159,6 +166,9 @@ export function stepScripts3D(context: GameSystemContext3D): void {
               throw new Error(`Duplicate query ID ${command.queryId}`);
             }
             context.spatialQueries.push({ entityId: result.entityId, command });
+            break;
+          case "emitParticles":
+            (context.queues.particles ??= []).push(gameParticleEmissionOf(command, result.entityId));
             break;
           default:
             applyGameplayCommand(command, result.entityId, context.queues, context.hud, context.emit);

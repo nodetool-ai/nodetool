@@ -1465,9 +1465,10 @@ export function buildEffect(
 export const addGroupParams = z.object({
   name: z.string().trim().min(1).describe("Label for the group clip."),
   transform: clipTransformPatchParam,
-  startMs: z.number().describe("Where the group's window opens."),
+  startMs: z.number().nonnegative().describe("Where the group's window opens."),
   durationMs: z
     .number()
+    .positive()
     .describe(
       "How long the window stays open. A child is clipped to it, so cover the children."
     ),

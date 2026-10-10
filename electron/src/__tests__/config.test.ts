@@ -1,5 +1,6 @@
 import {
   getCondaEnvPath,
+  setCondaEnvPath,
   getPythonPath,
   getUVPath,
   getProcessEnv,
@@ -9,7 +10,7 @@ import {
   PID_FILE_PATH,
   webPath,
 } from '../config';
-import { readSettings } from '../settings';
+import { readSettings, updateSetting } from '../settings';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -67,6 +68,16 @@ describe('Config', () => {
   });
 
   describe('getCondaEnvPath', () => {
+    it('returns a location set after the path was first read', () => {
+      mockReadSettings.mockReturnValue({ CONDA_ENV: '/old/env' });
+      expect(getCondaEnvPath()).toBe('/old/env');
+
+      setCondaEnvPath('/picked/nodetool-env');
+
+      expect(jest.mocked(updateSetting)).toHaveBeenCalledWith('CONDA_ENV', '/picked/nodetool-env');
+      expect(getCondaEnvPath()).toBe('/picked/nodetool-env');
+    });
+
     it('should return path from settings when available', () => {
       const customPath = '/custom/conda/path';
       mockReadSettings.mockReturnValue({ CONDA_ENV: customPath });
@@ -319,8 +330,7 @@ describe('Config', () => {
       // Verify UV cache environment variables are set
       expect(result.UV_CACHE_DIR).toBeDefined();
       expect(result.UV_CACHE_DIR).toContain('uv-cache');
-      expect(result.XDG_CACHE_HOME).toBeDefined();
-      expect(result.XDG_CACHE_HOME).toContain('cache');
+      expect(result.XDG_CACHE_HOME).toBeUndefined();
     });
 
     it('should return process environment with conda paths on Unix', () => {
@@ -340,8 +350,23 @@ describe('Config', () => {
       // Verify UV cache environment variables are set
       expect(result.UV_CACHE_DIR).toBeDefined();
       expect(result.UV_CACHE_DIR).toContain('uv-cache');
-      expect(result.XDG_CACHE_HOME).toBeDefined();
-      expect(result.XDG_CACHE_HOME).toContain('cache');
+      expect(result.XDG_CACHE_HOME).toBeUndefined();
+    });
+
+    it('places HF_HOME where huggingface_hub would, honouring XDG_CACHE_HOME', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      expect(getProcessEnv().HF_HOME).toBe(path.join('/home/user', '.cache', 'huggingface'));
+
+      const xdg = fs.mkdtempSync(path.join(os.tmpdir(), 'nt-xdg-'));
+      process.env.XDG_CACHE_HOME = xdg;
+      const withXdg = getProcessEnv();
+      expect(withXdg.HF_HOME).toBe(path.join(xdg, 'huggingface'));
+      // The user's XDG_CACHE_HOME passes through unchanged.
+      expect(withXdg.XDG_CACHE_HOME).toBe(xdg);
+
+      process.env.HF_HOME = path.join(xdg, 'explicit-hf');
+      expect(getProcessEnv().HF_HOME).toBe(path.join(xdg, 'explicit-hf'));
+      fs.rmSync(xdg, { recursive: true, force: true });
     });
 
     it('should handle missing PATH environment variable', () => {

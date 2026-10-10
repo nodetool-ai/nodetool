@@ -125,15 +125,18 @@ export async function renderTimelineAudio(
         if (clip.mediaType === "midi") {
           // Rendered inline: the export already runs off the main thread's hot
           // path, and one context per render makes a worker round trip pure cost.
+          const recordings = await getSamplerAudio(
+            offline,
+            instrumentOf(clip.trackId),
+            resolveUrl
+          );
+          // A cancelled export has already returned; do not render the notes.
+          throwIfAborted(signal);
           const samples = renderMidiClip({
             clip,
             bpm,
             instrument: instrumentOf(clip.trackId),
-            samples: await getSamplerAudio(
-              offline,
-              instrumentOf(clip.trackId),
-              resolveUrl
-            ),
+            samples: recordings,
             sampleRate
           });
           const buffer = offline.createBuffer(
@@ -156,10 +159,16 @@ export async function renderTimelineAudio(
   );
   if (validClips.length === 0) return null;
 
-  const graph = new AudioGraph(offline);
+  // The graph's fetches take the export's signal, and a cancel stops it
+  // scheduling once its buffers settle, so a cancelled mix stops downloading
+  // and decoding rather than finishing behind the next export.
+  const graph = new AudioGraph(offline, { signal });
   // currentTimeMs = 0: the renderer always mixes the whole timeline from t=0,
   // so each clip is scheduled at its absolute startMs on the offline clock.
-  await abortable(graph.scheduleClips(validClips, tracks, 0), signal);
+  await abortable(
+    graph.scheduleClips(validClips, tracks, 0, () => signal?.aborted === true),
+    signal
+  );
   throwIfAborted(signal);
 
   return abortable(offline.startRendering(), signal);

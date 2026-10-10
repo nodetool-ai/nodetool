@@ -4,7 +4,7 @@
  * while any step names a node type the registry does not have or needs a model
  * role no provider covers (PRD § 11.7 criteria 2, 3 and 4; D23).
  */
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
@@ -75,6 +75,42 @@ jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
         </button>
       </>
     ) : null
+}));
+
+// The voice model picker, reduced to the voice it shows and one pick that
+// changes the voice, the way its voice select does.
+jest.mock("../../../properties/TTSModelSelect", () => ({
+  __esModule: true,
+  default: ({
+    value,
+    onChange
+  }: {
+    value: unknown;
+    onChange: (model: unknown) => void;
+  }) => (
+    <>
+      <span data-testid="tts-voice">
+        {typeof value === "object" && value !== null
+          ? String((value as { selected_voice?: string }).selected_voice)
+          : ""}
+      </span>
+      <button
+        type="button"
+        onClick={() =>
+          onChange({
+            type: "tts_model",
+            provider: "p",
+            id: "m",
+            name: "m",
+            voices: ["alloy", "nova"],
+            selected_voice: "nova"
+          })
+        }
+      >
+        pick nova
+      </button>
+    </>
+  )
 }));
 
 // Typed with the real input, so `mock.calls[0][0]` is the argument the flow
@@ -200,14 +236,20 @@ const startFromExample = jest.fn(
   async (_example: Workflow): Promise<string | null> => "w1"
 );
 
+const defaultImport = jest.fn(async (_file: File) => {});
+
 const Harness = ({
   providerConfigured = () => true,
   modelChoices = roleChoices,
-  onFinish
+  onFinish,
+  onImport = defaultImport,
+  onChangeFlow
 }: {
   providerConfigured?: (role: string) => boolean;
   modelChoices?: (role: string) => ModelRoleAvailability;
   onFinish?: () => void;
+  onImport?: (file: File) => Promise<void>;
+  onChangeFlow?: () => void;
 }) => {
   const config = useWorkflowSetupFlow({
     workflowId: "w1",
@@ -219,11 +261,14 @@ const Harness = ({
       return { type: "language_model", id: tileId };
     },
     onStartFromExample: startFromExample,
-    onImport: jest.fn(async () => {}),
+    onImport,
     onFinish
   });
-  return <SetupFlow config={config} />;
+  return <SetupFlow config={config} onChangeFlow={onChangeFlow} />;
 };
+
+const queryClient = () =>
+  new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 // The plan step's planner-model picker reads the configured providers through
 // TanStack Query, so the flow needs a client. The queries resolve to nothing
@@ -392,6 +437,30 @@ describe("useWorkflowSetupFlow", () => {
       expect(screen.getByText("Summarize a PDF")).toBeInTheDocument();
     });
 
+    // F3: a copy that lands after Change flow would pull the creator out of
+    // the next flow, so the way out is held while it runs.
+    it("holds Change flow while an example is being copied", async () => {
+      let land: (id: string | null) => void = () => undefined;
+      startFromExample.mockReturnValueOnce(
+        new Promise((resolve) => {
+          land = resolve;
+        })
+      );
+      settings = writeWorkflowSetup({}, { stage: "idea", brief: "b" });
+      renderFlow({ onChangeFlow: jest.fn() });
+      expect(screen.getByRole("button", { name: "Change flow" })).toBeEnabled();
+      await userEvent.click(
+        screen.getByRole("button", { name: /Start from an example/ })
+      );
+      await userEvent.click(await screen.findByText("Summarize a PDF"));
+      expect(await screen.findByText("Copying the example…")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Change flow" })).toBeDisabled();
+      land(null);
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Change flow" })).toBeEnabled()
+      );
+    });
+
     it("goes back to the idea with the brief intact", async () => {
       await openBrowser();
       await userEvent.click(
@@ -436,6 +505,51 @@ describe("useWorkflowSetupFlow", () => {
     );
     await waitFor(() => expect(planWorkflow).toHaveBeenCalledTimes(1));
     expect(buildFromPlan).not.toHaveBeenCalled();
+  });
+
+  // A canceled plan offers the category again, not a paid Retry of the
+  // category it was canceled on.
+  it("offers Back to this step after the planner is canceled", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "category", brief: "b", category: "content-pipeline" }
+    );
+    // The planner answers a cancel with its reason, as the real hook does.
+    let answer: (reason: string | null) => void = () => undefined;
+    planWorkflow.mockImplementationOnce(
+      () =>
+        new Promise<string | null>((resolve) => {
+          answer = resolve;
+        })
+    );
+    cancelPlanning.mockImplementationOnce(() => {
+      planningStatus = "canceled";
+      answer("Planning was canceled.");
+    });
+    const client = queryClient();
+    const tree = () => (
+      <QueryClientProvider client={client}>
+        <ThemeProvider theme={mockTheme}>
+          <Harness />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree());
+    await userEvent.click(
+      screen.getByRole("button", { name: "Plan the steps" })
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(cancelPlanning).toHaveBeenCalledTimes(1);
+    // The real hook re-renders the flow with its canceled status.
+    rerender(tree());
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Back to this step" })
+    );
+    expect(
+      screen.getByRole("radiogroup", { name: "Workflow category" })
+    ).toBeInTheDocument();
+    expect(planWorkflow).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the creator on the category step when the planner is refused", async () => {
@@ -498,6 +612,27 @@ describe("useWorkflowSetupFlow", () => {
     );
     expect(cancelPlanning).toHaveBeenCalledTimes(1);
     expect(screen.getByDisplayValue("Compose")).toBeInTheDocument();
+  });
+
+  // F6: Back during a re-plan used to land on the category step locked on
+  // "Planning the steps" until the discarded answer arrived.
+  it("holds Back on the review while a re-plan runs", () => {
+    planning = true;
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "review", brief: "b", category: "content-pipeline", plan: PLAN }
+    );
+    renderFlow();
+    expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+  });
+
+  it("offers Back on the review when no re-plan runs", () => {
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "review", brief: "b", category: "content-pipeline", plan: PLAN }
+    );
+    renderFlow();
+    expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
   });
 
   // F2: an answer set aside because the brief or category changed is a
@@ -782,6 +917,39 @@ describe("useWorkflowSetupFlow", () => {
     }
   );
 
+  // A voice model's voice is not part of its tile id. It is kept beside it,
+  // shown on the picker, and sent with the model the build assigns.
+  it("keeps the picked voice and builds the voice model with it", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      {
+        stage: "setup",
+        brief: "b",
+        plan: {
+          ...PLAN,
+          steps: [{ ...PLAN.steps[0], model_role: "audio" }]
+        }
+      }
+    );
+    const { unmount } = renderFlow();
+    await userEvent.click(screen.getByRole("button", { name: "pick nova" }));
+    expect(readWorkflowSetup(settings)?.["role_voices"]).toEqual({
+      audio: "nova"
+    });
+    // A remount reads the voice back onto the picker.
+    unmount();
+    renderFlow();
+    expect(screen.getByTestId("tts-voice")).toHaveTextContent("nova");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Build your workflow" })
+    );
+    await waitFor(() => expect(buildFromPlan).toHaveBeenCalledTimes(1));
+    expect(buildFromPlan.mock.calls[0][0].models?.["audio"]).toMatchObject({
+      id: "p:m",
+      selected_voice: "nova"
+    });
+  });
+
   it("offers only a workflow JSON file to import", () => {
     settings = writeWorkflowSetup({}, { stage: "idea", brief: "b" });
     renderFlow();
@@ -790,6 +958,79 @@ describe("useWorkflowSetupFlow", () => {
       "accept",
       ".json,application/json"
     );
+  });
+
+  // F7: an import finishes the flow when it lands, so Continue and the import
+  // card are held while the file is read.
+  it("holds Continue and the import card while a file is read", async () => {
+    let land: () => void = () => undefined;
+    const onImport = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          land = resolve;
+        })
+    );
+    const onFinish = jest.fn();
+    settings = writeWorkflowSetup({}, { stage: "idea", brief: "b" });
+    renderFlow({ onImport, onFinish });
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+    await userEvent.upload(
+      screen.getByLabelText("Import a workflow"),
+      new File(["{}"], "w.json", { type: "application/json" })
+    );
+    await waitFor(() => expect(onImport).toHaveBeenCalledTimes(1));
+    const continueButton = screen.getByRole("button", { name: "Continue" });
+    expect(continueButton).toBeDisabled();
+    expect(continueButton).toHaveAccessibleDescription("Reading your file");
+    expect(
+      screen.getByRole("button", { name: /Import a workflow/ })
+    ).toHaveAttribute("aria-disabled", "true");
+    // The import lands on this workflow and opens it, so the other ways in
+    // wait for it too.
+    expect(
+      screen.getByRole("button", { name: /Start with a blank canvas/ })
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByRole("button", { name: /Start from an example/ })
+    ).toHaveAttribute("aria-disabled", "true");
+    land();
+    await waitFor(() => expect(onFinish).toHaveBeenCalled());
+    expect(readWorkflowSetup(settings)?.stage).toBe("done");
+  });
+
+  it("does not finish an import that lands after the creator moved on", async () => {
+    let land: () => void = () => undefined;
+    const onImport = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          land = resolve;
+        })
+    );
+    const onFinish = jest.fn();
+    settings = writeWorkflowSetup({}, { stage: "idea", brief: "b" });
+    const client = queryClient();
+    const tree = () => (
+      <QueryClientProvider client={client}>
+        <ThemeProvider theme={mockTheme}>
+          <Harness onImport={onImport} onFinish={onFinish} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree());
+    await userEvent.upload(
+      screen.getByLabelText("Import a workflow"),
+      new File(["{}"], "w.json", { type: "application/json" })
+    );
+    await waitFor(() => expect(onImport).toHaveBeenCalledTimes(1));
+    settings = writeWorkflowSetup(settings, { stage: "category" });
+    rerender(tree());
+    land();
+    await waitFor(() => expect(onImport).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(onFinish).not.toHaveBeenCalled();
+    expect(readWorkflowSetup(settings)?.stage).toBe("category");
   });
 
   // F20: the review lets a step be added and edited, so it can be left holding
@@ -903,6 +1144,33 @@ describe("useWorkflowSetupFlow", () => {
     expect(onFinish).toHaveBeenCalled();
   });
 
+  // F1: the planner writes every sample as a string, and a FloatInput
+  // refuses one, so the test run sends the converted value.
+  it("sends a number input's sample as a number, and no media sample", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      {
+        stage: "setup",
+        brief: "b",
+        plan: {
+          ...PLAN,
+          inputs: [
+            { name: "count", type: "number", sample: "3" },
+            { name: "photo", type: "image", sample: "photo.png" }
+          ]
+        }
+      }
+    );
+    renderFlow();
+    expect(screen.queryByLabelText(/photo/)).toBeNull();
+    expect(screen.getByLabelText(/count/)).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Build your workflow" })
+    );
+    await waitFor(() => expect(buildFromPlan).toHaveBeenCalledTimes(1));
+    expect(buildFromPlan.mock.calls[0][0].sampleInputs).toEqual({ count: 3 });
+  });
+
   it("keeps the workflow build alive when the setup shell hands off", async () => {
     settings = writeWorkflowSetup(
       {},
@@ -955,7 +1223,7 @@ describe("useWorkflowSetupFlow", () => {
     expect(cancelBuild).toHaveBeenCalledTimes(1);
     finish(BUILD_RESULT);
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+      expect(screen.getByRole("button", { name: "Back to this step" })).toBeEnabled()
     );
   });
 });

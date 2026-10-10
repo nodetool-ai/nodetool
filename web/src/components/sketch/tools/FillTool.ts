@@ -32,8 +32,8 @@ export function floodFill(
   const height = ctx.canvas.height;
   const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
-  const sx = Math.round(startX);
-  const sy = Math.round(startY);
+  const sx = Math.floor(startX);
+  const sy = Math.floor(startY);
   if (sx < 0 || sx >= width || sy < 0 || sy >= height) {
     return;
   }
@@ -169,8 +169,8 @@ function createFloodFillOverlayCanvas(
   const height = sourceCtx.canvas.height;
   const imageData = sourceCtx.getImageData(0, 0, width, height);
   const data = imageData.data;
-  const sx = Math.round(startX);
-  const sy = Math.round(startY);
+  const sx = Math.floor(startX);
+  const sy = Math.floor(startY);
   if (sx < 0 || sx >= width || sy < 0 || sy >= height) {
     return null;
   }

@@ -9,9 +9,16 @@
  * The surface's text fields are store-controlled, so the browser's native
  * input undo can't reach them; intercepting the shortcut even while a field is
  * focused routes it to the document's own history, which is the source of truth.
+ *
+ * With `menuHeading`, Undo and Redo are also listed in the Cmd+K menu under
+ * that heading while the shortcuts are bound.
  */
 
+import { useMemo } from "react";
 import { useGlobalCombo } from "../stores/KeyPressedStore";
+import type { ContextCommand } from "../stores/CommandMenuStore";
+import { isMac } from "../utils/platform";
+import { useContextCommands } from "./useContextCommands";
 
 interface Options {
   /** True when this surface's tab is the focused one. */
@@ -20,13 +27,16 @@ interface Options {
   enabled?: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  /** Heading of the command menu group that lists Undo and Redo. */
+  menuHeading?: string;
 }
 
 export const useDocumentUndoShortcuts = ({
   active,
   enabled = true,
   onUndo,
-  onRedo
+  onRedo,
+  menuHeading
 }: Options): void => {
   // allowInInputs: the surface's text fields are store-controlled, so the
   // shortcut must reach the document's own history even while one is focused.
@@ -37,6 +47,23 @@ export const useDocumentUndoShortcuts = ({
   useGlobalCombo("meta+shift+z", onRedo, bound);
   useGlobalCombo("control+y", onRedo, bound);
   useGlobalCombo("meta+y", onRedo, bound);
+
+  const commands = useMemo<ContextCommand[]>(() => {
+    if (!menuHeading) {
+      return [];
+    }
+    const mac = isMac();
+    return [
+      { id: "undo", label: "Undo", run: onUndo, shortcut: mac ? "⌘Z" : "Ctrl+Z" },
+      {
+        id: "redo",
+        label: "Redo",
+        run: onRedo,
+        shortcut: mac ? "⌘⇧Z" : "Ctrl+Shift+Z"
+      }
+    ];
+  }, [menuHeading, onUndo, onRedo]);
+  useContextCommands(menuHeading ?? "", commands, bound.active);
 };
 
 export default useDocumentUndoShortcuts;

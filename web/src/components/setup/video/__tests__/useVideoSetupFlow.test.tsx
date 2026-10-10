@@ -49,10 +49,26 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
     providers: languageModels.length > 0 ? ["nodetool"] : [],
     isLoading: languageModelsLoading,
     isFetching: false,
-    error: null,
+    error: mockLanguageModelsError,
     refetch: async () => undefined
   })
 }));
+
+let mockLanguageModelsError: Error | null = null;
+
+// The look step's generate is its own suite's subject (LookStep.test.tsx);
+// here only the hand-over after it matters.
+const mockGenerate = jest.fn(async () => undefined);
+jest.mock("../LookStep", () => {
+  const actual = jest.requireActual("../LookStep");
+  return {
+    ...actual,
+    useLookStep: (choices: unknown) => ({
+      ...actual.useLookStep(choices),
+      generate: mockGenerate
+    })
+  };
+});
 
 let languageModels: { id: string; provider: string; name: string }[] = [];
 let languageModelsLoading = false;
@@ -61,6 +77,7 @@ const mockRpc = rpcRequest as jest.Mock;
 beforeEach(() => {
   useTimelineStore.getState().reset();
   languageModelsLoading = false;
+  mockLanguageModelsError = null;
   mockRpc.mockReset();
   mockRpc.mockImplementation(async () => ({}));
   languageModels = [
@@ -195,7 +212,7 @@ describe("useVideoSetupFlow (criterion 2)", () => {
     const { result } = renderHook(() => useVideoSetupFlow());
     expect(result.current.steps[1].canAdvance).toBe(false);
     expect(result.current.steps[1].blockedReason).toBe(
-      "Pick a model to draft the beats"
+      "No provider offers a language model"
     );
   });
 
@@ -438,6 +455,205 @@ describe("useVideoSetupFlow plan outcomes", () => {
     expect(result.current.steps[1].blockedReason).toBe(
       "Loading the models that can draft the beats"
     );
+  });
+});
+
+describe("useVideoSetupFlow audit fixes", () => {
+  // V2: Generate writes placeholders before its first await, so Cancel could
+  // never leave the draft unchanged as the shell would claim.
+  it("offers no Cancel on the look step", () => {
+    seed("look", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[3].cancelable).toBe(false);
+  });
+
+  // V5: the Director model drafts the plan but is not one of its inputs.
+  it("keeps the plan current when only the Director model changes", () => {
+    languageModels = [
+      { id: "nodetool/director", provider: "nodetool", name: "Director" },
+      { id: "gpt-5", provider: "openai", name: "GPT-5" }
+    ];
+    seed("format", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[1].primaryLabel).toBe("Continue to the beats");
+    act(() =>
+      useTimelineStore.getState().setSetup({
+        directorModel: { id: "gpt-5", provider: "openai", name: "GPT-5" }
+      })
+    );
+    expect(result.current.steps[1].primaryLabel).toBe("Continue to the beats");
+    expect(result.current.steps[1].onAdvance).toBeUndefined();
+  });
+
+  it("names changed inputs, not the brief or template, as the re-plan cause", () => {
+    seed("format", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    act(() => useTimelineStore.getState().setSetup({ brief: "a steel hull" }));
+    expect(result.current.steps[1].generation?.next).toContain(
+      "Your inputs changed since this plan was drafted."
+    );
+  });
+
+  // V6: a failed model list is not a missing pick.
+  it("says the model list could not be read when the catalog fails", () => {
+    languageModels = [];
+    mockLanguageModelsError = new Error("network down");
+    seed("format");
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[1].canAdvance).toBe(false);
+    expect(result.current.steps[1].blockedReason).toBe(
+      "The model list could not be read"
+    );
+  });
+
+  // V8: Continue to look is held for anything Look itself would refuse.
+  it("holds Continue to look on on-camera speech that Look refuses", () => {
+    seed("review", {
+      beats: [
+        {
+          id: "b1",
+          prompt: "the kerb",
+          duration_ms: 3000,
+          production: {
+            schema_version: 1,
+            requested_take_count: 1,
+            speech_mode: "on_camera",
+            speech_binding: { text: "Hello" }
+          }
+        }
+      ]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[2].canAdvance).toBe(false);
+    expect(result.current.steps[2].blockedReason).toContain(
+      "On-camera speech is unavailable"
+    );
+  });
+
+  // V1: the host saves before it opens the cut, so Generate stays pending
+  // until it has. It never rejects: the clips are already paid for.
+  it("keeps Generate pending until the host finished, and never rejects", async () => {
+    seed("look", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    });
+    let finishHost: () => void = () => undefined;
+    const onFinish = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishHost = resolve;
+        })
+    );
+    const { result } = renderHook(() => useVideoSetupFlow({ onFinish }));
+    let settled = false;
+    const advancing = Promise.resolve(
+      result.current.steps[3].onAdvance?.()
+    ).then(() => {
+      settled = true;
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(onFinish).toHaveBeenCalledTimes(1);
+    expect(settled).toBe(false);
+    await act(async () => {
+      finishHost();
+      await advancing;
+    });
+    expect(settled).toBe(true);
+
+    onFinish.mockImplementationOnce(() =>
+      Promise.reject(new Error("The tab closed"))
+    );
+    await expect(
+      Promise.resolve(result.current.steps[3].onAdvance?.())
+    ).resolves.toBeUndefined();
+  });
+
+  it("keeps a Generate failure that landed after the host replaced the shell (V11)", async () => {
+    seed("look", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const lookError = () =>
+      (
+        result.current.steps[3].render() as ReactElement<{ error?: string }>
+      ).props.error;
+    // Before `done`: the shell is still up and reports the failure itself.
+    mockGenerate.mockImplementationOnce(async () => {
+      throw new Error("Pick a video model");
+    });
+    await act(async () => {
+      await expect(
+        Promise.resolve(result.current.steps[3].onAdvance?.())
+      ).rejects.toThrow("Pick a video model");
+    });
+    expect(lookError()).toBeUndefined();
+    // After `done`: the host showed its wait, and the shell that comes back
+    // on Look never saw the failure.
+    mockGenerate.mockImplementationOnce(async () => {
+      useTimelineStore.getState().setSetup({ stage: "done" });
+      useTimelineStore.getState().setSetup({ stage: "look" });
+      throw new Error(
+        "Could not save the prepared video. No generation requests were submitted."
+      );
+    });
+    await act(async () => {
+      await expect(
+        Promise.resolve(result.current.steps[3].onAdvance?.())
+      ).rejects.toThrow("Could not save");
+    });
+    expect(lookError()).toBe(
+      "Could not save the prepared video. No generation requests were submitted."
+    );
+    // Leaving the step clears it.
+    act(() => result.current.onStageChange("review"));
+    expect(lookError()).toBeUndefined();
+  });
+
+  it("holds Change flow while dropped media uploads (V10)", () => {
+    seed("idea");
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[0].holdNavigation).toBe(false);
+    const idea = result.current.steps[0].render() as ReactElement<{
+      onImportingChange: (importing: boolean) => void;
+    }>;
+    act(() => idea.props.onImportingChange(true));
+    expect(result.current.steps[0].holdNavigation).toBe(true);
+    act(() => idea.props.onImportingChange(false));
+    expect(result.current.steps[0].holdNavigation).toBe(false);
+  });
+
+  it("hands the step's read-only state to the idea body (V10)", () => {
+    seed("idea");
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const idea = result.current.steps[0].render({
+      readOnly: true
+    }) as ReactElement<{ readOnly: boolean }>;
+    expect(idea.props.readOnly).toBe(true);
+  });
+
+  it("prices the re-plan on what the Director is sent, not the brief alone (V13)", () => {
+    seed("format", {
+      format: "spot-30",
+      creative_context: { schema_version: 1, audience: "Travelers" },
+      // Drafted for other inputs, so the format step offers a paid re-plan.
+      planFingerprint: "earlier-inputs",
+      beats: [
+        { id: "b", prompt: "A folded hull drifts", duration_ms: 3000 }
+      ]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const priced = result.current.steps[1].generation?.brief ?? "";
+    expect(priced).toContain("a paper boat");
+    expect(priced).toContain("Audience: Travelers");
+    expect(priced).toContain("A folded hull drifts");
   });
 });
 

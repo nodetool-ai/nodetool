@@ -59,8 +59,13 @@ jest.mock("../../../../hooks/storyboard/useDefaultStillModel", () => ({
   useDefaultStillModel: jest.fn()
 }));
 const imageModels: unknown[] = [];
+const languageModels: unknown[] = [];
 jest.mock("../../../../hooks/useModelsByProvider", () => ({
-  useImageModelsByProvider: () => ({ models: imageModels })
+  useImageModelsByProvider: () => ({ models: imageModels }),
+  useLanguageModelsByProvider: () => ({
+    models: languageModels,
+    isLoading: false
+  })
 }));
 jest.mock("../../../properties/ImageModelSelect", () => ({
   __esModule: true,
@@ -96,6 +101,7 @@ jest.mock("../../../assets/AssetViewer", () => ({
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
 import { EntitiesStep } from "../EntitiesStep";
 import { MediaGalleryProvider } from "../../MediaGallery";
+import { clearSetupReports } from "../setupChoices";
 
 const BOARD_ID = "board";
 
@@ -119,6 +125,8 @@ const renderStep = () => {
 beforeEach(() => {
   jest.clearAllMocks();
   imageModels.length = 0;
+  languageModels.length = 0;
+  clearSetupReports(BOARD_ID);
   searchAssets.mockResolvedValue({ assets: entityAssets });
   getAsset.mockImplementation(async ({ id }: { id: string }) => ({
     id,
@@ -617,4 +625,198 @@ it("reports a creation to the flow and drops it once aborted", async () => {
   expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual(
     []
   );
+});
+
+// F10: a creation canceled while its entity was being saved stays off the
+// board, even though the save itself finished.
+it("keeps an entity off the board when it is canceled during the save", async () => {
+  const controller = new AbortController();
+  const done = jest.fn();
+  const onCreationStart = jest.fn(() => ({ signal: controller.signal, done }));
+  let finishSave: () => void = () => {};
+  updateAsset.mockImplementationOnce(
+    (input: { id: string; metadata: Record<string, unknown> }) =>
+      new Promise((resolve) => {
+        finishSave = () =>
+          resolve({
+            id: input.id,
+            project_id: "default",
+            name: `${input.id}.png`,
+            content_type: "image/png",
+            created_at: "",
+            metadata: input.metadata
+          });
+      })
+  );
+  rpcRequest
+    .mockResolvedValueOnce({
+      data: {
+        entities: [
+          {
+            name: "The Lantern",
+            kind: "prop",
+            descriptor: "A dented brass railway lantern",
+            reference_prompt: "A dented brass railway lantern"
+          }
+        ]
+      }
+    })
+    .mockResolvedValueOnce({ asset_ids: ["lantern-asset"] });
+  const user = userEvent.setup();
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <ThemeProvider theme={mockTheme}>
+        <MediaGalleryProvider>
+          <EntitiesStep boardId={BOARD_ID} onCreationStart={onCreationStart} />
+        </MediaGalleryProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Create The Lantern" })
+  );
+  await waitFor(() => expect(updateAsset).toHaveBeenCalled());
+  controller.abort();
+  finishSave();
+
+  await waitFor(() => expect(done).toHaveBeenCalledTimes(1));
+  expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual(
+    []
+  );
+});
+
+// F11: the suggestions read the screenplay the creator reviewed, not the
+// Director's first draft kept in the envelope.
+it("finds entities in the reviewed shots and title", async () => {
+  useStoryboardStore.getState().updateShot(BOARD_ID, "shot-1", {
+    action: "Mara lights the brass lantern"
+  });
+  useStoryboardStore.getState().setTitle(BOARD_ID, "Lantern Night");
+  rpcRequest.mockResolvedValueOnce({ data: { entities: [] } });
+  const user = userEvent.setup();
+  renderStep();
+
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+
+  await waitFor(() => expect(rpcRequest).toHaveBeenCalledTimes(1));
+  const prompt = (rpcRequest.mock.calls[0][1] as { prompt: string }).prompt;
+  expect(prompt).toContain("Title: Lantern Night");
+  expect(prompt).toContain("Mara lights the brass lantern");
+  expect(prompt).not.toContain("Mara waits");
+});
+
+// F11: a failed find is not a failed creation.
+it("names a failed find as a find", async () => {
+  rpcRequest.mockRejectedValueOnce(new Error("The model is unavailable."));
+  const user = userEvent.setup();
+  renderStep();
+
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+
+  expect(await screen.findByText("Could not find entities")).toBeInTheDocument();
+  expect(screen.queryByText("Could not create entities")).toBeNull();
+});
+
+// F16: in view mode the step changes nothing on the board.
+it("holds every pick and paid action in view mode", async () => {
+  const user = userEvent.setup();
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <ThemeProvider theme={mockTheme}>
+        <MediaGalleryProvider>
+          <EntitiesStep boardId={BOARD_ID} readOnly />
+        </MediaGalleryProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+
+  const pick = await screen.findByRole("checkbox", {
+    name: "Mara · character"
+  });
+  expect(pick).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Find entities" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Create entity from an image" })
+  ).toBeDisabled();
+  expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual(
+    []
+  );
+  // Reading stays available: the reference opens fullscreen.
+  await user.click(
+    screen.getByRole("button", { name: "View Mara reference image" })
+  );
+  expect(
+    await screen.findByRole("dialog", { name: "Gallery" })
+  ).toBeInTheDocument();
+});
+
+// A shotlist import goes from step 1 straight to Look, past the genre step
+// that fills in the screenplay model. `Find entities` asks that model, so
+// without it the step could only say "Director model first" with no picker.
+it("fills in the screenplay model a shotlist import skipped", async () => {
+  useStoryboardStore.getState().setDirectorModel(BOARD_ID, null);
+  languageModels.push({ id: "catalog-model", provider: "openai", name: "Catalog" });
+  renderStep();
+
+  await waitFor(() =>
+    expect(
+      useStoryboardStore.getState().getBoard(BOARD_ID)?.directorModel?.id
+    ).toBe("catalog-model")
+  );
+});
+
+it("says the library failed to load rather than that it is empty", async () => {
+  searchAssets.mockRejectedValueOnce(new Error("The server is unreachable."));
+  const user = userEvent.setup();
+  renderStep();
+
+  expect(
+    await screen.findByText("Could not load your entities")
+  ).toBeInTheDocument();
+  expect(screen.queryByText("No entities yet")).toBeNull();
+
+  await user.click(screen.getByRole("button", { name: "Try again" }));
+  expect(
+    await screen.findByRole("checkbox", { name: "Mara · character" })
+  ).toBeInTheDocument();
+});
+
+// Cancel and Back both remount the step. The suggestions were paid for, so
+// they come back with it instead of asking for another Find.
+it("keeps found suggestions when the step remounts", async () => {
+  rpcRequest.mockResolvedValueOnce({
+    data: {
+      entities: [
+        {
+          name: "The Lantern",
+          kind: "prop",
+          descriptor: "A dented brass railway lantern with amber glass",
+          reference_prompt: "A dented brass railway lantern"
+        }
+      ]
+    }
+  });
+  const user = userEvent.setup();
+  const { unmount } = renderStep();
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  expect(
+    await screen.findByText("A dented brass railway lantern with amber glass")
+  ).toBeInTheDocument();
+  unmount();
+
+  renderStep();
+
+  expect(
+    await screen.findByText("A dented brass railway lantern with amber glass")
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Refresh suggestions" })
+  ).toBeInTheDocument();
+  expect(rpcRequest).toHaveBeenCalledTimes(1);
 });

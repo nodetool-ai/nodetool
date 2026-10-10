@@ -5,6 +5,7 @@ export const GAME_SCRIPT_TYPES_3D = `
 type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
 type Vector3 = { x: number; y: number; z: number };
 type Quaternion3D = [number, number, number, number];
+type GameScriptParamValue = number | boolean | string | { x: number; y: number; z?: number } | null;
 ${gameScriptSchemaDeclaration("GameScriptCommand3D", gameScriptCommand3D)}
 ${gameScriptSchemaDeclaration("GameQueryResult3D", gameQueryResult3D)}
 
@@ -15,6 +16,8 @@ type GameScriptInput3D = {
   events: readonly unknown[];
   queries: readonly GameQueryResult3D[];
   entity: GameScriptWorldEntity3D; world: readonly GameScriptWorldEntity3D[]; state: unknown; random: () => number;
+  /** Present when the behavior declares params. Entity and asset params are IDs or null. */
+  params?: Readonly<Record<string, GameScriptParamValue>>;
 };
 type GameScriptResult3D = { state: unknown; commands: GameScriptCommand3D[] };
 type GameScript3D = (input: GameScriptInput3D) => GameScriptResult3D;

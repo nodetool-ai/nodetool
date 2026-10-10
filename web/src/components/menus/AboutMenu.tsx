@@ -78,7 +78,7 @@ const InfoRow: React.FC<{
           size="small"
           sx={{
             wordBreak: "break-all",
-            fontFamily: "monospace"
+            fontFamily: "var(--fontFamily2)"
           }}
         >
           {value || "N/A"}
@@ -133,7 +133,7 @@ const FeatureStatus: React.FC<{
               size="small"
               color="success"
               variant="outlined"
-              sx={{ fontFamily: "monospace" }}
+              sx={{ fontFamily: "var(--fontFamily2)" }}
             />
           </>
         ) : (

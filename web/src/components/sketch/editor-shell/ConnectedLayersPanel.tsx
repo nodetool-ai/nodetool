@@ -29,7 +29,7 @@ export interface ConnectedLayersPanelProps {
   onToggleAlphaLock: (layerId: string) => void;
   onToggleExposedInput: (layerId: string) => void;
   onToggleExposedOutput: (layerId: string) => void;
-  onLayerOpacityChange: (layerId: string, opacity: number) => void;
+  onLayerOpacityChange: (layerId: string, opacity: number, commit: boolean) => void;
   onLayerBlendModeChange: (layerId: string, blendMode: BlendMode) => void;
   onRenameLayer: (layerId: string, name: string) => void;
   onAddGroup: () => void;

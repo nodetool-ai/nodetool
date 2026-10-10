@@ -75,6 +75,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   edit_native_game: "write",
   preview_native_game_authoring: "read",
   apply_native_game_authoring: "write",
+  browse_native_game_assets: "read",
   generate_game_asset: "write",
   get_native_game: "read",
   publish_native_game: "write",

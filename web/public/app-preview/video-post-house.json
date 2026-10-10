@@ -846,13 +846,16 @@
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "source_video",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+              },
               "description": "The clip to restyle"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 442
               },
               "zIndex": 0,
               "width": 280,
@@ -873,7 +876,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 658
               },
               "zIndex": 0,
               "width": 280,
@@ -894,7 +897,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 560
+                "y": 883
               },
               "zIndex": 0,
               "width": 280,
@@ -912,8 +915,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1140,
-                "y": 340
+                "x": 1180,
+                "y": 584
               },
               "zIndex": 0,
               "width": 240,
@@ -946,7 +949,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 421
               },
               "zIndex": 0,
               "width": 280,
@@ -967,7 +970,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 787
               },
               "zIndex": 0,
               "width": 280,
@@ -985,8 +988,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2110,
-                "y": 320
+                "x": 2340,
+                "y": 564
               },
               "zIndex": 0,
               "width": 240,
@@ -1014,15 +1017,14 @@
               "description": "The clip to color-grade. Defaults to a short demo clip so Run works immediately.",
               "value": {
                 "type": "video",
-                "asset_id": "727208e4dbe811ef97c1000071d82eaa",
-                "uri": "http://127.0.0.1:8000/api/storage/727208e4dbe811ef97c1000071d82eaa.mp4"
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
               }
             },
             "ui_properties": {
               "title": "1️⃣ Source video",
               "position": {
-                "x": 50,
-                "y": 50
+                "x": 0,
+                "y": 442
               },
               "zIndex": 0,
               "width": 280,
@@ -1036,7 +1038,7 @@
             "type": "nodetool.input.FloatInput",
             "data": {
               "name": "grading_intensity",
-              "description": "How strong the saturation pass is. 0 = grayscale, 0.5 = the default boost, 1 = maximum, fully saturated look.",
+              "description": "How strong the saturation pass is. 0 leaves saturation unchanged, 0.5 is the default boost, 1 is the strongest, and -1 drains most of the color.",
               "value": 0.5,
               "min": -1,
               "max": 1
@@ -1044,8 +1046,8 @@
             "ui_properties": {
               "title": "Grading intensity",
               "position": {
-                "x": 680,
-                "y": 320
+                "x": 0,
+                "y": 808
               },
               "zIndex": 0,
               "width": 280,
@@ -1063,8 +1065,8 @@
             "ui_properties": {
               "title": "6️⃣ Graded output",
               "position": {
-                "x": 1640,
-                "y": 112
+                "x": 2036,
+                "y": 662
               },
               "zIndex": 0,
               "width": 280,
@@ -1086,13 +1088,16 @@
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+              },
               "description": "The clip to process"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 327
               },
               "zIndex": 0,
               "width": 280,
@@ -1110,8 +1115,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 720,
-                "y": 200
+                "x": 760,
+                "y": 335
               },
               "zIndex": 0,
               "width": 240,
@@ -1135,13 +1140,16 @@
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
+              },
               "description": "The clip to sample"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 180
+                "y": 476
               },
               "zIndex": 0,
               "width": 280,
@@ -1159,8 +1167,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 720,
-                "y": 200
+                "x": 760,
+                "y": 484
               },
               "zIndex": 0,
               "width": 240,

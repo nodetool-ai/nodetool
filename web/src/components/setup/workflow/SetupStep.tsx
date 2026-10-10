@@ -96,7 +96,10 @@ export interface ModelRoleAvailability {
 export interface ModelRoleChoices extends ModelRoleAvailability {
   /** The tile id currently chosen, or null. */
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  /** The voice chosen for a voice model, or null for its first voice. */
+  selectedVoice?: string | null;
+  /** Picks a tile, and for a voice model the voice that goes with it. */
+  onSelect: (id: string, voice?: string) => void;
   /**
    * A remembered pick this install no longer offers — a provider that was
    * disconnected, a model that was retired. The row falls back to the first
@@ -114,6 +117,9 @@ export interface WorkflowSetupStepProps {
   onSampleChange: (inputName: string, value: string) => void;
 }
 
+/** Plan input types the creator types a sample for. */
+const SAMPLE_INPUT_TYPES = new Set(["string", "number", "integer"]);
+
 const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
   plan,
   roles,
@@ -122,6 +128,12 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
   onSampleChange
 }) => {
   const runModeOptions = useMemo(() => [...RUN_MODE_CARDS], []);
+  // A media input takes an upload, so only typed values get a sample field.
+  const sampleInputs = useMemo(
+    () =>
+      plan.inputs.filter((input) => SAMPLE_INPUT_TYPES.has(input.type)),
+    [plan.inputs]
+  );
 
   return (
     <FlexColumn gap={GAP.spacious}>
@@ -154,7 +166,7 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
         />
       </FlexColumn>
 
-      {plan.inputs.length > 0 ? (
+      {sampleInputs.length > 0 ? (
         <FlexColumn gap={GAP.normal}>
           <Text size="normal" component="h3">
             Sample inputs
@@ -162,10 +174,11 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
           <Caption color="secondary" component="p">
             The values the test run uses. Change them to something of yours.
           </Caption>
-          {plan.inputs.map((input) => (
+          {sampleInputs.map((input) => (
             <TextInput
               key={input.name}
               label={`${input.name} (${input.type})`}
+              type={input.type === "string" ? undefined : "number"}
               value={String(input.sample ?? "")}
               onChange={(event) =>
                 onSampleChange(input.name, event.target.value)
@@ -175,7 +188,7 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
         </FlexColumn>
       ) : null}
 
-      <BuildDisclosure plan={plan} roles={roles} />
+      <BuildDisclosure hasSamples={sampleInputs.length > 0} roles={roles} />
     </FlexColumn>
   );
 };
@@ -190,9 +203,9 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
  * names the models it will spend on.
  */
 const BuildDisclosure: React.FC<{
-  plan: WorkflowSetupPlan;
+  hasSamples: boolean;
   roles: readonly ModelRoleChoices[];
-}> = ({ plan, roles }) => {
+}> = ({ hasSamples, roles }) => {
   const chosen = roles
     .map((role) => {
       const tile = role.tiles.find((option) => option.id === role.selectedId);
@@ -213,7 +226,7 @@ const BuildDisclosure: React.FC<{
     >
       <Label>Build places the nodes and then runs it once</Label>
       <Text size="small" color="secondary">
-        {plan.inputs.length > 0
+        {hasSamples
           ? "The graph is checked, and if it passes it runs once with the sample inputs above. That run calls the models below and can cost provider rates."
           : "The graph is checked, and if it passes it runs once. That run calls the models below and can cost provider rates."}
       </Text>
@@ -242,8 +255,20 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
     role.onSelect(`${model.provider}:${model.id}`);
   const handleVideoChange = (model: VideoModelValue) =>
     role.onSelect(`${model.provider}:${model.id}`);
+  // The voice rides along with the model, so a voice picked here is the one
+  // the select shows and the one the built node speaks with.
   const handleAudioChange = (model: TTSModelValue) =>
-    role.onSelect(`${model.provider}:${model.id}`);
+    role.onSelect(`${model.provider}:${model.id}`, model.selected_voice);
+  const audioValue: TTSModelValue | string = selectedModel
+    ? {
+        type: "tts_model",
+        provider: (selectedProvider ?? "") as TTSModelValue["provider"],
+        id: selectedModel,
+        name: "",
+        voices: [],
+        selected_voice: role.selectedVoice ?? ""
+      }
+    : "";
 
   return (
     <FlexColumn gap={GAP.normal}>
@@ -322,7 +347,7 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
               onChange={handleVideoChange}
             />
           ) : role.role === "audio" ? (
-            <TTSModelSelect value={selectedModel} onChange={handleAudioChange} />
+            <TTSModelSelect value={audioValue} onChange={handleAudioChange} />
           ) : (
             <OptionCardGrid
               label={label}

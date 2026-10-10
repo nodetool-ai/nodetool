@@ -96,6 +96,24 @@ describe("real Chromium 3D capture", () => {
     const jumping = await captureGameFrame3D(frame, { resolveAsset: async () => skinnedGlb() });
     expect(jumping.png).not.toEqual(capture.png);
   }, 40_000);
+  it("captures an idle, walk and run graph blend sequence by speed", async () => {
+    const frame = blockoutFrame();
+    const transform = frame.entities[0]?.transform;
+    if (!transform) { throw new Error("Fixture pose is missing"); }
+    // The fixture rig's idle is still, jump (y) stands in for walk, and run moves along x. Weights follow a 1D speed blend.
+    const blend = (clips: { clipId: string; weight: number }[]) => ({ layers: [{ mode: "override" as const, weight: 1, current: { startTick: 0, rate: 1, loop: true, clips } }] });
+    const steps = [blend([{ clipId: "clip:0", weight: 1 }]), blend([{ clipId: "clip:0", weight: 0.5 }, { clipId: "clip:2", weight: 0.5 }]),
+      blend([{ clipId: "clip:2", weight: 0.5 }, { clipId: "clip:1", weight: 0.5 }]), blend([{ clipId: "clip:1", weight: 1 }])];
+    frame.tick = 45;
+    const captures: Uint8Array[] = [];
+    for (const animationPose of steps) {
+      frame.entities = [{ entityId: "rig", transform, previousTransform: transform, model: { assetId: "skin", castShadow: false, receiveShadow: false }, animationPose }];
+      captures.push((await captureGameFrame3D(frame, { resolveAsset: async () => skinnedGlb() })).png);
+    }
+    for (let index = 1; index < captures.length; index += 1) { expect(captures[index]).not.toEqual(captures[index - 1]); }
+    const repeated = await captureGameFrame3D(frame, { resolveAsset: async () => skinnedGlb() });
+    expect(repeated.png).toEqual(captures[captures.length - 1]);
+  }, 60_000);
 
 });
 

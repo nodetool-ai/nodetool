@@ -4,7 +4,7 @@
  * standalone page surface opened as a workspace tab.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import type { Entity } from "@nodetool-ai/protocol";
@@ -39,8 +39,24 @@ const EntityLibraryInternal: React.FC = () => {
   const { data: entities, isLoading } = useEntities();
   const deleteEntity = useDeleteEntity();
 
-  const creating = useEntityLibraryStore((state) => state.creating);
-  const setCreating = useEntityLibraryStore((state) => state.setCreating);
+  const createRequested = useEntityLibraryStore(
+    (state) => state.createRequested
+  );
+  const clearCreateRequest = useEntityLibraryStore(
+    (state) => state.clearCreateRequest
+  );
+  // Local, so the guided flow ends with this page. A request made before the
+  // tab opened (or while it is open) starts it once and is then consumed.
+  const [creating, setCreating] = useState(createRequested);
+  useEffect(() => {
+    if (createRequested) {
+      setCreating(true);
+      clearCreateRequest();
+    }
+  }, [clearCreateRequest, createRequested]);
+  // The entity save and blank reference upload cannot be stopped, so the
+  // exit waits for them rather than leaving a saved entity or orphan asset.
+  const [setupBusy, setSetupBusy] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorAssetId, setEditorAssetId] = useState<string | null>(null);
   const [editingEntity, setEditingEntity] = useState<Entity | undefined>(
@@ -51,13 +67,13 @@ const EntityLibraryInternal: React.FC = () => {
   // into another project's library.
   const draftKey = `entity-library:${projectId}`;
 
-  const handleAdd = useCallback(() => setCreating(true), [setCreating]);
+  const handleAdd = useCallback(() => setCreating(true), []);
 
   // Leaving without creating discards the draft.
   const handleBack = useCallback(() => {
     clearEntitySetupDraft(draftKey);
     setCreating(false);
-  }, [draftKey, setCreating]);
+  }, [draftKey]);
 
   const handleEdit = useCallback((entity: Entity) => {
     setEditorAssetId(entity.id);
@@ -112,6 +128,7 @@ const EntityLibraryInternal: React.FC = () => {
           variant="text"
           startIcon={<ArrowBackIcon />}
           onClick={handleBack}
+          disabled={setupBusy}
           sx={{ alignSelf: "flex-start", ml: SPACING.xl, mt: SPACING.md }}
         >
           Back to entities
@@ -120,6 +137,7 @@ const EntityLibraryInternal: React.FC = () => {
           key={draftKey}
           draftKey={draftKey}
           onFinish={() => setCreating(false)}
+          onBusyChange={setSetupBusy}
         />
       </FlexColumn>
     );

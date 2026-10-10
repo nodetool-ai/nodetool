@@ -39,7 +39,7 @@ jest.spyOn(events, "emitBootMessage").mockImplementation(() => {});
 
 jest.spyOn(utils, "fileExists").mockResolvedValue(true);
 
-jest.spyOn(torchPlatformCache, "getTorchIndexUrl").mockReturnValue("");
+jest.spyOn(torchPlatformCache, "getTorchBackend").mockReturnValue(null);
 
 const { spawn } = require("child_process");
 
@@ -152,7 +152,7 @@ describe("packageManager spawn contract", () => {
     });
 
     const { uninstallPackage } = require("../packageManager");
-    const result = await uninstallPackage("nodetool-ai/missing");
+    const result = await uninstallPackage("nodetool-ai/nodetool-missing");
     // uninstallPackage returns { success: false, message: "..." } when
     // runUvCommand rejects. The ENOENT branch surfaces a reinstall hint.
     expect(result.success).toBe(false);
@@ -170,7 +170,7 @@ describe("packageManager spawn contract", () => {
     });
 
     const { uninstallPackage } = require("../packageManager");
-    const result = await uninstallPackage("nodetool-ai/missing");
+    const result = await uninstallPackage("nodetool-ai/nodetool-missing");
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/code 1/);
   });

@@ -13,7 +13,8 @@ const COMPONENT_CONTROLS = [
     clips: { idle: { frames: [{ x: 0, y: 0, width: 1, height: 1 }], ticksPerFrame: 1 } } } },
   { component: "visualAnimation", remove: "rotationRate", value: { tracks: [], rotationRate: 1 } },
   { component: "audioSource", remove: null, value: { assetId: "control-audio", onEvent: "jump" } },
-  { component: "light2d", remove: "offset", value: { color: "#ffffff", intensity: 1, radius: 2, offset: { x: 1, y: 2 } } }
+  { component: "light2d", remove: "offset", value: { color: "#ffffff", intensity: 1, radius: 2, offset: { x: 1, y: 2 } } },
+  { component: "particles", remove: null, value: { emitters: [{ id: "spark", rate: 4 }] } }
 ];
 
 function fixture(component: string, value: unknown): GameDocument {
@@ -84,4 +85,14 @@ it("replaces tile child options and patrol options through their array boundarie
   delete next.tilemap.tiles[0].oneWay;
   delete next.behaviors[0].turnAtLedges;
   roundTrip(before, after);
+});
+
+it("round-trips adding, changing and removing the audio mixer through public JSON operations", () => {
+  const before = gameDocument.parse(createTopDownRoomGame("audio-mixer-diff"));
+  const mixed = gameDocument.parse({ ...before, audio: { mixer: { buses: { ambience: { parent: "sfx", volume: 0.6 } },
+    assetBuses: { "sfx.collect": "ui" } } } });
+  const changed = gameDocument.parse({ ...mixed, audio: { mixer: { buses: { ambience: { parent: "sfx", volume: 0.3 } },
+    transitions: [{ on: { kind: "win" }, snapshot: "base" }] } } });
+  roundTrip(before, mixed);
+  roundTrip(mixed, changed);
 });

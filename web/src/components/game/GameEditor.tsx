@@ -7,7 +7,7 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 
 import { trpc, trpcClient } from "../../trpc/client";
 import { useConflictStore } from "../../stores/ConflictStore";
-import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
+import { absorbServerGameDraft, captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
@@ -27,6 +27,7 @@ import GameInspector from "./panels/inspector/GameInspector";
 import GameSceneTree from "./panels/hierarchy/GameSceneTree";
 import GameRuntimeInspector from "./panels/inspector/GameRuntimeInspector";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
+import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
 import GameEditorShell from "./shell/GameEditorShell";
 import type { GameCommandHandler, GameCommandHandlers } from "./shell/gameCommands";
 import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
@@ -35,7 +36,6 @@ import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnost
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
 import GameViewport from "./viewport2d/GameViewport";
 import { pastedEntities } from "./gameClipboard";
-import { pressGameKey } from "./gameInputFrame";
 import { EMPTY_INPUT, useGamePlaySession } from "./useGamePlaySession";
 import { localTransform, selectionRoots, worldTransforms } from "./viewport2d/viewportGeometry";
 
@@ -66,7 +66,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const [editorSceneId, setEditorSceneId] = useState<string | null>(null);
   const activeSceneId = document?.scenes.some((scene) => scene.id === editorSceneId)
     ? editorSceneId : document?.entrySceneId ?? null;
-  const { canvasRef, keysRef, newlyPressedRef, playing, playDocument, playState, backend, error, setError,
+  const { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
     scriptError: hostScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, stop,
     save, load, replayBeforeError, runtimeEntities } = useGamePlaySession({ refId, active, document,
       editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
@@ -233,6 +233,17 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     finally { setSaving(false); }
   };
 
+  // A generation runs for minutes while the user keeps editing and autosave keeps saving, so the
+  // server binds onto whatever draft is current and the result is merged in, never loaded over.
+  const serverAssetEdit = async (edit: () => Promise<unknown>): Promise<void> => {
+    await edit();
+    await pullGameDraft(savingPromiseRef, async () => {
+      absorbServerGameDraft(refId, await trpcClient.games.getDraft.query({ id: refId }));
+      loadedTokenRef.current = getGameDraftStore(refId).getState().baseUpdatedAt;
+    });
+    await queries.games.draftChanges.invalidate({ id: refId });
+  };
+
   const publish = async () => {
     if (!data || !document) return;
     setSaving(true);
@@ -363,7 +374,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
 
   const onViewportKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>): void => {
     if (!active || !playDocument) return;
-    if (pressGameKey(keysRef.current, newlyPressedRef.current, event.code, event.key, playDocument.inputActions)) {
+    if (inputRef.current.handlesKey(playDocument, event.code, event.key)) {
+      inputRef.current.keyDown(event.code, event.key);
       event.preventDefault();
     }
   };
@@ -380,7 +392,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     return <EmptyState variant="error" title="Could not load game" description={loadError?.message ?? "The game may have been deleted."} />;
   }
 
-  return <GameEditorShell layoutStore={layoutStore} dimension="2d"
+  return <GameEditorShell layoutStore={layoutStore} dimension="2d" active={active}
     toolbar={{
         name: data.game.name,
         playing: playing,
@@ -443,8 +455,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
             onCamera={onCamera}
             onViewportAspect={onViewportAspect}
             onKeyDown={onViewportKeyDown}
-            onKeyUp={(event) => keysRef.current.delete(event.code)}
-            onBlur={() => { keysRef.current.clear(); newlyPressedRef.current.clear(); }} />
+            onKeyUp={(event) => inputRef.current.keyUp(event.code)}
+            onBlur={() => inputRef.current.release()} />
       </> },
       { id: "scripts", visible: Boolean(scriptKey && activeScript && scriptBehavior?.kind === "script"),
         node: scriptKey && activeScript && scriptBehavior?.kind === "script" ? <>
@@ -457,6 +469,9 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
                 runEntityStats={diagnostics.byEntity}
                 onChange={(source) => onOps([{ op: "set_script", entity_id: activeScript.id, scene_id: scriptKey.sceneId, index: scriptKey.index, source }])} />
         </> : null },
+      { id: "assets", visible: !isMobile,
+        node: <GameAssetBrowser gameId={refId} document={document} runServerEdit={serverAssetEdit} onOps={onOps}
+          onSelectEntity={(_sceneId, entityId) => selectEntity(entityId, false)} onAskAssistant={assistant.draft} /> },
       { id: "inspector", visible: !isMobile,
         node: <>
           {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}

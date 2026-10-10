@@ -638,6 +638,78 @@ describe("useTimelineAutosave", () => {
     ).toBe(4_000);
   });
 
+  it("merges and retries a closing save that hits a CAS conflict after the store reset (F32)", async () => {
+    const baseClip = makeClip({
+      id: "clip-local",
+      trackId: "track-1",
+      mediaType: "video",
+      sourceType: "imported",
+      durationMs: 4_000
+    });
+    const externalClip = makeClip({
+      id: "clip-external",
+      trackId: "track-1",
+      mediaType: "text",
+      sourceType: "generated",
+      startMs: 4_000,
+      durationMs: 1_000
+    });
+    const sequence = {
+      id: "seq-1",
+      projectId: "proj-1",
+      name: "Seq",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      durationMs: 4_000,
+      tracks: [makeTrack({ id: "track-1", type: "video" })],
+      clips: [baseClip],
+      markers: [],
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z"
+    } satisfies TimelineSequence;
+    useTimelineStore.getState().loadSequence(sequence);
+    updateMutate
+      .mockRejectedValueOnce(new Error("Timeline was modified since last read"))
+      .mockResolvedValueOnce({ updatedAt: "2026-01-01T00:00:02Z" });
+    getQuery.mockResolvedValue({
+      ...sequence,
+      clips: [baseClip, externalClip],
+      durationMs: 5_000,
+      updatedAt: "2026-01-01T00:00:01Z"
+    });
+    const { unmount } = renderHook(() =>
+      useTimelineAutosave({ debounceMs: 60_000 })
+    );
+
+    act(() => {
+      useTimelineStore
+        .getState()
+        .patchClip("clip-local", { durationMs: 2_000 });
+    });
+    // The editor closes: a sibling cleanup resets the store first.
+    act(() => {
+      useTimelineStore.getState().reset();
+    });
+    unmount();
+
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(2));
+    const retry = updateMutate.mock.calls[1][0] as {
+      id: string;
+      baseUpdatedAt?: string;
+      document: { clips: TimelineSequence["clips"] };
+    };
+    expect(retry.id).toBe("seq-1");
+    expect(retry.baseUpdatedAt).toBe("2026-01-01T00:00:01Z");
+    expect(retry.document.clips.map((clip) => clip.id)).toEqual([
+      "clip-local",
+      "clip-external"
+    ]);
+    expect(
+      retry.document.clips.find((clip) => clip.id === "clip-local")?.durationMs
+    ).toBe(2_000);
+  });
+
   it("offers a same-clip CAS conflict for explicit resolution", async () => {
     const track = makeTrack({ id: "track-1", type: "video" });
     const baseClip = makeClip({

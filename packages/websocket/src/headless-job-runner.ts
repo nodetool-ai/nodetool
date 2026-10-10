@@ -189,7 +189,11 @@ export async function startHeadlessJob(
     // is only the local assets dir on a `file` backend. Without it a triggered
     // run on an S3/Supabase deployment reads every uploaded input as empty.
     assetStorage: getAssetAdapter(),
-    workspace
+    workspace,
+    // Nothing pops this queue: the result comes from the kernel's own capped
+    // message list. Retaining it kept every emitted message, stream chunks
+    // included, until a long triggered run finished.
+    retainMessageQueue: false
   });
   context.setModelInterfaces(documentModelInterfaces());
   // Nobody is watching a triggered run, so an agent loop inside it gates in

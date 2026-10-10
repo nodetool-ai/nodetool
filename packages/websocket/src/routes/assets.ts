@@ -3,7 +3,7 @@ import multipart from "@fastify/multipart";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "../lib/storage.js";
 import { handleLocalAssetUpload } from "../lib/local-asset-upload.js";
-import { bridge } from "../lib/bridge.js";
+import { bridge, streamedResponse } from "../lib/bridge.js";
 import {
   getUserId,
   handleAssetsRoot,
@@ -17,6 +17,13 @@ import { ApiErrorCode, apiError } from "../error-codes.js";
 interface RouteOptions {
   apiOptions: HttpApiOptions;
 }
+
+/**
+ * How long a Python package metadata scan answers package-asset lookups.
+ * The scan walks the metadata roots synchronously, and the route is public,
+ * so a scan per request let any caller block the event loop with misses.
+ */
+const PACKAGE_FOLDERS_TTL_MS = 60_000;
 
 /**
  * Assets REST plugin — only binary + multipart endpoints remain here.
@@ -35,6 +42,27 @@ interface RouteOptions {
 const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;
   const localUploads = getAssetAdapter() instanceof FileStorageAdapter;
+
+  let packageFolders: { loadedAt: number; byName: Map<string, string> } | null =
+    null;
+  const packageSourceFolder = (pkgName: string): string | undefined => {
+    const now = Date.now();
+    if (
+      !packageFolders ||
+      now - packageFolders.loadedAt > PACKAGE_FOLDERS_TTL_MS
+    ) {
+      const loaded = loadPythonPackageMetadata({
+        roots: apiOptions.metadataRoots,
+        maxDepth: apiOptions.metadataMaxDepth
+      });
+      const byName = new Map<string, string>();
+      for (const pkg of loaded.packages) {
+        if (pkg.sourceFolder) byName.set(pkg.name, pkg.sourceFolder);
+      }
+      packageFolders = { loadedAt: now, byName };
+    }
+    return packageFolders.byName.get(pkgName);
+  };
   if (localUploads) {
     await app.register(multipart);
   }
@@ -151,14 +179,10 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
           if (hit) break;
         }
         if (!hit) {
-          const loaded = loadPythonPackageMetadata({
-            roots: apiOptions.metadataRoots,
-            maxDepth: apiOptions.metadataMaxDepth
-          });
-          const pkg = loaded.packages.find((p) => p.name === pkgName);
-          if (pkg?.sourceFolder) {
+          const sourceFolder = packageSourceFolder(pkgName);
+          if (sourceFolder) {
             hit = tryServe(
-              resolve(`${pkg.sourceFolder}/nodetool/assets/${pkgName}`)
+              resolve(`${sourceFolder}/nodetool/assets/${pkgName}`)
             );
           }
         }
@@ -180,36 +204,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         const fileStat = { size: hit.size, mtimeMs: hit.mtimeMs };
         const contentType =
           mimeTypes[extname(aName).toLowerCase()] ?? "application/octet-stream";
-        const stream = createReadStream(assetPath);
-        const webStream = new ReadableStream({
-          start(controller) {
-            stream.on("data", (chunk) => {
-              try {
-                controller.enqueue(chunk);
-              } catch {
-                stream.destroy();
-              }
-            });
-            stream.on("end", () => {
-              try {
-                controller.close();
-              } catch {
-                /* already closed */
-              }
-            });
-            stream.on("error", (err) => {
-              try {
-                controller.error(err);
-              } catch {
-                /* already errored */
-              }
-            });
-          },
-          cancel() {
-            stream.destroy();
-          }
-        });
-        return new Response(webStream, {
+        return streamedResponse(createReadStream(assetPath), {
           status: 200,
           headers: {
             "content-type": contentType,
@@ -219,6 +214,8 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
           }
         });
       });
+      // A streamed file body is still being sent when bridge returns.
+      return reply;
     }
   );
 

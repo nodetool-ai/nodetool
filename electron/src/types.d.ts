@@ -180,7 +180,6 @@ declare global {
         install: (
           location: string,
           packages: PythonPackages,
-          modelBackend?: ModelBackend,
           installLlamaCpp?: boolean,
         ) => Promise<void>;
         onLocationPrompt: (
@@ -215,21 +214,6 @@ declare global {
           },
         ) => Promise<void>;
         beep: () => void;
-      };
-
-      // Generic localhost-only HTTP proxy via main process
-      localhostProxy: {
-        request: (
-          request: LocalhostProxyRequest,
-        ) => Promise<LocalhostProxyResponse>;
-        wsOpen: (
-          request: LocalhostProxyWsOpenRequest,
-        ) => Promise<LocalhostProxyWsOpenResponse>;
-        wsSend: (request: LocalhostProxyWsSendRequest) => Promise<void>;
-        wsClose: (request: LocalhostProxyWsCloseRequest) => Promise<void>;
-        onWsEvent: (
-          callback: (data: LocalhostProxyWsEvent) => void,
-        ) => () => void;
       };
 
       // Settings
@@ -444,63 +428,6 @@ export interface FileExplorerResult {
   message?: string;
 }
 
-export type LocalhostProxyMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE"
-  | "HEAD"
-  | "OPTIONS";
-
-export type LocalhostProxyResponseType = "text" | "json";
-
-export interface LocalhostProxyRequest {
-  url: string;
-  method?: LocalhostProxyMethod;
-  headers?: Record<string, string>;
-  body?: string;
-  responseType?: LocalhostProxyResponseType;
-}
-
-export interface LocalhostProxyResponse {
-  status: number;
-  ok: boolean;
-  headers: Record<string, string>;
-  data: unknown;
-  error?: string;
-}
-
-export interface LocalhostProxyWsOpenRequest {
-  url: string;
-  headers?: Record<string, string>;
-  protocols?: string[];
-}
-
-export interface LocalhostProxyWsOpenResponse {
-  connectionId: string;
-}
-
-export interface LocalhostProxyWsSendRequest {
-  connectionId: string;
-  data: string;
-}
-
-export interface LocalhostProxyWsCloseRequest {
-  connectionId: string;
-  code?: number;
-  reason?: string;
-}
-
-export interface LocalhostProxyWsEvent {
-  connectionId: string;
-  event: "open" | "message" | "error" | "close";
-  data?: string;
-  error?: string;
-  code?: number;
-  reason?: string;
-}
-
 // IPC Channel names as const enum for type safety
 export enum IpcChannels {
   GET_SERVER_STATE = "get-server-state",
@@ -603,17 +530,10 @@ export enum IpcChannels {
   CLIPBOARD_GET_CONTENT_INFO = "clipboard-get-content-info",
   FILE_READ_AS_DATA_URL = "file-read-as-data-url",
   FILE_READ_BUFFER = "file-read-buffer",
-  LOCALHOST_PROXY_REQUEST = "localhost-proxy-request",
-  LOCALHOST_PROXY_WS_OPEN = "localhost-proxy-ws-open",
-  LOCALHOST_PROXY_WS_SEND = "localhost-proxy-ws-send",
-  LOCALHOST_PROXY_WS_CLOSE = "localhost-proxy-ws-close",
-  LOCALHOST_PROXY_WS_EVENT = "localhost-proxy-ws-event",
   FRONTEND_LOG = "frontend-log",
   // MCP bundle (.mcpb) install for Claude Desktop
   MCP_INSTALL_BUNDLE = "mcp-install-bundle",
 }
-
-export type ModelBackend = "ollama" | "llama_cpp" | "none";
 
 /** Result of handing the bundled `.mcpb` to the OS for Claude Desktop. */
 export interface McpBundleInstallResult {
@@ -632,7 +552,6 @@ export interface McpBundleInstallResult {
 export interface InstallToLocationData {
   location: string;
   packages: PythonPackages;
-  modelBackend?: ModelBackend;
   installLlamaCpp?: boolean;
 }
 
@@ -779,10 +698,6 @@ export interface IpcRequest {
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: void;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string; // filePath
   [IpcChannels.FILE_READ_BUFFER]: string; // filePath
-  [IpcChannels.LOCALHOST_PROXY_REQUEST]: LocalhostProxyRequest;
-  [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenRequest;
-  [IpcChannels.LOCALHOST_PROXY_WS_SEND]: LocalhostProxyWsSendRequest;
-  [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: LocalhostProxyWsCloseRequest;
   [IpcChannels.FRONTEND_LOG]: FrontendLogRequest;
   [IpcChannels.MCP_INSTALL_BUNDLE]: void;
 }
@@ -879,10 +794,6 @@ export interface IpcResponse {
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: ClipboardContentInfo;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string | null;
   [IpcChannels.FILE_READ_BUFFER]: { buffer: Buffer; mimeType: string } | null;
-  [IpcChannels.LOCALHOST_PROXY_REQUEST]: LocalhostProxyResponse;
-  [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenResponse;
-  [IpcChannels.LOCALHOST_PROXY_WS_SEND]: void;
-  [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: void;
   [IpcChannels.FRONTEND_LOG]: void;
   [IpcChannels.MCP_INSTALL_BUNDLE]: McpBundleInstallResult;
 }
@@ -898,7 +809,6 @@ export interface IpcEvents {
   [IpcChannels.INSTALL_LOCATION_PROMPT]: InstallLocationData;
   [IpcChannels.MENU_EVENT]: MenuEventData;
   [IpcChannels.PACKAGE_UPDATES_AVAILABLE]: PackageUpdateInfo[];
-  [IpcChannels.LOCALHOST_PROXY_WS_EVENT]: LocalhostProxyWsEvent;
 }
 
 export type PythonPackages = string[];

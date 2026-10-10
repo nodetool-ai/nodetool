@@ -1297,6 +1297,12 @@ asset slots. `SlotPrompt` prepares a request for one slot. `SpriteSheet`,
 the project workspace. Staging does not alter a published game revision.
 `install_native_game_asset` installs a selected candidate binding into the draft
 with a draft timestamp check. Existing scene and behavior edits remain in place.
+`browse_native_game_assets` lists the draft's assets with where each is used,
+its prefabs and scenes, the staged candidates, and each slot's generation
+prompt. With `digest` and `slot` it returns an installable binding for one
+candidate. The editor's Assets panel calls the same catalog and filter. Tests:
+`packages/agents/tests/capabilities-game-asset-browser.test.ts` and
+`packages/websocket/tests/trpc-game-asset-browser.test.ts`.
 
 Agents can build a complete document with `@nodetool-ai/sandbox-game` and save
 it through `edit_native_game`'s atomic `set_document` op. The builder supplies
@@ -2380,9 +2386,25 @@ IO- and CPU-bound work gets its own spans, tagged `nodetool.task.kind` =
 | `subprocess.run` | cpu | `runHostBinary`, the video nodes' ffmpeg/ffprobe, server-side thumbnails and audio extraction |
 | `image.encode_png` / `rasterize_svg` / `extract_region` / `thumbnail` | cpu | Image codec helpers and asset thumbnails |
 | `audio.peaks`, `video.encode_proxy`, `ffmpeg.trim_video_window` | cpu | Waveform peaks, preview proxies, video-edit source windows |
+| `storage.store` / `retrieve` / `delete` / `list` | io | A run's asset storage (`ProcessingContext.storage` and `assetStorage`), tagged with the backend class |
+
+Other activity spans:
+
+| Span | Where |
+|---|---|
+| `provider.<method>` | Every non-chat provider call: image, video, audio, 3D, embeddings and rerank. Carries `gen_ai.system`, `gen_ai.operation.name` and `gen_ai.request.model`, never the prompt |
+| `python.execute` / `python.execute_stream` | A node run in the Python worker, with `node.type` |
+| `ws.command` | Every `/ws` command except `stream_input` frames, with `rpc.method`. Like an API request span, it starts its own trace |
 
 Wrap new IO or CPU work with `withTaskSpan(kind, name, attributes, fn)` from
 `@nodetool-ai/runtime`. It runs `fn` directly when telemetry is off.
+
+Declare a new span name in `SAFE_SPAN_NAMES` and each metadata attribute in
+`SAFE_TRACE_ATTRIBUTES` (`packages/protocol/src/run-trace.ts`). An undeclared
+name or attribute is stored as owner content, so external sinks and retained
+summaries see `content.span` without it.
+`packages/protocol/tests/run-trace-span-names.test.ts` fails when a literal
+span name in the source is undeclared.
 
 Every `llm.chat` / `llm.stream` span carries `gen_ai.usage.input_tokens`,
 `gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, and

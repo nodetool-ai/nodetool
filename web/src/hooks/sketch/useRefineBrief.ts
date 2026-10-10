@@ -30,7 +30,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
 import { rpcRequest } from "../../lib/websocket/rpcRequest";
-import { useSketchStore } from "../../components/sketch/state/useSketchStore";
+import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import {
   MAX_IMAGE_REFERENCES,
   imageReferences,
@@ -200,6 +200,10 @@ export function useRefineBrief(): RefineBriefResult {
   // stage that asked for it, so an older answer must neither replace the brief
   // a newer one wrote nor clear the wait a newer one owns.
   const requestRef = useRef(0);
+  // The document this flow edits. `useSketchStore.getState()` follows the
+  // focused tab, so an answer that lands after the creator switched tabs
+  // would be measured against, and written into, another document.
+  const editor = useSketchInstance().editor;
 
   const controllerRef = useRef<AbortController | null>(null);
   const cancel = useCallback(() => controllerRef.current?.abort(), []);
@@ -219,7 +223,7 @@ export function useRefineBrief(): RefineBriefResult {
         controller.abort();
       }
       const token = (requestRef.current += 1);
-      const setup = useSketchStore.getState().document.setup;
+      const setup = editor.getState().document.setup;
       const originStage = setup?.stage;
       const chosen = useGlobalChatStore.getState().selectedModel;
       setError(null);
@@ -245,11 +249,11 @@ export function useRefineBrief(): RefineBriefResult {
         if (
           controller.signal.aborted ||
           token !== requestRef.current ||
-          useSketchStore.getState().document.setup?.stage !== originStage
+          editor.getState().document.setup?.stage !== originStage
         ) {
           return { ok: false, error: null };
         }
-        useSketchStore.getState().setSetup({
+        editor.getState().setSetup({
           refined,
           stage: "review",
           refined_from: briefInputSignature(setup)
@@ -272,7 +276,7 @@ export function useRefineBrief(): RefineBriefResult {
         }
       }
     },
-    []
+    [editor]
   );
 
   return { expandBrief, cancel, refining, error, model };

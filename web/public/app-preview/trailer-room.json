@@ -96,7 +96,7 @@
                             "props": {
                               "id": "model-beats-ag-model",
                               "binding": "op:beats/prop:ag#model",
-                              "label": "2  Agent model",
+                              "label": "Agent model",
                               "modelKind": "language_model",
                               "events": []
                             }
@@ -106,7 +106,7 @@
                             "props": {
                               "id": "model-shots-ag-model",
                               "binding": "op:shots/prop:ag#model",
-                              "label": "2  Agent model",
+                              "label": "Agent model",
                               "modelKind": "language_model",
                               "events": []
                             }
@@ -346,7 +346,7 @@
                             "props": {
                               "id": "model-score-score-model",
                               "binding": "op:score/prop:score#model",
-                              "label": "3  Write the score model",
+                              "label": "Write the score model",
                               "modelKind": "music_model",
                               "events": []
                             }
@@ -618,7 +618,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -636,8 +636,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 358
               },
               "zIndex": 0,
               "width": 300,
@@ -667,7 +667,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 365
               },
               "zIndex": 0,
               "width": 300,
@@ -685,8 +685,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,
@@ -714,8 +714,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 69
+                "x": 0,
+                "y": 483
               },
               "zIndex": 0,
               "width": 280,
@@ -735,8 +735,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 343
+                "x": 0,
+                "y": 708
               },
               "zIndex": 0,
               "width": 280,
@@ -758,8 +758,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 619
+                "x": 0,
+                "y": 933
               },
               "zIndex": 0,
               "selectable": true,
@@ -778,8 +778,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2640,
-                "y": 384
+                "x": 2792,
+                "y": 714
               },
               "title": "8️⃣ Trailer output",
               "selectable": true
@@ -808,7 +808,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 442
               },
               "zIndex": 0,
               "width": 280,
@@ -829,7 +829,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 808
               },
               "zIndex": 0,
               "width": 280,
@@ -847,8 +847,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2800,
-                "y": 240
+                "x": 3140,
+                "y": 615
               },
               "zIndex": 0,
               "width": 240,

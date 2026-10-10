@@ -438,6 +438,31 @@ const MEMORY_BLOCK_LIMIT = 100;
  */
 const SESSION_PROBE_WINDOW = 50;
 
+/** The most rows of a thread a turn loads as its history. */
+const THREAD_HISTORY_LIMIT = 1000;
+
+/**
+ * The thread's newest rows, oldest first. An ascending page would return the
+ * oldest rows instead, and a thread past the limit would then lose its latest
+ * turns, the user message just sent among them.
+ *
+ * A window cut by the limit starts at its first user row, so it never opens on
+ * a tool result whose call fell outside it.
+ */
+export async function loadRecentThreadRows(
+  threadId: string,
+  limit: number = THREAD_HISTORY_LIMIT
+): Promise<Message[]> {
+  const [newestFirst] = await Message.paginate(threadId, {
+    reverse: true,
+    limit
+  });
+  const rows = newestFirst.reverse();
+  if (rows.length < limit) return rows;
+  const firstUser = rows.findIndex((row) => row.role === "user");
+  return firstUser > 0 ? rows.slice(firstUser) : rows;
+}
+
 /**
  * Output-token worst case assumed when reserving a chat turn. The chat loop
  * sends no `maxTokens`, so nothing bounds the answer from this side; the
@@ -1555,7 +1580,7 @@ export class ChatTurnHandler {
       ? data.workflow_target
       : null;
     if (workflowTarget === "workflow") {
-      await this.handleWorkflowMessage(data, requestSeq, signal);
+      await this.handleWorkflowMessage(data, turnMessage.id, requestSeq, signal);
       return;
     }
 
@@ -1728,7 +1753,7 @@ export class ChatTurnHandler {
         sessionCheckpointOverride =
           probeSession.checkpoint + 1 + newTurns.length;
         loadFullHistory = async () => {
-          const [rows] = await Message.paginate(threadId, { limit: 1000 });
+          const rows = await loadRecentThreadRows(threadId);
           const full = convertDbMessages(historySinceCompaction(rows));
           full.unshift(systemChatMessage());
           const scope = getRunTraceScope();
@@ -1745,7 +1770,7 @@ export class ChatTurnHandler {
         // all (a far-back session still resumes via the slice path). A session
         // older than the compaction cut is not one of them: searching only the
         // compacted slice is what keeps the newest marker winning here too.
-        const [rows] = await Message.paginate(threadId, { limit: 1000 });
+        const rows = await loadRecentThreadRows(threadId);
         const kept = historySinceCompaction(rows);
         chatHistory = convertDbMessages(kept);
         priorSession = lastMatchingProviderSession(kept, providerId, model);
@@ -2566,7 +2591,7 @@ export class ChatTurnHandler {
      * turn that cannot run at all.
      */
     const compactThread = async (reason: string): Promise<boolean> => {
-      const [rows] = await Message.paginate(threadId, { limit: 1000 });
+      const rows = await loadRecentThreadRows(threadId);
       const cut = chooseCompactionCut(
         historySinceCompaction(rows),
         compaction.keepUserTurns,
@@ -3938,6 +3963,7 @@ export class ChatTurnHandler {
    */
   private async handleWorkflowMessage(
     data: Record<string, unknown>,
+    turnMessageId: string,
     requestSeq?: number,
     signal?: AbortSignal
   ): Promise<void> {
@@ -3997,7 +4023,7 @@ export class ChatTurnHandler {
         "messages";
 
       // Build chat history for params — matches Python
-      const [dbMessages] = await Message.paginate(threadId, { limit: 1000 });
+      const dbMessages = await loadRecentThreadRows(threadId);
       const inheritedTrace = getRunTraceScope();
       seedStoredToolProvenance(dbMessages);
       if (inheritedTrace) { await registerRunTraceParents(userId, inheritedTrace.runId, dbMessages.map((m) => ({ kind: "message" as const, id: m.id }))); }
@@ -4021,7 +4047,14 @@ export class ChatTurnHandler {
       // Prepare params — matches Python's WorkflowMessageProcessor
       const params: Record<string, unknown> = {
         [messageInputName]: currentMessage,
-        [messagesInputName]: [...chatHistorySerialized, currentMessage]
+        // The stored history already holds this turn's message; it is appended
+        // once, as `currentMessage`.
+        [messagesInputName]: [
+          ...chatHistorySerialized.filter(
+            (_, i) => dbMessages[i].id !== turnMessageId
+          ),
+          currentMessage
+        ]
       };
       if (isObjectLike(data.params)) {
         Object.assign(params, data.params as Record<string, unknown>);

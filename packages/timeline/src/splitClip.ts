@@ -199,7 +199,7 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   delete leftClip.fadeOutMs;
   delete leftClip.fadeOutShape;
   if (captions) {
-    leftClip.caption = { words: captions.left };
+    leftClip.caption = { ...clip.caption, words: captions.left };
   }
   if (animations) {
     leftClip.animations = animations.left;
@@ -220,7 +220,7 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   delete rightClip.fadeInShape;
   delete rightClip.transitionIn;
   if (captions) {
-    rightClip.caption = { words: captions.right };
+    rightClip.caption = { ...clip.caption, words: captions.right };
   }
   if (animations) {
     rightClip.animations = animations.right;

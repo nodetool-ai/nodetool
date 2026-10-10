@@ -1,7 +1,10 @@
 import { act, renderHook, fireEvent } from "@testing-library/react";
 import { installGlobal } from "../../../../test-utils/doubles";
 import { useClipDrag } from "../useClipDrag";
-import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import {
+  getTimelineTemporal,
+  useTimelineStore
+} from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 
 if (!window.PointerEvent) {
@@ -116,6 +119,50 @@ test("a secondary touch cannot start another clip drag", () => {
   fireEvent.pointerMove(window, {
     buttons: 1,
     clientX: 130,
+    clientY: 20,
+    pointerId: 1,
+    pointerType: "touch"
+  });
+  fireEvent.pointerUp(window, { pointerId: 1, pointerType: "touch" });
+  expect(useTimelineStore.getState().clips[0].startMs).toBe(2000);
+});
+
+test("a drag ended by pointercancel puts the clip back and leaves no undo entry", () => {
+  const pastBefore = getTimelineTemporal().pastStates.length;
+  setup();
+  fireEvent.pointerMove(window, {
+    buttons: 1,
+    clientX: 160,
+    clientY: 20,
+    pointerId: 1,
+    pointerType: "touch"
+  });
+  expect(useTimelineStore.getState().clips[0].startMs).toBe(2600);
+  fireEvent.pointerCancel(window, { pointerId: 1, pointerType: "touch" });
+  expect(useTimelineStore.getState().clips[0].startMs).toBe(2000);
+  expect(getTimelineTemporal().pastStates.length).toBe(pastBefore);
+});
+
+test("a second touch ends the clip drag so a pinch does not move the clip", () => {
+  setup();
+  fireEvent.pointerMove(window, {
+    buttons: 1,
+    clientX: 130,
+    clientY: 20,
+    pointerId: 1,
+    pointerType: "touch"
+  });
+  fireEvent.pointerDown(window, {
+    clientX: 300,
+    clientY: 20,
+    pointerId: 2,
+    pointerType: "touch"
+  });
+  expect(useTimelineStore.getState().clips[0].startMs).toBe(2000);
+  // The first finger keeps moving as part of the pinch.
+  fireEvent.pointerMove(window, {
+    buttons: 1,
+    clientX: 60,
     clientY: 20,
     pointerId: 1,
     pointerType: "touch"
