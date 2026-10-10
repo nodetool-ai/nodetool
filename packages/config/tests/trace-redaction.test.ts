@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { describe, expect, it } from "vitest";
-import { redactTraceText } from "../src/trace-redaction.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { redactTraceText, redactTraceTextWith, traceRedactionSecrets } from "../src/trace-redaction.js";
 
 describe("redactTraceText", () => {
   it.each(["", "RSA ", "EC ", "ENCRYPTED "])("masks a %sprivate key and preserves surrounding text", (label) => {
@@ -33,4 +33,26 @@ describe("redactTraceText", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toBe("[REDACTED:private-key]");
   }, 10_000);
+});
+
+describe("traceRedactionSecrets", () => {
+  afterEach(() => { vi.unstubAllEnvs(); });
+
+  it("collects credential-named environment values and the caller's secrets, longest first", () => {
+    vi.stubEnv("SERVICE_API_KEY", "env-key-value");
+    vi.stubEnv("SERVICE_LABEL", "not-a-credential");
+    const secrets = traceRedactionSecrets(new Set(["caller-secret-longer-value", ""]));
+    expect(secrets).toContain("env-key-value");
+    expect(secrets).not.toContain("not-a-credential");
+    expect(secrets).not.toContain("");
+    expect(secrets.indexOf("caller-secret-longer-value")).toBeLessThan(secrets.indexOf("env-key-value"));
+  });
+
+  it("redacts with collected secrets exactly as redactTraceText does", () => {
+    vi.stubEnv("SERVICE_TOKEN", "env-token-value");
+    const text = "env-token-value and caller-secret with Bearer abcdefghijkl";
+    const callerSecrets = new Set(["caller-secret"]);
+    expect(redactTraceTextWith(text, traceRedactionSecrets(callerSecrets))).toBe(redactTraceText(text, callerSecrets));
+    expect(redactTraceText(text, callerSecrets)).toBe("[REDACTED:secret] and [REDACTED:secret] with [REDACTED:authorization]");
+  });
 });

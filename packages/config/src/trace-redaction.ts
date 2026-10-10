@@ -23,16 +23,29 @@ export function redactPrivateKeys(text: string): string {
   return parts.join("");
 }
 
-/** Credential-only fallback used before a database-backed trace sanitizer is installed. */
-export function redactTraceText(text: string, secretValues: ReadonlySet<string> = new Set()): string {
-  let value = text;
+/**
+ * The values trace redaction masks, longest first: the caller's secrets and
+ * every credential-named environment value. Reading `process.env` costs more
+ * than the rest of a redaction, so a caller redacting many strings at once
+ * collects these once and passes them to {@link redactTraceTextWith}.
+ */
+export function traceRedactionSecrets(secretValues: ReadonlySet<string> = new Set()): readonly string[] {
   const secrets = new Set(secretValues);
   for (const [key, secret] of Object.entries(safeProcessEnv())) {
     if (secret && secret.length >= 8 && /(?:KEY|TOKEN|SECRET|PASSWORD|PASS|CREDENTIALS?|DATABASE_URL|_DSN)$/i.test(key)) { secrets.add(secret); }
   }
-  for (const secret of [...secrets].sort((a, b) => b.length - a.length)) {
-    if (secret.length > 0) { value = value.split(secret).join("[REDACTED:secret]"); }
-  }
+  return [...secrets].filter((secret) => secret.length > 0).sort((a, b) => b.length - a.length);
+}
+
+/** Credential-only fallback used before a database-backed trace sanitizer is installed. */
+export function redactTraceText(text: string, secretValues: ReadonlySet<string> = new Set()): string {
+  return redactTraceTextWith(text, traceRedactionSecrets(secretValues));
+}
+
+/** {@link redactTraceText} against secrets already collected by {@link traceRedactionSecrets}. */
+export function redactTraceTextWith(text: string, secrets: readonly string[]): string {
+  let value = text;
+  for (const secret of secrets) { value = value.split(secret).join("[REDACTED:secret]"); }
   return redactPrivateKeys(value)
     .replace(/\b(?:Bearer|Basic|Token)\s+[A-Za-z0-9._~+/=-]{8,}/gi, "[REDACTED:authorization]")
     .replace(/\b(?:sk-[A-Za-z0-9_-]{16,}|(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|hf_[A-Za-z0-9]{20,}|r8_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{35}|(?:AKIA|ASIA)[A-Z0-9]{16})\b/g, "[REDACTED:api-key]")

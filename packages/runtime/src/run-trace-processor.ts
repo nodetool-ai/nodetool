@@ -2,7 +2,7 @@ import { context, trace, type Attributes, type Context, type Span as ApiSpan } f
 import type { ReadableSpan, Span, SpanProcessor, SpanExporter } from "@opentelemetry/sdk-trace-base";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { isTraceContentKey, splitTraceRecord, TRACE_STRING_LIMIT, TRACE_CONTENT_BYTE_LIMIT, type TraceRecord, type RunTraceRegistration, type RunTraceUpdate } from "@nodetool-ai/protocol";
-import { redactTraceText, setLogHook, safeProcessEnv, type LogEntry } from "@nodetool-ai/config";
+import { redactTraceText, redactTraceTextWith, setLogHook, safeProcessEnv, traceRedactionSecrets, type LogEntry } from "@nodetool-ai/config";
 import { spanToRecord } from "./span-record.js";
 import { bindSpanRunTraceScope, getRunTraceScope, isRunTraceSuppressed, recordTraceEvent, withoutRunTrace, type RunTraceScope } from "./run-trace-context.js";
 import { sanitizeTraceContentText, stringifyTraceContent } from "./run-trace-serialization.js";
@@ -62,11 +62,12 @@ function redactRecord(record: TraceRecord, options: TraceSanitizerOptions): Trac
     return sanitizedEvent;
   }) };
   if (store) { return store.sanitize(record, options); }
+  const secrets = traceRedactionSecrets(options.secretValues);
   let bytes = 0;
   const clean = (value: unknown, depth: number): unknown => {
     if (depth > 12 || bytes >= TRACE_CONTENT_BYTE_LIMIT) { return "[truncated]"; }
     if (typeof value === "string") {
-      const text = redactTraceText(value, options.secretValues).slice(0, TRACE_STRING_LIMIT);
+      const text = redactTraceTextWith(value, secrets).slice(0, TRACE_STRING_LIMIT);
       bytes += text.length * 2;
       return text;
     }
@@ -80,15 +81,15 @@ function redactRecord(record: TraceRecord, options: TraceSanitizerOptions): Trac
     return value;
   };
   const status = { ...record.status };
-  if (record.status.message) { status.message = redactTraceText(record.status.message, options.secretValues).slice(0, TRACE_STRING_LIMIT); }
+  if (record.status.message) { status.message = redactTraceTextWith(record.status.message, secrets).slice(0, TRACE_STRING_LIMIT); }
   const sanitized = {
     ...record,
-    name: redactTraceText(record.name, options.secretValues).slice(0, 200),
+    name: redactTraceTextWith(record.name, secrets).slice(0, 200),
     status,
     attributes: cleanAttributes(record.attributes, clean),
     resource: cleanAttributes(record.resource, clean),
     events: record.events.map((event) => {
-      const sanitizedEvent = { ...event, name: redactTraceText(event.name, options.secretValues).slice(0, 200) };
+      const sanitizedEvent = { ...event, name: redactTraceTextWith(event.name, secrets).slice(0, 200) };
       if (event.attributes) { sanitizedEvent.attributes = cleanAttributes(event.attributes, clean); }
       return sanitizedEvent;
     })
