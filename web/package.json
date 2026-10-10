@@ -48,7 +48,7 @@
     "dompurify": "^3.4.16",
     "elkjs": "^0.9.3",
     "fflate": "^0.8.2",
-    "katex": "^0.16.47",
+    "katex": "^0.18.2",
     "lexical": "^0.46.0",
     "mediabunny": "^1.46.0",
     "monaco-editor": "^0.55.1",
