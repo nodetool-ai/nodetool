@@ -124,11 +124,24 @@ export interface ShotRenderOutcome {
   error?: string;
 }
 
+/** The generation request body the renderer builds for one shot. */
+type RenderParams = {
+  prompt: string;
+  entities: ShotRenderPlan["entities"];
+  aspect_ratio: string;
+  resolution: string;
+  duration_seconds?: number;
+  image?: Uint8Array;
+  images?: Uint8Array[];
+  reference_images?: Array<Uint8Array | null | undefined>;
+};
+
+interface PatchError {
+  error: string;
+}
+
 /** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
 const CAS_ATTEMPTS = 2;
-
-const errorMessage = (e: unknown): string =>
-  e instanceof Error ? e.message : String(e);
 
 /** Run `task` over `items`, at most `limit` in flight. */
 async function mapWithConcurrency<T, R>(
@@ -164,7 +177,7 @@ async function patchShot(
   storyboardId: string,
   shotId: string,
   patch: (shot: Shot) => Shot
-): Promise<Shot | { error: string }> {
+): Promise<Shot | PatchError> {
   for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
     const snapshot = await host.getStoryboard(storyboardId);
     if (!snapshot) {
@@ -191,10 +204,8 @@ async function patchShot(
   };
 }
 
-const isError = (value: unknown): value is { error: string } =>
-  !!value &&
-  typeof value === "object" &&
-  typeof (value as { error?: unknown }).error === "string";
+const isError = (value: Shot | PatchError): value is PatchError =>
+  "error" in value;
 
 const hasReferenceImages = (plan: ShotRenderPlan): boolean =>
   plan.entities.some((entity) => entity.reference_images.length > 0);
@@ -251,7 +262,7 @@ export async function renderShots(
       };
     }
     try {
-      const params: Record<string, unknown> = {
+      const params: RenderParams = {
         prompt: plan.prompt,
         entities: plan.entities,
         aspect_ratio: plan.aspectRatio,
@@ -260,7 +271,7 @@ export async function renderShots(
           (plan.kind === "keyframe" ? STILL_RESOLUTION : CLIP_RESOLUTION)
       };
       if (plan.kind === "clip" && plan.durationSeconds !== undefined) {
-        params["duration_seconds"] = plan.durationSeconds;
+        params.duration_seconds = plan.durationSeconds;
       }
       if (capability === "image_to_video" && plan.sourceKeyframe) {
         const seed = host.loadMedia
@@ -272,10 +283,10 @@ export async function renderShots(
             error: "The shot's still could not be read back from storage."
           };
         }
-        params["image"] = seed;
+        params.image = seed;
         // Keep the historical serialized shape for callers that inspect the
         // generation request. It contains exactly the one selected start frame.
-        params["images"] = [seed];
+        params.images = [seed];
       }
       if (capability === "reference_to_video" && !host.loadMedia) {
         return {
@@ -298,7 +309,7 @@ export async function renderShots(
               "A storyboard entity reference image could not be read from storage."
           };
         }
-        params["reference_images"] = references;
+        params.reference_images = references;
       }
       const candidates = plan.productionCandidates ?? [undefined];
       const batchId =
@@ -429,7 +440,7 @@ export async function renderShots(
         ...current,
         status: "failed"
       }));
-      return { ...base, error: `${capability} failed: ${errorMessage(e)}` };
+      return { ...base, error: `${capability} failed: ${e instanceof Error ? e.message : String(e)}` };
     }
   });
 }
