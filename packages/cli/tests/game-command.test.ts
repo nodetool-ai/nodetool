@@ -294,6 +294,28 @@ it("validates and simulates a document with an audio mixer and verifies replay",
   expect(report).toMatchObject({ ok: true, replay: { verified: true } });
 });
 
+it("validates and simulates a spatial audio source, reports its emitter, and verifies replay", async () => {
+  const document = createTopDownRoomGame("a".repeat(32));
+  const spatial = (audioSource: Record<string, unknown>) => ({ ...document, scenes: document.scenes.map((scene) => ({ ...scene,
+    entities: scene.entities.map((entity) => entity.id === "gem" ? { ...entity, audioSource: { ...entity.audioSource, ...audioSource } } : entity) })) });
+  await writeFile(gamePath, JSON.stringify(spatial({ spatial: true, minDistance: 8, maxDistance: 4 })));
+  const invalid = new Command();
+  registerGameCommands(invalid);
+  await invalid.parseAsync(["node", "nodetool", "game", "validate", gamePath, "--json"]);
+  expect(JSON.parse(output.trim())).toMatchObject({ valid: false });
+  expect(output).toContain("maxDistance (4) must be greater than minDistance (8)");
+  output = "";
+  process.exitCode = originalExitCode;
+  await writeFile(gamePath, JSON.stringify(spatial({ spatial: true, minDistance: 2, maxDistance: 20, distanceModel: "linear" })));
+  const inputs = join(directory, "inputs.json");
+  await writeFile(inputs, JSON.stringify(Array.from({ length: 60 }, () => ({ pressed: ["right"], justPressed: [] }))));
+  const report = await runSimulation("--ticks", "60", "--inputs", inputs, "--verify-replay");
+  expect(report).toMatchObject({ ok: true, replay: { verified: true } });
+  const audio = (report.events as { kind: string; emitter?: unknown }[]).find((event) => event.kind === "audio");
+  expect(audio?.emitter).toEqual({ entityId: "gem", position: { x: 2, y: 0, z: 0 }, minDistance: 2, maxDistance: 20, rolloff: 1,
+    distanceModel: "linear", doppler: 0 });
+});
+
 it("simulates script params and verifies replay", async () => {
   const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
   vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);

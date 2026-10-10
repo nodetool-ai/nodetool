@@ -13,7 +13,8 @@ export function stepGameplay2D(context: GameSystemContext2D): void {
     context.sceneId,
     context.tick,
     context.events,
-    context.emit
+    context.emit,
+    (state) => ({ x: state.x, y: state.y, z: 0 })
   );
   if (context.queuedDespawns.size > 0) {
     // Spawned instances leave the world when despawned; authored entities stay as inactive state.

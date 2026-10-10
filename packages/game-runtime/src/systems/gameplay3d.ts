@@ -16,7 +16,8 @@ export function stepGameplay3D(context: GameSystemContext3D): void {
     context.currentScene().id,
     context.tick,
     context.events,
-    context.emit
+    context.emit,
+    (state) => state.transform.position
   );
   const rootRemovals = new Set(
     context.instances.filter((instance) => context.queues.despawns.has(instance.rootId)).map((instance) => instance.id)

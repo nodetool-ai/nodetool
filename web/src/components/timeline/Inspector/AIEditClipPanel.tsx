@@ -21,20 +21,25 @@ import { isElectron, isLocalhost } from "../../../lib/env";
 import { estimateGenerationCost } from "../../../utils/generationCostEstimate";
 import { generationCostLine } from "../../costs/costLine";
 import CostEstimateLine from "../../costs/CostEstimateLine";
-import VideoModelSelect from "../../properties/VideoModelSelect";
 import CuratedModelSelect from "../../properties/curated/CuratedModelSelect";
 import {
   Caption,
   CollapsibleSection,
   EditorButton,
+  Divider,
   EmptyState,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
+  SelectField,
   SPACING,
   TextInput
 } from "../../ui_primitives";
-import { InspectorSectionTitle, InspectorSliderRow } from "./InspectorPrimitives";
+import {
+  INSPECTOR_FORM_SX,
+  InspectorSectionTitle,
+  InspectorSliderRow
+} from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
 
 interface AIEditClipPanelProps {
@@ -43,6 +48,9 @@ interface AIEditClipPanelProps {
 
 const DEFAULT_STRENGTH = 0.65;
 const IS_MANAGED_BUILD = !isLocalhost && !isElectron;
+
+const modelKey = (model: { id: string; provider: string }): string =>
+  `${model.provider}:${model.id}`;
 
 const toVideoModelValue = (model: {
   id: string;
@@ -156,15 +164,8 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     return availableModels[0];
   }, [availableModels, clip?.model, clip?.provider]);
 
-  useEffect(() => {
-    if (isLoading || error) return;
-    if (!selectedModel || !catalogModel) {
-      setSelectedModel(
-        preferredModel ? toVideoModelValue(preferredModel) : null
-      );
-    }
-  }, [catalogModel, error, isLoading, preferredModel, selectedModel]);
-
+  // Runs before the model default below, so the reset on a new clip (and on
+  // mount) cannot clear the default it just chose.
   useEffect(() => {
     setInstruction("");
     setSelectedModel(null);
@@ -174,6 +175,15 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     setNewTakeInstruction("");
     setStrength(DEFAULT_STRENGTH);
   }, [clipId]);
+
+  useEffect(() => {
+    if (isLoading || error) return;
+    if (!selectedModel || !catalogModel) {
+      setSelectedModel(
+        preferredModel ? toVideoModelValue(preferredModel) : null
+      );
+    }
+  }, [catalogModel, error, isLoading, preferredModel, selectedModel]);
 
   useEffect(() => {
     if (clip?.strength !== undefined) {
@@ -199,6 +209,25 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     setErrorMessage(null);
     setSubmissionFailed(false);
   }, []);
+
+  const modelOptions = useMemo(
+    () =>
+      availableModels.map((model) => ({
+        value: modelKey(model),
+        label: model.name
+      })),
+    [availableModels]
+  );
+
+  const handleModelKeyChange = useCallback(
+    (key: string) => {
+      const model = availableModels.find((item) => modelKey(item) === key);
+      if (model) {
+        handleModelChange(toVideoModelValue(model));
+      }
+    },
+    [availableModels, handleModelChange]
+  );
 
   const handleSubmit = useCallback(async () => {
     if (!clip || !eligibility.ok || !selectedModel || !instruction.trim()) {
@@ -304,7 +333,7 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
       onToggle={setOpen}
       unmountOnExit={false}
     >
-      <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.md }}>
+      <FlexColumn sx={INSPECTOR_FORM_SX}>
         {!eligibility.ok ? (
           <EmptyState
             variant="empty"
@@ -315,12 +344,13 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
         ) : (
           <>
             <TextInput
+              label="Instruction"
               value={instruction}
               onChange={(event) => setInstruction(event.target.value)}
-              placeholder="Describe the change to make…"
+              placeholder="e.g. Make it golden hour"
               multiline
-              minRows={2}
-              maxRows={6}
+              minRows={3}
+              maxRows={8}
               compact
               fullWidth
               inputProps={{
@@ -353,11 +383,13 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
                 onChange={handleModelChange}
               />
             ) : (
-              <VideoModelSelect
-                value={selectedModel?.id ?? ""}
-                provider={selectedModel?.provider}
-                task="video_to_video"
-                onChange={handleModelChange}
+              <SelectField
+                label="Model"
+                size="small"
+                value={selectedModel ? modelKey(selectedModel) : ""}
+                options={modelOptions}
+                onChange={handleModelKeyChange}
+                disabled={active}
               />
             )}
 
@@ -373,43 +405,64 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               />
             )}
 
-            <FlexRow justify="flex-end" fullWidth>
-              <CostEstimateLine
-                estimate={generationCostLine(costEstimate)}
-                title="Estimated cost of this video edit"
-              />
-            </FlexRow>
-
-            <EditorButton
-              fullWidth
-              variant={active ? "outlined" : "contained"}
-              color={active ? "warning" : "primary"}
-              startIcon={
-                active ? <StopRoundedIcon /> : <AutoAwesomeOutlinedIcon />
-              }
-              disabled={
-                active
-                  ? false
-                  : !instruction.trim() || !modelOptionsReady
-              }
-              onClick={() => {
-                if (active) {
-                  cancel(clip.id);
-                } else {
-                  void handleSubmit();
+            <FlexColumn gap={SPACING.xs}>
+              <EditorButton
+                fullWidth
+                variant={active ? "outlined" : "contained"}
+                color={active ? "warning" : "primary"}
+                startIcon={
+                  active ? <StopRoundedIcon /> : <AutoAwesomeOutlinedIcon />
                 }
-              }}
-              data-testid="ai-edit-submit"
-            >
-              {active ? "Cancel" : failed ? "Retry" : "Edit video"}
-            </EditorButton>
+                disabled={
+                  active
+                    ? false
+                    : !instruction.trim() || !modelOptionsReady
+                }
+                onClick={() => {
+                  if (active) {
+                    cancel(clip.id);
+                  } else {
+                    void handleSubmit();
+                  }
+                }}
+                data-testid="ai-edit-submit"
+              >
+                {active ? "Cancel" : failed ? "Retry" : "Edit video"}
+              </EditorButton>
+              <FlexRow justify="flex-end" fullWidth>
+                <CostEstimateLine
+                  estimate={generationCostLine(costEstimate)}
+                  title="Estimated cost of this video edit"
+                />
+              </FlexRow>
+            </FlexColumn>
+
+            {active && (
+              <LoadingSpinner
+                variant="dots"
+                size="small"
+                text="Editing video…"
+              />
+            )}
+            {settlementMessage && (
+              <Caption color="error">{settlementMessage}</Caption>
+            )}
+            {failed && (
+              <Caption color="error">
+                {editFailure ??
+                  "The edit failed. Update the instruction or model and retry."}
+              </Caption>
+            )}
+            {errorMessage && <Caption color="error">{errorMessage}</Caption>}
 
             {canNewTake && (
-              <FlexColumn gap={SPACING.sm}>
+              <>
+                <Divider />
                 <TextInput
+                  label="New take"
                   value={newTakeInstruction}
                   onChange={(event) => setNewTakeInstruction(event.target.value)}
-                  placeholder="Optional new-take direction…"
+                  placeholder="Optional direction for the new take"
                   multiline
                   minRows={2}
                   maxRows={4}
@@ -427,36 +480,10 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
                 >
                   {newTakeActive ? "Generating new take…" : "New take"}
                 </EditorButton>
-              </FlexColumn>
-            )}
-
-            {settlementMessage && (
-              <Caption color="error" sx={{ textAlign: "center" }}>
-                {settlementMessage}
-              </Caption>
-            )}
-            {failed && (
-              <Caption color="error" sx={{ textAlign: "center" }}>
-                {editFailure ??
-                  "The edit failed. Update the instruction or model and retry."}
-              </Caption>
-            )}
-            {active && (
-              <LoadingSpinner
-                variant="dots"
-                size="small"
-                text="Editing video…"
-              />
-            )}
-            {errorMessage && (
-              <Caption color="error" sx={{ textAlign: "center" }}>
-                {errorMessage}
-              </Caption>
-            )}
-            {newTakeError && (
-              <Caption color="error" sx={{ textAlign: "center" }}>
-                {newTakeError}
-              </Caption>
+                {newTakeError && (
+                  <Caption color="error">{newTakeError}</Caption>
+                )}
+              </>
             )}
           </>
         )}

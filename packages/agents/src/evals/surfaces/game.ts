@@ -194,6 +194,20 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           .safeParse(document.inputBindings).success }]
   }
 }, {
+  id: "spatial-audio-source",
+  description: "Position an entity's sound effect in the world with spatial audio settings on its audio source.",
+  objective: "Make the gem's collect sound spatial: full volume within 2 units of the camera, fading linearly to silence at 20 units.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("spatial-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity set audioSource {spatial, minDistance, maxDistance, rolloff, distanceModel: linear|inverse|exponential, cone, doppler} merges into the entity's audio source.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "spatialGem", detail: "The gem's audio source is not spatial with a linear 2 to 20 unit falloff.",
+      test: document => {
+        const audio = document.scenes.map((scene) => scene.entities.find((entity) => entity.id === "gem")).find(Boolean)?.audioSource;
+        return audio?.spatial === true && audio.minDistance === 2 && audio.maxDistance === 20 && audio.distanceModel === "linear" && (audio.rolloff ?? 1) === 1;
+      } }]
+  }
+}, {
   id: "lifecycle-timer-script",
   description: "Author a lifecycle-object script whose onStart hook schedules a repeating timer through public edit ops.",
   objective: "Add a script behavior to the player written as a lifecycle object. Its onStart hook calls every(60, \"beat\") and its beat method emits the event heartbeat. Keep the player's other behaviors.",

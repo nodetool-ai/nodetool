@@ -124,7 +124,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       background: "none",
       border: "none",
       cursor: "pointer",
-      fontFamily: "JetBrains Mono, monospace",
+      fontFamily: "var(--fontFamily2)",
       fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       color: currentPreset !== null
@@ -287,7 +287,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
                 primary={`${Math.round(preset * 100)}%`}
                 primaryTypographyProps={{
                   fontSize: "var(--fontSizeSmall)",
-                  fontFamily: "JetBrains Mono, monospace",
+                  fontFamily: "var(--fontFamily2)",
                   textAlign: "center"
                 }}
               />

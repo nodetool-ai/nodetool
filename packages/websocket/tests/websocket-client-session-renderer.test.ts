@@ -143,4 +143,34 @@ describe("WebSocketClientSession renderer transport", () => {
     await firstRunner.disconnect();
     await secondRunner.disconnect();
   });
+
+  it("never registers a deployed app's visitor as the owner's renderer", async () => {
+    const registry = new FrontendRendererRegistry();
+    const socket = new MockWebSocket();
+    const runner = new WebSocketClientSession({
+      resolveExecutor: () => ({ process: async () => ({}) }),
+      frontendRendererRegistry: registry,
+      appSession: { applicationId: "app-1", version: 1 }
+    });
+
+    await runner.connect(socket, "owner");
+    socket.queue.push({
+      type: "websocket.message",
+      text: JSON.stringify({
+        type: "client_tools_manifest",
+        tools: [{ name: "ui_ping" }]
+      })
+    });
+    await runner.receiveMessages();
+
+    expect(registry.list("owner")).toEqual([]);
+    expect(
+      socket.sent.some(
+        (frame) =>
+          (unpack(frame) as Record<string, unknown>).type ===
+          "renderer_registered"
+      )
+    ).toBe(false);
+    await runner.disconnect();
+  });
 });

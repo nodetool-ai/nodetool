@@ -35,7 +35,7 @@ describe("useInputMinMax", () => {
       expect(result.current.max).toBe(100);
     });
 
-    it("returns default values when no min/max provided", () => {
+    it("returns undefined bounds when no min/max provided", () => {
       const { result } = renderHook(() =>
         useInputMinMax({
           nodeId: "node-1",
@@ -43,8 +43,8 @@ describe("useInputMinMax", () => {
         })
       );
 
-      expect(result.current.min).toBe(0);
-      expect(result.current.max).toBe(99999);
+      expect(result.current.min).toBeUndefined();
+      expect(result.current.max).toBeUndefined();
     });
 
     it("handles null property min/max", () => {
@@ -57,8 +57,8 @@ describe("useInputMinMax", () => {
         })
       );
 
-      expect(result.current.min).toBe(0);
-      expect(result.current.max).toBe(99999);
+      expect(result.current.min).toBeUndefined();
+      expect(result.current.max).toBeUndefined();
     });
   });
 
@@ -87,7 +87,7 @@ describe("useInputMinMax", () => {
       expect(result.current.max).toBe(500);
     });
 
-    it("uses zero as default min", () => {
+    it("leaves min undefined when none is declared", () => {
       const { result } = renderHook(() =>
         useInputMinMax({
           nodeId: "node-1",
@@ -95,10 +95,10 @@ describe("useInputMinMax", () => {
         })
       );
 
-      expect(result.current.min).toBe(0);
+      expect(result.current.min).toBeUndefined();
     });
 
-    it("uses 99999 as default max", () => {
+    it("leaves max undefined when none is declared", () => {
       const { result } = renderHook(() =>
         useInputMinMax({
           nodeId: "node-1",
@@ -106,7 +106,7 @@ describe("useInputMinMax", () => {
         })
       );
 
-      expect(result.current.max).toBe(99999);
+      expect(result.current.max).toBeUndefined();
     });
   });
 
@@ -223,14 +223,13 @@ describe("useInputMinMax", () => {
       const { result } = renderHook(() =>
         useInputMinMax({
           nodeId: "node-1",
-          propertyName: "value"
+          propertyName: "value",
+          propertyMin: -5,
+          propertyMax: 5
         })
       );
 
-      expect(result.current).toHaveProperty("min");
-      expect(result.current).toHaveProperty("max");
-      expect(result.current.min).toEqual(expect.any(Number));
-      expect(result.current.max).toEqual(expect.any(Number));
+      expect(result.current).toEqual({ min: -5, max: 5 });
     });
   });
 });

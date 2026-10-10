@@ -95,6 +95,16 @@ const stepMultiplier = (event: { shiftKey: boolean; altKey: boolean }): number =
   event.shiftKey ? 10 : event.altKey ? 0.1 : 1;
 
 /**
+ * Decimals to format a stepped value with: the base step's, plus one for the
+ * Alt ×0.1 step so the fine step is not rounded away. Shift keeps the base
+ * precision.
+ */
+const stepDecimals = (step: number, multiplier: number): number => {
+  const base = (String(step).split(".")[1] ?? "").length;
+  return multiplier < 1 ? base + 1 : base;
+};
+
+/**
  * A buffered inspector value with optional drag scrubbing supplied by the
  * editor. With `scrub`, ArrowUp and ArrowDown step the value by `scrub.step`
  * (Shift ×10, Alt ×0.1), clamped to the scrub range.
@@ -107,9 +117,13 @@ export const InspectorValueInput = memo(function InspectorValueInput({
   const [draft, setDraft] = useState(value);
   const [focused, setFocused] = useState(false);
   const [syncedValue, setSyncedValue] = useState(value);
-  if (!focused && value !== syncedValue) {
+  // After an arrow step commits, the focused field shows what the owner kept
+  // (the stepped value, or the old one when the owner rejected it) instead of
+  // the draft. Typing turns this off.
+  const [followValue, setFollowValue] = useState(false);
+  if (value !== syncedValue) {
     setSyncedValue(value);
-    setDraft(value);
+    if (!focused || followValue) setDraft(value);
   }
 
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -131,7 +145,6 @@ export const InspectorValueInput = memo(function InspectorValueInput({
   }, [draft, value, onCommit, allowEmpty]);
 
   const gestureRef = useRef<{ pointerId: number; startX: number; startValue: number; moved: boolean; lastValue?: string } | null>(null);
-  const scrubDecimals = useMemo(() => scrub ? (String(scrub.step).split(".")[1] ?? "").length : 0, [scrub]);
 
   const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (!scrub || disabled || focused || event.button !== 0) return;
@@ -151,25 +164,30 @@ export const InspectorValueInput = memo(function InspectorValueInput({
       drag.moved = true;
       scrubGesture?.begin();
     }
-    const next = drag.startValue + dx * scrub.step * stepMultiplier(event);
-    const formatted = clampToScrub(next, scrub).toFixed(scrubDecimals);
+    const multiplier = stepMultiplier(event);
+    const next = drag.startValue + dx * scrub.step * multiplier;
+    const formatted = clampToScrub(next, scrub).toFixed(stepDecimals(scrub.step, multiplier));
     drag.lastValue = formatted;
     setDraft(formatted);
     scrubGesture?.schedule(formatted);
-  }, [scrub, scrubDecimals, scrubGesture]);
+  }, [scrub, scrubGesture]);
 
-  const handlePointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
+  // Pointer up, pointer cancel and lost capture all end the scrub. Only a
+  // press that never moved focuses the field.
+  const handlePointerEnd = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const drag = gestureRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     gestureRef.current = null;
     if (drag.moved) {
       if (scrubGesture) scrubGesture.commit();
       else if (drag.lastValue !== undefined) onCommit(drag.lastValue);
-    } else {
+      // Show what the owner kept; a rejected value must not stay on screen.
+      setDraft(value);
+    } else if (event.type === "pointerup") {
       inputRef.current?.focus();
       inputRef.current?.select();
     }
-  }, [onCommit, scrubGesture]);
+  }, [onCommit, scrubGesture, value]);
 
   // Arrow keys step the value. A held key repeats into one undo entry: the
   // gesture opens on the first press and commits on key up or blur.
@@ -178,7 +196,9 @@ export const InspectorValueInput = memo(function InspectorValueInput({
     if (!keyStepActiveRef.current) return;
     keyStepActiveRef.current = false;
     scrubGesture?.commit();
-  }, [scrubGesture]);
+    setDraft(value);
+    setFollowValue(true);
+  }, [scrubGesture, value]);
 
   const handleArrowStep = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
     if (!scrub || disabled) return;
@@ -187,8 +207,9 @@ export const InspectorValueInput = memo(function InspectorValueInput({
     if (!Number.isFinite(base)) return;
     event.preventDefault();
     const direction = event.key === "ArrowUp" ? 1 : -1;
-    const next = base + direction * scrub.step * stepMultiplier(event);
-    const formatted = clampToScrub(next, scrub).toFixed(scrubDecimals);
+    const multiplier = stepMultiplier(event);
+    const next = base + direction * scrub.step * multiplier;
+    const formatted = clampToScrub(next, scrub).toFixed(stepDecimals(scrub.step, multiplier));
     setDraft(formatted);
     steppedValueRef.current = formatted;
     if (scrubGesture) {
@@ -199,8 +220,10 @@ export const InspectorValueInput = memo(function InspectorValueInput({
       scrubGesture.schedule(formatted);
     } else {
       onCommit(formatted);
+      setDraft(value);
+      setFollowValue(true);
     }
-  }, [scrub, disabled, draft, value, scrubDecimals, scrubGesture, onCommit]);
+  }, [scrub, disabled, draft, value, scrubGesture, onCommit]);
 
   const wrapCss = useMemo(() => wrapStyles(theme, disabled, focused, Boolean(scrub),
     size === "small" ? CONTROL.height.xs : CONTROL.height.sm, grow), [theme, disabled, focused, scrub, size, grow]);
@@ -208,11 +231,13 @@ export const InspectorValueInput = memo(function InspectorValueInput({
   const unitCss = useMemo(() => unitStyles(theme), [theme]);
 
   return <div css={wrapCss} style={minWidth ? { minWidth } : undefined}
-    onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+    onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd}
+    onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd}>
     <input id={id} ref={setRefs} type="text" size={1} css={inputCss} value={draft}
       placeholder={placeholder} disabled={disabled} aria-label={ariaLabel}
       onChange={(event) => {
         steppedValueRef.current = null;
+        setFollowValue(false);
         setDraft(event.target.value);
       }}
       onFocus={() => setFocused(true)}
@@ -222,6 +247,7 @@ export const InspectorValueInput = memo(function InspectorValueInput({
         if (cancelBlurCommitRef.current) cancelBlurCommitRef.current = false;
         else commit();
         steppedValueRef.current = null;
+        setFollowValue(false);
         setDraft(value);
       }}
       onKeyUp={(event) => {

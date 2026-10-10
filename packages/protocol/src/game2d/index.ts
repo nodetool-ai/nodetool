@@ -11,6 +11,7 @@ import { gameEntityComponents } from "./components/entity-components.js";
 import { gameParticles } from "../game-particles.js";
 import { gameAuthoring } from "../game-authoring.js";
 import { gameAudioSettings } from "./components/audio.js";
+import { gameAudioEmitter } from "./components/audioSource.js";
 import { gameInputBindings } from "../game-input.js";
 
 export * from "../game-input.js";
@@ -102,7 +103,7 @@ export const gameEvent = z.discriminatedUnion("kind", [
     phase: z.enum(["enter", "stay", "exit"]).optional(), normalX: finite.optional(), normalY: finite.optional() }),
   z.object({ kind: z.literal("collected"), entityId: z.string(), byId: z.string(), score: z.number() }),
   z.object({ kind: z.literal("win"), score: z.number() }),
-  z.object({ kind: z.literal("audio"), assetId: z.string(), voiceId: z.string().optional(), action: z.enum(["start", "stop"]).default("start"), loop: z.boolean().default(false), volume: finite.min(0).max(1).default(1), fadeInTicks: z.number().int().min(0).max(600).default(0), fadeOutTicks: z.number().int().min(0).max(600).default(0) }),
+  z.object({ kind: z.literal("audio"), assetId: z.string(), voiceId: z.string().optional(), emitter: gameAudioEmitter.optional(), action: z.enum(["start", "stop"]).default("start"), loop: z.boolean().default(false), volume: finite.min(0).max(1).default(1), fadeInTicks: z.number().int().min(0).max(600).default(0), fadeOutTicks: z.number().int().min(0).max(600).default(0) }),
   z.object({ kind: z.literal("trigger"), event: z.string(), entityId: z.string() }),
   z.object({ kind: z.literal("sceneTransition"), sceneId: z.string() })
 ]);
@@ -193,3 +194,4 @@ export { gameBackgroundLayer, type GameBackgroundLayer } from "./components/back
 export { gameEntityPropertyValue, gameEntityProps, gameEntityTags, type GameEntityProps, type GameEntityTags } from "../game-entity-metadata.js";
 
 export { GAME_AUDIO_BUILTIN_BUSES, GAME_AUDIO_BASE_SNAPSHOT, gameAudioBus, type GameAudioBus, gameAudioMixerSnapshot, type GameAudioMixerSnapshot, gameAudioMixerTransition, type GameAudioMixerTransition, gameAudioDucking, type GameAudioDucking, gameAudioMixer, type GameAudioMixer, type GameAudioMixerInput, gameAudioSettings, type GameAudioSettings } from "./components/audio.js";
+export { GAME_AUDIO_MAX_DISTANCE, GAME_AUDIO_SPATIAL_DEFAULTS, gameAudioDistanceModel, gameAudioCone, type GameAudioCone, gameAudioEmitter, type GameAudioEmitter, gameAudioSourceIssues } from "./components/audioSource.js";

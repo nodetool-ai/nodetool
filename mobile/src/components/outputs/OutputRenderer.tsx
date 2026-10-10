@@ -115,8 +115,8 @@ const formatDatetime = (dt: {
 // 50-row table matrix.
 export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
   const type = useMemo(() => typeFor(value), [value]);
-  const { colors, mode } = useTheme();
-  const codeTheme = mode === "dark" ? atomDark : tomorrow;
+  const { colors, isDark } = useTheme();
+  const codeTheme = isDark ? atomDark : tomorrow;
   const monoFont = Platform.OS === "ios" ? "Menlo" : "monospace";
 
   // A stored output references its asset as `asset://<id>`, which no native
@@ -279,7 +279,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
           </TouchableOpacity>
         );
       }
-      return renderJSON(v, codeTheme, colors, mode, monoFont);
+      return renderJSON(v, codeTheme, colors, monoFont);
     }
 
     case "datetime": {
@@ -448,7 +448,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
       const columns = Array.isArray(v.columns) ? (v.columns as unknown[]) : [];
       const data = Array.isArray(v.data) ? (v.data as unknown[]) : [];
       if (columns.length === 0 || data.length === 0) {
-        return renderJSON(v, codeTheme, colors, mode, monoFont);
+        return renderJSON(v, codeTheme, colors, monoFont);
       }
       const headers = columns.map((col) => {
         const c = col as string | DataframeColumn;
@@ -463,7 +463,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
         <ScrollView horizontal showsHorizontalScrollIndicator>
           <View>
             {/* Header row */}
-            <View style={[styles.tableRow, { backgroundColor: mode === "dark" ? "#2A2A2A" : "#E8E8E8" }]}>
+            <View style={[styles.tableRow, { backgroundColor: colors.inputBg }]}>
               {headers.map((header, i) => (
                 <Text
                   key={i}
@@ -485,7 +485,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
                 style={[
                   styles.tableRow,
                   { backgroundColor: rowIdx % 2 === 0
-                    ? (mode === "dark" ? "#1E1E1E" : "#F5F5F5")
+                    ? colors.surfaceElevated
                     : "transparent" },
                 ]}
               >
@@ -531,7 +531,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
                   styles.tensorData,
                   {
                     color: colors.text,
-                    backgroundColor: mode === "dark" ? "#1E1E1E" : "#F5F5F5",
+                    backgroundColor: colors.surfaceElevated,
                   },
                 ]}
               >
@@ -548,7 +548,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
 
     // ── JSON (explicit type) ─────────────────────────────────────
     case "json":
-      return renderJSON(v, codeTheme, colors, mode, monoFont);
+      return renderJSON(v, codeTheme, colors, monoFont);
 
     // ── Image Comparison ─────────────────────────────────────────
     case "image_comparison": {
@@ -588,7 +588,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
             {arr.map((item: string, i: number) => (
               <View
                 key={i}
-                style={[styles.listItem, { backgroundColor: mode === "dark" ? "#2A2A2A" : "#F0F0F0" }]}
+                style={[styles.listItem, { backgroundColor: colors.inputBg }]}
               >
                 <Text style={[styles.listItemText, { color: colors.text }]}>{item}</Text>
               </View>
@@ -606,7 +606,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
                 styles.tensorData,
                 {
                   color: colors.text,
-                  backgroundColor: mode === "dark" ? "#1E1E1E" : "#F5F5F5",
+                  backgroundColor: colors.surfaceElevated,
                 },
               ]}
             >
@@ -677,7 +677,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
             return (
               <ScrollView horizontal showsHorizontalScrollIndicator>
                 <View>
-                  <View style={[styles.tableRow, { backgroundColor: mode === "dark" ? "#2A2A2A" : "#E8E8E8" }]}>
+                  <View style={[styles.tableRow, { backgroundColor: colors.inputBg }]}>
                     {keys.map((k, i) => (
                       <Text
                         key={i}
@@ -698,7 +698,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
                       style={[
                         styles.tableRow,
                         { backgroundColor: rowIdx % 2 === 0
-                          ? (mode === "dark" ? "#1E1E1E" : "#F5F5F5")
+                          ? colors.surfaceElevated
                           : "transparent" },
                       ]}
                     >
@@ -759,7 +759,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
           {entries.map(([key, val]) => (
             <View
               key={key}
-              style={[styles.objectEntry, { backgroundColor: mode === "dark" ? "#2A2A2A" : "#F0F0F0" }]}
+              style={[styles.objectEntry, { backgroundColor: colors.inputBg }]}
             >
               <Text style={[styles.objectKey, { color: colors.primary }]}>
                 {key.replace(/_/g, " ")}
@@ -776,7 +776,7 @@ export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
     // ── Fallback ─────────────────────────────────────────────────
     default:
       if (isRecord(value)) {
-        return renderJSON(value, codeTheme, colors, mode, monoFont);
+        return renderJSON(value, codeTheme, colors, monoFont);
       }
       return (
         <Text style={[styles.text, { color: colors.text }]}>
@@ -795,7 +795,6 @@ function renderJSON(
   value: unknown,
   codeTheme: Record<string, unknown>,
   colors: ThemeColors,
-  mode: string,
   monoFont: string
 ) {
   return (
@@ -803,7 +802,7 @@ function renderJSON(
       style={[
         styles.codeBlock,
         {
-          backgroundColor: mode === "dark" ? "#1E1E1E" : "#F5F5F5",
+          backgroundColor: colors.surfaceElevated,
           borderColor: colors.border,
         },
       ]}

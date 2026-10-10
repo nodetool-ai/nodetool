@@ -68,6 +68,18 @@ export const INSPECTOR_SECTION_CONTENT_SX = {
   pl: SPACING.xxxl
 } as const;
 
+/**
+ * Body of a generation section (AI edit, Extend, Image to video): a form of
+ * labeled full-width fields, so it spans the section instead of indenting past
+ * the icon like the property rows above.
+ */
+export const INSPECTOR_FORM_SX = {
+  gap: SPACING.md,
+  pt: SPACING.xs,
+  px: SPACING.xs,
+  pb: SPACING.lg
+} as const;
+
 // ── Header ─────────────────────────────────────────────────────────────────
 
 const headerStyles = css({
@@ -171,33 +183,34 @@ InspectorHeader.displayName = "InspectorHeader";
 
 // ── Identity card ──────────────────────────────────────────────────────────
 
-const identityWrapStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing(1),
-    padding: theme.spacing(2, 1, 2.5)
-  });
+const identityWrapStyles = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: getSpacingPx(SPACING.xs),
+  padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`
+});
 
 const identityNameStyles = (theme: Theme) =>
   css({
-    ...TYPOGRAPHY.mono.label,
+    ...TYPOGRAPHY.sans.body,
+    fontWeight: TYPOGRAPHY.sans.title.fontWeight,
     color: theme.vars.palette.text.primary,
     lineHeight: 1.3,
-    wordBreak: "break-all"
+    overflowWrap: "anywhere"
   });
 
 const identityMetaRowStyles = css({
   display: "flex",
   alignItems: "center",
+  flexWrap: "wrap",
   gap: getSpacingPx(SPACING.sm)
 });
 
 const identitySwatchStyles = (color: string) =>
   css({
-    width: 8,
-    height: 8,
-    borderRadius: BORDER_RADIUS.xs,
+    width: getSpacingPx(SPACING.md),
+    height: getSpacingPx(SPACING.md),
+    borderRadius: BORDER_RADIUS.circle,
     flexShrink: 0,
     backgroundColor: color
   });
@@ -205,7 +218,9 @@ const identitySwatchStyles = (color: string) =>
 const identityMetaStyles = (theme: Theme) =>
   css({
     color: theme.vars.palette.text.secondary,
-    ...TYPOGRAPHY.mono.caption
+    ...TYPOGRAPHY.sans.label,
+    fontWeight: TYPOGRAPHY.sans.body.fontWeight,
+    fontVariantNumeric: "tabular-nums"
   });
 
 interface ClipIdentityCardProps {
@@ -213,15 +228,17 @@ interface ClipIdentityCardProps {
   metadata: ReadonlyArray<string>;
   /** Track-type accent shown as a small swatch beside the metadata. */
   accentColor?: string;
+  /** Trailing content under the metadata, such as the storyboard link. */
+  children?: React.ReactNode;
 }
 
-/** "kling_v3_out_…" + "video · 4.60s · 1920×1080" identity block. */
+/** "Dawn – open ending" + "video · 14.1s" identity block. */
 export const ClipIdentityCard: React.FC<ClipIdentityCardProps> = memo(
-  ({ name, metadata, accentColor }) => {
+  ({ name, metadata, accentColor, children }) => {
     const theme = useTheme();
     const accent = accentColor ?? theme.vars.palette.secondary.main;
     return (
-      <div css={identityWrapStyles(theme)}>
+      <div css={identityWrapStyles}>
         <div css={identityNameStyles(theme)} title={name}>
           {name}
         </div>
@@ -231,6 +248,7 @@ export const ClipIdentityCard: React.FC<ClipIdentityCardProps> = memo(
             <span css={identityMetaStyles(theme)}>{metadata.join(" · ")}</span>
           </div>
         )}
+        {children}
       </div>
     );
   }
@@ -339,7 +357,7 @@ const sliderValueStyles = (theme: Theme) =>
  * the neutral point.
  */
 const precisionSliderSx = (theme: Theme) => {
-  const rail = "rgba(255, 255, 255, 0.14)";
+  const rail = theme.vars.palette.c_overlay_strong;
   const accent = theme.vars.palette.primary.main;
   const ring = theme.vars.palette.primary.mainChannel;
   const shadow = `0 1px 2px rgba(${theme.vars.palette.common.blackChannel} / 0.45)`;

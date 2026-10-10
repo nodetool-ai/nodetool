@@ -15,6 +15,7 @@ import { useShallow } from "zustand/react/shallow";
 import {
   DEFAULT_MIDI_INSTRUMENT,
   midiRenderKey,
+  previewTake,
   resolveTempo
 } from "@nodetool-ai/timeline";
 import type {
@@ -54,6 +55,7 @@ import {
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import type { TimelineAudition } from "../../../stores/timeline/TimelineUIStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
@@ -254,6 +256,23 @@ interface PreviewAreaProps {
   showDuration?: boolean;
   /** Sequence fps readout. Default on. */
   showFps?: boolean;
+}
+
+
+/**
+ * The clips as the audio graph should hear them. Auditioning a take swaps its
+ * media into the clip for preview only, the same projection the picture uses
+ * in `PreviewCompositor`, so a Preview Candidate on an audio take is heard.
+ */
+function auditionedClips(
+  clips: TimelineClip[],
+  audition: TimelineAudition | null
+): TimelineClip[] {
+  if (!audition) return clips;
+  const target = clips.find((clip) => clip.id === audition.clipId);
+  const preview = target && previewTake(target, audition.takeId);
+  if (!target || !preview) return clips;
+  return clips.map((clip) => (clip.id === target.id ? preview : clip));
 }
 
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
@@ -520,7 +539,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           fadeInMs: clip.fadeInMs ?? 0,
           fadeOutMs: clip.fadeOutMs ?? 0,
           fadeInShape: clip.fadeInShape ?? "linear",
-          fadeOutShape: clip.fadeOutShape ?? "linear"
+          fadeOutShape: clip.fadeOutShape ?? "linear",
+          auditionTakeId: (() => {
+            const audition = useTimelineUIStore.getState().audition;
+            return audition?.clipId === clip.id ? audition.takeId : null;
+          })()
         });
       },
       [timelineApi]
@@ -542,7 +565,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const graph = graphRef.current;
         const liveMs = getTimeMs();
         const windowEndMs = liveMs + AUDIO_LOOKAHEAD_MS;
-        const clipsNow = timelineApi.getState().clips;
+        const clipsNow = auditionedClips(
+          timelineApi.getState().clips,
+          useTimelineUIStore.getState().audition
+        );
         const clipIdsNow = new Set(clipsNow.map((c) => c.id));
 
         const removedClipIds = [...scheduledClipIdsRef.current].filter(
@@ -675,6 +701,23 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       [queueTopUpAudio, timelineApi]
     );
 
+    // Starting, switching or ending an audition changes what a clip sounds
+    // like without touching the document, so it reconciles the same way.
+    useEffect(
+      () =>
+        useTimelineUIStore.subscribe((state, previous) => {
+          if (state.audition === previous.audition) return;
+          if (!audioSessionActiveRef.current) return;
+          const generation = playGenRef.current;
+          queueTopUpAudio(
+            () =>
+              playGenRef.current !== generation ||
+              !audioSessionActiveRef.current
+          );
+        }),
+      [queueTopUpAudio]
+    );
+
     /** Set by the loop wrap so the seek-restart effect skips its debounce. */
     const loopWrapRef = useRef(false);
 
@@ -746,7 +789,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // Read fresh rather than closing over the reactive `clips` value so
       // this component never needs to subscribe to (and re-render on) the
       // clips array itself.
-      const clipsNow = timelineApi.getState().clips;
+      const clipsNow = auditionedClips(
+        timelineApi.getState().clips,
+        useTimelineUIStore.getState().audition
+      );
       // Backwards playback (J) is picture only: the audio graph schedules
       // forward from a source position.
       const remainingAudioClips =

@@ -481,7 +481,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
                       overflow: "auto",
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-word",
-                      fontFamily: "monospace",
+                      fontFamily: "var(--fontFamily2)",
                       bgcolor: "background.default",
                       borderRadius: BORDER_RADIUS.sm
                     }}

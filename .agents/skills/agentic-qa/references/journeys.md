@@ -37,7 +37,8 @@ Choose one per campaign. Rotate between campaigns.
 With fake providers every goal can complete, with placeholder content (see
 [runtime.md](runtime.md#what-the-fake-runtime-shows-a-participant)). Judge
 `automation` on whether the participant's sentence reached a run and a visible
-output appeared, because the fake output does not change with the input.
+output appeared. Only the guided planner's plan changes the sentence (it
+capitalizes it). A model step answers with the fixed reply whatever the input.
 
 ## Persistence and recovery
 

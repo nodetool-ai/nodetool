@@ -4,6 +4,7 @@ import {
   isNumber,
   isString
 } from "../lib/wire-values.js";
+import { parseJsonBodies } from "../lib/json-body.js";
 
 const FAL_PRICING_ESTIMATE_URL = "https://api.fal.ai/v1/models/pricing/estimate";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -97,6 +98,7 @@ async function fetchEstimateFromFal(
 }
 
 const falPricingEstimateRoute: FastifyPluginAsync = async (app) => {
+  parseJsonBodies(app);
   app.post("/api/fal/pricing/estimate", async (req, reply) => {
     const body = (req.body ?? {}) as EstimateRequestBody;
     const endpointId =

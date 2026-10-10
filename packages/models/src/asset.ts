@@ -226,6 +226,8 @@ export class Asset extends DBModel {
 
     const parent = await Asset.find(userId, parentId);
     if (!parent) return "Parent folder not found";
+    // A short id resolves to the asset itself without equalling its id.
+    if (parent.id === asset.id) return "An asset cannot be its own parent";
     if (parent.content_type !== "folder") return "Parent must be a folder";
 
     // Walk up from the new parent: reaching the asset means the move would put

@@ -25,7 +25,7 @@ import type {
 } from "@nodetool-ai/models";
 import type { TimelineValidation } from "@nodetool-ai/execution/timeline-debug";
 import type { TimelineBridgeFinalState } from "./timeline-bridge.js";
-import { parseOps, applyOps, TOOL_PREFIX, READ_ONLY_OPS } from "./timeline-operations.js";
+import { parseOps, applyOps, TOOL_PREFIX, READ_ONLY_OPS, timelineModel3DBaker } from "./timeline-operations.js";
 export { parseOps, applyOps } from "./timeline-operations.js";
 export type { ParsedOp, OpRecord, ApplyOutcome } from "./timeline-operations.js";
 import type { IsolateSubjectInput } from "./timeline-isolate-subject.js";
@@ -619,6 +619,9 @@ const editTimeline: CapabilityExport = {
     const { TimelineSequence, TimelineSequenceVersion } = await import("@nodetool-ai/models");
     const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
     const generateMediaEdit = timelineMediaEditGenerator(run);
+    // Shared across retries, like the media edit generator: a retry re-applies
+    // every op, and a 3D bake already rendered must not render again.
+    const bakeModel3DClip = timelineModel3DBaker(run);
     for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
       const sequence = await TimelineSequence.findById(timelineId);
       // A sequence owned by someone else reads as missing — the rule the tRPC
@@ -627,7 +630,7 @@ const editTimeline: CapabilityExport = {
         return { error: `Timeline ${timelineId} was not found.` };
       }
       const document: TimelineDocument = sequence.toDocument();
-      const { records, state } = await applyOps(run, sequence, document, ops, { generateMediaEdit });
+      const { records, state } = await applyOps(run, sequence, document, ops, { generateMediaEdit, bakeModel3DClip });
 
       // The transcript rides along untouched — no timeline operation edits it,
       // so the stored copy stays authoritative. Markers come back from the
