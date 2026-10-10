@@ -31,6 +31,9 @@ import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
 import GameEditorShell from "./shell/GameEditorShell";
 import type { GameCommandHandler, GameCommandHandlers } from "./shell/gameCommands";
 import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
+import GameConsolePanel from "./panels/console/GameConsolePanel";
+import { gameValidationConsoleEntries } from "./panels/console/gameConsoleModel";
+import { useGameConsoleFeed } from "./panels/console/useGameConsoleFeed";
 import { gamePlaytestPrompt, gameScriptErrorPrompt, gameSelectionPrompt } from "./gameAssistantPrompt";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
@@ -72,6 +75,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
   const diagnostics = useGameScriptDiagnostics(document, openGameDiagnosticSession2D);
   const scriptError = diagnostics.error ?? hostScriptError;
+  useGameConsoleFeed(refId, { runtimeError: error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: playState.tick });
   const layoutStore = useGamePanelLayoutStore();
   const assistant = useGameAssistantDraft(layoutStore);
   const canUndo = useStore(getGameDraftStore(refId), (state) => state.canUndo);
@@ -92,6 +96,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const savingPromiseRef = useRef<Promise<void> | null>(null);
   const playDraftOps = useMemo(() => playDocument && document ? diffGameDocuments(playDocument, document) : [], [playDocument, document]);
   const documentValidation = useMemo(() => document ? validateGame(document) : null, [document]);
+  const consoleValidation = useMemo(() => document && documentValidation ? gameValidationConsoleEntries(documentValidation.issues, document) : [],
+    [document, documentValidation]);
   const needsPlayRestart = playDraftOps.some((op) => Boolean(playDocument?.authoring) || op.op !== "bind_asset" && op.op !== "unbind_asset");
 
   const selectScene = (sceneId: string) => {
@@ -471,6 +477,9 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
         </> : null },
       { id: "assets", visible: !isMobile,
         node: <GameAssetBrowser gameId={refId} document={document} runServerEdit={serverAssetEdit} onOps={onOps}
+          onSelectEntity={(_sceneId, entityId) => selectEntity(entityId, false)} onAskAssistant={assistant.draft} /> },
+      { id: "console", visible: !isMobile,
+        node: <GameConsolePanel gameId={refId} document={document} liveEntries={consoleValidation}
           onSelectEntity={(_sceneId, entityId) => selectEntity(entityId, false)} onAskAssistant={assistant.draft} /> },
       { id: "inspector", visible: !isMobile,
         node: <>
