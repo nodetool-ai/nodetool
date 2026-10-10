@@ -448,6 +448,7 @@ from `packages/agents/src/tools/mcp-tools.ts` over shell commands.
 | [Build and verify a mini app](docs/harnesses.md#nodetool-app-build-mini-app-build-harness) | `nodetool app build "<prompt>" -p <provider> -m <model>` / `debug_app` |
 | [Execute a workflow](docs/harnesses.md#nodetool-run-dsl-workflows) | `nodetool run <file>` / `run_workflow` / `start_background_job` |
 | [Inspect changed workspaces](docs/harnesses.md#nodetool-affected-changed-file--workspace-mapping) | `nodetool affected` |
+| [Find complex, under-tested functions](docs/harnesses.md#npm-run-crap-crap-scores-for-typescript) | `npm run crap -- --changed --run-coverage` |
 | [Check capability coverage](docs/harnesses.md#nodetool-harness-registry-coverage-audit-and-the-gate) | `nodetool harness capabilities` / `npm run capabilities:check` |
 | [Probe provider contracts](docs/harnesses.md#npm-run-probeproviders-provider-contract-probes) | `npm run probe:providers` |
 | [Measure agent task completion](docs/harnesses.md#nodetool-jtbd-jobs-to-be-done--the-optimization-loop) | `nodetool jtbd run` / `jtbd optimize` |
