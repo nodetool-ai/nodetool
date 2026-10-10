@@ -15,6 +15,7 @@ import {
   type SetStateAction
 } from "react";
 import type { Asset } from "../../../stores/ApiTypes";
+import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import {
   createDefaultLayer,
@@ -173,7 +174,6 @@ interface UseCanvasGeometryActionsParams {
     options?: PushHistoryOptions
   ) => void;
   updateLayerData: (layerId: string, data: string | null) => void;
-  setDocument: (doc: SketchDocument) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   resizeCanvas: (width: number, height: number) => void;
@@ -260,7 +260,6 @@ export function useCanvasGeometryActions({
   document,
   pushHistory,
   updateLayerData,
-  setDocument,
   setZoom,
   setPan,
   resizeCanvas,
@@ -270,6 +269,7 @@ export function useCanvasGeometryActions({
   reconcileAllLayerTransforms,
   syncSketchOutputsNow
 }: UseCanvasGeometryActionsParams): UseCanvasGeometryActionsReturn {
+  const { editor } = useSketchInstance();
   // ─── Canvas crop finalization ──────────────────────────────────
   const finalizeCanvasCrop = useCallback(
     (x: number, y: number, width: number, height: number) => {
@@ -1030,13 +1030,16 @@ export function useCanvasGeometryActions({
           objectFit: "fill"
         };
 
+        // Add the layer to the document as it is after the fetch, and keep
+        // undo history: `setDocument` would reset it.
         pushHistory("import asset", undefined, { timing: "before" });
-        setDocument({
-          ...document,
-          layers: [...document.layers, nextLayer],
+        const { document: liveDocument, replaceDocument } = editor.getState();
+        replaceDocument({
+          ...liveDocument,
+          layers: [...liveDocument.layers, nextLayer],
           activeLayerId: nextLayer.id,
           metadata: {
-            ...document.metadata,
+            ...liveDocument.metadata,
             updatedAt: new Date().toISOString()
           }
         });
@@ -1044,7 +1047,7 @@ export function useCanvasGeometryActions({
         console.error("Failed to import dropped asset:", error);
       }
     },
-    [document, pushHistory, setDocument]
+    [document.layers.length, editor, pushHistory]
   );
 
   // ─── Adjustment preview (auto-apply with snapshot) ─────────────

@@ -30,10 +30,12 @@ describe("useSketchStore", () => {
       expect(useSketchStore.getState().zoom).toBe(1);
     });
 
-    it("starts with empty history", () => {
+    it("starts with a single Open checkpoint", () => {
       const state = useSketchStore.getState();
-      expect(state.history).toHaveLength(0);
-      expect(state.historyIndex).toBe(-1);
+      expect(state.history).toHaveLength(1);
+      expect(state.history[0]).toMatchObject({ action: "open", timing: "before" });
+      expect(state.historyIndex).toBe(0);
+      expect(state.canUndo()).toBe(false);
     });
   });
 
@@ -476,7 +478,8 @@ describe("useSketchStore", () => {
         useSketchStore.getState().setDocument(newDoc);
       });
       expect(useSketchStore.getState().document.canvas.width).toBe(800);
-      expect(useSketchStore.getState().history).toHaveLength(0);
+      expect(useSketchStore.getState().history).toHaveLength(1);
+      expect(useSketchStore.getState().history[0].documentCanvas?.width).toBe(800);
     });
 
     it("resets document", () => {
@@ -501,9 +504,9 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().pushHistory("draw");
       });
-      expect(useSketchStore.getState().history).toHaveLength(1);
-      expect(useSketchStore.getState().historyIndex).toBe(0);
-      expect(useSketchStore.getState().history[0].restoreMode).toBe("full");
+      expect(useSketchStore.getState().history).toHaveLength(2);
+      expect(useSketchStore.getState().historyIndex).toBe(1);
+      expect(useSketchStore.getState().history[1].restoreMode).toBe("full");
     });
 
     it("stores transform-aware layer metadata in history snapshots", () => {
@@ -512,7 +515,7 @@ describe("useSketchStore", () => {
         useSketchStore.getState().setLayerTransform(layerId, makeAffineTransform({ x: 7, y: 9 }));
         useSketchStore.getState().pushHistory("move");
       });
-      expect(useSketchStore.getState().history[0].layerStructure[0]?.transform).toMatchObject({
+      expect(useSketchStore.getState().history[1].layerStructure[0]?.transform).toMatchObject({
         x: 7,
         y: 9
       });
@@ -524,7 +527,7 @@ describe("useSketchStore", () => {
           restoreMode: "structure-only"
         });
       });
-      expect(useSketchStore.getState().history[0].restoreMode).toBe("structure-only");
+      expect(useSketchStore.getState().history[1].restoreMode).toBe("structure-only");
     });
 
     it("canUndo returns false when no history", () => {
@@ -551,12 +554,12 @@ describe("useSketchStore", () => {
         useSketchStore.getState().pushHistory("action1");
         useSketchStore.getState().pushHistory("action2");
       });
-      expect(useSketchStore.getState().historyIndex).toBe(1);
+      expect(useSketchStore.getState().historyIndex).toBe(2);
 
       act(() => {
         useSketchStore.getState().undo();
       });
-      expect(useSketchStore.getState().historyIndex).toBe(0);
+      expect(useSketchStore.getState().historyIndex).toBe(1);
     });
 
     it("redo increments history index", () => {
@@ -572,7 +575,7 @@ describe("useSketchStore", () => {
       act(() => {
         useSketchStore.getState().redo();
       });
-      expect(useSketchStore.getState().historyIndex).toBe(1);
+      expect(useSketchStore.getState().historyIndex).toBe(2);
     });
 
     it("truncates future history when pushing after undo", () => {
@@ -589,8 +592,8 @@ describe("useSketchStore", () => {
         useSketchStore.getState().pushHistory("action4");
       });
 
-      expect(useSketchStore.getState().history).toHaveLength(2);
-      expect(useSketchStore.getState().history[1].action).toBe("action4");
+      expect(useSketchStore.getState().history).toHaveLength(3);
+      expect(useSketchStore.getState().history[2].action).toBe("action4");
     });
   });
 

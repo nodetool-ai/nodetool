@@ -230,9 +230,13 @@ export function useSegmentation({
     }));
     const maskLayers = maskLayerPayloads.map((payload) => payload.layer);
 
-    const sourceIdx = doc.layers.findIndex((layer) => layer.id === sourceLayerId);
-    const insertIdx = sourceIdx >= 0 ? sourceIdx + 1 : doc.layers.length;
-    const newLayers = [...doc.layers];
+    // The masks were built asynchronously, so insert them into the document
+    // as it is now, not as it was when the run started.
+    const latest = editor.getState();
+    const liveDoc = latest.document;
+    const sourceIdx = liveDoc.layers.findIndex((layer) => layer.id === sourceLayerId);
+    const insertIdx = sourceIdx >= 0 ? sourceIdx + 1 : liveDoc.layers.length;
+    const newLayers = [...liveDoc.layers];
 
     if (!preserveSourceLayer) {
       if (settings.sourceLayerAction === "hide" && sourceIdx >= 0) {
@@ -244,20 +248,21 @@ export function useSegmentation({
 
     newLayers.splice(insertIdx, 0, groupLayer, ...maskLayers);
 
-    store.setDocument({
-      ...doc,
+    // `setDocument` would reset undo history, so record a checkpoint and swap
+    // the edited document in.
+    pushHistory(historyLabel, undefined, { timing: "before" });
+    latest.replaceDocument({
+      ...liveDoc,
       layers: newLayers,
-      activeLayerId: maskLayers[0]?.id ?? doc.activeLayerId
+      activeLayerId: maskLayers[0]?.id ?? liveDoc.activeLayerId
     });
 
     if (canvas) {
       for (const payload of maskLayerPayloads) {
         canvas.setLayerData(payload.layer.id, payload.data, payload.bounds);
-        store.updateLayerData(payload.layer.id, payload.data);
+        latest.updateLayerData(payload.layer.id, payload.data);
       }
     }
-
-    pushHistory(historyLabel);
   }, [canvasRef, editor, pushHistory]);
 
   const checkModel = useCallback(async () => {

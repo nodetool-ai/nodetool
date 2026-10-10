@@ -128,6 +128,30 @@ function captureLiveStateEntry(
   };
 }
 
+/**
+ * The history a freshly loaded document starts with: one "Open" checkpoint
+ * holding the document as loaded. Without it, an edit pushed after it ran
+ * (add layer, select all) would become the first entry and could never be
+ * undone, because no entry would hold the state before it.
+ */
+export function initialHistory(
+  document: SketchDocument,
+  selection: HistoryEntry["selection"]
+): { history: HistoryEntry[]; historyIndex: number } {
+  return {
+    history: [
+      {
+        ...captureLiveStateEntry(document, undefined),
+        action: "open",
+        timing: "before",
+        selection,
+        timestamp: Date.now()
+      }
+    ],
+    historyIndex: 0
+  };
+}
+
 /** Which layer units an external merge took out of the draft's hands. */
 interface ExternalLayerOwnership {
   /** Layers the external write added or rewrote; the merged value wins. */

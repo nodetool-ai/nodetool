@@ -210,7 +210,7 @@ describe("useLayerActions opacity history", () => {
     });
 
     const actions = useSketchStore.getState().history.map((entry) => entry.action);
-    expect(actions).toEqual(["earlier edit", "change opacity"]);
+    expect(actions).toEqual(["open", "earlier edit", "change opacity"]);
     const layer = useSketchStore
       .getState()
       .document.layers.find((l) => l.id === layerId);

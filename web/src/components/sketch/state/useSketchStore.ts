@@ -22,6 +22,7 @@ import {
   createSelectionSlice,
   createUiSlice,
   createRuntimeSlice,
+  initialHistory,
   SKETCH_ZOOM_MIN,
   SKETCH_ZOOM_MAX
 } from "./slices";
@@ -85,6 +86,13 @@ export function hydrateSketchStore(
   state: PersistedSketchStoreState
 ): void {
   const normalized = normalizeSketchDocument(state.document);
+  const history =
+    state.history && state.history.length > 0
+      ? {
+          history: state.history,
+          historyIndex: isNumber(state.historyIndex) ? state.historyIndex : -1
+        }
+      : initialHistory(normalized, store.getState().selection);
   store.setState({
     document: normalized,
     toolSettings: normalized.toolSettings,
@@ -95,8 +103,7 @@ export function hydrateSketchStore(
         ? Math.max(SKETCH_ZOOM_MIN, Math.min(SKETCH_ZOOM_MAX, state.zoom))
         : 1,
     pan: state.pan ?? { x: 0, y: 0 },
-    history: state.history ?? [],
-    historyIndex: isNumber(state.historyIndex) ? state.historyIndex : -1,
+    ...history,
     isDrawing: false,
     selectedLayerIds: [],
     layerShiftRangeAnchorId: null

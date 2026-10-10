@@ -10,6 +10,9 @@ import { MAX_HISTORY_SIZE } from "../types";
 beforeEach(() => {
   act(() => {
     useSketchStore.getState().resetDocument();
+    // These cases exercise the stack mechanics from an empty stack, without
+    // the "Open" checkpoint a loaded document starts with.
+    useSketchStore.setState({ history: [], historyIndex: -1 });
   });
 });
 
