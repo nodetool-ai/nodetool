@@ -99,16 +99,6 @@ function allowlistCovers(
 }
 
 /**
- * Pack-authored text reaches every prompt of the session, so it is stripped to
- * a single short line: no control characters, no newlines, no runaway length.
- * The rule lives in protocol, where the catalog that fills a summary's
- * description applies it too — one limit, enforced at both ends.
- */
-export function sanitizePackageDescription(text: string): string {
-  return sanitizeSandboxDescription(text);
-}
-
-/**
  * One line per allowed specifier the catalog knows: `specifier — description`.
  * A specifier the catalog cannot describe still gets its line — the model needs
  * to know it may import it.
@@ -123,7 +113,7 @@ export function packagePromptLines(
   );
   return allowed.map((specifier) => {
     const description = summaries.get(specifier)?.description;
-    const clean = description ? sanitizePackageDescription(description) : "";
+    const clean = description ? sanitizeSandboxDescription(description) : "";
     return clean ? `${specifier} — ${clean}` : specifier;
   });
 }
