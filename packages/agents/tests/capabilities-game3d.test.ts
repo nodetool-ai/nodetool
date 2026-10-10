@@ -91,6 +91,23 @@ describe("native game tools in 3D", () => {
     expect(edited.document.scenes[0].entities.find((entity) => entity.id === "crate")?.renderCulling).toEqual({ layer: "props" });
   });
 
+  it("names collision layers, a layer matrix and collider layers through edit_native_game", async () => {
+    const { run } = await agent();
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Layers", dimension: "3d" }));
+    const missingLayer = readRecord(await run.invoke("edit_native_game", { game_id: created.document.id,
+      ops: [{ op: "update_entity", entity_id: "crate", set: { collider3d: { layer: "debris" } } }] }));
+    expect(JSON.stringify(missingLayer)).toContain("Collision layer debris is not declared");
+    const edited = replyDocument(await run.invoke("edit_native_game", { game_id: created.document.id, ops: [
+      { op: "set_game", collision_layers: ["world", "debris"], collision_matrix: [["debris", "world"]] },
+      { op: "update_entity", entity_id: "crate", set: { collider3d: { layer: "debris" } } }
+    ] }));
+    if (edited.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    expect(edited.document.collisionMatrix).toEqual([["debris", "world"]]);
+    expect(edited.document.scenes[0].entities.find((entity) => entity.id === "crate")?.collider3d).toMatchObject({ layer: "debris", category: 1, mask: 0xffff });
+    const outline = readRecord(await run.invoke("get_native_game", { game_id: created.document.id }));
+    expect(JSON.stringify(outline)).toContain("\"collisionMatrix\":[[\"debris\",\"world\"]]");
+  });
+
   it("stores and removes a document animation graph through edit_native_game", async () => {
     const { run } = await agent();
     const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Locomotion", dimension: "3d" }));
