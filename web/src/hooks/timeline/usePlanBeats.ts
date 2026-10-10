@@ -12,7 +12,13 @@
  * RPC — `generate_text`. Nothing costs a render until `generateFromBeats` runs.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from "react";
 import {
   DIRECTOR_SYSTEM_PROMPT,
   SCREENPLAY_TOOL_DESCRIPTION,
@@ -407,6 +413,68 @@ export const planContextOf = (store: TimelineStoreApi): PlanBeatsContext => {
 export const PLAN_INPUTS_CHANGED =
   "The video setup changed while the beats were being planned. Plan the beats again.";
 
+/** Why a second Director run on the same sequence was refused. */
+export const PLAN_IN_PROGRESS =
+  "The beats are already being planned. Wait for that plan, or cancel it.";
+
+/** What the agent is told when the creator canceled its plan. */
+export const PLAN_CANCELED = "The plan was canceled before it was written.";
+
+/**
+ * The Director run on each sequence, whichever caller started it. The flow and
+ * the agent bridge each plan on their own, so without one registry both could
+ * pay for a plan, and the second write threw the first one away.
+ */
+const activePlans = new WeakMap<TimelineStoreApi, AbortController>();
+const planListeners = new Set<() => void>();
+const notifyPlans = (): void => {
+  planListeners.forEach((listener) => listener());
+};
+const subscribePlans = (listener: () => void): (() => void) => {
+  planListeners.add(listener);
+  return () => {
+    planListeners.delete(listener);
+  };
+};
+
+/**
+ * Claims the sequence for one Director run. Throws {@link PLAN_IN_PROGRESS}
+ * when another caller's run holds it. `replacing` is the caller's own earlier
+ * run, which a new run supersedes. Returns the release.
+ */
+export const beginPlanRun = (
+  store: TimelineStoreApi,
+  controller: AbortController,
+  replacing: AbortController | null = null
+): (() => void) => {
+  const active = activePlans.get(store);
+  if (active && active !== replacing && !active.signal.aborted) {
+    throw new Error(PLAN_IN_PROGRESS);
+  }
+  activePlans.set(store, controller);
+  notifyPlans();
+  return () => {
+    if (activePlans.get(store) === controller) {
+      activePlans.delete(store);
+      notifyPlans();
+    }
+  };
+};
+
+/** Stops whichever caller's run holds the sequence. */
+export const cancelPlanRun = (store: TimelineStoreApi): void => {
+  const active = activePlans.get(store);
+  if (active) {
+    active.abort();
+    activePlans.delete(store);
+    notifyPlans();
+  }
+};
+
+/** Whether any caller is planning this sequence, as React state. */
+const usePlanRunActive = (store: TimelineStoreApi): boolean =>
+  useSyncExternalStore(subscribePlans, () => activePlans.has(store));
+
 export interface UsePlanBeatsResult {
   /**
    * Draft and apply, reading the brief and format off the sequence. `context`
@@ -439,13 +507,16 @@ export function usePlanBeats(): UsePlanBeatsResult {
   // beats a newer one wrote, nor clear the wait a newer one owns.
   const requestRef = useRef(0);
   const activeControllerRef = useRef<AbortController | null>(null);
+  // The agent's plan holds the steps too, so the creator can wait or cancel.
+  const runActive = usePlanRunActive(store);
 
   const cancel = useCallback(() => {
     requestRef.current += 1;
     activeControllerRef.current?.abort();
     activeControllerRef.current = null;
+    cancelPlanRun(store);
     setPlanning(false);
-  }, []);
+  }, [store]);
 
   useEffect(
     () => () => {
@@ -473,9 +544,16 @@ export function usePlanBeats(): UsePlanBeatsResult {
         setError(message);
         throw new Error(message);
       }
+      const controller = new AbortController();
+      let release: () => void;
+      try {
+        release = beginPlanRun(store, controller, activeControllerRef.current);
+      } catch (cause) {
+        setError(PLAN_IN_PROGRESS);
+        throw cause;
+      }
       const token = (requestRef.current += 1);
       activeControllerRef.current?.abort();
-      const controller = new AbortController();
       activeControllerRef.current = controller;
       const abortOwnedRequest = () => controller.abort();
       if (signal?.aborted === true) {
@@ -536,6 +614,7 @@ export function usePlanBeats(): UsePlanBeatsResult {
         setError(cause instanceof Error ? cause.message : String(cause));
         throw cause;
       } finally {
+        release();
         signal?.removeEventListener("abort", abortOwnedRequest);
         if (activeControllerRef.current === controller) {
           activeControllerRef.current = null;
@@ -548,7 +627,7 @@ export function usePlanBeats(): UsePlanBeatsResult {
     [store]
   );
 
-  return { plan, cancel, planning, error };
+  return { plan, cancel, planning: planning || runActive, error };
 }
 
 export default usePlanBeats;

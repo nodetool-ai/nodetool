@@ -55,9 +55,11 @@ jest.mock("../../hooks/script/useScripts", () => ({
 }));
 
 const createTimeline = jest.fn(async () => ({ id: "t-new" }));
+const deleteTimeline = jest.fn().mockResolvedValue(undefined);
 jest.mock("../../hooks/useTimelineSequence", () => ({
   __esModule: true,
   useCreateTimeline: () => ({ mutateAsync: createTimeline }),
+  useDeleteTimeline: () => ({ mutateAsync: deleteTimeline }),
   useSeedTimelineDetail: () => jest.fn(),
   useTimelines: () => ({
     data: [
@@ -100,6 +102,7 @@ jest.mock("../../trpc/client", () => ({
 }));
 
 import StudioHome from "../StudioHome";
+import { useBugReportStore } from "../../stores/BugReportStore";
 
 const renderHome = () => {
   const queryClient = new QueryClient({
@@ -213,6 +216,81 @@ describe("StudioHome", () => {
         })
       )
     );
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith("/studio/storyboard/b9")
+    );
+  });
+
+  // Studio mounts no toast host, so a failed create used to be a dead click.
+  it("says why a card could not start, with a Report control", async () => {
+    const user = userEvent.setup();
+    createStoryboard.mockRejectedValueOnce(new Error("quota reached"));
+    renderHome();
+
+    await user.click(
+      await screen.findByRole("button", { name: /^Storyboard From a sentence/ })
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("quota reached");
+    expect(navigate).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("button", { name: "Report this failure" })
+    );
+    expect(useBugReportStore.getState().context).toMatchObject({
+      source: "manual",
+      errorText: "quota reached"
+    });
+  });
+
+  // The setup PATCH failing used to leave an empty "Untitled video" in the
+  // project list that no page opened (F15, fixed for the workspace only).
+  it("deletes the new video when its setup cannot be written", async () => {
+    const user = userEvent.setup();
+    timelineUpdate.mockRejectedValueOnce(new Error("conflict"));
+    renderHome();
+
+    const cards = await screen.findByRole("group", {
+      name: "What are you making?"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+
+    await waitFor(() =>
+      expect(deleteTimeline).toHaveBeenCalledWith({ id: "t-new" })
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("conflict");
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("marks the card being created and holds the others", async () => {
+    const user = userEvent.setup();
+    let finish: (value: { id: string }) => void = () => undefined;
+    createStoryboard.mockImplementationOnce(
+      () =>
+        new Promise<{ id: string }>((resolve) => {
+          finish = resolve;
+        })
+    );
+    renderHome();
+
+    const cards = await screen.findByRole("group", {
+      name: "What are you making?"
+    });
+    await user.click(
+      within(cards).getByRole("button", { name: /^Storyboard / })
+    );
+
+    expect(
+      within(cards).getByRole("button", { name: /^Storyboard / })
+    ).toHaveTextContent("Creating…");
+    for (const name of [/^Storyboard /, /^Video /, /^Script /]) {
+      expect(within(cards).getByRole("button", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true"
+      );
+    }
+
+    finish({ id: "b9" });
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith("/studio/storyboard/b9")
     );

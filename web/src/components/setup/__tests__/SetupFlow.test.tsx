@@ -1281,6 +1281,113 @@ describe("SetupFlow", () => {
     );
   });
 
+  // The agent can move the document on while "Change flow?" is open. The
+  // dialog promises nothing has been generated, so it must not stay up to
+  // discard a draft that now holds a paid plan.
+  it("closes Change flow's question when the document leaves the first step", async () => {
+    const user = userEvent.setup();
+    const onChangeFlow = jest.fn();
+    const config: SetupFlowConfig<Stage> = {
+      labels: { title: "Storyboard" },
+      steps,
+      stage: "idea",
+      onStageChange: jest.fn()
+    };
+    const { rerender } = render(flow(config, onChangeFlow));
+
+    await user.click(screen.getByRole("button", { name: "Change flow" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    rerender(flow({ ...config, stage: "review" }, onChangeFlow));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    rerender(flow({ ...config, stage: "idea" }, onChangeFlow));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(onChangeFlow).not.toHaveBeenCalled();
+  });
+
+  it("closes Change flow's question when a run starts on the step", async () => {
+    const user = userEvent.setup();
+    const onChangeFlow = jest.fn();
+    const config: SetupFlowConfig<Stage> = {
+      labels: { title: "Storyboard" },
+      steps,
+      stage: "idea",
+      onStageChange: jest.fn()
+    };
+    const { rerender } = render(flow(config, onChangeFlow));
+
+    await user.click(screen.getByRole("button", { name: "Change flow" }));
+    rerender(
+      flow(
+        {
+          ...config,
+          steps: steps.map((entry) =>
+            entry.stage === "idea" ? { ...entry, pending: true } : entry
+          )
+        },
+        onChangeFlow
+      )
+    );
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(onChangeFlow).not.toHaveBeenCalled();
+  });
+
+  // The banner sits at the top of the scrolled body, and the button that
+  // failed is in the footer. A creator scrolled down a long review would see
+  // only "Try again".
+  it("scrolls a step's failure into view", async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = jest.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollIntoView;
+    try {
+      renderFlow({
+        stage: "review",
+        steps: steps.map((entry) =>
+          entry.stage === "review"
+            ? {
+                ...entry,
+                onAdvance: jest.fn().mockRejectedValue(new Error("refused"))
+              }
+            : entry
+        )
+      });
+
+      await user.click(
+        screen.getByRole("button", { name: "Continue to storyboard" })
+      );
+      const banner = await screen.findByRole("alert");
+      expect(banner).toHaveTextContent("refused");
+      expect(scrollIntoView.mock.contexts).toContain(banner);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("scrolls a failed change of flow into view", async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = jest.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollIntoView;
+    try {
+      renderFlow({}, jest.fn().mockRejectedValue(new Error("offline")));
+
+      await user.click(screen.getByRole("button", { name: "Change flow" }));
+      await user.click(
+        screen.getByRole("button", { name: "Discard and choose" })
+      );
+      const banner = await screen.findByRole("alert");
+      expect(banner).toHaveTextContent("We couldn't discard this draft");
+      await waitFor(() =>
+        expect(scrollIntoView.mock.contexts).toContain(banner)
+      );
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it("renders nothing for a stage outside the flow", () => {
     const { container } = render(
       <ThemeProvider theme={mockTheme}>

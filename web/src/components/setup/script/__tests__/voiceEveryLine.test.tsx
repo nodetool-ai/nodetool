@@ -170,6 +170,22 @@ describe("the script flow through its tools", () => {
     unmount();
   });
 
+  // The Format step accepts whole seconds from 5 to 3600. A length the agent
+  // set outside that asked the writer for a 0-second script, and the step
+  // then blocked the creator on a value they never typed.
+  it("refuses a length the Format step would refuse", async () => {
+    const { unmount } = renderHook(() => useScriptAgentBridge(SCRIPT_ID));
+    await call("ui_script_set_setup", { stage: "format", length_seconds: 60 });
+
+    for (const length_seconds of [0, -5, 12.5, 7200]) {
+      await expect(
+        call("ui_script_set_setup", { length_seconds })
+      ).rejects.toThrow();
+    }
+    expect(scriptNow().setup?.length_seconds).toBe(60);
+    unmount();
+  });
+
   it("records the lines it could not voice, and says the run finished (F8)", async () => {
     const { unmount } = renderHook(() => useScriptAgentBridge(SCRIPT_ID));
     await call("ui_script_set_setup", {

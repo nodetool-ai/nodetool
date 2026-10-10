@@ -83,7 +83,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
   const { assemble } = useAssembleTimeline();
   const { extract } = useExtractScriptFromBoard();
   const { reproject } = useReprojectShots();
-  const { direct } = useDirectScreenplay();
+  const { direct, errorRef: directErrorRef } = useDirectScreenplay();
   const { data: allEntities } = useEntities();
   const { data: stylePresets } = useStylePresets();
 
@@ -313,13 +313,20 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         }
         // The board's own length is what the flow's picker wrote, so a caller
         // that does not name one gets the run the creator set up (§ 7.7).
-        await direct(
+        const directed = await direct(
           boardId,
           shotCount ?? board.setupShotCount ?? DEFAULT_SHOT_COUNT
         );
-        // The hook reports a failed run through React state the tool layer
-        // cannot read, so the board itself is the evidence: a run that landed
-        // wrote a new screenplay.
+        // A run that did not land left its reason on the ref: a refusal while
+        // another run writes, or a provider failure. No reason means the
+        // creator canceled it.
+        if (directed === false) {
+          throw new Error(
+            directErrorRef.current ??
+              `The Director run for storyboard ${boardId} was canceled. The board is unchanged.`
+          );
+        }
+        // A run that landed wrote a new screenplay.
         if (requireBoard().screenplay === board.screenplay) {
           throw new Error(
             `The Director run for storyboard ${boardId} produced no screenplay. The board is unchanged; check the model and the provider, then retry.`
@@ -584,6 +591,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
     allEntities,
     stylePresets,
     direct,
+    directErrorRef,
     generateKeyframe,
     generateClip,
     generateRevisedClip,

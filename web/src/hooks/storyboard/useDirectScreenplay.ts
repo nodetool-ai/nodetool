@@ -40,6 +40,7 @@ import {
 } from "./directionFingerprint";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../serverState/useEntities";
+import { endBoardDirecting, startBoardDirecting } from "./directorRuns";
 import {
   CAMERA_PASS_SYSTEM_PROMPT,
   CAMERA_PASS_TOOL_DESCRIPTION,
@@ -163,6 +164,16 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
         setError("Pick a model before directing.");
         return false;
       }
+      // One run per board, whichever caller started it: the flow, the board's
+      // Direct button and the agent each hold their own hook.
+      const run = startBoardDirecting(boardId, signal);
+      if (!run) {
+        setError(
+          "The Director is already writing this storyboard. Wait for it to finish, or cancel it."
+        );
+        return false;
+      }
+      const runSignal = run.signal;
       setError(null);
       setUsedFallback(false);
       setDirecting(true);
@@ -221,7 +232,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
             ),
             schema_name: CAMERA_PASS_TOOL_NAME,
             schema_description: CAMERA_PASS_TOOL_DESCRIPTION
-          }, undefined, signal);
+          }, undefined, runSignal);
           const returned = applyCameraPass(preserved, answer.data);
           const verified = verifyImportedFdx(preserved, returned);
           const store = useStoryboardStore.getState();
@@ -264,7 +275,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
           schema: buildScreenplaySchema(shotCount),
           schema_name: SCREENPLAY_TOOL_NAME,
           schema_description: SCREENPLAY_TOOL_DESCRIPTION
-        }, undefined, signal);
+        }, undefined, runSignal);
         const parsed = result.data
           ? parseScreenplay(result.data, { shotCount, aspectRatio, genre })
           : null;
@@ -307,7 +318,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
       } catch (err) {
         // A canceled run leaves the board as it was and says nothing: the
         // creator asked for it to stop.
-        if (signal?.aborted) {
+        if (runSignal.aborted) {
           return false;
         }
         // The provider's own words, rewritten as one sentence plus the thing
@@ -323,6 +334,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
         );
         return false;
       } finally {
+        endBoardDirecting(boardId, run);
         setDirecting(false);
       }
     },

@@ -4,7 +4,7 @@
  * The agent's drafted `ui_timeline_plan_beats` during the guided video flow
  * must make the same run the flow's Plan button makes (V6).
  */
-import { renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { makeClip } from "@nodetool-ai/timeline";
 
 import {
@@ -22,7 +22,13 @@ import {
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
 import { rpcRequest } from "../../../lib/websocket/rpcRequest";
 import { useTimelineAgentBridge } from "../useTimelineAgentBridge";
-import { videoPlanFingerprint, planContextOf } from "../usePlanBeats";
+import {
+  PLAN_CANCELED,
+  PLAN_IN_PROGRESS,
+  planContextOf,
+  usePlanBeats,
+  videoPlanFingerprint
+} from "../usePlanBeats";
 
 let mockDoc: TimelineStoreApi;
 let mockUi: TimelineUIStoreApi;
@@ -89,7 +95,7 @@ describe("useTimelineAgentBridge planBeats in the guided flow (V6)", () => {
       "generate_text",
       expect.objectContaining({ provider: "openai", model: "my-model" }),
       undefined,
-      undefined
+      expect.any(AbortSignal)
     );
     // One beat per dropped clip, still linked to it.
     expect(beats).toHaveLength(1);
@@ -103,5 +109,81 @@ describe("useTimelineAgentBridge planBeats in the guided flow (V6)", () => {
         context: planContextOf(mockDoc)
       })
     );
+  });
+});
+
+/** A Director answer the test releases by hand. */
+const holdDirector = (): (() => void) => {
+  let answer: (value: Record<string, unknown>) => void = () => undefined;
+  mockRpc.mockImplementation(
+    (_command: string, _data: unknown, _options: unknown, signal?: AbortSignal) =>
+      new Promise((resolve, reject) => {
+        answer = resolve;
+        signal?.addEventListener("abort", () =>
+          reject(new DOMException("Aborted", "AbortError"))
+        );
+      })
+  );
+  return () => answer({});
+};
+
+const seedFormat = () =>
+  mockDoc.getState().setSetup({
+    stage: "format",
+    brief: "a paper boat",
+    format: "ad-15"
+  });
+
+describe("one Director run per sequence, flow or agent (V5)", () => {
+  it("refuses the agent's plan while the flow's plan runs", async () => {
+    seedFormat();
+    const release = holdDirector();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const flow = renderHook(() => usePlanBeats());
+
+    let flowPlan: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      flowPlan = flow.result.current.plan();
+    });
+
+    await expect(
+      getTimelineAgentHandler(SEQ_ID).planBeats({})
+    ).rejects.toThrow(PLAN_IN_PROGRESS);
+    await expect(
+      getTimelineAgentHandler(SEQ_ID).planBeats({
+        beats: [{ prompt: "the kerb", duration_ms: 3000 }]
+      } as never)
+    ).rejects.toThrow(PLAN_IN_PROGRESS);
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release();
+      await flowPlan;
+    });
+    // The flow's answer was kept, not dropped as a changed setup.
+    expect(mockDoc.getState().setup?.stage).toBe("review");
+  });
+
+  it("holds the flow on the agent's plan, and the flow can cancel it", async () => {
+    seedFormat();
+    holdDirector();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const flow = renderHook(() => usePlanBeats());
+
+    let agentPlan: Promise<unknown> = Promise.resolve();
+    act(() => {
+      agentPlan = getTimelineAgentHandler(SEQ_ID).planBeats({});
+    });
+    await waitFor(() => expect(flow.result.current.planning).toBe(true));
+    await expect(
+      act(() => flow.result.current.plan())
+    ).rejects.toThrow(PLAN_IN_PROGRESS);
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+
+    act(() => flow.result.current.cancel());
+    await expect(agentPlan).rejects.toThrow(PLAN_CANCELED);
+    expect(flow.result.current.planning).toBe(false);
+    expect(mockDoc.getState().setup?.stage).toBe("format");
+    expect(mockDoc.getState().setup?.beats ?? []).toHaveLength(0);
   });
 });

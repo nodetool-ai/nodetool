@@ -1718,6 +1718,20 @@ const NewProjectSurface = ({
     openPageTab("tutorials");
   }, []);
 
+  // The flow's last button unmounts with the flow, so focus would drop to the
+  // page. It goes to the control that retries the hand-off, unless the creator
+  // has already put it somewhere else.
+  const retryFinishRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (finishError === null) {
+      return;
+    }
+    const focused = document.activeElement;
+    if (focused === null || focused === document.body) {
+      retryFinishRef.current?.focus();
+    }
+  }, [finishError]);
+
   if (setupTarget && finishError) {
     return (
       <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl, maxWidth: COLUMN_WIDTH }}>
@@ -1740,6 +1754,7 @@ const NewProjectSurface = ({
           {finishError}
         </AlertBanner>
         <EditorButton
+          ref={retryFinishRef}
           variant="contained"
           onClick={retryFinish}
           sx={{ alignSelf: "flex-start" }}

@@ -21,6 +21,7 @@ jest.mock("../../../serverState/useEntities", () => ({
 }));
 
 import { useDirectScreenplay } from "../useDirectScreenplay";
+import { cancelBoardDirecting, useBoardDirecting } from "../directorRuns";
 import { boardDirectionFingerprint } from "../directionFingerprint";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 
@@ -355,5 +356,75 @@ describe("useDirectScreenplay", () => {
 
     expect(rpcRequest).not.toHaveBeenCalled();
     expect(result.current.error).toContain("Pick a model");
+  });
+});
+
+// The flow, the board's Direct button and the agent's `ui_storyboard_direct`
+// each hold their own hook. One run per board, whichever started it, so a
+// second press cannot pay for the same screenplay twice.
+describe("useDirectScreenplay — one run per board", () => {
+  it("refuses a second run while another caller's run is writing", async () => {
+    let finish: (value: unknown) => void = () => undefined;
+    rpcRequest.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const agent = renderHook(() => useDirectScreenplay());
+    const flow = renderHook(() => useDirectScreenplay());
+    const running = renderHook(() => useBoardDirecting(BOARD));
+
+    let first: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      first = agent.result.current.direct(BOARD, 3);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(running.result.current).toBe(true);
+
+    let second = true;
+    await act(async () => {
+      second = await flow.result.current.direct(BOARD, 3);
+    });
+    expect(second).toBe(false);
+    expect(flow.result.current.error).toMatch(/already writing/);
+    expect(rpcRequest).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      finish(answer(3));
+      await first;
+    });
+    expect(running.result.current).toBe(false);
+  });
+
+  it("lets any caller cancel the board's run", async () => {
+    let runSignal: AbortSignal | undefined;
+    rpcRequest.mockImplementationOnce(
+      (_command: string, _data: unknown, _timeout: unknown, signal: AbortSignal) => {
+        runSignal = signal;
+        // The real request rejects when its signal aborts.
+        return new Promise((_resolve, reject) => {
+          signal.addEventListener("abort", () =>
+            reject(new DOMException("The request was aborted.", "AbortError"))
+          );
+        });
+      }
+    );
+    const agent = renderHook(() => useDirectScreenplay());
+    let first: Promise<boolean> = Promise.resolve(true);
+    act(() => {
+      first = agent.result.current.direct(BOARD, 3);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => cancelBoardDirecting(BOARD));
+
+    expect(runSignal?.aborted).toBe(true);
+    await act(async () => {
+      expect(await first).toBe(false);
+    });
   });
 });

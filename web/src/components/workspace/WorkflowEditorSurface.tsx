@@ -309,7 +309,14 @@ const WorkflowEditorSurface = ({
         projectId
       });
       closeTab(tabId("workflow", workflowId));
-      if (placeholder) {
+      // A workflow sent back to step 1 after it was built (the agent's
+      // `ui_workflow_set_setup` can do that) holds the creator's graph, so
+      // only an empty canvas is a placeholder.
+      const canvasNodes =
+        nodeStore?.getState().nodes.length ??
+        placeholder?.graph?.nodes?.length ??
+        0;
+      if (placeholder && canvasNodes === 0) {
         // The copy is open whatever happens here, so a refused delete is
         // reported rather than turned into a failed pick.
         try {
@@ -331,6 +338,7 @@ const WorkflowEditorSurface = ({
       closeTab,
       createWorkflow,
       deleteWorkflow,
+      nodeStore,
       openTab,
       workflow,
       workflowId

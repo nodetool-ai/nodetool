@@ -82,7 +82,8 @@ jest.mock("../../../../serverState/useAssetUpload", () => ({
 const rpcRequest = jest.fn(
   async (
     _command: string,
-    _data: Record<string, unknown>
+    _data: Record<string, unknown>,
+    _signal?: AbortSignal
   ): Promise<{ data: Record<string, unknown> }> => ({
     data: {
       name: "Sun-bleached Super 8",
@@ -91,8 +92,12 @@ const rpcRequest = jest.fn(
   })
 );
 jest.mock("../../../../lib/websocket/rpcRequest", () => ({
-  rpcRequest: (command: string, data: Record<string, unknown>) =>
-    rpcRequest(command, data)
+  rpcRequest: (
+    command: string,
+    data: Record<string, unknown>,
+    _timeoutMs?: number,
+    signal?: AbortSignal
+  ) => rpcRequest(command, data, signal)
 }));
 
 let presets: Array<{
@@ -746,6 +751,51 @@ describe("LookStep — Add your own style", () => {
     });
     await waitFor(() => expect(board().entityIds).toEqual(["e-mine"]));
     expect(look.result.current.blockedReason).not.toBe("Saving your style");
+  });
+});
+
+describe("LookStep — canceling Add your own style", () => {
+  // The descriptor call has no timeout. A reply that never comes held
+  // Generate on "Saving your style" with no way out.
+  it("stops the reading and releases Generate on Cancel", async () => {
+    const current = board();
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...current,
+      entityIds: [NOIR.entityId],
+      style: NOIR.descriptor,
+      directorModel: { type: "language_model", provider: "openai", id: "gpt-5" }
+    } as never);
+    let readSignal: AbortSignal | undefined;
+    rpcRequest.mockImplementationOnce((_command, _data, signal) => {
+      readSignal = signal;
+      return new Promise(() => undefined);
+    });
+    renderStep();
+    const look = renderHook(() => useLookStep(BOARD));
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: /Add your own style/ })
+    );
+    await user.upload(
+      screen.getByLabelText("Reference images"),
+      new File(["ref"], "ref.png", { type: "image/png" })
+    );
+    await user.click(screen.getByRole("button", { name: "Add style" }));
+    await waitFor(() =>
+      expect(look.result.current.blockedReason).toBe("Saving your style")
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(readSignal?.aborted).toBe(true);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /Add your own style/ })
+      ).toBeNull()
+    );
+    expect(look.result.current.blockedReason).not.toBe("Saving your style");
+    expect(board().entityIds).toEqual([NOIR.entityId]);
+    expect(saveEntity).not.toHaveBeenCalled();
   });
 });
 

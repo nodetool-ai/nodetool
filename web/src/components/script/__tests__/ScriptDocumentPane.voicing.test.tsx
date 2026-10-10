@@ -40,6 +40,10 @@ import {
   voicingPatch,
   type VoicingRun
 } from "../../../stores/script/scriptVoicing";
+import {
+  activeWrites,
+  notifyWrites
+} from "../../../hooks/script/scriptWrites";
 import ScriptDocumentPane from "../ScriptDocumentPane";
 
 const SCRIPT_ID = "script-voicing";
@@ -131,6 +135,34 @@ describe("ScriptDocumentPane voicing strip", () => {
     expect(
       screen.getByRole("button", { name: /Voice all/ })
     ).toBeInTheDocument();
+  });
+
+  it("offers no Voice all or Retry while the agent writes the script", () => {
+    seed(completedWithFailures());
+    renderPane();
+    act(() => {
+      activeWrites.set(SCRIPT_ID, {
+        controller: new AbortController(),
+        owner: Symbol("agent")
+      });
+      notifyWrites();
+    });
+
+    // The write replaces these lines: takes recorded now would be thrown away.
+    expect(screen.getByText("Writing…")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Voice all/ })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeDisabled();
+
+    act(() => {
+      activeWrites.delete(SCRIPT_ID);
+      notifyWrites();
+    });
+    expect(
+      screen.getByRole("button", { name: /Voice all/ })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
   });
 
   it("reads a run left by a closed page as stopped, not as running", () => {

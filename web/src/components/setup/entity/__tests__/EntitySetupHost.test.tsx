@@ -286,6 +286,33 @@ describe("EntitySetupHost", () => {
     );
   });
 
+  it("offers Report when the reference render fails", async () => {
+    rpcRequest.mockRejectedValue(new Error("The provider refused the prompt."));
+    const user = userEvent.setup();
+    renderHost();
+
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "Nova");
+    await user.click(
+      screen.getByRole("button", { name: "Choose a reference" })
+    );
+    await user.click(screen.getByRole("button", { name: "Generate with AI" }));
+    // An earlier test's render remembers its model.
+    const selectModel = screen.queryByRole("button", {
+      name: "Select image model"
+    });
+    if (selectModel) {
+      await user.click(selectModel);
+    }
+    await user.click(
+      screen.getByRole("button", { name: "Generate reference" })
+    );
+
+    expect(
+      await screen.findByText("The provider refused the prompt.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
+  });
+
   it("uses a character sheet prompt and keeps it editable", async () => {
     const user = userEvent.setup();
     renderHost();

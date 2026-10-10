@@ -45,6 +45,8 @@ import { DEFAULT_TIMELINE_INSTRUMENT } from "../../stores/timeline/instrumentPre
 import { generateFromBeats } from "./useGenerateFromBeats";
 import {
   applyBeatPlan,
+  beginPlanRun,
+  PLAN_CANCELED,
   planBeats,
   planContextOf,
   videoPlanFingerprint
@@ -1218,48 +1220,66 @@ export const useTimelineAgentBridge = (
 
       async planBeats(opts) {
         const setup = requireSetup();
-        // The written form takes the plan verbatim; the drafted form asks the
-        // Director. Both write text and nothing else (D4, criterion 3).
-        if (opts.beats?.length) {
-          await editOp({
-            op: "plan_beats",
-            beats: opts.beats.map((beat) => ({ ...beat }))
-          });
-          return doc.getState().setup?.beats ?? [];
-        }
-        const format = videoFormatById(setup.format);
-        if (!format) {
-          throw new Error(
-            "This sequence has no format yet. Set one with ui_timeline_set_setup, or pass `beats` to write the plan yourself."
-          );
-        }
-        // The same run the flow's Plan button makes: the model the format
-        // step picked, and the clips, references and creative context on the
-        // sequence. The beats keep their link to the dropped clips and the
-        // plan records what it answers, so the flow does not offer a re-plan.
-        const context = planContextOf(doc);
-        const beats = await planBeats({
-          brief: setup.brief,
-          format,
-          ...(setup.directorModel && {
-            model: {
-              id: setup.directorModel.id,
-              provider: setup.directorModel.provider
-            }
-          }),
-          previous: opts.replan ? setup.beats : undefined,
-          context
-        });
-        applyBeatPlan(
-          doc,
-          beats,
-          videoPlanFingerprint({
+        // Either form during the flow's paid plan would make that plan drop
+        // its answer, so both wait for it, and the flow can cancel this one.
+        const controller = new AbortController();
+        const release = beginPlanRun(doc, controller);
+        try {
+          // The written form takes the plan verbatim; the drafted form asks
+          // the Director. Both write text and nothing else (D4, criterion 3).
+          if (opts.beats?.length) {
+            await editOp({
+              op: "plan_beats",
+              beats: opts.beats.map((beat) => ({ ...beat }))
+            });
+            return doc.getState().setup?.beats ?? [];
+          }
+          const format = videoFormatById(setup.format);
+          if (!format) {
+            throw new Error(
+              "This sequence has no format yet. Set one with ui_timeline_set_setup, or pass `beats` to write the plan yourself."
+            );
+          }
+          // The same run the flow's Plan button makes: the model the format
+          // step picked, and the clips, references and creative context on
+          // the sequence. The beats keep their link to the dropped clips and
+          // the plan records what it answers, so the flow does not offer a
+          // re-plan.
+          const context = planContextOf(doc);
+          const beats = await planBeats({
             brief: setup.brief,
-            formatId: setup.format,
-            context
-          })
-        );
-        return doc.getState().setup?.beats ?? [];
+            format,
+            ...(setup.directorModel && {
+              model: {
+                id: setup.directorModel.id,
+                provider: setup.directorModel.provider
+              }
+            }),
+            previous: opts.replan ? setup.beats : undefined,
+            context,
+            signal: controller.signal
+          });
+          if (controller.signal.aborted) {
+            throw new Error(PLAN_CANCELED);
+          }
+          applyBeatPlan(
+            doc,
+            beats,
+            videoPlanFingerprint({
+              brief: setup.brief,
+              formatId: setup.format,
+              context
+            })
+          );
+          return doc.getState().setup?.beats ?? [];
+        } catch (cause) {
+          if (controller.signal.aborted) {
+            throw new Error(PLAN_CANCELED);
+          }
+          throw cause;
+        } finally {
+          release();
+        }
       },
 
       async updateBeat(target, patch) {

@@ -51,4 +51,13 @@ describe("DirectorModelPicker", () => {
 
     expect(mockRefetch).toHaveBeenCalledTimes(1);
   });
+
+  it("offers Report when the model list could not be read (V4)", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <DirectorModelPicker />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
+  });
 });

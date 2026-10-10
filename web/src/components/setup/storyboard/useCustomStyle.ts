@@ -90,6 +90,11 @@ export interface CustomStyleResult {
   clearError: () => void;
   /** Describes the references, saves the style, applies it. Never throws. */
   addStyle: (files: readonly File[]) => Promise<boolean>;
+  /**
+   * Stops the save in flight. The style is not applied, and Generate is free
+   * again at once.
+   */
+  cancel: () => void;
 }
 
 export function useCustomStyle(boardId: string): CustomStyleResult {
@@ -99,8 +104,23 @@ export function useCustomStyle(boardId: string): CustomStyleResult {
   // upload and a second entity. The ref closes the window (F18).
   const inFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  // The save in flight. The descriptor call has no timeout, so without a way
+  // to stop it a reply that never came held Generate forever.
+  const controllerRef = useRef<AbortController | null>(null);
   const { data: entities } = useEntities();
   const saveEntity = useSaveEntity();
+
+  const cancel = useCallback(() => {
+    const controller = controllerRef.current;
+    if (!controller) {
+      return;
+    }
+    controller.abort();
+    controllerRef.current = null;
+    inFlight.current = false;
+    setSaving(false);
+    setBoardSaving(boardId, false);
+  }, [boardId]);
 
   const addStyle = useCallback(
     async (files: readonly File[]): Promise<boolean> => {
@@ -121,22 +141,33 @@ export function useCustomStyle(boardId: string): CustomStyleResult {
       }
 
       inFlight.current = true;
+      const controller = new AbortController();
+      controllerRef.current = controller;
+      const { signal } = controller;
       setSaving(true);
       setBoardSaving(boardId, true);
       try {
         const uris = await Promise.all(references.map(readDataUri));
-        const answer = await rpcRequest("generate_text", {
-          provider: model.provider,
-          model: model.id,
-          messages: [
-            { role: "system", content: STYLE_DESCRIPTOR_SYSTEM_PROMPT },
-            { role: "user", content: buildStyleDescriptorContent(uris) }
-          ],
-          max_tokens: 1024,
-          schema: STYLE_DESCRIPTOR_SCHEMA,
-          schema_name: STYLE_DESCRIPTOR_TOOL_NAME,
-          schema_description: STYLE_DESCRIPTOR_TOOL_DESCRIPTION
-        });
+        const answer = await rpcRequest(
+          "generate_text",
+          {
+            provider: model.provider,
+            model: model.id,
+            messages: [
+              { role: "system", content: STYLE_DESCRIPTOR_SYSTEM_PROMPT },
+              { role: "user", content: buildStyleDescriptorContent(uris) }
+            ],
+            max_tokens: 1024,
+            schema: STYLE_DESCRIPTOR_SCHEMA,
+            schema_name: STYLE_DESCRIPTOR_TOOL_NAME,
+            schema_description: STYLE_DESCRIPTOR_TOOL_DESCRIPTION
+          },
+          undefined,
+          signal
+        );
+        if (signal.aborted) {
+          return false;
+        }
         const data = isRecord(answer.data) ? answer.data : {};
         // The style the board is on, read for its name only (§ 7.7.9).
         const current: StyleSource | null =
@@ -156,12 +187,18 @@ export function useCustomStyle(boardId: string): CustomStyleResult {
         }
 
         const assetId = await uploadReference(references[0]);
+        if (signal.aborted) {
+          return false;
+        }
         const entity: Entity | null = await saveEntity.mutateAsync({
           assetId,
           kind: "style",
           name: draft.name,
           descriptor: draft.descriptor
         });
+        if (signal.aborted) {
+          return false;
+        }
         if (!entity) {
           setError("The style could not be saved.");
           return false;
@@ -173,14 +210,22 @@ export function useCustomStyle(boardId: string): CustomStyleResult {
           .setStylePreset(boardId, entity.id, [...(entities ?? []), entity]);
         return true;
       } catch (cause) {
+        if (signal.aborted) {
+          return false;
+        }
         setError(
           cause instanceof Error ? cause.message : "The style could not be made."
         );
         return false;
       } finally {
-        inFlight.current = false;
-        setSaving(false);
-        setBoardSaving(boardId, false);
+        // A canceled save already released everything, and a newer one may
+        // be running now.
+        if (controllerRef.current === controller) {
+          controllerRef.current = null;
+          inFlight.current = false;
+          setSaving(false);
+          setBoardSaving(boardId, false);
+        }
       }
     },
     [boardId, entities, saveEntity]
@@ -190,7 +235,8 @@ export function useCustomStyle(boardId: string): CustomStyleResult {
     saving,
     error,
     clearError: useCallback(() => setError(null), []),
-    addStyle
+    addStyle,
+    cancel
   };
 }
 

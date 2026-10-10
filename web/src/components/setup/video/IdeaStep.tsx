@@ -46,6 +46,7 @@ import { useEntities } from "../../../serverState/useEntities";
 import { useSetupMediaImport } from "../../../hooks/timeline/useSetupMediaImport";
 import type { SetupMediaImportResult } from "../../../hooks/timeline/useSetupMediaImport";
 import { assetIdFromLocator } from "../../../utils/mediaRef";
+import ReportBugButton from "../../support/ReportBugButton";
 import { ExampleBriefs } from "../ExampleBriefs";
 import { GalleryFrame } from "../MediaGallery";
 import { AlternativesColumn } from "../AlternativesColumn";
@@ -105,6 +106,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   // Placed media lives on this draft, which the script hand-off discards.
   const hasPlacedMedia = useTimelineStore((state) => state.clips.length > 0);
   const [error, setError] = useState<string | null>(null);
+  // Whether `error` is a failed import rather than a hint about the drop.
+  const [importFailed, setImportFailed] = useState(false);
   const [imported, setImported] = useState<SetupMediaImportResult | null>(null);
   // Dropped files that are not media, by name. The picker cannot offer them,
   // so only a drop fills this.
@@ -144,6 +147,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       }
       importingRef.current = true;
       setError(null);
+      setImportFailed(false);
       setRejected(notMedia);
       try {
         // Drop order is the cut order, so the files are uploaded and placed in
@@ -155,6 +159,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         }
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : String(cause));
+        setImportFailed(true);
       } finally {
         importingRef.current = false;
       }
@@ -199,6 +204,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         return;
       }
       if (importing || importingRef.current) {
+        setImportFailed(false);
         setError("Wait for the current upload to finish, then drop again.");
         return;
       }
@@ -207,6 +213,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         .filter((file) => !isMediaFile(file))
         .map((file) => file.name);
       if (media.length === 0) {
+        setImportFailed(false);
         setError(
           `No track takes ${notMedia.join(" · ")}. Drop video, audio or images.`
         );
@@ -328,7 +335,20 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
 
         {error ? (
           <AlertBanner severity="error" onClose={() => setError(null)}>
-            {error}
+            <FlexRow gap={GAP.normal} align="center" wrap>
+              <Text size="normal" component="span">
+                {error}
+              </Text>
+              {importFailed ? (
+                <ReportBugButton
+                  context={{
+                    source: "operation-failure",
+                    summary: "Video media import failed",
+                    errorText: error
+                  }}
+                />
+              ) : null}
+            </FlexRow>
           </AlertBanner>
         ) : null}
 
@@ -361,6 +381,19 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   {`${failure.name} did not upload: ${failure.reason}`}
                 </Caption>
               ))}
+              {imported.failed.length > 0 ? (
+                <Box>
+                  <ReportBugButton
+                    context={{
+                      source: "operation-failure",
+                      summary: "Video media upload failed",
+                      errorText: imported.failed
+                        .map((failure) => `${failure.name}: ${failure.reason}`)
+                        .join("\n")
+                    }}
+                  />
+                </Box>
+              ) : null}
               {skippedNames.length > 0 ? (
                 <Caption component="span" color="secondary">
                   {`No track takes ${skippedNames.join(

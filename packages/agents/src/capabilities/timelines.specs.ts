@@ -521,7 +521,11 @@ export const SET_TIMELINE_DOCUMENT_SCHEMA: JsonSchema = {
         "anything you leave out is dropped — read the current document with " +
         "get_timeline and send it back changed, rather than sending only the " +
         "part you edited. `markers` may be omitted and defaults to an empty " +
-        "list. A midi track's `instrument: {preset: \"<id>\"}` and a " +
+        "list. The `timeline` object get_timeline returns is accepted as " +
+        "is: its `name` renames the sequence, and its other row fields " +
+        "(`id`, `projectId`, `workflowId`, `durationMs`, `createdAt`, " +
+        "`updatedAt`) are ignored. A midi track's " +
+        "`instrument: {preset: \"<id>\"}` and a " +
         "typewriter animation's plain `durationMs` resolve as the " +
         "edit_timeline ops resolve them."
     },
