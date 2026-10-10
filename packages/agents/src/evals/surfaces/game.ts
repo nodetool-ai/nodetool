@@ -203,7 +203,7 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
     requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
     finalState: [{ name: "spatialGem", detail: "The gem's audio source is not spatial with a linear 2 to 20 unit falloff.",
       test: document => {
-        const audio = document.scenes.flatMap((scene) => scene.entities).find((entity) => entity.id === "gem")?.audioSource;
+        const audio = document.scenes.map((scene) => scene.entities.find((entity) => entity.id === "gem")).find(Boolean)?.audioSource;
         return audio?.spatial === true && audio.minDistance === 2 && audio.maxDistance === 20 && audio.distanceModel === "linear" && (audio.rolloff ?? 1) === 1;
       } }]
   }
