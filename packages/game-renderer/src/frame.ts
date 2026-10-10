@@ -45,8 +45,10 @@ export function sourceRect(item: VisibleItem, width: number, height: number): { 
   return item.frame ?? { x: 0, y: 0, width, height };
 }
 
+const HEX_BYTES = Array.from({ length: 256 }, (_, value) => value.toString(16).padStart(2, "0"));
+
 function channelHex(value: number): string {
-  return Math.round(Math.max(0, Math.min(1, value)) * 255).toString(16).padStart(2, "0");
+  return HEX_BYTES[Math.round(Math.max(0, Math.min(1, value)) * 255)] ?? "00";
 }
 
 /** A drawing rectangle by pixel center and size, snapped to whole pixels when the item asks for it. */
