@@ -144,6 +144,22 @@ export function useNodeVideoModelConstraints(
   );
 }
 
+/**
+ * A video model's catalog entry, for a surface that holds only its provider
+ * and id, such as a remembered last-used model. Undefined while the list loads
+ * or when the provider does not list the model.
+ */
+export function useCatalogVideoModel(
+  provider: string | undefined,
+  id: string | undefined
+): VideoModel | undefined {
+  const ref = useMemo(
+    () => (provider && id ? { provider, id } : null),
+    [provider, id]
+  );
+  return useProviderModel<VideoModel>(ref, "video-models", fetchVideoModels);
+}
+
 /** Resolution / aspect constraints of `nodeId`'s selected image model. */
 export function useNodeImageModelConstraints(
   nodeId: string

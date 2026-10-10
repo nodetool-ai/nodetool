@@ -65,6 +65,7 @@ import type {
 } from "../../stores/MediaGenerationStore";
 import type { MusicModel, TTSModel, VideoModel } from "../../stores/ApiTypes";
 import { useInStudio } from "../../studio/StudioContext";
+import { useCatalogVideoModel } from "../../hooks/useMediaModelConstraints";
 import {
   forTasks,
   STUDIO_CLIP_MODELS,
@@ -167,13 +168,21 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
     [selectedModel]
   );
 
+  // The remembered model is only a provider and an id. Its catalog entry
+  // carries the durations, resolutions and aspect ratios it accepts.
+  const rememberedModel = useCatalogVideoModel(
+    lastModel.provider ?? undefined,
+    lastModel.model ?? undefined
+  );
+
   // Sync the model from the most recent direct-gen clip until the user picks
   // one themselves, so "type → generate" stays fluid across sequence loads.
-  // The remembered default carries no manifest constraints, so the full option
-  // sets show until a model is picked through the dialog.
+  // Until its catalog entry loads, the full option sets show.
   useEffect(() => {
     if (userPicked) return;
-    if (lastModel.provider && lastModel.model) {
+    if (rememberedModel) {
+      setSelectedModel(normalizeVideoModel(rememberedModel));
+    } else if (lastModel.provider && lastModel.model) {
       setSelectedModel({
         type: "video_model",
         id: lastModel.model,
@@ -183,7 +192,16 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
     } else {
       setSelectedModel(undefined);
     }
-  }, [lastModel.provider, lastModel.model, userPicked]);
+  }, [lastModel.provider, lastModel.model, rememberedModel, userPicked]);
+
+  // Snap each setting to what the model accepts, whenever the model or its
+  // constraints change.
+  useEffect(() => {
+    if (!selectedModel) return;
+    setAspect((a) => clampToAllowed(a, selectedModel.aspectRatios));
+    setResolution((r) => clampToAllowed(r, selectedModel.resolutions));
+    setDuration((d) => clampToAllowed(d, selectedModel.durations));
+  }, [selectedModel]);
 
   const addDirectGenClip = useTimelineStore((s) => s.addDirectGenClip);
   const selectClip = useTimelineUIStore((s) => s.selectClip);
@@ -311,10 +329,6 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
     const normalized = normalizeVideoModel(model);
     setUserPicked(true);
     setSelectedModel(normalized);
-    // Snap current settings to what the picked model allows.
-    setAspect((a) => clampToAllowed(a, normalized.aspectRatios));
-    setResolution((r) => clampToAllowed(r, normalized.resolutions));
-    setDuration((d) => clampToAllowed(d, normalized.durations));
     setVideoModelOpen(false);
   }, []);
 

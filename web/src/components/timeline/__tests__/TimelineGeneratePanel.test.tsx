@@ -72,6 +72,11 @@ jest.mock("../../model_menu/TTSModelMenuDialog", () => ({
     </button>
   )
 }));
+let mockCatalogVideoModel: unknown;
+jest.mock("../../../hooks/useMediaModelConstraints", () => ({
+  useCatalogVideoModel: () => mockCatalogVideoModel
+}));
+
 jest.mock("../../model_menu/VideoModelMenuDialog", () => ({
   __esModule: true,
   default: ({
@@ -134,6 +139,7 @@ async function pickSpeechModel() {
 }
 
 beforeEach(() => {
+  mockCatalogVideoModel = undefined;
   instance = createTimelineInstance();
   useLastModelStore.setState({ byKind: {} });
   mockSend.mockClear();
@@ -379,6 +385,32 @@ describe("TimelineGeneratePanel", () => {
     expect(
       screen.getByRole("button", { name: "Test speech" })
     ).toBeInTheDocument();
+  });
+
+  it("limits the remembered model's settings to its catalog ranges", async () => {
+    useLastModelStore.getState().remember("video", {
+      provider: "dreamina",
+      model: "seedance"
+    });
+    mockCatalogVideoModel = {
+      type: "video_model",
+      id: "seedance",
+      provider: "dreamina",
+      name: "Seedance",
+      durations: [5, 10],
+      resolutions: ["1080p"],
+      aspect_ratios: ["9:16", "1:1"]
+    };
+    renderPrompt();
+    expect(screen.getByRole("button", { name: "Seedance" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "5 Sec" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "1080p" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "9:16" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "5 Sec" }));
+    expect(
+      screen.getAllByRole("menuitemradio").map((item) => item.textContent)
+    ).toEqual(["5 Sec", "10 Sec"]);
   });
 
   it("reports a started generation so the dialog can close", async () => {
