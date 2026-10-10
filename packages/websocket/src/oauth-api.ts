@@ -31,6 +31,7 @@ import {
   type PendingClaudeCodeLogin
 } from "@nodetool-ai/runtime/oauth";
 import { clearProviderCache } from "@nodetool-ai/runtime";
+import { isAdmin } from "./lib/admin.js";
 import {
   isFiniteNumber,
   isNonEmptyString,
@@ -1212,6 +1213,21 @@ async function handleOpenAIDisconnect(
 //
 // The UI reflects success by polling `/api/oauth/claude/tokens`.
 
+// The login is process-wide: every user's Claude Agent SDK traffic runs on it.
+// So only an admin may start, finish or remove it, or read its plan details.
+// Other users see only whether the server is connected.
+
+/** Answers 403 unless the caller is an admin. */
+async function refuseUnlessAdmin(
+  getUserId: () => string
+): Promise<Response | null> {
+  if (await isAdmin(getUserId())) return null;
+  return errorResponse(
+    403,
+    "Only an admin can change this server's Claude login."
+  );
+}
+
 /** The single in-flight login, so a re-click supersedes a stale listener. */
 let activeClaudeLogin: {
   pending: PendingClaudeCodeLogin;
@@ -1227,8 +1243,13 @@ export async function closeActiveClaudeLogin(): Promise<void> {
   await active.pending.cancel().catch(() => {});
 }
 
-async function handleClaudeStart(request: Request): Promise<Response> {
+async function handleClaudeStart(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
   if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+  const refused = await refuseUnlessAdmin(getUserId);
+  if (refused) return refused;
 
   const url = new URL(request.url);
   const loginMethod =
@@ -1277,9 +1298,14 @@ async function handleClaudeStart(request: Request): Promise<Response> {
 }
 
 /** Complete a started login from the `code#state` the console displayed. */
-async function handleClaudeComplete(request: Request): Promise<Response> {
+async function handleClaudeComplete(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
   if (request.method !== "POST")
     return errorResponse(405, "Method not allowed");
+  const refused = await refuseUnlessAdmin(getUserId);
+  if (refused) return refused;
 
   const active = activeClaudeLogin;
   if (!active) {
@@ -1314,31 +1340,39 @@ async function handleClaudeComplete(request: Request): Promise<Response> {
  * Connection status, shaped like the other providers' `tokens` responses so the
  * shared `useOAuthConnection` hook works unchanged. There is at most one login.
  */
-async function handleClaudeTokens(): Promise<Response> {
+async function handleClaudeTokens(
+  getUserId: () => string
+): Promise<Response> {
   const status = await new ClaudeCodeLogin().status();
+  if (!status.connected) return jsonResponse({ tokens: [] });
+  const token = {
+    provider: "claude",
+    scope: status.scopes.join(" "),
+    expires_at:
+      status.expiresAt != null ? new Date(status.expiresAt).toISOString() : null,
+    expired: status.expired
+  };
+  if (!(await isAdmin(getUserId()))) return jsonResponse({ tokens: [token] });
   return jsonResponse({
-    tokens: status.connected
-      ? [
-          {
-            provider: "claude",
-            scope: status.scopes.join(" "),
-            expires_at:
-              status.expiresAt != null
-                ? new Date(status.expiresAt).toISOString()
-                : null,
-            expired: status.expired,
-            subscription_type: status.subscriptionType,
-            rate_limit_tier: status.rateLimitTier,
-            credentials_path: status.credentialsPath
-          }
-        ]
-      : []
+    tokens: [
+      {
+        ...token,
+        subscription_type: status.subscriptionType,
+        rate_limit_tier: status.rateLimitTier,
+        credentials_path: status.credentialsPath
+      }
+    ]
   });
 }
 
-async function handleClaudeDisconnect(request: Request): Promise<Response> {
+async function handleClaudeDisconnect(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
   if (request.method !== "POST")
     return errorResponse(405, "Method not allowed");
+  const refused = await refuseUnlessAdmin(getUserId);
+  if (refused) return refused;
   await closeActiveClaudeLogin();
   const removed = await new ClaudeCodeLogin().logout();
   return jsonResponse({ success: true, removed: removed ? 1 : 0 });
@@ -1513,13 +1547,13 @@ export async function handleOAuthRequest(
 
     // Claude subscription (Claude Agent SDK credentials)
     case "/api/oauth/claude/start":
-      return handleClaudeStart(request);
+      return handleClaudeStart(request, getUserId);
     case "/api/oauth/claude/complete":
-      return handleClaudeComplete(request);
+      return handleClaudeComplete(request, getUserId);
     case "/api/oauth/claude/tokens":
-      return handleClaudeTokens();
+      return handleClaudeTokens(getUserId);
     case "/api/oauth/claude/disconnect":
-      return handleClaudeDisconnect(request);
+      return handleClaudeDisconnect(request, getUserId);
 
     // Google Workspace (token comes from the Supabase Google login)
     case "/api/oauth/google/session":
