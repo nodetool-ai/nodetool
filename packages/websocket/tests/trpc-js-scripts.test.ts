@@ -129,7 +129,20 @@ describe("jsScripts router", () => {
           tests: [{ name: "c", inputs: { undeclared: 1 } }]
         })
       })
-    ).rejects.toThrow(/undeclared input "undeclared"/);
+    ).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: expect.stringMatching(/undeclared input "undeclared"/)
+    });
+  });
+
+  it("updates by the full id when given a 12-character prefix", async () => {
+    const created = await createScript();
+    const updated = await caller().jsScripts.update({
+      id: created.id.slice(0, 12),
+      name: "renamed"
+    });
+    expect(updated.name).toBe("renamed");
+    expect((await JsScript.findById(created.id))!.name).toBe("renamed");
   });
 
   describe("documentVersions", () => {

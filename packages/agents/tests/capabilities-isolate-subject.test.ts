@@ -15,7 +15,10 @@
  *   npx vitest run tests/capabilities-isolate-subject.test.ts
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { TimelineSequence, initTestDb } from "@nodetool-ai/models";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { makeClip, type TimelineClip } from "@nodetool-ai/timeline";
 import {
   applyTimelineOp,
@@ -34,6 +37,8 @@ import {
   DEFAULT_ISOLATE_SUBJECT_RESOLUTION,
   ISOLATE_SUBJECT_ENDPOINT
 } from "../src/capabilities/timelines.specs.js";
+import { module as timelines } from "../src/capabilities/timelines.js";
+import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 
 const SETTINGS = {
   model: DEFAULT_ISOLATE_SUBJECT_MODEL,
@@ -481,5 +486,60 @@ describe("set_generated_matte", () => {
     });
 
     expect(error).toContain("carries no generated matte");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// the capability, against the database
+// ---------------------------------------------------------------------------
+
+describe("isolate_subject capability", () => {
+  beforeEach(() => initTestDb());
+
+  it("saves to the timeline named by its short id", async () => {
+    const id = "0123456789abcdef0123456789abcdef";
+    await TimelineSequence.create<TimelineSequence>({
+      id,
+      user_id: "u1",
+      project_id: "default",
+      name: "Cut",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      duration_ms: 4000,
+      document: JSON.stringify({
+        tracks: [
+          {
+            id: "track_a",
+            name: "Video 1",
+            type: "video",
+            index: 0,
+            visible: true,
+            locked: false
+          }
+        ],
+        clips: [videoClip()],
+        markers: []
+      })
+    });
+    const entry = timelines.exports.find(
+      (e) => e.spec.name === "isolate_subject"
+    );
+    // A registry without the node fails the generation after the in-flight
+    // write, so both CAS writes run without a provider.
+    const run = createCapabilityRun({
+      context: { userId: "u1" } as unknown as ProcessingContext,
+      gate: UNGATED,
+      nodeRegistry: { has: () => false } as unknown as NodeRegistry
+    });
+
+    const result = (await entry!.impl(run, {
+      timeline_id: id.slice(0, 12),
+      clip_id: "clip_a"
+    })) as Record<string, unknown>;
+
+    expect(result.status).toBe("failed");
+    const stored = (await TimelineSequence.findById(id))!.toDocument();
+    expect(stored.clips[0].generatedMatte?.status).toBe("failed");
   });
 });

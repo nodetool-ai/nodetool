@@ -172,6 +172,18 @@ describe("threads capability behaviour", () => {
     });
   });
 
+  it("reads a thread's messages by its short id", async () => {
+    const id = "0123456789abcdef0123456789abcdef";
+    await makeThread(id, "2026-01-03T00:00:00.000Z");
+    await makeMessage("m1", id, "2026-01-01T00:00:00.000Z");
+
+    const read = (await run().invoke("get_thread", {
+      thread_id: id.slice(0, 12)
+    })) as { id: string; messages: Array<{ id: string }> };
+    expect(read.id).toBe(id);
+    expect(read.messages.map((m) => m.id)).toEqual(["m1"]);
+  });
+
   it("reads the last message with newest_first and limit 1", async () => {
     await makeThread("t1", "2026-01-03T00:00:00.000Z");
     await makeMessage("m1", "t1", "2026-01-01T00:00:00.000Z");
