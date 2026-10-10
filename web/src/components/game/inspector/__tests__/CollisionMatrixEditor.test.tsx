@@ -15,7 +15,8 @@ const initial = gameDocument3D.parse({ schemaVersion: 3, engineVersion: "2", dim
   scenes: [{ id: "scene", name: "Scene", activeCameraId: "camera", entities: [
     { id: "camera", transform3d: {}, camera3d: { projection: { kind: "perspective" } } },
     { id: "hero", transform3d: {}, body3d: { type: "kinematic" }, collider3d: { kind: "sphere", radius: 0.5, layer: "player" } },
-    { id: "wall", transform3d: {}, body3d: { type: "static" }, collider3d: { kind: "box", halfExtents: { x: 1, y: 1, z: 1 } } }
+    { id: "wall", transform3d: {}, body3d: { type: "static" }, collider3d: { kind: "box", halfExtents: { x: 1, y: 1, z: 1 } } },
+    { id: "crate", transform3d: {}, body3d: { type: "static" }, collider3d: { kind: "box", halfExtents: { x: 1, y: 1, z: 1 }, category: 4, mask: 3 } }
   ] }] });
 
 function Fixture({ entityId, received }: { entityId?: string; received: GameDocumentOp3D[][] }) {
@@ -80,6 +81,26 @@ describe("collision layer matrix editor", () => {
     render(<Fixture entityId="wall" received={[]} />);
     expect(screen.getByText("Category")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add Layer" })).toBeTruthy();
+  });
+
+  it("resets non-default raw bits when a layer is added so the edit is accepted", async () => {
+    const user = userEvent.setup();
+    const received: GameDocumentOp3D[][] = [];
+    render(<Fixture entityId="crate" received={received} />);
+    await user.click(screen.getByRole("button", { name: "Add Layer" }));
+    expect(latest(received).scenes[0].entities[3].collider3d).toMatchObject({ layer: "world", category: 1, mask: 0xffff });
+    expect(screen.queryByText("Category")).toBeNull();
+  });
+
+  it("reports a rename onto an existing layer name instead of ignoring it", async () => {
+    const user = userEvent.setup();
+    const received: GameDocumentOp3D[][] = [];
+    render(<Fixture received={received} />);
+    const name = screen.getByRole("textbox", { name: "Layer 2 name" });
+    await user.clear(name);
+    await user.type(name, "world{Enter}");
+    expect(screen.getByRole("alert").textContent).toContain("Layer world already exists");
+    expect(received).toEqual([]);
   });
 
   it("keeps the matrix symmetric and drops pairs of a removed layer", () => {

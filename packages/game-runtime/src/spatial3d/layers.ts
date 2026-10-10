@@ -12,6 +12,11 @@ export interface CollisionLayerBits3D {
  * Bits for a named layer. The layer at index `i` of `collisionLayers` owns bit `i`.
  * Its mask holds every bit except the layers `collisionMatrix` pairs it with, so a
  * pair listed in either order is excluded from both sides. Callers validate the name.
+ *
+ * A collider with no layer keeps its raw bits, which default to category 1 and mask
+ * 0xffff. Category 1 is bit 0, the bit of `collisionLayers[0]`, so an unlayered default
+ * collider shares the first layer's matrix pairs: layers paired with `collisionLayers[0]`
+ * do not touch it either.
  */
 export function collisionLayerBits3D(document: Pick<GameDocument3D, "collisionLayers" | "collisionMatrix">, layer: string): CollisionLayerBits3D {
   const layers = document.collisionLayers ?? [];

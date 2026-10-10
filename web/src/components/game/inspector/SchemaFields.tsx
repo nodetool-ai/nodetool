@@ -115,6 +115,18 @@ function NumberField({ label, value, schema, degrees, error, axis, onChange }: {
   </FlexColumn>;
 }
 
+/**
+ * Sets one field of a record. Picking a 3D collider layer also resets raw category and
+ * mask to their defaults in the same edit, since a layered collider derives them and
+ * validation rejects non-default raw bits beside a layer.
+ */
+function withColliderLayer(path: string, record: Record<string, unknown>, key: string, next: unknown): Record<string, unknown> {
+  if (key === "layer" && path.endsWith("collider3d") && typeof next === "string") {
+    return { ...record, layer: next, category: 1, mask: 0xffff };
+  }
+  return { ...record, [key]: next };
+}
+
 export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, componentSections = false }: SchemaFieldsProps) {
   const selected = schemaVariant(schema, value);
   if (selected !== schema) {
@@ -164,7 +176,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         const label = path ? `${path}.${key}` : key;
         const childPath = [...issuePath, key];
         const field = <SchemaFields schema={child} value={childValue} path={label} issuePath={childPath} issues={issues} assets={assets} collisionLayers={collisionLayers}
-          onChange={(next) => onChange({ ...record, [key]: next })} />;
+          onChange={(next) => onChange(withColliderLayer(path, record, key, next))} />;
         const optional = !schema.required?.includes(key);
         const remove = (): void => { const copy = { ...record }; delete copy[key]; onChange(copy); };
         if (isVectorSchema(child) && !optional) {
@@ -189,7 +201,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       })}
       {absent.length > 0 && <FlexRow gap={SPACING.xs} sx={componentSections ? ADD_COMPONENT_ROW_SX : ADD_FIELD_ROW_SX}>
         {absent.map(([key, child]) => <EditorButton key={key} variant="outlined" startIcon={<AddIcon fontSize="small" />}
-          onClick={() => onChange({ ...record, [key]: key === "layer" && path.endsWith("collider3d") ? collisionLayers?.[0] : schemaDefault(child) })}>Add {fieldLabel(key)}</EditorButton>)}
+          onClick={() => onChange(withColliderLayer(path, record, key, key === "layer" && path.endsWith("collider3d") ? collisionLayers?.[0] : schemaDefault(child)))}>Add {fieldLabel(key)}</EditorButton>)}
       </FlexRow>}
       {fieldError(issues, issuePath) && <Caption color="error">{fieldError(issues, issuePath)}</Caption>}
     </FlexColumn>;

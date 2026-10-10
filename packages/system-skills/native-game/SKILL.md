@@ -572,7 +572,11 @@ collider derives `category` from its bit and `mask` from the matrix, so leave
 its raw bits at `1` and `65535`. Validation reports `unknown_collision_layer`,
 `duplicate_collision_pair` and `collision_layer_bits_conflict`. Raw `category`
 and `mask` remain an override for colliders without a layer, which keeps
-existing documents on their current bits. 2D colliders keep raw bits only. The
+existing documents on their current bits. A collider without a layer keeps the
+default category `1`, which is the bit of `collisionLayers[0]`. It therefore
+shares the first layer's pairs: a layer paired with `collisionLayers[0]` does
+not touch unlayered colliders either. Name the first layer for the world, or
+give such colliders a layer. 2D colliders keep raw bits only. The
 scene inspector shows the layer matrix as a grid of checkboxes.
 
 ### A: Audio

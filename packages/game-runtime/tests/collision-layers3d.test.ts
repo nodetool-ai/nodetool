@@ -83,6 +83,16 @@ describe("3D collision layer matrix", () => {
     expect((player.mask & raw.category) !== 0 && (raw.mask & player.category) !== 0).toBe(true);
   });
 
+  it("treats a collider without a layer as a member of collisionLayers[0]", () => {
+    const game = layered([["default", "ghost"], ["player", "enemy"]]);
+    const unlayered = { category: 1, mask: 0xffff };
+    const meets = (bits: { category: number; mask: number }): boolean => (bits.category & unlayered.mask) !== 0 && (unlayered.category & bits.mask) !== 0;
+    expect(unlayered).toEqual({ category: collisionLayerBits3D(game, "default").category, mask: 0xffff });
+    expect(meets(collisionLayerBits3D(game, "ghost"))).toBe(false);
+    expect(meets(collisionLayerBits3D(game, "player"))).toBe(true);
+    expect(meets(collisionLayerBits3D(game, "enemy"))).toBe(true);
+  });
+
   it("writes derived bits into layered colliders in scenes and prefabs only", () => {
     const game = layered([["player", "ghost"]]);
     game.scenes[0].entities[1].collider3d = { ...game.scenes[0].entities[1].collider3d!, layer: "player" };
@@ -120,6 +130,10 @@ describe("3D collision layer matrix", () => {
     };
     expect(await height(drop([]))).toBeGreaterThan(0.1);
     expect(await height(drop([["default", "ghost"]]))).toBeLessThan(-1);
+    const unlayeredGround = drop([["default", "ghost"]]);
+    const { layer: _groundLayer, ...groundCollider } = unlayeredGround.scenes[0].entities.find((entity) => entity.id === "ground")!.collider3d!;
+    unlayeredGround.scenes[0].entities.find((entity) => entity.id === "ground")!.collider3d = groundCollider;
+    expect(await height(unlayeredGround)).toBeLessThan(-1);
     const raw = drop([]);
     const ball = raw.scenes[0].entities.find((entity) => entity.id === "ball")!;
     const { layer: _layer, ...unlayered } = ball.collider3d!;

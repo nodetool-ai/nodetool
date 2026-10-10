@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from "react";
+import { memo, useState, type ReactNode } from "react";
 import type { GameDocument3D, GameEntity3D } from "@nodetool-ai/protocol";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -36,7 +36,11 @@ export function renameCollisionLayer3D(document: GameDocument3D, from: string, t
   return next;
 }
 
-/** Removes a layer and its matrix pairs. Colliders still on it are left for validation to report. */
+/**
+ * Removes a layer and its matrix pairs. Colliders are not changed, so while a collider
+ * still names the layer, applying the edit fails validation with unknown_collision_layer
+ * and the inspector reports the error instead of removing the layer.
+ */
 export function removeCollisionLayer3D(document: GameDocument3D, name: string): GameDocument3D {
   const next: GameDocument3D = { ...document, collisionLayers: (document.collisionLayers ?? []).filter((layer) => layer !== name) };
   if (document.collisionMatrix) { next.collisionMatrix = document.collisionMatrix.filter(([a, b]) => a !== name && b !== name); }
@@ -51,7 +55,15 @@ interface CollisionMatrixEditorProps {
 function CollisionMatrixEditor({ document, onDocument }: CollisionMatrixEditorProps) {
   const layers = document.collisionLayers ?? [];
   const matrix = document.collisionMatrix ?? [];
+  const [renameError, setRenameError] = useState<string | null>(null);
   const collides = (a: string, b: string): boolean => !matrix.some((pair) => samePair(pair, a, b));
+  const rename = (layer: string, raw: string): void => {
+    const name = raw.trim();
+    if (!name || name === layer) { setRenameError(null); return; }
+    if (layers.includes(name)) { setRenameError(`Layer ${name} already exists. Choose another name.`); return; }
+    setRenameError(null);
+    onDocument(renameCollisionLayer3D(document, layer, name), "Rename Collision Layer");
+  };
   const addLayer = (): void => {
     let index = layers.length + 1;
     while (layers.includes(`layer${index}`)) { index += 1; }
@@ -71,13 +83,11 @@ function CollisionMatrixEditor({ document, onDocument }: CollisionMatrixEditorPr
     <Caption>Colliders pick a layer by name. Checked pairs collide. Category and mask bits come from this table.</Caption>
     {layers.map((layer, index) => <FlexRow key={`${index}:${layer}`} gap={SPACING.xs} align="center">
       <Caption>{index + 1}</Caption>
-      <InspectorValueInput grow ariaLabel={`Layer ${index + 1} name`} value={layer} onCommit={(raw) => {
-        const name = raw.trim();
-        if (name && name !== layer && !layers.includes(name)) { onDocument(renameCollisionLayer3D(document, layer, name), "Rename Collision Layer"); }
-      }} />
+      <InspectorValueInput grow ariaLabel={`Layer ${index + 1} name`} value={layer} onCommit={(raw) => rename(layer, raw)} />
       <ToolbarIconButton icon={<DeleteOutlineIcon fontSize="small" />} tooltip={`Remove layer ${layer}`}
         onClick={() => onDocument(removeCollisionLayer3D(document, layer), "Remove Collision Layer")} />
     </FlexRow>)}
+    {renameError && <Caption color="error" role="alert">{renameError}</Caption>}
     <EditorButton variant="outlined" startIcon={<AddIcon fontSize="small" />} disabled={layers.length >= MAX_COLLISION_LAYERS_3D} onClick={addLayer}>Add layer</EditorButton>
     {layers.length > 0 && <ScrollArea direction="horizontal" thin>
       <Box role="group" aria-label="Collision matrix" sx={{ display: "grid", gridTemplateColumns: `minmax(0, max-content) repeat(${layers.length}, max-content)`,
