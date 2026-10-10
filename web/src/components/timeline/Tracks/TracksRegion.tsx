@@ -60,6 +60,7 @@ import type { Theme } from "@mui/material/styles";
 import { useStore } from "zustand";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import {
   useTimelineStore,
@@ -113,6 +114,7 @@ import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
 import {
   Caption,
+  EditorButton,
   FlexRow,
   HelpButton,
   ResizeHandle,
@@ -266,10 +268,12 @@ const lanesContainerStyles = css({
 interface TracksRegionProps {
   /** Height of the tracks area in pixels. */
   heightPx: number;
+  /** Opens the Generate dialog. The toolbar offers no Generate without it. */
+  onGenerate?: () => void;
 }
 
 export const TracksRegion: React.FC<TracksRegionProps> = memo(
-  ({ heightPx }) => {
+  ({ heightPx, onGenerate }) => {
     const theme = useTheme();
     const isMobile = useTimelineIsMobile();
     const isActive = useTimelineIsActive();
@@ -1517,6 +1521,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               />
             </span>
           </Tooltip>
+          {onGenerate && (
+            <EditorButton
+              variant="contained"
+              size="small"
+              startIcon={<AutoAwesomeIcon fontSize="small" />}
+              onClick={onGenerate}
+              aria-label="Generate"
+              data-testid="timeline-generate"
+              sx={{
+                ml: SPACING.xs,
+                flexShrink: 0,
+                ...(toolbarCompact && {
+                  minWidth: 0,
+                  "& .MuiButton-startIcon": { m: 0 }
+                })
+              }}
+            >
+              {toolbarCompact ? null : "Generate"}
+            </EditorButton>
+          )}
           <div style={{ flex: "1 1 auto" }} />
           <ScriptToggleButton compact={toolbarCompact} />
           <AddTrackButton compact={toolbarCompact} />

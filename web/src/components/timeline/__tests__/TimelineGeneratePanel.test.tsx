@@ -94,7 +94,7 @@ jest.mock("../../model_menu/VideoModelMenuDialog", () => ({
 }));
 
 import { landDirectGen } from "../../../hooks/timeline/useTimelineDirectGenJob";
-import { TopBarPrompt } from "../TopBarPrompt";
+import { TimelineGeneratePanel } from "../TimelineGeneratePanel";
 import {
   createTimelineInstance,
   TimelineProvider,
@@ -106,11 +106,11 @@ import { __resetGenerationWatchesForTests } from "../../../lib/websocket/generat
 
 let instance: TimelineInstance;
 
-function renderPrompt(compact = false) {
+function renderPrompt(onGenerated?: () => void) {
   return render(
     <ThemeProvider theme={mockTheme}>
       <TimelineProvider instance={instance}>
-        <TopBarPrompt compact={compact} />
+        <TimelineGeneratePanel onGenerated={onGenerated} />
       </TimelineProvider>
     </ThemeProvider>
   );
@@ -145,11 +145,11 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("TopBarPrompt", () => {
-  it.each([false, true])(
-    "generates music on an audio track and fits the result (compact=%s)",
-    async (compact) => {
-      renderPrompt(compact);
+describe("TimelineGeneratePanel", () => {
+  it(
+    "generates music on an audio track and fits the result",
+    async () => {
+      renderPrompt();
       act(() => instance.playback.getState().setTimeMs(2500));
       await userEvent.click(screen.getByRole("button", { name: "Video" }));
       await userEvent.click(
@@ -220,10 +220,10 @@ describe("TopBarPrompt", () => {
     }
   );
 
-  it.each([false, true])(
-    "generates speech at the playhead and fits its duration (compact=%s)",
-    async (compact) => {
-      renderPrompt(compact);
+  it(
+    "generates speech at the playhead and fits its duration",
+    async () => {
+      renderPrompt();
       act(() => instance.playback.getState().setTimeMs(2500));
       await chooseSpeech();
       expect(
@@ -379,6 +379,20 @@ describe("TopBarPrompt", () => {
     expect(
       screen.getByRole("button", { name: "Test speech" })
     ).toBeInTheDocument();
+  });
+
+  it("reports a started generation so the dialog can close", async () => {
+    const onGenerated = jest.fn();
+    renderPrompt(onGenerated);
+    await userEvent.click(screen.getByRole("button", { name: "Select model" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Pick video model" })
+    );
+    await userEvent.type(screen.getByRole("textbox"), "An ocean wave");
+    expect(onGenerated).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByTestId("topbar-generate"));
+    expect(instance.doc.getState().clips).toHaveLength(1);
+    expect(onGenerated).toHaveBeenCalledTimes(1);
   });
 
   it("uses an unlocked audio track and refuses generation when all audio tracks are locked", async () => {

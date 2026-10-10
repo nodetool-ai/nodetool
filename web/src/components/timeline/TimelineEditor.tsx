@@ -61,7 +61,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
 
 import { TopBar } from "./TopBar";
-import { TopBarPrompt } from "./TopBarPrompt";
+import { TimelineGenerateDialog } from "./TimelineGenerateDialog";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { PlayheadReadout } from "./PlayheadReadout";
 import { useTimelineCostEstimate } from "../../hooks/timeline/useTimelineCostEstimate";
@@ -604,22 +604,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useTimelineIsMobile();
-  const composerRef = useRef<HTMLDivElement>(null);
-  const [compactComposer, setCompactComposer] = useState(false);
-  useEffect(() => {
-    const element = composerRef.current;
-    if (!element) return;
-    const update = () => {
-      if (element.clientWidth > 0) {
-        setCompactComposer(element.clientWidth < 800);
-      }
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const openGenerate = useCallback(() => setGenerateOpen(true), []);
+  const closeGenerate = useCallback(() => setGenerateOpen(false), []);
 
   // Phone panel sheet (Inspector / Assistant / History / Script).
   const [panelSheetOpen, setPanelSheetOpen] = useState(false);
@@ -772,9 +759,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       const columnHeight = column.clientHeight;
       // An unlaid-out column (hidden tab, jsdom) measures 0: keep the cap.
       if (columnHeight <= 0) return;
-      const composerHeight = composerRef.current?.offsetHeight ?? 0;
       const available =
-        columnHeight - composerHeight - MIN_PREVIEW_HEIGHT_PX - TOUCH_HANDLE_HEIGHT_PX;
+        columnHeight - MIN_PREVIEW_HEIGHT_PX - TOUCH_HANDLE_HEIGHT_PX;
       setMaxTracksHeight(
         Math.max(MIN_TRACKS_HEIGHT_PX, Math.min(MAX_TRACKS_HEIGHT_PX, available))
       );
@@ -1106,20 +1092,6 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         />
       </FlexRow>
 
-      <FlexRow
-        ref={composerRef}
-        fullWidth
-        sx={{
-          flexShrink: 0,
-          px: SPACING.md,
-          py: SPACING.sm,
-          backgroundColor: theme.vars.palette.background.paper,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`
-        }}
-      >
-        <TopBarPrompt compact={isMobile || compactComposer} />
-      </FlexRow>
-
       {/* ── Horizontal drag handle (pointer + keyboard resizable) ─── */}
       {!pianoRollFullScreen && (
         <div
@@ -1141,7 +1113,12 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       {/* ── Tracks ────────────────────────────────────────────────── */}
       {/* A phone has no room to stack a clip editor under the tracks, so the
        *  piano roll replaces them and carries a Back control of its own. */}
-      {!pianoRollFullScreen && <TracksRegion heightPx={effectiveTracksHeight} />}
+      {!pianoRollFullScreen && (
+        <TracksRegion
+          heightPx={effectiveTracksHeight}
+          onGenerate={sequenceUnavailable ? undefined : openGenerate}
+        />
+      )}
 
       {/* ── Clip editor (piano roll) ──────────────────────────────── */}
       <PianoRollPanel fullHeight={pianoRollFullScreen} />
@@ -1184,6 +1161,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           onTabChange={setPanelTab}
         />
       )}
+
+      {/* ── Generate dialog ───────────────────────────────────────── */}
+      <TimelineGenerateDialog open={generateOpen} onClose={closeGenerate} />
 
       {/* ── Unsaved Code tab confirm ──────────────────────────────── */}
       {codeTabConfirmDialog}
