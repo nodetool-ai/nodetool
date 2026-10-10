@@ -192,7 +192,7 @@ async function isTorchruntimeInstalled(): Promise<boolean> {
         output += data.toString();
       });
 
-      checkProcess.on("exit", (code) => {
+      checkProcess.on("close", (code) => {
         resolve(code === 0 && output.includes("installed"));
       });
 
@@ -237,7 +237,7 @@ async function installTorchruntime(): Promise<void> {
       logMessage(`torchruntime install: ${output.trim()}`);
     });
 
-    installProcess.on("exit", (code) => {
+    installProcess.on("close", (code) => {
       if (code === 0) {
         logMessage("Torchruntime installed successfully");
         resolve();
@@ -312,7 +312,7 @@ except Exception as e:
       stderr += data.toString();
     });
 
-    detectionProcess.on("exit", (code) => {
+    detectionProcess.on("close", (code) => {
       if (code !== 0) {
         const errorMsg = `Torchruntime detection failed (exit code ${code}): ${stderr}`;
         logMessage(errorMsg, "error");

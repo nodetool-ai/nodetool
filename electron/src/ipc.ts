@@ -17,7 +17,7 @@ import {
   showItemInFolder,
   runApp,
   initializeBackendServer,
-  stopServer,
+  restartServer,
 } from "./server";
 import { assertSafeOpenablePath, assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
@@ -620,14 +620,7 @@ export function initializeIpcHandlers(): void {
   // Restart server handler
   createIpcMainHandler(IpcChannels.RESTART_SERVER, async () => {
     logMessage("Restarting backend server by user request");
-    try {
-      await stopServer();
-    } catch (e) {
-      logMessage(`Error while stopping server for restart: ${e}`, "warn");
-    }
-    // Small delay to ensure ports and resources are released before restart
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await initializeBackendServer();
+    await restartServer();
     await setupWorkflowShortcuts();
   });
 

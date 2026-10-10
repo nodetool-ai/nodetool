@@ -41,6 +41,7 @@ describe('checkExpectedPackageVersions', () => {
       setTimeout(() => {
         mockProcess.stdout.emit('data', Buffer.from(JSON.stringify(packages)));
         mockProcess.emit('exit', 0);
+        mockProcess.emit('close', 0);
       }, 10);
       return mockProcess;
     });

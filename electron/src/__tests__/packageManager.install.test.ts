@@ -69,16 +69,20 @@ function fakeUv(installed: Installed, failOn?: RegExp, failure = 'No solution fo
         // @ts-expect-error Mocking dynamic property
         proc.stdout.emit('data', Buffer.from(`uv ${uvVersion} (x86_64-unknown-linux-gnu)\n`));
         proc.emit('exit', 0);
+        proc.emit('close', 0);
       } else if (cmd.includes('pip list')) {
         // @ts-expect-error Mocking dynamic property
         proc.stdout.emit('data', Buffer.from(JSON.stringify(installed)));
         proc.emit('exit', 0);
+        proc.emit('close', 0);
       } else if (failOn && failOn.test(cmd)) {
         // @ts-expect-error Mocking dynamic property
         proc.stderr.emit('data', Buffer.from(failure));
         proc.emit('exit', 1);
+        proc.emit('close', 1);
       } else {
         proc.emit('exit', 0);
+        proc.emit('close', 0);
       }
     });
     return proc;
@@ -368,7 +372,7 @@ describe('installPackage guards', () => {
         stderr: new EventEmitter(),
         stdin: { write: jest.fn(), end: jest.fn() },
       });
-      process.nextTick(() => proc.emit('exit', args.includes('list') ? 2 : 0));
+      process.nextTick(() => { proc.emit('exit', args.includes('list') ? 2 : 0); proc.emit('close', args.includes('list') ? 2 : 0); });
       return proc;
     });
     fakePyPI('nodetool-huggingface', '0.8.1');
@@ -431,5 +435,54 @@ describe('listInstalledPackages without a Python runtime', () => {
     } finally {
       fileExists.mockResolvedValue(true);
     }
+  });
+});
+
+describe('concurrent installs', () => {
+  test('a second install keeps the pack the first one just added in its resolve', async () => {
+    // Stateful fake uv: `pip install` adds its pinned packs to what
+    // `pip list` reports from then on.
+    const installed: Installed = [{ name: 'nodetool-core', version: '0.8.1' }];
+    spawn.mockImplementation((_command: string, args: readonly string[]) => {
+      const proc = Object.assign(new EventEmitter(), {
+        stdout: new EventEmitter(),
+        stderr: new EventEmitter(),
+        stdin: { write: jest.fn(), end: jest.fn() },
+      });
+      setTimeout(() => {
+        if (args[1] === 'list') {
+          proc.stdout.emit('data', Buffer.from(JSON.stringify(installed)));
+        } else {
+          for (const spec of args.filter((arg) => arg.includes('=='))) {
+            const [name, version] = spec.split('==');
+            installed.push({ name, version });
+          }
+        }
+        proc.emit('exit', 0);
+        proc.emit('close', 0);
+      }, 5);
+      return proc;
+    });
+    https.get.mockImplementation((url: string, cb: (res: EventEmitter & { statusCode: number }) => void) => {
+      const name = url.split('/').filter(Boolean).pop() ?? '';
+      const res = Object.assign(new EventEmitter(), { statusCode: 200 });
+      process.nextTick(() => {
+        cb(res);
+        res.emit('data', `<a href="x">${name.replace(/-/g, '_')}-0.8.1-py3-none-any.whl</a>`);
+        res.emit('end');
+      });
+      return Object.assign(new EventEmitter(), { setTimeout: jest.fn() });
+    });
+    detectTorchPlatform.mockResolvedValue({ platform: 'cpu', backend: 'cpu', indexUrl: null });
+
+    const results = await Promise.all([
+      installPackage('nodetool-ai/nodetool-huggingface'),
+      installPackage('nodetool-ai/nodetool-wan2gp'),
+    ]);
+
+    expect(results.map((result) => result.success)).toEqual([true, true]);
+
+    const [, second] = installCalls();
+    expect(second).toEqual(expect.arrayContaining(['nodetool-huggingface>=0.8.1']));
   });
 });
