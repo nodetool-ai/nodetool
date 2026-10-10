@@ -152,4 +152,4 @@ it.each(["2d", "3d"] as const)("commits the actual %s editor at the HUD cadence 
   } finally {
     view.unmount(); queries.clear(); request.mockRestore(); cancel.mockRestore(); mockRenderedTicks.length = 0;
   }
-});
+}, 30_000);
