@@ -259,14 +259,10 @@ const styles = (
     },
     // Panel headers run edge to edge so their divider meets the drawer borders,
     // while the title stays aligned with the padded content below.
-    ...(isMobile
-      ? {}
-      : {
-          ".panel-inner-content .panel-header": {
-            marginInline: `calc(-1 * ${getSpacingPx(SPACING.lg)})`,
-            width: `calc(100% + 2 * ${getSpacingPx(SPACING.lg)})`
-          }
-        }),
+    ".panel-inner-content .panel-header": {
+      marginInline: isMobile ? 0 : `calc(-1 * ${getSpacingPx(SPACING.lg)})`,
+      width: isMobile ? "100%" : `calc(100% + 2 * ${getSpacingPx(SPACING.lg)})`
+    },
     // The node library manages its own internal spacing and its info strip
     // bleeds to the panel borders, so it forgoes the shared horizontal padding.
     "&.is-nodes .panel-inner-content": {

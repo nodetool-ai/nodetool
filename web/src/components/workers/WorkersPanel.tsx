@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
-import { useTheme, type Theme } from "@mui/material/styles";
 import {
   FlexColumn,
   FlexRow,
@@ -41,7 +40,7 @@ const STATUS_TONE: Record<string, StatusType> = {
   error: "error"
 };
 
-const panelStyles = (theme: Theme) =>
+const panelStyles =
   css({
     "&": {
       height: "100%"
@@ -324,7 +323,6 @@ interface OrphanWarning {
 }
 
 const WorkersPanel: React.FC = () => {
-  const theme = useTheme();
   const {
     profiles,
     instances,
@@ -471,7 +469,7 @@ const WorkersPanel: React.FC = () => {
   }, [reconcile]);
 
   return (
-    <FlexColumn gap={0} fullHeight css={panelStyles(theme)}>
+    <FlexColumn gap={0} fullHeight css={panelStyles}>
       <PanelHeader
         title="Workers"
         count={shownInstances.length > 0 ? formatRate(totalCost) : undefined}
