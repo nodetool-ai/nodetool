@@ -8,7 +8,9 @@
  * the nodes a provider bills) is not run again when it has a previous
  * generation: its saved output is written into the consuming node's property
  * in place of the edge, the way `buildRunSubgraph` in `web/src/utils` inlines
- * a generation's output. Everything else upstream runs.
+ * a generation's output. Inputs mixing cached and live edges rerun every
+ * contributor so live values cannot overwrite cached ones. Everything else
+ * upstream runs.
  */
 import { getAssetFileName } from "@nodetool-ai/protocol";
 import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
@@ -125,10 +127,14 @@ export async function planPartialRun(
 
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
   const inbound = new Map<string, Edge[]>();
+  const outbound = new Map<string, Edge[]>();
   for (const edge of graph.edges) {
     const list = inbound.get(edge.target);
     if (list) list.push(edge);
     else inbound.set(edge.target, [edge]);
+    const outgoing = outbound.get(edge.source);
+    if (outgoing) outgoing.push(edge);
+    else outbound.set(edge.source, [edge]);
   }
 
   const targets = new Set(nodeIds);
@@ -147,11 +153,51 @@ export async function planPartialRun(
   // when the source does not end up running for another reason.
   const inlined: Array<{ edge: Edge; value: unknown }> = [];
   const stack = [...nodeIds];
+  const groups = new Map<string, { live: boolean; cached: Edge[] }>();
+  const groupOf = (edge: Edge): { live: boolean; cached: Edge[] } => {
+    const key = JSON.stringify([edge.target, edge.targetHandle]);
+    let group = groups.get(key);
+    if (!group) {
+      group = { live: false, cached: [] };
+      groups.set(key, group);
+    }
+    return group;
+  };
+  const requireRun = (id: string): void => {
+    if (!keep.has(id)) {
+      keep.add(id);
+      stack.push(id);
+    }
+  };
+  const markLive = (edge: Edge): void => {
+    if (edge.edge_type === "control" || !edge.targetHandle) {
+      return;
+    }
+    const group = groupOf(edge);
+    if (group.live) {
+      return;
+    }
+    group.live = true;
+    // Edge inputs replace properties in the kernel. A mixed input must run
+    // every contributor, otherwise a live edge discards the cached values.
+    for (const cached of group.cached) {
+      requireRun(cached.source);
+    }
+  };
   while (stack.length > 0) {
     const id = stack.pop()!;
+    for (const edge of outbound.get(id) ?? []) {
+      if (keep.has(edge.target)) {
+        markLive(edge);
+      }
+    }
     for (const edge of inbound.get(id) ?? []) {
       const source = nodeById.get(edge.source);
-      if (!source || keep.has(source.id)) continue;
+      if (!source) continue;
+      if (keep.has(source.id)) {
+        markLive(edge);
+        continue;
+      }
       const metadata = deps.getMetadata(source.type);
       if (
         deps.loadPreviousGeneration &&
@@ -165,12 +211,16 @@ export async function planPartialRun(
           ? generationOutputFor(generation.outputs, edge.sourceHandle)
           : undefined;
         if (value !== undefined) {
-          inlined.push({ edge, value });
-          continue;
+          const group = groupOf(edge);
+          if (!group.live) {
+            group.cached.push(edge);
+            inlined.push({ edge, value });
+            continue;
+          }
         }
       }
-      keep.add(source.id);
-      stack.push(source.id);
+      requireRun(source.id);
+      markLive(edge);
     }
   }
 
