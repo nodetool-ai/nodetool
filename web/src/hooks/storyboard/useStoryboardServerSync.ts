@@ -454,7 +454,7 @@ export const useStoryboardServerSync = (
 
     return () => {
       disposed = true;
-      if (!readOnly) registerStoryboardSaver(boardId, null);
+      if (!readOnly) registerStoryboardSaver(boardId, null, flushNow);
       unwatch();
       unsubscribe();
       useConflictStore.getState().clear(`storyboard:${boardId}`);

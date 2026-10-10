@@ -38,6 +38,7 @@ export * from "./generatedMatte.js";
 export * from "./mediaTrack.js";
 export * from "./reframe.js";
 export * from "./takes.js";
+export * from "./shotLink.js";
 export * from "./generative.js";
 export * from "./extension.js";
 export * from "./extensionRequest.js";
