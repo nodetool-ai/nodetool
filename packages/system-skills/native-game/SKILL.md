@@ -475,6 +475,29 @@ for the machine-readable report.
 
 ### R: 3D rendering
 
+`environment.shadows` is `{ enabled, mapSize, extent, cascades? }`. Without
+`cascades`, the one shadow-casting directional light draws a single map that
+covers `extent` meters around the light. That is the default and renders exactly
+as before. For scenes deeper than about 30 m, add
+`cascades: { count, split, maxDistance }`. It splits the camera view into
+`count` maps (2 to 4, default 3) up to `maxDistance` meters (default 200), so
+near shadows stay sharp and far shadows stay continuous. `split` (0 to 1,
+default 0.5) gives nearby cascades more resolution as it rises. `extent` is
+ignored while cascades are on. Only one directional light can cast shadows.
+
+Point and spot lights cast shadows when their `light3d.castShadow` is `true`.
+At most 4 of them may cast per scene. Validation rejects a fifth. If spawned
+prefabs push a frame over the budget, the extra lights render unshadowed and
+the capture stats report one diagnostic with the largest overflow count seen.
+Each local shadow re-renders the scene
+(six times for a point light), so enable it only on lights that need it.
+
+Every light accepts `shadowBias` (-0.01 to 0.01) and `shadowNormalBias` (0 to
+1), both default 0. Raise `shadowNormalBias` to about 0.02 to 0.05, or set
+`shadowBias` to about -0.0005, when lit surfaces show striped shadow acne. Too
+much bias detaches shadows from their casters. Set lights with `update_entity`
+and cascades with `update_scene`, which replaces the whole `environment`.
+
 A 3D scene's `environment.sky` sets its background and image-based lighting.
 Omit it, or use `{ kind: "color" }`, for the solid `background` color without
 environment lighting. That is the default and renders exactly as before.
