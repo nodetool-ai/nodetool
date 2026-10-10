@@ -14,14 +14,16 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import {
+  Box,
+  Divider,
+  EYEBROW,
+  FlexRow,
   NodeSlider,
-  Tooltip,
+  ToolbarIconButton,
   CONTROL,
   MOTION,
   BORDER_RADIUS,
-  FONT_SIZE_SANS,
   TYPOGRAPHY,
   SPACING,
   getSpacingPx,
@@ -82,57 +84,6 @@ export const INSPECTOR_FORM_SX = {
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
-const headerStyles = css({
-  display: "flex",
-  alignItems: "center",
-  gap: getSpacingPx(SPACING.md),
-  height: CONTROL.height.md,
-  padding: `0 ${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.xs)}`
-});
-
-const eyebrowStyles = (theme: Theme) =>
-  css({
-    flex: "1 1 auto",
-    color: theme.vars.palette.text.secondary,
-    ...TYPOGRAPHY.sans.label,
-    letterSpacing: "0.12em",
-    textTransform: "uppercase",
-    userSelect: "none"
-  });
-
-const headerActionsStyles = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: getSpacingPx(SPACING.micro)
-});
-
-const headerIconButtonStyles = (theme: Theme) =>
-  css({
-    width: CONTROL.height.xs,
-    height: CONTROL.height.xs,
-    background: "transparent",
-    border: "1px solid transparent",
-    color: theme.vars.palette.text.secondary,
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: BORDER_RADIUS.md,
-    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
-    "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover,
-      color: theme.vars.palette.text.primary,
-      borderColor: theme.vars.palette.divider
-    },
-    "&:focus-visible": {
-      outline: "none",
-      borderColor: theme.vars.palette.primary.main
-    },
-    "& svg": {
-      fontSize: FONT_SIZE_SANS.label
-    }
-  });
-
 interface InspectorHeaderAction {
   icon: React.ReactNode;
   label: string;
@@ -148,36 +99,28 @@ interface InspectorHeaderProps {
 
 /** Eyebrow label + trailing action icon row (e.g. `+`, `✂`, `🗑`). */
 export const InspectorHeader: React.FC<InspectorHeaderProps> = memo(
-  ({ eyebrow, actions }) => {
-    const theme = useTheme();
-    return (
-      <div css={headerStyles}>
-        <div css={eyebrowStyles(theme)}>{eyebrow}</div>
-        {actions && actions.length > 0 && (
-          <div css={headerActionsStyles}>
-            {actions.map((action) => (
-              <Tooltip key={action.label} title={action.label}>
-                <button
-                  type="button"
-                  css={headerIconButtonStyles(theme)}
-                  onClick={action.onClick}
-                  disabled={action.disabled}
-                  aria-label={action.label}
-                  style={
-                    action.variant === "danger"
-                      ? { color: theme.vars.palette.error.main }
-                      : undefined
-                  }
-                >
-                  {action.icon}
-                </button>
-              </Tooltip>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
+  ({ eyebrow, actions }) => (
+    <FlexRow align="center" gap={SPACING.md} sx={{ height: CONTROL.height.md, px: SPACING.xs }}>
+      <Box component="span" sx={{ ...EYEBROW, flex: "1 1 auto", color: "text.secondary", userSelect: "none" }}>
+        {eyebrow}
+      </Box>
+      {actions && actions.length > 0 && (
+        <FlexRow align="center" gap={SPACING.micro}>
+          {actions.map((action) => (
+            <ToolbarIconButton
+              key={action.label}
+              icon={action.icon}
+              tooltip={action.label}
+              size="small"
+              variant={action.variant === "danger" ? "error" : "default"}
+              onClick={action.onClick}
+              disabled={action.disabled}
+            />
+          ))}
+        </FlexRow>
+      )}
+    </FlexRow>
+  )
 );
 InspectorHeader.displayName = "InspectorHeader";
 
@@ -507,229 +450,9 @@ InspectorSliderRow.displayName = "InspectorSliderRow";
 
 // ── Section title (for CollapsibleSection title prop) ──────────────────────
 
-const sectionTitleStyles = (theme: Theme, dimmed: boolean) =>
-  css({
-    display: "flex",
-    alignItems: "center",
-    width: "100%",
-    minWidth: 0,
-    gap: getSpacingPx(SPACING.sm),
-    color: dimmed
-      ? theme.vars.palette.text.secondary
-      : theme.vars.palette.text.primary,
-    ...TYPOGRAPHY.sans.label,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    transition: `color ${MOTION.fast}`,
-    // The reset action stays visible at half strength so it can be found
-    // without hovering, and goes to full strength on header hover or keyboard
-    // focus. Touch screens have no hover, so they always show it in full.
-    "& .inspector-section-action": {
-      opacity: 0.5,
-      transition: `opacity ${MOTION.fast}`
-    },
-    "&:hover .inspector-section-action, & .inspector-section-action:focus-visible":
-      {
-        opacity: 1
-      },
-    "@media (hover: none)": {
-      "& .inspector-section-action": { opacity: 1 }
-    }
-  });
-
-const sectionTitleIconStyles = (theme: Theme) =>
-  css({
-    color: theme.vars.palette.text.secondary,
-    display: "inline-flex",
-    "& svg": { fontSize: FONT_SIZE_SANS.caption }
-  });
-
-/**
- * The activation checkbox keeps its small visual box (drawn by `::before`)
- * inside a 24px button, so the hit target meets the minimum without the
- * header growing. Negative margins stop the larger box from shifting the
- * title.
- */
-const CHECKBOX_BOX = 13;
-const CHECKBOX_INSET = (CONTROL.height.xs - CHECKBOX_BOX) / 2;
-
-const sectionCheckboxStyles = (theme: Theme, checked: boolean) =>
-  css({
-    position: "relative",
-    width: CONTROL.height.xs,
-    height: CONTROL.height.xs,
-    margin: -CHECKBOX_INSET,
-    flexShrink: 0,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 0,
-    cursor: "pointer",
-    border: "none",
-    background: "transparent",
-    color: theme.vars.palette.primary.contrastText,
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      inset: CHECKBOX_INSET,
-      boxSizing: "border-box",
-      borderRadius: BORDER_RADIUS.xs,
-      border: `1px solid ${
-        checked
-          ? theme.vars.palette.primary.main
-          : theme.vars.palette.c_overlay_strong
-      }`,
-      backgroundColor: checked ? theme.vars.palette.primary.main : "transparent",
-      transition: `background-color ${MOTION.fast}, border-color ${MOTION.fast}`
-    },
-    "&:hover::before": {
-      borderColor: theme.vars.palette.primary.main
-    },
-    "&:focus-visible": {
-      outline: "none"
-    },
-    "&:focus-visible::before": {
-      boxShadow: `0 0 0 2px rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`
-    },
-    "& svg": { position: "relative", fontSize: FONT_SIZE_SANS.caption }
-  });
-
-const sectionActionStyles = (theme: Theme) =>
-  css({
-    width: CONTROL.height.xs,
-    height: CONTROL.height.xs,
-    flexShrink: 0,
-    background: "transparent",
-    border: "1px solid transparent",
-    color: theme.vars.palette.text.secondary,
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: BORDER_RADIUS.sm,
-    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`,
-    "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover,
-      color: theme.vars.palette.text.primary
-    },
-    "&:focus-visible": {
-      outline: "none",
-      borderColor: theme.vars.palette.primary.main
-    },
-    "&:disabled": {
-      opacity: 0.4,
-      cursor: "default"
-    },
-    "& svg": { fontSize: FONT_SIZE_SANS.label }
-  });
-
-interface InspectorSectionAction {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-}
-
-interface InspectorSectionTitleProps {
-  title: string;
-  icon?: React.ReactNode;
-  /**
-   * FCP-style activation checkbox before the title: checking it toggles the
-   * whole section's effect on/off without expanding the fold. The title dims
-   * while unchecked.
-   */
-  checked?: boolean;
-  onCheckedChange?: (next: boolean) => void;
-  checkboxDisabled?: boolean;
-  /** Hover-revealed trailing action, e.g. reset-to-defaults. */
-  action?: InspectorSectionAction;
-}
-
-export const InspectorSectionTitle: React.FC<InspectorSectionTitleProps> = memo(
-  ({ title, icon, checked, onCheckedChange, checkboxDisabled, action }) => {
-    const theme = useTheme();
-    const hasCheckbox = onCheckedChange !== undefined;
-    const dimmed = hasCheckbox && !checked;
-
-    // The whole CollapsibleSection header toggles the fold on click and on
-    // Enter/Space, so inner controls must stop those events from bubbling.
-    const stopKeyToggle = (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.stopPropagation();
-      }
-    };
-
-    return (
-      <span css={sectionTitleStyles(theme, dimmed)}>
-        {hasCheckbox && (
-          <button
-            type="button"
-            role="checkbox"
-            aria-checked={!!checked}
-            aria-label={`${title} enabled`}
-            disabled={checkboxDisabled}
-            css={sectionCheckboxStyles(theme, !!checked)}
-            onClick={(e) => {
-              e.stopPropagation();
-              onCheckedChange(!checked);
-            }}
-            onKeyDown={stopKeyToggle}
-          >
-            {checked && <CheckRoundedIcon />}
-          </button>
-        )}
-        {icon && <span css={sectionTitleIconStyles(theme)}>{icon}</span>}
-        <span
-          style={{
-            minWidth: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap"
-          }}
-        >
-          {title}
-        </span>
-        <span style={{ flex: "1 1 auto" }} />
-        {action && (
-          <Tooltip title={action.label}>
-            {/* span keeps the tooltip working while the button is disabled */}
-            <span style={{ display: "inline-flex" }}>
-              <button
-                type="button"
-                className="inspector-section-action"
-                css={sectionActionStyles(theme)}
-                aria-label={action.label}
-                disabled={action.disabled}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  action.onClick();
-                }}
-                onKeyDown={stopKeyToggle}
-              >
-                {action.icon}
-              </button>
-            </span>
-          </Tooltip>
-        )}
-      </span>
-    );
-  }
-);
-InspectorSectionTitle.displayName = "InspectorSectionTitle";
+export { InspectorSectionTitle } from "../../ui_primitives";
 
 // ── Section divider ────────────────────────────────────────────────────────
 
-export const InspectorDivider: React.FC = memo(() => {
-  const theme = useTheme();
-  return (
-    <div
-      style={{
-        height: 1,
-        backgroundColor: theme.vars.palette.divider,
-        margin: `${getSpacingPx(SPACING.xs)} 0`
-      }}
-      role="separator"
-    />
-  );
-});
+export const InspectorDivider: React.FC = memo(() => <Divider spacing="normal" />);
 InspectorDivider.displayName = "InspectorDivider";

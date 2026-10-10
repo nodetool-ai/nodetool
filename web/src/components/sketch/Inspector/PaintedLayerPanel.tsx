@@ -12,9 +12,9 @@ import React, { memo } from "react";
 import type { Layer } from "../types";
 import {
   Caption,
-  CollapsibleSection,
   FlexColumn,
   FlexRow,
+  InspectorSection,
   Label,
   Panel,
   Text
@@ -48,7 +48,7 @@ export const PaintedLayerPanel: React.FC<PaintedLayerPanelProps> = memo(
             <Caption color="secondary">{describeKind(layer)}</Caption>
           </FlexColumn>
 
-          <CollapsibleSection title="Layer" defaultOpen>
+          <InspectorSection title="Layer" divider={false}>
             <FlexColumn gap={0.5}>
               <Text size="small">
                 Opacity: {Math.round(layer.opacity * 100)}%
@@ -63,7 +63,7 @@ export const PaintedLayerPanel: React.FC<PaintedLayerPanelProps> = memo(
                 Effects: {layer.effects.length === 0 ? "none" : layer.effects.length}
               </Text>
             </FlexColumn>
-          </CollapsibleSection>
+          </InspectorSection>
         </FlexColumn>
       </Panel>
     );

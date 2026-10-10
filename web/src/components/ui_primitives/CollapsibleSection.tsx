@@ -107,6 +107,10 @@ const CollapsibleSectionInternal: React.FC<CollapsibleSectionProps> = ({
           userSelect: "none",
           "&:hover": {
             opacity: 0.8
+          },
+          "&:focus-visible": {
+            outline: `2px solid ${theme.vars.palette.primary.main}`,
+            outlineOffset: "-2px"
           }
         }}
       >
