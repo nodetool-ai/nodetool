@@ -14,6 +14,7 @@
 
 import {
   emptyGltf,
+  type GltfAnimationChannel,
   type GltfJson,
   type GltfMaterial,
   type GltfMesh,
@@ -126,38 +127,52 @@ const extrasOf = (node: GltfNode): Record<string, unknown> => {
  */
 export function ensureObjectIds(json: GltfJson): void {
   const nodes = nodesOf(json);
+  objectIds(nodes).forEach((id, index) => {
+    if (extrasOf(nodes[index])[ID_KEY] !== id) {
+      extrasOf(nodes[index])[ID_KEY] = id;
+    }
+  });
+}
+
+/**
+ * The id each node answers to: the one {@link ensureObjectIds} gives it.
+ * Listing and lookup read ids through here too, so an id shown before the
+ * first edit always names the object it named in the listing, even when two
+ * nodes carry the same stored id or a stored id equals another's fallback.
+ */
+function objectIds(nodes: readonly GltfNode[]): string[] {
+  const ids: string[] = [];
   const used = new Set<string>();
   // Claim first, mint second, so a minted id cannot collide with one a later
   // node already holds. A repeated id (a .glb whose objects were duplicated in
   // another tool carries the same extras twice) is kept by the first node —
   // the one `resolveTarget` resolves it to — and the rest are re-minted.
-  const keepsItsId = nodes.map((node) => {
-    const id = isRecord(node.extras) ? node.extras[ID_KEY] : undefined;
-    if (typeof id !== "string" || id.length === 0 || used.has(id)) {
-      return false;
+  nodes.forEach((node, index) => {
+    const id = isRecord(node?.extras) ? node.extras[ID_KEY] : undefined;
+    if (typeof id === "string" && id.length > 0 && !used.has(id)) {
+      ids[index] = id;
+      used.add(id);
     }
-    used.add(id);
-    return true;
   });
   let seq = 1;
-  nodes.forEach((node, index) => {
-    if (keepsItsId[index]) {
+  nodes.forEach((_node, index) => {
+    if (ids[index] !== undefined) {
       return;
     }
-    // Prefer the id the listing already showed for this node, so an id read
-    // before the first edit still works after it.
-    const listed = `node-${index}`;
-    if (!used.has(listed)) {
-      extrasOf(node)[ID_KEY] = listed;
-      used.add(listed);
+    // Prefer `node-<index>`, the id a document without stored ids lists.
+    const fallback = `node-${index}`;
+    if (!used.has(fallback)) {
+      ids[index] = fallback;
+      used.add(fallback);
       return;
     }
     while (used.has(`obj_${seq}`)) {
       seq += 1;
     }
-    extrasOf(node)[ID_KEY] = `obj_${seq}`;
+    ids[index] = `obj_${seq}`;
     used.add(`obj_${seq}`);
   });
+  return ids;
 }
 
 /** A 32-hex id, the repository's resource id form. */
@@ -166,10 +181,7 @@ const freshObjectId = (): string =>
     byte.toString(16).padStart(2, "0")
   ).join("");
 
-const idOf = (node: GltfNode, index: number): string => {
-  const id = isRecord(node.extras) ? node.extras[ID_KEY] : undefined;
-  return typeof id === "string" && id.length > 0 ? id : `node-${index}`;
-};
+const idOf = (json: GltfJson, index: number): string => objectIds(readNodes(json))[index];
 
 /** Every node's parent index, or -1 for a scene root. */
 function parentIndices(json: GltfJson): number[] {
@@ -288,19 +300,19 @@ function serializeObject(
   json: GltfJson,
   node: GltfNode,
   index: number,
-  parents: number[]
+  parents: number[],
+  ids: string[] = objectIds(readNodes(json))
 ): Model3DSceneObject {
   const parent = parents[index];
   const extras = isRecord(node.extras) ? node.extras : {};
   const color = materialColorOf(json, node);
   const object: Model3DSceneObject = {
-    uuid: idOf(node, index),
+    uuid: ids[index],
     name: node.name ?? objectType(json, node),
     type: objectType(json, node),
     visible: extras[VISIBLE_KEY] !== false && extras[EDITOR_HIDDEN_KEY] !== true,
     ...readTransform(node),
-    parentUuid:
-      parent >= 0 ? idOf(readNodes(json)[parent] as GltfNode, parent) : null
+    parentUuid: parent >= 0 ? ids[parent] : null
   };
   if (color) {
     object.materialColor = color;
@@ -316,6 +328,7 @@ function serializeObject(
 export function listScene(json: GltfJson): Model3DSceneObject[] {
   const nodes = readNodes(json);
   const parents = parentIndices(json);
+  const ids = objectIds(nodes);
   const out: Model3DSceneObject[] = [];
   const seen = new Set<number>();
   const visitFrom = (start: number): void => {
@@ -327,7 +340,7 @@ export function listScene(json: GltfJson): Model3DSceneObject[] {
         continue;
       }
       seen.add(index);
-      out.push(serializeObject(json, node, index, parents));
+      out.push(serializeObject(json, node, index, parents, ids));
       const children = node.children ?? [];
       for (let i = children.length - 1; i >= 0; i -= 1) {
         stack.push(children[i]);
@@ -366,7 +379,7 @@ function setSelectedId(json: GltfJson, id: string | null): void {
 export function resolveTarget(json: GltfJson, target: string): number {
   const nodes = readNodes(json);
   const raw = target.trim();
-  const byId = nodes.findIndex((node, index) => idOf(node, index) === raw);
+  const byId = objectIds(nodes).indexOf(raw);
   if (byId >= 0) {
     return byId;
   }
@@ -389,7 +402,10 @@ export function resolveTarget(json: GltfJson, target: string): number {
  * because {@link resolveTarget} looks them up without case.
  */
 function uniqueName(json: GltfJson, base: string): string {
-  const taken = new Set(readNodes(json).map((node) => (node.name ?? "").toLowerCase()));
+  // Trimmed too, as resolveTarget trims: "Box " must count as taken by "Box".
+  const taken = new Set(
+    readNodes(json).map((node) => (node.name ?? "").trim().toLowerCase())
+  );
   if (!taken.has(base.toLowerCase())) {
     return base;
   }
@@ -599,8 +615,33 @@ export function addObject(
   const index = nodes.length - 1;
   activeScene(json).nodes?.push(index);
   ensureObjectIds(json);
-  setSelectedId(json, idOf(node, index));
+  setSelectedId(json, idOf(json, index));
   return serializeObject(json, node, index, parentIndices(json));
+}
+
+/**
+ * Rewrite a `KHR_animation_pointer` target such as `/nodes/3/translation`
+ * through `remap`. Returns false when the pointer names a removed node.
+ */
+function remapAnimationPointer(
+  target: GltfAnimationChannel["target"] | undefined,
+  remap: (index: number) => number
+): boolean {
+  const extensions = target?.extensions;
+  const ext = isRecord(extensions) ? extensions["KHR_animation_pointer"] : undefined;
+  if (!isRecord(ext) || typeof ext.pointer !== "string") {
+    return true;
+  }
+  const match = /^\/nodes\/(\d+)(\/.*)?$/.exec(ext.pointer);
+  if (!match) {
+    return true;
+  }
+  const next = remap(Number(match[1]));
+  if (next < 0) {
+    return false;
+  }
+  ext.pointer = `/nodes/${next}${match[2] ?? ""}`;
+  return true;
 }
 
 /** Remap every node index in the document through `mapping` (-1 = removed). */
@@ -622,6 +663,9 @@ function remapNodeIndices(json: GltfJson, mapping: number[]): void {
   }
   for (const animation of json.animations ?? []) {
     animation.channels = (animation.channels ?? []).filter((channel) => {
+      if (!remapAnimationPointer(channel.target, remap)) {
+        return false;
+      }
       const target = channel.target?.node;
       if (typeof target !== "number") {
         return true;
@@ -633,6 +677,27 @@ function remapNodeIndices(json: GltfJson, mapping: number[]): void {
       channel.target.node = next;
       return true;
     });
+  }
+  // A sampler only the dropped channels played would still count toward the
+  // clip's length (animationDurations reads every sampler), so it goes too.
+  for (const animation of json.animations ?? []) {
+    const samplers = animation.samplers ?? [];
+    const samplerMapping = new Map<number, number>();
+    const keptSamplers: unknown[] = [];
+    for (const channel of animation.channels) {
+      const index = channel.sampler;
+      if (!samplerMapping.has(index) && index >= 0 && index < samplers.length) {
+        samplerMapping.set(index, keptSamplers.length);
+        keptSamplers.push(samplers[index]);
+      }
+    }
+    if (keptSamplers.length === samplers.length) {
+      continue;
+    }
+    animation.samplers = keptSamplers;
+    for (const channel of animation.channels) {
+      channel.sampler = samplerMapping.get(channel.sampler) ?? channel.sampler;
+    }
   }
   // glTF requires every animation to have a channel.
   if (json.animations) {
@@ -709,9 +774,8 @@ export function deleteObject(
   }
 
   const selected = selectedId(json);
-  const selectionDoomed = [...doomed].some(
-    (i) => idOf(nodes[i] as GltfNode, i) === selected
-  );
+  const ids = objectIds(nodes);
+  const selectionDoomed = [...doomed].some((i) => ids[i] === selected);
   const mapping: number[] = [];
   const kept: GltfNode[] = [];
   nodes.forEach((node, i) => {

@@ -208,6 +208,8 @@ function checkDocument(json: GltfJson): Model3DValidation {
           `nodes[${child}] has more than one parent (nodes[${parentOf[child]}] and nodes[${index}]); glTF allows one.`,
           `nodes[${child}]`
         );
+      } else if (parentOf[child] === index) {
+        error(`nodes[${index}] lists child ${child} twice.`, `nodes[${index}].children`);
       } else {
         parentOf[child] = index;
       }
@@ -303,10 +305,17 @@ function checkDocument(json: GltfJson): Model3DValidation {
       if (position === undefined) {
         error(`${path} has no POSITION attribute.`, path);
       }
+      // Every attribute describes the same vertices, so all share one count.
+      const counts = new Set<number>();
       for (const [name, accessor] of Object.entries(primitive.attributes ?? {})) {
         if (!inRange(accessor, accessors.length)) {
           error(`${path}.attributes.${name} reads accessor ${accessor}, which does not exist.`, path);
+        } else {
+          counts.add(accessors[accessor].count);
         }
+      }
+      if (counts.size > 1) {
+        error(`${path} has attributes of different lengths (${[...counts].join(", ")} vertices).`, path);
       }
       if (primitive.indices !== undefined && !inRange(primitive.indices, accessors.length)) {
         error(`${path}.indices reads accessor ${primitive.indices}, which does not exist.`, path);
@@ -329,6 +338,9 @@ function checkDocument(json: GltfJson): Model3DValidation {
     const componentBytes = COMPONENT_BYTES[accessor.componentType];
     if (componentBytes === undefined) {
       error(`${path}.componentType ${accessor.componentType} is not a glTF component type.`, path);
+    }
+    if (!(accessor.count >= 1)) {
+      error(`${path}.count is ${accessor.count}; glTF requires at least 1.`, path);
     }
     if (accessor.bufferView === undefined) {
       return;
