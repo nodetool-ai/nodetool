@@ -12,7 +12,7 @@
  * back to logging the NodeTool-level request args.
  */
 
-import { createLogger, redactTraceText, safeProcessEnv, type Logger } from "@nodetool-ai/config";
+import { createLogger, redactTraceText, redactTraceTextWith, safeProcessEnv, traceRedactionSecrets, type Logger } from "@nodetool-ai/config";
 import { isNumber, isObjectLike, isString } from "@nodetool-ai/protocol";
 import { getRunTraceScope, recordTraceEvent } from "../run-trace-context.js";
 
@@ -93,6 +93,7 @@ export function sanitizeForLog(
   opts: SanitizeOptions = {}
 ): LogSafeValue {
   const o = { ...SANITIZE_DEFAULTS, ...opts };
+  const secrets = traceRedactionSecrets(getRunTraceScope()?.secretValues);
   // Tracks the current DFS path (not all visited nodes) so shared-but-acyclic
   // references aren't falsely flagged as circular.
   const ancestors = new WeakSet<object>();
@@ -100,7 +101,7 @@ export function sanitizeForLog(
   function walk(v: unknown, depth: number): LogSafeValue {
     if (v === null || v === undefined) return v;
     const t = typeof v;
-    if (typeof v === "string") { return truncateString(redactTraceText(v, getRunTraceScope()?.secretValues), o.maxStringLength); }
+    if (typeof v === "string") { return truncateString(redactTraceTextWith(v, secrets), o.maxStringLength); }
     // SAFETY: `t` is `typeof v`, so this arm has proved v is a number/boolean.
     if (t === "number" || t === "boolean") return v as number | boolean;
     if (t === "bigint") return `${(v as bigint).toString()}n`;

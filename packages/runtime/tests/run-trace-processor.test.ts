@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { context, trace, SpanStatusCode } from "@opentelemetry/api";
-import { createLogger, redactTraceText } from "@nodetool-ai/config";
+import { createLogger, redactTraceTextWith, traceRedactionSecrets } from "@nodetool-ai/config";
 import { splitTraceRecord, type RunTraceRegistration, type TraceRecord } from "@nodetool-ai/protocol";
 import { initTelemetry, getTracer, flushTelemetry, shutdownTelemetry, _resetTelemetryForTest } from "../src/telemetry.js";
 import { withSpan } from "../src/tracing-helpers.js";
@@ -23,7 +23,8 @@ const adapter: RunTraceStore = {
   async markIncomplete(id) { incomplete.push(id); },
   async flush() {},
   sanitize(record, options) {
-    const clean = JSON.parse(JSON.stringify(record, (_key, value: unknown) => typeof value === "string" ? redactTraceText(value, options.secretValues) : value)) as TraceRecord;
+    const secrets = traceRedactionSecrets(options.secretValues);
+    const clean = JSON.parse(JSON.stringify(record, (_key, value: unknown) => typeof value === "string" ? redactTraceTextWith(value, secrets) : value)) as TraceRecord;
     return options.public || options.contentSuppressed ? splitTraceRecord(clean).record : clean;
   }
 };
