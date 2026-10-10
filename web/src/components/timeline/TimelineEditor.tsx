@@ -59,6 +59,7 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
+import MovieCreationOutlinedIcon from "@mui/icons-material/MovieCreationOutlined";
 
 import { TopBar } from "./TopBar";
 import { TimelineGenerateDialog } from "./TimelineGenerateDialog";
@@ -102,6 +103,10 @@ import { TranscriptPanel } from "./TranscriptPanel";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { useTimelineLayoutStore } from "../../stores/timeline/TimelineLayoutStore";
 import { CodePanel } from "./CodePanel";
+import TimelineShotPanel, {
+  useSelectedShotClip
+} from "./shot/TimelineShotPanel";
+import TimelineLinkedBoards from "./shot/TimelineLinkedBoards";
 import { useTimelineHasCode } from "../../serverState/useTimelineCode";
 import CodeIcon from "@mui/icons-material/Code";
 import { ActivityIndicator } from "./ActivityIndicator";
@@ -360,7 +365,7 @@ const PreviewRegion: React.FC<{
 });
 PreviewRegion.displayName = "PreviewRegion";
 
-type InspectorTab = "inspector" | "source" | "instrument" | "agent" | "history" | "script" | "code";
+type InspectorTab = "inspector" | "shot" | "source" | "instrument" | "agent" | "history" | "script" | "code";
 
 const INSPECTOR_TABS = [
   { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon fontSize="small" /> },
@@ -374,6 +379,12 @@ const SCRIPT_TAB = {
   value: "script",
   label: "Script",
   icon: <SubtitlesOutlinedIcon fontSize="small" />
+};
+
+const SHOT_TAB = {
+  value: "shot",
+  label: "Shot",
+  icon: <MovieCreationOutlinedIcon fontSize="small" />
 };
 
 const CODE_TAB = {
@@ -394,10 +405,12 @@ const useAvailableInspectorTabs = (
   const hasSourceAsset = activeExplorer === "assets"
     ? assetsAsset !== null
     : activeExplorer === "library" && libraryAsset !== null;
+  const hasShotClip = useSelectedShotClip() !== null;
   const tabs = INSPECTOR_TABS.filter((item) =>
     (item.value !== "instrument" || hasMidiTrack) &&
     (item.value !== "source" || hasSourceAsset)
   );
+  if (hasShotClip) tabs.splice(1, 0, SHOT_TAB);
   if (hasScript) tabs.push(SCRIPT_TAB);
   if (hasCode) tabs.push(CODE_TAB);
   const activeTab = tabs.some((item) => item.value === tab) ? tab : "inspector";
@@ -438,6 +451,8 @@ const InspectorRegion: React.FC<{
         <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           {activeTab === "inspector" ? (
             <TimelineInspector />
+          ) : activeTab === "shot" ? (
+            <TimelineShotPanel />
           ) : activeTab === "instrument" ? (
             <TimelineInstrumentsPanel />
           ) : activeTab === "source" ? (
@@ -522,6 +537,8 @@ const MobilePanelSheet: React.FC<{
       <FlexColumn fullWidth sx={{ height: "52vh", minHeight: 0 }}>
         {activeTab === "inspector" ? (
           <TimelineInspector />
+        ) : activeTab === "shot" ? (
+          <TimelineShotPanel />
         ) : activeTab === "instrument" ? (
           <TimelineInstrumentsPanel />
         ) : activeTab === "source" ? (
@@ -1163,6 +1180,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           onTabChange={setPanelTab}
         />
       )}
+
+      {/* ── Storyboards the cut's shot clips come from ─────────────── */}
+      <TimelineLinkedBoards />
 
       {/* ── Generate dialog ───────────────────────────────────────── */}
       <TimelineGenerateDialog open={generateOpen} onClose={closeGenerate} />

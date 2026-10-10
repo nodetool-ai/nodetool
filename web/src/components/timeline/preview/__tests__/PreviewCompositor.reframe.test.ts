@@ -107,3 +107,28 @@ describe("animated group preview scheduling", () => {
     expect(sceneRequiresPerFrameResolution(layers, false, [], stillClips)).toBe(false);
   });
 });
+
+describe("live 3D preview scheduling", () => {
+  const model3d = (speed: number, assetId: string | undefined): ActiveLayer => ({
+    ...layer(false),
+    kind: "model3d",
+    assetId,
+    model3dStyle: {
+      camera: { mode: "orbit" },
+      animation: { loop: true, speed },
+      lighting: "studio",
+      lightIntensity: 1,
+      background: { transparent: true }
+    } as NonNullable<ActiveLayer["model3dStyle"]>,
+    sourceTimeSec: 0
+  });
+
+  it("re-resolves a live glTF every frame so its animation clock advances", () => {
+    expect(sceneRequiresPerFrameResolution([model3d(1, "glb")])).toBe(true);
+  });
+
+  it("holds a 3D layer whose animation is stopped or that has nothing loaded", () => {
+    expect(sceneRequiresPerFrameResolution([model3d(0, "glb")])).toBe(false);
+    expect(sceneRequiresPerFrameResolution([model3d(1, undefined)])).toBe(false);
+  });
+});

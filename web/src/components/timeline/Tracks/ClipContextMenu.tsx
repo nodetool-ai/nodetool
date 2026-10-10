@@ -73,7 +73,7 @@ export function ClipContextMenu({
     return ((clip?.fadeInMs ?? 0) || (clip?.fadeOutMs ?? 0)) > 0;
   });
   const applyFades = useTimelineStore((s) => s.applyFades);
-  const patchClip = useTimelineStore((s) => s.patchClip);
+  const clearFades = useTimelineStore((s) => s.clearFades);
   // A right-click inside the selection acts on the whole selection, like the
   // timeline's other multi-clip commands; outside it, on this clip alone.
   const inStudio = useInStudio();
@@ -141,7 +141,7 @@ export function ClipContextMenu({
           compact
           onClick={run(() =>
             hasFade
-              ? patchClip(clipId, { fadeInMs: 0, fadeOutMs: 0 })
+              ? clearFades(new Set([clipId]))
               : applyFades(new Set([clipId]))
           )}
         />

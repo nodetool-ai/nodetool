@@ -90,31 +90,26 @@ export function keyframeTimesMs(
   return [...times].sort((a, b) => a - b);
 }
 
-/** Linear sample of one property's curve at `atMs`; identity without one. */
+/**
+ * One property's curve at `atMs`, eased the way the sampler eases it: the
+ * animation's own easing overrides every segment, otherwise each keyframe's
+ * easing, otherwise linear. Identity without a curve.
+ */
 export function keyframeValueAt(
   clip: Pick<TimelineClip, "animations" | "durationMs">,
   property: AnimatedProperty,
   atMs: number
 ): number {
-  const curve = findKeyframeAnimation(clip)?.custom?.curves.find(
-    (c) => c.property === property
-  );
+  const animation = findKeyframeAnimation(clip);
+  const curve = animation?.custom?.curves.find((c) => c.property === property);
   if (!curve || curve.keyframes.length === 0) return keyframeIdentity(property);
-  const t = toT(clip, atMs);
-  const kfs = [...curve.keyframes].sort((a, b) => a.t - b.t);
-  if (t <= kfs[0].t) return kfs[0].value;
-  const last = kfs[kfs.length - 1];
-  if (t >= last.t) return last.value;
-  for (let i = 1; i < kfs.length; i++) {
-    if (t <= kfs[i].t) {
-      const a = kfs[i - 1];
-      const b = kfs[i];
-      const span = b.t - a.t;
-      const f = span <= 0 ? 1 : (t - a.t) / span;
-      return a.value + (b.value - a.value) * f;
-    }
-  }
-  return last.value;
+  const override = animation?.easing;
+  const kfs = [...curve.keyframes]
+    .sort((a, b) => a.t - b.t)
+    .map((kf) =>
+      override === undefined ? kf : { ...kf, easing: override }
+    );
+  return curveValueAtT(kfs, toT(clip, atMs));
 }
 
 /** Whether `property` has a keyframe at `atMs` (within a frame's rounding). */
@@ -142,7 +137,9 @@ function withCurves(
   if (live.length === 0) {
     return animations.filter((a) => a !== existing);
   }
+  // Fields set elsewhere (the Animate section's easing) survive a keyframe edit.
   const next: ClipAnimation = {
+    ...existing,
     id: existing?.id ?? createTimeOrderedUuid(),
     role: "emphasis",
     preset: KEYFRAME_ANIMATION_PRESET,
@@ -171,10 +168,16 @@ export function setKeyframe(
   return withCurves(clip, (curves) => {
     const others = curves.filter((c) => c.property !== property);
     const curve = curves.find((c) => c.property === property);
-    const kept = (curve?.keyframes ?? []).filter(
-      (kf) => Math.abs(kf.t - t) >= T_EPSILON
+    const replaced = curve?.keyframes.find(
+      (kf) => Math.abs(kf.t - t) < T_EPSILON
     );
-    const keyframes = [...kept, { t, value }].sort((a, b) => a.t - b.t);
+    const kept = (curve?.keyframes ?? []).filter((kf) => kf !== replaced);
+    // Updating a keyframe keeps the easing chosen for its segment.
+    const keyframe =
+      replaced?.easing === undefined
+        ? { t, value }
+        : { t, value, easing: replaced.easing };
+    const keyframes = [...kept, keyframe].sort((a, b) => a.t - b.t);
     return [...others, { property, keyframes }];
   });
 }

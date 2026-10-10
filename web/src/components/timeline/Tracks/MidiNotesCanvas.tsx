@@ -10,7 +10,7 @@
  */
 import React, { memo, useEffect, useRef } from "react";
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import { ticksToMs, visibleNotes } from "@nodetool-ai/timeline";
 import type { MidiNote } from "@nodetool-ai/timeline";
 
@@ -36,7 +36,13 @@ export const MidiNotesCanvas: React.FC<MidiNotesCanvasProps> = memo(
   ({ notes, inPointMs, durationMs, bpm, widthPx }) => {
     const theme = useTheme();
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const color = theme.vars.palette.primary.main;
+    // Canvas 2D ignores a `var(--…)` fillStyle, which is what
+    // `theme.vars.palette` holds, so read the active scheme's plain value.
+    const { mode, systemMode } = useColorScheme();
+    const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
+    const color =
+      theme.colorSchemes?.[activeMode]?.palette?.primary?.main ??
+      theme.palette.primary.main;
 
     useEffect(() => {
       const canvas = canvasRef.current;

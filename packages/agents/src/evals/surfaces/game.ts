@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { gameDocument, gameDocument3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
-import { applyGameOps, applyGameOps3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
+import { applyGameOps, applyGameOps3D, collisionLayerBits3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
 const SCRIPT_PARAMS_EVAL_SOURCE = "(input) => ({ state: input.params, commands: [] })";
@@ -276,6 +276,45 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         return cascades?.count === 4 && cascades.maxDistance === 150 && JSON.stringify(shadows) === JSON.stringify(initial.shadows) &&
           JSON.stringify({ ...scene.environment, shadows: initial.shadows }) === JSON.stringify(initial) &&
           sun?.kind === "directional" && sun.castShadow && sun.shadowNormalBias === 0.03;
+      } }]
+  }
+}, {
+  id: "hud-widget-tree",
+  description: "Author a document HUD tree with a score panel and a pause button that presses an input action, through set_game and set_ui.",
+  objective: "Add a pause input action. Then give the game a HUD with a panel anchored to the top-right corner holding a text node with id score, and a button with id pause anchored to the bottom centre that presses the pause action.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("hud-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game input_actions replaces the action list. set_ui {ui: {nodes}} replaces the document HUD tree. Nodes are {kind: panel|image|text|bar|button|stack|grid, id, parent?, anchor?: {x, y} in 0..1, pivot?, offset?: {x, y} pixels, width?, height?}. A child names an earlier container (panel, stack or grid) as parent. A button is {kind: \"button\", id, action, text?, width, height} and presses its input action. A panel needs width and height.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "hudTree", detail: "The HUD lacks a top-right panel holding text score, or a bottom-centre button pause that presses the pause action.",
+      test: document => {
+        const nodes = "dimension" in document ? [] : document.ui?.nodes ?? [];
+        const panel = nodes.find(node => node.kind === "panel" && node.anchor?.x === 1 && node.anchor.y === 0);
+        const score = nodes.find(node => node.id === "score");
+        const pause = nodes.find(node => node.id === "pause");
+        return document.inputActions.includes("pause") && panel !== undefined && score?.kind === "text" && score.parent === panel.id
+          && pause?.kind === "button" && pause.action === "pause" && pause.anchor?.x === 0.5 && pause.anchor.y === 1;
+      } }]
+  }
+}, {
+  id: "collision-layer-matrix",
+  description: "Author named 3D collision layers, a layer matrix and per-collider layers so derived bits filter contacts.",
+  objective: "Declare collision layers world, player and debris. Put the player on player and the crate on debris. The player must pass through debris, while debris still collides with the world.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("collision-layers-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game {collision_layers: [name], collision_matrix: [[a, b]]} names the 3D collision layers and lists the layer pairs that do not collide. update_entity sets collider3d.layer to a declared name.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "collisionLayers", detail: "The layers, collider layers or matrix do not let the player pass through debris while debris meets the world.",
+      test: document => {
+        if (document.schemaVersion !== 3) { return false; }
+        const layer = (id: string) => document.scenes[0].entities.find(entity => entity.id === id)?.collider3d?.layer;
+        const collide = (a: string, b: string) => {
+          const left = collisionLayerBits3D(document, a);
+          const right = collisionLayerBits3D(document, b);
+          return (left.category & right.mask) !== 0 && (right.category & left.mask) !== 0;
+        };
+        return ["world", "player", "debris"].every(name => document.collisionLayers?.includes(name)) &&
+          layer("player") === "player" && layer("crate") === "debris" && !collide("player", "debris") && collide("debris", "world");
       } }]
   }
 }];

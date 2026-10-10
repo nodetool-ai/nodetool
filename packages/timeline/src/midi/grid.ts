@@ -14,6 +14,9 @@ import type { TimelineTempo } from "../types.js";
 import { divisionToTicks, type QuantizeDivision } from "./edit.js";
 import { MIDI_PPQ, ticksToMs } from "./ticks.js";
 
+/** How far, in grid-index units, a time may sit under a line and still count as on it. */
+const GRID_INDEX_EPSILON = 1e-9;
+
 /** Where a time falls on the bar grid. `bar` and `beat` count from 1. */
 export interface BarsBeats {
   bar: number;
@@ -65,7 +68,10 @@ export function barsBeatsAt(ms: number, tempo: TimelineTempo): BarsBeats {
   const beatMs = beatDurationMs(tempo);
   const beatsPerBar = tempo.timeSignature.beatsPerBar;
   const relativeMs = ms - tempo.offsetMs;
-  const beatIndex = Math.floor(relativeMs / beatMs);
+  // A grid line is `offset + i * interval`, which can land a hair under the
+  // exact boundary at a fractional tempo; nudge by the same epsilon
+  // `tempoGridMs` uses so that line reads as the beat it starts.
+  const beatIndex = Math.floor(relativeMs / beatMs + GRID_INDEX_EPSILON);
   const intoBeatMs = relativeMs - beatIndex * beatMs;
   const tick = Math.min(
     MIDI_PPQ - 1,
@@ -124,12 +130,11 @@ export function tempoGridMs(spec: TempoGridSpec): number[] {
   // A boundary that lands on a grid line must be included, so the index
   // arithmetic is nudged by a fraction of a tick rather than trusting the
   // division to come out exact.
-  const epsilon = 1e-9;
   const firstIndex = Math.ceil(
-    (spec.fromMs - spec.tempo.offsetMs) / interval - epsilon
+    (spec.fromMs - spec.tempo.offsetMs) / interval - GRID_INDEX_EPSILON
   );
   const lastIndex = Math.floor(
-    (spec.toMs - spec.tempo.offsetMs) / interval + epsilon
+    (spec.toMs - spec.tempo.offsetMs) / interval + GRID_INDEX_EPSILON
   );
   const count = lastIndex - firstIndex + 1;
   if (count <= 0) return [];

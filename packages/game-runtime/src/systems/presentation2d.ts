@@ -1,10 +1,10 @@
 import type { EntityState } from "./state2d.js";
-import type { GameDocument, GameHudLabel, GameRenderFrame, GameScene } from "@nodetool-ai/protocol";
+import { resolveGameUiFrame, type GameDocument, type GameHudLabel, type GameRenderFrame, type GameScene, type GameUiOverride } from "@nodetool-ai/protocol";
 import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { evaluateVisual } from "../visual-animation.js";
 import type { GameSystemContext2D } from "./context2d.js";
 type PresentationContext2D = Readonly<
-  Pick<GameSystemContext2D, "tick" | "events" | "frameFor" | "document" | "scene" | "states" | "score" | "won" | "hud" | "scriptStats" | "queues">
+  Pick<GameSystemContext2D, "tick" | "events" | "frameFor" | "document" | "scene" | "states" | "score" | "won" | "hud" | "ui" | "scriptStats" | "queues">
 > &
   Pick<GameSystemContext2D, "presentationEvents" | "result">;
 export function stepPresentation2D(context: PresentationContext2D): void {
@@ -12,7 +12,7 @@ export function stepPresentation2D(context: PresentationContext2D): void {
   context.result = {
     tick: context.tick,
     events: context.events,
-    frame: context.frameFor(context.document, context.scene, context.states, context.tick, context.score, context.won, context.hud)
+    frame: context.frameFor(context.document, context.scene, context.states, context.tick, context.score, context.won, context.hud, context.ui)
   };
   if (context.scriptStats) {
     context.result = { ...context.result, scriptStats: context.scriptStats };
@@ -42,7 +42,8 @@ export function frameFor(
   tick: number,
   score: number,
   won: boolean,
-  hud: ReadonlyMap<string, GameHudLabel>
+  hud: ReadonlyMap<string, GameHudLabel>,
+  ui: ReadonlyMap<string, GameUiOverride>
 ): GameRenderFrame {
   const cameraState = states.find((state) => state.active && state.definition.camera2d);
   const camera = cameraState?.definition.camera2d;
@@ -243,6 +244,14 @@ export function frameFor(
   };
   if (particles.length > 0) {
     frame.particles = particles;
+  }
+  const uiFrame = resolveGameUiFrame(document.ui, scene.ui, ui, (entityId) => {
+    const state = states.find((candidate) => candidate.definition.id === entityId);
+    const health = state?.definition.behaviors.find((behavior) => behavior.kind === "health");
+    return state && health?.kind === "health" ? { value: state.health ?? 0, max: health.maximum } : undefined;
+  });
+  if (uiFrame) {
+    frame.ui = uiFrame;
   }
   if (scene.lighting) {
     // Entity lights follow their entities; the nearest ones fill the slots the scene's fixed lights leave.

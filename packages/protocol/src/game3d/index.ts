@@ -9,6 +9,7 @@ import { gamePrimitive3D } from "./components/primitive.js";
 import { gameModel3D } from "./components/model.js";
 import { gameBody3D } from "./components/body.js";
 import { gameCollider3D } from "./components/collider.js";
+import { gameCollisionMatrix3D } from "./components/collision-matrix.js";
 import { gameCharacter3D } from "./components/character.js";
 import { gameCameraProjection3D, gameCamera3D } from "./components/camera.js";
 import { gameLight3D } from "./components/light.js";
@@ -72,7 +73,7 @@ export const gameDocument3D = z.strictObject({
   schemaVersion: z.literal(3), engineVersion: z.literal("2"), dimension: z.literal("3d"),
   id, revision: id, entrySceneId: id, tickRate: z.literal(60), presentation: gamePresentation3D,
   inputActions: z.array(id).max(64), inputAxes: z.array(id).max(16).default(["moveX", "moveZ"]), inputBindings: gameInputBindings.optional(),
-  collisionLayers: z.array(id).max(16).optional(), assets: z.record(id, gameAssetBinding3D),
+  collisionLayers: z.array(id).max(16).optional(), collisionMatrix: gameCollisionMatrix3D.optional(), assets: z.record(id, gameAssetBinding3D),
   prefabs: z.record(id, gamePrefab3D).default({}), scenes: z.array(gameScene3D).min(1).max(64),
   animationGraphs: gameAnimationGraphs3D.optional(),
   audio: gameAudioSettings.optional(),
@@ -260,6 +261,8 @@ export { gameModel3D, type GameModel3D } from "./components/model.js";
 export { gameBody3D, type GameBody3D } from "./components/body.js";
 
 export { gameCollider3D, type GameCollider3D } from "./components/collider.js";
+
+export { GAME_MAX_COLLISION_PAIRS_3D, gameCollisionMatrix3D, type GameCollisionMatrix3D } from "./components/collision-matrix.js";
 
 export { gameCharacter3D, type GameCharacter3D } from "./components/character.js";
 

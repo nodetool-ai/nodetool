@@ -250,7 +250,7 @@ const ScriptCastPanel = ({
       }}
     >
       <FlexRow align="center" justify="space-between" fullWidth>
-        <Text size="normal" weight={600}>
+        <Text size="small" weight={500}>
           Cast
         </Text>
         {!readOnly && (

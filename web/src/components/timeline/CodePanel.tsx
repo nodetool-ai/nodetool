@@ -39,9 +39,9 @@ import {
   Text,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  PanelHeader
 } from "../ui_primitives";
-import PanelToolbar from "../panels/PanelToolbar";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import {
@@ -315,7 +315,7 @@ export const CodePanel: React.FC = memo(() => {
 
   return (
     <FlexColumn fullWidth fullHeight sx={{ minHeight: 0, overflow: "hidden" }}>
-      <PanelToolbar
+      <PanelHeader
         title="Code"
         count={scenes.length || undefined}
         actions={toolbarActions}

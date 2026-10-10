@@ -494,10 +494,10 @@ curl -X POST "http://localhost:7777/api/integrations/telegram/link/complete" \
 { "linked": true }
 ```
 
-A user-bound code already carries the user who minted it, and that user wins, so
-`user_id` in the body is ignored here. Send it only when redeeming a code that
-`link/start` minted — a code bound to an external account names no user, and the
-call is `400` without one.
+A user-bound code already carries the user who minted it, so a `user_id` in the
+body is ignored. A code that `link/start` minted names no user and is refused
+here with `400`: only the signed-in browser can redeem it. A refused call does
+not spend the code.
 
 With the link in place either way, the bridge exchanges identity for access on
 every connection:
@@ -2614,6 +2614,13 @@ credentials stored for the caller. Methods that do not match answer `405`.
 | OpenAI (Codex) | `GET /api/oauth/openai/start`, `POST /api/oauth/openai/complete`, `GET /api/oauth/openai/tokens`, `POST /api/oauth/openai/disconnect` |
 | Claude subscription | `GET /api/oauth/claude/start`, `POST /api/oauth/claude/complete`, `GET /api/oauth/claude/tokens`, `POST /api/oauth/claude/disconnect` |
 | Google Workspace | `POST /api/oauth/google/session`, `GET /api/oauth/google/tokens`, `POST /api/oauth/google/disconnect`. The session route takes the Supabase Google login's `access_token` and answers `404` unless `NODETOOL_GOOGLE_WORKSPACE` is on |
+
+The Claude subscription login is one per server, shared by every user's Claude
+Agent SDK calls. Only an admin may start, complete or disconnect it, and other
+users get `403`. An admin is user `"1"` in Local mode, an id listed in
+`ADMIN_USER_IDS`, or an API user with the admin role. For other users, `tokens`
+reports whether the server is connected but leaves out the plan and the
+credentials path.
 
 Hugging Face and GitHub use PKCE with a single-use `state`. The `start` route
 builds the redirect URI from the request's `Host` header. Token routes return

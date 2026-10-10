@@ -13,8 +13,10 @@ import { gameAuthoring } from "../game-authoring.js";
 import { gameAudioSettings } from "./components/audio.js";
 import { gameAudioEmitter } from "./components/audioSource.js";
 import { gameInputBindings } from "../game-input.js";
+import { gameUiFrame, gameUiOverrides, gameUiTree } from "../game-ui.js";
 
 export * from "../game-input.js";
+export * from "../game-ui.js";
 
 export const gameEntity = z.strictObject({
   id: z.string().min(1),
@@ -35,7 +37,8 @@ const sceneFields = {
   lighting: gameLightingComponent,
   gravity: vec2.optional(),
   entities: z.array(gameEntity),
-  backgrounds: z.array(gameBackgroundLayer).max(32).optional()
+  backgrounds: z.array(gameBackgroundLayer).max(32).optional(),
+  ui: gameUiTree.optional()
 };
 
 export const gameScene = z.strictObject({
@@ -85,6 +88,7 @@ export const gameDocument = z.strictObject({
   renderEffects: z.array(gameRenderEffect).max(8).optional(),
   hudEffectOrder: z.enum(["beforeEffects", "afterEffects"]).optional(),
   audio: gameAudioSettings.optional(),
+  ui: gameUiTree.optional(),
   assets: z.record(z.string(), gameAssetBinding),
   scenes: z.array(gameScene).min(1)
 });
@@ -136,6 +140,7 @@ export const gameRenderFrame = z.object({
   lighting: gameScene.shape.lighting,
   tiles: z.array(z.object({ entityId: z.string(), assetId: z.string(), x: finite, y: finite, width: positive, height: positive, frame: frame.optional(), layer: z.number().int(), tint: z.string().optional(), opacity: finite.min(0).max(1).optional(), sampling: z.enum(["nearest", "linear"]).optional() })),
   hud: z.array(gameHudLabel),
+  ui: gameUiFrame.optional(),
   particles: z.array(z.object({ entityId: z.string(), x: finite, y: finite, rotation: finite, particles: gameParticles })).optional()
 });
 
@@ -155,6 +160,7 @@ export const gameSnapshot = z.object({
   activeContacts: z.array(z.strictObject({ entityId: z.string(), otherId: z.string(), sensor: z.boolean() })).default([]),
   scriptState: z.record(z.string(), z.json()).default({}),
   hud: z.array(gameHudLabel).default([]),
+  ui: gameUiOverrides.optional(),
   entities: z.array(z.object({ id: z.string(), sourceId: z.string().optional(), spawnTick: z.number().int().nonnegative().optional(),
     rotation: finite.optional(), scaleX: positive.optional(), scaleY: positive.optional(), tint: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), opacity: finite.min(0).max(1).optional(), flipX: z.boolean().optional(),
     animation: z.string().optional(), animationTick: z.number().int().nonnegative().optional(), x: finite, y: finite, previousX: finite, previousY: finite, velocityX: finite, velocityY: finite, active: z.boolean(), props: gameEntityProps.optional(), health: z.number().int().optional(), patrolOrigin: finite.optional(), patrolDirection: z.union([z.literal(-1), z.literal(1)]).optional() }))

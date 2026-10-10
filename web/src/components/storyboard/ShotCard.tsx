@@ -41,6 +41,7 @@ import {
   MagicGenerationFill,
   ProgressBar,
   ResponsiveImage,
+  StatusPill,
   Text,
   ToolbarIconButton,
   UploadButton,
@@ -84,6 +85,11 @@ interface ShotCardProps {
    * rather than counting shots it cannot see.
    */
   caption?: string;
+  /**
+   * This shot's part of a scene clip, as `Clip 2/3 · 4-9s`. The board
+   * resolves scene clips, so the card is told its part.
+   */
+  sceneClipTag?: string;
   /**
    * The board values a version's render record is compared against, for the
    * stale marker on the pill. Passed in from where the board's models, style
@@ -158,6 +164,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   boardId,
   shot,
   caption,
+  sceneClipTag,
   renderContext,
   selected,
   onSelect,
@@ -651,9 +658,20 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       </FlexColumn>
 
       <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.lg, minWidth: 0 }}>
-        <Caption color="secondary">
-          {caption ?? `Shot ${shot.index + 1}`}
-        </Caption>
+        <FlexRow align="center" gap={SPACING.sm} wrap>
+          <Caption color="secondary">
+            {caption ?? `Shot ${shot.index + 1}`}
+          </Caption>
+          {sceneClipTag && (
+            <StatusPill
+              tone="neutral"
+              data-testid="shot-scene-clip-tag"
+              sx={{ borderColor: CLIP_COLOR }}
+            >
+              {sceneClipTag}
+            </StatusPill>
+          )}
+        </FlexRow>
         <Text
           size="small"
           sx={{

@@ -74,7 +74,7 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "trimEditRight", label: "Trim edit point one frame on" },
       { action: "trimEditLeftLarge", label: "Trim edit point ten frames back" },
       { action: "trimEditRightLarge", label: "Trim edit point ten frames on" },
-      { action: "duplicate", label: "Duplicate (after each source)" },
+      { action: "duplicate", label: "Duplicate after the selection" },
       { action: "duplicateWithGap", label: "Duplicate with a 1 s gap" },
       { action: "applyDefaultTransition", label: "Cross-fade into selected clips" },
       { action: "applyFades", label: "Fade selected clips in and out" },

@@ -79,6 +79,20 @@ describe("TimelineStore — midi tracks", () => {
     expect(notes.every((n) => n.velocity === 100)).toBe(true);
   });
 
+  it("records no undo entry when the notes come back unchanged", () => {
+    // The piano roll writes on every gesture end, including one that put the
+    // notes back where they were (or in a new array of the same notes).
+    const { store, clipId } = seed();
+    const notes = store.getState().clips.find((c) => c.id === clipId)!.notes!;
+    const depth = timelineTemporalOf(store).pastStates.length;
+    store.getState().setClipNotes(clipId, notes.map((n) => ({ ...n })));
+    store.getState().setClipNotes(clipId, [...notes].reverse());
+    expect(timelineTemporalOf(store).pastStates).toHaveLength(depth);
+    expect(store.getState().clips.find((c) => c.id === clipId)!.notes).toBe(
+      notes
+    );
+  });
+
   it("orders the notes a clip stores by onset", () => {
     const { store, clipId } = seed();
     store.getState().setClipNotes(clipId, [

@@ -30,7 +30,10 @@ import {
   SPACING
 } from "../ui_primitives";
 
-import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../stores/timeline/TimelineStore";
 import { useTimelineTranscriptStore } from "../../stores/timeline/TimelineTranscriptStore";
 import { buildTranscriptDoc, isTranscriptClip } from "../../stores/timeline/transcriptOps";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -48,6 +51,7 @@ export const TranscriptPanel: React.FC = memo(() => {
   const removeFillers = useTimelineTranscriptStore((s) => s.removeFillers);
   const importMedia = useTimelineTranscriptStore((s) => s.importMedia);
   const sequenceId = useTimelineStore((s) => s.sequenceId);
+  const docApi = useTimelineStoreApi();
   const createAsset = useAssetStore((s) => s.createAsset);
   const addNotification = useNotificationStore((s) => s.addNotification);
   const { extract, extracting } = useExtractScript();
@@ -88,7 +92,8 @@ export const TranscriptPanel: React.FC = memo(() => {
   const onExtractScript = useCallback(async () => {
     if (!sequenceId) return;
     try {
-      await extract(sequenceId);
+      // The live clips, so edits autosave has not written yet are included.
+      await extract(sequenceId, docApi.getState().clips);
     } catch (err) {
       addNotification({
         content: `Extract as script failed: ${
@@ -98,7 +103,7 @@ export const TranscriptPanel: React.FC = memo(() => {
         alert: true
       });
     }
-  }, [extract, sequenceId, addNotification]);
+  }, [extract, sequenceId, docApi, addNotification]);
 
   return (
     <Panel
@@ -126,14 +131,14 @@ export const TranscriptPanel: React.FC = memo(() => {
       <FlexColumn gap={SPACING.md} sx={{ p: 0.5, flex: 1, minHeight: 0 }}>
         <FlexRow gap={SPACING.xs} align="center">
           <GraphicEqIcon sx={{ fontSize: 16, color: "primary.main" }} />
-          <Text size="smaller" weight={600} sx={{ letterSpacing: "0.1em" }}>
+          <Text size="smaller" sx={{ letterSpacing: "0.1em" }}>
             TRANSCRIPT
           </Text>
         </FlexRow>
 
         <FlexRow align="center" justify="space-between">
           <FlexRow gap={SPACING.xs} align="baseline">
-            <Text size="smaller" weight={600} sx={{ letterSpacing: "0.08em" }}>
+            <Text size="smaller" sx={{ letterSpacing: "0.08em" }}>
               SCRIPT
             </Text>
             <Caption sx={{ color: "text.disabled" }}>

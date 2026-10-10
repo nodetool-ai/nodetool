@@ -30,7 +30,6 @@ import {
 } from "../../serverState/useTimelineVersions";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { notifyMutationError } from "../../utils/notifyMutationError";
-import PanelToolbar from "../panels/PanelToolbar";
 import {
   Caption,
   Chip,
@@ -46,7 +45,8 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  PanelHeader
 } from "../ui_primitives";
 
 const SAVE_TYPE_LABEL = {
@@ -277,7 +277,7 @@ export const TimelineVersionHistoryPanel: React.FC<
 
   return (
     <FlexColumn fullWidth fullHeight sx={{ minHeight: 0, overflow: "hidden" }}>
-      <PanelToolbar
+      <PanelHeader
         title="History"
         count={ordered.length}
         actions={toolbarActions}

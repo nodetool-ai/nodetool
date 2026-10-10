@@ -4,7 +4,7 @@ import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
-import { browserGamepads, FixedTickClock, GameInput, GameParticles2D, type GameRenderer } from "@nodetool-ai/game-renderer";
+import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, GameInput, GameParticles2D, GameUiController, gameUiViewport2D, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
@@ -43,6 +43,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const rendererRef = useRef<GameRenderer | null>(null);
   const sessionGenerationRef = useRef(0);
   const inputRef = useRef(new GameInput());
+  const hudRef = useRef<GameUiController | null>(null);
   const inputHistoryRef = useRef(new GameReplayHistory<GameInputFrame, GameSnapshot>());
   const lastTickRef = useRef(0);
   const lastPresentationRef = useRef<{ state: PlayState; frame: GameRenderFrame } | null>(null);
@@ -88,7 +89,9 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const height = Math.round(current.height * current.pixelsPerUnit);
     if (renderer.canvas.width !== width || renderer.canvas.height !== height) renderer.resize(width, height);
     audioRef.current?.updateSpatial(gameAudioSpatialView2D(current, interpolation));
-    await renderer.render(current, interpolation, particlesRef.current ?? undefined);
+    const hud = hudRef.current;
+    hud?.update(current.ui, gameUiViewport2D(current));
+    await renderer.render(hud ? hud.annotate(current) : current, interpolation, particlesRef.current ?? undefined);
     if (renderer.capabilities.fallbackReason) {
       setBackend("Canvas 2D");
       setError("GPU effects omitted after WebGPU failure");
@@ -178,6 +181,13 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     setError(null);
     setScriptError(null);
     const input = inputRef.current;
+    // HUD buttons press their input actions through the same input while the game plays.
+    const hud = new GameUiController(input, browserGameUiMeasure(sessionDocument.id));
+    hudRef.current = hud;
+    const detachHud = attachGameUiPointer(canvas, hud, () => {
+      const shown = lastPresentationRef.current?.frame;
+      return shown ? gameUiViewport2D(shown) : undefined;
+    }, () => playbackActiveRef.current);
     const audio = audioRef.current ?? new GameAudioPlayer({
       assets: sessionDocument.assets,
       tickRate: sessionDocument.tickRate,
@@ -246,6 +256,9 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     return () => {
       cancelled = true;
       sessionGenerationRef.current += 1;
+      detachHud();
+      hud.release();
+      if (hudRef.current === hud) { hudRef.current = null; }
       input.release();
       disposeSession();
 
@@ -293,7 +306,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const clock = new FixedTickClock(sessionDocument.tickRate);
     const animate = (now: number) => {
       clock.advance(now, () => {
-        inputRef.current.pollGamepads(browserGamepads());
+        const pads = browserGamepads();
+        inputRef.current.pollGamepads(hudRef.current ? hudRef.current.pollGamepads(pads) : pads);
         step(inputRef.current.sample2D(sessionDocument));
       });
       request = requestAnimationFrame(animate);

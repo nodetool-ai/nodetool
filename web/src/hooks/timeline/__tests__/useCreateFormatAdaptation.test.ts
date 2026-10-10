@@ -94,7 +94,8 @@ describe("persistFormatAdaptationsDetailed", () => {
     const doc = update.mock.calls[0][0].document;
     expect(doc.camera2d).toBe(camera2d);
     expect(doc.storyboardMaterializations).toBe(storyboardMaterializations);
-    expect(doc.templateId).toBe("s1");
+    // Lineage rides the create: a later save keeps the stored templateId.
+    expect(create.mock.calls[0][0].templateId).toBe("s1");
   });
 
   it("deletes a sequence whose document update failed and keeps going (F35)", async () => {

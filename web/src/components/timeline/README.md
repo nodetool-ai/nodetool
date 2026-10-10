@@ -311,6 +311,30 @@ style or no asset) as an error and `bake_stale` as a warning.
 camera and animation time — [docs/harnesses.md § 3D clips in
 preview_timeline_frame](../../../../docs/harnesses.md#3d-clips-in-preview_timeline_frame).
 
+## Storyboard shots
+
+A video clip linked to a storyboard shot (`storyboardBoardId` and
+`storyboardShotId`, set by assembly or by **Link to shot** in the Inspector)
+plays the shot's selected take. The shot owns the takes. When its selection
+changes, on the board or here, every unlocked clip following the shot,
+its audio twin included, gets the new take in one undo step
+(`useLinkedShotTakes`, `applyShotTakeToClip` in `@nodetool-ai/timeline`). A
+take shorter than the clip's source window moves or shortens the window.
+
+While the editor is open, `TimelineLinkedBoards` loads and autosaves the boards
+its shot clips come from, unless another editor already saves the board.
+
+Selecting a shot clip adds a **Shot** tab to the side panel:
+
+- **Takes** lists the shot's renders. Picking one switches the cut to it.
+  **New take** renders another with the board's render dialog.
+- **Shot** is a one-column form over the board's shot draft (`shotDraft`). Save
+  writes only the fields changed here.
+- **Derived shot** takes N frames of the clip as reference images, adds a
+  reference-mode shot after this one on the board, and puts its clip on a new
+  track above this one over the same span. The render dialog opens on the new
+  shot.
+
 ## Persistence
 
 Every `TimelineStore` mutation (clip add, move, trim, split, delete) is
