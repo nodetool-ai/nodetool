@@ -1934,7 +1934,7 @@ node scripts/mutation-score.mjs --survivors kernel       # survivors from the sn
 - **Isolation:** mutants run in overlays under `target/mutation-workers`, one
   per core, each holding a copy of the package. The checkout is never edited.
 - **Exit codes:** `0` all killed, `2` baseline failed, `3` a mutant survived.
-  Details: [packages/mutator/README.md](../packages/mutator/README.md).
+  Details: [packages/mutator/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/mutator/README.md).
 
 ### npm run probe:providers (Provider Contract Probes)
 
