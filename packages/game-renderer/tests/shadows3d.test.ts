@@ -2,10 +2,11 @@ import { resolve } from "node:path";
 import { build } from "esbuild";
 import { chromium } from "@playwright/test";
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
 import { gameRenderFrame3D, type GameLight3D, type GameRenderFrame3D } from "@nodetool-ai/protocol";
 import type { CreateGameRenderer3DOptions, GameRenderer3D } from "../src/browser3d.js";
-import { planGameShadows3D } from "../src/renderer3d/shadows/index.js";
-import { gameCascadeBreaks3D } from "../src/renderer3d/shadows/cascades.js";
+import { GameShadows3D, planGameShadows3D } from "../src/renderer3d/shadows/index.js";
+import { GameCascadedShadows3D, gameCascadeBreaks3D } from "../src/renderer3d/shadows/cascades.js";
 import { compareGameCaptures } from "../src/imageDiff.js";
 
 declare global { interface Window { shadowHarness: { readonly factory: (options: CreateGameRenderer3DOptions) => Promise<GameRenderer3D> } } }
@@ -45,16 +46,31 @@ describe("shadow planning", () => {
     const lamps = ["l0", "l1", "l2", "l3", "l4", "l5"].map((entityId) => ({ entityId, light: point(true) }));
     const plan = planGameShadows3D(frame([{ entityId: "plain", light: point(false) }, ...lamps]));
     expect([...plan.casting]).toEqual(["l0", "l1", "l2", "l3"]);
-    expect(plan.diagnostics).toEqual([
-      "Light l4 renders without shadows: at most 4 point and spot lights cast shadows",
-      "Light l5 renders without shadows: at most 4 point and spot lights cast shadows"]);
+    expect(plan.overflow).toEqual({ local: 2, directional: 0 });
+    expect(plan.diagnostics).toEqual(["Shadow budget exceeded: 2 point and spot lights render without shadows (at most 4 cast shadows per scene)"]);
+  });
+  it("keeps one overflow diagnostic per kind while spawned lights get new ids", () => {
+    const diagnostics: string[] = ["earlier diagnostic"];
+    const notified: string[] = [];
+    const shadows = new GameShadows3D(diagnostics, (message) => notified.push(message));
+    const lamps = (wave: number, count: number) => Array.from({ length: count }, (_, index) => ({ entityId: `lamp-${wave}-${index}`, light: point(true) }));
+    for (let wave = 0; wave < 50; wave++) { shadows.prepare(frame(lamps(wave, 6))); }
+    expect(diagnostics).toEqual(["earlier diagnostic", "Shadow budget exceeded: 2 point and spot lights render without shadows (at most 4 cast shadows per scene)"]);
+    expect(notified).toHaveLength(1);
+    shadows.prepare(frame([...lamps(50, 9), { entityId: "sun", light: sun(true) }, { entityId: "moon", light: sun(true) }], { cascades: { count: 2 } }));
+    shadows.prepare(frame(lamps(51, 5)));
+    expect(diagnostics).toEqual(["earlier diagnostic",
+      "Shadow budget exceeded: 5 point and spot lights render without shadows (at most 4 cast shadows per scene)",
+      "Cascaded shadows support one directional light: 1 other shadowed directional light renders without shadows"]);
+    expect(notified).toHaveLength(3);
+    shadows.dispose();
   });
   it("cascades one directional light and casts nothing while shadows are disabled", () => {
     const lights = [{ entityId: "sun", light: sun(true) }, { entityId: "moon", light: sun(true) }];
     const cascaded = planGameShadows3D(frame(lights, { cascades: { count: 3 } }));
     expect(cascaded.cascadedLightId).toBe("sun");
     expect([...cascaded.casting]).toEqual(["sun"]);
-    expect(cascaded.diagnostics).toEqual(["Directional light moon renders without shadows: cascaded shadows support one shadow-casting directional light"]);
+    expect(cascaded.diagnostics).toEqual(["Cascaded shadows support one directional light: 1 other shadowed directional light renders without shadows"]);
     const disabled = planGameShadows3D(frame([...lights, { entityId: "lamp", light: point(true) }], { enabled: false, cascades: { count: 3 } }));
     expect(disabled.casting.size).toBe(0);
     expect(disabled.diagnostics).toEqual([]);
@@ -66,6 +82,47 @@ describe("shadow planning", () => {
     const practical = gameCascadeBreaks3D(4, 0.1, 200, 0.7);
     expect(practical).toHaveLength(4);
     for (let index = 1; index < practical.length; index++) { expect(practical[index]).toBeGreaterThan(practical[index - 1] ?? 0); }
+  });
+});
+
+describe("cascade material hooks", () => {
+  it("runs a material's own compile hook first, keys on both and restores the hook on release", () => {
+    const calls: string[] = [];
+    const material = new THREE.MeshStandardMaterial();
+    const ownHook = (shader: THREE.WebGLProgramParametersWithUniforms): void => {
+      calls.push(shader.fragmentShader.includes("#include <lights_fragment_begin>") ? "own-before-cascades" : "own-after-cascades");
+      shader.uniforms.ownTint = { value: 1 };
+    };
+    const ownKey = (): string => "own-key";
+    material.onBeforeCompile = ownHook;
+    material.customProgramCacheKey = ownKey;
+    const plain = new THREE.MeshStandardMaterial();
+    const scene = new THREE.Scene();
+    scene.add(new THREE.Mesh(new THREE.BoxGeometry(), material), new THREE.Mesh(new THREE.BoxGeometry(), plain));
+    const sunLight = new THREE.DirectionalLight();
+    const camera = new THREE.PerspectiveCamera(60, 1.5, 0.1, 120);
+    camera.updateMatrixWorld();
+    const cascades = new GameCascadedShadows3D();
+    cascades.update(scene, sunLight, { kind: "directional", color: "#ffffff", intensity: 1, castShadow: true }, { count: 2, split: 0.5, maxDistance: 100 }, 512, camera);
+    const shader = {
+      uniforms: {} as Record<string, THREE.IUniform>,
+      vertexShader: "#include <lights_pars_begin>",
+      fragmentShader: "#include <lights_pars_begin>\n#include <lights_fragment_begin>"
+    };
+    // The hook reads only the uniforms and shader sources, so a partial program description stands in for three's.
+    Reflect.apply(material.onBeforeCompile, material, [shader, {}]);
+    expect(calls).toEqual(["own-before-cascades"]);
+    expect(Object.keys(shader.uniforms).sort()).toEqual(["CSM_cascades", "cameraNear", "ownTint", "shadowFar"]);
+    expect(shader.fragmentShader).not.toContain("#include <lights_fragment_begin>");
+    expect(material.customProgramCacheKey()).toBe("own-key|game-shadow-cascades");
+    expect(plain.customProgramCacheKey()).toBe(`${THREE.Material.prototype.customProgramCacheKey.call(plain)}|game-shadow-cascades`);
+    expect(material.defines).toMatchObject({ USE_CSM: 1, CSM_CASCADES: 2 });
+    cascades.detach();
+    expect(material.onBeforeCompile).toBe(ownHook);
+    expect(material.customProgramCacheKey).toBe(ownKey);
+    expect(material.defines).not.toHaveProperty("USE_CSM");
+    expect(Object.hasOwn(plain, "onBeforeCompile")).toBe(false);
+    expect(Object.hasOwn(plain, "customProgramCacheKey")).toBe(false);
   });
 });
 
@@ -120,8 +177,7 @@ describe("shadows in real Chromium", () => {
       // Cascades shadow the far box that the single 20 m map does not reach.
       expect((await compareGameCaptures(png(result.unshadowed.image), png(result.cascaded.image), 16)).changedFraction)
         .toBeGreaterThan((await compareGameCaptures(png(result.unshadowed.image), png(result.plain.image), 16)).changedFraction);
-      const overflow = ["Light lamp4 renders without shadows: at most 4 point and spot lights cast shadows",
-        "Light lamp5 renders without shadows: at most 4 point and spot lights cast shadows"];
+      const overflow = ["Shadow budget exceeded: 2 point and spot lights render without shadows (at most 4 cast shadows per scene)"];
       expect(result.lamps.diagnostics).toEqual(overflow);
       expect(result.lampsAgain.diagnostics).toEqual(overflow);
       expect((await compareGameCaptures(png(result.lampsUnshadowed.image), png(result.lamps.image), 16)).changedFraction).toBeGreaterThan(0.01);

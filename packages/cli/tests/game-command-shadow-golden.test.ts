@@ -92,6 +92,8 @@ it("covers every shadow fixture with a stored golden", async () => {
     .map((name) => name.replace(/\.json$/, "")).sort();
   expect(fixtures).toEqual(names);
   expect(JSON.parse(await readFile(join(fixtureDirectory, "manifest.json"), "utf8"))).toEqual(metadata);
+  const pngs = (await readdir(fixtureDirectory)).filter((name) => name.endsWith(".png")).map((name) => name.replace(/\.png$/, "")).sort();
+  expect(pngs).toEqual(names);
 });
 
 it.each(names)("captures %s at the fixed tick within the stored pixel tolerance", async (name) => {

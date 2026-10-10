@@ -3,7 +3,7 @@ import { finite, positive, color } from "./common.js";
 import { gameLightShadowFields3D } from "./shadows.js";
 
 const localCastShadow = z.boolean().optional()
-  .describe("Render shadows from this light. At most GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D (4) point and spot lights cast shadows per scene.");
+  .describe("Render shadows from this light. At most 4 point and spot lights cast shadows per scene.");
 
 export const gameLight3D = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("directional"), color, intensity: finite.min(0).max(100), castShadow: z.boolean().default(false), ...gameLightShadowFields3D }),

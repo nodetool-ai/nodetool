@@ -52,18 +52,24 @@ describe("3D fixed-step session", () => {
       expect(JSON.stringify(post.snapshot())).not.toContain("postProcessing");
     } finally { plain.dispose(); post.dispose(); }
   });
-  it("projects shadow settings as presentation without changing simulation", async () => {
-    const plain = await createGameSession3D(fixture(), 1);
+  it("projects shadow settings as presentation that stays out of snapshots and simulation", async () => {
+    const lamp = { kind: "spot", color: "#ffffff", intensity: 2, range: 8, angle: 0.6 } as const;
+    const plain = await createGameSession3D(fixture([{ id: "lamp", transform3d: { position: { x: 0, y: 3, z: 0 } }, light3d: lamp }]), 1);
     const document = fixture([{ id: "lamp", transform3d: { position: { x: 0, y: 3, z: 0 } },
-      light3d: { kind: "spot", color: "#ffffff", intensity: 2, range: 8, angle: 0.6, castShadow: true, shadowBias: -0.0005, shadowNormalBias: 0.02 } }]);
+      light3d: { ...lamp, castShadow: true, shadowBias: -0.0005, shadowNormalBias: 0.02 } }]);
     document.scenes[0].environment.shadows.cascades = { count: 3, split: 0.7, maxDistance: 120 };
     const shadowed = await createGameSession3D(document, 1);
     try {
       expect(shadowed.frame().environment.shadows.cascades).toEqual({ count: 3, split: 0.7, maxDistance: 120 });
       expect(shadowed.frame().lights.find((entry) => entry.entityId === "lamp")?.light).toMatchObject({ castShadow: true, shadowBias: -0.0005, shadowNormalBias: 0.02 });
-      stepTicks(plain, 30, input({ moveZ: -1 }));
-      stepTicks(shadowed, 30, input({ moveZ: -1 }));
-      expect(shadowed.inspect({ entityId: "player" })).toEqual(plain.inspect({ entityId: "player" }));
+      for (let index = 0; index < 30; index += 1) {
+        expect(shadowed.step(input({ moveZ: -1 })).events).toEqual(plain.step(input({ moveZ: -1 })).events);
+      }
+      const { contentDigest: _plainDigest, ...plainSnapshot } = plain.snapshot();
+      const { contentDigest: _shadowedDigest, ...shadowedSnapshot } = shadowed.snapshot();
+      expect(shadowedSnapshot).toEqual(plainSnapshot);
+      const serialized = JSON.stringify(shadowed.snapshot());
+      for (const field of ["cascades", "castShadow", "shadowBias", "shadowNormalBias"]) { expect(serialized).not.toContain(field); }
     } finally { plain.dispose(); shadowed.dispose(); }
   });
   it("projects physics roots, cameras, lights, hierarchy and HUD font bindings", async () => {

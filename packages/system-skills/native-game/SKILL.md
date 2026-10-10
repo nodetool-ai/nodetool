@@ -488,7 +488,8 @@ ignored while cascades are on. Only one directional light can cast shadows.
 Point and spot lights cast shadows when their `light3d.castShadow` is `true`.
 At most 4 of them may cast per scene. Validation rejects a fifth. If spawned
 prefabs push a frame over the budget, the extra lights render unshadowed and
-the capture stats report a diagnostic. Each local shadow re-renders the scene
+the capture stats report one diagnostic with the largest overflow count seen.
+Each local shadow re-renders the scene
 (six times for a point light), so enable it only on lights that need it.
 
 Every light accepts `shadowBias` (-0.01 to 0.01) and `shadowNormalBias` (0 to
