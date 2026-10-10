@@ -159,3 +159,18 @@ it("scores particle render settings authored through the public edit surface", a
   expect(result).not.toHaveProperty("error");
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it("scores a lifecycle timer script authored through the public edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="lifecycle-timer-script");
+  if (!candidate) { throw new Error("Lifecycle eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Lifecycle eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const behaviors = bridge.finalState().scenes[0].entities.find(entity=>entity.id==="player")?.behaviors ?? [];
+  const source = "({ onStart() { every(60, \"beat\"); }, beat() { return { commands: [{ kind: \"emit\", event: \"heartbeat\" }] }; } })";
+  await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors,{kind:"script",source}]}}]});
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
