@@ -54,7 +54,7 @@ describe("exportSceneToGlb", () => {
     expect(blob.type).toBe("model/gltf-binary");
   });
 
-  it("writes hidden objects with the hidden extra and restores the live scene", async () => {
+  it("writes hidden objects with the hidden extra without showing them", async () => {
     const root = new THREE.Group();
     const hidden = new THREE.Mesh();
     hidden.visible = false;
@@ -69,26 +69,42 @@ describe("exportSceneToGlb", () => {
 
     await exportSceneToGlb(root);
 
-    expect(seen).toEqual({ visible: true, extra: true });
-    expect(hidden.visible).toBe(false);
+    // Frames keep rendering during an export, so a hidden object must not
+    // flash on screen; the exporter is told to keep invisible nodes instead.
+    expect(seen).toEqual({ visible: false, extra: true });
+    expect(mockParse.mock.calls[0][3]).toMatchObject({ onlyVisible: false });
     expect(hidden.userData).toEqual({});
   });
 
-  it("leaves a light's target out of the export", async () => {
+  it("leaves a light's target out of the export and puts it back", async () => {
     const root = new THREE.Group();
     const light = createPrimitive("directionalLight") as THREE.DirectionalLight;
     root.add(light);
-    let targetVisible: boolean | null = null;
+    let targetListed: boolean | null = null;
     mockParse.mockImplementation(
       (_input: unknown, onDone: (result: ArrayBuffer) => void) => {
-        targetVisible = light.target.visible;
+        targetListed = light.children.includes(light.target);
         onDone(new ArrayBuffer(4));
       }
     );
 
     await exportSceneToGlb(root);
 
-    expect(targetVisible).toBe(false);
-    expect(light.target.visible).toBe(true);
+    expect(targetListed).toBe(false);
+    expect(light.children).toContain(light.target);
+    expect(light.target.parent).toBe(light);
+  });
+
+  it("refuses to save a skinned mesh whose bones were deleted", async () => {
+    const root = new THREE.Group();
+    const bone = new THREE.Bone();
+    const mesh = new THREE.SkinnedMesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+    mesh.name = "Body";
+    root.add(bone, mesh);
+    mesh.bind(new THREE.Skeleton([bone]));
+    root.remove(bone);
+
+    await expect(exportSceneToGlb(root)).rejects.toThrow(/Body lost bones/);
+    expect(mockParse).not.toHaveBeenCalled();
   });
 });

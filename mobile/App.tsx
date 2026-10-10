@@ -1,22 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './src/navigation/types';
 import SettingsScreenBase from './src/screens/SettingsScreen';
-import ChatScreenBase from './src/screens/ChatScreen';
 import LanguageModelSelectionScreenBase from './src/screens/LanguageModelSelectionScreen';
 import LoginScreenBase from './src/screens/LoginScreen';
 import AssetsScreenBase from './src/screens/AssetsScreen';
 import AssetViewerScreenBase from './src/screens/AssetViewerScreen';
-import DocumentsScreenBase from './src/screens/DocumentsScreen';
-import AppsScreenBase from './src/screens/AppsScreen';
 import AppScreenBase from './src/screens/AppScreen';
 import StoryboardEditorScreenBase from './src/screens/StoryboardEditorScreen';
 import TimelineViewerScreenBase from './src/screens/TimelineViewerScreen';
 import SketchViewerScreenBase from './src/screens/SketchViewerScreen';
-import JobsScreenBase from './src/screens/JobsScreen';
 import JobDetailScreenBase from './src/screens/JobDetailScreen';
 import ThreadsScreenBase from './src/screens/ThreadsScreen';
 import { ErrorBoundary, withScreenBoundary } from './src/components/ErrorBoundary';
@@ -30,26 +26,25 @@ import { useAuthStore } from './src/stores/AuthStore';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TRPCProvider } from './src/trpc/Provider';
 import { linking } from './src/navigation/linking';
+import { MainTabs } from './src/navigation/MainTabs';
+import { BrandMark } from './src/components/BrandMark';
+import { FONT_SIZE, FONT_WEIGHT } from './src/utils/tokens';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 // Each screen gets its own error boundary, so a render error in one leaves
 // the header and back navigation working.
 const SettingsScreen = withScreenBoundary(SettingsScreenBase, 'Settings');
-const ChatScreen = withScreenBoundary(ChatScreenBase, 'Chat');
 const LanguageModelSelectionScreen = withScreenBoundary(LanguageModelSelectionScreenBase, 'LanguageModelSelection');
 const LoginScreen = withScreenBoundary(LoginScreenBase, 'Login');
-const AssetsScreen = withScreenBoundary(AssetsScreenBase, 'Assets');
 const AssetViewerScreen = withScreenBoundary(AssetViewerScreenBase, 'AssetViewer');
-const DocumentsScreen = withScreenBoundary(DocumentsScreenBase, 'Documents');
-const AppsScreen = withScreenBoundary(AppsScreenBase, 'Apps');
 const AppScreen = withScreenBoundary(AppScreenBase, 'App');
 const StoryboardEditorScreen = withScreenBoundary(StoryboardEditorScreenBase, 'StoryboardEditor');
 const TimelineViewerScreen = withScreenBoundary(TimelineViewerScreenBase, 'TimelineViewer');
 const SketchViewerScreen = withScreenBoundary(SketchViewerScreenBase, 'SketchViewer');
-const JobsScreen = withScreenBoundary(JobsScreenBase, 'Jobs');
 const JobDetailScreen = withScreenBoundary(JobDetailScreenBase, 'JobDetail');
 const ThreadsScreen = withScreenBoundary(ThreadsScreenBase, 'Threads');
+const AssetFolderScreen = withScreenBoundary(AssetsScreenBase, 'AssetFolder');
 
 
 export default function App() {
@@ -86,10 +81,12 @@ export default function App() {
   if (isAuthResolving) {
     return (
       <View style={[splashStyles.container, { backgroundColor: colors.background }]}>
-        <View style={[splashStyles.iconWrap, { backgroundColor: colors.primaryMuted }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-        <Text style={[splashStyles.text, { color: colors.textSecondary }]}>Loading...</Text>
+        <BrandMark size={72} />
+        <ActivityIndicator
+          style={splashStyles.spinner}
+          color={colors.textSecondary}
+          accessibilityLabel="Loading"
+        />
       </View>
     );
   }
@@ -116,8 +113,8 @@ export default function App() {
               },
               headerTintColor: colors.text,
               headerTitleStyle: {
-                fontWeight: '700',
-                fontSize: 17,
+                fontWeight: FONT_WEIGHT.semibold,
+                fontSize: FONT_SIZE.headline,
               },
               headerShadowVisible: false,
               headerBackTitle: '',
@@ -130,9 +127,9 @@ export default function App() {
             {isLoggedIn ? (
               <>
                 <Stack.Screen
-                  name="Apps"
-                  component={AppsScreen}
-                  options={{ title: 'Apps' }}
+                  name="Main"
+                  component={MainTabs}
+                  options={{ headerShown: false }}
                 />
                 <Stack.Screen
                   name="Settings"
@@ -140,31 +137,19 @@ export default function App() {
                   options={{ title: 'Settings' }}
                 />
                 <Stack.Screen
-                  name="Chat"
-                  component={ChatScreen}
-                  options={{
-                    title: 'Chat',
-                  }}
-                />
-                <Stack.Screen
                   name="LanguageModelSelection"
                   component={LanguageModelSelectionScreen}
-                  options={{ title: 'Select Provider' }}
+                  options={{ title: 'Select provider' }}
                 />
                 <Stack.Screen
-                  name="Assets"
-                  component={AssetsScreen}
-                  options={{ title: 'Assets' }}
+                  name="AssetFolder"
+                  component={AssetFolderScreen}
+                  options={({ route }) => ({ title: route.params.folderName ?? 'Folder' })}
                 />
                 <Stack.Screen
                   name="AssetViewer"
                   component={AssetViewerScreen}
                   options={{ title: 'Asset' }}
-                />
-                <Stack.Screen
-                  name="Documents"
-                  component={DocumentsScreen}
-                  options={{ title: 'Documents' }}
                 />
                 <Stack.Screen
                   name="App"
@@ -185,11 +170,6 @@ export default function App() {
                   name="SketchViewer"
                   component={SketchViewerScreen}
                   options={{ title: 'Sketch' }}
-                />
-                <Stack.Screen
-                  name="Jobs"
-                  component={JobsScreen}
-                  options={{ title: 'Jobs' }}
                 />
                 <Stack.Screen
                   name="JobDetail"
@@ -228,15 +208,7 @@ const splashStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  text: {
-    fontSize: 15,
+  spinner: {
+    marginTop: 24,
   },
 });

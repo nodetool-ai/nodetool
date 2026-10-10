@@ -295,6 +295,10 @@ export function useCanvasGeometryActions({
             height
           }
         })),
+        guides: state.document.guides?.map((guide) => ({
+          ...guide,
+          position: guide.position - (guide.orientation === "horizontal" ? y : x)
+        })),
         metadata: {
           ...state.document.metadata,
           updatedAt: new Date().toISOString()
@@ -501,6 +505,7 @@ export function useCanvasGeometryActions({
       const t = options?.translateLayers;
       if (t && (t.x !== 0 || t.y !== 0)) {
         offsetAllPaintLayersTransform(t.x, t.y);
+        useSketchStore.getState().offsetGuides(t.x, t.y);
       }
       const hasLayerTranslate = t != null && (t.x !== 0 || t.y !== 0);
       if (!options?.resizeFromCenter && !hasLayerTranslate) {

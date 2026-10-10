@@ -112,6 +112,8 @@ const DRAG_TYPE = "application/x-nodetool-scene-node";
 interface OutlinerRowProps {
   row: FlatRow;
   selected: boolean;
+  /** The one row Tab lands on (roving tabindex). */
+  focusable: boolean;
   expanded: boolean;
   editing: boolean;
   dropTarget: boolean;
@@ -130,6 +132,7 @@ const OutlinerRow = memo(
   ({
     row,
     selected,
+    focusable,
     expanded,
     editing,
     dropTarget,
@@ -150,7 +153,7 @@ const OutlinerRow = memo(
     return (
       <TreeRow
         role="treeitem"
-        tabIndex={selected ? 0 : -1}
+        tabIndex={focusable ? 0 : -1}
         aria-selected={selected}
         aria-expanded={hasChildren ? expanded : undefined}
         aria-label={`${node.name} (${node.type})`}
@@ -370,6 +373,12 @@ const SceneOutliner = ({
     });
   }, []);
 
+  // Tab reaches the tree on the selected row, or on the first row when the
+  // selection is empty, collapsed away or filtered out.
+  const focusUuid = rows.some((r) => r.node.uuid === selectedUuid)
+    ? selectedUuid
+    : rows[0]?.node.uuid;
+
   const handleKeyNavigate = useCallback(
     (uuid: string, key: string) => {
       const index = rows.findIndex((r) => r.node.uuid === uuid);
@@ -489,6 +498,7 @@ const SceneOutliner = ({
                 key={row.node.uuid}
                 row={row}
                 selected={row.node.uuid === selectedUuid}
+                focusable={row.node.uuid === focusUuid}
                 expanded={!collapsed.has(row.node.uuid) || query.trim() !== ""}
                 editing={editingUuid === row.node.uuid}
                 dropTarget={dragTarget === row.node.uuid}

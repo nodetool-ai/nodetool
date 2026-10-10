@@ -130,6 +130,7 @@ import {
   StudioEnvironment,
   WireframeOverlay,
   captureModelOnly,
+  isVisibleInTree,
   type CameraRequest,
   type CameraRequestInput,
   type CaptureHandles,
@@ -374,6 +375,8 @@ interface Model3DEditorProps {
    * mount a single editor.
    */
   active?: boolean;
+  /** Told whenever the scene gains or loses unsaved edits. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const Model3DEditor = ({
@@ -383,7 +386,8 @@ const Model3DEditor = ({
   onClose,
   cameraPose,
   offlineLighting = false,
-  active = true
+  active = true,
+  onDirtyChange
 }: Model3DEditorProps) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -519,6 +523,12 @@ const Model3DEditor = ({
   const revision = history.revision();
   const isDirty = revision !== savedRevision;
   void tick;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+  // Closing the editor discards its edits, so nothing is unsaved any more.
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   // Mirror of selectedUuid for the tool-bridge handler, which is registered once
   // with stable callbacks and must read the latest selection without re-registering.
@@ -960,6 +970,11 @@ const Model3DEditor = ({
   }, [gizmoMode, pushCommand]);
 
   const handleSceneClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    // The raycaster hits hidden meshes too. Leave the event to the next hit,
+    // so a hidden object is not selected and does not block the one behind it.
+    if (!isVisibleInTree(e.object)) {
+      return;
+    }
     e.stopPropagation();
     // A drag that orbited the camera is not a click.
     if (e.delta > 4) {
@@ -978,8 +993,11 @@ const Model3DEditor = ({
   // --- Save / close ------------------------------------------------------------
 
   const savingRef = useRef(false);
+  // While the model loads, or after it failed to load, the scene is empty.
+  // Saving then would overwrite the file with nothing.
+  const canSave = !isLoading && !loadError;
   const handleSave = useCallback(async () => {
-    if (savingRef.current) {
+    if (savingRef.current || !canSave) {
       return;
     }
     savingRef.current = true;
@@ -1001,7 +1019,7 @@ const Model3DEditor = ({
       savingRef.current = false;
       setIsSaving(false);
     }
-  }, [root, onSave, history, stopPreview, animationClips]);
+  }, [root, onSave, history, stopPreview, animationClips, canSave]);
 
   const requestClose = useCallback(() => {
     if (isDirty) {
@@ -1340,7 +1358,7 @@ const Model3DEditor = ({
                 variant={isDirty ? "contained" : "outlined"}
                 startIcon={<SaveIcon />}
                 onClick={() => void handleSave()}
-                disabled={isSaving}
+                disabled={isSaving || !canSave}
               >
                 {isSaving ? "Saving…" : "Save"}
               </EditorButton>
