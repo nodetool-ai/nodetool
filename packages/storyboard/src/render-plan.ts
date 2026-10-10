@@ -14,6 +14,7 @@ import {
   assertProductionGenerationAllowed,
   currentRenderInputs,
   entitiesForShot,
+  isString,
   entityConditioningHash,
   isVersionStale,
   keyframePrompt,
@@ -78,10 +79,10 @@ export interface ShotRenderPlan {
 }
 
 function imageAssetId(image: ImageRef): string | undefined {
-  if (typeof image.asset_id === "string" && image.asset_id.length > 0) {
+  if (image.asset_id) {
     return image.asset_id;
   }
-  if (typeof image.uri !== "string" || !image.uri.startsWith("asset://")) {
+  if (!image.uri?.startsWith("asset://")) {
     return undefined;
   }
   const locator = image.uri.slice("asset://".length);
@@ -119,7 +120,7 @@ export function boardRenderContext(
     entities.filter((e) => e.kind === "style").map((e) => e.id)
   );
   const modelId = (selection: Record<string, unknown> | null): string =>
-    typeof selection?.["id"] === "string" ? (selection["id"] as string) : "";
+    stringField(selection, "id");
   return {
     aspect_ratio: doc.aspectRatio || "16:9",
     image_model: modelId(doc.imageModel),
@@ -151,7 +152,7 @@ const stringField = (
   key: "id" | "provider"
 ): string => {
   const value = selection?.[key];
-  return typeof value === "string" ? value : "";
+  return isString(value) ? value : "";
 };
 
 /** Resolve a target: shot id, 0-based index, or slug. */

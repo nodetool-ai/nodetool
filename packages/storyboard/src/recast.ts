@@ -76,6 +76,19 @@ const lower = (value: string | undefined | null): string =>
 // Targeting
 // ---------------------------------------------------------------------------
 
+/** A document that may carry the row's `timeline_id` column through passthrough. */
+type DocumentWithTimelineRow = StoryboardDocument & { timeline_id?: unknown };
+
+interface EntitySubstitution {
+  from: Entity;
+  to: Entity;
+}
+
+interface ResolvedTargets {
+  substitutions: EntitySubstitution[];
+  appended: Entity[];
+}
+
 /**
  * Which board entity each cast entry stands in for.
  *
@@ -88,7 +101,7 @@ const lower = (value: string | undefined | null): string =>
 function resolveTargets(
   boardEntities: readonly Entity[],
   cast: readonly RecastCastEntry[]
-): { substitutions: Array<{ from: Entity; to: Entity }>; appended: Entity[] } {
+): ResolvedTargets {
   const claimed = new Set<string>();
   const targetOf = new Map<RecastCastEntry, Entity>();
 
@@ -117,7 +130,7 @@ function resolveTargets(
     targetOf.set(applicants[0], seats[0]);
   }
 
-  const substitutions: Array<{ from: Entity; to: Entity }> = [];
+  const substitutions: EntitySubstitution[] = [];
   const appended: Entity[] = [];
   for (const entry of cast) {
     const target = targetOf.get(entry);
@@ -332,6 +345,11 @@ const hasTake = (shot: Shot, kind: "keyframe" | "clip"): boolean =>
     ? !!shot.keyframe || !!shot.keyframe_versions?.length
     : !!shot.clip || !!shot.clip_versions?.length;
 
+interface InvalidationResult {
+  shot: Shot;
+  invalidated: boolean;
+}
+
 /**
  * Carry the takes a shot is entitled to keep, and say whether any were dropped.
  *
@@ -344,7 +362,7 @@ const hasTake = (shot: Shot, kind: "keyframe" | "clip"): boolean =>
 function applyInvalidation(
   shot: Shot,
   moved: (kind: "keyframe" | "clip") => boolean
-): { shot: Shot; invalidated: boolean } {
+): InvalidationResult {
   const keyframeMoved = hasTake(shot, "keyframe") && moved("keyframe");
   const clipMoved =
     hasTake(shot, "clip") && (keyframeMoved || moved("clip"));
@@ -451,7 +469,7 @@ export function recastStoryboard(input: RecastInput): RecastResult {
   ];
 
   const derived = document.shots.map((shot) => deriveShot(shot, rename, idMap));
-  const copy: StoryboardDocument = {
+  const copy: DocumentWithTimelineRow = {
     ...document,
     shots: derived,
     entityIds,
@@ -468,7 +486,7 @@ export function recastStoryboard(input: RecastInput): RecastResult {
   // The approved cut belongs to the board it was assembled for; a copy earns
   // its own. The row's `timeline_id` is a column, but a document that carried
   // one through passthrough must not take it along.
-  delete (copy as { timeline_id?: unknown }).timeline_id;
+  delete copy.timeline_id;
 
   const existingDoc = existing ?? document;
   const existingById = new Map(
