@@ -210,10 +210,42 @@ describe("useLayerActions opacity history", () => {
     });
 
     const actions = useSketchStore.getState().history.map((entry) => entry.action);
-    expect(actions).toEqual(["earlier edit", "change opacity"]);
+    expect(actions).toEqual(["open", "earlier edit", "change opacity"]);
     const layer = useSketchStore
       .getState()
       .document.layers.find((l) => l.id === layerId);
     expect(layer?.opacity).toBe(0.5);
+  });
+});
+
+describe("useLayerActions after a stroke", () => {
+  it("undoes a rename without undoing the stroke before it", () => {
+    useSketchStore.getState().resetDocument();
+    const store = useSketchStore.getState();
+    const layerId = store.document.activeLayerId;
+    const blank = store.document.layers[0].data;
+    store.pushHistory("brush stroke", undefined, { timing: "before" });
+    useSketchStore.getState().updateLayerData(layerId, "data:image/png;base64,S");
+    const params = makeBaseParams({
+      pushHistory: useSketchStore.getState().pushHistory,
+      renameLayer: useSketchStore.getState().renameLayer
+    });
+    const { result } = renderHook(() => useLayerActions(params as never));
+
+    act(() => {
+      result.current.handleRenameLayer(layerId, "Renamed");
+    });
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    let layer = useSketchStore.getState().document.layers[0];
+    expect(layer.name).not.toBe("Renamed");
+    expect(layer.data).toBe("data:image/png;base64,S");
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    layer = useSketchStore.getState().document.layers[0];
+    expect(layer.data).toBe(blank);
   });
 });

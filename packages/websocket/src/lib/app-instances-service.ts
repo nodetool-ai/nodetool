@@ -520,10 +520,9 @@ export async function patchOwnedAppRun(
           execution.cancel();
           return getOwnedAppRun(userId, run.id);
         }
-        const job = await Job.find(userId, run.invocation_id);
-        if (job?.status === "queued") {
-          job.markCancelled();
-          await job.save();
+        // Conditional on `queued`: a whole-row save raced the dequeue and
+        // wrote `cancelled` over a run that had started, settling it at $0.
+        if (await Job.markCancelledIfQueued(run.invocation_id, userId)) {
           return settleAppRun(userId, run.id, {
             status: "cancelled",
             actualUsd: 0,

@@ -213,8 +213,12 @@ async function deliverFileWatchEvent(
     });
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
-    registration.last_error = error.message;
-    await registration.save();
+    // Column writes, not `save()`: this object was read when the watcher
+    // attached, and upserting it would undo a Stop or reset the failure count
+    // the dispatcher keeps.
+    await TriggerRegistration.updateColumns(registration.id, {
+      last_error: error.message
+    });
     log.warn(
       `File-watch registration ${registration.id} failed to deliver trigger input`,
       error
@@ -222,9 +226,10 @@ async function deliverFileWatchEvent(
     return;
   }
 
-  registration.last_fired_at = new Date(nowMs).toISOString();
-  registration.last_error = null;
-  await registration.save();
+  await TriggerRegistration.updateColumns(registration.id, {
+    last_fired_at: new Date(nowMs).toISOString(),
+    last_error: null
+  });
 
   opts.notify?.({ registrationId: registration.id, inputId });
 }
@@ -444,8 +449,7 @@ async function runCatchUpEvents(
   // Consume the cursor: the live watcher takes over from here, and leaving
   // the stale snapshot in place would replay the same diff on every future
   // restart until the next clean stop overwrites it.
-  registration.cursor = null;
-  await registration.save();
+  await TriggerRegistration.updateColumns(registration.id, { cursor: null });
 }
 
 /**
@@ -484,8 +488,9 @@ export async function runFileWatchSweepOnce(
     const watchPath = resolveWatchPath(config);
 
     if (!fs.existsSync(watchPath)) {
-      registration.last_error = `Watch path does not exist: ${watchPath}`;
-      await registration.save();
+      await TriggerRegistration.updateColumns(registration.id, {
+        last_error: `Watch path does not exist: ${watchPath}`
+      });
       continue;
     }
 
@@ -511,8 +516,9 @@ export async function runFileWatchSweepOnce(
       );
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      registration.last_error = `Failed to watch path: ${watchPath} (${error.message})`;
-      await registration.save();
+      await TriggerRegistration.updateColumns(registration.id, {
+        last_error: `Failed to watch path: ${watchPath} (${error.message})`
+      });
       log.warn(
         `File-watch registration ${registration.id} failed to attach a watcher`,
         error
@@ -521,8 +527,9 @@ export async function runFileWatchSweepOnce(
     }
 
     if (registration.last_error) {
-      registration.last_error = null;
-      await registration.save();
+      await TriggerRegistration.updateColumns(registration.id, {
+        last_error: null
+      });
     }
 
     state.set(registration.id, {
@@ -556,13 +563,15 @@ async function captureCatchUpSnapshot(
     entry.filter
   );
 
-  entry.registration.cursor = JSON.stringify(snapshot);
+  const fields: Parameters<typeof TriggerRegistration.updateColumns>[1] = {
+    cursor: JSON.stringify(snapshot)
+  };
   if (truncated) {
-    entry.registration.last_error = `File-watch catch-up snapshot capped at ${CATCH_UP_SNAPSHOT_CAP} entries; changes to excluded files while stopped may be missed.`;
+    fields.last_error = `File-watch catch-up snapshot capped at ${CATCH_UP_SNAPSHOT_CAP} entries; changes to excluded files while stopped may be missed.`;
   }
 
   try {
-    await entry.registration.save();
+    await TriggerRegistration.updateColumns(entry.registration.id, fields);
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     log.warn(

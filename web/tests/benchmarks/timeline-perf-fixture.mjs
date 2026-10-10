@@ -10,6 +10,11 @@ import { join } from "node:path";
 
 const outputDir = process.argv[2] ?? join(tmpdir(), "nodetool-timeline-perf");
 mkdirSync(outputDir, { recursive: true });
+// Open-source Chromium builds cannot decode H.264. `vp9` keeps the MP4
+// container and file names so the scenarios run there unchanged.
+const codecArgs = process.env.TIMELINE_PERF_CODEC === "vp9"
+  ? ["libvpx-vp9", "-deadline", "realtime", "-cpu-used", "8", "-b:v", "8M"]
+  : ["libx264"];
 
 const videos = [
   ["lead", "testsrc2=size=640x360:rate=24:duration=60"],
@@ -43,7 +48,7 @@ for (const [name, source] of videos) {
       source,
       "-an",
       "-c:v",
-      "libx264",
+      ...codecArgs,
       "-pix_fmt",
       "yuv420p",
       "-movflags",

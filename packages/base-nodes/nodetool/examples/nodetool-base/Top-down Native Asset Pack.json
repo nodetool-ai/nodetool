@@ -21,7 +21,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Top-down Native Asset Pack\n\nGenerates sprite sheets, tilesets, images, sound effects and music for a top-down game. Checked assets are staged so you can install them into a game revision.\n\n**How it works:** \"1 Template slots\" streams every slot. Five filters split them by kind, and each branch builds a \"Prompt\" from the slot, \"2 Style entity\" and \"3 Cast entity\", runs \"Generate\", then checks the result. \"27 Every checked fill\" and \"28 One list of fills\" gather everything for \"29 Stage game assets\".\n\n**Try this:** Fill in \"2 Style entity\" and \"3 Cast entity\", and pick a model on each \"Generate\" node."
+          "comment": "# Top-down Native Asset Pack\n\nGenerates sprite sheets, tilesets, images, sound effects and music for a top-down game. Checked assets are staged so you can install them into a game revision.\n\n**How it works:** \"1 Template slots\" streams every slot. Five filters split them by kind, and each branch builds a \"Prompt\" from the slot, \"2 Style entity\" and \"3 Cast entity\", runs \"Generate\", then checks the result. \"27 Every checked fill\" and \"28 One list of fills\" gather everything for \"29 Stage game assets\".\n\nSet \"Game ID\" on \"29 Stage game assets\" to the game that should receive the assets before you run it.\n\n**Try this:** Fill in \"2 Style entity\" and \"3 Cast entity\", and swap the model on any \"Generate\" node."
         },
         "ui_properties": {
           "position": {
@@ -598,7 +598,7 @@
         "type": "nodetool.game.StageGameAssets",
         "data": {
           "template": "topdown",
-          "game_id": "00000000000000000000000000000001"
+          "game_id": ""
         },
         "ui_properties": {
           "position": {

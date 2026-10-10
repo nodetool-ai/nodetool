@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T16:00:00.000Z",
   "name": "Podcast Episode to Show Notes",
   "tool_name": null,
-  "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topics with rough timings, and the links mentioned.",
+  "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topic bullets, and the resources mentioned.",
   "tags": [
     "audio",
     "text",

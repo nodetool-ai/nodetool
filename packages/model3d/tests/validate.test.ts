@@ -111,6 +111,14 @@ describe("validateModel3D", () => {
     expect(messages(json)[0]).toMatch(/KHR_draco_mesh_compression/);
   });
 
+  it("accepts required extensions the editor's loader decodes natively", () => {
+    const json = lit();
+    const required = ["KHR_mesh_quantization", "KHR_texture_transform", "KHR_materials_unlit"];
+    json.extensionsUsed = [...(json.extensionsUsed ?? []), ...required];
+    json.extensionsRequired = required;
+    expect(messages(json).join("\n")).not.toMatch(/requires extension/);
+  });
+
   it("warns about an empty scene, an unlit one, and duplicate names", () => {
     const empty = createModel3DFile().json;
     expect(validateModel3D(empty).warnings[0].message).toMatch(/empty/);

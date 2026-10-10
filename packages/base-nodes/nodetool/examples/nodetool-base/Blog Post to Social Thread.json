@@ -66,7 +66,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You turn articles into social threads. Six to eight posts, each under 280 characters, each readable on its own. No hashtags.",
+          "system": "You turn articles into social threads. Six to eight posts, each under 280 characters, each readable on its own. Number each post as 1/, 2/ and so on. No hashtags.",
           "prompt": "",
           "tools": [],
           "image": [],

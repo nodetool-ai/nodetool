@@ -7,8 +7,12 @@ import { initKeyListeners } from "../../../stores/KeyPressedStore";
 import Model3DEditor from "../Model3DEditor";
 import { getModel3DToolHandler } from "../model3DToolBridge";
 
+const mockCanvasProps = jest.fn();
 jest.mock("@react-three/fiber", () => ({
-  Canvas: () => null,
+  Canvas: (props: { frameloop?: string }) => {
+    mockCanvasProps(props);
+    return null;
+  },
   useThree: () => ({})
 }));
 
@@ -119,6 +123,29 @@ describe("Model3DEditor", () => {
       expect(onSave).not.toHaveBeenCalled();
     }
   );
+
+  it("stops rendering frames while the editor is a background tab", () => {
+    const { rerender } = renderEditor({ active: false });
+    expect(mockCanvasProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ frameloop: "never" })
+    );
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <Model3DEditor url="model.glb" onSave={jest.fn()} onClose={jest.fn()} active />
+      </ThemeProvider>
+    );
+    expect(mockCanvasProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ frameloop: "always" })
+    );
+  });
+
+  it("offers a reload when the file changed outside the editor", () => {
+    const onReloadExternal = jest.fn();
+    const { getByRole, getByText } = renderEditor({ externallyChanged: true, onReloadExternal });
+    expect(getByText(/changed outside the editor/)).toBeInTheDocument();
+    fireEvent.click(getByRole("button", { name: "Reload" }));
+    expect(onReloadExternal).toHaveBeenCalled();
+  });
 
   it("tells the host when the scene gains and loses unsaved edits", async () => {
     const onDirtyChange = jest.fn();

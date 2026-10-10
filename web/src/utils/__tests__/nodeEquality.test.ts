@@ -2,73 +2,52 @@ import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { areNodesEqualIgnoringPosition } from "../nodeEquality";
 
+const makeNode = (
+  id: string,
+  data: NodeData,
+  extra: Partial<Node<NodeData>> = {}
+): Node<NodeData> => ({
+  id,
+  type: "nodetool.test",
+  position: { x: 0, y: 0 },
+  data,
+  ...extra
+});
+
 describe("areNodesEqualIgnoringPosition", () => {
-  const createNode = (id: string, x: number, y: number, dataOverride: Partial<NodeData> = {}): Node<NodeData> => ({
-    id,
-    type: "test",
-    position: { x, y },
-    data: {
-      properties: {},
-      dynamic_properties: {},
-      workflow_id: "test",
-      collapsed: false,
-      selectable: true,
-      ...dataOverride
-    } as NodeData,
-  });
+  const data = { properties: {} } as unknown as NodeData;
 
-  it("returns true for identical arrays", () => {
-    const nodes = [createNode("1", 0, 0)];
+  it("is true for the same array reference and for two empty arrays", () => {
+    const nodes = [makeNode("a", data)];
     expect(areNodesEqualIgnoringPosition(nodes, nodes)).toBe(true);
+    expect(areNodesEqualIgnoringPosition([], [])).toBe(true);
   });
 
-  it("returns true when position changes but data reference is same", () => {
-    const data = {
-      properties: {},
-      dynamic_properties: {},
-      workflow_id: "test",
-      collapsed: false,
-      selectable: true
-    } as NodeData;
-
-    const node1 = createNode("1", 0, 0);
-    node1.data = data;
-
-    const node2 = createNode("1", 100, 100);
-    node2.data = data;
-
-    expect(areNodesEqualIgnoringPosition([node1], [node2])).toBe(true);
+  it("ignores position, selection, and dragging changes", () => {
+    const prev = [makeNode("a", data)];
+    const next = [
+      makeNode("a", data, {
+        position: { x: 100, y: 50 },
+        selected: true,
+        dragging: true
+      })
+    ];
+    expect(areNodesEqualIgnoringPosition(prev, next)).toBe(true);
   });
 
-  it("returns false when data reference changes", () => {
-    const node1 = createNode("1", 0, 0, { title: "A" });
-    const node2 = createNode("1", 0, 0, { title: "A" });
-    // New object creation in helper ensures new data ref unless overridden
-
-    expect(areNodesEqualIgnoringPosition([node1], [node2])).toBe(false);
-  });
-
-  it("returns false when length differs", () => {
-    const node1 = createNode("1", 0, 0);
-    expect(areNodesEqualIgnoringPosition([node1], [])).toBe(false);
-  });
-
-  it("returns false when id differs", () => {
-    const node1 = createNode("1", 0, 0);
-    const node2 = createNode("2", 0, 0);
-    // Ensure data is same ref to isolate ID check
-    node2.data = node1.data;
-
-    expect(areNodesEqualIgnoringPosition([node1], [node2])).toBe(false);
-  });
-
-  it("returns false when type differs", () => {
-    const node1 = createNode("1", 0, 0);
-    const node2 = createNode("1", 0, 0);
-    node2.type = "other";
-    // Ensure data is same ref to isolate type check
-    node2.data = node1.data;
-
-    expect(areNodesEqualIgnoringPosition([node1], [node2])).toBe(false);
+  it("detects length, id, type, and data-reference changes", () => {
+    const base = [makeNode("a", data)];
+    expect(areNodesEqualIgnoringPosition(base, [])).toBe(false);
+    expect(areNodesEqualIgnoringPosition(base, [makeNode("b", data)])).toBe(
+      false
+    );
+    expect(
+      areNodesEqualIgnoringPosition(base, [
+        makeNode("a", data, { type: "other" })
+      ])
+    ).toBe(false);
+    expect(
+      areNodesEqualIgnoringPosition(base, [makeNode("a", { ...data })])
+    ).toBe(false);
   });
 });

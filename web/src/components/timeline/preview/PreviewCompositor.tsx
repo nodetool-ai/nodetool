@@ -803,7 +803,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           fit.w,
           fit.h,
           window.devicePixelRatio || 1,
-          qualityScale
+          qualityScale,
+          sequenceWidth,
+          sequenceHeight
         );
         const { width: w, height: h } = backingSize;
         const blurCanvas = blurCanvasRef.current;

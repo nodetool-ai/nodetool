@@ -199,8 +199,10 @@ const setSetting: CapabilityExport = {
         `${key} accepts only: ${def.enum.join(", ")}.`
       );
     }
-    const { Setting } = await import("@nodetool-ai/models");
-    await Setting.upsert({ userId: userIdOf(run.context), key, value });
+    const { Setting, clearSecretCache } = await import("@nodetool-ai/models");
+    const userId = userIdOf(run.context);
+    await Setting.upsert({ userId, key, value });
+    clearSecretCache(userId, key);
     return { ok: true, key, value };
   }
 };
