@@ -15,7 +15,6 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Platform,
   ScrollView,
   StyleSheet,
@@ -31,6 +30,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { RootStackParamList } from '../navigation/types';
+import { HIT_SLOP } from '../utils/tokens';
+import { ErrorState, LoadingState } from '../components/ScreenState';
 import { useTheme } from '../hooks/useTheme';
 import DocumentStatusBanner from '../components/DocumentStatusBanner';
 import {
@@ -184,33 +185,17 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
     tracks.find((track) => track.id === trackId)?.name ?? trackId;
 
   if (doc === null && (status === 'loading' || status === 'idle')) {
-    return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={[styles.centeredText, { color: colors.textSecondary }]}>
-          Loading timeline…
-        </Text>
-      </View>
-    );
+    return <LoadingState label="Loading timeline" />;
   }
 
   if (doc === null && status === 'error') {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Ionicons name="alert-circle-outline" size={32} color={colors.error} />
-        <Text style={[styles.centeredText, { color: colors.text }]}>
-          {error ?? 'Failed to load this timeline.'}
-        </Text>
-        <TouchableOpacity
-          onPress={runLoad}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading timeline"
-          style={[styles.retryButton, { backgroundColor: colors.primaryMuted }]}
-        >
-          <Text style={[styles.retryText, { color: colors.primary }]}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <ErrorState
+        title="Couldn't load this timeline"
+        message={error}
+        onRetry={runLoad}
+        retryLabel="Retry loading timeline"
+      />
     );
   }
 
@@ -241,6 +226,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
             accessibilityRole="button"
             accessibilityLabel="Zoom out"
             style={styles.zoomButton}
+            hitSlop={HIT_SLOP}
           >
             <Ionicons name="remove-outline" size={20} color={colors.text} />
           </TouchableOpacity>
@@ -250,6 +236,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
             accessibilityRole="button"
             accessibilityLabel="Zoom in"
             style={styles.zoomButton}
+            hitSlop={HIT_SLOP}
           >
             <Ionicons name="add-outline" size={20} color={colors.text} />
           </TouchableOpacity>

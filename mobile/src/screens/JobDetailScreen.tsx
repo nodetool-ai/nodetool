@@ -28,6 +28,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OutputRenderer } from '../components/outputs/OutputRenderer';
 import { useTheme } from '../hooks/useTheme';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { ErrorState, LoadingState, OfflineState } from '../components/ScreenState';
 import { RootStackParamList } from '../navigation/types';
 import { webSocketService } from '../services/WebSocketService';
 import { trpc } from '../trpc/client';
@@ -149,6 +151,7 @@ export default function JobDetailScreen({ route, navigation }: Props) {
   const { jobId } = route.params;
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isOffline } = useNetworkStatus();
 
   const [live, setLive] = useState<LiveState>(EMPTY_LIVE);
   const [liveError, setLiveError] = useState<string | null>(null);
@@ -252,30 +255,25 @@ export default function JobDetailScreen({ route, navigation }: Props) {
   }, [cancelJob, jobId]);
 
   if (jobQuery.isLoading) {
-    return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <LoadingState label="Loading job" />;
+  }
+
+  if (!job && !jobQuery.error && isOffline) {
+    return <OfflineState onRetry={() => { void jobQuery.refetch(); }} />;
   }
 
   if (jobQuery.error || !job) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Ionicons name="alert-circle-outline" size={36} color={colors.error} />
-        <Text style={[styles.errorTitle, { color: colors.text }]}>Could not load job</Text>
-        <Text style={[styles.errorDetail, { color: colors.textSecondary }]}>
-          {jobQuery.error?.message ?? 'Job not found'}
-        </Text>
-        <TouchableOpacity
-          onPress={() => { jobQuery.refetch(); }}
-          style={[styles.retryBtn, { borderColor: colors.border }]}
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading job"
-        >
-          <Text style={[styles.retryText, { color: colors.primary }]}>Try again</Text>
-        </TouchableOpacity>
-      </View>
+      <ErrorState
+        title="Couldn't load this job"
+        message={jobQuery.error?.message ?? 'The server has no job with this id.'}
+        onRetry={() => { void jobQuery.refetch(); }}
+        secondaryAction={
+          navigation.canGoBack()
+            ? { label: 'Back to jobs', icon: 'arrow-back', onPress: () => navigation.goBack() }
+            : undefined
+        }
+      />
     );
   }
 
@@ -420,17 +418,6 @@ export default function JobDetailScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, gap: 12 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8, padding: 24 },
-  errorTitle: { fontSize: 16, fontWeight: '600' },
-  errorDetail: { fontSize: 13, textAlign: 'center' },
-  retryBtn: {
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderRadius: 8,
-  },
-  retryText: { fontSize: 14, fontWeight: '600' },
   card: {
     borderRadius: 12,
     padding: 14,

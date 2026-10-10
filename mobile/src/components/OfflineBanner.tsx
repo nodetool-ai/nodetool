@@ -43,8 +43,8 @@ export function OfflineBanner() {
       accessibilityLabel={OFFLINE_MESSAGE}
       testID="offline-banner"
     >
-      <Ionicons name="cloud-offline-outline" size={14} color={colors.background} />
-      <Text style={[styles.text, { color: colors.background }]} numberOfLines={1}>
+      <Ionicons name="cloud-offline-outline" size={14} color={colors.textOnWarning} />
+      <Text style={[styles.text, { color: colors.textOnWarning }]} numberOfLines={1}>
         {OFFLINE_MESSAGE}
       </Text>
     </View>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiService } from '../services/api';
+import { webSocketService } from '../services/WebSocketService';
 import {
   diagnoseServer,
   type ServerDiagnosticStatus,
@@ -21,6 +23,10 @@ import {
 import { queryClient } from '../queryClient';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
+import { SPACING } from '../utils/tokens';
+
+const SAVED_INDICATOR_MS = 2000;
+const STATUS_RESET_MS = 3000;
 
 type ConnectionStatus = 'idle' | 'testing' | ServerDiagnosticStatus;
 
@@ -31,6 +37,20 @@ function isValidUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Point the app at a new server. Cached queries and the realtime socket belong
+ * to the old host, so both are dropped; the socket reconnects to the new host
+ * on its next use.
+ */
+async function switchApiHost(host: string): Promise<void> {
+  const previous = apiService.getApiHost();
+  await apiService.saveApiHost(host);
+  if (host !== previous) {
+    webSocketService.disconnect();
+  }
+  queryClient.clear();
 }
 
 function connectionStatusMessage(status: ServerDiagnosticStatus): string {
@@ -55,6 +75,9 @@ export default function SettingsScreen() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   const [savedIndicator, setSavedIndicator] = useState(false);
   const { colors, shadows, mode, setTheme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const user = useAuthStore((s) => s.user);
   const authState = useAuthStore((s) => s.state);
   const signOut = useAuthStore((s) => s.signOut);
@@ -82,6 +105,26 @@ export default function SettingsScreen() {
     loadSettings();
   }, []);
 
+  // Pending indicator resets must not fire into an unmounted screen.
+  useEffect(
+    () => () => {
+      if (savedTimerRef.current) {
+        clearTimeout(savedTimerRef.current);
+      }
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
+      }
+    },
+    []
+  );
+
+  const resetStatusLater = () => {
+    if (statusTimerRef.current) {
+      clearTimeout(statusTimerRef.current);
+    }
+    statusTimerRef.current = setTimeout(() => setConnectionStatus('idle'), STATUS_RESET_MS);
+  };
+
   const loadSettings = async () => {
     try {
       setIsLoading(true);
@@ -97,7 +140,10 @@ export default function SettingsScreen() {
 
   const showSavedIndicator = () => {
     setSavedIndicator(true);
-    setTimeout(() => setSavedIndicator(false), 2000);
+    if (savedTimerRef.current) {
+      clearTimeout(savedTimerRef.current);
+    }
+    savedTimerRef.current = setTimeout(() => setSavedIndicator(false), SAVED_INDICATOR_MS);
   };
 
   const handleSave = async () => {
@@ -116,8 +162,7 @@ export default function SettingsScreen() {
 
     try {
       setIsSaving(true);
-      await apiService.saveApiHost(trimmed);
-      queryClient.clear();
+      await switchApiHost(trimmed);
       setApiHost(trimmed);
       showSavedIndicator();
     } catch (error) {
@@ -148,8 +193,7 @@ export default function SettingsScreen() {
 
       if (result.status === 'ready') {
         try {
-          await apiService.saveApiHost(trimmed);
-          queryClient.clear();
+          await switchApiHost(trimmed);
           setApiHost(trimmed);
         } catch (error: unknown) {
           console.error('Failed to save the tested server:', error);
@@ -161,12 +205,12 @@ export default function SettingsScreen() {
       if (result.status !== 'ready') {
         Alert.alert('Connection Failed', connectionStatusMessage(result.status));
       }
-      setTimeout(() => setConnectionStatus('idle'), 3000);
+      resetStatusLater();
     } catch (error: unknown) {
       console.error('Connection test failed:', error);
       setConnectionStatus('network-error');
       Alert.alert('Connection Failed', 'The server check could not be completed.');
-      setTimeout(() => setConnectionStatus('idle'), 3000);
+      resetStatusLater();
     }
   };
 
@@ -247,7 +291,7 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + SPACING.xxl }]}
       keyboardShouldPersistTaps="handled"
     >
       {/* Theme Section */}
@@ -274,10 +318,10 @@ export default function SettingsScreen() {
               <Ionicons
                 name={theme === 'light' ? 'sunny-outline' : theme === 'dark' ? 'moon-outline' : 'phone-portrait-outline'}
                 size={15}
-                color={mode === theme ? '#fff' : colors.textSecondary}
+                color={mode === theme ? colors.textOnPrimary : colors.textSecondary}
                 style={{ marginRight: 5 }}
               />
-              <Text style={[styles.themeOptionText, { color: mode === theme ? '#fff' : colors.textSecondary }]}>
+              <Text style={[styles.themeOptionText, { color: mode === theme ? colors.textOnPrimary : colors.textSecondary }]}>
                 {theme.charAt(0).toUpperCase() + theme.slice(1)}
               </Text>
             </TouchableOpacity>
@@ -340,9 +384,9 @@ export default function SettingsScreen() {
             accessibilityLabel="Save settings"
           >
             {isSaving ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.textOnPrimary} />
             ) : (
-              <Text style={[styles.buttonText, { color: '#fff' }]}>Save Only</Text>
+              <Text style={[styles.buttonText, { color: colors.textOnPrimary }]}>Save Only</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -444,8 +488,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: SPACING.lg,
   },
   card: {
     borderRadius: 16,

@@ -4,22 +4,22 @@ import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './src/navigation/types';
-import SettingsScreen from './src/screens/SettingsScreen';
-import ChatScreen from './src/screens/ChatScreen';
-import LanguageModelSelectionScreen from './src/screens/LanguageModelSelectionScreen';
-import LoginScreen from './src/screens/LoginScreen';
-import AssetsScreen from './src/screens/AssetsScreen';
-import AssetViewerScreen from './src/screens/AssetViewerScreen';
-import DocumentsScreen from './src/screens/DocumentsScreen';
-import AppsScreen from './src/screens/AppsScreen';
-import AppScreen from './src/screens/AppScreen';
-import StoryboardEditorScreen from './src/screens/StoryboardEditorScreen';
-import TimelineViewerScreen from './src/screens/TimelineViewerScreen';
-import SketchViewerScreen from './src/screens/SketchViewerScreen';
-import JobsScreen from './src/screens/JobsScreen';
-import JobDetailScreen from './src/screens/JobDetailScreen';
-import ThreadsScreen from './src/screens/ThreadsScreen';
-import { ErrorBoundary } from './src/components/ErrorBoundary';
+import SettingsScreenBase from './src/screens/SettingsScreen';
+import ChatScreenBase from './src/screens/ChatScreen';
+import LanguageModelSelectionScreenBase from './src/screens/LanguageModelSelectionScreen';
+import LoginScreenBase from './src/screens/LoginScreen';
+import AssetsScreenBase from './src/screens/AssetsScreen';
+import AssetViewerScreenBase from './src/screens/AssetViewerScreen';
+import DocumentsScreenBase from './src/screens/DocumentsScreen';
+import AppsScreenBase from './src/screens/AppsScreen';
+import AppScreenBase from './src/screens/AppScreen';
+import StoryboardEditorScreenBase from './src/screens/StoryboardEditorScreen';
+import TimelineViewerScreenBase from './src/screens/TimelineViewerScreen';
+import SketchViewerScreenBase from './src/screens/SketchViewerScreen';
+import JobsScreenBase from './src/screens/JobsScreen';
+import JobDetailScreenBase from './src/screens/JobDetailScreen';
+import ThreadsScreenBase from './src/screens/ThreadsScreen';
+import { ErrorBoundary, withScreenBoundary } from './src/components/ErrorBoundary';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { apiService } from './src/services/api';
 import { initNotifications } from './src/services/notifications';
@@ -32,6 +32,25 @@ import { TRPCProvider } from './src/trpc/Provider';
 import { linking } from './src/navigation/linking';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Each screen gets its own error boundary, so a render error in one leaves
+// the header and back navigation working.
+const SettingsScreen = withScreenBoundary(SettingsScreenBase, 'Settings');
+const ChatScreen = withScreenBoundary(ChatScreenBase, 'Chat');
+const LanguageModelSelectionScreen = withScreenBoundary(LanguageModelSelectionScreenBase, 'LanguageModelSelection');
+const LoginScreen = withScreenBoundary(LoginScreenBase, 'Login');
+const AssetsScreen = withScreenBoundary(AssetsScreenBase, 'Assets');
+const AssetViewerScreen = withScreenBoundary(AssetViewerScreenBase, 'AssetViewer');
+const DocumentsScreen = withScreenBoundary(DocumentsScreenBase, 'Documents');
+const AppsScreen = withScreenBoundary(AppsScreenBase, 'Apps');
+const AppScreen = withScreenBoundary(AppScreenBase, 'App');
+const StoryboardEditorScreen = withScreenBoundary(StoryboardEditorScreenBase, 'StoryboardEditor');
+const TimelineViewerScreen = withScreenBoundary(TimelineViewerScreenBase, 'TimelineViewer');
+const SketchViewerScreen = withScreenBoundary(SketchViewerScreenBase, 'SketchViewer');
+const JobsScreen = withScreenBoundary(JobsScreenBase, 'Jobs');
+const JobDetailScreen = withScreenBoundary(JobDetailScreenBase, 'JobDetail');
+const ThreadsScreen = withScreenBoundary(ThreadsScreenBase, 'Threads');
+
 
 export default function App() {
   const { colors, isDark } = useTheme();

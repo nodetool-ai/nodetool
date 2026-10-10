@@ -105,12 +105,15 @@ jest.mock('../hooks/useAppLifecycle', () => ({
   },
 }));
 
+// Mutable so tests can change the configured host and refresh the token.
+const mockEnv = { host: 'ws://test.local', token: 'tok-123' };
+
 jest.mock('./api', () => ({
-  apiService: { getWebSocketUrl: (path: string) => `ws://test.local${path}` },
+  apiService: { getWebSocketUrl: (path: string) => `${mockEnv.host}${path}` },
 }));
 
 jest.mock('../stores/AuthStore', () => ({
-  useAuthStore: { getState: () => ({ session: { access_token: 'tok-123' } }) },
+  useAuthStore: { getState: () => ({ session: { access_token: mockEnv.token } }) },
 }));
 
 import { webSocketService } from './WebSocketService';
@@ -125,6 +128,8 @@ function latestManager(): MockManagerShape {
 }
 
 beforeEach(() => {
+  mockEnv.host = 'ws://test.local';
+  mockEnv.token = 'tok-123';
   managerInstances().length = 0;
   webSocketService.disconnect();
 });
@@ -214,6 +219,39 @@ describe('WebSocketService', () => {
     expect(managerInstances()).toHaveLength(2);
     expect(latestManager().config.url).toBe('ws://test.local/other');
     expect(latestManager().config.headers).toEqual({ Authorization: 'Bearer tok-123' });
+  });
+
+  it('reconnects to the new host when the API host changes', async () => {
+    await webSocketService.ensureConnection('/ws');
+    const first = latestManager();
+
+    mockEnv.host = 'ws://other.local';
+    await webSocketService.ensureConnection('/ws');
+
+    expect(first.destroyed).toBe(true);
+    expect(managerInstances()).toHaveLength(2);
+    expect(latestManager().config.url).toBe('ws://other.local/ws');
+  });
+
+  it('hands the transport the current token when it reconnects after a drop', async () => {
+    await webSocketService.ensureConnection('/ws');
+    const manager = latestManager();
+
+    mockEnv.token = 'tok-refreshed';
+    manager.drop();
+
+    expect(manager.config.headers).toEqual({ Authorization: 'Bearer tok-refreshed' });
+  });
+
+  it('refreshes the token before resuming from the background', async () => {
+    await webSocketService.ensureConnection('/ws');
+    const manager = latestManager();
+
+    mockEnv.token = 'tok-refreshed';
+    mockLifecycle.emit('foreground');
+
+    expect(manager.resumeCalls).toBe(1);
+    expect(manager.config.headers).toEqual({ Authorization: 'Bearer tok-refreshed' });
   });
 
   describe('app lifecycle', () => {

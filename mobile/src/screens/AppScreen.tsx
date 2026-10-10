@@ -7,21 +7,20 @@
  */
 
 import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { RootStackParamList } from '../navigation/types';
-import { useTheme } from '../hooks/useTheme';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useApplicationApp } from '../hooks/useApplications';
 import { ApplicationAppView } from '../components/app_runtime';
+import { EmptyState, ErrorState, LoadingState, OfflineState } from '../components/ScreenState';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'App'>;
 
 export default function AppScreen({ route, navigation }: Props) {
-  const { colors } = useTheme();
+  const { isOffline } = useNetworkStatus();
   const { applicationId } = route.params;
-  const { name, document, workflow, application, isLoading, error } =
+  const { name, document, workflow, application, isLoading, error, refetch } =
     useApplicationApp(applicationId);
 
   useEffect(() => {
@@ -29,27 +28,37 @@ export default function AppScreen({ route, navigation }: Props) {
   }, [name, navigation, route.params.name]);
 
   if (isLoading) {
+    return <LoadingState label="Loading app" />;
+  }
+
+  const goBack = { label: 'Back to apps', icon: 'arrow-back' as const, onPress: () => navigation.goBack() };
+
+  if (error) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.message, { color: colors.textSecondary }]}>
-          Loading app...
-        </Text>
-      </View>
+      <ErrorState
+        title="Couldn't open this app"
+        message={error.message}
+        onRetry={refetch}
+        secondaryAction={navigation.canGoBack() ? goBack : undefined}
+      />
     );
   }
 
-  if (error || !document || !workflow) {
+  if (!document || !workflow) {
+    if (isOffline) {
+      return <OfflineState onRetry={refetch} secondaryAction={navigation.canGoBack() ? goBack : undefined} />;
+    }
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Ionicons name="warning-outline" size={40} color={colors.error} />
-        <Text style={[styles.message, { color: colors.error }]}>
-          {error?.message ??
-            (document
-              ? 'This app runs a workflow that is not available.'
-              : 'This app has nothing to show yet.')}
-        </Text>
-      </View>
+      <EmptyState
+        icon="construct-outline"
+        title={document ? 'Workflow not available' : 'Nothing to show yet'}
+        message={
+          document
+            ? 'This app runs a workflow this server does not have. Open it in the desktop or web app to fix it.'
+            : 'This app has no screen yet. Build it in the desktop or web app builder.'
+        }
+        action={navigation.canGoBack() ? goBack : undefined}
+      />
     );
   }
 
@@ -62,17 +71,3 @@ export default function AppScreen({ route, navigation }: Props) {
     />
   );
 }
-
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 32,
-  },
-  message: {
-    fontSize: 15,
-    textAlign: 'center',
-  },
-});

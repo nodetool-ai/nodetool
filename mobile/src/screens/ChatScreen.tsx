@@ -3,21 +3,22 @@
  * Manages WebSocket connection and displays the chat interface.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   Text,
-  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import NetInfo from '@react-native-community/netinfo';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { ChatView } from '../components/chat';
 import { useChatStore } from '../stores/ChatStore';
 import { useTheme } from '../hooks/useTheme';
+import { isOnlineState } from '../hooks/useNetworkStatus';
 import { useShallow } from 'zustand/react/shallow';
 import type { Message } from '../types/chat';
 
@@ -58,31 +59,64 @@ export default function ChatScreen({ navigation, route }: Props) {
   const setSelectedCollections = useChatStore(state => state.setSelectedCollections);
   const setSelectedTools = useChatStore(state => state.setSelectedTools);
 
-  const { colors, mode } = useTheme();
+  const { colors } = useTheme();
 
   const messages = useChatStore(
     state => state.messageCache[state.currentThreadId ?? ''] ?? EMPTY_MESSAGES
   );
   const requestedThreadId = route.params?.threadId;
 
+  // The socket is independent of the thread on screen. Connecting only here
+  // means starting or switching a thread never tears down a reply that is
+  // still streaming.
   useEffect(() => {
-    const initializeChat = async () => {
+    connect().catch((err: unknown) => {
+      console.error('Failed to connect to chat:', err);
+    });
+  }, [connect]);
+
+  // Pick the thread when the screen opens or the route asks for another one.
+  // The thread on screen is read through a ref so that starting a new chat
+  // from the header does not bounce back to the routed thread.
+  const currentThreadIdRef = useRef(currentThreadId);
+  useEffect(() => {
+    currentThreadIdRef.current = currentThreadId;
+  }, [currentThreadId]);
+
+  useEffect(() => {
+    const selectThread = async () => {
+      const shownThreadId = currentThreadIdRef.current;
       try {
-        await connect();
         if (requestedThreadId) {
-          if (requestedThreadId !== currentThreadId) {
+          if (requestedThreadId !== shownThreadId) {
             await loadThreadFromServer(requestedThreadId);
           }
-        } else if (!currentThreadId) {
+        } else if (!shownThreadId) {
           await createNewThread();
         }
       } catch (err) {
-        console.error('Failed to connect to chat:', err);
+        console.error('Failed to open chat thread:', err);
       }
     };
 
-    initializeChat();
-  }, [connect, currentThreadId, createNewThread, loadThreadFromServer, requestedThreadId]);
+    void selectThread();
+  }, [createNewThread, loadThreadFromServer, requestedThreadId]);
+
+  // A socket that gave up while the device was offline comes back on its own
+  // once the network does. `connect` keeps a socket that is already live.
+  useEffect(() => {
+    let wasOnline = true;
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const online = isOnlineState(state);
+      if (online && !wasOnline) {
+        connect().catch((err: unknown) => {
+          console.error('Failed to reconnect after network returned:', err);
+        });
+      }
+      wasOnline = online;
+    });
+    return unsubscribe;
+  }, [connect]);
 
   const handleNewChat = useCallback(async () => {
     try {
@@ -152,13 +186,13 @@ export default function ChatScreen({ navigation, route }: Props) {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['left', 'right']}
     >
-      <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ChatView
         status={status}
         messages={messages}
         onSendMessage={sendMessage}
         onStop={stopGeneration}
         onRefresh={handleRefresh}
+        onReconnect={handleRefresh}
         error={error}
         statusMessage={statusMessage}
         agentMode={agentMode}

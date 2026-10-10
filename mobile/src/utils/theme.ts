@@ -11,7 +11,10 @@ export type ThemeColors = {
   text: string;
   textSecondary: string;
   textTertiary: string;
+  /** Text and icons drawn on a solid `primary` (or `accent`) fill. */
   textOnPrimary: string;
+  /** Text and icons drawn on a solid `warning` fill. */
+  textOnWarning: string;
   border: string;
   borderLight: string;
   error: string;
@@ -74,7 +77,10 @@ export const paletteDark: ThemeColors = {
   text: '#E8E8E8',
   textSecondary: '#A0A0A0',
   textTertiary: '#707070',
-  textOnPrimary: '#FFFFFF',
+  // The dark-mode primary is a light blue, so white on it reads at about
+  // 2.2:1. A near-black ink reads at about 9:1.
+  textOnPrimary: '#0B1220',
+  textOnWarning: '#1A1A1A',
   border: 'rgba(255, 255, 255, 0.15)',
   borderLight: 'rgba(255, 255, 255, 0.08)',
   error: '#FF6B6B',
@@ -95,13 +101,16 @@ export const paletteLight: ThemeColors = {
   surface: '#FFFFFF',
   surfaceHeader: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
-  primary: '#4A8F82',
-  primaryMuted: 'rgba(74, 143, 130, 0.10)',
-  primaryLight: 'rgba(74, 143, 130, 0.05)',
+  // The web light theme's primary (docs/DESIGN.md). White on it reads at
+  // about 4.9:1; the earlier #4A8F82 managed 3.8:1.
+  primary: '#2A8077',
+  primaryMuted: 'rgba(42, 128, 119, 0.10)',
+  primaryLight: 'rgba(42, 128, 119, 0.05)',
   text: '#1A1A1A',
   textSecondary: '#6B6560',
   textTertiary: '#A09A94',
   textOnPrimary: '#FFFFFF',
+  textOnWarning: '#1A1A1A',
   border: '#E8E2DB',
   borderLight: '#F0EBE5',
   error: '#DC4C4C',
@@ -110,7 +119,7 @@ export const paletteLight: ThemeColors = {
   info: '#3574A5',
   inputBg: '#F3EDE6',
   cardBg: '#FFFFFF',
-  userBubbleBg: '#4A8F82',
+  userBubbleBg: '#2A8077',
   userBubbleText: '#FFFFFF',
   assistantBubbleBg: 'rgba(0, 0, 0, 0.04)',
   accent: '#7C5DC7',

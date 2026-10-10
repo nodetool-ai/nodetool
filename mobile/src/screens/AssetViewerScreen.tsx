@@ -505,8 +505,8 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
           accessibilityRole="button"
           accessibilityLabel="Retry"
         >
-          <Ionicons name="refresh-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-          <Text style={styles.actionButtonText}>Retry</Text>
+          <Ionicons name="refresh-outline" size={18} color={colors.textOnPrimary} style={{ marginRight: 8 }} />
+          <Text style={[styles.actionButtonText, { color: colors.textOnPrimary }]}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
@@ -615,8 +615,8 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
           accessibilityRole="button"
           accessibilityLabel="Rename asset"
         >
-          <Ionicons name="create-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-          <Text style={styles.actionButtonText}>Rename</Text>
+          <Ionicons name="create-outline" size={18} color={colors.textOnPrimary} style={{ marginRight: 6 }} />
+          <Text style={[styles.actionButtonText, { color: colors.textOnPrimary }]}>Rename</Text>
         </TouchableOpacity>
         {canSaveToLibrary && (
           <TouchableOpacity
@@ -720,9 +720,9 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
                 disabled={isSavingRename}
               >
                 {isSavingRename ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={colors.textOnPrimary} />
                 ) : (
-                  <Text style={styles.actionButtonText}>Save</Text>
+                  <Text style={[styles.actionButtonText, { color: colors.textOnPrimary }]}>Save</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -925,7 +925,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   actionButtonText: {
-    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600',
   },

@@ -6,7 +6,6 @@
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   RefreshControl,
@@ -24,6 +23,8 @@ import { type Thread } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
 import LoadErrorBanner from '../components/LoadErrorBanner';
+import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState';
+import { HIT_SLOP } from '../utils/tokens';
 import type { ThemeColors, ThemeShadows } from '../utils/theme';
 
 type Props = {
@@ -164,10 +165,17 @@ export default function ThreadsScreen({ navigation }: Props) {
   );
 
   if (isLoading) {
+    return <LoadingState label="Loading conversations" />;
+  }
+
+  if (error && threads.length === 0) {
     return (
-      <View style={[styles.loading, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <ErrorState
+        title="Couldn't load conversations"
+        message={loadError}
+        onRetry={() => { void refetch(); }}
+        secondaryAction={{ label: 'Start a new chat', icon: 'add', onPress: handleNew }}
+      />
     );
   }
 
@@ -187,14 +195,19 @@ export default function ThreadsScreen({ navigation }: Props) {
             accessibilityLabel="Search threads"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} accessibilityLabel="Clear search">
+            <TouchableOpacity
+              onPress={() => setQuery('')}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={HIT_SLOP}
+            >
               <Ionicons name="close-circle" size={16} color={colors.textTertiary} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      <LoadErrorBanner error={loadError} />
+      <LoadErrorBanner error={loadError} onRetry={() => { void refetch(); }} />
 
       <FlatList
         data={filtered}
@@ -210,12 +223,22 @@ export default function ThreadsScreen({ navigation }: Props) {
           />
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="chatbubbles-outline" size={36} color={colors.textTertiary} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              {query.length > 0 ? `No threads matching "${query}"` : 'No conversations yet'}
-            </Text>
-          </View>
+          query.trim().length > 0 ? (
+            <EmptyState
+              inline
+              icon="search-outline"
+              title="No matches"
+              message={`No conversation title contains "${query.trim()}".`}
+            />
+          ) : (
+            <EmptyState
+              inline
+              icon="chatbubbles-outline"
+              title="No conversations yet"
+              message="Start a chat and it is saved here, in sync with your other devices."
+              action={{ label: 'Start a chat', icon: 'add', onPress: handleNew }}
+            />
+          )
         }
       />
 
@@ -229,7 +252,7 @@ export default function ThreadsScreen({ navigation }: Props) {
         accessibilityRole="button"
         accessibilityLabel="Start new conversation"
       >
-        <Ionicons name="add" size={26} color="#fff" />
+        <Ionicons name="add" size={26} color={colors.textOnPrimary} />
       </TouchableOpacity>
     </View>
   );
@@ -237,7 +260,6 @@ export default function ThreadsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   searchWrap: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
   search: {
     flexDirection: 'row',
@@ -245,7 +267,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
-    height: 40,
+    minHeight: 44,
   },
   searchInput: { flex: 1, fontSize: 15, paddingVertical: 0 },
   list: { padding: 16, paddingTop: 4 },
@@ -269,8 +291,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontWeight: '600', letterSpacing: -0.2 },
   subtitle: { fontSize: 12, marginTop: 2 },
   deleteBtn: { padding: 4 },
-  empty: { alignItems: 'center', paddingTop: 60, gap: 10 },
-  emptyText: { fontSize: 14 },
   fab: {
     position: 'absolute',
     right: 20,

@@ -412,8 +412,17 @@ export class WebSocketManager {
 
     if (shouldReconnect) {
       this.scheduleReconnect();
-    } else if (!this.intentionalDisconnect) {
-      this.transitionTo('failed');
+    } else if (!this.intentionalDisconnect && this.transitionTo('failed')) {
+      // 'failed' is terminal: nothing retries after this, so the owner needs
+      // a reason to show next to its reconnect control.
+      const exhausted = this.reconnectAttempt >= this.config.reconnectAttempts;
+      this.callbacks.onError?.(
+        new Error(
+          exhausted
+            ? `Could not reconnect after ${this.config.reconnectAttempts} attempts`
+            : `Connection closed (code ${event.code ?? 0})`
+        )
+      );
     }
   }
 

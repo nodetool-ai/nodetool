@@ -17,6 +17,7 @@ import type { inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@nodetool-ai/websocket/trpc';
 
 import { getApiHost } from '../services/apiHost';
+import { fetchWithTimeout } from '../services/fetchWithTimeout';
 import { useAuthStore } from '../stores/AuthStore';
 import { isString } from '../utils/typePredicates';
 
@@ -42,7 +43,7 @@ function authHeaders(): Record<string, string> {
  * host here keeps that single client (and the per-call vanilla client) pointed
  * at whatever host is configured now, without recreating either.
  */
-async function hostRewriteFetch(
+export async function hostRewriteFetch(
   input: RequestInfo | URL,
   options?: RequestInit
 ): Promise<Response> {
@@ -54,12 +55,26 @@ async function hostRewriteFetch(
         : input.url;
   const trpcIndex = raw.lastIndexOf('/trpc');
   const path = trpcIndex >= 0 ? raw.slice(trpcIndex) : raw;
-  const response = await fetch(`${getApiHost()}${path}`, options);
-  // A rejected token means the session is dead — clear it and route to login.
-  if (response.status === 401 || response.status === 403) {
-    useAuthStore.getState().handleSessionExpired();
+  const url = `${getApiHost()}${path}`;
+  // Every procedure mobile calls is request/response (no subscriptions or
+  // streaming links), so one timeout covers them all.
+  const response = await fetchWithTimeout(url, options);
+  if (response.status !== 401) {
+    // A 403 is a permission error on one resource, not a dead session.
+    return response;
   }
-  return response;
+  // A 401 usually means the access token lapsed: refresh it once and resend.
+  // `refreshSession` signs out when the refresh itself fails. The server
+  // rejected the request before running it, so resending a mutation is safe.
+  if (!(await useAuthStore.getState().refreshSession())) {
+    return response;
+  }
+  const headers = new Headers(options?.headers);
+  const token = useAuthStore.getState().session?.access_token;
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return fetchWithTimeout(url, { ...options, headers });
 }
 
 export function createTrpcLinks(): TRPCLink<AppRouter>[] {
