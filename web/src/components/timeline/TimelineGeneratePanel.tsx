@@ -1,4 +1,7 @@
-/** Quick video, speech, or music generation at the timeline playhead. */
+/**
+ * The timeline's generation form: a video, speech or music clip at the
+ * playhead. The Generate dialog shows it.
+ */
 
 import React, {
   memo,
@@ -8,7 +11,6 @@ import React, {
   useRef,
   useState
 } from "react";
-import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ModelChip from "../chat/composer/ModelChip";
@@ -48,6 +50,10 @@ import MediaControlChip from "../chat/composer/MediaControlChip";
 import MediaOptionMenu from "../chat/composer/MediaOptionMenu";
 import MediaAspectRatioMenu from "../chat/composer/MediaAspectRatioMenu";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
+import TimelineReferencesField, {
+  EMPTY_TIMELINE_REFERENCES,
+  type TimelineReferences
+} from "./TimelineReferencesField";
 import {
   buildVideoModelOptions,
   clampToAllowed,
@@ -59,6 +65,7 @@ import type {
 } from "../../stores/MediaGenerationStore";
 import type { MusicModel, TTSModel, VideoModel } from "../../stores/ApiTypes";
 import { useInStudio } from "../../studio/StudioContext";
+import { useCatalogVideoModel } from "../../hooks/useMediaModelConstraints";
 import {
   forTasks,
   STUDIO_CLIP_MODELS,
@@ -74,13 +81,12 @@ interface AudioSelection {
   voice: string;
 }
 
-interface TopBarPromptProps {
-  /** Phone layout: prompt + Generate on one row, setting chips on a second. */
-  compact?: boolean;
+interface TimelineGeneratePanelProps {
+  /** Called once a generation starts, so the dialog can close. */
+  onGenerated?: () => void;
 }
 
-export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false }) => {
-  const theme = useTheme();
+export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(({ onGenerated }) => {
   const inStudio = useInStudio();
   const timeline = useTimelineStoreApi();
   const playback = useTimelinePlaybackStoreApi();
@@ -142,6 +148,9 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
   const [aspect, setAspect] = useState("16:9");
   const [resolution, setResolution] = useState<VideoResolution>("720p");
   const [duration, setDuration] = useState(4);
+  const [references, setReferences] = useState<TimelineReferences>(
+    EMPTY_TIMELINE_REFERENCES
+  );
   const lastModel = useLastDirectGenModel("video");
 
   // Chip popover anchors.
@@ -159,13 +168,21 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     [selectedModel]
   );
 
+  // The remembered model is only a provider and an id. Its catalog entry
+  // carries the durations, resolutions and aspect ratios it accepts.
+  const rememberedModel = useCatalogVideoModel(
+    lastModel.provider ?? undefined,
+    lastModel.model ?? undefined
+  );
+
   // Sync the model from the most recent direct-gen clip until the user picks
   // one themselves, so "type → generate" stays fluid across sequence loads.
-  // The remembered default carries no manifest constraints, so the full option
-  // sets show until a model is picked through the dialog.
+  // Until its catalog entry loads, the full option sets show.
   useEffect(() => {
     if (userPicked) return;
-    if (lastModel.provider && lastModel.model) {
+    if (rememberedModel) {
+      setSelectedModel(normalizeVideoModel(rememberedModel));
+    } else if (lastModel.provider && lastModel.model) {
       setSelectedModel({
         type: "video_model",
         id: lastModel.model,
@@ -175,7 +192,16 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     } else {
       setSelectedModel(undefined);
     }
-  }, [lastModel.provider, lastModel.model, userPicked]);
+  }, [lastModel.provider, lastModel.model, rememberedModel, userPicked]);
+
+  // Snap each setting to what the model accepts, whenever the model or its
+  // constraints change.
+  useEffect(() => {
+    if (!selectedModel) return;
+    setAspect((a) => clampToAllowed(a, selectedModel.aspectRatios));
+    setResolution((r) => clampToAllowed(r, selectedModel.resolutions));
+    setDuration((d) => clampToAllowed(d, selectedModel.durations));
+  }, [selectedModel]);
 
   const addDirectGenClip = useTimelineStore((s) => s.addDirectGenClip);
   const selectClip = useTimelineUIStore((s) => s.selectClip);
@@ -235,6 +261,10 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       if (mode === "video") {
         clipOptions.aspectRatio = aspect;
         clipOptions.resolution = resolution;
+        clipOptions.referenceImageIds = references.imageIds;
+        clipOptions.referenceEntityIds = references.entities.map(
+          (entity) => entity.id
+        );
       } else if (mode === "audio" && audio?.voice) {
         clipOptions.voice = audio.voice;
       }
@@ -242,6 +272,7 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
       selectClip(clipId);
       await directGen.start(clipId);
       setPrompt("");
+      onGenerated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate");
     } finally {
@@ -260,9 +291,11 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     playback,
     aspect,
     resolution,
+    references,
     generationDuration,
     selectClip,
-    directGen
+    directGen,
+    onGenerated
   ]);
 
   const handleKeyDown = useCallback(
@@ -296,10 +329,6 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     const normalized = normalizeVideoModel(model);
     setUserPicked(true);
     setSelectedModel(normalized);
-    // Snap current settings to what the picked model allows.
-    setAspect((a) => clampToAllowed(a, normalized.aspectRatios));
-    setResolution((r) => clampToAllowed(r, normalized.resolutions));
-    setDuration((d) => clampToAllowed(d, normalized.durations));
     setVideoModelOpen(false);
   }, []);
 
@@ -313,41 +342,17 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
           ? "Describe the music you want to generate…"
           : mode === "audio"
             ? "Enter text to speak…"
-            : compact
-              ? "Generate a video…"
-              : "Generate a video at the playhead…"
+            : "Describe the shot: subject, action, camera, light…"
       }
-      compact
+      multiline
+      minRows={4}
+      maxRows={12}
       fullWidth
+      autoFocus
       disabled={busy}
       inputProps={{
         "aria-label": `Quick ${bindingKind} prompt`,
         "data-testid": "topbar-prompt-input"
-      }}
-      slotProps={{
-        input: {
-          startAdornment: (
-            <AutoAwesomeIcon
-              fontSize="small"
-              sx={{
-                mr: SPACING.micro,
-                color: theme.vars.palette.primary.main
-              }}
-            />
-          )
-        }
-      }}
-      sx={{
-        flex: 1,
-        minWidth: compact ? 0 : 160,
-        "& .MuiOutlinedInput-root": { height: 32 },
-        // Bar text at the label token (13px) so the prompt reads at the same
-        // size as the setting chips beside it. The doubled parent selector
-        // outranks TextInput's own body-token rule for this bar only — the
-        // primitive's 15px standard is untouched everywhere else.
-        "&& .MuiInputBase-input": {
-          fontSize: "var(--fontSizeSmall)"
-        }
       }}
     />
   );
@@ -372,7 +377,6 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
   const generateButton = (
     <EditorButton
       variant="contained"
-      size="small"
       disabled={!canSubmit}
       onClick={() => void handleSubmit()}
       startIcon={
@@ -383,26 +387,14 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
         )
       }
       data-testid="topbar-generate"
-      // Icon-only on phones: the label costs ~70px the prompt needs, and the
-      // sparkle plus the field's placeholder already say what it does.
       aria-label={`Generate ${mode}`}
       // Native tooltip still fires on a disabled button: say why it is off.
       title={
         canSubmit ? undefined : "Type a prompt and pick a model to generate"
       }
-      sx={{
-        flexShrink: 0,
-        height: 32,
-        ...(compact
-          ? {
-              minWidth: 44,
-              px: SPACING.xs,
-              "& .MuiButton-startIcon": { m: 0 }
-            }
-          : null)
-      }}
+      sx={{ flexShrink: 0 }}
     >
-      {compact ? null : "Generate"}
+      Generate
     </EditorButton>
   );
 
@@ -577,83 +569,55 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     </>
   );
 
-  const settingChips = (
-    <>
-      <ModeSelectChip
-        mode={mode}
-        modes={GENERATION_MODES}
-        onChange={(nextMode) => {
-          if (
-            nextMode !== "video" &&
-            nextMode !== "audio" &&
-            nextMode !== "music"
-          )
-            return;
-          setMode(nextMode);
-          setVideoModelOpen(false);
-          setAudioModelOpen(false);
-          setDurationAnchor(null);
-          setResolutionAnchor(null);
-          setAspectAnchor(null);
-          setError(null);
-        }}
-      />
-      {mode === "music"
-        ? musicSettingChips
-        : mode === "audio"
-          ? audioSettingChips
-          : videoSettingChips}
-    </>
+  const modeChip = (
+    <ModeSelectChip
+      mode={mode}
+      modes={GENERATION_MODES}
+      onChange={(nextMode) => {
+        if (
+          nextMode !== "video" &&
+          nextMode !== "audio" &&
+          nextMode !== "music"
+        )
+          return;
+        setMode(nextMode);
+        setVideoModelOpen(false);
+        setAudioModelOpen(false);
+        setDurationAnchor(null);
+        setResolutionAnchor(null);
+        setAspectAnchor(null);
+        setError(null);
+      }}
+    />
   );
+
+  const settingChips =
+    mode === "music"
+      ? musicSettingChips
+      : mode === "audio"
+        ? audioSettingChips
+        : videoSettingChips;
 
   return (
     <>
-      {compact ? (
-        <FlexColumn
-          gap={SPACING.xs}
-          data-testid="topbar-prompt"
-          sx={{ flex: 1, minWidth: 0 }}
-        >
-          <FlexRow gap={SPACING.sm} align="center" sx={{ minWidth: 0 }}>
-            {promptField}
-            {generateButton}
-          </FlexRow>
-          {/* Chip rail — scrolls horizontally rather than wrapping, so the bar
-          keeps a predictable two-row height whatever the model name is. */}
-          <FlexRow
-            gap={SPACING.sm}
-            align="center"
-            sx={{
-              minWidth: 0,
-              overflowX: "auto",
-              overflowY: "hidden",
-              pb: SPACING.micro,
-              scrollbarWidth: "none",
-              "&::-webkit-scrollbar": { display: "none" },
-              // The chips set `flexShrink: 1` themselves when truncating; in a
-              // scrolling rail that squeezes the model name down to "Selec…"
-              // instead of letting the rail scroll. Element selector so this
-              // outranks the chip's own single-class rule.
-              "& > button": { flexShrink: 0 }
-            }}
-          >
-            {settingChips}
-            {costLine}
-          </FlexRow>
-        </FlexColumn>
-      ) : (
-        <FlexRow
-          gap={SPACING.xs}
-          align="center"
-          data-testid="topbar-prompt"
-          sx={{ flex: 1, minWidth: 0 }}
-        >
-          {promptField}
+      <FlexColumn gap={SPACING.lg} data-testid="topbar-prompt">
+        <FlexRow gap={SPACING.sm} align="center" wrap>
+          {modeChip}
           {settingChips}
+        </FlexRow>
+        {promptField}
+        {mode === "video" && (
+          <TimelineReferencesField
+            value={references}
+            onChange={setReferences}
+            disabled={busy}
+          />
+        )}
+        <FlexRow gap={SPACING.md} align="center" justify="flex-end">
           {costLine}
           {generateButton}
         </FlexRow>
-      )}
+      </FlexColumn>
       <Toast
         open={error !== null}
         message={error ?? ""}
@@ -666,4 +630,4 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
   );
 });
 
-TopBarPrompt.displayName = "TopBarPrompt";
+TimelineGeneratePanel.displayName = "TimelineGeneratePanel";

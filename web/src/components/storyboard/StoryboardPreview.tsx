@@ -21,7 +21,8 @@ import {
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { buildPreviewSequence, previewSignature } from "./previewSequence";
 
-const PREVIEW_HEIGHT = 400;
+/** Grows with the window, so the player stays the board's main picture. */
+const PREVIEW_HEIGHT = "max(400px, 60vh)";
 
 const emptySx = {
   width: "100%",
@@ -50,8 +51,8 @@ const statusLine = (
 
 interface StoryboardPreviewProps {
   boardId: string;
-  /** Player height in px. */
-  height?: number;
+  /** Player height: px, or any CSS length. */
+  height?: number | string;
 }
 
 const StoryboardPreviewInner: React.FC<StoryboardPreviewProps> = ({

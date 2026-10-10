@@ -157,6 +157,51 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
             />
           </Cell>
 
+          <Cell label="Shot motion">
+            <TextInput
+              compact
+              size="small"
+              multiline
+              minRows={3}
+              label="Shot motion"
+              hideLabel
+              placeholder="What moves, and how the camera moves, over the clip"
+              disabled={readOnly}
+              value={draft.motion}
+              onChange={(event) => set({ motion: event.target.value })}
+            />
+          </Cell>
+
+          <Cell label="End">
+            <TextInput
+              compact
+              size="small"
+              multiline
+              minRows={2}
+              label="End"
+              hideLabel
+              placeholder="The picture the shot ends on"
+              disabled={readOnly}
+              value={draft.endState}
+              onChange={(event) => set({ endState: event.target.value })}
+            />
+          </Cell>
+
+          <Cell label="Sound">
+            <TextInput
+              compact
+              size="small"
+              multiline
+              minRows={2}
+              label="Sound"
+              hideLabel
+              placeholder="What is heard"
+              disabled={readOnly}
+              value={draft.sound}
+              onChange={(event) => set({ sound: event.target.value })}
+            />
+          </Cell>
+
           <Cell label="Dialogue">
             {linksLines ? (
               <FlexColumn gap={SPACING.xs}>

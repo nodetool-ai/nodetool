@@ -208,6 +208,9 @@ const StudioStoryboardPage = () => {
             directing={directing}
             directError={directError}
             onAssemble={handleAssemble}
+            onOpenTimeline={(timelineId) =>
+              navigate(`/studio/timeline/${timelineId}`)
+            }
             assembling={assembling}
             assembleError={assembleError}
             reviewRequest={reviewRequest}

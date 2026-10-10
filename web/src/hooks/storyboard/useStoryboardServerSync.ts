@@ -62,6 +62,9 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument => {
   if (board.creativeContext) {
     document.creative_context = board.creativeContext;
   }
+  if (board.oneTake) {
+    document.one_take = board.oneTake;
+  }
   return document;
 };
 
@@ -90,6 +93,9 @@ const responseToBoard = (
   } as Omit<StoryboardBoard, "id" | "updatedAt">;
   if (doc.creative_context) {
     board.creativeContext = doc.creative_context;
+  }
+  if (doc.one_take) {
+    board.oneTake = doc.one_take;
   }
   return board;
 };
@@ -268,6 +274,11 @@ export const useStoryboardServerSync = (
           break;
         case "aspectRatio":
           s.setAspectRatio(boardId, value as string);
+          break;
+        case "oneTake":
+          if (value) {
+            s.setOneTake(boardId, value as NonNullable<StoryboardBoard["oneTake"]>);
+          }
           break;
         case "entityIds":
           s.setEntityIds(boardId, value as string[]);

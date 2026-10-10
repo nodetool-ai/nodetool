@@ -27,6 +27,7 @@ import type {
   InpaintingParams,
   Message as ProviderMessage,
   MessageContent,
+  NamedReferenceImage,
   PromptAssetRef,
   ProviderTool,
   TextToImageParams,
@@ -330,6 +331,25 @@ export function entityRefResolver(userId: string): {
  * whose asset is gone (or reads back empty) contributes nothing — the same
  * drop rule as an unresolvable mention.
  */
+/**
+ * Resolve entity reference images with their entity names. An image that can
+ * no longer be read drops, together with its name.
+ */
+export async function resolveNamedEntityReferences(
+  userId: string,
+  refs: PromptAssetRef[],
+  names: readonly string[]
+): Promise<NamedReferenceImage[]> {
+  const out: NamedReferenceImage[] = [];
+  for (const [index, ref] of refs.entries()) {
+    const [image] = await resolveEntityReferenceImages(userId, [ref]);
+    if (image) {
+      out.push({ name: names[index] ?? "", image });
+    }
+  }
+  return out;
+}
+
 export async function resolveEntityReferenceImages(
   userId: string,
   refs: PromptAssetRef[]
@@ -995,13 +1015,27 @@ export class DirectInferenceHandler {
     // a Consistency references block, reference image routed into the
     // generation inputs below — the same rule node prompts get through
     // mapPromptAssetsToInputs. A mention that resolves to no entity drops.
-    const { prompt, referenceImages } = videoEditReferences
-      ? { prompt: videoEditReferences.prompt, referenceImages: [] }
+    const { prompt, referenceImages, referenceNames } = videoEditReferences
+      ? {
+          prompt: videoEditReferences.prompt,
+          referenceImages: [],
+          referenceNames: []
+        }
       : await expandEntitiesForGeneration(req.prompt, entityRefResolver(userId));
-    const entityImageBytes = await resolveEntityReferenceImages(
-      userId,
-      referenceImages
-    );
+    // A video call takes the images named, so a provider with a reference
+    // mode can mention each one in its prompt. Image modes take bare bytes.
+    const videoReferences =
+      req.mode === "video"
+        ? await resolveNamedEntityReferences(
+            userId,
+            referenceImages,
+            referenceNames
+          )
+        : [];
+    const entityImageBytes =
+      req.mode === "video"
+        ? []
+        : await resolveEntityReferenceImages(userId, referenceImages);
 
     // Image modes are pixel-addressed on several providers (GPT Image's
     // `size`): derive explicit dimensions from the resolution tier + aspect
@@ -1053,6 +1087,8 @@ export class DirectInferenceHandler {
               {
                 model: videoModel,
                 prompt,
+                // Entity images follow the picked ones, each with its name.
+                references: videoReferences,
                 durationSeconds: req.durationSeconds ?? null,
                 aspectRatio: req.aspectRatio ?? null,
                 resolution: req.resolution ?? null,
@@ -1071,6 +1107,7 @@ export class DirectInferenceHandler {
         const i2vParams: ImageToVideoParams = {
           model: videoModel,
           prompt,
+          references: videoReferences,
           aspectRatio: req.aspectRatio ?? null,
           resolution: req.resolution ?? null,
           durationSeconds: req.durationSeconds ?? null
@@ -1086,6 +1123,7 @@ export class DirectInferenceHandler {
         const params: TextToVideoParams = {
           model: videoModel,
           prompt,
+          references: videoReferences,
           durationSeconds: req.durationSeconds ?? null
         };
         generated = await generate(

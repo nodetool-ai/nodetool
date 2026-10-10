@@ -121,6 +121,11 @@ const stillVersionsOf = (shot: Shot): ImageRef[] =>
 const clipVersionsOf = (shot: Shot): VideoRef[] =>
   shot.clip_versions ?? (shot.clip ? [shot.clip] : []);
 
+/** Identifies a take across renders: its asset, else its URI. */
+const mediaKey = (
+  media: ImageRef | VideoRef | null | undefined
+): string | null => media?.asset_id ?? media?.uri ?? null;
+
 interface PreviewState {
   shotId: string;
   still: number;
@@ -189,6 +194,45 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
         still: newest
       }));
       setMediumState({ shotId: shot.id, value: "still" });
+    }
+  }
+  // A take made current outside the viewer, such as a click in the takes
+  // gallery, is the one the creator chose: show it in the large view.
+  const currentStillKey = mediaKey(shot.keyframe);
+  const currentClipKey = mediaKey(shot.clip);
+  const [seenCurrent, setSeenCurrent] = useState(() => ({
+    shotId: shot.id,
+    still: currentStillKey,
+    clip: currentClipKey
+  }));
+  if (seenCurrent.shotId !== shot.id) {
+    setSeenCurrent({
+      shotId: shot.id,
+      still: currentStillKey,
+      clip: currentClipKey
+    });
+  } else if (
+    seenCurrent.still !== currentStillKey ||
+    seenCurrent.clip !== currentClipKey
+  ) {
+    setSeenCurrent({
+      shotId: shot.id,
+      still: currentStillKey,
+      clip: currentClipKey
+    });
+    const shownMedium: Medium =
+      seenCurrent.still !== currentStillKey && currentStillKey
+        ? "still"
+        : "clip";
+    if (shownMedium === "still" || currentClipKey) {
+      setPreviewState((previous) => ({
+        ...(previous.shotId === shot.id ? previous : initialPreviewState(shot)),
+        [shownMedium]:
+          shownMedium === "still"
+            ? currentIndex(stillVersions, shot.keyframe)
+            : currentIndex(clipVersions, shot.clip)
+      }));
+      setMediumState({ shotId: shot.id, value: shownMedium });
     }
   }
   const [zoom, setZoom] = useState(1);

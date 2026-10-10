@@ -2,7 +2,8 @@
  * ShotHoverToolbar
  *
  * The actions that live on a shot's still and only appear under the pointer
- * (PRD § 7.4). Two stay on the still: the drag grip and fullscreen. The rest
+ * (PRD § 7.4). The row sits top left: the drag grip first, then the card's
+ * own actions (passed as children), then fullscreen. The rest
  * (render still, render clip, download, send to workflow, duplicate, delete)
  * sit behind one "Shot actions" menu, so a narrow card is not covered by a row of icons. The row
  * swallows clicks and keys before they reach the card and the board grid:
@@ -14,6 +15,7 @@ import React, { useCallback, useState } from "react";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
+import LastPageIcon from "@mui/icons-material/LastPage";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -46,6 +48,8 @@ interface ShotHoverToolbarProps {
   onRenderClip?: () => void;
   /** Disables both render items while the shot is rendering. */
   renderDisabled?: boolean;
+  /** Takes the previous shot's last frame as this shot's still. */
+  useLastFrame?: { label: string; disabled: boolean; onSelect: () => void };
   /** Saves the still or clip. Omitted while there is nothing to save. */
   onDownload?: () => void;
   /** What the download saves, for the menu label: "still" or "clip". */
@@ -54,13 +58,15 @@ interface ShotHoverToolbarProps {
   sendToWorkflowItems?: readonly WorkflowMediaItem[];
   onDuplicate?: () => void;
   onDelete?: () => void;
+  /** The card's own actions, placed after the drag grip. */
+  children?: React.ReactNode;
 }
 
 /** Hidden until the card is hovered or focused; always on for touch. */
 const rowSx = {
   position: "absolute",
   top: SPACING.xs,
-  right: SPACING.xs,
+  left: SPACING.xs,
   p: SPACING.xs,
   borderRadius: BORDER_RADIUS.sm,
   bgcolor: "c_scrim",
@@ -88,11 +94,13 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
   onRenderStill,
   onRenderClip,
   renderDisabled,
+  useLastFrame,
   onDownload,
   downloadLabel,
   sendToWorkflowItems,
   onDuplicate,
-  onDelete
+  onDelete,
+  children
 }) => {
   const inStudio = useInStudio();
   const [moreButton, setMoreButton] = useState<HTMLButtonElement | null>(null);
@@ -113,12 +121,12 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
 
   const sendItems =
     !inStudio && sendToWorkflowItems?.length ? sendToWorkflowItems : null;
-  const hasRender = Boolean(onRenderStill || onRenderClip);
+  const hasRender = Boolean(onRenderStill || onRenderClip || useLastFrame);
   const hasMenu = Boolean(
     hasRender || onDownload || sendItems || onDuplicate || onDelete
   );
   // A row with nothing in it would still catch the eye as a scrim on hover.
-  if (!showDragHandle && !onFullscreen && !hasMenu) {
+  if (!showDragHandle && !children && !onFullscreen && !hasMenu) {
     return null;
   }
   const what = downloadLabel ?? "still";
@@ -143,6 +151,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
           <DragIndicatorIcon sx={iconSx} />
         </FlexRow>
       )}
+      {children}
       {onFullscreen && (
         <ToolbarIconButton
           icon={<FullscreenIcon sx={iconSx} />}
@@ -186,6 +195,15 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
             icon={<MovieOutlinedIcon fontSize="small" />}
             disabled={renderDisabled}
             onClick={runAndClose(onRenderClip)}
+          />
+        )}
+        {useLastFrame && (
+          <MenuItemPrimitive
+            compact
+            label={useLastFrame.label}
+            icon={<LastPageIcon fontSize="small" />}
+            disabled={useLastFrame.disabled}
+            onClick={runAndClose(useLastFrame.onSelect)}
           />
         )}
         {onDownload && (
