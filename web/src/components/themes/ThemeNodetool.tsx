@@ -317,10 +317,18 @@ const ThemeNodetool = createTheme({
           borderRadius: theme.rounded.md,
           padding: theme.spacing(1.5, 2), // 6px / 8px
           boxShadow:
-            "var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.04)"
+            "var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.04)",
+          // The scrim is black in both schemes; light text needs a light
+          // surface or every tooltip reads dark on dark.
+          ...theme.applyStyles("light", {
+            backgroundColor: theme.vars.palette.background.paper
+          })
         }),
-        arrow: () => ({
-          color: "var(--palette-c_scrim_strong)"
+        arrow: ({ theme }) => ({
+          color: "var(--palette-c_scrim_strong)",
+          ...theme.applyStyles("light", {
+            color: theme.vars.palette.background.paper
+          })
         })
       }
     },

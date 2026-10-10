@@ -35,6 +35,19 @@ jest.mock("@tanstack/react-query", () => ({
 }));
 
 import { useAssetDeletion } from "../useAssetDeletion";
+import {
+  useWorkspaceTabsStore,
+  type WorkspaceTab,
+  type WorkspaceTabType
+} from "../../stores/WorkspaceTabsStore";
+
+const tab = (id: string, type: WorkspaceTabType, ref: string): WorkspaceTab => ({
+  id,
+  type,
+  ref,
+  mode: "edit",
+  title: ref
+});
 
 describe("useAssetDeletion", () => {
   beforeEach(() => {
@@ -88,29 +101,34 @@ describe("useAssetDeletion", () => {
     expect(deleted?.deleted_asset_ids).toEqual([]);
   });
 
-  it("configures onSuccess to show info notification", () => {
+  it("closes the tabs of deleted assets and keeps the others", () => {
+    useWorkspaceTabsStore.setState({
+      tabs: [
+        tab("text:a", "text", "a"),
+        tab("image:b", "image", "b"),
+        tab("text:keep", "text", "keep"),
+        // A workflow whose id happens to match is not an asset tab.
+        tab("workflow:a", "workflow", "a")
+      ]
+    });
     const { result } = renderHook(() => useAssetDeletion());
     const config = result.current.mutation as any;
 
     config.onSuccess({ deleted_asset_ids: ["a", "b"] });
-    expect(mockAddNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "info",
-        content: "Assets deleted!"
-      })
-    );
+
+    expect(useWorkspaceTabsStore.getState().tabs.map((t) => t.id)).toEqual([
+      "text:keep",
+      "workflow:a"
+    ]);
   });
 
-  it("shows singular message for single asset deletion", () => {
+  it("leaves the success toast to the caller", () => {
+    useWorkspaceTabsStore.setState({ tabs: [] });
     const { result } = renderHook(() => useAssetDeletion());
     const config = result.current.mutation as any;
 
     config.onSuccess({ deleted_asset_ids: ["a"] });
-    expect(mockAddNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        content: "Asset deleted!"
-      })
-    );
+    expect(mockAddNotification).not.toHaveBeenCalled();
   });
 
   it("configures onError to show error notification", () => {

@@ -157,6 +157,8 @@ Properties fed by a connection are left out of a node's `data`, because the edge
 
 Open the [Logs panel]({{ '/editor-panels' | relative_url }}#logs) with `l`. It lists log lines for the open workflow, newest first. Filter by **Info**, **Warn**, or **Error**. The [Trace panel]({{ '/editor-panels' | relative_url }}#trace) (`Ctrl/⌘ + Shift + T`) shows per-node timing for a run.
 
+The Trace panel also has an **Ask the agent** button. It opens a chat tab titled "Inspect run" with the run id attached, and the span id too when a span is selected, and drafts "Help me diagnose the selected run." (or "Help me diagnose this span in the selected run.") for you to send.
+
 ### Desktop App Logs
 
 Open **Tools → Log Viewer** to read the backend log in its own window. The desktop app writes the log file here:

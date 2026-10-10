@@ -259,6 +259,26 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
       } }]
   }
 }, {
+  id: "cascaded-shadows",
+  description: "Author cascaded sun shadows and a per-light normal bias through public 3D edit ops.",
+  objective: "Give the 3D scene cascaded sun shadows with 4 cascades that reach 150 meters, keep its other environment settings, and set the sun light's shadow normal bias to 0.03.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("shadow-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene replaces the whole environment object, so send its existing fields. environment.shadows takes cascades {count 2-4, split 0-1, maxDistance}. update_entity sets light3d fields such as shadowBias and shadowNormalBias.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "cascadedShadows", detail: "The scene does not cascade 4 shadow maps over 150 m, lost other environment settings, or the sun has no 0.03 normal bias.",
+      test: document => {
+        const initial = createNative3DGame("shadow-eval").scenes[0].environment;
+        const scene = document.scenes[0];
+        if (document.schemaVersion !== 3 || !scene || !("environment" in scene)) { return false; }
+        const { cascades, ...shadows } = scene.environment.shadows;
+        const sun = scene.entities.find(entity => entity.id === "sun")?.light3d;
+        return cascades?.count === 4 && cascades.maxDistance === 150 && JSON.stringify(shadows) === JSON.stringify(initial.shadows) &&
+          JSON.stringify({ ...scene.environment, shadows: initial.shadows }) === JSON.stringify(initial) &&
+          sun?.kind === "directional" && sun.castShadow && sun.shadowNormalBias === 0.03;
+      } }]
+  }
+}, {
   id: "hud-widget-tree",
   description: "Author a document HUD tree with a score panel and a pause button that presses an input action, through set_game and set_ui.",
   objective: "Add a pause input action. Then give the game a HUD with a panel anchored to the top-right corner holding a text node with id score, and a button with id pause anchored to the bottom centre that presses the pause action.",
