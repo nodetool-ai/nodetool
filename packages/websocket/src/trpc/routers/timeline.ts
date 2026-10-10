@@ -481,6 +481,16 @@ export const timelineRouter = router({
       if (input.id) {
         fields.id = input.id;
       }
+      // Lineage names one of the caller's own sequences, by its full id.
+      if (input.templateId !== undefined) {
+        const template = await loadOwned(ctx.userId, input.templateId);
+        fields.document = JSON.stringify({
+          tracks: [],
+          clips: [],
+          markers: [],
+          templateId: template.id
+        });
+      }
       const seq = new TimelineSequence(fields);
       await seq.save();
       return seq.toTimelineSequence();

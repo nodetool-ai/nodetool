@@ -277,6 +277,39 @@ describe("RenderTimeline — composited path", () => {
     expect(ffmpegArgs().some((a) => a.includes("amix"))).toBe(false);
   });
 
+  it("renders a timeline whose only picture is an overlay clip", async () => {
+    const seq = sequence({
+      clips: [videoClip({ id: "clip-o", mediaType: "overlay" })]
+    });
+    await expect(render(seq)).resolves.toBeDefined();
+    expect(renderComposited).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders a timeline whose only picture is a freshly baked 3D clip", async () => {
+    const { computeModel3DBakeHash } = await import("@nodetool-ai/timeline");
+    const clip = videoClip({
+      id: "clip-3d",
+      mediaType: "model3d",
+      model3dStyle: {
+        camera: { mode: "orbit", azimuthDeg: 0, elevationDeg: 0, fovDeg: 40, zoom: 1 },
+        animation: { loop: true, speed: 1 },
+        lighting: "studio",
+        lightIntensity: 1,
+        background: { transparent: true }
+      }
+    });
+    const seq = sequence({ clips: [clip] });
+    clip.model3dStyle = {
+      ...(clip.model3dStyle as object),
+      bake: {
+        assetId: "asset-bake",
+        dependencyHash: computeModel3DBakeHash(clip as never, seq as never)
+      }
+    };
+    await expect(render(seq)).resolves.toBeDefined();
+    expect(renderComposited).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects a timeline with nothing to render", async () => {
     await expect(render(sequence())).rejects.toThrow(/no renderable clips/);
   });

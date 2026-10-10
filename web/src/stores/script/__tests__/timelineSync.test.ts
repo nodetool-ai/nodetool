@@ -282,4 +282,42 @@ describe("syncLineClipToTimeline", () => {
       "asset-latest"
     );
   });
+
+  it("resets the trim window and records the new take as the active version (S8)", async () => {
+    seedScript("tl-1");
+    getQuery.mockResolvedValue({
+      id: "tl-1",
+      updatedAt: "rev-1",
+      tracks: [track],
+      clips: [
+        linkedClip({
+          inPointMs: 200,
+          outPointMs: 800,
+          activeTakeId: "v-old",
+          versions: [
+            {
+              id: "v-old",
+              createdAt: "2025-01-01T00:00:00.000Z",
+              jobId: "",
+              assetId: "old-asset",
+              workflowUpdatedAt: "2025-01-01T00:00:00.000Z",
+              dependencyHash: "",
+              paramOverridesSnapshot: {},
+              status: "success"
+            }
+          ]
+        })
+      ],
+      markers: []
+    });
+    updateMutate.mockResolvedValue({});
+
+    expect(await syncLineClipToTimeline("script-1", "line-1", take())).toBe(true);
+    const patched = updateMutate.mock.calls[0][0].document.clips[0] as TimelineClip;
+    expect(patched.inPointMs).toBeUndefined();
+    expect(patched.outPointMs).toBeUndefined();
+    const active = patched.versions?.find((v) => v.id === patched.activeTakeId);
+    expect(active?.assetId).toBe("new-asset");
+    expect(patched.versions?.map((v) => v.assetId)).toEqual(["old-asset", "new-asset"]);
+  });
 });

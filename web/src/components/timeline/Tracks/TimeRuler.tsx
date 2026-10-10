@@ -339,7 +339,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const tempo = useTimelineStore((s) => resolveTempo(s));
     const seek = useTimelinePlaybackStore((s) => s.seek);
     const markers = useTimelineStore((s) => s.markers);
-    const removeScene = useTimelineStore((s) => s.removeScene);
+    const deleteMarker = useTimelineStore((s) => s.deleteMarker);
     const fps = useTimelineStore((s) => s.fps);
     const rangeInMs = useTimelinePlaybackStore((s) => s.rangeInMs);
     const rangeOutMs = useTimelinePlaybackStore((s) => s.rangeOutMs);
@@ -644,7 +644,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           viewportWidthPx={viewportWidthPx}
           headerWidthPx={headerWidthPx}
           onSeek={seek}
-          onRemove={removeScene}
+          onRemove={deleteMarker}
         />
       </div>
     );

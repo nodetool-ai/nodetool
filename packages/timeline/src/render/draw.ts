@@ -382,6 +382,8 @@ export function drawCaption(
   width: number,
   height: number
 ): void {
+  // Between cues there is nothing to say, and no scrim to draw behind it.
+  if (caption.words.length === 0) return;
   const style = resolveCaptionStyle(caption.style, height);
   ctx.font = style.font;
   ctx.fontVariationSettings = style.fontVariationSettings;

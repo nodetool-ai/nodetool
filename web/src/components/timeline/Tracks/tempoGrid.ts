@@ -105,10 +105,12 @@ export function computeBarRulerTicks(spec: BarRulerSpec): BarRulerTick[] {
   const beatMs = beatDurationMs(tempo);
   if (!Number.isFinite(barMs) || barMs <= 0) return [];
 
+  // Start one bar early so a bar that begins left of the view still draws
+  // the beats that fall inside it; only ticks inside the range are kept.
   const barTimes = visibleTempoGrid({
     tempo,
     division: "bar",
-    fromMs: spec.fromMs,
+    fromMs: spec.fromMs - barMs,
     toMs: spec.toMs
   });
 
@@ -126,15 +128,18 @@ export function computeBarRulerTicks(spec: BarRulerSpec): BarRulerTick[] {
   for (const timeMs of barTimes) {
     const { bar } = barsBeatsAt(timeMs, tempo);
     const labelled = ((bar - 1) % labelStride + labelStride) % labelStride === 0;
-    const tick: BarRulerTick = { timeMs, kind: "bar" };
-    if (labelled) {
-      tick.label = String(bar);
+    if (timeMs >= spec.fromMs) {
+      const tick: BarRulerTick = { timeMs, kind: "bar" };
+      if (labelled) {
+        tick.label = String(bar);
+      }
+      ticks.push(tick);
     }
-    ticks.push(tick);
     if (!showBeats) continue;
     for (let beat = 1; beat < tempo.timeSignature.beatsPerBar; beat++) {
       const beatTimeMs = timeMs + beat * beatMs;
       if (beatTimeMs > spec.toMs) break;
+      if (beatTimeMs < spec.fromMs) continue;
       ticks.push({ timeMs: beatTimeMs, kind: "beat" });
     }
   }

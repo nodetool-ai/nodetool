@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { applyTimelineTrackOp, type TimelineTrackOp, type TimelineOpState } from "@nodetool-ai/timeline/ops";
-import { STAGGER_UNITS, ANIMATED_PROPERTIES, DEFAULT_BEAT_TOLERANCE_MS } from "@nodetool-ai/timeline";
+import {
+  ANIMATED_PROPERTIES,
+  DEFAULT_BEAT_TOLERANCE_MS,
+  STAGGER_UNITS,
+  createTimeOrderedUuid
+} from "@nodetool-ai/timeline";
 import { buildTimelineToolContracts } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
 import { resolveMoveTrackArgs, resolveDeleteTrackArgs } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
@@ -279,26 +284,6 @@ function applyTrackOps(
     playheadMs: 0,
     selectedClipIds: []
   };
-  const usedIds = new Set([
-    ...[
-      ...document.tracks,
-      ...document.clips,
-      ...document.markers,
-      ...(document.mediaTracks ?? [])
-    ].map((unit) => unit.id),
-    ...document.clips.flatMap((clip) =>
-      (clip.animations ?? []).map((animation) => animation.id)
-    )
-  ]);
-  let nextId = 0;
-  const newId = (): string => {
-    let id: string;
-    do {
-      id = `track_${++nextId}`;
-    } while (usedIds.has(id));
-    usedIds.add(id);
-    return id;
-  };
   const records: OpRecord[] = [];
   for (const entry of ops) {
     try {
@@ -322,7 +307,9 @@ function applyTrackOps(
         );
         op = { op: "delete_track", ...resolveDeleteTrackArgs(args) };
       }
-      const outcome = applyTimelineTrackOp(state, op, { newId });
+      const outcome = applyTimelineTrackOp(state, op, {
+        newId: createTimeOrderedUuid
+      });
       if (outcome.error) throw new Error(outcome.error);
       state = outcome.state;
       records.push({ op: entry.op, ok: true, result: outcome.result });

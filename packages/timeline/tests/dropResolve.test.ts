@@ -188,3 +188,20 @@ describe("drop resolution keeps links and groups whole", () => {
     expect(byId(ins, "ma")!.startMs).toBe(1000);
   });
 });
+
+describe("resolveOverwrite with locks", () => {
+  it("leaves a locked clip, or one on a locked track, under the mover", () => {
+    const clips = [
+      clip("m", 4000, 2000),
+      clip("locked", 4000, 2000, { locked: true }),
+      clip("onLockedTrack", 3000, 2000, { trackId: "v2" }),
+      clip("m2", 3500, 1000, { trackId: "v2" })
+    ];
+    const out = resolveDrop(clips, new Set(["m", "m2"]), "overwrite", {
+      lockedClipIds: new Set(["locked"]),
+      lockedTrackIds: new Set(["v2"])
+    });
+    expect(byId(out, "locked")).toEqual(clips[1]);
+    expect(byId(out, "onLockedTrack")).toEqual(clips[2]);
+  });
+});
