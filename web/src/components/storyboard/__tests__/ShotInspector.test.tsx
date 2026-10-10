@@ -22,6 +22,16 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
 }));
 
 let mockEntities: Entity[] = [];
+jest.mock("../ShotRenderDialog", () => ({
+  __esModule: true,
+  default: ({ step, shot }: { step: string; shot: { action?: string } }) => (
+    <div
+      data-testid="shot-render-dialog"
+      data-step={step}
+      data-action={shot.action}
+    />
+  )
+}));
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: mockEntities })
 }));
@@ -215,11 +225,14 @@ describe("ShotInspector selection footer (PRD § 7.5)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders a new still from Regenerate", async () => {
-    const shot = makeShot();
-    renderInspector(shot);
+  it("asks for the still model on Regenerate", async () => {
+    renderInspector(makeShot());
     await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
-    expect(generateKeyframeMock).toHaveBeenCalledWith("board-1", shot);
+    expect(screen.getByTestId("shot-render-dialog")).toHaveAttribute(
+      "data-step",
+      "still"
+    );
+    expect(generateKeyframeMock).not.toHaveBeenCalled();
   });
 
   it("collects an iterate instruction, and only with a clip", async () => {

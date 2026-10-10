@@ -3,6 +3,7 @@
  */
 
 import { createVectorLayer } from "../../vectorLayer";
+import { initialHistory } from "./historySlice";
 
 import type { StateCreator } from "zustand";
 import type { SketchStore } from "../useSketchStore";
@@ -151,7 +152,13 @@ export interface DocumentSlice {
   document: SketchDocument;
 
   // Document actions
+  /** Load a document: resets undo history to a single "Open" checkpoint. */
   setDocument: (doc: SketchDocument) => void;
+  /**
+   * Swap in an edited copy of the open document. Unlike `setDocument`, undo
+   * history is kept, so the caller records the edit with `pushHistory`.
+   */
+  replaceDocument: (doc: SketchDocument) => void;
   resetDocument: (width?: number, height?: number) => void;
   /**
    * Patch the guided-setup block (PRD § 10.5). The image flow is a function of
@@ -235,12 +242,15 @@ export const createDocumentSlice: StateCreator<
       // Hydrate the separate toolSettings slice from the loaded document so
       // the runtime source of truth (store.toolSettings) matches what was saved.
       toolSettings: normalized.toolSettings,
-      history: [],
-      historyIndex: -1,
+      ...initialHistory(normalized, get().selection),
       selectedLayerIds: [],
       layerShiftRangeAnchorId: null,
       transientMoveModifierHeld: false
     });
+  },
+
+  replaceDocument: (doc: SketchDocument) => {
+    set({ document: doc });
   },
 
   addVectorLayer: (name, source) => {
@@ -364,8 +374,7 @@ export const createDocumentSlice: StateCreator<
       zoom: 1,
       pan: { x: 0, y: 0 },
       isDrawing: false,
-      history: [],
-      historyIndex: -1,
+      ...initialHistory(defaultDoc, get().selection),
       selectedLayerIds: [],
       layerShiftRangeAnchorId: null
     });
@@ -486,7 +495,9 @@ export const createDocumentSlice: StateCreator<
         locked: layer.type === "vector",
         exposedAsInput: true,
         exposedAsOutput: true,
-        imageReference: undefined
+        // A generated or placed image keeps its pixels only in the reference
+        // until it is edited, so a copy without data needs it to load.
+        imageReference: layer.data ? undefined : layer.imageReference
       };
       const idx = state.document.layers.findIndex((l) => l.id === layerId);
       const newLayers = [...state.document.layers];
@@ -796,13 +807,16 @@ export const createDocumentSlice: StateCreator<
     );
     set((state) => {
       const layers = state.document.layers;
-      const activeIdx = layers.findIndex(
-        (l) => l.id === state.document.activeLayerId
+      // Same placement as a new layer: above the active layer in its parent,
+      // so the new group never splits another group's children apart.
+      const { insertAt, parentId } = computeNewLayerInsertion(
+        layers,
+        state.document.activeLayerId
       );
-      const insertAt = activeIdx >= 0 ? activeIdx + 1 : layers.length;
+      const placed: Layer = parentId ? { ...group, parentId } : group;
       const newLayers = [
         ...layers.slice(0, insertAt),
-        group,
+        placed,
         ...layers.slice(insertAt)
       ];
       return {

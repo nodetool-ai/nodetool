@@ -233,6 +233,8 @@ export type { CardProps } from "./Card";
 
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
+export { PanelHeader, PANEL_HEADER_HEIGHT } from "./PanelHeader";
+export type { PanelHeaderProps } from "./PanelHeader";
 
 // Typography primitives
 export { Text } from "./Text";
@@ -326,6 +328,12 @@ export type { SectionHeaderProps } from "./SectionHeader";
 
 export { ColorSwatch } from "./ColorSwatch";
 export type { ColorSwatchProps } from "./ColorSwatch";
+
+export { CurveEditor } from "./CurveEditor";
+export type { CurveEditorProps, CurveKey } from "./CurveEditor";
+
+export { GradientEditor } from "./GradientEditor";
+export type { GradientEditorProps, GradientStop } from "./GradientEditor";
 
 export { Overlay } from "./Overlay";
 export type { OverlayProps } from "./Overlay";

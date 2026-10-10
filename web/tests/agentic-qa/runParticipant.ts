@@ -49,7 +49,7 @@ const PROTOCOL_PATH = join(
   ".agents/skills/agentic-qa/references/participant.md"
 );
 
-const VIEWPORT = { width: 1440, height: 900 } as const;
+const DEFAULT_VIEWPORT = { width: 1440, height: 900 } as const;
 const SERVER_NAME = "browser";
 const SETTLE_MS = 700;
 const MAX_WAIT_SECONDS = 10;
@@ -76,7 +76,14 @@ const PacketSchema = z.object({
    */
   credentials: z
     .array(z.object({ label: z.string(), value: z.string() }))
-    .default([])
+    .default([]),
+  /** CSS pixels, device scale 1. A smaller laptop screen shows layout faults. */
+  viewport: z
+    .object({
+      width: z.number().int().min(320),
+      height: z.number().int().min(320)
+    })
+    .default(DEFAULT_VIEWPORT)
 });
 type Packet = z.infer<typeof PacketSchema>;
 
@@ -123,10 +130,10 @@ function renderPacket(packet: Packet): string {
   ].join("\n");
 }
 
-const TOOL_GUIDE = `
+const toolGuide = (viewport: Packet["viewport"]): string => `
 ## Browser tools
 
-You see the browser only through viewport screenshots of ${VIEWPORT.width} × ${VIEWPORT.height}
+You see the browser only through viewport screenshots of ${viewport.width} × ${viewport.height}
 CSS pixels. Coordinates are CSS pixels from the top-left corner of the screenshot.
 Every action tool performs one action and returns a receipt with the new
 screenshot, its ID, the address bar, and the tab title. \`screenshot\` does not
@@ -214,7 +221,7 @@ class BrowserSession {
     });
     this.browser = browser;
     this.context = await browser.newContext({
-      viewport: VIEWPORT,
+      viewport: this.packet.viewport,
       deviceScaleFactor: 1,
       locale: "en-US"
     });
@@ -308,6 +315,7 @@ class BrowserSession {
       `Screenshot: ${shot.id}`,
       `Address bar: ${this.page.url()}`,
       `Tab title: ${title || "(none)"}`,
+      `Open tabs: ${this.context.pages().length}`,
       ...events
     ];
     const remaining = this.packet.maxActions - this.actions;
@@ -354,6 +362,18 @@ class BrowserSession {
     return this.receipt(summary);
   }
 
+  /**
+   * Close the active tab, as a person does with the tab's close button. A
+   * blocked link that opened a tab otherwise strands the participant there:
+   * Control+W does not reach the browser chrome under automation.
+   */
+  async closeTab(): Promise<void> {
+    if (this.context.pages().length < 2) {
+      throw new Error("This is the only open tab, so it stayed open.");
+    }
+    await this.page.close();
+  }
+
   async chooseFile(name: string): Promise<string> {
     const asset = this.packet.assets.find((a) => a.name === name);
     if (!this.fileChooser) {
@@ -388,8 +408,8 @@ function textResult(text: string) {
 
 function buildTools(session: BrowserSession, packet: Packet, log: (r: Receipt) => Promise<void>) {
   const coord = {
-    x: z.number().int().min(0).max(VIEWPORT.width - 1),
-    y: z.number().int().min(0).max(VIEWPORT.height - 1)
+    x: z.number().int().min(0).max(packet.viewport.width - 1),
+    y: z.number().int().min(0).max(packet.viewport.height - 1)
   };
   const action = async (
     describe: string,
@@ -492,6 +512,15 @@ function buildTools(session: BrowserSession, packet: Packet, log: (r: Receipt) =
         await page.reload({ waitUntil: "load" }).catch(() => undefined);
       })
     ),
+    tool(
+      "close_tab",
+      "Close the active browser tab and return to the tab before it. The receipt says how many tabs are open.",
+      {},
+      async () =>
+        action("closed the tab", async () => {
+          await session.closeTab();
+        })
+    ),
     ...(packet.assets.length > 0
       ? [
           tool(
@@ -516,7 +545,7 @@ async function main(): Promise<void> {
   await mkdir(join(outDir, "private"), { recursive: true });
 
   const protocol = await readFile(PROTOCOL_PATH, "utf8");
-  const systemPrompt = `${protocol.trim()}\n${TOOL_GUIDE}`;
+  const systemPrompt = `${protocol.trim()}\n${toolGuide(packet.viewport)}`;
   const prompt = renderPacket(packet);
 
   const session = new BrowserSession(packet, outDir);
@@ -551,7 +580,7 @@ async function main(): Promise<void> {
       sha256: createHash("sha256").update(protocol).digest("hex")
     },
     systemPromptSha256: createHash("sha256").update(systemPrompt).digest("hex"),
-    browser: { engine: "chromium", viewport: VIEWPORT, deviceScaleFactor: 1, locale: "en-US", freshContext: true },
+    browser: { engine: "chromium", viewport: packet.viewport, deviceScaleFactor: 1, locale: "en-US", freshContext: true },
     model: cli.model,
     toolAllowlist: toolNames,
     accountContext,

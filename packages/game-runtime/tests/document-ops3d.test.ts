@@ -216,3 +216,28 @@ describe("atomic 3D document operations", () => {
     expect(applyAnyGameOps(blockout(), [{ op: "update_entity", entity_id: "player", set: { name: "Renamed" } }]).dimension).toBe("3d");
   });
 });
+
+describe("shadow settings through public operations", () => {
+  function withLamps(count: number): GameDocument3D {
+    const game = blockout();
+    for (let index = 0; index < count; index++) {
+      game.scenes[0].entities.push(gameEntity3D.parse({ id: `lamp${index}`, transform3d: {}, light3d: { kind: "point", color: "#ffffff", intensity: 1, range: 6 } }));
+    }
+    return game;
+  }
+  it("sets per-light shadows and bias, and scene cascades", () => {
+    const game = withLamps(1);
+    const lit = applyGameOps3D(game, [{ op: "update_entity", entity_id: "lamp0", set: { light3d: { castShadow: true, shadowBias: -0.0005, shadowNormalBias: 0.02 } } }]);
+    expect(lit.scenes[0].entities.find((entity) => entity.id === "lamp0")?.light3d).toEqual({ kind: "point", color: "#ffffff", intensity: 1, range: 6, decay: 2,
+      castShadow: true, shadowBias: -0.0005, shadowNormalBias: 0.02 });
+    const shadows = game.scenes[0].environment.shadows;
+    const cascaded = applyGameOps3D(lit, [{ op: "update_scene", scene_id: game.scenes[0].id, set: { environment: { ...game.scenes[0].environment, shadows: { ...shadows, cascades: { count: 4 } } } } }]);
+    expect(cascaded.scenes[0].environment.shadows).toEqual({ ...shadows, cascades: { count: 4, split: 0.5, maxDistance: 200 } });
+    expect(() => applyGameOps3D(lit, [{ op: "update_scene", scene_id: game.scenes[0].id, set: { environment: { ...game.scenes[0].environment, shadows: { ...shadows, cascades: { count: 6 } } } } }])).toThrow(GameOpError);
+  });
+  it("rejects a fifth shadowed local light", () => {
+    const game = withLamps(5);
+    const four = applyGameOps3D(game, [0, 1, 2, 3].map((index) => ({ op: "update_entity" as const, entity_id: `lamp${index}`, set: { light3d: { castShadow: true } } })));
+    expect(() => applyGameOps3D(four, [{ op: "update_entity", entity_id: "lamp4", set: { light3d: { castShadow: true } } }])).toThrow(/At most 4 point and spot lights/);
+  });
+});

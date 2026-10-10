@@ -107,3 +107,77 @@ describe("a selection after a stroke", () => {
     expect(useSketchStore.getState().selection).toBe(mask);
   });
 });
+
+describe("the first edit on a freshly loaded document", () => {
+  it("undoes an edit pushed after it ran", () => {
+    act(() => {
+      const state = useSketchStore.getState();
+      state.addLayer("Second");
+      useSketchStore.getState().pushHistory("add layer");
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(2);
+    expect(useSketchStore.getState().canUndo()).toBe(true);
+    expect(rowLabels()).toEqual(["Open", "Add layer"]);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers).toHaveLength(1);
+    expect(useSketchStore.getState().canUndo()).toBe(false);
+  });
+
+  it("undoes a first edit after setDocument", () => {
+    const doc = useSketchStore.getState().document;
+    act(() => {
+      useSketchStore.getState().setDocument({ ...doc, layers: [...doc.layers] });
+      useSketchStore.getState().renameLayer(doc.layers[0].id, "Renamed");
+      useSketchStore.getState().pushHistory("rename layer");
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers[0].name).toBe(doc.layers[0].name);
+  });
+
+  it("does not add an undo step before a first stroke", () => {
+    act(() => {
+      stroke("stroke A", A);
+    });
+    expect(useSketchStore.getState().history).toHaveLength(1);
+    expect(rowLabels()).toEqual(["Open", "Stroke A"]);
+  });
+});
+
+describe("commitPendingEdit", () => {
+  it("gives a stroke and the layer edit after it separate undo steps", () => {
+    const layerId = useSketchStore.getState().document.layers[0].id;
+    act(() => {
+      stroke("brush stroke", A);
+      useSketchStore.getState().commitPendingEdit();
+      useSketchStore.getState().renameLayer(layerId, "Renamed");
+      useSketchStore.getState().pushHistory("rename layer");
+    });
+    expect(rowLabels()).toEqual(["Open", "Brush stroke", "Rename layer"]);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers[0].name).not.toBe("Renamed");
+    expect(liveData()).toBe(A);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(liveData()).not.toBe(A);
+  });
+
+  it("records nothing when no edit is pending", () => {
+    act(() => {
+      stroke("brush stroke", A);
+      useSketchStore.getState().commitPendingEdit();
+    });
+    const { history } = useSketchStore.getState();
+    act(() => {
+      useSketchStore.getState().commitPendingEdit();
+    });
+    expect(useSketchStore.getState().history).toBe(history);
+  });
+});

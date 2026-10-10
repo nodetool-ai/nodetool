@@ -8,6 +8,7 @@ type EntityUnit = Omit<GameEntity, "behaviors"> & { sceneId: string };
 interface BehaviorUnit { sceneId: string; entityId: string; index: number; behavior: GameBehavior }
 interface BackgroundUnit { sceneId: string; id: string; layer: NonNullable<GameScene["backgrounds"]>[number] }
 interface LightingUnit { sceneId: string; lighting: GameScene["lighting"] }
+interface SceneUiUnit { sceneId: string; ui: NonNullable<GameScene["ui"]> }
 interface AssetUnit { slot: string; binding: GameDocument["assets"][string] }
 
 function key(unit: unknown): string {
@@ -75,6 +76,17 @@ export const gameMergeAdapter: DocumentMergeAdapter<GameDocument> = {
       unitLabel: (unit) => `lighting in ${(unit as LightingUnit).sceneId}`
     },
     {
+      kind: "sceneUi",
+      read: (doc) => doc.scenes.flatMap((scene): SceneUiUnit[] => scene.ui ? [{ sceneId: scene.id, ui: scene.ui }] : []),
+      write: (doc, units) => ({ ...doc, scenes: doc.scenes.map((scene) => {
+        const { ui: _previous, ...rest } = scene;
+        const ui = (units as SceneUiUnit[]).find((unit) => unit.sceneId === scene.id)?.ui;
+        return ui ? { ...rest, ui } : rest;
+      }) }),
+      unitId: (unit) => (unit as SceneUiUnit).sceneId,
+      unitLabel: (unit) => `HUD in ${(unit as SceneUiUnit).sceneId}`
+    },
+    {
       kind: "asset",
       read: (doc) => Object.entries(doc.assets).map(([slot, binding]): AssetUnit => ({ slot, binding })),
       write: (doc, units) => ({ ...doc, assets: Object.fromEntries((units as AssetUnit[]).map((unit) => [unit.slot, unit.binding])) }),
@@ -94,7 +106,11 @@ export const gameMergeAdapter: DocumentMergeAdapter<GameDocument> = {
     { name: "collisionLayers", read: (doc) => doc.collisionLayers, write: (doc, value) => ({ ...doc, collisionLayers: value as string[] | undefined }) },
     { name: "renderEffects", read: (doc) => doc.renderEffects, write: (doc, value) => ({ ...doc, renderEffects: value as GameDocument["renderEffects"] }) },
     { name: "hudEffectOrder", read: (doc) => doc.hudEffectOrder, write: (doc, value) => ({ ...doc, hudEffectOrder: value as GameDocument["hudEffectOrder"] }) },
-    { name: "audio", read: (doc) => doc.audio, write: (doc, value) => ({ ...doc, audio: value as GameDocument["audio"] }) }
+    { name: "audio", read: (doc) => doc.audio, write: (doc, value) => ({ ...doc, audio: value as GameDocument["audio"] }) },
+    { name: "ui", read: (doc) => doc.ui, write: (doc, value) => {
+      const { ui: _previous, ...rest } = doc;
+      return value === undefined ? rest : { ...rest, ui: value as GameDocument["ui"] };
+    } }
   ]
 };
 

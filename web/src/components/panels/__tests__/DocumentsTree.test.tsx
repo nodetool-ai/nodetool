@@ -252,3 +252,11 @@ it("does not delete when the user cancels", async () => {
 
   expect(mockDeleteMutate).not.toHaveBeenCalled();
 });
+
+it("points an empty project at the Library, where text files are listed", () => {
+  mockUseDocumentTreeData.mockReturnValue({ ...data, groups: [] });
+  renderTree();
+
+  expect(screen.getByText("No documents yet")).toBeInTheDocument();
+  expect(screen.getByText(/Text files and uploads are in the Library/)).toBeInTheDocument();
+});

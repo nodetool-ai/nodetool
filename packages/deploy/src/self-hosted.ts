@@ -113,6 +113,18 @@ function expandUser(p: string): string {
   return p;
 }
 
+/** uid and gid of the `node` user the published image runs as. */
+const CONTAINER_UID = 1000;
+
+/**
+ * How long `docker stop` waits before SIGKILL. The server spends up to
+ * NODETOOL_SHUTDOWN_GRACE_MS (240 s by default) letting aborted chat turns
+ * and jobs write their final rows, then flushes telemetry. Docker's default
+ * of 10 s cuts that off and leaves transcripts incomplete. An idle server
+ * exits at once, so the longer limit costs nothing on a quiet redeploy.
+ */
+const STOP_TIMEOUT_SECONDS = 270;
+
 const LOCALHOST_NAMES = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0"]);
 
 /** Every address a host resolves to; empty when neither tool answers. */
@@ -355,19 +367,49 @@ export class DockerDeployer {
   ): Promise<void> {
     this.log(results, "Creating directories...");
 
-    const workspacePath = expandUser(this.deployment.paths.workspace);
-    await ssh.mkdir(workspacePath, 0o755, true);
+    // Create the paths with the target's own shell so `~` expands to the home
+    // directory there, which is what the `docker run -v` mount resolves to.
+    const workspacePath = this.deployment.paths.workspace;
+    const hfCachePath = this.deployment.paths.hf_cache;
+    const dirs = [
+      workspacePath,
+      `${workspacePath}/data`,
+      `${workspacePath}/assets`,
+      `${workspacePath}/temp`,
+      hfCachePath
+    ];
+    await ssh.execute(
+      `mkdir -p ${dirs.map(safeShellQuote).join(" ")}`,
+      true,
+      30
+    );
     this.log(results, `  Created: ${workspacePath}`);
-
-    await ssh.mkdir(`${workspacePath}/data`, 0o755, true);
-    await ssh.mkdir(`${workspacePath}/assets`, 0o755, true);
-    await ssh.mkdir(`${workspacePath}/temp`, 0o755, true);
-    await ssh.mkdir(`${workspacePath}/proxy`, 0o755, true);
-    await ssh.mkdir(`${workspacePath}/acme`, 0o755, true);
-
-    const hfCachePath = expandUser(this.deployment.paths.hf_cache);
-    await ssh.mkdir(hfCachePath, 0o755, true);
     this.log(results, `  Created: ${hfCachePath}`);
+  }
+
+  /**
+   * Hand the workspace mount to the image's `node` user (uid 1000). The
+   * directory belongs to whoever ran `mkdir`, and the container cannot write
+   * to it otherwise: the entrypoint cannot store the generated master key and
+   * SQLite cannot create the database. Runs as root inside the image, so it
+   * needs no sudo on the host and maps uids correctly under rootless podman.
+   */
+  private async prepareWorkspaceOwnership(
+    ssh: Executor,
+    results: DeployResult
+  ): Promise<void> {
+    const runtime = this.runtimeCommandForShell();
+    const image = shellQuote(imageConfigFullName(this.deployment.image));
+    const mount = safeShellQuote(
+      `${this.deployment.paths.workspace}:/workspace`
+    );
+    await ssh.execute(
+      `${runtime} run --rm --user 0 --entrypoint chown -v ${mount} ${image} ` +
+        `${CONTAINER_UID}:${CONTAINER_UID} /workspace /workspace/data /workspace/assets /workspace/temp`,
+      true,
+      120
+    );
+    results.steps.push(`  Workspace owned by container user ${CONTAINER_UID}`);
   }
 
   // ---- Container runtime helpers -----------------------------------------
@@ -502,6 +544,7 @@ export class DockerDeployer {
       await this.withExecutor(async (executor) => {
         await this.createDirectories(executor, results);
         await this.ensureImage(executor, results);
+        await this.prepareWorkspaceOwnership(executor, results);
 
         await this.stopExistingContainer(executor, results);
 
@@ -559,9 +602,9 @@ export class DockerDeployer {
       if (stdout.trim()) {
         results.steps.push(`  Found existing app container: ${containerName}`);
         await ssh.execute(
-          `${runtime} stop ${safeShellQuote(containerName)}`,
+          `${runtime} stop -t ${STOP_TIMEOUT_SECONDS} ${safeShellQuote(containerName)}`,
           false,
-          60
+          STOP_TIMEOUT_SECONDS + 30
         );
         results.steps.push(`  Stopped app container: ${containerName}`);
         await ssh.execute(
@@ -590,9 +633,9 @@ export class DockerDeployer {
           `  Found conflicting NodeTool container on port ${this.appHostPort()}: ${conflictName}`
         );
         await ssh.execute(
-          `${runtime} stop ${safeShellQuote(conflictName)}`,
+          `${runtime} stop -t ${STOP_TIMEOUT_SECONDS} ${safeShellQuote(conflictName)}`,
           false,
-          60
+          STOP_TIMEOUT_SECONDS + 30
         );
         await ssh.execute(
           `${runtime} rm ${safeShellQuote(conflictName)}`,
@@ -625,9 +668,9 @@ export class DockerDeployer {
       results.steps.push(`  Found existing app container: ${containerName}`);
       try {
         await ssh.execute(
-          `${runtime} stop ${safeShellQuote(containerName)}`,
+          `${runtime} stop -t ${STOP_TIMEOUT_SECONDS} ${safeShellQuote(containerName)}`,
           false,
-          60
+          STOP_TIMEOUT_SECONDS + 30
         );
         results.steps.push(`  Stopped app container: ${containerName}`);
       } catch (exc) {
@@ -668,9 +711,9 @@ export class DockerDeployer {
         );
         try {
           await ssh.execute(
-            `${runtime} stop ${safeShellQuote(conflictName)}`,
+            `${runtime} stop -t ${STOP_TIMEOUT_SECONDS} ${safeShellQuote(conflictName)}`,
             false,
-            60
+            STOP_TIMEOUT_SECONDS + 30
           );
         } catch {
           // ignore
@@ -700,7 +743,11 @@ export class DockerDeployer {
     const generator = this.containerGenerator();
     const command = generator.generateCommand();
     const containerHash = generator.generateHash();
-    results.steps.push(`  Command: ${command.slice(0, 120)}...`);
+    // The command carries every `-e` value (SERVER_AUTH_TOKEN, provider keys),
+    // so neither the step log nor a failure may echo it.
+    results.steps.push(
+      `  Image: ${imageConfigFullName(this.deployment.image)}`
+    );
 
     try {
       const [, stdout] = await ssh.execute(command, true, 300);
@@ -711,6 +758,12 @@ export class DockerDeployer {
     } catch (exc) {
       if (exc instanceof SSHCommandError) {
         results.errors.push(`Failed to start app container: ${exc.stderr}`);
+        throw new SSHCommandError(
+          `Failed to start app container (exit ${exc.exitCode}): ${exc.stderr.trim()}`,
+          exc.exitCode,
+          exc.stdout,
+          exc.stderr
+        );
       }
       throw exc;
     }
@@ -726,7 +779,9 @@ export class DockerDeployer {
 
     const containerName = this.containerName();
     const healthUrl = `http://127.0.0.1:${this.appHostPort()}/health`;
-    const maxAttempts = 10;
+    // About a minute: the image's own HEALTHCHECK allows a 30 s start period,
+    // and the first boot also runs migrations.
+    const maxAttempts = 30;
     let lastErrors: string[] = [];
 
     await sleep(2);
@@ -803,9 +858,9 @@ export class DockerDeployer {
 
         try {
           await ssh.execute(
-            `${runtime} stop ${safeShellQuote(containerName)}`,
+            `${runtime} stop -t ${STOP_TIMEOUT_SECONDS} ${safeShellQuote(containerName)}`,
             false,
-            30
+            STOP_TIMEOUT_SECONDS + 30
           );
           results.steps.push(`Container stopped: ${containerName}`);
         } catch (e) {

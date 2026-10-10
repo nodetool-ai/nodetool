@@ -324,6 +324,26 @@ describe("PreviewArea", () => {
     });
   });
 
+  describe("live position while playing", () => {
+    it("moves the timecode and the scrub bar with the playhead", () => {
+      mockIsPlaying = true;
+      mockCurrentTimeMs = 0;
+      renderPreview();
+      act(() => {
+        for (const [listener] of mockSubscribeTime.mock.calls as unknown as Array<
+          [(ms: number) => void]
+        >) {
+          listener(12_000);
+        }
+      });
+      expect(screen.getByText("00:00:12:00")).toBeInTheDocument();
+      expect(
+        screen.getByRole("slider", { name: "Scrub timeline" })
+      ).toHaveAttribute("aria-valuenow", "12000");
+      mockIsPlaying = false;
+    });
+  });
+
   describe("keyboard shortcuts", () => {
     it("calls stop on Home key", () => {
       mockIsPlaying = true;

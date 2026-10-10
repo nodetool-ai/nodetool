@@ -88,12 +88,14 @@ const realPackageTests = [
   "tests/game-command-golden.test.ts",
   "tests/game-command-sky-golden.test.ts",
   "tests/game-command-post-golden.test.ts",
+  "tests/game-command-shadow-golden.test.ts",
   "tests/gameGoldenDiagnostics.test.ts",
   "tests/local-model-interfaces-sketch.test.ts",
   "tests/local-model-interface-parity.test.ts",
   "src/commands/__tests__/timeline-render-audio.test.ts",
   "src/commands/__tests__/timeline-render-completeness.test.ts",
-  "tests/game-command-input-bindings.test.ts"
+  "tests/game-command-input-bindings.test.ts",
+  "tests/game-command-hud-ui.test.ts"
 ];
 
 export default defineConfig({

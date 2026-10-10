@@ -602,6 +602,8 @@ describe("expandEntitiesForGeneration", () => {
       "asset://e1.png",
       "asset://e2.jpeg"
     ]);
+    // Each image carries its entity's name, so a provider can mention it.
+    expect(out.referenceNames).toEqual(["Marta", "Liam"]);
   });
 
   it("leaves a prompt without entity tokens alone", async () => {
@@ -609,7 +611,11 @@ describe("expandEntitiesForGeneration", () => {
       "plain prompt",
       entityContext({})
     );
-    expect(out).toEqual({ prompt: "plain prompt", referenceImages: [] });
+    expect(out).toEqual({
+      prompt: "plain prompt",
+      referenceImages: [],
+      referenceNames: []
+    });
   });
 
   it("drops an unresolvable entity mention", async () => {

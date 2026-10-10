@@ -475,6 +475,29 @@ for the machine-readable report.
 
 ### R: 3D rendering
 
+`environment.shadows` is `{ enabled, mapSize, extent, cascades? }`. Without
+`cascades`, the one shadow-casting directional light draws a single map that
+covers `extent` meters around the light. That is the default and renders exactly
+as before. For scenes deeper than about 30 m, add
+`cascades: { count, split, maxDistance }`. It splits the camera view into
+`count` maps (2 to 4, default 3) up to `maxDistance` meters (default 200), so
+near shadows stay sharp and far shadows stay continuous. `split` (0 to 1,
+default 0.5) gives nearby cascades more resolution as it rises. `extent` is
+ignored while cascades are on. Only one directional light can cast shadows.
+
+Point and spot lights cast shadows when their `light3d.castShadow` is `true`.
+At most 4 of them may cast per scene. Validation rejects a fifth. If spawned
+prefabs push a frame over the budget, the extra lights render unshadowed and
+the capture stats report one diagnostic with the largest overflow count seen.
+Each local shadow re-renders the scene
+(six times for a point light), so enable it only on lights that need it.
+
+Every light accepts `shadowBias` (-0.01 to 0.01) and `shadowNormalBias` (0 to
+1), both default 0. Raise `shadowNormalBias` to about 0.02 to 0.05, or set
+`shadowBias` to about -0.0005, when lit surfaces show striped shadow acne. Too
+much bias detaches shadows from their casters. Set lights with `update_entity`
+and cascades with `update_scene`, which replaces the whole `environment`.
+
 A 3D scene's `environment.sky` sets its background and image-based lighting.
 Omit it, or use `{ kind: "color" }`, for the solid `background` color without
 environment lighting. That is the default and renders exactly as before.
@@ -675,6 +698,20 @@ blends node translation, rotation and scale. It does not blend morph targets.
 
 ### S: Scripting and gameplay
 
+#### Script time limits
+
+`maxTickMs` counts the CPU time of the thread running the script. The count
+starts just before the call, or before the source is evaluated when the call
+must compile it, and ends when its output is checked. A resident script
+compiles on its first call only. Time spent waiting for a processor does not
+count. The operating system updates CPU time in steps: one scheduler tick on
+Linux (1 to 10 ms) and about 16 ms on Windows. A call ends only when both its
+CPU time and its wall time reach the limit, so these steps cannot end it
+early. Browsers have no thread CPU clock, so there the limit counts wall time. The
+50 ms script budget for a whole tick, which includes context setup, and the
+100 ms limit for evaluating a source during preparation count wall time on
+every host. A script that loops forever still ends at its limit.
+
 #### Script parameters
 
 Declare a script's tunables as `params` on its script behavior instead of
@@ -788,6 +825,56 @@ both standalone players show a stick when an action or axis has a touch stick
 binding and one button per action with a touch button binding. The 3D player
 also turns the camera by dragging on the right half. Input pressed while play is
 paused is dropped. Player-facing rebinding is not stored yet.
+
+#### HUD widget tree (2D)
+
+`ui` on the document holds HUD widgets drawn in every scene. `ui` on a scene
+holds widgets drawn above them in that scene. Set either with
+`set_ui {scene_id?, ui}`, or `ui: null` to remove it. The op replaces the whole
+tree: `{safeArea?, focusNavigation?, nodes: [node]}`. 3D documents do not take a
+tree yet. Keep their `hud` labels.
+
+Every node has `kind`, `id`, and optionally `parent`, `anchor`, `pivot`,
+`offset`, `width`, `height`, `visible` and `opacity`. `anchor` is a point
+`{x, y}` in 0..1 of the parent's rectangle, or of the HUD rectangle for a root
+node, so `{x: 1, y: 0}` is the top-right corner. `pivot` is the node's own point
+placed there and defaults to `anchor`. `offset` moves the node in HUD pixels.
+The 2D HUD rectangle is the camera view at `pixelsPerUnit` pixels per unit, so a
+16 by 9 camera at 32 pixels per unit gives 512 by 288. With `safeArea` (default
+true) root anchors stay inside the device's safe-area insets.
+
+- `panel {color?, cornerRadius?}` fills its rectangle and holds children placed
+  by their anchors.
+- `image {assetId}` draws an image asset.
+- `text {text, size?, color?, align?, fontId?}` sizes itself from its text
+  unless it has a width.
+- `bar {source?, value?, max?, color?, background?, direction?}` fills
+  `value / max` (max defaults to 1). `source: {kind: "health", entityId}` reads
+  the entity's health and its health behavior's maximum.
+- `button {action, text?, background?, size?, color?, fontId?}` presses a
+  declared input action while a mouse button or a finger holds it.
+- `stack {direction?, gap?, padding?, align?}` lays children in a column or a
+  row and sizes itself from them.
+- `grid {columns, gap?, padding?}` lays children in cells as large as the
+  largest child.
+
+A child must come after its parent, and only panels, stacks and grids hold
+children. Panels, images, bars and buttons need `width` and `height`. Ids are
+unique across the document tree and each scene tree.
+
+Scripts change nodes with `{kind: "ui", id, text?, value?, max?, visible?}`.
+`text` applies to text and buttons, `value` and `max` to bars, and `visible`
+to any node. A change lasts until the scene changes and is saved in snapshots.
+A command for a missing node, or a field the node does not have, fails the step.
+An `onDestroy` hook cannot return `ui` commands. Change the HUD from another
+behavior's update.
+
+A button press reaches scripts as its action in `pressed` and `justPressed`,
+exactly like a key, so replays and snapshots need nothing extra. With
+`focusNavigation: true`, the gamepad D-pad moves focus between visible buttons
+and button 0 presses the focused one. While the tree shows a button, those
+gamepad buttons drive the HUD instead of the game's bindings. Existing `hud`
+labels still draw, above the tree.
 
 ### G: Navigation and AI
 

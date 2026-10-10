@@ -1,7 +1,8 @@
 import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
-import { gameNonSpatialScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
+import { gameNonSpatialScriptCommand, gameUiScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
 
+import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
 import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
 import { canPersistGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
@@ -24,7 +25,8 @@ export const gameScriptCommand = z.discriminatedUnion("kind", [
   gameNonSpatialScriptCommand.options[4],
   gameNonSpatialScriptCommand.options[5],
   gameNonSpatialScriptCommand.options[6],
-  gameNonSpatialScriptCommand.options[7]
+  gameNonSpatialScriptCommand.options[7],
+  gameUiScriptCommand
 ]);
 
 export type GameScriptCommand = z.infer<typeof gameScriptCommand>;
@@ -138,10 +140,20 @@ function initializeContext(context: QuickJSContext, seed: number, helpers: strin
   `, "game-transport.js", { type: "global" }));
 }
 
+function interrupted(budget: string): Error {
+  return new Error(`Game script interrupted: ${budget} budget exceeded`);
+}
+
 function assertBeforeDeadline(deadline: number, budget: string): void {
-  if (performance.now() >= deadline) {
-    throw new Error(`Game script interrupted: ${budget} budget exceeded`);
-  }
+  if (performance.now() >= deadline) { throw interrupted(budget); }
+}
+
+export interface GameScriptOptions {
+  /**
+   * Measures each call against its `maxTickMs`. The default is the thread's CPU time where the host
+   * reports it (Node), otherwise wall time. The batch budget and preparation limits use wall time.
+   */
+  readonly callClock?: ScriptCallClock;
 }
 
 /** Only proven input-only functions may retain their context between calls. */
@@ -260,8 +272,10 @@ function compileObjectParsers(schema: z.core.$ZodType): void {
 export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall, Input extends IsolatedScriptInput, Command>(
   document: ScriptDefinitions,
   commandSchema: z.ZodType<Command>,
-  payloadExpression: string
+  payloadExpression: string,
+  options: GameScriptOptions = {}
 ): Promise<IsolatedScriptRunner<Call, Input, Command>> {
+  const callClock = options.callClock ?? defaultScriptCallClock;
   let envelope = envelopeSchemas.get(commandSchema);
   if (envelope === undefined) {
     envelope = z.object({ value: z.strictObject({ state: z.json(), commands: z.array(commandSchema) }), rngState: z.number().int().nonnegative() });
@@ -477,10 +491,10 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           throw new Error(`Game script source ${call.sourceKey} is missing for ${call.entityId} at tick ${input.tick}`);
         }
         let callStarted = performance.now();
-        let deadline = batchDeadline;
+        let callExceeded = (): boolean => false;
         const checkCallDeadline = (): void => {
           assertBeforeDeadline(batchDeadline, batchBudget);
-          assertBeforeDeadline(deadline, `call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`);
+          if (callExceeded()) { throw interrupted(`call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`); }
         };
         runtime.setInterruptHandler(() => performance.now() >= batchDeadline);
         const persistent = persistentSources.has(call.sourceKey);
@@ -502,8 +516,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           if (!realm) { shell = createRealmShell(nextRngState, persistent, hooks); }
           assertBeforeDeadline(batchDeadline, batchBudget);
           callStarted = performance.now();
-          deadline = Math.min(batchDeadline, callStarted + call.maxTickMs);
-          runtime.setInterruptHandler(() => performance.now() >= deadline);
+          callExceeded = startScriptCallTimer(callClock, call.maxTickMs);
+          runtime.setInterruptHandler(() => performance.now() >= batchDeadline || callExceeded());
           if (shell) {
             const loading = shell;
             shell = undefined;
@@ -638,7 +652,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   }
 }
 
-export function prepareGameScripts(document: GameDocument): Promise<GameScriptRunner> {
+export function prepareGameScripts(document: GameDocument, options?: GameScriptOptions): Promise<GameScriptRunner> {
   return prepareIsolatedGameScripts<GameScriptCall, GameScriptInput, GameScriptCommand>(document, gameScriptCommand, `{
     tick: data.input.tick, pressed: data.input.pressed, justPressed: data.input.justPressed,
     events: data.input.events, entity: {
@@ -648,5 +662,5 @@ export function prepareGameScripts(document: GameDocument): Promise<GameScriptRu
         : { tags: data.call.tags, props: data.call.props, rotation: data.call.rotation, active: data.call.active })
     }, world: data.input.world, state: data.call.state, random: __gameRandom,
     ...(data.params === undefined ? undefined : { params: data.params })
-  }`);
+  }`, options);
 }

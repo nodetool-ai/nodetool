@@ -131,14 +131,14 @@ export const TranscriptPanel: React.FC = memo(() => {
       <FlexColumn gap={SPACING.md} sx={{ p: 0.5, flex: 1, minHeight: 0 }}>
         <FlexRow gap={SPACING.xs} align="center">
           <GraphicEqIcon sx={{ fontSize: 16, color: "primary.main" }} />
-          <Text size="smaller" weight={600} sx={{ letterSpacing: "0.1em" }}>
+          <Text size="smaller" sx={{ letterSpacing: "0.1em" }}>
             TRANSCRIPT
           </Text>
         </FlexRow>
 
         <FlexRow align="center" justify="space-between">
           <FlexRow gap={SPACING.xs} align="baseline">
-            <Text size="smaller" weight={600} sx={{ letterSpacing: "0.08em" }}>
+            <Text size="smaller" sx={{ letterSpacing: "0.08em" }}>
               SCRIPT
             </Text>
             <Caption sx={{ color: "text.disabled" }}>

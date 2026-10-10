@@ -260,8 +260,33 @@ const snapshotSubmittedParams = (
   voice: clip.voice,
   aspectRatio: clip.aspectRatio,
   resolution: clip.resolution,
-  negativePrompt: clip.negativePrompt
+  negativePrompt: clip.negativePrompt,
+  referenceImageIds: clip.referenceImageIds,
+  referenceEntityIds: clip.referenceEntityIds
 });
+
+/**
+ * A text-to-video clip's references as the request sends them. Picked images
+ * go as reference images, so they are `[Image 1]`, `[Image 2]`, … in pick
+ * order. Entities go as `entity://` mentions: the server writes each name and
+ * descriptor into the prompt and sends its image after the picked ones.
+ */
+export const directGenReferences = (
+  clip: Pick<TimelineClip, "prompt" | "referenceImageIds" | "referenceEntityIds">
+): { images: Array<{ type: "image"; asset_id: string }>; prompt: string } => {
+  const prompt = (clip.prompt ?? "").trim();
+  const entityIds = clip.referenceEntityIds ?? [];
+  return {
+    images: (clip.referenceImageIds ?? []).map((assetId) => ({
+      type: "image" as const,
+      asset_id: assetId
+    })),
+    prompt:
+      entityIds.length > 0
+        ? `${prompt}\n\nCast: ${entityIds.map((id) => `entity://${id}`).join(", ")}.`
+        : prompt
+  };
+};
 
 /** Every request still open for one clip, whatever kind it is. */
 const inFlightForClip = (
@@ -1421,6 +1446,11 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         framingParams.duration = imageToVideoRequestSeconds(clip.durationMs);
       }
 
+      // The clip's own references. A production request carries its own.
+      const picked = !production && kind === "text-to-video"
+        ? directGenReferences(clip)
+        : { images: [], prompt };
+
       try {
         await globalWebSocketManager.send({
           command: "generate_media",
@@ -1438,7 +1468,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
                       : "audio",
             provider: clip.provider,
             model: clip.model,
-            prompt,
+            prompt: production ? prompt : picked.prompt,
             source_asset_id: sourceAssetId,
             timeline_context: sequenceId ? {
               sequence_id: sequenceId,
@@ -1456,7 +1486,8 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
             variations: 1,
             voice: kind === "text-to-audio" ? clip.voice : undefined,
             capability:
-              production?.executionRoute === "reference_to_video"
+              production?.executionRoute === "reference_to_video" ||
+              picked.images.length > 0
                 ? "reference_to_video"
                 : undefined,
             reference_images:
@@ -1465,7 +1496,9 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
                     type: "image",
                     asset_id: assetId
                   }))
-                : undefined,
+                : picked.images.length > 0
+                  ? picked.images
+                  : undefined,
             ...framingParams
           }
         });

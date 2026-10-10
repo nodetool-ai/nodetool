@@ -2,6 +2,7 @@ import { INSTANCE_FLOATS, SHADER, appendBatch, writeInstance } from "./webgpu/sp
 import { LIGHT_SHADER, gameLightingUniforms } from "./webgpu/lighting.js";
 import { PRESENT_SHADER, encodeGameEffects } from "./webgpu/effects.js";
 import { HUD_SHADER, paintWebGPUHud } from "./webgpu/hud.js";
+import { loadGameUiImages } from "./ui/hud2d.js";
 import type { TextureEntry, Batch, Blend } from "./webgpu/types.js";
 import { WebGPURenderPipeline } from "./webgpu/pipeline.js";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
@@ -420,7 +421,7 @@ export class WebGPUGameRenderer implements GameRenderer {
     const assetIds = [...sampling.keys()];
     const textureResults = await Promise.all(assetIds.map((assetId) => this.getTexture(assetId, sampling.get(assetId) ?? "nearest")));
     const textureById = new Map(assetIds.map((assetId, index) => [assetId, textureResults[index]]));
-    const hudTexture = this.updateHud(frame);
+    const hudTexture = this.updateHud(frame, await loadGameUiImages(frame, (assetId) => this.assets.get(assetId)));
     const count = items.length + (hudTexture ? 1 : 0);
     this.ensureInstanceCapacity(count);
     const instances = new Float32Array(count * INSTANCE_FLOATS);
@@ -580,14 +581,14 @@ export class WebGPUGameRenderer implements GameRenderer {
     };
   }
 
-  private updateHud(frame: GameRenderFrame): TextureEntry | undefined {
-    if (frame.hud.length === 0) {
+  private updateHud(frame: GameRenderFrame, images: ReadonlyMap<string, GameImage>): TextureEntry | undefined {
+    if (frame.hud.length === 0 && !frame.ui) {
       return undefined;
     }
-    const key = JSON.stringify([this.canvas.width, this.canvas.height, frame.hud]);
+    const key = JSON.stringify([this.canvas.width, this.canvas.height, frame.hud, frame.ui, [...images.keys()]]);
     if (key !== this.hudKey) {
       const canvas = this.hudCanvas ?? document.createElement("canvas");
-      paintWebGPUHud(canvas, this.canvas.width, this.canvas.height, frame);
+      paintWebGPUHud(canvas, this.canvas.width, this.canvas.height, frame, images);
       this.hudTexture?.texture.destroy();
       this.hudTexture = this.upload(canvas);
       this.hudCanvas = canvas;

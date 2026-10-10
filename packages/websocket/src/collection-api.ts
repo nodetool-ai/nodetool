@@ -16,7 +16,7 @@ import {
 } from "@nodetool-ai/vectorstore";
 import { getUserId, type HttpApiOptions } from "./http-api.js";
 import { notifyResourceChange } from "./resource-events.js";
-import { canAccessCollection } from "@nodetool-ai/vectorstore";
+import { canAccessCollection, collectionOwner } from "@nodetool-ai/vectorstore";
 
 const log = createLogger("nodetool.websocket.collection-api");
 
@@ -159,7 +159,10 @@ export async function handleCollectionRequest(
       notifyResourceChange({
         event: "updated",
         resource_type: "collection",
-        resource: { id: collectionName }
+        resource: { id: collectionName },
+        userId: collectionOwner(
+          stored.metadata as Record<string, string | number | boolean>
+        )
       });
     }
 

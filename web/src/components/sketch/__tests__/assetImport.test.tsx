@@ -4,6 +4,7 @@ import { renderHook, act } from "@testing-library/react";
 
 import { createDefaultDocument } from "../types";
 import { useCanvasGeometryActions } from "../hooks/useCanvasGeometryActions";
+import { useSketchStore } from "../state";
 
 describe("asset import", () => {
   const originalFetch = global.fetch;
@@ -29,10 +30,14 @@ describe("asset import", () => {
     global.createImageBitmap = originalCreateImageBitmap;
   });
 
-  it("creates a locked imported layer from a dropped asset", async () => {
+  it("creates a locked imported layer from a dropped asset and keeps undo history", async () => {
     const document = createDefaultDocument(32, 32);
     document.canvas.backgroundColor = "#ffffff";
-    const setDocument = jest.fn();
+    act(() => {
+      useSketchStore.getState().setDocument(document);
+      useSketchStore.getState().pushHistory("rename layer");
+    });
+    const historyBefore = useSketchStore.getState().history;
     const pushHistory = jest.fn();
 
     const { result } = renderHook(() =>
@@ -41,7 +46,6 @@ describe("asset import", () => {
         document,
         pushHistory,
         updateLayerData: jest.fn(),
-        setDocument,
         setZoom: jest.fn(),
         setPan: jest.fn(),
         resizeCanvas: jest.fn(),
@@ -70,7 +74,9 @@ describe("asset import", () => {
     });
 
     expect(pushHistory).toHaveBeenCalledWith("import asset", undefined, { timing: "before" });
-    expect(setDocument).toHaveBeenCalledWith(
+    // The edit lands in the live document without resetting history.
+    expect(useSketchStore.getState().history).toBe(historyBefore);
+    expect(useSketchStore.getState().document).toEqual(
       expect.objectContaining({
         activeLayerId: expect.any(String),
         layers: expect.arrayContaining([

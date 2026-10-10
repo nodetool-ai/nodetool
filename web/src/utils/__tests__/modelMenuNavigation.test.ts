@@ -3,59 +3,48 @@ import {
   nextAvailableIndex
 } from "../modelMenuNavigation";
 
-const allAvailable = () => true;
+describe("modelMenuNavigation", () => {
+  const all = () => true;
 
-describe("nextAvailableIndex", () => {
-  it("returns -1 for an empty list", () => {
-    expect(nextAvailableIndex(0, -1, 1, allAvailable)).toBe(-1);
+  describe("nextAvailableIndex", () => {
+    it("returns -1 for an empty list", () => {
+      expect(nextAvailableIndex(0, 0, 1, all)).toBe(-1);
+    });
+
+    it("moves down and up", () => {
+      expect(nextAvailableIndex(5, 2, 1, all)).toBe(3);
+      expect(nextAvailableIndex(5, 2, -1, all)).toBe(1);
+    });
+
+    it("wraps around both ends", () => {
+      expect(nextAvailableIndex(5, 4, 1, all)).toBe(0);
+      expect(nextAvailableIndex(5, 0, -1, all)).toBe(4);
+    });
+
+    it("starts at the first row going down and last row going up with no selection", () => {
+      expect(nextAvailableIndex(5, -1, 1, all)).toBe(0);
+      expect(nextAvailableIndex(5, -1, -1, all)).toBe(4);
+    });
+
+    it("skips unavailable rows", () => {
+      const available = (i: number) => i !== 3 && i !== 4;
+      expect(nextAvailableIndex(5, 2, 1, available)).toBe(0);
+      expect(nextAvailableIndex(5, 0, -1, available)).toBe(2);
+    });
+
+    it("returns from unchanged when nothing is available", () => {
+      expect(nextAvailableIndex(3, 1, 1, () => false)).toBe(1);
+    });
   });
 
-  it("starts at the first row when moving down with no selection", () => {
-    expect(nextAvailableIndex(3, -1, 1, allAvailable)).toBe(0);
-  });
+  describe("firstAvailableIndex", () => {
+    it("returns the first available row", () => {
+      expect(firstAvailableIndex(4, (i) => i >= 2)).toBe(2);
+    });
 
-  it("starts at the last row when moving up with no selection", () => {
-    expect(nextAvailableIndex(3, -1, -1, allAvailable)).toBe(2);
-  });
-
-  it("advances to the next row when moving down", () => {
-    expect(nextAvailableIndex(3, 0, 1, allAvailable)).toBe(1);
-  });
-
-  it("wraps from the last row to the first when moving down", () => {
-    expect(nextAvailableIndex(3, 2, 1, allAvailable)).toBe(0);
-  });
-
-  it("wraps from the first row to the last when moving up", () => {
-    expect(nextAvailableIndex(3, 0, -1, allAvailable)).toBe(2);
-  });
-
-  it("skips unavailable rows when moving down", () => {
-    // Only index 0 and 3 are available.
-    const isAvailable = (i: number) => i === 0 || i === 3;
-    expect(nextAvailableIndex(4, 0, 1, isAvailable)).toBe(3);
-  });
-
-  it("skips unavailable rows and wraps around", () => {
-    const isAvailable = (i: number) => i === 0 || i === 3;
-    expect(nextAvailableIndex(4, 3, 1, isAvailable)).toBe(0);
-  });
-
-  it("returns the current index when no row is available", () => {
-    expect(nextAvailableIndex(3, 1, 1, () => false)).toBe(1);
-  });
-});
-
-describe("firstAvailableIndex", () => {
-  it("returns -1 when nothing is available", () => {
-    expect(firstAvailableIndex(3, () => false)).toBe(-1);
-  });
-
-  it("returns 0 when the first row is available", () => {
-    expect(firstAvailableIndex(3, allAvailable)).toBe(0);
-  });
-
-  it("skips leading unavailable rows", () => {
-    expect(firstAvailableIndex(4, (i) => i >= 2)).toBe(2);
+    it("returns -1 when none are available or the list is empty", () => {
+      expect(firstAvailableIndex(4, () => false)).toBe(-1);
+      expect(firstAvailableIndex(0, all)).toBe(-1);
+    });
   });
 });

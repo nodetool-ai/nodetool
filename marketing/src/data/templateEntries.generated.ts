@@ -1421,13 +1421,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/audio-to-image",
     "title": "Audio To Image — NodeTool AI Workflow Template",
-    "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
+    "description": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "audio-to-image",
     "name": "Audio To Image",
-    "summary": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
+    "summary": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
     "tags": [
       "huggingface",
       "multimodal",
@@ -1485,7 +1485,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 345,
           "y": 515,
           "width": 280,
-          "subtitle": "openai/whisper-large-v3"
+          "subtitle": "gpt-4o-mini-transcribe"
         },
         {
           "id": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
@@ -4093,7 +4093,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 380,
           "y": 1213,
           "width": 340,
-          "subtitle": "Research the prospect and draft outreach. PROSPECT: {{ prospect }} MY OFFER: {{ offer }} Steps: 1. Use google_search and browser to learn w…"
+          "subtitle": "Research the prospect and draft outreach. PROSPECT: {{ prospect }} MY OFFER: {{ offer }} Steps: 1. Use web_search and browser to learn what…"
         },
         {
           "id": "agent",
@@ -8004,13 +8004,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/editorial-still-from-a-line",
     "title": "Editorial Still from a Line — NodeTool AI Workflow Template",
-    "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] at six steps is among the cheapest ways to get a usable frame.",
+    "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] is among the cheapest ways to get a usable frame.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "editorial-still-from-a-line",
     "name": "Editorial Still from a Line",
-    "summary": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] at six steps is among the cheapest ways to get a usable frame.",
+    "summary": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] is among the cheapest ways to get a usable frame.",
     "tags": [
       "image",
       "example"
@@ -9101,13 +9101,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/find-every-number-in-a-sentence",
     "title": "Find Every Number in a Sentence — NodeTool AI Workflow Template",
-    "description": "FindAllRegex returns each match rather than the first, which is what you want when pulling figures out of a report.",
+    "description": "A Code node with a global regular expression returns each match rather than the first, which is what you want when pulling figures out of a report.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "find-every-number-in-a-sentence",
     "name": "Find Every Number in a Sentence",
-    "summary": "FindAllRegex returns each match rather than the first, which is what you want when pulling figures out of a report.",
+    "summary": "A Code node with a global regular expression returns each match rather than the first, which is what you want when pulling figures out of a report.",
     "tags": [
       "text",
       "example"
@@ -11154,13 +11154,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/inspect-a-clip-s-audio",
     "title": "Inspect a Clip's Audio — NodeTool AI Workflow Template",
-    "description": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
+    "description": "Read the sample rate of a clip's audio track, with channel count and duration one connection away. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "inspect-a-clip-s-audio",
     "name": "Inspect a Clip's Audio",
-    "summary": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
+    "summary": "Read the sample rate of a clip's audio track, with channel count and duration one connection away. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
     "tags": [
       "audio",
       "data",
@@ -11264,13 +11264,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/inspect-a-clip",
     "title": "Inspect a Clip — NodeTool AI Workflow Template",
-    "description": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
+    "description": "Read a clip's duration straight from its header, with dimensions, frame rate and codec one connection away. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "inspect-a-clip",
     "name": "Inspect a Clip",
-    "summary": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
+    "summary": "Read a clip's duration straight from its header, with dimensions, frame rate and codec one connection away. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
     "tags": [
       "video",
       "data",
@@ -13700,7 +13700,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 380,
           "y": 765,
           "width": 280,
-          "subtitle": "openai/whisper-large-v3"
+          "subtitle": "gpt-4o-mini-transcribe"
         },
         {
           "id": "is_transcript_empty",
@@ -14951,7 +14951,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 380,
           "y": 668,
           "width": 280,
-          "subtitle": "openai/whisper-large-v3"
+          "subtitle": "gpt-4o-mini-transcribe"
         },
         {
           "id": "mood_analyzer",
@@ -17370,13 +17370,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/podcast-episode-to-show-notes",
     "title": "Podcast Episode to Show Notes — NodeTool AI Workflow Template",
-    "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topics with rough timings, and the links mentioned.",
+    "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topic bullets, and the resources mentioned.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "podcast-episode-to-show-notes",
     "name": "Podcast Episode to Show Notes",
-    "summary": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topics with rough timings, and the links mentioned.",
+    "summary": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topic bullets, and the resources mentioned.",
     "tags": [
       "audio",
       "text",
@@ -17500,13 +17500,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/podcast-repurposing-studio",
     "title": "Podcast Repurposing Studio — NodeTool AI Workflow Template",
-    "description": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Whisper transcribes once; four writer branches fan out from the transcript.",
+    "description": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. It transcribes once; four writer branches fan out from the transcript.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "podcast-repurposing-studio",
     "name": "Podcast Repurposing Studio",
-    "summary": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Whisper transcribes once; four writer branches fan out from the transcript.",
+    "summary": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. It transcribes once; four writer branches fan out from the transcript.",
     "tags": [
       "podcast",
       "audio",
@@ -17608,7 +17608,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 380,
           "y": 1277,
           "width": 300,
-          "subtitle": "openai/whisper-large-v3"
+          "subtitle": "gpt-4o-mini-transcribe"
         },
         {
           "id": "shownotes_prompt",
@@ -25263,13 +25263,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/slice-text",
     "title": "Slice Text — NodeTool AI Workflow Template",
-    "description": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
+    "description": "Take a fixed range out of a string by index. The blunt way to truncate a caption to a length limit.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "slice-text",
     "name": "Slice Text",
-    "summary": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
+    "summary": "Take a fixed range out of a string by index. The blunt way to truncate a caption to a length limit.",
     "tags": [
       "data",
       "utility",
@@ -28406,13 +28406,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/trailer-beats-from-a-premise",
     "title": "Trailer Beats from a Premise — NodeTool AI Workflow Template",
-    "description": "The beat structure a trailer needs — hook, escalation, turn, title card — written before any footage is paid for.",
+    "description": "The beat structure a trailer needs — hook, setup, escalation, turn, title card — written before any footage is paid for.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "trailer-beats-from-a-premise",
     "name": "Trailer Beats from a Premise",
-    "summary": "The beat structure a trailer needs — hook, escalation, turn, title card — written before any footage is paid for.",
+    "summary": "The beat structure a trailer needs — hook, setup, escalation, turn, title card — written before any footage is paid for.",
     "tags": [
       "text",
       "video",
@@ -28495,13 +28495,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/transcribe-audio",
     "title": "Transcribe Audio — NodeTool AI Workflow Template",
-    "description": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
+    "description": "Instant speech-to-text: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "transcribe-audio",
     "name": "Transcribe Audio",
-    "summary": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
+    "summary": "Instant speech-to-text: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
     "tags": [
       "start",
       "audio",
@@ -28553,7 +28553,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 380,
           "y": 426,
           "width": 280,
-          "subtitle": "openai/whisper-large-v3"
+          "subtitle": "gpt-4o-mini-transcribe"
         },
         {
           "id": "output-transcript",

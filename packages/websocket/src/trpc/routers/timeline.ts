@@ -561,7 +561,7 @@ export const timelineRouter = router({
       }
 
       const updated = await TimelineSequence.updateFieldsIfUnchanged(
-        input.id,
+        seq.id,
         expectedUpdatedAt,
         fields
       );
@@ -684,7 +684,7 @@ export const timelineRouter = router({
 
         const document = parseVersionDocument(version.document);
         const updated = await TimelineSequence.updateFieldsIfUnchanged(
-          input.id,
+          seq.id,
           seq.updated_at,
           {
             document: JSON.stringify(document),

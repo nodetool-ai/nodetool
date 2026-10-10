@@ -258,6 +258,44 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           postProcessing.bloom?.intensity === 1.5 && postProcessing.antialias === "smaa" && JSON.stringify(rest) === JSON.stringify(initialRest);
       } }]
   }
+}, {
+  id: "cascaded-shadows",
+  description: "Author cascaded sun shadows and a per-light normal bias through public 3D edit ops.",
+  objective: "Give the 3D scene cascaded sun shadows with 4 cascades that reach 150 meters, keep its other environment settings, and set the sun light's shadow normal bias to 0.03.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("shadow-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene replaces the whole environment object, so send its existing fields. environment.shadows takes cascades {count 2-4, split 0-1, maxDistance}. update_entity sets light3d fields such as shadowBias and shadowNormalBias.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "cascadedShadows", detail: "The scene does not cascade 4 shadow maps over 150 m, lost other environment settings, or the sun has no 0.03 normal bias.",
+      test: document => {
+        const initial = createNative3DGame("shadow-eval").scenes[0].environment;
+        const scene = document.scenes[0];
+        if (document.schemaVersion !== 3 || !scene || !("environment" in scene)) { return false; }
+        const { cascades, ...shadows } = scene.environment.shadows;
+        const sun = scene.entities.find(entity => entity.id === "sun")?.light3d;
+        return cascades?.count === 4 && cascades.maxDistance === 150 && JSON.stringify(shadows) === JSON.stringify(initial.shadows) &&
+          JSON.stringify({ ...scene.environment, shadows: initial.shadows }) === JSON.stringify(initial) &&
+          sun?.kind === "directional" && sun.castShadow && sun.shadowNormalBias === 0.03;
+      } }]
+  }
+}, {
+  id: "hud-widget-tree",
+  description: "Author a document HUD tree with a score panel and a pause button that presses an input action, through set_game and set_ui.",
+  objective: "Add a pause input action. Then give the game a HUD with a panel anchored to the top-right corner holding a text node with id score, and a button with id pause anchored to the bottom centre that presses the pause action.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("hud-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game input_actions replaces the action list. set_ui {ui: {nodes}} replaces the document HUD tree. Nodes are {kind: panel|image|text|bar|button|stack|grid, id, parent?, anchor?: {x, y} in 0..1, pivot?, offset?: {x, y} pixels, width?, height?}. A child names an earlier container (panel, stack or grid) as parent. A button is {kind: \"button\", id, action, text?, width, height} and presses its input action. A panel needs width and height.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "hudTree", detail: "The HUD lacks a top-right panel holding text score, or a bottom-centre button pause that presses the pause action.",
+      test: document => {
+        const nodes = "dimension" in document ? [] : document.ui?.nodes ?? [];
+        const panel = nodes.find(node => node.kind === "panel" && node.anchor?.x === 1 && node.anchor.y === 0);
+        const score = nodes.find(node => node.id === "score");
+        const pause = nodes.find(node => node.id === "pause");
+        return document.inputActions.includes("pause") && panel !== undefined && score?.kind === "text" && score.parent === panel.id
+          && pause?.kind === "button" && pause.action === "pause" && pause.anchor?.x === 0.5 && pause.anchor.y === 1;
+      } }]
+  }
 }];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */

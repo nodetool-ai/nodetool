@@ -276,7 +276,7 @@ const styles = (theme: Theme) =>
     ".property-required-badge": {
       fontFamily: theme.fontFamily1,
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
+      fontWeight: 400,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
       color: theme.vars.palette.text.disabled,
@@ -352,7 +352,7 @@ const styles = (theme: Theme) =>
     ".io-section-title": {
       fontFamily: theme.fontFamily1,
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
+      fontWeight: 400,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
       color: theme.vars.palette.text.secondary,

@@ -4,7 +4,7 @@
  * Stores users in a JSON file at `~/.config/nodetool/users.json` by default.
  */
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFile, writeFile, mkdir, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
@@ -179,5 +179,32 @@ export class FileUserManager {
     // returns an inherited Object.prototype value (truthy), which bypasses the
     // not-found guard and later crashes on the non-UserRecord shape.
     return Object.hasOwn(data.users, username) ? data.users[username] : null;
+  }
+
+  async getUserById(userId: string): Promise<UserRecord | null> {
+    const data = await this.load();
+    return Object.values(data.users).find((u) => u.id === userId) ?? null;
+  }
+
+  /**
+   * The user a bearer token belongs to, or null. Compares SHA-256 digests in
+   * constant time, and checks every record so the timing does not reveal
+   * which one matched.
+   */
+  async verifyToken(token: string): Promise<UserRecord | null> {
+    if (!token) return null;
+    const presented = Buffer.from(this.hashToken(token), "hex");
+    const data = await this.load();
+    let match: UserRecord | null = null;
+    for (const record of Object.values(data.users)) {
+      const stored = Buffer.from(record.tokenHash ?? "", "hex");
+      if (
+        stored.length === presented.length &&
+        timingSafeEqual(stored, presented)
+      ) {
+        match = record;
+      }
+    }
+    return match;
   }
 }

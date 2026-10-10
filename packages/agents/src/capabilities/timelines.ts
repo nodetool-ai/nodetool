@@ -2292,7 +2292,7 @@ const isolateSubject: CapabilityExport = {
     const persist = async (next: TimelineClipShape): Promise<boolean> => {
       const clips = document.clips.map((c) => (c.id === next.id ? next : c));
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
-        timelineId,
+        sequence.id,
         expectedUpdatedAt,
         { ...document, clips },
         {
@@ -2426,7 +2426,7 @@ const trackObject: CapabilityExport = {
     let mediaTracks: MediaTrack[] = document.mediaTracks ?? [];
     const persist = async (next: MediaTrack[]): Promise<boolean> => {
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
-        timelineId,
+        sequence.id,
         expectedUpdatedAt,
         { ...document, mediaTracks: next },
         { ops: [{ tool: "track_object", input: { clip_id: clip.id, track_id: trackId } }] }

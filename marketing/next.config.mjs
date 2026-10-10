@@ -64,8 +64,9 @@ const nextConfig = {
 
     // Mini apps stopped being one generated form per template: the shipped set
     // is 11 curated apps (docs/plans/example-apps.md), so every /apps/<template>
-    // page below is gone. A template a curated app now binds sends its old page
-    // to that app; the rest send theirs to the workflow's own template page.
+    // page below is gone. The site has no /apps route for the curated apps
+    // either, so each old page goes to its workflow's template page. The map
+    // records which curated app absorbed the template.
     const absorbedByApp = {
       'image-enhance': 'photo-studio',
       'photo-enhancement-suite': 'photo-studio',
@@ -107,12 +108,14 @@ const nextConfig = {
       'workflow-as-a-tool',
     ];
 
+    // These retired templates have no template page of their own.
+    const withoutTemplatePage = new Set(['summarize-rss', 'social-media-calendar-filler']);
+
     // A merged slug resolves to its absorbing template first, so an old link
     // reaches its destination in one hop rather than a chain.
     const appDestination = (slug) => {
       const template = merges[slug] ?? slug;
-      const app = absorbedByApp[template];
-      return app ? `/apps/${app}` : `/templates/${template}`;
+      return withoutTemplatePage.has(template) ? '/templates' : `/templates/${template}`;
     };
     const retiredApps = [
       ...Object.keys(merges),
@@ -148,9 +151,11 @@ const nextConfig = {
           source: `/apps/${slug}`,
           destination: appDestination(slug),
           permanent: true,
-        }))
-        // Model Arena kept its slug as a curated app; it redirects to itself.
-        .filter((r) => r.source !== r.destination),
+        })),
+      // Any other /apps/<slug>, including the curated app slugs, lands on the
+      // template hub. Temporary, so a future /apps route can take it back. The
+      // pattern excludes dots so images under public/apps/ still serve.
+      { source: '/apps/:slug([a-z0-9-]+)', destination: '/templates', permanent: false },
     ];
   },
 };
