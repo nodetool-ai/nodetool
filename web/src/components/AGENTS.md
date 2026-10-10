@@ -43,6 +43,7 @@ Use the corresponding primitive instead:
 | Empty/no-data message | `EmptyState` |
 | Label + input + helper text | `FormField` |
 | Section title + action button | `SectionHeader` |
+| Title strip of a side, bottom or floating panel | `PanelHeader` |
 | Expand/collapse pattern | `CollapsibleSection` |
 
 ### Importing Primitives

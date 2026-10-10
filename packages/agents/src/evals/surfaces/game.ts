@@ -278,6 +278,24 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           sun?.kind === "directional" && sun.castShadow && sun.shadowNormalBias === 0.03;
       } }]
   }
+}, {
+  id: "hud-widget-tree",
+  description: "Author a document HUD tree with a score panel and a pause button that presses an input action, through set_game and set_ui.",
+  objective: "Add a pause input action. Then give the game a HUD with a panel anchored to the top-right corner holding a text node with id score, and a button with id pause anchored to the bottom centre that presses the pause action.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("hud-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game input_actions replaces the action list. set_ui {ui: {nodes}} replaces the document HUD tree. Nodes are {kind: panel|image|text|bar|button|stack|grid, id, parent?, anchor?: {x, y} in 0..1, pivot?, offset?: {x, y} pixels, width?, height?}. A child names an earlier container (panel, stack or grid) as parent. A button is {kind: \"button\", id, action, text?, width, height} and presses its input action. A panel needs width and height.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "hudTree", detail: "The HUD lacks a top-right panel holding text score, or a bottom-centre button pause that presses the pause action.",
+      test: document => {
+        const nodes = "dimension" in document ? [] : document.ui?.nodes ?? [];
+        const panel = nodes.find(node => node.kind === "panel" && node.anchor?.x === 1 && node.anchor.y === 0);
+        const score = nodes.find(node => node.id === "score");
+        const pause = nodes.find(node => node.id === "pause");
+        return document.inputActions.includes("pause") && panel !== undefined && score?.kind === "text" && score.parent === panel.id
+          && pause?.kind === "button" && pause.action === "pause" && pause.anchor?.x === 0.5 && pause.anchor.y === 1;
+      } }]
+  }
 }];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */

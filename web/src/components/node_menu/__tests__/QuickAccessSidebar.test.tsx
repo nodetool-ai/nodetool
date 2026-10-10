@@ -22,13 +22,20 @@ const renderSidebar = (
   );
 
 describe("QuickAccessSidebar", () => {
-  it("shows Documents, Chats, Library, Nodes, and More", () => {
+  it("shows Documents, Chats, Library, Entities, Nodes, and More", () => {
     renderSidebar();
     expect(
       screen
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label"))
-    ).toEqual(["Documents", "Chats", "Library", "Nodes", "More"]);
+    ).toEqual([
+      "Documents",
+      "Chats",
+      "Library",
+      "Entities",
+      "Nodes",
+      "More"
+    ]);
     expect(screen.queryByRole("button", { name: "Workflows" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Apps" })).toBeNull();
     expect(screen.getByRole("button", { name: "Nodes" })).toBeInTheDocument();

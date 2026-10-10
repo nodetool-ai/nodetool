@@ -16,10 +16,17 @@ const getDefaultVectorProvider = vi.fn(() => ({
   listCollections: listCollectionsMock
 }));
 
-vi.mock("@nodetool-ai/vectorstore", () => ({
-  getDefaultVectorProvider,
-  resolveCollection
-}));
+vi.mock("@nodetool-ai/vectorstore", async () => {
+  const actual = await vi.importActual<
+    typeof import("@nodetool-ai/vectorstore")
+  >("@nodetool-ai/vectorstore");
+  return {
+    getDefaultVectorProvider,
+    resolveCollection,
+    canAccessCollection: actual.canAccessCollection,
+    OWNER_METADATA_KEY: actual.OWNER_METADATA_KEY
+  };
+});
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { VectorCollection } from "@nodetool-ai/vectorstore";
@@ -205,6 +212,43 @@ describe("list_collections / query_collection", () => {
     expect(await query(runWith(), { collection: "docs" })).toEqual({
       error: "query is required"
     });
+  });
+
+  it("lists only the collections the caller can access", async () => {
+    listCollectionsMock.mockResolvedValue([
+      { name: "mine", metadata: { owner_user_id: "u1" } },
+      { name: "theirs", metadata: { owner_user_id: "u2" } },
+      { name: "shared", metadata: {} }
+    ]);
+    const run = createCapabilityRun({
+      context: { userId: "u1" } as unknown as ProcessingContext,
+      gate: UNGATED
+    });
+    const result = await capability("list_collections").impl(run, {});
+    expect(result).toEqual({
+      collections: [
+        { name: "mine", metadata: { owner_user_id: "u1" } },
+        { name: "shared", metadata: {} }
+      ]
+    });
+  });
+
+  it("refuses to query another user's collection", async () => {
+    const query = vi.fn().mockResolvedValue([{ id: "a", document: "secret" }]);
+    resolveCollection.mockResolvedValue({
+      metadata: { owner_user_id: "u2" },
+      query
+    });
+    const run = createCapabilityRun({
+      context: { userId: "u1" } as unknown as ProcessingContext,
+      gate: UNGATED
+    });
+    const result = await capability("query_collection").impl(run, {
+      collection: "theirs",
+      query: "secret"
+    });
+    expect(result).toEqual({ error: "Collection theirs not found" });
+    expect(query).not.toHaveBeenCalled();
   });
 
   it("drops matches with no document and defaults n_results to 5", async () => {

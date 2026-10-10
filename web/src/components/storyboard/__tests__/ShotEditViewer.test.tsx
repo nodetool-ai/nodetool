@@ -244,6 +244,26 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     window.PointerEvent = original;
   });
 
+  it("shows a still made current outside the viewer, such as in the takes gallery", () => {
+    const { rerender } = renderViewer(
+      seedShot({
+        keyframe: image("still-1"),
+        keyframe_versions: [image("still-1"), image("still-2"), image("still-3")]
+      })
+    );
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 3");
+    act(() => {
+      useStoryboardStore.getState().acceptKeyframeVersion(BOARD, "shot-1", 2);
+    });
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ShotEditViewer boardId={BOARD} shot={storedShot()} />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("3 / 3");
+    expect(screen.getByText("Take 3, current still")).toBeInTheDocument();
+  });
+
   it("shows a take that lands while open, without making it current", () => {
     const { rerender } = renderViewer(seedShot());
     act(() => {

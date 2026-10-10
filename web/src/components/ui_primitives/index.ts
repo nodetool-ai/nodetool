@@ -233,6 +233,8 @@ export type { CardProps } from "./Card";
 
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
+export { PanelHeader, PANEL_HEADER_HEIGHT } from "./PanelHeader";
+export type { PanelHeaderProps } from "./PanelHeader";
 
 // Typography primitives
 export { Text } from "./Text";

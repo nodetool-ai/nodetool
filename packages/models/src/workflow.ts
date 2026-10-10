@@ -18,6 +18,7 @@ import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { workflows } from "./schema/workflows.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import { WorkflowShare } from "./workflow-share.js";
+import { TriggerRegistration } from "./trigger-registration.js";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 export type AccessLevel = "private" | "public";
@@ -233,7 +234,7 @@ export class Workflow extends DBModel {
     const wf = await Workflow.get<Workflow>(workflowId);
     if (!wf) return null;
     if (wf.user_id === userId || wf.access === "public") return wf;
-    const grant = await WorkflowCollaborator.findFor(workflowId, userId);
+    const grant = await WorkflowCollaborator.findFor(wf.id, userId);
     if (grant) return wf;
     return null;
   }
@@ -271,8 +272,12 @@ export class Workflow extends DBModel {
     const wf = await Workflow.get<Workflow>(id);
     if (!wf || wf.user_id !== userId) return false;
     await wf.delete();
-    await WorkflowCollaborator.removeAllForWorkflow(id);
-    await WorkflowShare.removeAllForWorkflow(id);
+    // `id` may be a 12-character prefix; the dependent rows key on the full id.
+    await WorkflowCollaborator.removeAllForWorkflow(wf.id);
+    await WorkflowShare.removeAllForWorkflow(wf.id);
+    // No foreign key ties registrations to the workflow, so a deleted
+    // workflow's webhook kept accepting events and its file watch kept firing.
+    await TriggerRegistration.deleteByWorkflow(wf.id);
     return true;
   }
 

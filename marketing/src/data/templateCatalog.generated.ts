@@ -201,7 +201,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "editorial-still-from-a-line",
         "name": "Editorial Still from a Line",
-        "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] at six steps is among the cheapest ways to get a usable frame.",
+        "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] is among the cheapest ways to get a usable frame.",
         "tags": [
           "image"
         ]
@@ -672,7 +672,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "inspect-a-clip",
         "name": "Inspect a Clip",
-        "description": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
+        "description": "Read a clip's duration straight from its header, with dimensions, frame rate and codec one connection away. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
         "tags": [
           "video",
           "data",
@@ -912,7 +912,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "trailer-beats-from-a-premise",
         "name": "Trailer Beats from a Premise",
-        "description": "The beat structure a trailer needs — hook, escalation, turn, title card — written before any footage is paid for.",
+        "description": "The beat structure a trailer needs — hook, setup, escalation, turn, title card — written before any footage is paid for.",
         "tags": [
           "text",
           "video"
@@ -1022,7 +1022,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "inspect-a-clips-audio",
         "name": "Inspect a Clip's Audio",
-        "description": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
+        "description": "Read the sample rate of a clip's audio track, with channel count and duration one connection away. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
         "tags": [
           "audio",
           "data",
@@ -1092,7 +1092,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "podcast-episode-to-show-notes",
         "name": "Podcast Episode to Show Notes",
-        "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topics with rough timings, and the links mentioned.",
+        "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topic bullets, and the resources mentioned.",
         "tags": [
           "audio",
           "text"
@@ -1101,7 +1101,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "podcast-repurposing-studio",
         "name": "Podcast Repurposing Studio",
-        "description": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Whisper transcribes once; four writer branches fan out from the transcript.",
+        "description": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. It transcribes once; four writer branches fan out from the transcript.",
         "tags": [
           "podcast",
           "audio",
@@ -1188,7 +1188,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "transcribe-audio",
         "name": "Transcribe Audio",
-        "description": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
+        "description": "Instant speech-to-text: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
         "tags": [
           "audio",
           "asr"
@@ -1356,7 +1356,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "audio-to-image",
         "name": "Audio To Image",
-        "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
+        "description": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
         "tags": [
           "huggingface",
           "multimodal"
@@ -1475,7 +1475,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "find-every-number-in-a-sentence",
         "name": "Find Every Number in a Sentence",
-        "description": "FindAllRegex returns each match rather than the first, which is what you want when pulling figures out of a report.",
+        "description": "A Code node with a global regular expression returns each match rather than the first, which is what you want when pulling figures out of a report.",
         "tags": [
           "text"
         ]
@@ -1858,7 +1858,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "slice-text",
         "name": "Slice Text",
-        "description": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
+        "description": "Take a fixed range out of a string by index. The blunt way to truncate a caption to a length limit.",
         "tags": [
           "data",
           "utility"

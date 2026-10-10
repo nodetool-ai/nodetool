@@ -765,9 +765,22 @@ export const workflowsRouter = router({
         );
         if (!version)
           throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
-        workflow.graph = version.graph;
-        await workflow.save();
-        return toWorkflowResponse(workflow);
+        // Same write path as autosave: a whole-row save would overwrite a
+        // concurrent edit, and the restored graph's trigger nodes must be
+        // armed or disarmed like any other graph change.
+        const restored = await Workflow.updateFieldsIfUnchanged(
+          input.id,
+          workflow.updated_at,
+          { graph: version.graph }
+        );
+        if (!restored) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            "Workflow was modified since last read (optimistic concurrency conflict)"
+          );
+        }
+        await syncTriggerRegistrations(restored);
+        return toWorkflowResponse(restored);
       }),
 
     // DELETE /api/workflows/:id/versions/:versionId

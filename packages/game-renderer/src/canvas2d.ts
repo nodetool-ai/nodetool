@@ -1,7 +1,8 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import type { GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
-import { paintHud, pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems, type VisibleItem } from "./frame.js";
+import { pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems, type VisibleItem } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
+import { loadGameUiImages, paintGameHud2D } from "./ui/hud2d.js";
 import { CANVAS2D_MAX_PARTICLES, PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
 
 export type GameImage = ImageBitmap | HTMLImageElement;
@@ -75,6 +76,7 @@ export class Canvas2DGameRenderer implements GameRenderer {
     }
     const items = visibleItems(frame, interpolation, 0, particles && { field: particles, limit: CANVAS2D_MAX_PARTICLES });
     const images = await Promise.all(items.map((entry) => entry.assetId === PARTICLE_DOT_ASSET ? this.dot() : this.assets.get(entry.assetId)));
+    const uiImages = await loadGameUiImages(frame, (assetId) => this.assets.get(assetId));
     const context = this.context;
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     context.imageSmoothingEnabled = false;
@@ -123,7 +125,7 @@ export class Canvas2DGameRenderer implements GameRenderer {
         bounds.x, bounds.y, bounds.width, bounds.height);
       context.restore();
     }
-    paintHud(context, frame.hud, 1, frame.gameId);
+    paintGameHud2D(context, frame, 1, uiImages);
     return { backend: this.backend, visibleSprites: items.length, drawCalls: items.length + frame.hud.length,
       uploadedBytes: 0, textureBytes: 0, targetBytes: lightCanvas ? this.canvas.width * this.canvas.height * 4 : 0,
       instanceBufferBytes: 0 };

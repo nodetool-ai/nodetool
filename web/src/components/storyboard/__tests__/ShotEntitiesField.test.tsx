@@ -27,6 +27,35 @@ jest.mock("../../entities/EntityPicker", () => ({
   )
 }));
 
+// Creating an entity picks an image, then describes it. Each dialog stands in
+// as one button that completes its step.
+jest.mock("../../entities/EntityAssetPickerDialog", () => ({
+  __esModule: true,
+  default: ({
+    open,
+    onPick
+  }: {
+    open: boolean;
+    onPick: (assetId: string) => void;
+  }) =>
+    open ? (
+      <button type="button" onClick={() => onPick("bazaar")}>
+        Pick image
+      </button>
+    ) : null
+}));
+jest.mock("../../entities/EntityEditorDialog", () => ({
+  __esModule: true,
+  default: ({ onSaved }: { onSaved?: (entity: Entity | null) => void }) => (
+    <button
+      type="button"
+      onClick={() => onSaved?.(mockLibrary.find((e) => e.id === "bazaar")!)}
+    >
+      Save entity
+    </button>
+  )
+}));
+
 import ShotEntitiesField from "../ShotEntitiesField";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 
@@ -107,6 +136,28 @@ describe("ShotEntitiesField", () => {
       screen.getByRole("button", { name: "Remove Katy Cruise from this shot" })
     );
     expect(shotEntityIds()).toEqual(["mark"]);
+  });
+
+  it("creates an entity and adds it to the board and the shot", async () => {
+    seed(["mark"], ["mark"]);
+    renderField([mark], ["mark"]);
+    await userEvent.click(screen.getByRole("button", { name: "New entity" }));
+    await userEvent.click(screen.getByRole("button", { name: "Pick image" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save entity" }));
+
+    expect(shotEntityIds()).toEqual(["mark", "bazaar"]);
+    expect(useStoryboardStore.getState().boards[BOARD]?.entityIds).toEqual([
+      "mark",
+      "bazaar"
+    ]);
+  });
+
+  it("offers no entity creation on a read-only shot", () => {
+    seed(["mark"], ["mark"]);
+    renderField([mark], ["mark"], true);
+    expect(
+      screen.queryByRole("button", { name: "New entity" })
+    ).not.toBeInTheDocument();
   });
 
   it("adds a library entity to the board and the shot", async () => {

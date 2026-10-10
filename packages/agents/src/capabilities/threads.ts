@@ -194,7 +194,7 @@ const getThread: CapabilityExport = {
     const maxCharsRaw = params["max_chars"];
     const maxChars =
       maxCharsRaw === undefined ? DEFAULT_MAX_CHARS : Number(maxCharsRaw);
-    const [rows, next] = await Message.paginate(threadId, {
+    const [rows, next] = await Message.paginate(thread.id, {
       limit,
       reverse: params["newest_first"] === true,
       startKey:

@@ -143,7 +143,7 @@ export const storyboardsRouter = router({
         fields.timeline_id = input.timelineId;
 
       const updated = await Storyboard.updateFieldsIfUnchanged(
-        input.id,
+        board.id,
         expectedUpdatedAt,
         fields
       );

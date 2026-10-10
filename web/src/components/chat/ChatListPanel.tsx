@@ -21,6 +21,7 @@ import {
   FlexColumn,
   ScrollArea,
   ShimmerText,
+  SPACING,
   Text,
   Tooltip,
   ToolbarIconButton
@@ -201,7 +202,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
 
   return (
     <FlexColumn fullHeight fullWidth gap={0} sx={{ minHeight: 0 }}>
-      <FlexColumn sx={{ pb: 1 }}>
+      <FlexColumn sx={{ py: SPACING.md }}>
         <CategorySearchBar
           ref={searchRef}
           value={filterValue}

@@ -60,6 +60,7 @@ import {
   Tooltip,
   UndoRedoButtons,
   CloseButton,
+  PanelHeader,
   BORDER_RADIUS,
   SPACING,
   Z_INDEX,
@@ -201,18 +202,6 @@ const styles = (theme: Theme) =>
       width: `${RIGHT_PANEL_WIDTH}px`,
       borderRight: "none",
       borderLeft: `1px solid ${theme.vars.palette.divider}`
-    },
-    ".panel-header": {
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      flexShrink: 0,
-      minHeight: 36,
-      boxSizing: "border-box"
-    },
-    ".panel-title": {
-      textTransform: "uppercase",
-      letterSpacing: "0.06em",
-      color: theme.vars.palette.text.secondary
     },
     ".panel-body": {
       flex: 1,
@@ -1392,14 +1381,10 @@ const Model3DEditor = ({
 
       <FlexRow className="editor-body" fullWidth>
         <FlexColumn className="side-panel left" fullHeight>
-          <FlexRow className="panel-header" align="center" justify="space-between">
-            <Text size="smaller" weight={600} className="panel-title">
-              Scene
-            </Text>
-            <Text size="smaller" color="secondary">
-              {stats.objects} {stats.objects === 1 ? "object" : "objects"}
-            </Text>
-          </FlexRow>
+          <PanelHeader
+            title="Scene"
+            count={`${stats.objects} ${stats.objects === 1 ? "object" : "objects"}`}
+          />
           <div className="panel-body">
             <SceneOutliner
               nodes={treeNodes}
@@ -1586,11 +1571,7 @@ const Model3DEditor = ({
         </div>
 
         <FlexColumn className="side-panel right" fullHeight>
-          <FlexRow className="panel-header" align="center">
-            <Text size="smaller" weight={600} className="panel-title">
-              Inspector
-            </Text>
-          </FlexRow>
+          <PanelHeader title="Inspector" />
           <PropertiesPanel object={selectedObject} tick={tick + dragTick} record={record} />
         </FlexColumn>
 
@@ -1602,18 +1583,12 @@ const Model3DEditor = ({
             defaultWidth={ASSISTANT_PANEL_WIDTH}
             ariaLabel="Resize 3D assistant"
           >
-            <FlexRow className="panel-header" justify="space-between" align="center">
-              <FlexRow gap={SPACING.xs} align="center">
-                <AutoAwesomeIcon fontSize="small" />
-                <Text size="smaller" weight={600} className="panel-title">
-                  Assistant
-                </Text>
-              </FlexRow>
-              <CloseButton
-                onClick={() => toggleAssistant()}
-                tooltip="Hide assistant"
-              />
-            </FlexRow>
+            <PanelHeader
+              title="Assistant"
+              icon={<AutoAwesomeIcon />}
+              onClose={() => toggleAssistant()}
+              closeLabel="Hide assistant"
+            />
             <div className="panel-body">
               <Model3DChatPanel />
             </div>

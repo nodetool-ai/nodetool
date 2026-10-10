@@ -31,7 +31,6 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { EntityEditorDialog } from "../entities/EntityEditorDialog";
 import ReportBugButton from "../support/ReportBugButton";
-import PanelHeadline from "../ui/PanelHeadline";
 import { TYPE_COLOR } from "../workspace/tabTypeIdentity";
 import {
   BORDER_RADIUS,
@@ -48,7 +47,8 @@ import {
   SearchInput,
   SPACING,
   Text,
-  TruncatedText
+  TruncatedText,
+  PanelHeader
 } from "../ui_primitives";
 
 const DOCUMENT_TAB_TYPES = {
@@ -416,7 +416,7 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
   return (
     <FlexColumn fullHeight fullWidth gap={0}>
       {!isMobile && (
-        <PanelHeadline
+        <PanelHeader
           title="Documents"
           description="Open documents in the current project."
         />
