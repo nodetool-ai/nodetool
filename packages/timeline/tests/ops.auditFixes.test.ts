@@ -442,3 +442,41 @@ describe("delete_track with clips (notes)", () => {
     expect(outcome.state.mediaTracks).toEqual([]);
   });
 });
+
+describe("move_clip on a group", () => {
+  it("carries a child's linked audio and keeps its offset at zero", async () => {
+    const s = state([
+      makeClip({
+        id: "group",
+        trackId: "track_v",
+        name: "G",
+        startMs: 1000,
+        durationMs: 2000,
+        mediaType: "group",
+        sourceType: "imported"
+      }),
+      video({ startMs: 1000, parentId: "group", linkId: "L" }),
+      makeClip({
+        id: "clip_a",
+        trackId: "track_a",
+        name: "Sound",
+        startMs: 500,
+        durationMs: 2500,
+        mediaType: "audio",
+        sourceType: "imported",
+        linkId: "L"
+      })
+    ]);
+    const outcome = await run(s, {
+      op: "move_clip",
+      target: "group",
+      startMs: 0
+    });
+    expect(outcome.error).toBeUndefined();
+    const at = (id: string) =>
+      outcome.state.clips.find((c) => c.id === id)!.startMs;
+    expect(at("clip_a")).toBe(0);
+    expect(at("clip_v")).toBe(500);
+    expect(at("group")).toBe(500);
+  });
+});

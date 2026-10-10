@@ -223,12 +223,14 @@ jest.mock("../../setup/video/VideoSetupHost", () => ({
   __esModule: true,
   default: ({
     sequenceId,
+    active = true,
     onStartFromScript
   }: {
     sequenceId: string;
+    active?: boolean;
     onStartFromScript?: (brief: string) => void;
   }) => (
-    <div data-testid="setup-flow">
+    <div data-testid="setup-flow" data-active={String(active)}>
       {sequenceId}
       <button
         type="button"
@@ -1187,6 +1189,31 @@ describe("NewProjectSurface", () => {
     // The tab is the flow now, and the project agent was never started.
     expect(await screen.findByTestId("setup-flow")).toHaveTextContent("b7");
     expect(openProject).not.toHaveBeenCalled();
+  });
+
+  it("mounts a hidden video flow tab as an inactive timeline", async () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <QueryClientProvider client={new QueryClient()}>
+          <NewProjectSurface
+            flowRef="flow-v"
+            active={false}
+            initialSetupTarget={{
+              kind: "video",
+              id: "seq-v",
+              projectId: "p1",
+              name: "Video",
+              ownsProject: false
+            }}
+          />
+        </QueryClientProvider>
+      </ThemeProvider>
+    );
+
+    expect(await screen.findByTestId("setup-flow")).toHaveAttribute(
+      "data-active",
+      "false"
+    );
   });
 
   it("restores a guided tab from its saved target after remounting", async () => {

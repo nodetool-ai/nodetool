@@ -11,6 +11,7 @@
  * These are pure functions over one clip; the store wraps them.
  */
 
+import { ease } from "./animation/easing.js";
 import type { ClipAnimation, CustomClipAnimation } from "./animation/types.js";
 import { ANIMATED_PROPERTY_FOLD, type AnimatedProperty } from "./animation/types.js";
 import { createTimeOrderedUuid } from "./defaults.js";
@@ -195,4 +196,67 @@ export function removeKeyframe(
         : c
     )
   );
+}
+
+type KeyframeCurve = CustomClipAnimation["curves"][number];
+type CurveKeyframe = KeyframeCurve["keyframes"][number];
+
+/**
+ * A curve's value at `t`, by the sampler's rule: held flat outside the first
+ * and last keyframes, and each segment eased by its later keyframe's easing.
+ */
+function curveValueAtT(keyframes: readonly CurveKeyframe[], t: number): number {
+  if (t <= keyframes[0].t) return keyframes[0].value;
+  const last = keyframes[keyframes.length - 1];
+  if (t >= last.t) return last.value;
+  for (let i = 1; i < keyframes.length; i++) {
+    if (t > keyframes[i].t) continue;
+    const a = keyframes[i - 1];
+    const b = keyframes[i];
+    const span = b.t - a.t;
+    const f = span > 0 ? ease(b.easing ?? "linear", (t - a.t) / span) : 1;
+    return a.value + (b.value - a.value) * f;
+  }
+  return last.value;
+}
+
+/**
+ * The hand-keyframe animation restricted to `fromT..toT` of the clip and
+ * renormalized over that span, for one half of a split. Each half keeps the
+ * keyframes inside its span plus an interpolated keyframe on each new edge, so
+ * both halves show the motion the unsplit clip showed at the same instants.
+ */
+export function sliceKeyframeAnimation(
+  animation: ClipAnimation,
+  fromT: number,
+  toT: number,
+  durationMs: number
+): ClipAnimation {
+  const span = toT - fromT;
+  if (!animation.custom || span <= 0) {
+    return { ...animation, durationMs };
+  }
+  const curves = animation.custom.curves.map((curve) => {
+    if (curve.keyframes.length === 0) return curve;
+    const sorted = [...curve.keyframes].sort((a, b) => a.t - b.t);
+    const inside = sorted.filter(
+      (kf) => kf.t > fromT + T_EPSILON && kf.t < toT - T_EPSILON
+    );
+    const head: CurveKeyframe = { t: fromT, value: curveValueAtT(sorted, fromT) };
+    const tailSource = sorted.find((kf) => kf.t >= toT - T_EPSILON);
+    const tail: CurveKeyframe = { t: toT, value: curveValueAtT(sorted, toT) };
+    if (tailSource?.easing !== undefined) tail.easing = tailSource.easing;
+    return {
+      ...curve,
+      keyframes: [head, ...inside, tail].map((kf) => ({
+        ...kf,
+        t: Math.max(0, Math.min(1, (kf.t - fromT) / span))
+      }))
+    };
+  });
+  return {
+    ...animation,
+    durationMs,
+    custom: { ...animation.custom, curves }
+  };
 }

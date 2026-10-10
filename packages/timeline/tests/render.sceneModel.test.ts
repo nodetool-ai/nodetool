@@ -140,6 +140,36 @@ describe("computeActiveLayers", () => {
     expect(layers.map((l) => l.clipId)).toEqual(["vid"]);
   });
 
+  it("excludes a hidden clip, its caption and a hidden adjustment", () => {
+    const tracks = [
+      track({ id: "fx", index: 0, type: "video" }),
+      track({ id: "v", index: 1, type: "video" })
+    ];
+    const clips = [
+      clip({ id: "vid", trackId: "v", startMs: 0, durationMs: 1000 }),
+      clip({
+        id: "hid",
+        trackId: "v",
+        startMs: 0,
+        durationMs: 1000,
+        hidden: true,
+        caption: { words: [{ word: "hi", startMs: 0, endMs: 300 }] }
+      }),
+      clip({
+        id: "adj",
+        trackId: "fx",
+        startMs: 0,
+        durationMs: 1000,
+        mediaType: "adjustment",
+        hidden: true,
+        effects: [{ id: "e", type: "color", enabled: true, brightness: 0.5 }]
+      })
+    ];
+    const result = computeActiveLayersWithHorizon(tracks, clips, 100);
+    expect(result.layers.map((l) => l.clipId)).toEqual(["vid"]);
+    expect(result.adjustments).toEqual([]);
+  });
+
   it("excludes midi clips and midi tracks — notes are not pixels", () => {
     const tracks = [
       track({ id: "v", index: 0, type: "video" }),

@@ -98,11 +98,17 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       return <ProjectListSurface />;
     case "project":
       // Old persisted overview tabs land on editor home.
-      return <NewProjectSurface />;
+      return <NewProjectSurface active={active} />;
     case "guided-flow":
-      return <NewProjectSurface flowRef={tab.ref} initialSetupTarget={tab.setupTarget} />;
+      return (
+        <NewProjectSurface
+          flowRef={tab.ref}
+          initialSetupTarget={tab.setupTarget}
+          active={active}
+        />
+      );
     case "project-new":
-      return <NewProjectSurface />;
+      return <NewProjectSurface active={active} />;
     default: {
       // Exhaustiveness guard — a new WorkspaceTabType must add a case here.
       const exhaustive: never = tab.type;

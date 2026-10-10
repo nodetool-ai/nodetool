@@ -159,3 +159,32 @@ describe("trimClip on a midi clip", () => {
     expect(trimmed.notes).toEqual(clip.notes);
   });
 });
+
+describe("trimClip on clips with no source clock", () => {
+  it.each(["image", "text", "shape", "adjustment", "group"] as const)(
+    "extends a %s clip's head earlier",
+    (mediaType) => {
+      const clip: TimelineClip = {
+        ...makeBaseClip(),
+        mediaType,
+        startMs: 2000,
+        durationMs: 3000,
+        inPointMs: undefined,
+        outPointMs: undefined
+      };
+
+      const extended = trimClip(clip, "start", 1000);
+
+      expect(extended.startMs).toBe(1000);
+      expect(extended.durationMs).toBe(4000);
+      expect(extended.inPointMs).toBe(0);
+      expect(extended.outPointMs).toBe(4000);
+    }
+  );
+
+  it("still refuses to extend a video before its source start", () => {
+    expect(() => trimClip(makeBaseClip(), "start", 300)).toThrow(
+      "cannot extend before source start"
+    );
+  });
+});
