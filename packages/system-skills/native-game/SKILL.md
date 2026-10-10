@@ -619,8 +619,8 @@ stops its colliders from touching each other. Every unlisted pair collides.
 Set both with `set_game {collision_layers, collision_matrix}`, and put a
 collider on a layer with `update_entity set collider3d {layer}`. A layered
 collider derives `category` from its bit and `mask` from the matrix, so leave
-its raw bits at `1` and `65535`. Validation reports `unknown_collision_layer`,
-`duplicate_collision_pair` and `collision_layer_bits_conflict`. Raw `category`
+its raw bits at `1` and `65535`. Validation rejects an unknown layer name, a
+pair listed twice in the matrix and conflicting layer bits. Raw `category`
 and `mask` remain an override for colliders without a layer, which keeps
 existing documents on their current bits. A collider without a layer keeps the
 default category `1`, which is the bit of `collisionLayers[0]`. It therefore
