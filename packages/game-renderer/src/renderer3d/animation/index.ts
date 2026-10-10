@@ -84,7 +84,10 @@ function restPose(root: THREE.Object3D): Map<THREE.Object3D, RestPose> {
   let rest = restCache.get(root);
   if (!rest) {
     const captured = new Map<THREE.Object3D, RestPose>();
-    root.traverse((node) => { captured.set(node, { position: node.position.clone(), quaternion: node.quaternion.clone(), scale: node.scale.clone() }); });
+    root.traverse((node) => {
+      if (node === root) { return; }
+      captured.set(node, { position: node.position.clone(), quaternion: node.quaternion.clone(), scale: node.scale.clone() });
+    });
     rest = captured;
     restCache.set(root, rest);
   }
@@ -119,7 +122,7 @@ function motionTimes(clips: readonly THREE.AnimationClip[], sample: GameAnimatio
 
 /**
  * Applies a graph pose from an explicit simulation tick. Each call starts from the rest pose captured when the
- * instance was first sampled, so the result depends only on the pose and tick. Override layers blend toward their
+ * instance was first sampled. The root retains its simulation transform. Override layers blend toward their
  * sampled pose by layer weight. Additive layers add each clip's offset from its first keyframe.
  */
 export function sampleGameAnimationPose3D(root: THREE.Object3D, clips: readonly THREE.AnimationClip[], pose: GameAnimationPose3D, tick: number): void {

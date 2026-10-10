@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AnimationClip, Bone, Group, Quaternion, QuaternionKeyframeTrack, VectorKeyframeTrack } from "three";
+import { AnimationClip, Bone, Group, Quaternion, QuaternionKeyframeTrack, Vector3, VectorKeyframeTrack } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { gameInputFrame3D, type GameAnimationPose3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, createNative3DGame } from "@nodetool-ai/game-runtime";
@@ -34,6 +34,22 @@ describe("animation graph pose sampling", () => {
     sampleGameAnimationPose3D(root, clips, pose, 10);
     sampleGameAnimationPose3D(root, clips, pose, 45);
     expect(hips.position.x).toBeCloseTo(2.5);
+  });
+
+  it("preserves the entity transform while restoring the rig rest pose", () => {
+    const { root, hips, clips } = rig();
+    const pose: GameAnimationPose3D = { layers: [{ mode: "override", weight: 1, current: motion([{ clipId: "clip:1", weight: 1 }]) }] };
+    root.position.set(2, 3, 4);
+    sampleGameAnimationPose3D(root, clips, pose, 30);
+    root.position.set(9, 8, 7);
+    root.quaternion.setFromAxisAngle(new Vector3(0, 1, 0), 1);
+    root.scale.set(2, 3, 4);
+    const rotation = root.quaternion.clone();
+    sampleGameAnimationPose3D(root, clips, pose, 45);
+    expect(root.position.toArray()).toEqual([9, 8, 7]);
+    expect(root.quaternion.toArray()).toEqual(rotation.toArray());
+    expect(root.scale.toArray()).toEqual([2, 3, 4]);
+    expect(hips.position.x).toBeCloseTo(1.5);
   });
 
   it("crossfades from the previous state over the transition ticks", () => {
