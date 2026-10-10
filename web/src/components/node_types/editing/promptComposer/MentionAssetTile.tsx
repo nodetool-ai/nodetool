@@ -88,6 +88,10 @@ const styles = (theme: Theme) =>
     "@media (pointer: coarse)": {
       ".rename-button": { opacity: 1 }
     },
+    "&:focus-visible": {
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: 2
+    },
     "&.selected": {
       borderColor: theme.vars.palette.primary.main,
       background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
@@ -222,6 +226,11 @@ interface MentionAssetTileProps {
    * error (e.g. a name collision) without exiting edit mode.
    */
   onRename: (id: string, name: string) => Promise<void>;
+  /**
+   * Put the tile in the tab order and select it with Enter or Space. The
+   * `@`-mention menus leave this off because focus stays in the editor there.
+   */
+  focusable?: boolean;
 }
 
 export const MentionAssetTile: React.FC<MentionAssetTileProps> = React.memo(({
@@ -229,7 +238,8 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = React.memo(({
   selected,
   onSelect,
   onMouseEnter,
-  onRename
+  onRename,
+  focusable = false
 }) => {
   const theme = useTheme();
   const tileStyles = useMemo(() => styles(theme), [theme]);
@@ -281,7 +291,17 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = React.memo(({
       className={`mention-asset-tile${selected ? " selected" : ""}`}
       role="option"
       aria-selected={selected}
-      tabIndex={-1}
+      tabIndex={focusable ? 0 : -1}
+      onKeyDown={
+        focusable
+          ? (e) => {
+              if (!editing && (e.key === "Enter" || e.key === " ")) {
+                e.preventDefault();
+                onSelect();
+              }
+            }
+          : undefined
+      }
       onMouseDown={(e) => e.preventDefault()}
       onMouseEnter={onMouseEnter}
       onClick={() => {
