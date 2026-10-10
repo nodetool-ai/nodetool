@@ -37,7 +37,7 @@ interface AsrConfig {
   model: string;
 }
 
-const DEFAULT_ASR_CONFIG: AsrConfig = {
+export const DEFAULT_ASR_CONFIG: AsrConfig = {
   provider: "openai",
   model: "whisper-1"
 };
@@ -308,18 +308,86 @@ const subscribeLive = (listener: () => void): (() => void) => {
   };
 };
 
-/** True while this page is voicing the script. */
+// ── Runs in other tabs ──────────────────────────────────────────────────────
+
+/**
+ * Scripts another tab of this browser is voicing, with the tabs voicing them.
+ * The record syncs between tabs but `liveRuns` does not, so a second tab read
+ * a run the first was still voicing as stopped, and its Voice all could pay
+ * for the same lines again. Tabs tell each other over a `BroadcastChannel`.
+ * A run on another device is not seen, and a tab that crashes without
+ * `pagehide` leaves its runs counted until this page reloads.
+ */
+type VoicingMessage =
+  | { type: "live" | "ended"; scriptId: string; page: string }
+  | { type: "ask"; page: string };
+
+const VOICING_CHANNEL = "nodetool-script-voicing";
+const pageId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+const remoteRuns = new Map<string, Set<string>>();
+let channel: BroadcastChannel | null | undefined;
+
+const post = (message: VoicingMessage): void => {
+  openChannel()?.postMessage(message);
+};
+
+const onVoicingMessage = (event: MessageEvent<VoicingMessage>): void => {
+  const message = event.data;
+  if (!isObjectLike(message) || message.page === pageId) return;
+  if (message.type === "ask") {
+    liveRuns.forEach((scriptId) =>
+      post({ type: "live", scriptId, page: pageId })
+    );
+    return;
+  }
+  if (!isString(message.scriptId)) return;
+  const pages = remoteRuns.get(message.scriptId) ?? new Set<string>();
+  if (message.type === "live") {
+    pages.add(message.page);
+    remoteRuns.set(message.scriptId, pages);
+  } else if (message.type === "ended") {
+    pages.delete(message.page);
+    if (pages.size === 0) remoteRuns.delete(message.scriptId);
+  }
+  announceLive();
+};
+
+function openChannel(): BroadcastChannel | null {
+  if (channel !== undefined) return channel;
+  channel =
+    typeof BroadcastChannel === "function"
+      ? new BroadcastChannel(VOICING_CHANNEL)
+      : null;
+  if (!channel) return null;
+  channel.addEventListener("message", onVoicingMessage);
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", () => {
+      liveRuns.forEach((scriptId) =>
+        post({ type: "ended", scriptId, page: pageId })
+      );
+    });
+  }
+  // A tab opened mid-run asks who is voicing what.
+  channel.postMessage({ type: "ask", page: pageId } satisfies VoicingMessage);
+  return channel;
+}
+
+const subscribeLiveAnywhere = (listener: () => void): (() => void) => {
+  openChannel();
+  return subscribeLive(listener);
+};
+
+/** True while this page, or another tab of this browser, voices the script. */
 export function isVoicingLive(scriptId: string): boolean {
-  return liveRuns.has(scriptId);
+  openChannel();
+  return liveRuns.has(scriptId) || remoteRuns.has(scriptId);
 }
 
 /** {@link isVoicingLive}, as React state. */
 export function useVoicingLive(scriptId: string): boolean {
-  return useSyncExternalStore(
-    subscribeLive,
-    () => liveRuns.has(scriptId),
-    () => liveRuns.has(scriptId)
-  );
+  const read = (): boolean =>
+    liveRuns.has(scriptId) || remoteRuns.has(scriptId);
+  return useSyncExternalStore(subscribeLiveAnywhere, read, read);
 }
 
 /**
@@ -367,16 +435,22 @@ async function voiceLines(
    */
   base?: VoicingRun
 ): Promise<VoicingRun> {
+  openChannel();
   if (liveRuns.has(scriptId)) {
     throw new Error("This script is already being voiced.");
   }
+  if (remoteRuns.has(scriptId)) {
+    throw new Error("This script is being voiced in another tab.");
+  }
   liveRuns.add(scriptId);
   announceLive();
+  post({ type: "live", scriptId, page: pageId });
   try {
     return await runLines(scriptId, lineIds, asr, concurrency, base);
   } finally {
     liveRuns.delete(scriptId);
     announceLive();
+    post({ type: "ended", scriptId, page: pageId });
   }
 }
 

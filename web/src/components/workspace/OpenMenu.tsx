@@ -9,7 +9,8 @@ import {
   FlexRow,
   Caption,
   Divider,
-  LoadingSpinner
+  LoadingSpinner,
+  SPACING
 } from "../ui_primitives";
 import { useExampleStoryboards } from "../../hooks/storyboard/useStoryboards";
 import {
@@ -27,9 +28,16 @@ interface OpenMenuProps {
 
 type MenuView = "root" | NewDocumentSubmenu;
 
+/** The menu's column width, and the popover's room around it, in px. */
+const MENU_WIDTH = 320;
+const MENU_MAX_WIDTH = 340;
+
 /** A section header inside the menu: quiet, uppercase-adjacent, padded. */
 const MenuSectionLabel = ({ children }: { children: string }) => (
-  <Caption color="muted" sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
+  <Caption
+    color="muted"
+    sx={{ px: SPACING.md, pt: SPACING.sm, pb: SPACING.micro }}
+  >
     {children}
   </Caption>
 );
@@ -69,13 +77,13 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       anchorEl={anchorEl}
       onClose={close}
       placement="bottom-left"
-      maxWidth={340}
+      maxWidth={MENU_MAX_WIDTH}
       maxHeight="70vh"
     >
       <FlexColumn
         sx={{
-          width: 320,
-          py: 0.5,
+          width: MENU_WIDTH,
+          py: SPACING.micro,
           // One icon size for every row: 16px beats the default MUI small
           // (20px), which crowded the label at this menu's density.
           "& .MuiSvgIcon-root": { fontSize: 16 }
@@ -105,7 +113,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               />
             ))}
 
-            <Divider sx={{ my: 1 }} />
+            <Divider sx={{ my: SPACING.xs }} />
             <MenuSectionLabel>Blank documents</MenuSectionLabel>
             {entries.map((entry) => (
               <MenuItemPrimitive
@@ -159,12 +167,12 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               dividerAfter
             />
             {examplesLoading && (
-              <FlexRow justify="center" sx={{ py: 2 }}>
+              <FlexRow justify="center" sx={{ py: SPACING.md }}>
                 <LoadingSpinner />
               </FlexRow>
             )}
             {!examplesLoading && exampleStoryboards.length === 0 && (
-              <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
+              <Caption color="secondary" sx={{ px: SPACING.md, py: SPACING.sm }}>
                 No example storyboards are available.
               </Caption>
             )}

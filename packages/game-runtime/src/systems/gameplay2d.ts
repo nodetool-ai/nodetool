@@ -1,7 +1,9 @@
 import { MAX_GAME_SPAWNED_INSTANCES } from "../gameplay/lifecycle.js";
 import type { GameSystemContext2D } from "./context2d.js";
 import { advanceGameplayRandom, finalizeGameplayEntities } from "../gameplay/lifecycle.js";
+import { awaitsDestroy, type GameScriptLifecycleRecord } from "../script-lifecycle.js";
 import { scriptSourceKey } from "../scripts.js";
+import { scriptCall2D } from "./scripts2d.js";
 export function stepGameplay2D(context: GameSystemContext2D): void {
   context.won = finalizeGameplayEntities(
     context.states,
@@ -11,7 +13,8 @@ export function stepGameplay2D(context: GameSystemContext2D): void {
     context.sceneId,
     context.tick,
     context.events,
-    context.emit
+    context.emit,
+    (state) => ({ x: state.x, y: state.y, z: 0 })
   );
   if (context.queuedDespawns.size > 0) {
     // Spawned instances leave the world when despawned; authored entities stay as inactive state.
@@ -20,8 +23,16 @@ export function stepGameplay2D(context: GameSystemContext2D): void {
         return true;
       }
       state.definition.behaviors.forEach((behavior, index) => {
-        if (behavior.kind === "script") {
-          delete context.scriptState[scriptSourceKey(context.scene.id, state.definition.id, index)];
+        if (behavior.kind !== "script") {
+          return;
+        }
+        const key = scriptSourceKey(context.scene.id, state.definition.id, index);
+        const record = context.scriptState[key];
+        // A lifecycle behavior keeps its record until its onDestroy call runs in the next tick.
+        if (awaitsDestroy(record) && context.scriptRunner?.hookSources?.has(scriptSourceKey(context.scene.id, state.sourceId ?? state.definition.id, index))) {
+          context.scriptState[key] = { ...(record as GameScriptLifecycleRecord), removed: scriptCall2D(context, state, index) } as unknown as typeof record;
+        } else {
+          delete context.scriptState[key];
         }
       });
       return false;

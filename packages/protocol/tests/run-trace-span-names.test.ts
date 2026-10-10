@@ -45,8 +45,6 @@ function record(name: string, attributes: Record<string, unknown>): TraceRecord 
 }
 
 describe("trace span names", () => {
-  // The scan reads every source file in the repository, which takes several
-  // seconds on a busy CI runner.
   it("declares every literal span name in the source as metadata", () => {
     const names = literalSpanNames();
     // The scan must find the spans this repository is known to open.
@@ -55,7 +53,8 @@ describe("trace span names", () => {
     }
     const undeclared = [...names].filter(([name]) => !isMetadataTraceSpanName(name)).map(([name, file]) => `${name} (${file})`);
     expect(undeclared).toEqual([]);
-  }, 60_000);
+    // Reading every source file outlasts the 5 s default on a loaded CI runner.
+  }, 30_000);
 
   it("declares the computed provider and model span names", () => {
     for (const name of ["provider.textToImage", "provider.generateEmbedding", "agent.execute", "llm.stream openai/gpt-5"]) {

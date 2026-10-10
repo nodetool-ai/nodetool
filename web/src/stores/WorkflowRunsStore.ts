@@ -37,6 +37,8 @@ export interface RunMeta {
   startedAt: number;
   /** Optional human label (e.g. distinguishing param); may be undefined. */
   label?: string;
+  /** The job's own error text when it failed or timed out. */
+  error?: string;
 }
 
 const TERMINAL: ReadonlySet<RunState> = new Set([
@@ -91,8 +93,16 @@ type WorkflowRunsActions = {
    * runs beyond MAX_RETAINED_RUNS_PER_WORKFLOW through removeRun.
    */
   recordRun: (meta: RunMeta) => void;
-  /** Update the RunState for an existing run. Focus is unchanged. */
-  updateRunState: (wf: string, jobId: string, state: RunState) => void;
+  /**
+   * Update the RunState for an existing run, and the job's error when it
+   * reported one. Focus is unchanged.
+   */
+  updateRunState: (
+    wf: string,
+    jobId: string,
+    state: RunState,
+    error?: string
+  ) => void;
   /** Explicit user focus selection — also sets pinned[wf] = true. */
   setFocusedJob: (wf: string, jobId: string) => void;
   getFocusedJob: (wf: string) => string | undefined;
@@ -140,7 +150,12 @@ const useWorkflowRunsStore = create<WorkflowRunsStore>((set, get) => ({
     }
   },
 
-  updateRunState: (wf: string, jobId: string, state: RunState) => {
+  updateRunState: (
+    wf: string,
+    jobId: string,
+    state: RunState,
+    error?: string
+  ) => {
     const { runs } = get();
     const wfRuns = runs[wf];
     if (!wfRuns || !wfRuns[jobId]) return;
@@ -150,7 +165,10 @@ const useWorkflowRunsStore = create<WorkflowRunsStore>((set, get) => ({
         ...runs,
         [wf]: {
           ...wfRuns,
-          [jobId]: { ...wfRuns[jobId], state }
+          [jobId]:
+            error === undefined
+              ? { ...wfRuns[jobId], state }
+              : { ...wfRuns[jobId], state, error }
         }
       }
     });

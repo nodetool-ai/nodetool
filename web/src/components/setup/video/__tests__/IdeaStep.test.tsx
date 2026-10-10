@@ -9,6 +9,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { makeClip } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
@@ -142,6 +143,24 @@ describe("video IdeaStep", () => {
     expect(
       screen.getByRole("button", { name: /Start from a script/ })
     ).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("holds Start from a script once media is placed, since the hand-off discards it (V3)", async () => {
+    const start = jest.fn();
+    act(() =>
+      useTimelineStore.getState().addClips([
+        makeClip({ id: "c1", trackId: "t1", startMs: 0, durationMs: 3000 })
+      ])
+    );
+    renderStep(start);
+    const script = screen.getByRole("button", { name: /Start from a script/ });
+    expect(script).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(script);
+    expect(start).not.toHaveBeenCalled();
+    await userEvent.hover(script);
+    expect(
+      await screen.findByText(/would be left behind/)
+    ).toBeInTheDocument();
   });
 
   it("holds both ways out of the step while media is uploading", async () => {

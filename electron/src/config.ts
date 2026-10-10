@@ -199,6 +199,31 @@ const getDefaultAssetsPath = (): string => {
 const getOptionalNodeModulesPath = (): string =>
   path.join(app.getPath("userData"), "optional-node", "node_modules");
 
+/**
+ * Cache directory `name` under `$XDG_CACHE_HOME`, unless only the one under
+ * `~/.cache` holds data. `marker` names the subdirectory whose presence means
+ * the cache holds data (the HF `hub`), else the directory itself counts.
+ */
+const resolveXdgCacheDir = (
+  xdgCacheHome: string | undefined,
+  legacyCacheHome: string,
+  name: string,
+  marker?: string
+): string => {
+  const legacyDir = path.join(legacyCacheHome, name);
+  if (!xdgCacheHome) return legacyDir;
+  const xdgDir = path.join(xdgCacheHome, name);
+  if (xdgDir === legacyDir) return xdgDir;
+  const hasData = (dir: string): boolean => {
+    try {
+      return fs.readdirSync(marker ? path.join(dir, marker) : dir).length > 0;
+    } catch {
+      return false;
+    }
+  };
+  return hasData(legacyDir) && !hasData(xdgDir) ? legacyDir : xdgDir;
+};
+
 const getProcessEnv = (): ProcessEnv => {
   const condaPath: string = getCondaEnvPath();
 
@@ -275,9 +300,19 @@ const getProcessEnv = (): ProcessEnv => {
 
   // HuggingFace home: the user's HF_HOME, else where huggingface_hub puts it
   // ($XDG_CACHE_HOME/huggingface, else ~/.cache/huggingface), so the app, the
-  // CLI and a Python script outside the app share one model cache.
-  const userCacheHome = baseEnv.XDG_CACHE_HOME || path.join(homeDir, ".cache");
-  const hfHome = baseEnv.HF_HOME || path.join(userCacheHome, "huggingface");
+  // CLI and a Python script outside the app share one model cache. Flatpak
+  // sets XDG_CACHE_HOME per app, so models downloaded before the app followed
+  // XDG stay in ~/.cache. Keep using that cache until the XDG one has models.
+  const legacyCacheHome = path.join(homeDir, ".cache");
+  const hfHome =
+    baseEnv.HF_HOME ||
+    resolveXdgCacheDir(baseEnv.XDG_CACHE_HOME, legacyCacheHome, "huggingface", "hub");
+  // llama.cpp follows XDG_CACHE_HOME only on Linux. The server's resolver
+  // honours LLAMA_CACHE, so pin it to the legacy cache the same way.
+  const llamaCache =
+    !baseEnv.LLAMA_CACHE && process.platform === "linux" && baseEnv.XDG_CACHE_HOME
+      ? resolveXdgCacheDir(baseEnv.XDG_CACHE_HOME, legacyCacheHome, "llama.cpp")
+      : undefined;
 
   // UV cache: store inside userData so it's writable by the Electron app.
   // XDG_CACHE_HOME is deliberately left as the user has it: overriding it
@@ -300,7 +335,7 @@ const getProcessEnv = (): ProcessEnv => {
     logMessage(`Warning: Failed to create cache directories: ${error}`, "warn");
   }
 
-  return {
+  const env: ProcessEnv = {
     ...baseEnv,
     HOME: homeDir,
     HF_HOME: hfHome,
@@ -315,6 +350,10 @@ const getProcessEnv = (): ProcessEnv => {
         ? pathSegmentsWin.filter(Boolean).join(path.delimiter)
         : pathSegmentsUnix.filter(Boolean).join(path.delimiter),
   };
+  if (llamaCache) {
+    env.LLAMA_CACHE = llamaCache;
+  }
+  return env;
 };
 
 /** How to invoke npm: the executable plus any args that must precede the npm subcommand. */

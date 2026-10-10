@@ -268,4 +268,26 @@ describe("saveWorkflow first save", () => {
     await expect(second).resolves.toBeUndefined();
     expect(updateMutate).toHaveBeenCalledTimes(2);
   });
+
+  it("adds a version row unless the save asks for none", async () => {
+    const store = createWorkflowManagerStore(new QueryClient());
+    const serverWorkflow: Workflow = {
+      id: "wf-versions",
+      name: "Existing",
+      description: "",
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      created_at: "2026-08-01T00:00:00.000Z",
+      updated_at: "2026-08-02T00:00:00.000Z"
+    };
+    store.getState().addWorkflow(serverWorkflow);
+    updateMutate.mockResolvedValue({ ...serverWorkflow });
+
+    await store.getState().saveWorkflow(serverWorkflow);
+    expect(versionMutate).toHaveBeenCalledTimes(1);
+
+    await store.getState().saveWorkflow(serverWorkflow, { snapshot: false });
+    expect(updateMutate).toHaveBeenCalledTimes(2);
+    expect(versionMutate).toHaveBeenCalledTimes(1);
+  });
 });

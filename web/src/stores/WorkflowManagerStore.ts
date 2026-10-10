@@ -202,6 +202,8 @@ interface SaveInput {
   workflow: Workflow;
   nodeStoreBefore: NodeStore | undefined;
   stateBefore: NodeStoreState | undefined;
+  /** Whether this save also records a version row. */
+  snapshot: boolean;
 }
 
 interface PendingSave {
@@ -316,7 +318,14 @@ export type WorkflowManagerState = {
   reorderWorkflows: (sourceIndex: number, targetIndex: number) => void;
   updateWorkflow: (workflow: WorkflowAttributes) => void;
   isSavingWorkflow: (workflowId: string) => boolean;
-  saveWorkflow: (workflow: Workflow) => Promise<void>;
+  /**
+   * Saves the workflow. `snapshot: false` skips the version row, for a save
+   * that only records progress on a change an earlier save already captured.
+   */
+  saveWorkflow: (
+    workflow: Workflow,
+    options?: { snapshot?: boolean }
+  ) => Promise<void>;
   /**
    * Run a write of this workflow (an autosave or checkpoint) after any save
    * already queued for it, holding external-change notices until it ends.
@@ -493,18 +502,22 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       return run;
     };
 
-    const captureSave = (workflow: Workflow): SaveInput => {
+    const captureSave = (
+      workflow: Workflow,
+      options?: { snapshot?: boolean }
+    ): SaveInput => {
       const nodeStoreBefore = get().nodeStores[workflow.id];
       return {
         workflow,
         nodeStoreBefore,
-        stateBefore: nodeStoreBefore?.getState()
+        stateBefore: nodeStoreBefore?.getState(),
+        snapshot: options?.snapshot !== false
       };
     };
 
     /** Sends one manual save and returns the etag the server assigned. */
     const performSave = async (
-      { workflow: requested, nodeStoreBefore, stateBefore }: SaveInput,
+      { workflow: requested, nodeStoreBefore, stateBefore, snapshot }: SaveInput,
       waited: boolean
     ): Promise<string | undefined> => {
       // A save that waited behind another write must send the token that
@@ -574,17 +587,19 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       }
 
       // Version snapshot is best-effort — the main save already succeeded.
-      try {
-        await trpcClient.workflows.versions.create.mutate({
-          id: workflow.id,
-          name: workflow.name,
-          description: `Manual save: ${new Date().toISOString()}`
-        });
-      } catch (err) {
-        console.warn(
-          "[saveWorkflow] Workflow saved but version snapshot failed:",
-          err
-        );
+      if (snapshot) {
+        try {
+          await trpcClient.workflows.versions.create.mutate({
+            id: workflow.id,
+            name: workflow.name,
+            description: `Manual save: ${new Date().toISOString()}`
+          });
+        } catch (err) {
+          console.warn(
+            "[saveWorkflow] Workflow saved but version snapshot failed:",
+            err
+          );
+        }
       }
 
       const persistedWorkflow: Workflow = {
@@ -714,13 +729,17 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        */
       isSavingWorkflow: (workflowId) =>
         savesInFlight.has(workflowId) || saveQueues.has(workflowId),
-      saveWorkflow: (workflow: Workflow) => {
+      saveWorkflow: (workflow: Workflow, options?: { snapshot?: boolean }) => {
         // Capture the editor's state now: an edit made after this call, even
         // while the save waits its turn, must keep the workflow dirty.
-        const input = captureSave(workflow);
+        const input = captureSave(workflow, options);
         const pending = pendingSaves.get(workflow.id);
         if (pending) {
-          pending.input = input;
+          // The coalesced save records a version if any caller asked for one.
+          pending.input = {
+            ...input,
+            snapshot: input.snapshot || pending.input.snapshot
+          };
           return pending.promise;
         }
         if (!saveQueues.has(workflow.id)) {

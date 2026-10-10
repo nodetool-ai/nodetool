@@ -70,8 +70,9 @@ Use the absolute model path returned by discovery unchanged as the ASR model id.
 Models use the Hugging Face hub cache (see HuggingFace models below for how its
 location resolves). `WHISPER_CPP_MODELS_DIR` adds another directory.
 `WHISPER_CPP_GPU_BACKEND` accepts `auto`, `metal`, `cuda`, `vulkan`, or `cpu`.
-`auto` uses the default build, including Metal on macOS. Restart the backend
-after changing the backend setting. Live transcription accepts base64 PCM16
+`auto` uses Metal on macOS. On Windows and Linux it tries the CUDA build, then
+the Vulkan build, then the default CPU build. Restart the backend after
+changing the backend setting. Live transcription accepts base64 PCM16
 mono chunks with an optional `content_metadata.sample_rate` and uses Silero
 VAD when installed, otherwise fixed windows.
 
@@ -160,10 +161,13 @@ Python worker, and each needs its pack.
 - Desktop app: **Tools → Package Manager → Python packs**. Installing a pack
   sets up Python first if it is missing. The HuggingFace pack pulls a PyTorch
   2.14 build matched to the GPU. MLX is offered only on Apple Silicon Macs.
+  On a Mac, both packs need Apple Silicon and macOS 14 or newer.
 - Without the desktop app: a Python 3.11+ env with
   `pip install nodetool-core nodetool-huggingface` (plus `nodetool-mlx` on
   Apple Silicon), then start the server with `NODETOOL_PYTHON` pointing at that
-  env's `python`.
+  env's `python`. `curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash -s -- -y --pack huggingface`
+  builds that env on Linux and macOS. `--pack` takes `huggingface`, `mlx`, or
+  `wan2gp`. On macOS, always set `NODETOOL_PYTHON` to the env it prints.
 - `NODETOOL_TORCH_DEVICE` (`cuda`, `cuda:1`, `mps`, `cpu`) picks the device.
 - Wan2GP nodes call a Wan2GP server the user runs. `WAN2GP_MCP_URL` (default
   `http://127.0.0.1:7866/mcp`) or the node's `server_url` points at it.
@@ -181,8 +185,10 @@ For gated models:
 
 Models go to the Hugging Face hub cache: `HF_HUB_CACHE`, else
 `HUGGINGFACE_HUB_CACHE`, else `$HF_HOME/hub`, else
-`$XDG_CACHE_HOME/huggingface/hub`, else `~/.cache/huggingface/hub`. Every
-reader uses this one order.
+`$XDG_CACHE_HOME/huggingface/hub`, else `~/.cache/huggingface/hub`. The
+server and the Python worker (through `huggingface_hub`) apply this one order.
+The desktop app keeps `~/.cache/huggingface` when `XDG_CACHE_HOME` is set (as
+in Flatpak) but that cache already holds models.
 
 ## llama.cpp
 
@@ -297,7 +303,8 @@ Register it with `registerProvider("my_provider", MyProvider)` from
 - **Wrong key env var name**: Each provider has a specific name (see table above)
 - **Ollama not running**: NodeTool does not start it. Start the Ollama app or `ollama serve`
 - **Gated HF models**: Must accept terms on huggingface.co first
-- **GPU memory**: Large models need 8-24GB VRAM; use quantized versions. PyTorch 2.14 CUDA builds need a Turing (RTX 20xx) or newer NVIDIA card and driver 580+
+- **GPU memory**: Large models need 8-24GB VRAM; use quantized versions
+- **PyTorch on the CPU despite a GPU**: the desktop app installs CUDA 12.8 for Turing (RTX 20xx) and newer (driver 570+), CUDA 12.6 for Maxwell to Volta, and CPU for Kepler, pre-RDNA 2 AMD and AMD on Windows. It also falls back to CPU, with a warning, when no GPU build resolves. A manual `pip install torch` on Linux gets CUDA 13.0, which needs driver 580+ and Turing or newer, as does the Docker worker image
 - **No local provider in the model menu**: the Python pack is missing, or `NODETOOL_PYTHON_ON_DEMAND=true` and no workflow has started the worker yet
 - **Rate limits**: Cloud providers have rate limits; implement retries or use local
 - **Model ID mismatch**: Use the exact model ID from the provider (e.g., `gpt-5.4`, `claude-sonnet-4-6`) — `nodetool models by-provider <provider>` lists them

@@ -28,7 +28,9 @@ import type {
 
 import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
 import { getFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
+import useErrorStore, { nodeErrorToDisplayString } from "../../stores/ErrorStore";
 import useMetadataStore from "../../stores/MetadataStore";
+import usePropertyValidationStore from "../../stores/PropertyValidationStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
@@ -276,10 +278,51 @@ interface PlacementOutput {
   name: string;
 }
 
+/** A placed node and the name the creator knows it by. */
+interface PlacedNode {
+  id: string;
+  label: string;
+}
+
+/**
+ * Why a sample run ended in an error, read from the per-run node errors, the
+ * pre-flight property issues, and then the job's own error. Without it the
+ * checklist and the repair message said only that the run failed.
+ */
+const runFailureReason = (
+  workflowId: string,
+  jobId: string,
+  nodes: readonly PlacedNode[],
+  jobError: string | undefined
+): string => {
+  const errors = useErrorStore.getState();
+  for (const node of nodes) {
+    const message = nodeErrorToDisplayString(
+      errors.getError(workflowId, jobId, node.id)
+    );
+    if (message) {
+      return `${node.label}: ${message}`;
+    }
+  }
+  const issues = usePropertyValidationStore.getState().errors;
+  for (const node of nodes) {
+    const prefix = `${workflowId}:${node.id}:`;
+    const key = Object.keys(issues).find((candidate) =>
+      candidate.startsWith(prefix)
+    );
+    if (key !== undefined) {
+      const property = key.slice(prefix.length);
+      return `${node.label}, ${property}: ${issues[key as keyof typeof issues]}`;
+    }
+  }
+  return jobError ?? "No node reported an error.";
+};
+
 const waitForRunCompletion = async (
   workflowId: string,
   jobId: string,
   outputs: PlacementOutput[],
+  nodes: readonly PlacedNode[],
   signal?: AbortSignal
 ): Promise<{
   status: "completed-with-output" | "failed" | "canceled";
@@ -320,7 +363,22 @@ const waitForRunCompletion = async (
         return;
       }
       if (run.state !== "completed") {
-        finish({ status: "failed", error: "The sample run failed." });
+        // The job's failure frame records its property issues after the run
+        // state changes, so the reason is read once that frame is done.
+        queueMicrotask(() =>
+          finish({
+            status: "failed",
+            error: runFailureReason(
+              workflowId,
+              jobId,
+              nodes,
+              useWorkflowRunsStore
+                .getState()
+                .getRuns(workflowId)
+                .find((candidate) => candidate.jobId === jobId)?.error
+            )
+          })
+        );
         return;
       }
       const output: Record<string, unknown> = {};
@@ -526,7 +584,9 @@ export const useBuildFromPlan = (
         }
 
         // The graph is placed: the stage is terminal from here, so a reload
-        // lands on the canvas rather than back in the flow (D3).
+        // lands on the canvas rather than back in the flow (D3). This is the
+        // build's one version row. The progress saves after it change only
+        // the build record, so they add none.
         const placed = resultWith(
           "built",
           placement.nodes.length,
@@ -538,10 +598,13 @@ export const useBuildFromPlan = (
           }. Checking it now.`
         );
         throwIfAborted(signal);
-        await setSetup({
-          stage: "done",
-          [WORKFLOW_BUILD_KEY]: workflowBuildRecord(placed)
-        });
+        await setSetup(
+          {
+            stage: "done",
+            [WORKFLOW_BUILD_KEY]: workflowBuildRecord(placed)
+          },
+          { snapshot: true }
+        );
         placedDone = true;
 
         let graph: { validation?: GraphValidation };
@@ -659,6 +722,16 @@ export const useBuildFromPlan = (
                       ? node.properties["name"]
                       : node.id
                 })),
+              placement.nodes.map((node) => ({
+                id: node.id,
+                label:
+                  input.plan.steps.find((step) => step.id === node.setupStepId)
+                    ?.title ??
+                  (typeof node.properties["name"] === "string" &&
+                  node.properties["name"].length > 0
+                    ? node.properties["name"]
+                    : node.type.split(".").pop() ?? node.id)
+              })),
               signal
             );
             activeJobIdRef.current = null;

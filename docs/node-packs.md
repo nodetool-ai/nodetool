@@ -35,7 +35,7 @@ Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the
   - A pack installs at its newest stable release, not a version tied to the app version. Prereleases are skipped.
   - Each install or update resolves the new pack together with every Python pack already installed, so shared dependencies such as PyTorch stay at versions all of them accept.
   - The HuggingFace pack gets the PyTorch build that matches your graphics card. See [GPU requirements](installation.md#gpu-requirements).
-  - Apple-only packs, such as MLX, appear only on Apple Silicon Macs.
+  - A pack appears only where it can install. MLX needs an Apple Silicon Mac. HuggingFace runs on Windows, Linux, and Apple Silicon Macs. On a Mac, both need macOS 14 or newer.
 - **Third-party** installs npm packs. Paste a package name such as `@acme/cool-nodes` or `cool-nodes@1.2.3` and click **Install**. Restart the server to load it.
 - **Software** manages runtimes such as Python and FFmpeg, in groups for languages, media, and AI.
 

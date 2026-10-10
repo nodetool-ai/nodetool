@@ -5,7 +5,7 @@
  */
 
 import React, { memo } from "react";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 
 import {
   BORDER_RADIUS,
@@ -108,7 +108,6 @@ const MediaCard: React.FC<{ option: OptionCardItem; image: MediaLocator }> = ({
   image
 }) => {
   const theme = useTheme();
-  const black = theme.palette.common.black;
   return (
     <Box sx={{ position: "relative" }}>
       <ResponsiveImage
@@ -127,10 +126,7 @@ const MediaCard: React.FC<{ option: OptionCardItem; image: MediaLocator }> = ({
           alignItems: "flex-end",
           padding: PADDING.compact,
           color: theme.vars.palette.common.white,
-          background: `linear-gradient(to top, ${alpha(black, 0.82)} 0%, ${alpha(
-            black,
-            0.45
-          )} 38%, ${alpha(black, 0)} 72%)`
+          background: `linear-gradient(to top, ${theme.vars.palette.c_scrim_strong} 0%, ${theme.vars.palette.c_scrim} 38%, transparent 72%)`
         }}
       >
         <CardText option={option} onImage />

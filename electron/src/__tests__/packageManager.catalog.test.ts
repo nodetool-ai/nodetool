@@ -32,6 +32,10 @@ jest.spyOn(torchruntime, 'detectTorchPlatform').mockResolvedValue({
   indexUrl: 'https://download.pytorch.org/whl/cpu',
 });
 
+// Electron adds process.getSystemVersion; plain Node in Jest lacks it.
+const proc = process as NodeJS.Process & { getSystemVersion: () => string };
+proc.getSystemVersion = () => '15.0';
+
 function withPlatform(platform: string, arch: string, run: () => Promise<void>): Promise<void> {
   const original = { platform: process.platform, arch: process.arch };
   Object.defineProperty(process, 'platform', { value: platform });
@@ -94,6 +98,32 @@ describe('package catalog', () => {
       expect(result.success).toBe(false);
       expect(result.message).toMatch(/Intel Macs/);
     });
+  });
+
+  test('hides and refuses HuggingFace and MLX below macOS 14', async () => {
+    try {
+      proc.getSystemVersion = () => '13.6.1';
+      await withPlatform('darwin', 'arm64', async () => {
+        const ids = (await fetchAvailablePackages()).packages.map((p) => p.repo_id);
+        expect(ids).not.toContain('nodetool-ai/nodetool-mlx');
+        expect(ids).not.toContain('nodetool-ai/nodetool-huggingface');
+        expect(ids).toContain('nodetool-ai/nodetool-core');
+
+        const result = await installPackage('nodetool-ai/nodetool-huggingface');
+        expect(result.success).toBe(false);
+        expect(result.message).toMatch(/macOS 13\.6\.1.*macOS 14 or newer/);
+      });
+
+      proc.getSystemVersion = () => '14.0';
+      await withPlatform('darwin', 'arm64', async () => {
+        const ids = (await fetchAvailablePackages()).packages.map((p) => p.repo_id);
+        expect(ids).toEqual(
+          expect.arrayContaining(['nodetool-ai/nodetool-mlx', 'nodetool-ai/nodetool-huggingface'])
+        );
+      });
+    } finally {
+      proc.getSystemVersion = () => '15.0';
+    }
   });
 
   test('known torch-dependent packages require torch platform detection', () => {
