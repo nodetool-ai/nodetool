@@ -108,6 +108,13 @@ describe("AudioGraph fades", () => {
     expect(curve[curve.length - 1]).toBeCloseTo(0, 5);
   });
 
+  it("starts playback inside a fade-out at the level the fade has reached", async () => {
+    // The clip ends at 3s and fades out over its last 400ms; 2.8s is halfway.
+    const gain = await scheduleClip({ fadeOutMs: 400 }, 2800);
+    expect(gain.setValueAtTime).toHaveBeenCalledWith(0.5, 0);
+    expect(gain.linearRampToValueAtTime).toHaveBeenCalledWith(0, 0.2);
+  });
+
   it("scales the ramp by the clip's volume", async () => {
     const gain = await scheduleClip({
       fadeInMs: 500,

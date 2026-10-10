@@ -78,6 +78,13 @@ export interface TimelineAudition {
   takeId: string;
 }
 
+/** Source viewer marks; they belong to the asset they were set on. */
+export interface TimelineSourceRange {
+  assetId: string;
+  inMs: number;
+  outMs: number;
+}
+
 export interface TimelineUIState {
   /** Set of selected clip IDs. */
   selectedClipIds: Set<string>;
@@ -128,7 +135,7 @@ export interface TimelineUIState {
   /** The candidate currently shown in the preview, or null for the accepted take. */
   audition: TimelineAudition | null;
   /** In and out on the source viewer's asset, clip-source milliseconds. */
-  sourceRange: { inMs: number; outMs: number } | null;
+  sourceRange: TimelineSourceRange | null;
   /**
    * Milliseconds per pixel — the primary zoom metric.
    * Default 10 ms/px ≈ 100 px/s. Smaller = zoomed in.
@@ -257,7 +264,7 @@ export interface TimelineUIState {
   setAudition: (audition: TimelineAudition | null) => void;
   /** Return preview to the accepted take. */
   clearAudition: () => void;
-  setSourceRange: (range: { inMs: number; outMs: number } | null) => void;
+  setSourceRange: (range: TimelineSourceRange | null) => void;
 
   // ── FX panel ─────────────────────────────────────────────────────────────
 

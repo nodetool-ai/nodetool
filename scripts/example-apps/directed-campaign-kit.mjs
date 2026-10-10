@@ -57,11 +57,12 @@ const runEvent = (operationId) => ({
   operationId
 });
 
+// An upload settles in one change, and an ImageInput never commits, so the
+// run fires live: a `release` pace would never send it.
 const changeRunEvent = (operationId) => ({
   trigger: "change",
   kind: "run",
-  operationId,
-  pace: "release"
+  operationId
 });
 
 const cancelEvent = (operationId) => ({

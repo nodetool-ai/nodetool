@@ -163,18 +163,31 @@ function renderableVideoClips(seq: TimelineSequence): TimelineClip[] {
 }
 
 /**
+ * Solo is the preview's rule (`renderAudio.ts`, `AudioGraph.updateTracks`):
+ * audio and midi tracks form the solo group, and once any of them is soloed
+ * every track outside the solo set is silent.
+ */
+function soundTrackSoloed(seq: TimelineSequence): boolean {
+  return seq.tracks.some(
+    (track) => (track.type === "audio" || track.type === "midi") && track.solo
+  );
+}
+
+/**
  * Clips the mix draws from: audio-track clips backed by an asset, and midi
  * clips, whose sound is rendered from the notes they carry rather than fetched
  * (they have no `currentAssetId` at all).
  */
 function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
   const tracks = trackById(seq.tracks);
+  const hasSolo = soundTrackSoloed(seq);
   return seq.clips
     .filter((clip) => {
       const track = tracks.get(clip.trackId);
       if (!track || track.muted === true || clip.muted || clip.hidden) {
         return false;
       }
+      if (hasSolo && !track.solo) return false;
       if (clip.durationMs <= 0) return false;
       if (track.type === "midi") {
         return clip.mediaType === "midi" && (clip.notes?.length ?? 0) > 0;
@@ -329,11 +342,14 @@ async function encodeSegment(opts: {
 /**
  * Clips whose embedded audio the composited path must mix in itself: the
  * rough cut carried a video clip's audio through its segment, but a
- * frame-by-frame composite has no audio at all. Muted clips/tracks and clips
+ * frame-by-frame composite has no audio at all. Muted clips/tracks, clips
  * whose audio was extracted onto an audio track (see
- * {@link extractedAudioLinkIds}) are left out.
+ * {@link extractedAudioLinkIds}) and everything while a sound track is
+ * soloed are left out.
  */
 function embeddedAudioClips(seq: TimelineSequence): TimelineClip[] {
+  // A picture track cannot be soloed, so a soloed sound track silences it.
+  if (soundTrackSoloed(seq)) return [];
   const tracks = trackById(seq.tracks);
   const suppressed = extractedAudioLinkIds(seq);
   return seq.clips

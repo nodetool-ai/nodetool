@@ -85,7 +85,7 @@ describe("Extend inspector", () => {
     fireEvent.change(screen.getByLabelText("Extension intent"), {
       target: { value: "Continue the camera pan" }
     });
-    fireEvent.change(screen.getByLabelText("Seconds to add"), {
+    fireEvent.change(screen.getByLabelText("Source seconds to add"), {
       target: { value: "4" }
     });
     fireEvent.click(screen.getByRole("button", { name: "Generate extension" }));
@@ -98,6 +98,34 @@ describe("Extend inspector", () => {
           prompt: "Continue the camera pan",
           model: expect.objectContaining({ supportedTasks: ["extend_video"] })
         })
+      )
+    );
+  });
+
+  it("offers only the model's supported durations", async () => {
+    mockModels.mockReturnValue({
+      models: [{ ...model, durations: [5, 10] }],
+      isLoading: false,
+      error: null
+    });
+    show();
+    expect(
+      screen.queryByRole("spinbutton", { name: "Source seconds to add" })
+    ).toBeNull();
+    fireEvent.mouseDown(
+      screen.getByRole("combobox", { name: "Source seconds to add" })
+    );
+    expect(
+      screen.getAllByRole("option").map((option) => option.textContent)
+    ).toEqual(["5 s", "10 s"]);
+    fireEvent.click(screen.getByRole("option", { name: "10 s" }));
+    fireEvent.change(screen.getByLabelText("Extension intent"), {
+      target: { value: "Continue the camera pan" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate extension" }));
+    await waitFor(() =>
+      expect(mockStart).toHaveBeenCalledWith(
+        expect.objectContaining({ addedSourceDurationMs: 10000 })
       )
     );
   });

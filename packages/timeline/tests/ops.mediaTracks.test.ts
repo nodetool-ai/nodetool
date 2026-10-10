@@ -282,4 +282,21 @@ describe("split_clip gives each half its own resliced track", () => {
     expect(new Set(tracks.map((t) => t.id)).size).toBe(2);
     expect(tracks.map((t) => t.clipId).sort()).toEqual([...clipIds].sort());
   });
+
+  it("points each half's Smart Reframe at its own half's track", async () => {
+    const out = await applyTimelineOp(
+      state(
+        [videoClip({ reframe: { mode: "track", trackId: "track_media_1" } })],
+        [mediaTrack()]
+      ),
+      { op: "split_clip", target: "clip_1", atMs: 2000 },
+      context()
+    );
+    expect(out.error).toBeUndefined();
+    const tracks = out.state.mediaTracks ?? [];
+    for (const half of out.state.clips) {
+      const own = tracks.find((t) => t.clipId === half.id);
+      expect(half.reframe?.trackId).toBe(own?.id);
+    }
+  });
 });

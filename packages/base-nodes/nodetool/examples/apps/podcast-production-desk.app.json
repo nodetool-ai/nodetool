@@ -349,7 +349,7 @@
                         "id": "in-publish-quote-count",
                         "binding": "op:publish/in:quote_count",
                         "label": "Quote cards",
-                        "min": 1,
+                        "min": 2,
                         "max": 8,
                         "events": []
                       }

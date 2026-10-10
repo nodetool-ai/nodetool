@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 3,
+  "engineVersion": "2",
+  "dimension": "3d",
+  "id": "post-stack",
+  "revision": "r2-post",
+  "entrySceneId": "scene",
+  "tickRate": 60,
+  "presentation": {
+    "aspectRatio": 1.7777777777777777,
+    "hudWidth": 640,
+    "hudHeight": 360
+  },
+  "inputActions": [],
+  "assets": {},
+  "scenes": [
+    {
+      "id": "scene",
+      "name": "Post",
+      "activeCameraId": "camera",
+      "environment": {
+        "background": "#202838",
+        "ambient": {
+          "color": "#ffffff",
+          "intensity": 0.15
+        },
+        "shadows": {
+          "enabled": true,
+          "mapSize": 1024,
+          "extent": 12
+        },
+        "postProcessing": {
+          "exposure": 1.2,
+          "toneMapping": "agx",
+          "bloom": {
+            "threshold": 0.8,
+            "intensity": 1.2
+          },
+          "vignette": {
+            "intensity": 0.5
+          },
+          "antialias": "smaa"
+        }
+      },
+      "entities": [
+        {
+          "id": "camera",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 1.4,
+              "z": 1.5
+            },
+            "rotation": [
+              -0.059679,
+              0,
+              0,
+              0.998218
+            ]
+          },
+          "camera3d": {
+            "projection": {
+              "kind": "perspective",
+              "fov": 55,
+              "near": 0.1,
+              "far": 200
+            },
+            "behavior": {
+              "kind": "fixed"
+            }
+          }
+        },
+        {
+          "id": "floor",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": -6
+            }
+          },
+          "primitive": {
+            "kind": "plane",
+            "dimensions": {
+              "x": 40,
+              "y": 1,
+              "z": 40
+            },
+            "material": {
+              "color": "#7a746c",
+              "roughness": 0.9,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "sun",
+          "transform3d": {
+            "rotation": [
+              -0.521982,
+              0.830426,
+              0,
+              0.19475
+            ]
+          },
+          "light3d": {
+            "kind": "directional",
+            "color": "#ffd2a1",
+            "intensity": 2.5,
+            "castShadow": true
+          }
+        },
+        {
+          "id": "crate",
+          "transform3d": {
+            "position": {
+              "x": -1.6,
+              "y": 0.5,
+              "z": -4
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "material": {
+              "color": "#b5643c",
+              "roughness": 0.7,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "orb",
+          "transform3d": {
+            "position": {
+              "x": 0.2,
+              "y": 0.7,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 1.4,
+              "y": 1.4,
+              "z": 1.4
+            },
+            "material": {
+              "color": "#e8e8e8",
+              "roughness": 0.15,
+              "metalness": 1
+            }
+          }
+        },
+        {
+          "id": "pillar",
+          "transform3d": {
+            "position": {
+              "x": 1.9,
+              "y": 1,
+              "z": -3.5
+            }
+          },
+          "primitive": {
+            "kind": "capsule",
+            "dimensions": {
+              "x": 0.6,
+              "y": 2,
+              "z": 0.6
+            },
+            "material": {
+              "color": "#3c6fb5",
+              "roughness": 0.4,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "lamp",
+          "transform3d": {
+            "position": {
+              "x": -0.4,
+              "y": 1.6,
+              "z": -3.2
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 0.35,
+              "y": 0.35,
+              "z": 0.35
+            },
+            "castShadow": false,
+            "material": {
+              "color": "#fff2d0",
+              "roughness": 0.5,
+              "metalness": 0,
+              "emissive": "#ffe2a8"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

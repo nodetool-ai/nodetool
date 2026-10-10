@@ -225,3 +225,53 @@ describe("ClipTracking on a text clip", () => {
     expect(getTimelineTemporal().pastStates).toHaveLength(2);
   });
 });
+
+describe("ClipTracking when the selected clip changes", () => {
+  it("keeps the newly selected clip's track and mode when editing its offset", () => {
+    const clipA = makeClip({
+      id: "clip_a",
+      trackId: "track_1",
+      name: "A",
+      startMs: 0,
+      durationMs: 2000,
+      mediaType: "text",
+      sourceType: "imported",
+      trackBinding: { trackId: "track_media_a", mode: "position_scale" }
+    });
+    const clipB = makeClip({
+      id: "clip_b",
+      trackId: "track_1",
+      name: "B",
+      startMs: 2000,
+      durationMs: 2000,
+      mediaType: "text",
+      sourceType: "imported",
+      trackBinding: { trackId: "track_media_b", mode: "position" }
+    });
+    act(() => {
+      useTimelineStore.setState({ tracks: [], clips: [clipA, clipB] });
+    });
+    const view = renderTracking("clip_a");
+    view.rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ClipTracking clip={clipB} />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByLabelText(/track id to follow/i)).toHaveValue(
+      "track_media_b"
+    );
+    const offsetX = screen.getByLabelText(/follow offset x/i);
+    fireEvent.change(offsetX, { target: { value: "12" } });
+    fireEvent.blur(offsetX);
+
+    const stored = useTimelineStore
+      .getState()
+      .clips.find((c) => c.id === "clip_b")!;
+    expect(stored.trackBinding).toMatchObject({
+      trackId: "track_media_b",
+      mode: "position",
+      offset: { x: 12, y: 0 }
+    });
+  });
+});

@@ -74,6 +74,14 @@ describe("quantizeNotes", () => {
     ]);
   });
 
+  it("snaps to a grid shifted by phaseTick", () => {
+    const snapped = quantizeNotes([note({ startTick: 400 })], {
+      division: "1/4",
+      phaseTick: 480
+    });
+    expect(snapped[0]!.startTick).toBe(480);
+  });
+
   it("moves half the distance at strength 0.5 and nothing at 0", () => {
     expect(
       quantizeNotes([note({ startTick: 250 })], {

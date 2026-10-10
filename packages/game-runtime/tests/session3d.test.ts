@@ -35,6 +35,43 @@ describe("3D fixed-step session", () => {
       expect(sky.inspect({ entityId: "player" })).toEqual(plainState);
     } finally { plain.dispose(); sky.dispose(); }
   });
+  it("projects post-processing as presentation that stays out of snapshots and simulation", async () => {
+    const plain = await createGameSession3D(fixture(), 1);
+    const document = fixture();
+    document.scenes[0].environment.postProcessing = { enabled: true, exposure: 1.5, toneMapping: "agx", antialias: "smaa",
+      bloom: { threshold: 0.8, softness: 0.1, radius: 0.4, intensity: 2 }, vignette: { intensity: 0.5, radius: 0.5, softness: 0.5 } };
+    const post = await createGameSession3D(document, 1);
+    try {
+      expect(post.frame().environment.postProcessing).toEqual(document.scenes[0].environment.postProcessing);
+      for (let index = 0; index < 30; index += 1) {
+        expect(post.step(input({ moveZ: -1 })).events).toEqual(plain.step(input({ moveZ: -1 })).events);
+      }
+      const { contentDigest: _plainDigest, ...plainSnapshot } = plain.snapshot();
+      const { contentDigest: _postDigest, ...postSnapshot } = post.snapshot();
+      expect(postSnapshot).toEqual(plainSnapshot);
+      expect(JSON.stringify(post.snapshot())).not.toContain("postProcessing");
+    } finally { plain.dispose(); post.dispose(); }
+  });
+  it("projects shadow settings as presentation that stays out of snapshots and simulation", async () => {
+    const lamp = { kind: "spot", color: "#ffffff", intensity: 2, range: 8, angle: 0.6 } as const;
+    const plain = await createGameSession3D(fixture([{ id: "lamp", transform3d: { position: { x: 0, y: 3, z: 0 } }, light3d: lamp }]), 1);
+    const document = fixture([{ id: "lamp", transform3d: { position: { x: 0, y: 3, z: 0 } },
+      light3d: { ...lamp, castShadow: true, shadowBias: -0.0005, shadowNormalBias: 0.02 } }]);
+    document.scenes[0].environment.shadows.cascades = { count: 3, split: 0.7, maxDistance: 120 };
+    const shadowed = await createGameSession3D(document, 1);
+    try {
+      expect(shadowed.frame().environment.shadows.cascades).toEqual({ count: 3, split: 0.7, maxDistance: 120 });
+      expect(shadowed.frame().lights.find((entry) => entry.entityId === "lamp")?.light).toMatchObject({ castShadow: true, shadowBias: -0.0005, shadowNormalBias: 0.02 });
+      for (let index = 0; index < 30; index += 1) {
+        expect(shadowed.step(input({ moveZ: -1 })).events).toEqual(plain.step(input({ moveZ: -1 })).events);
+      }
+      const { contentDigest: _plainDigest, ...plainSnapshot } = plain.snapshot();
+      const { contentDigest: _shadowedDigest, ...shadowedSnapshot } = shadowed.snapshot();
+      expect(shadowedSnapshot).toEqual(plainSnapshot);
+      const serialized = JSON.stringify(shadowed.snapshot());
+      for (const field of ["cascades", "castShadow", "shadowBias", "shadowNormalBias"]) { expect(serialized).not.toContain(field); }
+    } finally { plain.dispose(); shadowed.dispose(); }
+  });
   it("projects physics roots, cameras, lights, hierarchy and HUD font bindings", async () => {
     const document = fixture([
       { id: "light", transform3d: { position: { x: 0, y: 4, z: 0 } }, light3d: { kind: "point", color: "#ffffff", intensity: 1, range: 10 } },

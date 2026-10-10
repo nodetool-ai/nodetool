@@ -475,6 +475,29 @@ for the machine-readable report.
 
 ### R: 3D rendering
 
+`environment.shadows` is `{ enabled, mapSize, extent, cascades? }`. Without
+`cascades`, the one shadow-casting directional light draws a single map that
+covers `extent` meters around the light. That is the default and renders exactly
+as before. For scenes deeper than about 30 m, add
+`cascades: { count, split, maxDistance }`. It splits the camera view into
+`count` maps (2 to 4, default 3) up to `maxDistance` meters (default 200), so
+near shadows stay sharp and far shadows stay continuous. `split` (0 to 1,
+default 0.5) gives nearby cascades more resolution as it rises. `extent` is
+ignored while cascades are on. Only one directional light can cast shadows.
+
+Point and spot lights cast shadows when their `light3d.castShadow` is `true`.
+At most 4 of them may cast per scene. Validation rejects a fifth. If spawned
+prefabs push a frame over the budget, the extra lights render unshadowed and
+the capture stats report one diagnostic with the largest overflow count seen.
+Each local shadow re-renders the scene
+(six times for a point light), so enable it only on lights that need it.
+
+Every light accepts `shadowBias` (-0.01 to 0.01) and `shadowNormalBias` (0 to
+1), both default 0. Raise `shadowNormalBias` to about 0.02 to 0.05, or set
+`shadowBias` to about -0.0005, when lit surfaces show striped shadow acne. Too
+much bias detaches shadows from their casters. Set lights with `update_entity`
+and cascades with `update_scene`, which replaces the whole `environment`.
+
 A 3D scene's `environment.sky` sets its background and image-based lighting.
 Omit it, or use `{ kind: "color" }`, for the solid `background` color without
 environment lighting. That is the default and renders exactly as before.
@@ -498,6 +521,33 @@ adds on top, so lower `ambient.intensity` when the sky lights the scene. Set the
 sky with `update_scene`. It replaces the whole `environment`, so send the
 existing `background`, `ambient`, `fog` and `shadows` with the new `sky`.
 Capture the scene to review the result.
+
+A 3D scene's `environment.postProcessing` grades the rendered image. It is
+presentation only and never changes simulation or snapshots. Omit it to render
+as before. `enabled: false` keeps the settings and renders as if they were
+absent. The fields are:
+
+- `exposure` (1/32 to 16, default 1) multiplies scene light before tone mapping.
+- `toneMapping` is `aces` (default), `agx`, `neutral` or `linear`. AgX keeps
+  saturated highlights from turning white. Neutral keeps base colors closest to
+  their authored values. Linear scales by exposure and clips.
+- `bloom` `{ threshold, softness, radius, intensity }` adds glow around light
+  above `threshold` (0 to 8, default 0.85). Emissive materials and bright
+  highlights bloom. `softness` (0 to 0.5) widens the threshold transition.
+  `radius` (0 to 1) spreads the glow, and `intensity` (0 to 4) sets its strength.
+- `vignette` `{ intensity, radius, softness }` darkens the corners. `intensity`
+  (0 to 1) of 1 reaches black. Darkening starts at `radius` (0 at the center,
+  1 at the corner) and reaches full strength over `softness`.
+- `antialias` is `msaa` (default), `fxaa`, `smaa` or `none`. `smaa` gives the
+  cleanest edges after the other effects. `fxaa` is cheaper and softer.
+
+The passes always run in this order: bloom, exposure and tone mapping,
+vignette, antialiasing. Exposure and tone mapping alone cost nothing extra.
+Bloom, vignette, or an `antialias` other than `msaa` renders through extra
+full-screen passes, and the background color then passes through tone mapping
+too. Set post-processing with `update_scene` and the whole existing
+`environment`. Capture the scene to compare settings. SSAO, depth of field,
+color grading with a LUT and chromatic aberration are not available yet.
 
 ### V: 2D rendering and visual effects
 
@@ -664,6 +714,20 @@ interpolated tick. Blended clips share one normalized phase. The pose sampler
 blends node translation, rotation and scale. It does not blend morph targets.
 
 ### S: Scripting and gameplay
+
+#### Script time limits
+
+`maxTickMs` counts the CPU time of the thread running the script. The count
+starts just before the call, or before the source is evaluated when the call
+must compile it, and ends when its output is checked. A resident script
+compiles on its first call only. Time spent waiting for a processor does not
+count. The operating system updates CPU time in steps: one scheduler tick on
+Linux (1 to 10 ms) and about 16 ms on Windows. A call ends only when both its
+CPU time and its wall time reach the limit, so these steps cannot end it
+early. Browsers have no thread CPU clock, so there the limit counts wall time. The
+50 ms script budget for a whole tick, which includes context setup, and the
+100 ms limit for evaluating a source during preparation count wall time on
+every host. A script that loops forever still ends at its limit.
 
 #### Script parameters
 

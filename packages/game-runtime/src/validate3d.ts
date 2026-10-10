@@ -3,7 +3,7 @@ import {
   gameDocument3D, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
-import { gameScriptParamValueOf } from "@nodetool-ai/protocol";
+import { GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D, gameScriptParamValueOf } from "@nodetool-ai/protocol";
 import { scriptParamReferenceIssues } from "./script-params.js";
 import { GAME_ENGINE_4_UNAVAILABLE, validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
@@ -202,6 +202,9 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
       if (!camera?.camera3d || camera.templateOnly) { add("invalid_active_camera", [...path, "activeCameraId"], "Active camera must select an active camera3d entity"); }
       if (scene.entities.filter((entity) => entity.light3d?.kind === "directional" && entity.light3d.castShadow).length > 1) {
         add("shadow_budget", [...path, "entities"], "Only one directional light may cast shadows");
+      }
+      if (scene.entities.filter((entity) => !entity.templateOnly && entity.light3d && entity.light3d.kind !== "directional" && entity.light3d.castShadow === true).length > GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D) {
+        add("shadow_budget", [...path, "entities"], `At most ${GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D} point and spot lights may cast shadows`);
       }
       if (scene.environment.fog && scene.environment.fog.near >= scene.environment.fog.far) { add("invalid_fog", [...path, "environment", "fog"], "Fog near must be less than far"); }
       const sky = scene.environment.sky;

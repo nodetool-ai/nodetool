@@ -521,6 +521,7 @@ export const timelineRouter = router({
         const current = seq.toDocument();
         const merged: TimelineDocument = {
           tracks: input.document.tracks ?? current.tracks,
+          trackFolders: input.document.trackFolders ?? current.trackFolders,
           clips:
             (input.document.clips as TimelineDocument["clips"]) ??
             current.clips,
@@ -532,6 +533,8 @@ export const timelineRouter = router({
           camera2d: input.document.camera2d === undefined ? current.camera2d : input.document.camera2d,
           setup: input.document.setup ?? current.setup,
           mediaTracks: input.document.mediaTracks ?? current.mediaTracks,
+          // Lineage is set when a sequence is retargeted; a save keeps it.
+          templateId: current.templateId,
           // The authoring code and its scene hashes belong to the server. An
           // editor save never carries them, and must not remove them.
           source: current.source

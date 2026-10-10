@@ -44,7 +44,13 @@ const makeManager = (
   ({
     getState: () => ({
       unsavedWorkflowIds: overrides.unsaved ? { "wf-1": true } : {},
-      isSavingWorkflow: () => overrides.saving ?? false
+      isSavingWorkflow: () => overrides.saving ?? false,
+      queueWorkflowSave: async (
+        _id: string,
+        task: () => Promise<string | undefined>
+      ) => {
+        await task();
+      }
     })
   }) as unknown as WorkflowManagerStore;
 
@@ -62,7 +68,11 @@ const autosaveMock = jest.mocked(triggerAutosaveForWorkflow);
 describe("autosaveIfDirty", () => {
   beforeEach(() => {
     autosaveMock.mockReset();
-    autosaveMock.mockResolvedValue("2026-10-06T10:05:00Z");
+    autosaveMock.mockResolvedValue({
+      updatedAt: "2026-10-06T10:05:00Z",
+      etag: "etag-2",
+      skipped: false
+    });
   });
 
   it("does nothing when the workflow has no unsaved changes", async () => {
@@ -96,7 +106,8 @@ describe("autosaveIfDirty", () => {
       { maxVersions: 25, expectedUpdatedAt: "2026-10-06T10:00:00Z" }
     );
     expect(state.setWorkflowUpdatedAt).toHaveBeenCalledWith(
-      "2026-10-06T10:05:00Z"
+      "2026-10-06T10:05:00Z",
+      "etag-2"
     );
     expect(state.setWorkflowDirty).toHaveBeenCalledWith(false);
   });
@@ -105,11 +116,27 @@ describe("autosaveIfDirty", () => {
     const { state, store } = makeNodeStore(true);
     autosaveMock.mockImplementation(async () => {
       state.nodes = [...state.nodes, { id: "n2" }];
-      return "2026-10-06T10:05:00Z";
+      return {
+        updatedAt: "2026-10-06T10:05:00Z",
+        etag: "etag-2",
+        skipped: false
+      };
     });
     await autosaveIfDirty(store, makeManager(), 50);
 
     expect(state.setWorkflowUpdatedAt).toHaveBeenCalled();
+    expect(state.setWorkflowDirty).not.toHaveBeenCalled();
+  });
+
+  it("keeps the dirty flag when the server rate limit skipped the write", async () => {
+    const { state, store } = makeNodeStore(true);
+    autosaveMock.mockResolvedValue({
+      updatedAt: "2026-10-06T10:00:00Z",
+      skipped: true
+    });
+    await autosaveIfDirty(store, makeManager(), 50);
+
+    expect(state.setWorkflowUpdatedAt).not.toHaveBeenCalled();
     expect(state.setWorkflowDirty).not.toHaveBeenCalled();
   });
 
@@ -127,7 +154,11 @@ describe("useWorkflowAutosave", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     autosaveMock.mockReset();
-    autosaveMock.mockResolvedValue("2026-10-06T10:05:00Z");
+    autosaveMock.mockResolvedValue({
+      updatedAt: "2026-10-06T10:05:00Z",
+      etag: "etag-2",
+      skipped: false
+    });
     mockNodeStore = makeNodeStore(true).store;
     mockManager = makeManager();
     useSettingsStore.getState().resetSettings();

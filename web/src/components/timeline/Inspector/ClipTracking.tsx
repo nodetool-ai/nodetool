@@ -5,7 +5,8 @@ import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
 import {
   clipSourceMsAt,
   isMediaTrackStale,
-  type TimelineClip
+  type TimelineClip,
+  type TrackBinding
 } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -36,6 +37,10 @@ const BIND_MODE_OPTIONS = [
 ] as const;
 
 type LiveBindMode = (typeof BIND_MODE_OPTIONS)[number]["value"];
+
+/** `bindToTrack` writes only the live modes; other modes edit as position. */
+const liveModeOf = (binding: TrackBinding): LiveBindMode =>
+  binding.mode === "position_scale" ? "position_scale" : "position";
 
 interface ClipTrackingProps {
   clip: TimelineClip;
@@ -171,52 +176,51 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
       s.clips.find((candidate) => candidate.id === clip.id)
     );
     const binding = storedClip ? storedClip.trackBinding : clip.trackBinding;
-    const [trackIdInput, setTrackIdInput] = useState(binding?.trackId ?? "");
-    const [mode, setMode] = useState<LiveBindMode>(
-      binding?.mode === "position_scale" ? "position_scale" : "position"
-    );
+    const [draftTrackId, setDraftTrackId] = useState("");
+    const [draftMode, setDraftMode] = useState<LiveBindMode>("position");
+    const trackIdInput = binding ? binding.trackId : draftTrackId;
+    const mode = binding ? liveModeOf(binding) : draftMode;
 
     const handleModeChange = useCallback(
       (value: string) => {
         if (value !== "position" && value !== "position_scale") return;
-        setMode(value);
-        const trackId = trackIdInput.trim();
-        if (!binding || !trackId) return;
-        bindToTrack(clip.id, trackId, value, {
+        if (!binding) {
+          setDraftMode(value);
+          return;
+        }
+        bindToTrack(clip.id, binding.trackId, value, {
           offset: binding.offset,
           scale: binding.scale,
           rotationOffset: binding.rotationOffset,
           smoothing: binding.smoothing
         });
       },
-      [binding, bindToTrack, clip.id, trackIdInput]
+      [binding, bindToTrack, clip.id]
     );
 
     const handleTrackIdCommit = useCallback(
       (value: string) => {
-        setTrackIdInput(value);
+        if (!binding) {
+          setDraftTrackId(value);
+          return;
+        }
         const trackId = value.trim();
-        if (!binding || !trackId) return;
-        bindToTrack(clip.id, trackId, mode, {
+        if (!trackId) return;
+        bindToTrack(clip.id, trackId, liveModeOf(binding), {
           offset: binding.offset,
           scale: binding.scale,
           rotationOffset: binding.rotationOffset,
           smoothing: binding.smoothing
         });
       },
-      [binding, bindToTrack, clip.id, mode]
+      [binding, bindToTrack, clip.id]
     );
 
     const handleBind = useCallback(() => {
-      const trackId = trackIdInput.trim();
+      const trackId = draftTrackId.trim();
       if (!trackId) return;
-      bindToTrack(clip.id, trackId, mode, {
-        offset: binding?.offset,
-        scale: binding?.scale,
-        rotationOffset: binding?.rotationOffset,
-        smoothing: binding?.smoothing
-      });
-    }, [bindToTrack, clip.id, trackIdInput, mode, binding]);
+      bindToTrack(clip.id, trackId, draftMode);
+    }, [bindToTrack, clip.id, draftTrackId, draftMode]);
 
     const handleUnbind = useCallback(
       () => unbindTrack(clip.id),
@@ -228,44 +232,44 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
         if (!binding) return;
         const value = Number(raw);
         if (!Number.isFinite(value)) return;
-        bindToTrack(clip.id, trackIdInput.trim() || binding.trackId, mode, {
+        bindToTrack(clip.id, binding.trackId, liveModeOf(binding), {
           ...binding,
           offset: { x: value, y: binding.offset?.y ?? 0 }
         });
       },
-      [binding, bindToTrack, clip.id, mode, trackIdInput]
+      [binding, bindToTrack, clip.id]
     );
     const handleOffsetY = useCallback(
       (raw: string) => {
         if (!binding) return;
         const value = Number(raw);
         if (!Number.isFinite(value)) return;
-        bindToTrack(clip.id, trackIdInput.trim() || binding.trackId, mode, {
+        bindToTrack(clip.id, binding.trackId, liveModeOf(binding), {
           ...binding,
           offset: { x: binding.offset?.x ?? 0, y: value }
         });
       },
-      [binding, bindToTrack, clip.id, mode, trackIdInput]
+      [binding, bindToTrack, clip.id]
     );
     const handleScale = useCallback(
       (value: number) => {
         if (!binding) return;
-        bindToTrack(clip.id, trackIdInput.trim() || binding.trackId, mode, {
+        bindToTrack(clip.id, binding.trackId, liveModeOf(binding), {
           ...binding,
           scale: value
         });
       },
-      [binding, bindToTrack, clip.id, mode, trackIdInput]
+      [binding, bindToTrack, clip.id]
     );
     const handleSmoothing = useCallback(
       (value: number) => {
         if (!binding) return;
-        bindToTrack(clip.id, trackIdInput.trim() || binding.trackId, mode, {
+        bindToTrack(clip.id, binding.trackId, liveModeOf(binding), {
           ...binding,
           smoothing: value
         });
       },
-      [binding, bindToTrack, clip.id, mode, trackIdInput]
+      [binding, bindToTrack, clip.id]
     );
 
     return (
@@ -393,7 +397,7 @@ export const ClipTracking: React.FC<{ clip: TimelineClip }> = memo(
       clip.mediaType === "shape" ||
       clip.mediaType === "image"
     ) {
-      return <FollowObjectSection clip={clip} />;
+      return <FollowObjectSection key={clip.id} clip={clip} />;
     }
     return null;
   }

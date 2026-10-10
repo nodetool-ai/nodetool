@@ -34,10 +34,15 @@ jest.mock("../NodeStore", () => ({
         workflowIsDirty: false,
         getWorkflow: () => get().workflow,
         setWorkflowDirty: jest.fn(),
-        setWorkflowUpdatedAt: (updatedAt: string) =>
+        setWorkflowUpdatedAt: (updatedAt: string, etag?: string | null) =>
           set((state) => ({
-            workflow: { ...state.workflow, updated_at: updatedAt }
+            workflow: {
+              ...state.workflow,
+              updated_at: updatedAt,
+              etag: etag ?? state.workflow.etag
+            }
           })),
+        adoptSavedWorkflow: (saved: Workflow) => set(() => ({ workflow: saved })),
         cleanup: jest.fn()
       })
     )
@@ -116,6 +121,8 @@ function makeFakeNodeStore(nodes: unknown[], edges: unknown[]) {
       getWorkflow: () =>
         ({ ...baseWorkflow, updated_at: "2026-08-11T00:00:00Z" }) as Workflow,
       setWorkflowDirty: jest.fn(),
+      setWorkflowUpdatedAt: jest.fn(),
+      adoptSavedWorkflow: jest.fn(),
       applyExternalGraph,
       findNode: (id: string) => nodes.find((n) => (n as { id: string }).id === id),
       updateNodeData: jest.fn(),
@@ -519,6 +526,34 @@ describe("refreshWorkflow — the merge base follows the editor's own saves", ()
       etag: "saved-etag"
     });
     await savePromise;
+    await settle();
+
+    expect(fetchWorkflowById).not.toHaveBeenCalled();
+    expect(useConflictStore.getState().byKey["workflow:wf-1"]).toBeUndefined();
+  });
+
+  it("drops an autosave's own echo held while the autosave runs", async () => {
+    const queryClient = new QueryClient();
+    const store = createWorkflowManagerStore(queryClient);
+    store.getState().addWorkflow(noEdgeWorkflow);
+
+    const { store: fakeStore } = makeFakeNodeStore([], []);
+    store.setState((state: { nodeStores: Record<string, NodeStoreApi> }) => ({
+      nodeStores: { ...state.nodeStores, "wf-1": fakeStore }
+    }));
+
+    let releaseAutosave: (etag: string) => void = () => {};
+    const autosave = store.getState().queueWorkflowSave(
+      "wf-1",
+      () =>
+        new Promise<string>((resolve) => {
+          releaseAutosave = resolve;
+        })
+    );
+    // The broadcast of the autosave's write beat its response.
+    await store.getState().refreshWorkflow("wf-1", "autosave-etag");
+    releaseAutosave("autosave-etag");
+    await autosave;
     await settle();
 
     expect(fetchWorkflowById).not.toHaveBeenCalled();
