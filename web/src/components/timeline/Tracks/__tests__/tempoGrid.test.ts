@@ -127,6 +127,48 @@ describe("computeBarRulerTicks", () => {
     ]);
   });
 
+  it("draws the beats of a bar that starts left of the view", () => {
+    const ticks = computeBarRulerTicks({
+      tempo: TEMPO_120,
+      msPerPx: 10,
+      fromMs: 2900,
+      toMs: 4900
+    });
+    expect(ticks.map((t) => [t.timeMs, t.kind])).toEqual([
+      [3000, "beat"],
+      [3500, "beat"],
+      [4000, "bar"],
+      [4500, "beat"]
+    ]);
+  });
+
+  it("draws beats when the whole view sits inside one bar", () => {
+    const ticks = computeBarRulerTicks({
+      tempo: TEMPO_120,
+      msPerPx: 10,
+      fromMs: 2100,
+      toMs: 3900
+    });
+    expect(ticks.map((t) => [t.timeMs, t.kind])).toEqual([
+      [2500, "beat"],
+      [3000, "beat"],
+      [3500, "beat"]
+    ]);
+  });
+
+  it("labels the bar line at a fractional tempo with its own number", () => {
+    // 70 BPM: bar 32 starts at 106285.714… ms, which a bare floor read as 31.
+    const tempo70: TimelineTempo = { ...TEMPO_120, bpm: 70 };
+    const barMs = (60000 / 70) * 4;
+    const ticks = computeBarRulerTicks({
+      tempo: tempo70,
+      msPerPx: 10,
+      fromMs: 31 * barMs - 100,
+      toMs: 31 * barMs + 100
+    });
+    expect(ticks.find((t) => t.kind === "bar")?.label).toBe("32");
+  });
+
   it("counts bars from the tempo offset", () => {
     const offset: TimelineTempo = { ...TEMPO_120, offsetMs: 1000 };
     const ticks = computeBarRulerTicks({

@@ -10,6 +10,7 @@ import {
   effectiveAssetId,
   isClipActive,
   resolveCaptionAtTime,
+  CAPTION_CUE_MAX_WORDS,
   resolveAnimatedLayerProps,
   trackZ,
   LAYER_Z_BASE,
@@ -651,5 +652,46 @@ describe("resolveAnimatedLayerProps", () => {
     const transitioning = computeActiveLayers(tracks, clips, 100).find((layer) => layer.clipId === "child");
     expect(transitioning).toBeDefined();
     expect(resolveAnimatedLayerProps(transitioning!, 100, CANVAS, undefined, { clips, mediaTracks: [] }).opacity).toBeCloseTo(0.5);
+  });
+});
+
+describe("resolveCaptionAtTime cues", () => {
+  const word = (w: string, startMs: number, endMs: number) => ({
+    word: w,
+    startMs,
+    endMs
+  });
+
+  it("shows only the cue being spoken", () => {
+    const words = Array.from({ length: 30 }, (_, i) =>
+      word(`w${i}`, i * 200, i * 200 + 180)
+    );
+    const c = clip({ startMs: 0, durationMs: 6000, caption: { words } });
+    const shown = resolveCaptionAtTime(c, 2500)!.words;
+    expect(shown.length).toBeLessThanOrEqual(CAPTION_CUE_MAX_WORDS);
+    expect(shown.some((w) => w.text === "w12" && w.active)).toBe(true);
+  });
+
+  it("starts a new cue at a pause and shows nothing inside it", () => {
+    const c = clip({
+      startMs: 0,
+      durationMs: 5000,
+      caption: { words: [word("one", 0, 500), word("two", 2000, 2500)] }
+    });
+    expect(resolveCaptionAtTime(c, 100)!.words.map((w) => w.text)).toEqual([
+      "one"
+    ]);
+    expect(resolveCaptionAtTime(c, 1200)!.words).toEqual([]);
+  });
+
+  it("leaves out words a head trim moved before the clip", () => {
+    const c = clip({
+      startMs: 0,
+      durationMs: 1000,
+      caption: { words: [word("cut", -1000, -10), word("kept", 0, 900)] }
+    });
+    expect(resolveCaptionAtTime(c, 100)!.words.map((w) => w.text)).toEqual([
+      "kept"
+    ]);
   });
 });

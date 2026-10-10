@@ -37,7 +37,7 @@ describe("timeline audio solo", () => {
       [soloTrack(solo), { id: "other", type: "audio", index: 1, visible: true }],
       [{
         id: "tone", trackId: "other", name: "Tone", mediaType: "audio",
-        currentAssetId: "tone", startMs: 0, durationMs: 1000
+        currentAssetId: "tone", status: "generated", startMs: 0, durationMs: 1000
       }]
     );
     expect(await resolvedAssets(sequence(false))).toContain("tone");
@@ -49,7 +49,7 @@ describe("timeline audio solo", () => {
       [soloTrack(solo), { id: "v", type: "video", index: 1, visible: true }],
       [{
         id: "shot", trackId: "v", name: "Shot", mediaType: "video",
-        currentAssetId: "shot", startMs: 0, durationMs: 1000
+        currentAssetId: "shot", status: "generated", startMs: 0, durationMs: 1000
       }]
     );
     expect(await resolvedAssets(sequence(false))).toContain("shot");

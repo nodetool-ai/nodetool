@@ -213,10 +213,15 @@ export function planTransitionAtCut(
   };
 }
 
-/** Apply one planned cut candidate, without touching either clip's takes. */
+/**
+ * Apply one planned cut candidate, without touching either clip's takes. The
+ * outgoing clip grows under the transition together with the linked clips
+ * that end with it, within `options`, as {@link applyTransitionAtCut} does.
+ */
 export function applyTransitionAtCutCandidate(
   clips: readonly TimelineClip[],
-  candidate: TransitionAtCutCandidate
+  candidate: TransitionAtCutCandidate,
+  options: TransitionGrowthOptions = {}
 ): TransitionAtCutApplyResult {
   const plan = planTransitionAtCut(clips, candidate.operation);
   if (!plan.ok) return plan;
@@ -225,7 +230,8 @@ export function applyTransitionAtCutCandidate(
     plan.candidate.outgoingClipId,
     plan.candidate.incomingClipId,
     plan.candidate.durationMs,
-    plan.candidate.transition
+    plan.candidate.transition,
+    options
   );
   return {
     ok: true,
@@ -267,35 +273,73 @@ function applyTransitionAtCutPair(
   outgoingClipId: string,
   incomingClipId: string,
   durationMs: number,
-  transition: KnownClipTransition
+  transition: KnownClipTransition,
+  options: TransitionGrowthOptions
 ): TimelineClip[] {
   const incoming = clips.find((c) => c.id === incomingClipId);
   const outgoing = clips.find((c) => c.id === outgoingClipId);
   if (!incoming || !outgoing) {
     throw new Error("applyTransitionAtCutPair: selected clips not found");
   }
-  const wanted = Math.max(
-    0,
-    Math.min(durationMs, incoming.durationMs, outgoing.durationMs)
-  );
-  const overlap = clipEndMs(outgoing) - incoming.startMs;
-  const missing = wanted - Math.max(0, overlap);
-  let grownOutgoing: TimelineClip | undefined;
-  if (missing > 0) {
-    try {
-      grownOutgoing = trimClip(outgoing, "end", missing);
-    } catch {
-      // The outgoing clip cannot grow; the incoming clip fades in on its own.
-    }
-  }
+  const wanted = transitionLengthAtCut(outgoing, incoming, durationMs);
+  const missing = transitionGrowthMs(outgoing, incoming, wanted);
+  // A unit that cannot grow leaves the incoming clip to fade in on its own.
+  const grown =
+    missing > 0
+      ? growPredecessor(clips, outgoing, missing, options)
+      : new Map<string, TimelineClip>();
 
   const transitionIn: ClipTransition = { ...transition, durationMs: wanted };
 
   return clips.map((c) => {
     if (c.id === incomingClipId) return { ...c, transitionIn };
-    if (grownOutgoing && c.id === grownOutgoing.id) return grownOutgoing;
-    return c;
+    return grown.get(c.id) ?? c;
   });
+}
+
+/** How long a transition of `durationMs` at this cut can run. */
+export function transitionLengthAtCut(
+  outgoing: TimelineClip,
+  incoming: TimelineClip,
+  durationMs: number
+): number {
+  return Math.max(
+    0,
+    Math.min(durationMs, incoming.durationMs, outgoing.durationMs)
+  );
+}
+
+/** How far the outgoing clip must grow so the two overlap for `lengthMs`. */
+export function transitionGrowthMs(
+  outgoing: TimelineClip,
+  incoming: TimelineClip,
+  lengthMs: number
+): number {
+  const overlap = clipEndMs(outgoing) - incoming.startMs;
+  return Math.max(0, lengthMs - Math.max(0, overlap));
+}
+
+/**
+ * `prev` and the linked clips that end with it: the unit a transition grows
+ * so linked picture and sound keep the same out-point.
+ */
+export function transitionGrowthUnit(
+  clips: readonly TimelineClip[],
+  prev: TimelineClip
+): TimelineClip[] {
+  const unit = [prev];
+  if (prev.linkId !== undefined) {
+    for (const c of clips) {
+      if (
+        c.id !== prev.id &&
+        c.linkId === prev.linkId &&
+        Math.abs(clipEndMs(c) - clipEndMs(prev)) <= 1
+      ) {
+        unit.push(c);
+      }
+    }
+  }
+  return unit;
 }
 
 /** Host policy for growing the predecessor under a transition. */
@@ -320,20 +364,8 @@ function growPredecessor(
   missingMs: number,
   options: TransitionGrowthOptions
 ): Map<string, TimelineClip> {
-  const unit = [prev];
-  if (prev.linkId !== undefined) {
-    for (const c of clips) {
-      if (
-        c.id !== prev.id &&
-        c.linkId === prev.linkId &&
-        Math.abs(clipEndMs(c) - clipEndMs(prev)) <= 1
-      ) {
-        unit.push(c);
-      }
-    }
-  }
   const grown = new Map<string, TimelineClip>();
-  for (const c of unit) {
+  for (const c of transitionGrowthUnit(clips, prev)) {
     if (options.canExtend && !options.canExtend(c)) return new Map();
     try {
       grown.set(

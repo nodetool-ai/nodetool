@@ -122,3 +122,50 @@ describe("keyframes across split and trim", () => {
     );
   });
 });
+
+describe("keyframeValueAt easing", () => {
+  it("reads the curve the way the sampler plays it", () => {
+    let c = clip();
+    c = { ...c, animations: setKeyframe(c, "opacity", 0, 0) };
+    c = { ...c, animations: setKeyframe(c, "opacity", 2000, 1) };
+    c = {
+      ...c,
+      animations: c.animations!.map((a) => ({ ...a, easing: "easeInOut" }))
+    };
+    const compiled = compileClipAnimations(c.animations, c.durationMs, {
+      width: 1920,
+      height: 1080
+    });
+    const rendered = sampleAnimations(compiled, 500).opacity ?? 1;
+    expect(keyframeValueAt(c, "opacity", 500)).toBeCloseTo(rendered, 6);
+    expect(keyframeValueAt(c, "opacity", 500)).toBeLessThan(0.25);
+  });
+
+  it("keeps the animation's easing and a keyframe's easing on update", () => {
+    let c = clip();
+    c = { ...c, animations: setKeyframe(c, "opacity", 0, 0) };
+    c = { ...c, animations: setKeyframe(c, "opacity", 2000, 1) };
+    c = {
+      ...c,
+      animations: c.animations!.map((a) => ({
+        ...a,
+        easing: "easeIn",
+        custom: {
+          ...a.custom!,
+          curves: a.custom!.curves.map((curve) => ({
+            ...curve,
+            keyframes: curve.keyframes.map((kf) => ({ ...kf, easing: "easeOut" }))
+          }))
+        }
+      }))
+    };
+    const animations = setKeyframe(c, "opacity", 2000, 0.5);
+    const animation = findKeyframeAnimation({ animations })!;
+    expect(animation.easing).toBe("easeIn");
+    expect(animation.custom!.curves[0].keyframes[1]).toEqual({
+      t: 1,
+      value: 0.5,
+      easing: "easeOut"
+    });
+  });
+});

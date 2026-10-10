@@ -63,7 +63,10 @@ describe("stagger predicates", () => {
 
 interface ScriptedCall {
   name: string;
-  args: Record<string, unknown>;
+  /** Fixed arguments, or ones read from the results of earlier calls. */
+  args:
+    | Record<string, unknown>
+    | ((results: unknown[]) => Record<string, unknown>);
 }
 
 /**
@@ -82,11 +85,16 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
     }): AsyncGenerator<ProviderStreamItem> {
       const toolMap = new Map((args.tools ?? []).map((t) => [t.name, t]));
       let seq = 0;
+      const results: unknown[] = [];
       for (const call of script) {
         if (args.signal?.aborted) break;
         const id = `call_${++seq}`;
-        yield { id, name: call.name, args: call.args } as ProviderStreamItem;
-        await toolMap.get(call.name)?.execute?.(call.args, id);
+        const callArgs =
+          typeof call.args === "function" ? call.args(results) : call.args;
+        yield { id, name: call.name, args: callArgs } as ProviderStreamItem;
+        // The loop hands results back stringified, the way a model reads them.
+        const out = await toolMap.get(call.name)?.execute?.(callArgs, id);
+        results.push(typeof out === "string" ? JSON.parse(out) : out);
       }
       yield { type: "chunk", content: "", done: true } as ProviderStreamItem;
     }
@@ -327,13 +335,13 @@ describe("TIMELINE_TOOL_LOOP_CASES", () => {
       { name: "ui_timeline_add_track", args: { type: "video" } },
       {
         name: "ui_timeline_generate_clip",
-        args: {
+        args: (results) => ({
           kind: "text-to-video",
           prompt: "a cat playing piano",
-          trackId: "track_1",
+          trackId: (results[1] as { track: { id: string } }).track.id,
           provider: "fal_ai",
           model: "fal-ai/veo3"
-        }
+        })
       },
       {
         name: "ui_timeline_move_clip",
@@ -420,10 +428,14 @@ describe("TIMELINE_TOOL_LOOP_CASES", () => {
         name: "ui_timeline_split_clip",
         args: { target: "shot", atMs: 3000 }
       },
-      // The bridge assigns deterministic ids: the pre-seeded clip is clip_1,
-      // so the split's left/right halves become clip_2 (kept, "shot") and
-      // clip_3 (the second half, deleted here).
-      { name: "ui_timeline_delete_clip", args: { target: "clip_3" } }
+      // The halves carry fresh 32-hex ids, so the second one is named by the
+      // split's own result.
+      {
+        name: "ui_timeline_delete_clip",
+        args: (results) => ({
+          target: (results.at(-1) as { clips: { id: string }[] }).clips[1]!.id
+        })
+      }
     ];
     const provider = createScriptedProvider(script);
     const report = await runToolLoopEval({
@@ -456,7 +468,10 @@ describe("TIMELINE_TOOL_LOOP_CASES", () => {
       { name: "ui_timeline_list_takes", args: { target: "clip-trimmed" } },
       {
         name: "ui_timeline_apply_take",
-        args: { clip_id: "clip-trimmed", take_id: "version_1" }
+        args: (results) => ({
+          clip_id: "clip-trimmed",
+          take_id: (results[1] as { candidate: { id: string } }).candidate.id
+        })
       }
     ]);
     const report = await runToolLoopEval({

@@ -19,7 +19,14 @@ export interface ExtractScriptResult {
 }
 
 export interface UseExtractScriptResult {
-  extract: (timelineId: string) => Promise<ExtractScriptResult>;
+  /**
+   * `liveClips` are the open editor's clips. Pass them so edits autosave has
+   * not written yet reach the script; without them the saved copy is used.
+   */
+  extract: (
+    timelineId: string,
+    liveClips?: TimelineClip[]
+  ) => Promise<ExtractScriptResult>;
   extracting: boolean;
   error: string | null;
 }
@@ -29,7 +36,10 @@ export const useExtractScript = (): UseExtractScriptResult => {
   const [error, setError] = useState<string | null>(null);
 
   const extract = useCallback(
-    async (timelineId: string): Promise<ExtractScriptResult> => {
+    async (
+      timelineId: string,
+      liveClips?: TimelineClip[]
+    ): Promise<ExtractScriptResult> => {
       setError(null);
       setExtracting(true);
       try {
@@ -37,7 +47,7 @@ export const useExtractScript = (): UseExtractScriptResult => {
           id: timelineId
         });
         const extracted = buildScriptFromTimeline(
-          sequence.clips as TimelineClip[]
+          liveClips ?? (sequence.clips as TimelineClip[])
         );
         const lineCount = extracted.sections.reduce(
           (n, s) => n + s.lines.length,
