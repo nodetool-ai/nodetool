@@ -494,7 +494,10 @@ export class TriggerDispatcher {
       await this.emitReceived(input, registration, policy, false);
       await accept();
       disableTrigger(registration, gate.reason);
-      await registration.save();
+      await TriggerRegistration.updateColumns(registration.id, {
+        enabled: registration.enabled,
+        disabled_reason: registration.disabled_reason
+      });
       log.info("Trigger registration disabled before dispatch", {
         registrationId: registration.id,
         reason: gate.reason
@@ -519,8 +522,15 @@ export class TriggerDispatcher {
         },
         // Release the pass as soon as the run is taken on, so a long workflow
         // doesn't hold up every other registration's dispatch.
+        // A failed mark is retried by the `await accept()` after the run, so
+        // only log it here: an unhandled rejection would end the process.
         onAccepted: () => {
-          void accept();
+          accept().catch((err: unknown) => {
+            log.warn(
+              "Failed to mark trigger input processed on acceptance",
+              err instanceof Error ? err : new Error(String(err))
+            );
+          });
         }
       };
       if (this.registry) {
@@ -612,12 +622,26 @@ export class TriggerDispatcher {
   ): Promise<void> {
     const stampFiredAt =
       opts.fired && !ADAPTER_STAMPS_FIRED_AT.has(registration.kind);
-    const disabled = settleTriggerOutcome(registration, {
+    // The run may have taken minutes. Apply the outcome to the row as it is
+    // now, not to the copy read before dispatch: a Stop, a config edit or a
+    // deletion in the meantime must survive.
+    const current = await TriggerRegistration.get<TriggerRegistration>(
+      registration.id
+    );
+    if (!current) return;
+    const disabled = settleTriggerOutcome(current, {
       error,
       stampFiredAt,
       firedAt: new Date(nowMs).toISOString()
     });
-    await registration.save();
+    await TriggerRegistration.updateColumns(current.id, {
+      enabled: current.enabled,
+      disabled_reason: current.disabled_reason,
+      last_fired_at: current.last_fired_at,
+      last_error: current.last_error,
+      consecutive_failures: current.consecutive_failures,
+      run_count: current.run_count
+    });
 
     if (disabled) {
       log.info("Trigger registration disabled", {

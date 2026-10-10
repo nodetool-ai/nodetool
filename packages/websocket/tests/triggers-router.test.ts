@@ -234,5 +234,26 @@ describe("triggers router", () => {
 
       expect(firstInputId).toBe(secondInputId);
     });
+
+    it("answers CONFLICT when a key that already ran is fired again", async () => {
+      const reg = makeTriggerRegistration({
+        id: "reg-1",
+        user_id: "user-1"
+      });
+      (TriggerRegistration.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        reg
+      );
+      (getTriggerWakeupService as ReturnType<typeof vi.fn>).mockReturnValue({
+        deliverTriggerInput: vi.fn().mockResolvedValue(false)
+      });
+      (dispatchInput as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("input not found: manual:reg-1:k")
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.triggers.fire({ registrationId: "reg-1", idempotencyKey: "k" })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+    });
   });
 });

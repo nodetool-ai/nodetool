@@ -73,30 +73,38 @@ function collectionOf(run: CapabilityRun): VectorCollection | undefined {
 
 const listCollections: CapabilityExport = {
   spec: listCollectionsSpec,
-  impl: async () => {
-    const { getDefaultVectorProvider } =
+  impl: async (run) => {
+    const { getDefaultVectorProvider, canAccessCollection } =
       await import("@nodetool-ai/vectorstore");
     const provider = getDefaultVectorProvider();
     const infos = await provider.listCollections();
-    const collections: CollectionSummary[] = infos.map((info) => ({
-      name: info.name,
-      metadata: info.metadata
-    }));
+    const userId = userIdOf(run.context);
+    const collections: CollectionSummary[] = infos
+      .filter((info) => canAccessCollection(info.metadata, userId))
+      .map((info) => ({
+        name: info.name,
+        metadata: info.metadata
+      }));
     return { collections };
   }
 };
 
 const queryCollection: CapabilityExport = {
   spec: queryCollectionSpec,
-  impl: async (_run, params) => {
+  impl: async (run, params) => {
     const name = String(params["collection"] ?? "");
     const query = String(params["query"] ?? "");
     const nResults = Number(params["n_results"] ?? 5);
     if (!name) return { error: "collection is required" };
     if (!query) return { error: "query is required" };
 
-    const { resolveCollection } = await import("@nodetool-ai/vectorstore");
+    const { resolveCollection, canAccessCollection } =
+      await import("@nodetool-ai/vectorstore");
     const collection = await resolveCollection(name);
+    // Reported as missing, not forbidden, so a name probe learns nothing.
+    if (!canAccessCollection(collection.metadata, userIdOf(run.context))) {
+      return { error: `Collection ${name} not found` };
+    }
     const matches = await collection.query({ text: query, topK: nResults });
 
     return {
@@ -426,12 +434,10 @@ const vectorBatchIndex: CapabilityExport = {
  *
  * The `VectorProvider` interface has no concept of a user — collections are
  * one flat namespace — so ownership is a metadata stamp checked at the
- * boundary (`@nodetool-ai/vectorstore/collection-access`). The read
- * capabilities predate that and stay as they are; these two do not, because
- * creating and destroying a store is where a shared namespace stops being
- * something others can see and starts being something others lose. A
- * collection with no owner recorded predates the stamp and stays shared, which
- * is the same answer the API gives.
+ * boundary (`@nodetool-ai/vectorstore/collection-access`), here and in
+ * `list_collections` / `query_collection`. A collection with no owner
+ * recorded predates the stamp and stays shared, which is the same answer the
+ * API gives.
  */
 const createCollection: CapabilityExport = {
   spec: createCollectionSpec,

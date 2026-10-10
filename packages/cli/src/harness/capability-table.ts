@@ -1053,6 +1053,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "8dfc3e1b4b9e",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },

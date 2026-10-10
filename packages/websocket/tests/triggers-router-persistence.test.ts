@@ -83,7 +83,7 @@ describe("triggers.fire persistence", () => {
 
     expect(result).toEqual({ job_id: "job-1" });
 
-    const stored = await TriggerInput.findByInputId("key-1");
+    const stored = await TriggerInput.findByInputId(`manual:${reg.id}:key-1`);
     expect(stored).not.toBeNull();
     expect(stored?.run_id).toBe(reg.workflow_id);
     expect(stored?.node_id).toBe(reg.node_id);
@@ -109,5 +109,29 @@ describe("triggers.fire persistence", () => {
 
     const unprocessed = await TriggerInput.findUnprocessed(10);
     expect(unprocessed).toHaveLength(1);
+  });
+
+  it("does not collide with an input id from another source", async () => {
+    const reg = await makeRegistration();
+    // Another user's scheduled tick, already stored under its own id.
+    await TriggerInput.create({
+      input_id: "other-reg:1700000000",
+      run_id: "wf-other",
+      node_id: "node-other",
+      payload_json: {},
+      processed: 0
+    });
+    const caller = createCaller(makeCtx());
+
+    await caller.triggers.fire({
+      registrationId: reg.id,
+      idempotencyKey: "other-reg:1700000000"
+    });
+
+    const unprocessed = await TriggerInput.findUnprocessed(10);
+    expect(unprocessed.map((row) => row.run_id).sort()).toEqual([
+      "wf-1",
+      "wf-other"
+    ]);
   });
 });

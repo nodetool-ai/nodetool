@@ -9,14 +9,13 @@
  * Chroma) about users is a much larger change, so ownership is recorded in
  * collection metadata and enforced here, at the API boundary.
  *
- * In-process consumers that were written before this — RAG nodes, the CLI,
- * and the read-only `list_collections` / `query_collection` capabilities —
- * talk to the provider directly and are deliberately unaffected: they already
- * run with the privileges of whatever invoked them. The rules live here rather
- * than in the HTTP layer so that a consumer which *should* honour them can:
- * the sandbox's `create_collection` and `delete_collection` capabilities do,
- * because creating and destroying a store is where a shared namespace turns
- * from a read others can see into a write others lose.
+ * In-process consumers that were written before this — RAG nodes and the
+ * CLI — talk to the provider directly and are deliberately unaffected: they
+ * already run with the privileges of whatever invoked them. The rules live
+ * here rather than in the HTTP layer so that a consumer which *should* honour
+ * them can: the agent `list_collections`, `query_collection`,
+ * `create_collection` and `delete_collection` capabilities do, because an
+ * agent acts for one user and must not read or destroy another user's store.
  *
  * Collections that predate this (no owner recorded) stay readable and writable
  * by everyone. Retroactively assigning them to a user would lock existing

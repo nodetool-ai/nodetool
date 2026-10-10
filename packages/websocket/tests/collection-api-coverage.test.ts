@@ -191,10 +191,12 @@ describe("successful upload", () => {
       metadata: { source: "note.txt", start_index: "0" }
     });
 
+    // Unowned (legacy, shared) collection: the change goes to everyone.
     expect(notifyMock).toHaveBeenCalledWith({
       event: "updated",
       resource_type: "collection",
-      resource: { id: "my docs" }
+      resource: { id: "my docs" },
+      userId: null
     });
   });
 

@@ -27,6 +27,10 @@ import {
   type VectorMatch
 } from "@nodetool-ai/vectorstore";
 import { Workflow } from "@nodetool-ai/models";
+import {
+  resourceEvents,
+  type ResourceChangePayload
+} from "../src/resource-events.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -310,6 +314,43 @@ describe("collections router", () => {
       });
       return { col, deleteCollection };
     }
+
+    it("sends a collection's change events only to its owner", async () => {
+      const events: ResourceChangePayload[] = [];
+      const listen = (p: ResourceChangePayload) => events.push(p);
+      resourceEvents.on("change", listen);
+      try {
+        const col = makeCollection({
+          name: "private-name",
+          metadata: { owner_user_id: "user-1" }
+        });
+        mockedProvider.mockReturnValue({
+          createCollection: vi.fn().mockResolvedValue(col),
+          // "renamed" exists only once the rename has happened.
+          getCollection: vi.fn(async ({ name }: { name: string }) => {
+            if (name === "renamed" && col.modify.mock.calls.length === 0) {
+              throw new CollectionNotFoundError(name);
+            }
+            return col;
+          }),
+          deleteCollection: vi.fn().mockResolvedValue(undefined)
+        });
+        const caller = createCaller(makeCtx());
+        await caller.collections.create({ name: "private-name" });
+        await caller.collections.update({
+          name: "private-name",
+          rename: "renamed"
+        });
+        await caller.collections.delete({ name: "renamed" });
+      } finally {
+        resourceEvents.off("change", listen);
+      }
+      expect(events.map((e) => [e.event, e.userId])).toEqual([
+        ["created", "user-1"],
+        ["updated", "user-1"],
+        ["deleted", "user-1"]
+      ]);
+    });
 
     it("omits another user's collection from the listing", async () => {
       providerOwnedBy("user-2");
