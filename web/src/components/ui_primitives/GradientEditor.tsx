@@ -17,7 +17,7 @@ import { Caption } from "./Caption";
 import { FlexColumn } from "./FlexColumn";
 import { FlexRow } from "./FlexRow";
 import { InspectorValueInput } from "./InspectorValueInput";
-import { clampNumber, evaluateGradientStops, insertKey, insertionTime, removeKey, roundKeyNumber, updateKey, type GradientStop } from "./keyframeEditing";
+import { clampNumber, draggedCoordinate, evaluateGradientStops, insertKey, insertionTime, removeKey, roundKeyNumber, snapToStep, updateKey, type GradientStop } from "./keyframeEditing";
 import { SPACING, getSpacingPx } from "./spacing";
 import { BORDER_RADIUS, CONTROL, MOTION, reducedMotion } from "./tokens";
 
@@ -66,8 +66,12 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
   const pendingFocus = useRef<number | null>(null);
   const drag = useRef<{ index: number; pointerId: number } | null>(null);
 
-  const stops = draft ?? value;
-  const selectedIndex = Math.min(selected, stops.length - 1);
+  const [colorDraft, setColorDraft] = useState<string | null>(null);
+  const colorRef = useRef<HTMLInputElement | null>(null);
+  const dragged = draft ?? value;
+  const selectedIndex = Math.min(selected, dragged.length - 1);
+  // The native picker fires an input event on every tick; those only preview, and the change event or blur commits.
+  const stops = colorDraft === null ? dragged : dragged.map((stop, index) => index === selectedIndex ? { ...stop, color: colorDraft } : stop);
   const selectedStop = stops[selectedIndex];
 
   useEffect(() => {
@@ -93,6 +97,20 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
     }
   }, [commit, value]);
 
+  const commitColor = useCallback(() => {
+    const input = colorRef.current;
+    setColorDraft(null);
+    if (input) {
+      updateStop(selectedIndex, { color: input.value.toLowerCase() });
+    }
+  }, [selectedIndex, updateStop]);
+
+  useEffect(() => {
+    const input = colorRef.current;
+    input?.addEventListener("change", commitColor);
+    return () => input?.removeEventListener("change", commitColor);
+  }, [commitColor]);
+
   const addStopAt = useCallback((t: number) => {
     if (value.length >= maxStops) {
       return;
@@ -114,7 +132,7 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
       return null;
     }
     const t = clampNumber((event.clientX - rect.left) / rect.width, 0, 1);
-    return roundKeyNumber(Math.round(t / GRADIENT_POSITION_STEP) * GRADIENT_POSITION_STEP);
+    return snapToStep(t, GRADIENT_POSITION_STEP);
   }, []);
 
   const handleKeyDown = (index: number) => (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -167,7 +185,7 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
     const active = drag.current;
     const t = active && active.pointerId === event.pointerId ? positionFromEvent(event) : null;
     if (active && t !== null) {
-      setDraft(updateKey(value, active.index, { t }));
+      setDraft(updateKey(value, active.index, { t: draggedCoordinate(value[active.index].t, t, GRADIENT_POSITION_STEP) }));
     }
   };
 
@@ -180,7 +198,8 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
     event.currentTarget.releasePointerCapture?.(event.pointerId);
     const result = draft;
     setDraft(null);
-    if (apply && result) {
+    // A drag that ends where it started is not an edit: no undo entry, and an off-grid key keeps its value.
+    if (apply && result && (result[active.index].t !== value[active.index].t)) {
       commit(result);
     }
   };
@@ -231,6 +250,7 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
                 onPointerMove={handlePointerMove}
                 onPointerUp={endDrag(true)}
                 onPointerCancel={endDrag(false)}
+                onLostPointerCapture={endDrag(false)}
                 sx={{
                   position: "absolute",
                   top: 0,
@@ -257,12 +277,14 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
       </Box>
       <FlexRow gap={SPACING.xs} align="center" wrap>
         <Box
+          ref={colorRef}
           component="input"
           type="color"
           aria-label={`Stop ${selectedIndex + 1} colour`}
           value={selectedStop.color}
           disabled={disabled}
-          onChange={(event: ChangeEvent<HTMLInputElement>) => updateStop(selectedIndex, { color: event.target.value.toLowerCase() })}
+          onChange={(event: ChangeEvent<HTMLInputElement>) => setColorDraft(event.target.value.toLowerCase())}
+          onBlur={commitColor}
           sx={{
             width: CONTROL.height.sm,
             height: CONTROL.height.sm,

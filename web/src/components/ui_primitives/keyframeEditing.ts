@@ -24,6 +24,20 @@ export function roundKeyNumber(value: number): number {
   return Math.round(value * 10000) / 10000;
 }
 
+/** `value` rounded to the nearest multiple of `step`. */
+export function snapToStep(value: number, step: number): number {
+  return roundKeyNumber(Math.round(value / step) * step);
+}
+
+/**
+ * A dragged coordinate: `original` while the pointer stays in the grid cell
+ * the original snaps to, so a key off the grid does not move on a tiny drag,
+ * otherwise `snapped`.
+ */
+export function draggedCoordinate(original: number, snapped: number, step: number): number {
+  return snapToStep(original, step) === snapped ? original : snapped;
+}
+
 export function clampNumber(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }

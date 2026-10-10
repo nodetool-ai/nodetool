@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { gameParticleGradient } from "@nodetool-ai/protocol";
 
@@ -87,16 +87,43 @@ describe("GradientEditor", () => {
     expect(screen.getByRole("button", { name: "Add stop" })).toBeDisabled();
   });
 
-  it("edits the selected stop's colour and position", () => {
+  it("previews colour picker ticks and commits once on the native change event", () => {
     const onChange = jest.fn();
     render(<Harness initial={blackToWhite} onChange={onChange} />);
     fireEvent.focus(stopHandle(2));
-    fireEvent.change(screen.getByLabelText("Stop 2 colour"), { target: { value: "#00ff00" } });
+    const colour = screen.getByLabelText("Stop 2 colour");
+    for (const value of ["#111111", "#222222", "#00ff00"]) {
+      fireEvent.input(colour, { target: { value } });
+    }
+    expect(onChange).not.toHaveBeenCalled();
+    expect(stopHandle(2)).toHaveAttribute("aria-valuetext", "Position 1, colour #00ff00");
+    act(() => {
+      colour.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenLastCalledWith([{ t: 0, color: "#000000" }, { t: 1, color: "#00ff00" }]);
+    fireEvent.blur(colour);
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("commits a colour draft on blur", () => {
+    const onChange = jest.fn();
+    render(<Harness initial={blackToWhite} onChange={onChange} />);
+    const colour = screen.getByLabelText("Stop 1 colour");
+    fireEvent.input(colour, { target: { value: "#ff0000" } });
+    fireEvent.blur(colour);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith([{ t: 0, color: "#ff0000" }, { t: 1, color: "#ffffff" }]);
+  });
+
+  it("edits the selected stop's position", () => {
+    const onChange = jest.fn();
+    render(<Harness initial={blackToWhite} onChange={onChange} />);
+    fireEvent.focus(stopHandle(2));
     const position = screen.getByRole("textbox", { name: "Stop 2 position" });
     fireEvent.change(position, { target: { value: "0.25" } });
     fireEvent.blur(position);
-    expect(onChange).toHaveBeenLastCalledWith([{ t: 0, color: "#000000" }, { t: 0.25, color: "#00ff00" }]);
+    expect(onChange).toHaveBeenLastCalledWith([{ t: 0, color: "#000000" }, { t: 0.25, color: "#ffffff" }]);
   });
 
   it("drags a stop with the pointer and commits once on release", () => {
@@ -121,6 +148,55 @@ describe("GradientEditor", () => {
     fireEvent.doubleClick(bar, { clientX: 50, clientY: 12 });
     expect(onChange).toHaveBeenLastCalledWith([{ t: 0, color: "#000000" }, { t: 0.25, color: "#404040" }, { t: 1, color: "#ffffff" }]);
     expect(stopHandle(2)).toHaveFocus();
+  });
+
+  it("does not commit a drag that leaves the stop where it was", () => {
+    const onChange = jest.fn();
+    render(<Harness initial={[{ t: 0, color: "#000000" }, { t: 0.333, color: "#ff0000" }, { t: 1, color: "#ffffff" }]} onChange={onChange} />);
+    const bar = screen.getByTestId("gradient-editor-bar");
+    bar.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 24, right: 200, bottom: 24, x: 0, y: 0, toJSON: () => ({}) });
+    const handle = stopHandle(2);
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 66.6, clientY: 30, button: 0 });
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 66.6, clientY: 30 });
+    fireEvent.pointerDown(handle, { pointerId: 2, clientX: 66.6, clientY: 30, button: 0 });
+    fireEvent.pointerMove(handle, { pointerId: 2, clientX: 66.2, clientY: 30 });
+    expect(handle).toHaveAttribute("aria-valuenow", "0.333");
+    fireEvent.pointerUp(handle, { pointerId: 2, clientX: 66.2, clientY: 30 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it.each([["pointer cancel", "pointerCancel"], ["lost pointer capture", "lostPointerCapture"]] as const)("discards the drag on %s", (_name, ending) => {
+    const onChange = jest.fn();
+    render(<Harness initial={blackToWhite} onChange={onChange} />);
+    const bar = screen.getByTestId("gradient-editor-bar");
+    bar.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 24, right: 200, bottom: 24, x: 0, y: 0, toJSON: () => ({}) });
+    const handle = stopHandle(2);
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 30, button: 0 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientX: 150, clientY: 30 });
+    fireEvent[ending](handle, { pointerId: 1 });
+    expect(handle).toHaveAttribute("aria-valuenow", "1");
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 150, clientY: 30 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("ignores keys, pointer and buttons when disabled", () => {
+    const onChange = jest.fn();
+    render(<ThemeProvider theme={mockTheme}><GradientEditor label="Colour over lifetime" value={blackToWhite} onChange={onChange} disabled /></ThemeProvider>);
+    const bar = screen.getByTestId("gradient-editor-bar");
+    bar.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 24, right: 200, bottom: 24, x: 0, y: 0, toJSON: () => ({}) });
+    const handle = stopHandle(2);
+    expect(handle).toHaveAttribute("tabindex", "-1");
+    fireEvent.keyDown(handle, { key: "ArrowLeft" });
+    fireEvent.keyDown(handle, { key: "Insert" });
+    fireEvent.keyDown(handle, { key: "Delete" });
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 30, button: 0 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientX: 150, clientY: 30 });
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 150, clientY: 30 });
+    fireEvent.doubleClick(bar, { clientX: 50, clientY: 12 });
+    expect(screen.getByLabelText("Stop 1 colour")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add stop" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove stop" })).toBeDisabled();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("emits stops the particle gradient schema accepts", () => {

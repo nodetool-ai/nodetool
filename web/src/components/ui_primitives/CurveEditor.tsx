@@ -19,7 +19,7 @@ import { Caption } from "./Caption";
 import { FlexColumn } from "./FlexColumn";
 import { FlexRow } from "./FlexRow";
 import { InspectorValueInput } from "./InspectorValueInput";
-import { clampNumber, evaluateCurveKeys, insertKey, insertionTime, removeKey, roundKeyNumber, updateKey, type CurveKey } from "./keyframeEditing";
+import { clampNumber, draggedCoordinate, evaluateCurveKeys, insertKey, insertionTime, removeKey, roundKeyNumber, snapToStep, updateKey, type CurveKey } from "./keyframeEditing";
 import { SPACING, getSpacingPx } from "./spacing";
 import { BORDER_RADIUS, CONTROL, MOTION, reducedMotion } from "./tokens";
 
@@ -139,8 +139,8 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
     const t = clampNumber((event.clientX - rect.left) / rect.width, 0, 1);
     const level = clampNumber(1 - (event.clientY - rect.top) / rect.height, 0, 1);
     return {
-      t: roundKeyNumber(Math.round(t / CURVE_TIME_STEP) * CURVE_TIME_STEP),
-      value: roundKeyNumber(Math.round((min + level * (top - min)) / valueStep) * valueStep)
+      t: snapToStep(t, CURVE_TIME_STEP),
+      value: snapToStep(min + level * (top - min), valueStep)
     };
   }, [min, top, valueStep]);
 
@@ -204,7 +204,11 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
     const active = drag.current;
     const point = active && active.pointerId === event.pointerId ? pointFromEvent(event) : null;
     if (active && point) {
-      setDraft(updateKey(value, active.index, point));
+      const original = value[active.index];
+      setDraft(updateKey(value, active.index, {
+        t: draggedCoordinate(original.t, point.t, CURVE_TIME_STEP),
+        value: draggedCoordinate(original.value, point.value, valueStep)
+      }));
     }
   };
 
@@ -217,7 +221,8 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
     event.currentTarget.releasePointerCapture?.(event.pointerId);
     const result = draft;
     setDraft(null);
-    if (apply && result) {
+    // A drag that ends where it started is not an edit: no undo entry, and an off-grid key keeps its value.
+    if (apply && result && (result[active.index].t !== value[active.index].t || result[active.index].value !== value[active.index].value)) {
       commit(result);
     }
   };
@@ -284,6 +289,7 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
                 onPointerMove={handlePointerMove}
                 onPointerUp={endDrag(true)}
                 onPointerCancel={endDrag(false)}
+                onLostPointerCapture={endDrag(false)}
                 sx={{
                   position: "absolute",
                   left: `${toX(key.t)}%`,

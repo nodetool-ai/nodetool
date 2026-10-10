@@ -135,6 +135,55 @@ describe("CurveEditor", () => {
     expect(keyHandle(2)).toHaveFocus();
   });
 
+  it("does not commit a drag that leaves the key where it was", () => {
+    const onChange = jest.fn();
+    render(<Harness initial={[{ t: 0, value: 1 }, { t: 0.333, value: 0.5 }, { t: 1, value: 0 }]} onChange={onChange} />);
+    const plot = screen.getByTestId("curve-editor-plot");
+    plot.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 100, right: 200, bottom: 100, x: 0, y: 0, toJSON: () => ({}) });
+    const handle = keyHandle(2);
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 66.6, clientY: 50, button: 0 });
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 66.6, clientY: 50 });
+    fireEvent.pointerDown(handle, { pointerId: 2, clientX: 66.6, clientY: 50, button: 0 });
+    fireEvent.pointerMove(handle, { pointerId: 2, clientX: 66.2, clientY: 50.2 });
+    expect(handle).toHaveAttribute("aria-valuetext", "Time 0.333, value 0.5");
+    fireEvent.pointerUp(handle, { pointerId: 2, clientX: 66.2, clientY: 50.2 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it.each([["pointer cancel", "pointerCancel"], ["lost pointer capture", "lostPointerCapture"]] as const)("discards the drag on %s", (_name, ending) => {
+    const onChange = jest.fn();
+    render(<Harness initial={twoKeys} onChange={onChange} />);
+    const plot = screen.getByTestId("curve-editor-plot");
+    plot.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 100, right: 200, bottom: 100, x: 0, y: 0, toJSON: () => ({}) });
+    const handle = keyHandle(2);
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 100, button: 0 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientX: 100, clientY: 50 });
+    fireEvent[ending](handle, { pointerId: 1 });
+    expect(handle).toHaveAttribute("aria-valuetext", "Time 1, value 0");
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 100, clientY: 50 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("ignores keys, pointer and buttons when disabled", () => {
+    const onChange = jest.fn();
+    render(<ThemeProvider theme={mockTheme}><CurveEditor label="Size over lifetime" value={twoKeys} onChange={onChange} disabled /></ThemeProvider>);
+    const plot = screen.getByTestId("curve-editor-plot");
+    plot.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 100, right: 200, bottom: 100, x: 0, y: 0, toJSON: () => ({}) });
+    const handle = keyHandle(2);
+    expect(handle).toHaveAttribute("tabindex", "-1");
+    expect(handle).toHaveAttribute("aria-disabled", "true");
+    fireEvent.keyDown(handle, { key: "ArrowLeft" });
+    fireEvent.keyDown(handle, { key: "Insert" });
+    fireEvent.keyDown(handle, { key: "Delete" });
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 200, clientY: 100, button: 0 });
+    fireEvent.pointerMove(handle, { pointerId: 1, clientX: 100, clientY: 50 });
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 100, clientY: 50 });
+    fireEvent.doubleClick(plot, { clientX: 50, clientY: 20 });
+    expect(screen.getByRole("button", { name: "Add key" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove key" })).toBeDisabled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("emits keys the particle curve schema accepts", () => {
     const onChange = jest.fn();
     render(<Harness initial={twoKeys} onChange={onChange} />);
