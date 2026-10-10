@@ -26,7 +26,7 @@ const ROOT = resolve(import.meta.dirname, "..");
  */
 const PACKAGE_ROOTS = ["packages", "reliability"];
 
-const PRIVATE_PACKAGES = new Set(["fal-codegen", "kie-codegen", "replicate-codegen"]);
+const PRIVATE_PACKAGES = new Set(["fal-codegen", "kie-codegen", "mutator", "replicate-codegen"]);
 
 /** Every package.json under PACKAGE_ROOTS, as absolute paths. */
 function packageJsonPaths() {

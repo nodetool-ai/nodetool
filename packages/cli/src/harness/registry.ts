@@ -941,6 +941,20 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "mutator",
+    title: "Mutation testing (nodetool-mutator)",
+    command: "npm run mutate -- --base origin/main packages/<name>/src",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § npm run mutate",
+    selfcheck: {
+      // Parses and binds every site in the tool's own source through the
+      // built CLI, without running a test.
+      command: "npm run mutate -- --scan packages/mutator/src",
+      cost: "cheap"
+    }
+  },
+  {
     id: "recipes",
     title: "Recipe chains (shipped manifests, the app listing, the site pages)",
     // A recipe names shipped example workflows and stores no graph, so what
@@ -1786,6 +1800,12 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/kie-nodes/src/kie-manifest.json",
       "scripts/provider-codegen-check.mjs"
     ]
+  },
+  {
+    id: "mutation-testing",
+    title: "Mutation testing tool and its score report",
+    harnesses: ["mutator"],
+    paths: ["packages/mutator/", "scripts/mutation-score.mjs"]
   },
   {
     id: "deploy-image",

@@ -1,0 +1,32 @@
+{
+  "name": "@nodetool-ai/mutator",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mutation testing for TypeScript, a port of unclebob/mutator",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "nodetool-mutator": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  }
+}

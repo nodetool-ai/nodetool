@@ -10,7 +10,8 @@
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "node ../../scripts/run-vitest.mjs run",
-    "test:mutation": "stryker run",
+    "test:mutation": "node ../mutator/dist/cli.js --root ../.. src",
+    "test:mutation:stryker": "stryker run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {

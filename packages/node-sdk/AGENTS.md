@@ -38,11 +38,11 @@ see [packages/AGENTS.md § Output contract](../AGENTS.md#output-contract):
 ## Mutation testing
 
 This package's behavioural core (validation, registry, metadata bridge, pack
-trust model) is gated by **mutation testing** — `npm run test:mutation` breaks
-below 80%. When you change `BaseNode`, the registry, validation, or the metadata
-loaders, add a test that pins the exact new behaviour, then re-run the gate. Two
-config settings are load-bearing and explained in
-[MUTATION_TESTING.md](./MUTATION_TESTING.md): `inPlace: true` (the source aliases
-in `vitest.config.ts` break Stryker's sandbox) and `ignoreStatic: true` (the
-top-level `await` in `metadata.ts` makes module-load constants slow static
-mutants). `src/docs/**` and `src/python-package-scan.ts` are excluded — see the doc.
+trust model) is mutation-tested with `nodetool-mutator`
+([policy](../../docs/DEVELOPMENT_STANDARDS.md#mutation-testing-policy)). When
+you change `BaseNode`, the registry, validation, or the metadata loaders, add a
+test that pins the exact new behaviour, then run `npm run test:mutation` and
+read the survivors it prints. `src/docs/**`, `src/nodes/test-nodes.ts`, and
+`src/python-package-scan.ts` are excluded in that script.
+[MUTATION_TESTING.md](./MUTATION_TESTING.md) documents the older Stryker
+config, still runnable as `npm run test:mutation:stryker`.

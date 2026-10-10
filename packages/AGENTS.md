@@ -24,6 +24,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/base-nodes` | Compatibility shell re-exporting the domain node packages (`core-nodes`, `text-nodes`, `llm-nodes`, `data-nodes`, `document-nodes`, `image-nodes`, `audio-nodes`, `video-nodes`, `integration-nodes`, `code-nodes`, `automation-nodes`) as `ALL_BASE_NODES` |
 | `@nodetool-ai/fal-nodes` | FAL AI integration nodes |
 | `@nodetool-ai/fal-codegen` | Code generator for FAL AI node definitions |
+| `@nodetool-ai/mutator` | `nodetool-mutator`, mutation testing for TypeScript ([README](mutator/README.md)) |
 | `@nodetool-ai/replicate-nodes` | Replicate integration nodes |
 | `@nodetool-ai/elevenlabs-nodes` | ElevenLabs TTS integration nodes |
 | `@nodetool-ai/minimax-nodes` | MiniMax TTS, music, image, and video nodes |
@@ -59,6 +60,7 @@ first, then the overlay for the package you are touching.
 - [`kie-nodes`](kie-nodes/AGENTS.md) — KIE node factory
 - [`llm-nodes`](llm-nodes/AGENTS.md) — LLM, image, TTS & agent nodes
 - [`models`](models/AGENTS.md) — persistence layer, tables, migrations
+- [`mutator`](mutator/AGENTS.md) — mutation testing tool
 - [`node-sdk`](node-sdk/AGENTS.md) — `BaseNode`, `NodeRegistry`, type system
 - [`replicate-nodes`](replicate-nodes/AGENTS.md) — Replicate node factory
 - [`runtime`](runtime/AGENTS.md) — `ProcessingContext` & LLM providers
