@@ -51,7 +51,11 @@ export interface UseLayerActionsReturn {
   handleReorderLayers: (fromIndex: number, toIndex: number) => void;
   handleMoveActiveLayer: (direction: "up" | "down") => void;
   handleToggleVisibility: (layerId: string) => void;
-  handleSetLayerOpacity: (layerId: string, opacity: number) => void;
+  /**
+   * Set a layer's opacity. Pass `commit: false` for intermediate slider
+   * values so a drag records one history entry, not one per step.
+   */
+  handleSetLayerOpacity: (layerId: string, opacity: number, commit?: boolean) => void;
   handleSetLayerBlendMode: (layerId: string, blendMode: BlendMode) => void;
   handleRenameLayer: (layerId: string, name: string) => void;
   handleSetMaskLayer: (layerId: string | null) => void;
@@ -237,9 +241,11 @@ export function useLayerActions({
   );
 
   const handleSetLayerOpacity = useCallback(
-    (layerId: string, opacity: number) => {
+    (layerId: string, opacity: number, commit = true) => {
       setLayerOpacity(layerId, opacity);
-      pushHistory("change opacity");
+      if (commit) {
+        pushHistory("change opacity");
+      }
       scheduleDisplayRedraw();
     },
     [pushHistory, setLayerOpacity, scheduleDisplayRedraw]

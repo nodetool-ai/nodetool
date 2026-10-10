@@ -15,11 +15,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import {
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { RootStackParamList } from '../navigation/types';
+import { ErrorState, LoadingState } from '../components/ScreenState';
 import { useTheme } from '../hooks/useTheme';
 import { documentStore } from '../documents/documentStore';
 import {
@@ -104,37 +103,17 @@ export default function SketchViewerScreen({ navigation, route }: Props) {
   const layers = useMemo(() => (doc === null ? [] : resolveLayers(doc)), [doc]);
 
   if (doc === null && status === 'loading') {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.centerText, { color: colors.textSecondary }]}>
-          Loading sketch…
-        </Text>
-      </View>
-    );
+    return <LoadingState label="Loading sketch…" />;
   }
 
   if (doc === null) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Ionicons name="alert-circle-outline" size={36} color={colors.error} />
-        <Text style={[styles.errorTitle, { color: colors.text }]}>
-          Could not load this sketch
-        </Text>
-        {error !== null && (
-          <Text style={[styles.centerText, { color: colors.textSecondary }]}>{error}</Text>
-        )}
-        <TouchableOpacity
-          onPress={runLoad}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading sketch"
-          style={[styles.retryButton, shadows.small, { backgroundColor: colors.primary }]}
-        >
-          <Ionicons name="refresh-outline" size={16} color={colors.textOnPrimary} />
-          <Text style={[styles.retryText, { color: colors.textOnPrimary }]}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <ErrorState
+        title="Could not load this sketch"
+        message={error}
+        onRetry={runLoad}
+        retryLabel="Retry loading sketch"
+      />
     );
   }
 
@@ -239,33 +218,6 @@ export default function SketchViewerScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  centerText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  retryText: {
-    fontSize: 15,
-    fontWeight: '600',
   },
   headerSection: {
     paddingHorizontal: 20,

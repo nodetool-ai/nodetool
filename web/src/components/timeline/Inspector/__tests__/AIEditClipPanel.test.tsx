@@ -26,13 +26,6 @@ jest.mock("../../../../hooks/timeline/useTimelineDirectGenJob", () => ({
   })
 }));
 
-jest.mock("../../../properties/VideoModelSelect", () => ({
-  __esModule: true,
-  default: ({ value }: { value: string }) => (
-    <div data-testid="video-edit-model">{value}</div>
-  )
-}));
-
 const compatibleModel = {
   type: "video_model",
   id: "edit-model",
@@ -137,6 +130,16 @@ describe("AIEditClipPanel", () => {
     expect(screen.getByText("No compatible model")).toBeTruthy();
     expect(screen.getByText(/video_to_video/)).toBeTruthy();
     expect(screen.getByTestId("ai-edit-submit")).toBeDisabled();
+  });
+
+  it("preselects the first compatible model when the panel mounts", async () => {
+    renderPanel(makeVideoClip());
+
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "Model" })).toHaveTextContent(
+        "Edit model"
+      )
+    );
   });
 
   it("captures the same source eligibility for generated and imported clips", () => {

@@ -85,7 +85,7 @@ const useWsConnected = (): boolean => {
   return connected;
 };
 
-const useGraphCounts = (
+export const useGraphCounts = (
   workflowId: string | null | undefined
 ): { nodes: number; edges: number } => {
   const nodeStore = useWorkflowManager((state) =>
@@ -102,8 +102,15 @@ const useGraphCounts = (
       setCounts({ nodes: 0, edges: 0 });
       return;
     }
+    // Keep the previous object when the counts are unchanged. `nodes` gets a
+    // new identity on every drag frame, and a fresh object would re-render
+    // the whole bottom panel each time.
     const sync = (s: NodeStoreState) =>
-      setCounts({ nodes: s.nodes.length, edges: s.edges.length });
+      setCounts((prev) =>
+        prev.nodes === s.nodes.length && prev.edges === s.edges.length
+          ? prev
+          : { nodes: s.nodes.length, edges: s.edges.length }
+      );
     sync(nodeStore.getState());
     return nodeStore.subscribe((state: NodeStoreState, prev: NodeStoreState) => {
       if (state.nodes !== prev.nodes || state.edges !== prev.edges) {

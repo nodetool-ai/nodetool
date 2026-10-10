@@ -139,6 +139,29 @@ describe("native game capabilities", () => {
     expect(cleared.document.inputBindings).toBeUndefined();
   });
 
+  it("authors spatial audio on an entity's audio source through edit_native_game", async () => {
+    const spec = gameModule.exports.find((entry) => entry.spec.name === "edit_native_game")?.spec;
+    expect(JSON.stringify(spec?.inputSchema)).toContain("update_entity set audioSource {spatial: true");
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Spatial" }) as GameReply;
+    const source = created.document.scenes.flatMap((scene) => scene.entities).find((entity) => entity.audioSource);
+    if (!source) { throw new Error("The starter game must have an audio source"); }
+    const cone = { innerAngle: 90, outerAngle: 180, outerGain: 0.2 };
+    const edited = await agent.invoke("edit_native_game", { game_id: created.game.id, ops: [{ op: "update_entity", entity_id: source.id,
+      set: { audioSource: { spatial: true, minDistance: 2, maxDistance: 24, rolloff: 0.5, distanceModel: "exponential", cone, doppler: 1 } } }] }) as GameReply;
+    expect(edited.document.scenes.flatMap((scene) => scene.entities).find((entity) => entity.id === source.id)?.audioSource)
+      .toMatchObject({ spatial: true, minDistance: 2, maxDistance: 24, rolloff: 0.5, distanceModel: "exponential", cone, doppler: 1 });
+    const rejected = await agent.invoke("edit_native_game", { game_id: created.game.id, base_updated_at: edited.draft_updated_at,
+      ops: [{ op: "update_entity", entity_id: source.id, set: { audioSource: { minDistance: 30 } } }] });
+    expect(JSON.stringify(rejected)).toContain("maxDistance (24) must be greater than minDistance (30)");
+    const cleared = await agent.invoke("edit_native_game", { game_id: created.game.id, base_updated_at: edited.draft_updated_at,
+      ops: [{ op: "update_entity", entity_id: source.id, set: { audioSource: { cone: null, doppler: null } } }] }) as GameReply;
+    const audio = cleared.document.scenes.flatMap((scene) => scene.entities).find((entity) => entity.id === source.id)?.audioSource;
+    expect(audio?.cone).toBeUndefined();
+    expect(audio?.doppler).toBeUndefined();
+    expect(audio?.spatial).toBe(true);
+  });
+
   it("edits the draft atomically, reads an outline, and captures the edited frame", async () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Draft room" }) as GameReply;

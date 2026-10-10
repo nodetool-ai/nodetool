@@ -534,10 +534,10 @@ export function computeScaleTransform(
 
     if (shift) {
       // Shift held: independent X/Y — apply delta to handle reference position
-      if (handleRefX > 1) {
+      if (Math.abs(handleRefX) > 1) {
         newSx = sx * ((handleRefX + deltaX) / handleRefX);
       }
-      if (handleRefY > 1) {
+      if (Math.abs(handleRefY) > 1) {
         newSy = sy * ((handleRefY + deltaY) / handleRefY);
       }
     } else {
@@ -554,7 +554,7 @@ export function computeScaleTransform(
 
   // Edge midpoint handles: axis-constrained
   if (handle === "left" || handle === "right") {
-    if (hw > 1) {
+    if (Math.abs(hw) > 1) {
       const sign = handle === "left" ? -1 : 1;
       const startDx = (uStart.x - center.x) * sign;
       const cursorDx = (uCursor.x - center.x) * sign;
@@ -567,7 +567,7 @@ export function computeScaleTransform(
     }
   }
   if (handle === "top" || handle === "bottom") {
-    if (hh > 1) {
+    if (Math.abs(hh) > 1) {
       const sign = handle === "top" ? -1 : 1;
       const startDy = (uStart.y - center.y) * sign;
       const cursorDy = (uCursor.y - center.y) * sign;

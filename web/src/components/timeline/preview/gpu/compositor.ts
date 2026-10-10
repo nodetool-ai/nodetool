@@ -380,7 +380,11 @@ export class WebGPUCompositor implements TimelineCompositor {
       return;
     }
 
-    const frameLayers = this.layers.map((layer) => this.toFrameLayer(layer));
+    // A layer whose matte source has no pixels yet draws nothing. It still
+    // counts in `this.layers`, so a frame of nothing else holds the last one.
+    const frameLayers = this.layers
+      .filter((layer) => !layer.mattePending)
+      .map((layer) => this.toFrameLayer(layer));
     const frameAdjustments: FrameAdjustment<CompositeSource>[] = this.adjustments.map((adjustment) => ({
       id: adjustment.id,
       zIndex: adjustment.zIndex,

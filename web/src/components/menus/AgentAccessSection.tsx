@@ -176,7 +176,7 @@ const AgentAccessSection = () => {
   );
 
   const codeBox = {
-    fontFamily: "monospace",
+    fontFamily: "var(--fontFamily2)",
     fontSize: theme.fontSizeSmall,
     background: theme.palette.background.default,
     border: `1px solid ${theme.palette.divider}`,

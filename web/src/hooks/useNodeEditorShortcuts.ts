@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { registerComboCallback } from "../stores/KeyPressedStore";
 import { ADD_NODE_HOTKEYS, NODE_EDITOR_SHORTCUTS } from "../config/shortcuts";
-import { getIsElectronDetails, isTextInputActive } from "../utils/browser";
+import {
+  canTakeFocus,
+  getIsElectronDetails,
+  isTextInputActive
+} from "../utils/browser";
 import { getMousePosition } from "../utils/MousePosition";
 import { useNodes, useTemporalNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useCopyPaste } from "./handlers/useCopyPaste";
@@ -27,7 +31,9 @@ import { Node, type Edge } from "@xyflow/react";
 import type { NodeStoreState } from "../stores/NodeStore";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
+import { useSubgraphTabsStore } from "../stores/SubgraphTabsStore";
 import { useSelectionActions } from "./useSelectionActions";
+import { hasSelectedAncestor } from "../utils/selectionLayout";
 import { useNodeFocus } from "./useNodeFocus";
 import type { MenuEventData } from "../window";
 import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
@@ -45,6 +51,30 @@ import { instantiatePaletteNode } from "../utils/instantiatePaletteNode";
  * mounted with inactive ones `inert`.
  */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
+
+/** Menu events that change the graph; ignored while a text field has focus. */
+const GRAPH_EDIT_MENU_EVENTS: ReadonlySet<MenuEventData["type"]> = new Set([
+  "copy",
+  "cut",
+  "paste",
+  "selectAll",
+  "undo",
+  "redo",
+  "align",
+  "alignWithSpacing",
+  "duplicate",
+  "duplicateVertical",
+  "group"
+]);
+
+/** Menu events that act on one canvas: only the editor on screen takes them. */
+const CANVAS_MENU_EVENTS: ReadonlySet<MenuEventData["type"]> = new Set([
+  ...GRAPH_EDIT_MENU_EVENTS,
+  "fitView",
+  "resetZoom",
+  "zoomIn",
+  "zoomOut"
+]);
 
 export const useNodeEditorShortcuts = (
   active: boolean,
@@ -308,6 +338,22 @@ export const useNodeEditorShortcuts = (
       if (!active) {
         return;
       }
+      // Every mounted editor receives each menu event, and the parent editor
+      // stays active behind an open subgraph. Canvas actions go to the editor
+      // on screen; workspace actions go to the workflow's own editor, never
+      // also to its subgraph editors.
+      if (CANVAS_MENU_EVENTS.has(data.type)) {
+        if (getRoot && !canTakeFocus(getRoot())) {
+          return;
+        }
+        if (GRAPH_EDIT_MENU_EVENTS.has(data.type) && isTextInputActive()) {
+          return;
+        }
+      } else if (
+        useSubgraphTabsStore.getState().getTab(nodeStore.getState().workflow.id)
+      ) {
+        return;
+      }
       // When the sketch editor is mounted it owns selectAll/duplicate;
       // these are routed there via its own menu handler. Avoid double-firing
       // node-editor actions on top.
@@ -321,9 +367,6 @@ export const useNodeEditorShortcuts = (
       }
       switch (data.type) {
         case "copy":
-          if (isTextInputActive()) {
-            return;
-          }
           handleCopy();
           break;
         case "paste":
@@ -394,6 +437,8 @@ export const useNodeEditorShortcuts = (
     },
     [
       active,
+      getRoot,
+      nodeStore,
       handleCopy,
       handlePaste,
       handleCut,
@@ -417,10 +462,13 @@ export const useNodeEditorShortcuts = (
     (direction: { x?: number; y?: number }) => {
       const selectedNodes = nodeStore.getState().getSelectedNodes();
       if (selectedNodes.length > 0) {
-        setNodes((nodes: Node<NodeData>[]) =>
-          nodes.map(
+        setNodes((nodes: Node<NodeData>[]) => {
+          const byId = new Map(nodes.map((node) => [node.id, node]));
+          // A child of a selected group already moves with the group; moving
+          // it as well would shift it inside the group on every press.
+          return nodes.map(
             (node: Node<NodeData>): Node<NodeData> =>
-              node.selected
+              node.selected && !hasSelectedAncestor(node, byId)
                 ? {
                     ...node,
                     position: {
@@ -429,8 +477,8 @@ export const useNodeEditorShortcuts = (
                     }
                   }
                 : node
-          )
-        );
+          );
+        });
       }
     },
     [nodeStore, setNodes]
@@ -685,9 +733,6 @@ export const useNodeEditorShortcuts = (
         return;
       }
       if (sc.electronOnly && !electronDetails.isElectron) {
-        return;
-      }
-      if (sc.skipInElectron && electronDetails.isElectron) {
         return;
       }
 

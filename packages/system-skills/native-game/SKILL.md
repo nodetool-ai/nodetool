@@ -588,6 +588,22 @@ so a mixer edit never changes `nodetool game simulate` results or replay.
 Players can scale and mute a bus at runtime through `GameAudioPlayer`
 `setBusVolume` and `setBusMuted`.
 
+Set `audioSource.spatial: true` to play an entity's effect at its position in
+2D and 3D. The listener is the active camera, so an emitter right of the camera
+plays in the right ear. Effects play at full volume within `minDistance`
+(default 1 world unit) and fall off by `distanceModel` (`linear`, `inverse`
+by default, or `exponential`) and `rolloff` (default 1) out to `maxDistance`
+(default 50), which must exceed `minDistance`. The `linear` model clamps
+`rolloff` to 1 and is silent at `maxDistance`. A 3D `cone {innerAngle,
+outerAngle, outerGain}` points along the entity's -Z axis. 2D emitters ignore
+the cone. `doppler` (default 0, 1 is physical) shifts pitch with emitter and
+camera motion. Set a field to `null` in `update_entity` to return it to its
+default. Positions follow the interpolated frame every rendered frame. The
+event that starts the effect carries the emitter position, so a collectible
+that despawns as it plays still sounds where it was. Spatial settings never
+change simulation. Players pan with HRTF. `GameAudioPlayer`
+`spatialQuality: "low"` switches to cheaper equal-power panning.
+
 ### N: Animation
 
 A 3D animation graph lives in the document's `animationGraphs` map. An

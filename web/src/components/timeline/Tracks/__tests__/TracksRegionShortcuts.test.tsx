@@ -322,6 +322,35 @@ it("routes editing shortcuts only to the active timeline", () => {
   expect(hidden.doc.getState().clips).toHaveLength(0);
 });
 
+it("Ctrl+Z undoes this editor's history when another instance is on top (F30)", () => {
+  const editor = createTimelineInstance();
+  const other = createTimelineInstance();
+  for (const instance of [editor, other]) {
+    instance.doc
+      .getState()
+      .addClips([
+        makeClip({ trackId: "t1", name: "clip", startMs: 0, durationMs: 1000 })
+      ]);
+    instance.doc.temporal.getState().clear();
+    const id = instance.doc.getState().clips[0].id;
+    instance.doc.getState().patchClip(id, { opacity: 0.5 });
+  }
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <TimelineProvider instance={editor}>
+        <TracksRegion heightPx={400} />
+      </TimelineProvider>
+      {/* Mounted later, so it sits on top of the activation stack. */}
+      <TimelineProvider instance={other}>
+        <div />
+      </TimelineProvider>
+    </ThemeProvider>
+  );
+  act(() => fireEvent.keyDown(window, { key: "z", ctrlKey: true }));
+  expect(editor.doc.getState().clips[0].opacity).not.toBe(0.5);
+  expect(other.doc.getState().clips[0].opacity).toBe(0.5);
+});
+
 describe("TracksRegion held-key undo batching (F55)", () => {
   it("a held trim key is one undo entry", () => {
     setup();

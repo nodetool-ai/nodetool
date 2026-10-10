@@ -50,3 +50,17 @@ describe("formatTimecode", () => {
     expect(formatTimecode(70_000, 100)).toBe("1:10.00");
   });
 });
+
+describe("formatTimecode at fractional rates", () => {
+  it("takes minutes from the nominal-rate frame count at 29.97 fps", () => {
+    // 60 s of wall clock is 1798 frames: 0:59:28 in non-drop timecode.
+    expect(formatTimecode(60_000, 100, 29.97)).toBe("0:59:28");
+  });
+
+  it("takes minutes from the nominal-rate frame count at 23.976 fps", () => {
+    // 60.5 s is 1451 frames at 23.976: 1451 / 24 = 60 s and 11 frames.
+    expect(formatTimecode(60_500, 100, 23.976)).toBe("1:00:11");
+    // 60.02 s is 1439 frames: still inside the first timecode minute.
+    expect(formatTimecode(60_020, 100, 23.976)).toBe("0:59:23");
+  });
+});

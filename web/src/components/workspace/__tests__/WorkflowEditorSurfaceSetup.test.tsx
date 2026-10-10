@@ -10,7 +10,7 @@
  * The flow is mounted for real at its first step, not stubbed, so the
  * assertion is which surface comes back — that is what "resumes" means.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -36,7 +36,7 @@ jest.mock("../../panels/StatusMessage", () => ({
 }));
 jest.mock("../../editor/NodeCreateBridge", () => ({
   __esModule: true,
-  default: () => null
+  default: () => <div data-testid="node-create-bridge" />
 }));
 jest.mock("../SubgraphTabStrip", () => ({
   __esModule: true,
@@ -44,7 +44,13 @@ jest.mock("../SubgraphTabStrip", () => ({
 }));
 jest.mock("../SubgraphTabContent", () => ({
   __esModule: true,
-  default: () => null
+  default: ({ tab, active }: { tab: { key: string }; active: boolean }) => (
+    <div
+      data-testid="subgraph-content"
+      data-tab={tab.key}
+      data-active={String(active)}
+    />
+  )
 }));
 jest.mock("../WorkflowChainSurface", () => ({
   __esModule: true,
@@ -225,6 +231,10 @@ import {
   type WorkflowSetupStage
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import WorkflowEditorSurface from "../WorkflowEditorSurface";
+import {
+  useSubgraphTabsStore,
+  type SubgraphTab
+} from "../../../stores/SubgraphTabsStore";
 
 const seed = (stage: WorkflowSetupStage) => {
   settings = writeWorkflowSetup({}, { stage, brief: "summarize the inbox" });
@@ -246,6 +256,53 @@ const renderSurface = () =>
 beforeEach(() => {
   jest.clearAllMocks();
   mockPersistedBuild = null;
+  useSubgraphTabsStore.setState({ tabs: [], activeKey: null });
+});
+
+describe("WorkflowEditorSurface subgraphs", () => {
+  const subgraphTab = (workflowId: string, nodeId: string): SubgraphTab =>
+    // SAFETY: SubgraphTabContent is mocked, so nothing reads the store.
+    ({
+      key: `${workflowId}:${nodeId}`,
+      workflowId,
+      nodeId,
+      label: nodeId,
+      store: {}
+    }) as SubgraphTab;
+
+  it("shows the top-level subgraph holding an active nested subgraph", () => {
+    settings = {};
+    const outer = subgraphTab("w1", "outer");
+    const inner = subgraphTab(outer.key, "inner");
+    useSubgraphTabsStore.setState({ tabs: [outer, inner], activeKey: inner.key });
+    renderSurface();
+
+    const content = screen.getByTestId("subgraph-content");
+    expect(content).toHaveAttribute("data-tab", outer.key);
+    expect(content).toHaveAttribute("data-active", "true");
+  });
+
+  it("leaves node-menu requests to the open subgraph's canvas", () => {
+    settings = {};
+    renderSurface();
+    expect(screen.getByTestId("node-create-bridge")).toBeInTheDocument();
+
+    const outer = subgraphTab("w1", "outer");
+    act(() => {
+      useSubgraphTabsStore.setState({ tabs: [outer], activeKey: outer.key });
+    });
+    expect(screen.queryByTestId("node-create-bridge")).not.toBeInTheDocument();
+  });
+
+  it("ignores another workflow's open subgraph", () => {
+    settings = {};
+    const other = subgraphTab("w2", "outer");
+    useSubgraphTabsStore.setState({ tabs: [other], activeKey: other.key });
+    renderSurface();
+
+    expect(screen.queryByTestId("subgraph-content")).not.toBeInTheDocument();
+    expect(screen.getByTestId("node-create-bridge")).toBeInTheDocument();
+  });
 });
 
 describe("WorkflowEditorSurface workflow setup resume", () => {

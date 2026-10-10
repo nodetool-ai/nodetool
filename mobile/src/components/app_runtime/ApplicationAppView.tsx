@@ -11,6 +11,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import { useTheme } from "../../hooks/useTheme";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import type { ApplicationRunIdentity } from "../../hooks/useApplications";
 import type { Workflow } from "../../types/workflow";
 import { AppRuntimeContext } from "./AppRuntimeContext";
@@ -77,6 +78,9 @@ const ApplicationAppView: React.FC<ApplicationAppViewProps> = ({
   application
 }) => {
   const { colors } = useTheme();
+  // Read the context directly so the view also renders outside a provider
+  // (widget tests, previews), with no bottom inset there.
+  const bottomInset = React.useContext(SafeAreaInsetsContext)?.bottom ?? 0;
   const runtimeOptions: Parameters<typeof useAppRuntime>[1] = { document };
   if (applicationId) {
     runtimeOptions.instanceKey = applicationId;
@@ -96,8 +100,12 @@ const ApplicationAppView: React.FC<ApplicationAppViewProps> = ({
     <AppRuntimeContext.Provider value={runtime}>
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomInset + 32 }]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        // iOS: scroll a focused input above the keyboard. Android resizes the
+        // window for the keyboard on its own (softwareKeyboardLayoutMode).
+        automaticallyAdjustKeyboardInsets
       >
         {heading ? (
           <Text style={[styles.title, { color: colors.text }]}>{heading}</Text>
@@ -123,7 +131,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
     gap: 16
   },
   title: {

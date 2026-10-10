@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DirectorNode } from "@nodetool-ai/base-nodes";
+import { AgentNode, DirectorNode } from "@nodetool-ai/base-nodes";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   ProcessingContext,
@@ -19,6 +19,13 @@ import {
   fakeExecutor,
   FAKE_LLM_TEXT
 } from "../src/fake-runtime.js";
+import {
+  PLAN_CODE_NODE_TYPE,
+  WORKFLOW_PLAN_TOOL_NAME,
+  buildWorkflowPlanSchema,
+  parseWorkflowPlan
+} from "@nodetool-ai/protocol";
+import { plannedCodeStepProblems } from "@nodetool-ai/node-sdk/code-analysis";
 
 describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () => {
   describe("createFakeExecutorResolver", () => {
@@ -75,6 +82,33 @@ describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () 
         shot_count: 3
       });
       expect(resolvedProviders).toEqual([model?.provider || "openai"]);
+    });
+    it("runs an Agent with the host's fake provider instead of faking its media slots", async () => {
+      const registry = new NodeRegistry();
+      registry.register(AgentNode);
+      const context = new ProcessingContext({ jobId: "fake-agent" });
+      context.setProviderResolver(async () => new FakeProvider());
+      const properties = { prompt: "Rewrite: the fox jumps." };
+      const executor = createFakeExecutorResolver(() => registry)({
+        id: "agent",
+        type: AgentNode.nodeType,
+        properties
+      });
+
+      const outputs: Record<string, unknown>[] = [];
+      if (executor.genProcess) {
+        for await (const output of executor.genProcess(properties, context)) {
+          outputs.push(output);
+        }
+      } else {
+        outputs.push(await executor.process(properties, context));
+      }
+
+      // The Agent accepts optional image and audio inputs and declares an
+      // audio output. A text run must answer with text, not a placeholder
+      // audio clip in every media slot.
+      expect(outputs.some((o) => o.text === FAKE_LLM_TEXT)).toBe(true);
+      expect(outputs.every((o) => o.audio == null)).toBe(true);
     });
   });
 
@@ -229,6 +263,33 @@ describe("FakeProvider as a stand-in provider", () => {
       }
     });
     expect(data).toEqual({ subject: "fake", aspect: "square" });
+  });
+
+  it("answers the workflow planner with a plan that builds and runs", async () => {
+    const provider = new FakeProvider();
+    const calls: unknown[] = [];
+    for await (const item of provider.generateMessages({
+      messages: [{ role: "user", content: "Change a sentence I type." }],
+      model: "fake-model",
+      tools: [
+        {
+          name: WORKFLOW_PLAN_TOOL_NAME,
+          description: "plan",
+          inputSchema: buildWorkflowPlanSchema()
+        }
+      ],
+      toolChoice: WORKFLOW_PLAN_TOOL_NAME
+    })) {
+      calls.push(item);
+    }
+
+    const plan = parseWorkflowPlan((calls[0] as { args: unknown }).args);
+    expect(plan?.steps).toHaveLength(1);
+    const step = plan!.steps[0];
+    expect(step.node_type).toBe(PLAN_CODE_NODE_TYPE);
+    expect(
+      plannedCodeStepProblems(step.code!, { inputs: ["input"], output: "output" })
+    ).toEqual([]);
   });
 
   it("lists models only for the providers in its catalog", async () => {

@@ -785,6 +785,26 @@ describe("SelectTool", () => {
     expect(ctx.onSelectionChange).not.toHaveBeenCalled();
   });
 
+  it("starts a new marquee after a selection move is cancelled", () => {
+    const tool = new SelectTool();
+    const setSelectionOriginOverride = jest.fn();
+    const ctx = makeToolContext({
+      selection: rectSelectionMask(64, 64, 0, 0, 20, 20),
+      setSelectionOriginOverride
+    });
+    tool.onDown(ctx, makePointerEvent({ point: { x: 10, y: 10 } }));
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 15, y: 15 } }), []);
+    tool.onCancel(ctx);
+    expect(setSelectionOriginOverride).toHaveBeenLastCalledWith(null);
+
+    tool.onDown(ctx, makePointerEvent({ point: { x: 40, y: 40 } }));
+    tool.onMove!(ctx, makePointerEvent({ point: { x: 50, y: 50 } }), []);
+    expect(ctx.drawOverlaySelection).toHaveBeenLastCalledWith(
+      { x: 40, y: 40 },
+      { x: 50, y: 50 }
+    );
+  });
+
   it("calls drawOverlaySelection during drag", () => {
     const tool = new SelectTool();
     const ctx = makeToolContext();
