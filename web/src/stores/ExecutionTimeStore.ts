@@ -41,6 +41,7 @@ interface ExecutionTimeStore {
     nodeId: string
   ) => number | undefined;
   clearTimings: (workflowId: string) => void;
+  clearJobTimings: (workflowId: string, jobId: string) => void;
 }
 
 const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
@@ -96,6 +97,22 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
         }
       }
       return { timings: newTimings };
+    });
+  },
+
+  /** Clear every node timing of one run. Sibling runs keep theirs. */
+  clearJobTimings: (workflowId: string, jobId: string) => {
+    const prefix = `${workflowId}:${jobId}:`;
+    set((state) => {
+      const newTimings = { ...state.timings };
+      let changed = false;
+      for (const key in newTimings) {
+        if (key.startsWith(prefix)) {
+          delete newTimings[key as NodeKey];
+          changed = true;
+        }
+      }
+      return changed ? { timings: newTimings } : state;
     });
   }
 }));

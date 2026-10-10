@@ -24,7 +24,7 @@ import {
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
 import CodeProperty from "../properties/CodeProperty";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -41,6 +41,7 @@ import DynamicSlotTypePicker from "./DynamicSlotTypePicker";
 import { normalizeDynamicSlot, slotType } from "../../utils/dynamicSlots";
 import { isSchemaDrivenDynamicNode } from "../../utils/dynamicSlotTypes";
 import { isString } from "../../utils/typePredicates";
+import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 
 export type { PropertyProps } from "./PropertyInput.types";
 
@@ -240,6 +241,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     shallow
   );
 
+  const nodeStore = useNodeStoreRef();
+
   const targetNodeIds = useMemo(
     () =>
       inspectorBatchNodeIds?.length ? [...inspectorBatchNodeIds] : [id],
@@ -345,47 +348,51 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const handleResetToDefault = useCallback(() => {
     const metadata = useMetadataStore.getState().metadata;
-    for (const nodeId of targetNodeIds) {
-      const node = findNode(nodeId);
-      if (!node?.data) {
-        continue;
-      }
-      if (isDynamicProperty) {
-        const dynamicInputDefaults = node.data.dynamic_inputs || {};
-        let defaultValue = dynamicInputDefaults?.[property.name]?.default;
-        if (defaultValue === undefined) {
+    // Resetting several selected nodes undoes as one step.
+    runAsOneUndoEntry(nodeStore, () => {
+      for (const nodeId of targetNodeIds) {
+        const node = findNode(nodeId);
+        if (!node?.data) {
+          continue;
+        }
+        if (isDynamicProperty) {
+          const dynamicInputDefaults = node.data.dynamic_inputs || {};
+          let defaultValue = dynamicInputDefaults?.[property.name]?.default;
+          if (defaultValue === undefined) {
+            const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
+            if (nodeMetadata) {
+              const propertyDef = nodeMetadata.properties.find(
+                (prop: Property) => prop.name === property.name
+              );
+              defaultValue = propertyDef?.default ?? property.default;
+            }
+          }
+          if (defaultValue !== undefined && node.data.dynamic_properties) {
+            updateNodeData(nodeId, {
+              dynamic_properties: {
+                ...node.data.dynamic_properties,
+                [property.name]: defaultValue
+              }
+            });
+          }
+        } else {
           const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === property.name
             );
-            defaultValue = propertyDef?.default ?? property.default;
+            const defaultValue = propertyDef?.default ?? property.default;
+            updateNodeProperties(nodeId, { [property.name]: defaultValue });
+          } else {
+            updateNodeProperties(nodeId, { [property.name]: property.default });
           }
         }
-        if (defaultValue !== undefined && node.data.dynamic_properties) {
-          updateNodeData(nodeId, {
-            dynamic_properties: {
-              ...node.data.dynamic_properties,
-              [property.name]: defaultValue
-            }
-          });
-        }
-      } else {
-        const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
-        if (nodeMetadata) {
-          const propertyDef = nodeMetadata.properties.find(
-            (prop: Property) => prop.name === property.name
-          );
-          const defaultValue = propertyDef?.default ?? property.default;
-          updateNodeProperties(nodeId, { [property.name]: defaultValue });
-        } else {
-          updateNodeProperties(nodeId, { [property.name]: property.default });
-        }
       }
-    }
+    });
   }, [
     findNode,
     isDynamicProperty,
+    nodeStore,
     property,
     targetNodeIds,
     updateNodeData,

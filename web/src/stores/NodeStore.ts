@@ -211,7 +211,17 @@ export interface NodeStoreState {
   setEdges: (edges: Edge[]) => void;
   getWorkflow: () => Workflow;
   setWorkflowDirty: (dirty: boolean) => void;
-  setWorkflowUpdatedAt: (updatedAt: string) => void;
+  /**
+   * Adopt the server row's concurrency tokens after a save. Records no undo
+   * entry and writes the tokens into every undo and redo snapshot, so undo
+   * never brings back a token the server has already replaced.
+   */
+  setWorkflowUpdatedAt: (updatedAt: string, etag?: string | null) => void;
+  /**
+   * Replace the workflow attributes with the saved row, under the same rules
+   * as `setWorkflowUpdatedAt`.
+   */
+  adoptSavedWorkflow: (workflow: WorkflowAttributes) => void;
   /**
    * Apply a graph merged with an external change. Records no undo entry and
    * leaves `workflowIsDirty` unchanged — the merged canvas still holds the
@@ -245,6 +255,29 @@ export interface NodeStoreState {
   toggleBypassSelected: () => void;
 }
 
+/** The server row's optimistic-concurrency tokens. */
+interface ConcurrencyToken {
+  etag?: string;
+  updatedAt?: string;
+}
+
+const withTokens = <T extends WorkflowAttributes>(
+  workflow: T,
+  token: ConcurrencyToken
+): T => {
+  if (token.etag === undefined && token.updatedAt === undefined) {
+    return workflow;
+  }
+  const next = { ...workflow };
+  if (token.etag !== undefined) {
+    next.etag = token.etag;
+  }
+  if (token.updatedAt !== undefined) {
+    next.updated_at = token.updatedAt;
+  }
+  return next;
+};
+
 export type PartializedNodeStore = Pick<
   NodeStoreState,
   "workflow" | "nodes" | "edges"
@@ -267,6 +300,53 @@ export const createNodeStore = (
   create<NodeStoreState>()(
     temporal(
       (set, get, api) => {
+        // SAFETY: the `temporal` middleware stamps `temporal` onto the store
+        // api before this creator runs, but the generic `StoreApi` this
+        // factory is typed against does not declare it. Optional so a store
+        // built without the middleware simply skips history handling.
+        const getTemporalApi = ():
+          | StoreApi<TemporalState<PartializedNodeStore>>
+          | undefined =>
+          (
+            api as unknown as {
+              temporal?: StoreApi<TemporalState<PartializedNodeStore>>;
+            }
+          ).temporal;
+        // Apply a change without an undo entry, then restore the tracking
+        // state that was in effect: a drag or a text edit may have paused it.
+        const withoutHistory = (apply: () => void): void => {
+          const temporalApi = getTemporalApi();
+          const wasTracking = temporalApi?.getState().isTracking ?? false;
+          temporalApi?.getState().pause();
+          try {
+            apply();
+          } finally {
+            if (wasTracking) {
+              temporalApi?.getState().resume();
+            }
+          }
+        };
+        // Write the row's concurrency tokens into every undo and redo
+        // snapshot, so restoring one keeps the tokens the server holds now.
+        const rebaseHistoryTokens = (token: ConcurrencyToken): void => {
+          const temporalApi = getTemporalApi();
+          if (!temporalApi) {
+            return;
+          }
+          const { pastStates, futureStates } = temporalApi.getState();
+          const rebase = (
+            snapshots: PartializedNodeStore[]
+          ): PartializedNodeStore[] =>
+            snapshots.map((snapshot) => ({
+              ...snapshot,
+              workflow: withTokens(snapshot.workflow, token)
+            }));
+          temporalApi.setState({
+            pastStates: rebase(pastStates),
+            futureStates: rebase(futureStates)
+          });
+        };
+
         const metadata = useMetadataStore.getState().metadata;
         const nodeTypes = useMetadataStore.getState().nodeTypes;
         const addUnknownNodeTypes =
@@ -658,10 +738,36 @@ export const createNodeStore = (
                   sourceHandle: newConnection.sourceHandle || null,
                   targetHandle: newConnection.targetHandle || null
                 };
+                // Same replacement rule as onConnect: only a collect handle
+                // (list[T]) keeps the edges already landing on it.
+                const isControlEdge =
+                  newEdge.targetHandle === CONTROL_HANDLE_ID ||
+                  newEdge.sourceHandle === CONTROL_HANDLE_ID;
+                const targetMetadata = useMetadataStore
+                  .getState()
+                  .getMetadata(targetNode.type || "");
+                const targetInput =
+                  targetMetadata && !isControlEdge && newEdge.targetHandle
+                    ? findInputHandle(
+                        targetNode,
+                        newEdge.targetHandle,
+                        targetMetadata
+                      )
+                    : undefined;
+                const isCollectHandle =
+                  !!targetInput && isCollectType(targetInput.type);
                 set({
-                  edges: get().edges.map((e) =>
-                    e.id === oldEdge.id ? newEdge : e
-                  )
+                  edges: get()
+                    .edges.filter(
+                      (e) =>
+                        e.id === oldEdge.id ||
+                        isCollectHandle ||
+                        !(
+                          e.target === newEdge.target &&
+                          e.targetHandle === newEdge.targetHandle
+                        )
+                    )
+                    .map((e) => (e.id === oldEdge.id ? newEdge : e))
                 });
                 get().setWorkflowDirty(true);
               }
@@ -1161,21 +1267,29 @@ export const createNodeStore = (
             }
             set({ workflowIsDirty: dirty });
           },
-          setWorkflowUpdatedAt: (updatedAt: string): void => {
-            set((state) => ({
-              workflow: { ...state.workflow, updated_at: updatedAt }
-            }));
+          setWorkflowUpdatedAt: (
+            updatedAt: string,
+            etag?: string | null
+          ): void => {
+            const token = { updatedAt, etag: etag ?? undefined };
+            rebaseHistoryTokens(token);
+            withoutHistory(() => {
+              set((state) => ({
+                workflow: withTokens(state.workflow, token)
+              }));
+            });
+          },
+          adoptSavedWorkflow: (workflow: WorkflowAttributes): void => {
+            rebaseHistoryTokens({
+              updatedAt: workflow.updated_at,
+              etag: workflow.etag ?? undefined
+            });
+            withoutHistory(() => {
+              set({ workflow });
+            });
           },
           applyExternalGraph: (nodes, edges, token) => {
-            // SAFETY: zundo's `temporal` middleware stamps `temporal` onto the
-            // store api at runtime, but the generic `StoreApi` this factory is
-            // typed against does not declare it. Optional so a store built
-            // without the middleware simply skips the pause.
-            const temporalApi = (
-              api as unknown as {
-                temporal?: StoreApi<TemporalState<PartializedNodeStore>>;
-              }
-            ).temporal;
+            const temporalApi = getTemporalApi();
             const current = get();
             const before: WorkflowMergeDoc = {
               nodes: current.nodes,
@@ -1218,18 +1332,11 @@ export const createNodeStore = (
                     (edge) =>
                       nodeIds.has(edge.source) && nodeIds.has(edge.target)
                   );
-                  const workflow = { ...snapshot.workflow };
-                  if (token?.etag !== undefined) {
-                    workflow.etag = token.etag;
-                  }
-                  if (token?.updatedAt !== undefined) {
-                    workflow.updated_at = token.updatedAt;
-                  }
                   return {
                     ...snapshot,
                     nodes: typedGraph.nodes,
                     edges,
-                    workflow
+                    workflow: withTokens(snapshot.workflow, token ?? {})
                   };
                 });
               };
@@ -1238,8 +1345,7 @@ export const createNodeStore = (
                 futureStates: rebaseGraphs(temporalState.futureStates)
               });
             }
-            temporalApi?.getState().pause();
-            try {
+            withoutHistory(() => {
               set({ nodes, edges });
               if (!token?.etag && !token?.updatedAt) return;
               set((state) => {
@@ -1248,9 +1354,7 @@ export const createNodeStore = (
                 if (token.updatedAt) workflow.updated_at = token.updatedAt;
                 return { workflow };
               });
-            } finally {
-              temporalApi?.getState().resume();
-            }
+            });
           },
           autoLayout: async (): Promise<void> => {
             const allNodes = get().nodes;
@@ -1666,6 +1770,9 @@ export const createNodeStore = (
       {
         limit: undo_limit,
         equality: customEquality,
+        // An undo or redo changes the graph the server holds, so it must be
+        // saved like any other edit.
+        onRestore: (state) => state.setWorkflowDirty(true),
         partialize: (state): PartializedNodeStore => {
           const { workflow, nodes, edges } = state;
           return { workflow, nodes, edges };
