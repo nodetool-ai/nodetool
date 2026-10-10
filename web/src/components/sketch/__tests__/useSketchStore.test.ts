@@ -248,7 +248,33 @@ describe("useSketchStore", () => {
       expect(layers[1].locked).toBe(false);
       expect(layers[1].exposedAsInput).toBe(true);
       expect(layers[1].exposedAsOutput).toBe(true);
-      expect(layers[1].imageReference).toBeUndefined();
+      // The source has no pixel data of its own, so the copy loads its image
+      // from the same reference.
+      expect(layers[1].imageReference).toEqual(layers[0].imageReference);
+    });
+
+    it("drops the image reference from a copy that has its own pixels", () => {
+      const firstLayerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        const doc = useSketchStore.getState().document;
+        useSketchStore.getState().setDocument({
+          ...doc,
+          layers: doc.layers.map((layer) => ({
+            ...layer,
+            data: "data:image/png;base64,EDITED",
+            imageReference: {
+              uri: "https://example.com/reference.png",
+              naturalWidth: 128,
+              naturalHeight: 128,
+              objectFit: "fill"
+            }
+          }))
+        });
+        useSketchStore.getState().duplicateLayer(firstLayerId);
+      });
+      const copy = useSketchStore.getState().document.layers[1];
+      expect(copy.data).toBe("data:image/png;base64,EDITED");
+      expect(copy.imageReference).toBeUndefined();
     });
 
     it("reorders layers", () => {

@@ -495,7 +495,9 @@ export const createDocumentSlice: StateCreator<
         locked: layer.type === "vector",
         exposedAsInput: true,
         exposedAsOutput: true,
-        imageReference: undefined
+        // A generated or placed image keeps its pixels only in the reference
+        // until it is edited, so a copy without data needs it to load.
+        imageReference: layer.data ? undefined : layer.imageReference
       };
       const idx = state.document.layers.findIndex((l) => l.id === layerId);
       const newLayers = [...state.document.layers];
