@@ -820,14 +820,20 @@ export const TableWidget: React.FC<
 export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
   props
 ) => {
-  const { value, runnerState, progress, activity, designMode } = useBinding(
-    props,
-    "read"
-  );
+  const {
+    value,
+    runnerState,
+    progress,
+    boundToRunProgress,
+    activity,
+    designMode
+  } = useBinding(props, "read");
   const isRunning = runnerState === "running";
   // A widget bound to a numeric output shows that; otherwise the run's own
-  // progress, which the runtime reports as a 0..1 fraction.
-  const bound = numOr(value, progress != null ? progress * 100 : NaN);
+  // progress, which the runtime reports as a 0..1 fraction. An `exec#progress`
+  // binding reads that same fraction, so it is scaled too.
+  const runPercent = progress != null ? progress * 100 : NaN;
+  const bound = boundToRunProgress ? runPercent : numOr(value, runPercent);
   const hasValue = Number.isFinite(bound);
   // Progress belongs to a run in flight: show it only while the run is active,
   // and let it disappear the moment the run finishes. A widget bound to a

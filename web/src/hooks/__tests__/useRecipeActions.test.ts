@@ -1,6 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import * as ReactRouterDom from "react-router-dom";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useRecipeActions } from "../useRecipeActions";
 
 const mockCreateWorkflow = jest.fn();
@@ -76,13 +77,21 @@ describe("useRecipeActions", () => {
     });
   });
 
-  it("installs a recipe's app and opens it", async () => {
+  it("installs a recipe's app into the project on screen and opens it there", async () => {
+    useWorkspaceTabsStore.setState({ activeProjectId: "project-on-screen" });
     const { result } = renderHook(() => useRecipeActions());
 
     await act(() => result.current.installApp("viral-ad-engine"));
 
-    expect(mockInstallExampleApp).toHaveBeenCalledWith("viral-ad-engine");
-    expect(mockOpenApplication).toHaveBeenCalledWith("app-1", "Viral Ad Engine");
+    expect(mockInstallExampleApp).toHaveBeenCalledWith(
+      "viral-ad-engine",
+      "project-on-screen"
+    );
+    expect(mockOpenApplication).toHaveBeenCalledWith(
+      "app-1",
+      "Viral Ad Engine",
+      "project-on-screen"
+    );
     expect(result.current.installingApp).toBeNull();
   });
 
