@@ -10,12 +10,13 @@
 
 import { CropTool } from "../tools/CropTool";
 import { stub } from "../../../test-utils/doubles";
-import { floodFill } from "../tools/FillTool";
+import { FillTool, floodFill } from "../tools/FillTool";
+import { applyLayerSourceBySelectionMask } from "../rendering/canvas2d/maskAndExport";
 import { MoveTool } from "../tools/MoveTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { Point } from "../types";
 import { createDefaultDocument } from "../types";
-import { ellipseSelectionMask } from "../selection";
+import { createEmptyMask, ellipseSelectionMask, fillRectMask } from "../selection";
 import { makeToolContext } from "./_toolContextFixture";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -159,6 +160,47 @@ describe("FillTool flood fill", () => {
       expect(imageData.data[i + 2]).toBe(255);
       expect(imageData.data[i + 3]).toBe(255);
     }
+  });
+});
+
+describe("FillTool on a layer", () => {
+  /** A 64x64 layer with a 1px opaque black square outline from 20 to 40. */
+  function outlinedLayerContext(overrides: Partial<ToolContext> = {}): {
+    ctx: ToolContext;
+    pixel: (x: number, y: number) => number[];
+  } {
+    const ctx = makeToolContext({ activeTool: "fill", foregroundColor: "#ff0000", ...overrides });
+    const layerId = ctx.doc.activeLayerId!;
+    const canvas = ctx.getOrCreateLayerCanvas(layerId);
+    const c2d = canvas.getContext("2d")!;
+    c2d.strokeStyle = "#000000";
+    c2d.lineWidth = 1;
+    c2d.strokeRect(20.5, 20.5, 20, 20);
+    ctx.runtime = stub<NonNullable<ToolContext["runtime"]>>({
+      applyLayerSourceBySelectionMask: (id: string, ox: number, oy: number, sel, src) =>
+        applyLayerSourceBySelectionMask(ctx.layerCanvasesRef.current, id, ox, oy, sel, src)
+    });
+    const pixel = (x: number, y: number): number[] =>
+      Array.from(
+        ctx.getOrCreateLayerCanvas(layerId).getContext("2d")!.getImageData(x, y, 1, 1).data
+      );
+    return { ctx, pixel };
+  }
+
+  it("fills the clicked region when a selection is active", () => {
+    const selection = createEmptyMask(64, 64);
+    fillRectMask(selection, 0, 0, 64, 64, 255);
+    const { ctx, pixel } = outlinedLayerContext({ selection });
+    new FillTool().onDown(ctx, makeToolPointerEvent({ x: 30, y: 30 }));
+    expect(pixel(30, 30)).toEqual([255, 0, 0, 255]);
+    expect(pixel(5, 5)).toEqual([0, 0, 0, 0]);
+  });
+
+  it("keeps transparent pixels transparent under Lock Transparency", () => {
+    const { ctx, pixel } = outlinedLayerContext();
+    ctx.doc.layers[0].alphaLock = true;
+    new FillTool().onDown(ctx, makeToolPointerEvent({ x: 30, y: 30 }));
+    expect(pixel(30, 30)[3]).toBe(0);
   });
 });
 
