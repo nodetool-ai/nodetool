@@ -42,9 +42,10 @@ export class GameUiController {
   /** The frame's HUD tree with the focused button and safe-area insets, for the renderer. */
   annotate<F extends { ui?: GameUiFrame }>(frame: F): F {
     if (!frame.ui || (this.focusId === undefined && this.insets === undefined)) { return frame; }
-    return { ...frame, ui: { ...frame.ui,
-      ...(this.focusId !== undefined ? { focusId: this.focusId } : {}),
-      ...(this.insets !== undefined ? { insets: this.insets } : {}) } };
+    const ui: GameUiFrame = { ...frame.ui };
+    if (this.focusId !== undefined) { ui.focusId = this.focusId; }
+    if (this.insets !== undefined) { ui.insets = this.insets; }
+    return { ...frame, ui };
   }
 
   get focusedId(): string | undefined { return this.focusId; }

@@ -171,7 +171,7 @@ describe("native game capabilities", () => {
     expect(edited.document.ui).toEqual(ui);
     expect(await agent.invoke("edit_native_game", { game_id: created.game.id,
       ops: [{ op: "set_ui", ui: { nodes: [{ kind: "text", id: "orphan", parent: "missing", text: "x" }] } }] }))
-      .toMatchObject({ error: "Invalid game ops", issues: [{ op_index: 0 }] });
+      .toMatchObject({ error: "Game edit rejected", issues: [{ op_index: 0, message: "HUD node orphan names parent missing, which is not an earlier node of this tree" }] });
     const cleared = await agent.invoke("edit_native_game", { game_id: created.game.id, ops: [{ op: "set_ui", ui: null }] }) as GameReply;
     expect(cleared.document.ui).toBeUndefined();
   });
