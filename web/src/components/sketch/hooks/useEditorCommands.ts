@@ -179,26 +179,28 @@ export function useEditorCommands({
   }, [canvasActions, addLayer]);
 
   const handleLayerViaCopy = useCallback(async () => {
-    canvasActions.handleCopy();
+    const origin = canvasActions.handleCopy();
     pushHistory("layer via copy", undefined, { timing: "before" });
     const newLayerId = addLayer();
     ensureLayerCanvasMaterialized(newLayerId);
     await canvasActions.handlePaste(true, {
       targetLayerId: newLayerId,
-      pasteAnchorDocument: null,
+      // Keep the pixels where they were on the source layer.
+      pasteAnchorDocument: origin,
       recordHistory: false
     });
   }, [canvasActions, pushHistory, addLayer, ensureLayerCanvasMaterialized]);
 
   const handleLayerViaCut = useCallback(async () => {
-    canvasActions.handleCopy();
+    const origin = canvasActions.handleCopy();
     pushHistory("layer via cut", undefined, { timing: "before" });
     canvasActions.handleClearLayer({ recordHistory: false });
     const newLayerId = addLayer();
     ensureLayerCanvasMaterialized(newLayerId);
     await canvasActions.handlePaste(true, {
       targetLayerId: newLayerId,
-      pasteAnchorDocument: null,
+      // Keep the pixels where they were on the source layer.
+      pasteAnchorDocument: origin,
       recordHistory: false
     });
   }, [canvasActions, pushHistory, addLayer, ensureLayerCanvasMaterialized]);

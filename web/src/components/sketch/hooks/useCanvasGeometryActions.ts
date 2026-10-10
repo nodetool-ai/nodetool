@@ -234,7 +234,8 @@ export interface UseCanvasGeometryActionsReturn {
   transformContextMenu: { x: number; y: number } | null;
   handleTransformContextMenu: (x: number, y: number) => void;
   handleTransformContextMenuClose: () => void;
-  handleCopy: () => void;
+  /** Copy the active layer or selection. Returns the copy's document-space top-left. */
+  handleCopy: () => Point | null;
   handleCut: () => void;
   handlePaste: (
     preferInternalClipboardFirst?: boolean,
@@ -759,21 +760,21 @@ export function useCanvasGeometryActions({
   const clipboardCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   /** Copy the selected region (or full layer) to the internal clipboard. */
-  const handleCopy = useCallback(() => {
+  const handleCopy = useCallback((): Point | null => {
     if (!canvasRef.current) {
-      return;
+      return null;
     }
     const layerId = document.activeLayerId;
     if (!layerId) {
-      return;
+      return null;
     }
     const layer = document.layers.find((l) => l.id === layerId);
     if (!layer) {
-      return;
+      return null;
     }
     const snapshot = canvasRef.current.snapshotLayerCanvas(layerId);
     if (!snapshot) {
-      return;
+      return null;
     }
 
     const sel = useSketchStore.getState().selection;
@@ -785,11 +786,21 @@ export function useCanvasGeometryActions({
       selection: sel
     });
     if (!tmp) {
-      return;
+      return null;
     }
 
     clipboardCanvasRef.current = tmp;
     writeImageCanvasToSystemClipboardPng(tmp);
+    // A selection copy starts at the selection's top-left; a whole-layer copy
+    // is the layer raster, which starts at the layer's composite offset.
+    const bounds = sel && selectionHasAnyPixels(sel) ? getSelectionBounds(sel) : null;
+    if (bounds && bounds.width > 0 && bounds.height > 0) {
+      return { x: bounds.x, y: bounds.y };
+    }
+    return getLayerGeometry(layer, snapshot, {
+      width: document.canvas.width,
+      height: document.canvas.height
+    }).compositeOffset;
   }, [
     canvasRef,
     document.activeLayerId,

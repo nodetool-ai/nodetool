@@ -10,9 +10,11 @@ import { act, renderHook } from "@testing-library/react";
 import { useCanvasGeometryActions } from "../hooks/useCanvasGeometryActions";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import { useSketchStore } from "../state/useSketchStore";
+import { makeAffineTransform } from "../types";
 
 jest.mock("../sketchClipboard", () => ({
   ...jest.requireActual("../sketchClipboard"),
+  writeImageCanvasToSystemClipboardPng: jest.fn(),
   resolveSketchPasteImageCanvas: jest.fn(async () => {
     const canvas = document.createElement("canvas");
     canvas.width = 4;
@@ -104,4 +106,40 @@ it("records paste as a new layer as one undo step", async () => {
   });
   expect(useSketchStore.getState().document.layers).toHaveLength(1);
   expect(useSketchStore.getState().canUndo()).toBe(false);
+});
+
+it("reports a moved layer's position as the origin of a whole-layer copy", () => {
+  act(() => {
+    useSketchStore.getState().resetDocument(32, 32);
+    const layerId = useSketchStore.getState().document.activeLayerId!;
+    useSketchStore.getState().setLayerTransform(layerId, makeAffineTransform({ x: 10, y: 4 }));
+  });
+  const snapshot = document.createElement("canvas");
+  snapshot.width = 32;
+  snapshot.height = 32;
+  const store = useSketchStore.getState();
+  const { result } = renderHook(() =>
+    useCanvasGeometryActions({
+      canvasRef: stub<RefObject<SketchCanvasRef | null>>({
+        current: { snapshotLayerCanvas: jest.fn(() => snapshot) }
+      }),
+      document: store.document,
+      pushHistory: store.pushHistory,
+      updateLayerData: store.updateLayerData,
+      setZoom: store.setZoom,
+      setPan: store.setPan,
+      resizeCanvas: store.resizeCanvas,
+      offsetAllPaintLayersTransform: store.offsetAllPaintLayersTransform,
+      commitPixelLayerChange: jest.fn(),
+      syncPixelLayerFromCanvas: jest.fn(),
+      reconcileAllLayerTransforms: jest.fn(),
+      syncSketchOutputsNow: jest.fn()
+    })
+  );
+
+  let origin: ReturnType<typeof result.current.handleCopy> = null;
+  act(() => {
+    origin = result.current.handleCopy();
+  });
+  expect(origin).toEqual({ x: 10, y: 4 });
 });

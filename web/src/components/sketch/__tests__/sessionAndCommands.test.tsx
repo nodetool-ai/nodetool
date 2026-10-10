@@ -398,7 +398,7 @@ describe("useEditorCommands", () => {
         handleExportPng: jest.fn(),
         handleClearLayer: jest.fn(),
         handleFillLayerWithColor: jest.fn(),
-        handleCopy: jest.fn(),
+        handleCopy: jest.fn(() => ({ x: 5, y: 7 })),
         handleCut: jest.fn(),
         handlePaste: jest.fn(async () => undefined),
         handleNudgeLayer: jest.fn(),
@@ -451,7 +451,7 @@ describe("useEditorCommands", () => {
     expect(document.layers).toHaveLength(2);
     expect(params.canvasActions.handlePaste).toHaveBeenCalledWith(true, {
       targetLayerId: document.activeLayerId,
-      pasteAnchorDocument: null,
+      pasteAnchorDocument: { x: 5, y: 7 },
       recordHistory: false
     });
     expect(history.map((entry) => entry.action)).toEqual(["layer via copy"]);
@@ -473,7 +473,7 @@ describe("useEditorCommands", () => {
     expect(params.canvasActions.handleClearLayer).toHaveBeenCalledWith({ recordHistory: false });
     expect(params.canvasActions.handlePaste).toHaveBeenCalledWith(true, {
       targetLayerId: document.activeLayerId,
-      pasteAnchorDocument: null,
+      pasteAnchorDocument: { x: 5, y: 7 },
       recordHistory: false
     });
     expect(history.map((entry) => entry.action)).toEqual(["layer via cut"]);
