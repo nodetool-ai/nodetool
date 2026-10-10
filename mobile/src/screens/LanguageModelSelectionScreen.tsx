@@ -60,8 +60,8 @@ const ProviderRow = React.memo(function ProviderRow({
       >
         {provider}
       </Text>
-      <View style={[styles.itemChevron, { backgroundColor: colors.primaryLight }]}>
-        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+      <View style={styles.itemChevron}>
+        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
       </View>
     </TouchableOpacity>
   );
@@ -140,7 +140,7 @@ export default function LanguageModelSelectionScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: step === 1 ? 'Select Provider' : selectedProvider || 'Select Model',
+      title: step === 1 ? 'Select provider' : selectedProvider || 'Select model',
       headerLeft: step === 2 ? () => (
         <TouchableOpacity
           onPress={() => { setStep(1); setSearchQuery(''); }}

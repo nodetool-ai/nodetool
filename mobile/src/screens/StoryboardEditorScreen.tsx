@@ -571,7 +571,7 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
   }, [runSave]);
 
   const openChat = useCallback(() => {
-    navigation.navigate('Chat');
+    navigation.navigate('Main', { screen: 'Chat' });
   }, [navigation]);
 
   // The header lays the title out at its natural width and never shrinks it, so

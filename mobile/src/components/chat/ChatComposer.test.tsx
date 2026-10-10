@@ -12,6 +12,7 @@ import {
 } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
@@ -100,6 +101,17 @@ describe('ChatComposer', () => {
 
       const container = screen.getByTestId('composer-container');
       expect(StyleSheet.flatten(container.props.style).paddingBottom).toBe(34 + 8);
+    });
+
+    it('leaves the safe-area inset to the tab bar when it sits above one', () => {
+      render(
+        <BottomTabBarHeightContext.Provider value={83}>
+          <ChatComposer status="connected" onSendMessage={mockOnSendMessage} />
+        </BottomTabBarHeightContext.Provider>
+      );
+
+      const container = screen.getByTestId('composer-container');
+      expect(StyleSheet.flatten(container.props.style).paddingBottom).toBe(8);
     });
 
     it('renders input field', () => {
