@@ -518,6 +518,26 @@ describe("planWorkflow while the document changes", () => {
 
   // F11: a refusal on one step used to stay on the hook and show above a
   // valid plan after the creator moved on.
+  // The plan is on screen once the stage moves to review, so a refused save
+  // has to say so there. It used to read as "the brief changed", and the
+  // shell dropped even that because the stage had moved.
+  it("says when the plan it wrote could not be saved", async () => {
+    settings = writeWorkflowSetup({}, { stage: "category", brief: "b" });
+    rpcRequest.mockResolvedValueOnce(ANSWER);
+    saveWorkflow.mockRejectedValueOnce(new Error("Conflict"));
+    const { result, rerender } = renderHook(() => usePlanWorkflow("w1"));
+    let reason: string | null = null;
+    await act(async () => {
+      reason = await result.current.planWorkflow({ brief: "b", model: MODEL });
+    });
+    rerender();
+    expect(reason).toContain("Conflict");
+    expect(reason).not.toBe(PLAN_SET_ASIDE_REASON);
+    expect(readWorkflowSetup(settings)?.stage).toBe("review");
+    expect(result.current.error).toContain("could not be saved");
+    expect(result.current.planningStatus).toBe("error");
+  });
+
   it("clears a refusal once the stage changes", async () => {
     settings = writeWorkflowSetup({}, { stage: "review", brief: "b" });
     rpcRequest.mockRejectedValueOnce(new Error("provider is down"));

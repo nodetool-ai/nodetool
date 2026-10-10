@@ -1721,6 +1721,29 @@ describe("NewProjectSurface", () => {
     );
   });
 
+  // The flow's last button goes with the flow, so focus would drop to the
+  // page. It moves to the one control that retries the hand-off.
+  it("puts focus on the retry when the finished document's project did not open", async () => {
+    const user = userEvent.setup();
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "other-project" });
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await screen.findByTestId("setup-flow");
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
+
+    openProject.mockResolvedValueOnce(false);
+    managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
+    await user.click(screen.getByRole("button", { name: "Copy the example" }));
+
+    const retry = await screen.findByRole("button", {
+      name: "Open your workflow"
+    });
+    await waitFor(() => expect(retry).toHaveFocus());
+  });
+
   // Every error surface carries a Report control (components/AGENTS.md).
   it("lets the creator report a hand-off whose project did not open", async () => {
     const user = userEvent.setup();

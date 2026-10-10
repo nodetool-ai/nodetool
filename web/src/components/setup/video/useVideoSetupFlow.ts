@@ -416,6 +416,19 @@ export const useVideoSetupFlow = ({
 
   const reviewBlocker = productionGenerationBlocker(beats ?? [], false);
 
+  // The review's Re-plan is the same paid run as the format step's button,
+  // so it carries the same model, price and wait beside it.
+  const replanGeneration = useMemo(
+    () => ({
+      result: draftResult,
+      next: "Your edited plan guides the new beats, which replace these.",
+      model: director.model ? toLanguageModelValue(director.model) : null,
+      brief: plannedBrief,
+      maxOutputTokens: 8192
+    }),
+    [director.model, draftResult, plannedBrief]
+  );
+
   const emptyBeats = (beats ?? []).filter(
     (beat) => beat.prompt.trim().length === 0 || !(beat.duration_ms > 0)
   ).length;
@@ -459,8 +472,12 @@ export const useVideoSetupFlow = ({
           : hasPlan
             ? "Re-plan the beats"
             : "Plan the beats",
+        // A reopened draft carries the model it last used, which the
+        // providers may have dropped since, so the plan waits for the list.
         canAdvance:
-          videoFormatById(formatId) !== null && director.model !== null,
+          videoFormatById(formatId) !== null &&
+          director.model !== null &&
+          !director.loading,
         blockedReason:
           videoFormatById(formatId) === null
             ? "Pick a video template"
@@ -490,6 +507,9 @@ export const useVideoSetupFlow = ({
           createElement(DirectorModelPicker, { readOnly: context.readOnly }),
         pending: planning,
         pendingLabel: "Planning the beats",
+        // The wait can be the agent's plan, which no button of this step
+        // started, so Cancel stops whichever run holds the sequence.
+        onCancel: cancelPlan,
         render: () => createElement(FormatStep),
         // The Director runs here and writes text only — no clip, no job (D4,
         // criterion 3). A refused run leaves the creator on the format step
@@ -521,7 +541,8 @@ export const useVideoSetupFlow = ({
             onReplan: replan,
             replanPending: planning,
             error: reviewPlanError,
-            onValidationChange: setReviewError
+            onValidationChange: setReviewError,
+            generation: replanGeneration
           }),
         onAdvance: () => {
           setSetup({ production_review_fingerprint: reviewKey });
@@ -531,8 +552,12 @@ export const useVideoSetupFlow = ({
         stage: "look",
         label: "Look",
         primaryLabel: "Generate your video",
-        canAdvance: !productionBlocker && look.canAdvance,
-        blockedReason: productionBlocker ?? look.blockedReason,
+        // The agent can re-plan while Look is up. Generate would render
+        // beats that are about to be replaced.
+        canAdvance: !productionBlocker && !planning && look.canAdvance,
+        blockedReason:
+          productionBlocker ??
+          (planning ? "The beats are being planned" : look.blockedReason),
         primaryDetail: look.primaryDetail,
         // The placeholders are written before the first await, so a Cancel
         // could never leave the draft unchanged.
@@ -609,6 +634,7 @@ export const useVideoSetupFlow = ({
       reviewKey,
       reviewError,
       reviewPlanError,
+      replanGeneration,
       setSetup,
       replan,
       runPlan,

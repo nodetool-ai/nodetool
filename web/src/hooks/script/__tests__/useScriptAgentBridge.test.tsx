@@ -82,3 +82,66 @@ describe("a canceled agent write", () => {
     expect(flow.result.current.error).toBeNull();
   });
 });
+
+describe("agent edits during a write", () => {
+  // The write replaces the cast and the lines when it lands. An edit the
+  // agent made meanwhile was reported as done and then thrown away.
+  it("refuses line and cast edits until the write lands", async () => {
+    useScriptStore.getState().setSetup(SCRIPT, {
+      stage: "review",
+      brief: "A short explainer",
+      format: "voiceover"
+    });
+    useScriptStore.getState().applyWrittenScript(SCRIPT, {
+      cast: [{ id: "spk_1", name: "Narrator" }],
+      sections: [
+        {
+          id: "sec_1",
+          title: "Open",
+          lines: [{ id: "line_1", speakerId: "spk_1", text: "First words." }]
+        }
+      ]
+    });
+    useGlobalChatStore.setState({
+      selectedModel: {
+        type: "language_model",
+        id: "claude-sonnet-5",
+        provider: "anthropic"
+      }
+    } as never);
+    let finish: (value: unknown) => void = () => undefined;
+    rpcRequest.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    renderHook(() => useScriptAgentBridge(SCRIPT));
+    // The flow's Rewrite, running while the agent edits.
+    const flow = renderHook(() => useWriteScript(SCRIPT));
+    let written: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      written = flow.result.current.write(SCRIPT, { rewrite: true });
+    });
+
+    const handler = getScriptAgentHandler(SCRIPT);
+    const refusal = /being written/;
+    expect(() => handler.setLineText("line_1", "Edited.")).toThrow(refusal);
+    expect(() => handler.setLineSpeaker("line_1", null)).toThrow(refusal);
+    expect(() => handler.addLine({ text: "More." })).toThrow(refusal);
+    expect(() => handler.addSpeaker("Guest")).toThrow(refusal);
+    expect(() =>
+      handler.setSpeakerVoice("spk_1", {
+        provider: "openai",
+        model: "tts-1",
+        voice: "alloy"
+      })
+    ).toThrow(refusal);
+
+    await act(async () => {
+      finish({ data: {} });
+      await written;
+    });
+    expect(handler.setLineText("0", "Edited.").text).toBe("Edited.");
+  });
+});

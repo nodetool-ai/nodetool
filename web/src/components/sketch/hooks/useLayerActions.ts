@@ -9,7 +9,7 @@ import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { BlendMode, PushHistoryOptions, SketchDocument } from "../types";
 import { findLayerMoveTargetIndex, findMergeDownTargetIndex } from "../types";
-import { useSketchStore } from "../state";
+import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import { getMergeSelectedLayersPlan } from "../layerMergeSelection";
 
 interface UseLayerActionsParams {
@@ -103,6 +103,10 @@ export function useLayerActions({
   ungroupLayer,
   groupLayers
 }: UseLayerActionsParams): UseLayerActionsReturn {
+  // This editor's own store. Agent tools address a tab by id, and a paste or
+  // an asset drop can settle after a tab switch, so the focused editor that
+  // `useSketchStore.getState()` resolves to may be another document.
+  const { editor } = useSketchInstance();
   const handleAddLayer = useCallback(
     (options?: HandleAddLayerOptions) => {
       const fillColor = options?.fillColor;
@@ -142,7 +146,7 @@ export function useLayerActions({
       // clears `selectedLayerIds` per call, so we snapshot the selection
       // up front and re-select the newly created layers afterwards so
       // the user can keep operating on the duplicates as a group.
-      const { selectedLayerIds } = useSketchStore.getState();
+      const { selectedLayerIds } = editor.getState();
       const isMultiTarget =
         selectedLayerIds.length >= 2 && selectedLayerIds.includes(layerId);
       if (!isMultiTarget) {
@@ -156,31 +160,31 @@ export function useLayerActions({
       // sources we still need to read by id (we read by id anyway, but
       // this also keeps the resulting clones in the same relative order
       // as the originals).
-      const orderedSources = useSketchStore
+      const orderedSources = editor
         .getState()
         .document.layers.filter((l) => selectedSet.has(l.id))
         .map((l) => l.id);
       const newIds: string[] = [];
       for (let i = orderedSources.length - 1; i >= 0; i -= 1) {
         const beforeIds = new Set(
-          useSketchStore.getState().document.layers.map((l) => l.id)
+          editor.getState().document.layers.map((l) => l.id)
         );
         duplicateLayer(orderedSources[i]);
-        const afterLayers = useSketchStore.getState().document.layers;
+        const afterLayers = editor.getState().document.layers;
         const created = afterLayers.find((l) => !beforeIds.has(l.id));
         if (created) {
           newIds.push(created.id);
         }
       }
       if (newIds.length >= 2) {
-        useSketchStore.setState({
+        editor.setState({
           selectedLayerIds: newIds,
           layerShiftRangeAnchorId: newIds[0]
         });
       }
       pushHistory("duplicate layers");
     },
-    [pushHistory, duplicateLayer]
+    [editor, pushHistory, duplicateLayer]
   );
 
   const scheduleDisplayRedraw = useCallback(() => {
@@ -205,7 +209,7 @@ export function useLayerActions({
    */
   const handleMoveActiveLayer = useCallback(
     (direction: "up" | "down") => {
-      const { document: doc } = useSketchStore.getState();
+      const { document: doc } = editor.getState();
       const activeId = doc.activeLayerId;
       if (!activeId) {
         return;
@@ -219,7 +223,7 @@ export function useLayerActions({
       pushHistory(direction === "up" ? "move layer up" : "move layer down");
       scheduleDisplayRedraw();
     },
-    [pushHistory, reorderLayers, scheduleDisplayRedraw]
+    [editor, pushHistory, reorderLayers, scheduleDisplayRedraw]
   );
 
   const syncLayerDataFromCanvas = useCallback(
@@ -382,7 +386,7 @@ export function useLayerActions({
       if (!canvasRef.current) {
         return null;
       }
-      const layers = useSketchStore.getState().document.layers;
+      const layers = editor.getState().document.layers;
       // Sibling-aware target: never merges into a parent group or across
       // parents, never targets a locked layer. Mirrors the panel's
       // `canMergeDown` so the disabled state and the action stay in sync.
@@ -395,7 +399,7 @@ export function useLayerActions({
       mergeLayerDownPair(upperLayerId, lower.id);
       return lower.id;
     },
-    [canvasRef, pushHistory, mergeLayerDownPair]
+    [editor, canvasRef, pushHistory, mergeLayerDownPair]
   );
 
   const handleMergeDown = useCallback(() => {
@@ -415,12 +419,12 @@ export function useLayerActions({
     pushHistory("flatten visible", undefined, { timing: "before" });
     const flatData = canvasRef.current.flattenVisible();
     flattenVisible();
-    const newState = useSketchStore.getState();
+    const newState = editor.getState();
     if (newState.document.layers.length > 0 && flatData) {
       updateLayerData(newState.document.layers[0].id, flatData);
       canvasRef.current.setLayerData(newState.document.layers[0].id, flatData);
     }
-  }, [pushHistory, flattenVisible, updateLayerData, canvasRef]);
+  }, [editor, pushHistory, flattenVisible, updateLayerData, canvasRef]);
 
   const handleAddGroup = useCallback(
     (name?: string) => {
@@ -455,16 +459,16 @@ export function useLayerActions({
   );
 
   const handleGroupSelectedLayers = useCallback(() => {
-    const ids = useSketchStore.getState().selectedLayerIds;
+    const ids = editor.getState().selectedLayerIds;
     if (ids.length < 2) {
       return;
     }
     groupLayers(ids);
     pushHistory("group layers");
-  }, [pushHistory, groupLayers]);
+  }, [editor, pushHistory, groupLayers]);
 
   const handleDeleteSelectedLayers = useCallback(() => {
-    const ids = [...useSketchStore.getState().selectedLayerIds];
+    const ids = [...editor.getState().selectedLayerIds];
     if (ids.length < 2) {
       return;
     }
@@ -498,14 +502,14 @@ export function useLayerActions({
       removeLayer(id);
     }
     pushHistory("remove layers");
-  }, [document.layers, pushHistory, removeLayer]);
+  }, [editor, document.layers, pushHistory, removeLayer]);
 
   const handleMergeSelectedLayers = useCallback(() => {
     if (!canvasRef.current) {
       return;
     }
 
-    const selectedLayerIds = useSketchStore.getState().selectedLayerIds;
+    const selectedLayerIds = editor.getState().selectedLayerIds;
     const plan = getMergeSelectedLayersPlan(document.layers, selectedLayerIds);
     if (!plan) {
       return;
@@ -516,7 +520,7 @@ export function useLayerActions({
     for (const { upperLayerId, lowerLayerId } of plan.mergePairs) {
       mergeLayerDownPair(upperLayerId, lowerLayerId);
     }
-  }, [canvasRef, document.layers, mergeLayerDownPair, pushHistory]);
+  }, [editor, canvasRef, document.layers, mergeLayerDownPair, pushHistory]);
 
   return {
     handleAddLayer,

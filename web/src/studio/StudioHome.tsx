@@ -13,13 +13,14 @@
  * here asks for a model.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import TheatersRoundedIcon from "@mui/icons-material/TheatersRounded";
 import RecordVoiceOverRoundedIcon from "@mui/icons-material/RecordVoiceOverRounded";
 import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
 import {
+  AlertBanner,
   BORDER_RADIUS,
   EditorButton,
   FlexColumn,
@@ -27,13 +28,21 @@ import {
   SPACING,
   Text
 } from "../components/ui_primitives";
-import { OptionCardGrid } from "../components/setup/OptionCardGrid";
-import { STUDIO_ENTRY_CARDS } from "../components/setup/entryCards";
+import {
+  OptionCardGrid,
+  type OptionCardItem
+} from "../components/setup/OptionCardGrid";
+import {
+  STUDIO_ENTRY_CARDS,
+  type EntryFlowId
+} from "../components/setup/entryCards";
+import ReportBugButton from "../components/support/ReportBugButton";
 import { newStoryboardSetupDocument } from "../components/setup/storyboard/useStoryboardSetupFlow";
 import { useCreateStoryboard } from "../hooks/storyboard/useStoryboards";
 import { useCreateScript } from "../hooks/script/useScripts";
 import {
   useCreateTimeline,
+  useDeleteTimeline,
   useSeedTimelineDetail
 } from "../hooks/useTimelineSequence";
 import { newScriptSetupDocument } from "../components/setup/script/useScriptSetupFlow";
@@ -144,94 +153,112 @@ const StudioHome = () => {
   const createStoryboard = useCreateStoryboard();
   const createScript = useCreateScript();
   const createTimeline = useCreateTimeline();
+  const deleteTimeline = useDeleteTimeline();
   const seedTimelineDetail = useSeedTimelineDetail();
   const [creating, setCreating] = useState<StudioDocumentKind | null>(null);
 
   const { projects } = useStudioProjects();
 
-  // One creation at a time: the blank starts disable while either runs, and
-  // the handlers guard on a ref as well so a double-activation can't create
-  // two projects or race the navigation.
+  // One creation at a time: the blank starts and the cards hold while one
+  // runs, and the handlers guard on a ref as well so a double-activation can't
+  // create two projects or race the navigation.
   const creatingRef = useRef(false);
+  // The entry card being created, which says so while the others hold.
+  const [pendingCard, setPendingCard] = useState<EntryFlowId | null>(null);
+  // Studio mounts no toast host, so a failed create is said on the page.
+  const [startError, setStartError] = useState<string | null>(null);
+
+  /** Runs one create, opens the route it resolves to, and reports a failure. */
+  const runCreate = useCallback(
+    (
+      kind: StudioDocumentKind,
+      card: EntryFlowId | null,
+      create: () => Promise<string>
+    ) => {
+      if (creatingRef.current) return;
+      creatingRef.current = true;
+      setCreating(kind);
+      setPendingCard(card);
+      setStartError(null);
+      create()
+        .then((route) => navigate(route))
+        .catch((error: unknown) => {
+          setStartError(error instanceof Error ? error.message : String(error));
+        })
+        .finally(() => {
+          creatingRef.current = false;
+          setCreating(null);
+          setPendingCard(null);
+        });
+    },
+    [navigate]
+  );
+
   const startStoryboard = useCallback(() => {
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    setCreating("storyboard");
-    createStoryboard
-      .mutateAsync({ name: "Untitled storyboard", projectId: creationProjectId() })
-      .then((created) => navigate(`/studio/storyboard/${created.id}`))
-      .finally(() => {
-        creatingRef.current = false;
-        setCreating(null);
+    runCreate("storyboard", null, async () => {
+      const created = await createStoryboard.mutateAsync({
+        name: "Untitled storyboard",
+        projectId: creationProjectId()
       });
-  }, [createStoryboard, navigate]);
+      return `/studio/storyboard/${created.id}`;
+    });
+  }, [createStoryboard, runCreate]);
 
   // The Storyboard entry card: a board at stage `idea`, opened straight away.
   // The board page renders the flow from that stage and stamps the curated
   // Studio models, so there is no model picker here (D24).
   const startStoryboardFlow = useCallback(() => {
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    setCreating("storyboard");
-    createStoryboard
-      .mutateAsync({
+    runCreate("storyboard", "storyboard", async () => {
+      const created = await createStoryboard.mutateAsync({
         name: "Untitled storyboard",
         projectId: creationProjectId(),
         document: newStoryboardSetupDocument("")
-      })
-      .then((created) => navigate(`/studio/storyboard/${created.id}`))
-      .finally(() => {
-        creatingRef.current = false;
-        setCreating(null);
       });
-  }, [createStoryboard, navigate]);
-
+      return `/studio/storyboard/${created.id}`;
+    });
+  }, [createStoryboard, runCreate]);
 
   // The Script entry card: a script at stage `idea`. The script page renders
   // the flow from that stage, same as the board does.
   const startScriptFlow = useCallback(() => {
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    setCreating("script");
-    createScript
-      .mutateAsync({
+    runCreate("script", "script", async () => {
+      const created = await createScript.mutateAsync({
         name: "Untitled script",
         projectId: creationProjectId(),
         document: newScriptSetupDocument("")
-      })
-      .then((created) => navigate(`/studio/script/${created.id}`))
-      .finally(() => {
-        creatingRef.current = false;
-        setCreating(null);
       });
-  }, [createScript, navigate]);
+      return `/studio/script/${created.id}`;
+    });
+  }, [createScript, runCreate]);
 
   // The Video card. `timeline.create` takes no document, so the setup lands as
   // one PATCH straight after the create.
   const startVideoFlow = useCallback(() => {
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    setCreating("timeline");
-    createTimeline
-      .mutateAsync({
+    runCreate("timeline", "video", async () => {
+      const created = await createTimeline.mutateAsync({
         name: "Untitled video",
         projectId: creationProjectId()
-      })
-      .then(async (created) => {
-        const withSetup = await trpcClient.timeline.update.mutate({
+      });
+      let withSetup;
+      try {
+        withSetup = await trpcClient.timeline.update.mutate({
           id: created.id,
           document: newVideoSetupDocument("")
         });
-        // The create seeded the detail cache with a setup-less sequence; the
-        // timeline page must not load that copy (see `useSeedTimelineDetail`).
-        seedTimelineDetail(withSetup);
-        navigate(`/studio/timeline/${created.id}`);
-      })
-      .finally(() => {
-        creatingRef.current = false;
-        setCreating(null);
-      });
-  }, [createTimeline, navigate, seedTimelineDetail]);
+      } catch (error) {
+        // A sequence with no setup opens as an empty editor, so it is not
+        // left behind in the project list (F15).
+        await deleteTimeline
+          .mutateAsync({ id: created.id })
+          .catch(() => undefined);
+        throw error;
+      }
+      // The create seeded the detail cache with a setup-less sequence; the
+      // timeline page must not load that copy (see `useSeedTimelineDetail`).
+      seedTimelineDetail(withSetup);
+      return `/studio/timeline/${created.id}`;
+    });
+  }, [createTimeline, deleteTimeline, runCreate, seedTimelineDetail]);
 
   const handleEntryCard = useCallback(
     (id: string) => {
@@ -246,18 +273,36 @@ const StudioHome = () => {
     [startScriptFlow, startStoryboardFlow, startVideoFlow]
   );
 
+  const entryOptions = useMemo<readonly OptionCardItem[]>(
+    () =>
+      creating === null
+        ? STUDIO_ENTRY_CARDS
+        : STUDIO_ENTRY_CARDS.map((card) =>
+            card.id === pendingCard
+              ? {
+                  ...card,
+                  meta: "Creating…",
+                  disabled: true,
+                  disabledReason: "Creating your draft…"
+                }
+              : {
+                  ...card,
+                  disabled: true,
+                  disabledReason: "Another start is in progress."
+                }
+          ),
+    [creating, pendingCard]
+  );
+
   const startScript = useCallback(() => {
-    if (creatingRef.current) return;
-    creatingRef.current = true;
-    setCreating("script");
-    createScript
-      .mutateAsync({ name: "Untitled script", projectId: creationProjectId() })
-      .then((created) => navigate(`/studio/script/${created.id}`))
-      .finally(() => {
-        creatingRef.current = false;
-        setCreating(null);
+    runCreate("script", null, async () => {
+      const created = await createScript.mutateAsync({
+        name: "Untitled script",
+        projectId: creationProjectId()
       });
-  }, [createScript, navigate]);
+      return `/studio/script/${created.id}`;
+    });
+  }, [createScript, runCreate]);
 
   const openDocument = useCallback(
     (document: StudioDocument) => navigate(documentRoute(document)),
@@ -282,9 +327,29 @@ const StudioHome = () => {
         </FlexColumn>
 
         <FlexColumn gap={SPACING.md} sx={{ width: "100%", maxWidth: 720 }}>
+          {startError ? (
+            <AlertBanner
+              severity="error"
+              title="We couldn't start it"
+              action={
+                <ReportBugButton
+                  label="Report this failure"
+                  variant="outlined"
+                  size="small"
+                  context={{
+                    source: "manual",
+                    summary: "Studio could not create a document",
+                    errorText: startError
+                  }}
+                />
+              }
+            >
+              {startError}
+            </AlertBanner>
+          ) : null}
           <OptionCardGrid
             label="What are you making?"
-            options={STUDIO_ENTRY_CARDS}
+            options={entryOptions}
             onSelect={handleEntryCard}
             minColumnWidth={200}
           />

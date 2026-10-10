@@ -25,6 +25,7 @@ const write = jest.fn(async () => true);
 // `write` resolves. `errorRef` is set before it resolves. The mock keeps the
 // two apart so a test can model that order.
 let writeError: string | null = null;
+let writing = false;
 const writeErrorRef: { current: string | null } = { current: null };
 const clearError = jest.fn(() => {
   writeError = null;
@@ -33,7 +34,10 @@ const clearError = jest.fn(() => {
 jest.mock("../../../../hooks/script/useWriteScript", () => ({
   useWriteScript: () => ({
     write,
-    writing: false,
+    get writing() {
+      return writing;
+    },
+    cancel: jest.fn(),
     get error() {
       return writeError;
     },
@@ -41,6 +45,17 @@ jest.mock("../../../../hooks/script/useWriteScript", () => ({
     clearError
   })
 }));
+
+// A run the agent or another tab is voicing, which a test can switch on.
+let voicingLive = false;
+jest.mock("../../../../stores/script/scriptVoicing", () => {
+  const actual = jest.requireActual("../../../../stores/script/scriptVoicing");
+  return {
+    ...actual,
+    isVoicingLive: () => voicingLive,
+    useVoicingLive: () => voicingLive
+  };
+});
 
 // Pass-through, so a test can read what the estimate priced.
 jest.mock("../../generationEstimate", () => {
@@ -72,7 +87,8 @@ import {
   importedFromFdx,
   importedFromFile,
   readScriptSource,
-  scriptSourcePatch
+  scriptSourcePatch,
+  scriptSourceSignature
 } from "../../../../lib/script/importedScript";
 import { readScriptSetupContext } from "../scriptSetupContext";
 import {
@@ -161,6 +177,8 @@ beforeEach(() => {
   write.mockResolvedValue(true);
   writeError = null;
   writeErrorRef.current = null;
+  writing = false;
+  voicingLive = false;
   voiceAll.mockClear();
   useScriptStore.setState({ scripts: {}, history: {} } as never);
   useScriptStore.getState().ensureScript(SCRIPT_ID);
@@ -457,6 +475,60 @@ describe("useScriptSetupFlow", () => {
     expect(screen.getByRole("button", { name: "Rewrite" })).toBeEnabled();
   });
 
+  it("keeps a prepared Final Draft import when only inputs it never reads move", () => {
+    seedWrittenScript();
+    useScriptStore.getState().setSetup(
+      SCRIPT_ID,
+      scriptSourcePatch(
+        importedFromFdx({
+          shots: [{ dialogue: "NARRATOR\nA tide clock has one hand." }]
+        } as never)
+      )
+    );
+    markWritten();
+    // The brief, the length and the model never reach an attributed import.
+    useScriptStore.getState().setSetup(SCRIPT_ID, {
+      stage: "format",
+      brief: "Make it calmer",
+      length_seconds: 120,
+      writer_model: { id: "gpt-5", provider: "openai" }
+    });
+    renderFlow();
+
+    expect(
+      screen.getByRole("button", { name: "Continue to review" })
+    ).toBeEnabled();
+    expect(screen.queryByText(/replacing edits/)).not.toBeInTheDocument();
+  });
+
+  it("still reads a Final Draft import written under the older signature as current", () => {
+    seedWrittenScript();
+    const source = importedFromFdx({
+      shots: [{ dialogue: "NARRATOR\nA tide clock has one hand." }]
+    } as never);
+    useScriptStore.getState().setSetup(SCRIPT_ID, scriptSourcePatch(source));
+    const setup = setupOf();
+    useScriptStore.getState().setSetup(SCRIPT_ID, {
+      stage: "format",
+      ...writerSignaturePatch(
+        [
+          setup?.brief ?? "",
+          setup?.format ?? "",
+          String(setup?.length_seconds ?? ""),
+          "",
+          "",
+          setup?.writer_model?.id ?? "",
+          scriptSourceSignature(readScriptSource(setup)) ?? ""
+        ].join("\u0001")
+      )
+    });
+    renderFlow();
+
+    expect(
+      screen.getByRole("button", { name: "Continue to review" })
+    ).toBeEnabled();
+  });
+
   it("writes an attributed import with no writer model picked (F16)", () => {
     const store = useScriptStore.getState();
     store.setSetup(SCRIPT_ID, {
@@ -523,6 +595,34 @@ describe("useScriptSetupFlow", () => {
     const run = readVoicingRun(setupOf());
     expect(run?.status).toBe("queued");
     expect(run?.total).toBe(1);
+  });
+
+  it("holds the last step while the script is already being voiced", () => {
+    seedWrittenScript();
+    useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "voices" });
+    const before = setupOf();
+    voicingLive = true;
+    renderFlow();
+
+    expect(
+      screen.getByRole("button", { name: "Voice your script" })
+    ).toBeDisabled();
+    expect(
+      screen.getByText("This script is already being voiced")
+    ).toBeInTheDocument();
+    expect(voiceAll).not.toHaveBeenCalled();
+    expect(setupOf()).toEqual(before);
+  });
+
+  it("holds the voices step, with Cancel, while the agent writes the script", () => {
+    seedWrittenScript();
+    useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "voices" });
+    writing = true;
+    renderFlow();
+
+    expect(screen.getByText("Writing your script")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
+    expect(voiceAll).not.toHaveBeenCalled();
   });
 
   it("shows a refused Rewrite on the review (F6)", () => {

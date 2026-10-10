@@ -12,6 +12,7 @@ import {
 import type { ImageModelValue } from "../../../stores/ApiTypes";
 import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import ImageModelSelect from "../../properties/ImageModelSelect";
+import ReportBugButton from "../../support/ReportBugButton";
 import {
   AlertBanner,
   BORDER_RADIUS,
@@ -334,7 +335,22 @@ const GenerateReferenceDialog = ({
             onChange={handleModelChange}
           />
         </FormField>
-        {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}
+        {error ? (
+          <AlertBanner
+            severity="error"
+            action={
+              <ReportBugButton
+                context={{
+                  source: "provider-call",
+                  summary: "Entity reference image failed to generate",
+                  errorText: error
+                }}
+              />
+            }
+          >
+            {error}
+          </AlertBanner>
+        ) : null}
         {generating ? (
           <FlexRow gap={GAP.tight} align="center">
             <LoadingSpinner inline size="small" />

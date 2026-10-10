@@ -297,5 +297,23 @@ describe("video IdeaStep", () => {
       await screen.findByText("broken.png did not upload: Upload rejected")
     ).toBeInTheDocument();
     expect(screen.getByText(/Placed 1 file on the timeline/)).toBeInTheDocument();
+    // A failed upload reaches the bug-report dialog (V4).
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
+  });
+
+  it("offers Report when the import failed, not for a drop hint (V4)", async () => {
+    importFiles.mockRejectedValue(new Error("Storage is full"));
+    const { container } = renderStep();
+    drop(container.firstElementChild as HTMLElement, [
+      new File(["x"], "notes.pdf", { type: "application/pdf" })
+    ]);
+    expect(await screen.findByText(/No track takes notes.pdf/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Report" })).toBeNull();
+
+    await userEvent.upload(screen.getByLabelText("Drop your media"), [
+      new File(["x"], "kerb.png", { type: "image/png" })
+    ]);
+    expect(await screen.findByText("Storage is full")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
   });
 });

@@ -142,6 +142,9 @@ export function SetupFlow<Stage extends string>({
     setError(null);
     setChangeFlowError(null);
     setCanceledStage(null);
+    // "Change flow?" promises a draft with nothing generated. A stage moved
+    // on by the agent or another host may now hold a paid plan.
+    setConfirmingChange(false);
   }
   const blockedReasonId = useId();
   // A phone cannot fit the controls, the estimate and the buttons on one
@@ -155,6 +158,8 @@ export function SetupFlow<Stage extends string>({
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const primaryRef = useRef<HTMLButtonElement | null>(null);
   const changeFlowRef = useRef<HTMLButtonElement | null>(null);
+  const errorRef = useRef<HTMLDivElement | null>(null);
+  const changeFlowErrorRef = useRef<HTMLDivElement | null>(null);
 
   // A model call outlives the stage that asked for it. The stage plus a
   // counter that moves on every stage change is the token an in-flight action
@@ -282,6 +287,30 @@ export function SetupFlow<Stage extends string>({
   // paid Retry of the old choice first.
   const backToStep = canceled && step?.canceled !== true;
   const locked = pending || changingFlow;
+  // The question stays answerable only while Change flow itself is live. A
+  // run, an import or the agent can take that away while it is open.
+  const changeFlowAvailable =
+    onChangeFlow !== undefined &&
+    currentIndex === 0 &&
+    !readOnly &&
+    !locked &&
+    step?.holdNavigation !== true;
+  if (confirmingChange && !changeFlowAvailable) {
+    setConfirmingChange(false);
+  }
+
+  // A failure is reported at the top of the scrolled body, and the button
+  // that failed is in the footer, so the banner is brought into view.
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [error]);
+  useEffect(() => {
+    if (changeFlowError) {
+      changeFlowErrorRef.current?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [changeFlowError]);
 
   useEffect(() => {
     const saved = returnFocusRef.current;
@@ -658,6 +687,7 @@ export function SetupFlow<Stage extends string>({
             creator can pick something else right here, or try again. */}
         {changeFlowError && currentIndex === 0 ? (
           <AlertBanner
+            ref={changeFlowErrorRef}
             severity="error"
             title="We couldn't discard this draft"
             sx={{ marginBottom: SPACING.xl }}
@@ -679,6 +709,7 @@ export function SetupFlow<Stage extends string>({
         ) : null}
         {error && !canceled ? (
           <AlertBanner
+            ref={errorRef}
             severity="error"
             title="We couldn't complete this step"
             sx={{ marginBottom: SPACING.xl }}
@@ -855,7 +886,7 @@ export function SetupFlow<Stage extends string>({
       ) : null}
 
       <Dialog
-        open={confirmingChange}
+        open={confirmingChange && changeFlowAvailable}
         onClose={() => setConfirmingChange(false)}
         title="Change flow?"
         showActions

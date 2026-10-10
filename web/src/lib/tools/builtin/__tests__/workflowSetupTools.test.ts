@@ -23,6 +23,11 @@ import {
 import type { NodeMetadata } from "../../../../stores/ApiTypes";
 import "../workflowSetup";
 
+let buildLive = false;
+jest.mock("../../../../hooks/workflow/useBuildFromPlan", () => ({
+  isWorkflowBuildLive: () => buildLive
+}));
+
 const WORKFLOW = "w1";
 
 const METADATA = {
@@ -45,6 +50,8 @@ const METADATA = {
 } as unknown as Record<string, NodeMetadata>;
 
 let settings: Record<string, unknown> = {};
+/** Node ids already on the open canvas, or null when no editor is open. */
+let canvasNodeIds: string[] | null = null;
 let modelRoleAvailable = false;
 const nodeToolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
 const saveWorkflow = jest.fn(async () => {});
@@ -72,7 +79,16 @@ const state = (): FrontendToolState =>
       settings,
       graph: null
     }),
-    getNodeStore: () => undefined,
+    getNodeStore: () =>
+      canvasNodeIds === null
+        ? undefined
+        : {
+            getState: () => ({
+              getWorkflow: () => undefined,
+              findNode: (id: string) =>
+                canvasNodeIds?.includes(id) ? { id } : undefined
+            })
+          },
     updateWorkflow: (workflow: { settings: unknown }) => {
       settings = workflow.settings as Record<string, unknown>;
     },
@@ -100,6 +116,8 @@ let unregister: Array<() => boolean> = [];
 
 beforeEach(() => {
   settings = {};
+  canvasNodeIds = null;
+  buildLive = false;
   modelRoleAvailable = false;
   nodeToolCalls.length = 0;
   saveWorkflow.mockClear();
@@ -107,7 +125,9 @@ beforeEach(() => {
   unregister = [
     recordNodeTool("ui_add_node"),
     recordNodeTool("ui_update_node_data"),
-    recordNodeTool("ui_connect_nodes")
+    recordNodeTool("ui_connect_nodes"),
+    recordNodeTool("ui_delete_node"),
+    recordNodeTool("ui_delete_edge")
   ];
 });
 
@@ -471,6 +491,98 @@ describe("ui_workflow_build_from_plan", () => {
       issues: string[];
     };
     expect(result.issues.join(" ")).toContain("produces nothing");
+  });
+
+  // A typed sample reaches the run as its type, and a media input sends
+  // nothing, as the flow's own test run does.
+  it("hands back sample inputs converted to each input's type", async () => {
+    await call("ui_workflow_plan", {
+      plan: {
+        ...PLAN,
+        inputs: [
+          { name: "count", type: "number", sample: "3" },
+          { name: "photo", type: "image", sample: "" }
+        ]
+      }
+    });
+    const result = (await call("ui_workflow_build_from_plan", {})) as {
+      sample_inputs: Record<string, unknown>;
+    };
+    expect(result.sample_inputs).toEqual({ count: 3 });
+  });
+
+  // `ui_add_node` skips an id already on the canvas, so a second build would
+  // keep the first build's nodes with their old types and settings.
+  it("refuses to build over nodes already on the canvas", async () => {
+    await call("ui_workflow_plan", { plan: PLAN });
+    canvasNodeIds = ["step_1"];
+    await expect(call("ui_workflow_build_from_plan", {})).rejects.toThrow(
+      "step_1"
+    );
+    expect(nodeToolCalls).toEqual([]);
+    expect(readWorkflowSetup(settings)?.stage).toBe("review");
+  });
+
+  it("refuses while the guided flow is building the same workflow", async () => {
+    await call("ui_workflow_plan", { plan: PLAN });
+    buildLive = true;
+    await expect(call("ui_workflow_build_from_plan", {})).rejects.toThrow(
+      "building this workflow"
+    );
+    expect(nodeToolCalls).toEqual([]);
+  });
+
+  it("takes the placed nodes back off when a later call fails", async () => {
+    await call("ui_workflow_plan", { plan: PLAN });
+    let connects = 0;
+    const removeConnect = FrontendToolRegistry.register({
+      name: "ui_connect_nodes",
+      description: "ui_connect_nodes",
+      parameters: z.object({}).passthrough(),
+      async execute(args) {
+        nodeToolCalls.push({
+          name: "ui_connect_nodes",
+          args: args as Record<string, unknown>
+        });
+        connects += 1;
+        if (connects === 2) {
+          throw new Error("Handles do not match");
+        }
+        return { ok: true, edge_id: "e1" };
+      }
+    });
+    try {
+      await expect(call("ui_workflow_build_from_plan", {})).rejects.toThrow(
+        "Handles do not match"
+      );
+    } finally {
+      removeConnect();
+    }
+    const cleanup = nodeToolCalls
+      .filter((entry) => entry.name.startsWith("ui_delete_"))
+      .map((entry) => [
+        entry.name,
+        entry.args["edge_id"] ?? entry.args["node_id"]
+      ]);
+    expect(cleanup).toEqual([
+      ["ui_delete_edge", "e1"],
+      ["ui_delete_node", "output_1"],
+      ["ui_delete_node", "step_1"],
+      ["ui_delete_node", "input_1"]
+    ]);
+    expect(readWorkflowSetup(settings)?.stage).toBe("review");
+  });
+
+  it("keeps the flow off `done` when the build's save is refused", async () => {
+    await call("ui_workflow_plan", { plan: PLAN });
+    saveWorkflow.mockRejectedValueOnce(new Error("Conflict"));
+    await expect(call("ui_workflow_build_from_plan", {})).rejects.toThrow(
+      "Conflict"
+    );
+    expect(readWorkflowSetup(settings)?.stage).toBe("review");
+    expect(
+      nodeToolCalls.filter((entry) => entry.name === "ui_delete_node")
+    ).toHaveLength(3);
   });
 
   it("refuses to build before a plan exists", async () => {

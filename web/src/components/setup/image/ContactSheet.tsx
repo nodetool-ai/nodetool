@@ -33,6 +33,7 @@ import {
   Text
 } from "../../ui_primitives";
 import { GalleryExpandButton, MEDIA_GALLERY_HOST_CLASS } from "../MediaGallery";
+import ReportBugButton from "../../support/ReportBugButton";
 import { useSketchStore } from "../../sketch/state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import {
@@ -307,7 +308,18 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
       </FlexColumn>
 
       {failed > 0 && landed === 0 && pending === 0 ? (
-        <AlertBanner severity="error">
+        <AlertBanner
+          severity="error"
+          action={
+            <ReportBugButton
+              context={{
+                source: "provider-call",
+                summary: "Image variations failed to render",
+                errorText: reasons.join("\n")
+              }}
+            />
+          }
+        >
           <FlexColumn gap={GAP.tight}>
             <Text size="small">
               Nothing rendered. Try a variation again, change the model or size
@@ -326,7 +338,19 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
       ) : null}
 
       {makeMoreError ? (
-        <AlertBanner severity="error" role="alert">
+        <AlertBanner
+          severity="error"
+          role="alert"
+          action={
+            <ReportBugButton
+              context={{
+                source: "provider-call",
+                summary: "More image variations failed to start",
+                errorText: makeMoreError
+              }}
+            />
+          }
+        >
           {makeMoreError}
         </AlertBanner>
       ) : null}

@@ -391,15 +391,21 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           // script", it told a screen reader to put the script itself here.
           label={source ? "Notes for the writer" : "What the script is about"}
           hideLabel
+          // A Final Draft or subtitle file already says who reads each line
+          // and is applied with no model, so nothing reads a note about it.
           placeholder={
-            source
-              ? "Optional: say who reads what, or how to split the lines."
-              : "Describe the topic, audience and message for a new script."
+            source?.attributed
+              ? "Optional: notes to keep with the script."
+              : source
+                ? "Optional: say who reads what, or how to split the lines."
+                : "Describe the topic, audience and message for a new script."
           }
           helperText={
-            source
-              ? "Your imported words are kept as written. Anything here only guides how they are split and who reads them."
-              : "Text entered here is a writing brief and may be rewritten. Use Paste your script or Upload a file to preserve existing words."
+            source?.attributed
+              ? "Your imported words and speakers are kept as written. A note here does not change how the lines are prepared."
+              : source
+                ? "Your imported words are kept as written. Anything here only guides how they are split and who reads them."
+                : "Text entered here is a writing brief and may be rewritten. Use Paste your script or Upload a file to preserve existing words."
           }
           onChange={handleChange}
         />

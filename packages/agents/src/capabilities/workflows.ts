@@ -43,6 +43,7 @@ import {
 import {
   PLAN_CORE_NODE_TYPES,
   checkWorkflowPlan,
+  planInputSample,
   planNodeShape,
   planToPlacement,
   parseWorkflowPlan,
@@ -1468,6 +1469,18 @@ const buildWorkflowFromPlan: CapabilityExport = {
       );
       if (isError(written)) return written;
       savedRow = written;
+      // One version row per build, as the browser's build save adds. The
+      // setup answers change no graph, so they add none.
+      const { WorkflowVersion } = await import("@nodetool-ai/models");
+      await WorkflowVersion.create({
+        workflow_id: id,
+        user_id: userIdOf(run.context),
+        name: written.name,
+        description: "Built from the plan",
+        graph: written.graph,
+        version: await WorkflowVersion.nextVersion(id),
+        save_type: "manual"
+      });
     }
 
     return {
@@ -1478,12 +1491,16 @@ const buildWorkflowFromPlan: CapabilityExport = {
       saved: savedRow !== null,
       stage: save ? "done" : owned.setup?.stage ?? "setup",
       graph,
-      /** Plan input name → the sample a test run should send. */
+      /**
+       * Plan input name → the sample a test run should send, converted to the
+       * input's type. A media input, or a sample that does not convert, sends
+       * nothing.
+       */
       sample_inputs: Object.fromEntries(
-        plan.inputs.map((input: WorkflowSetupPlan["inputs"][number]) => [
-          input.name,
-          input.sample ?? ""
-        ])
+        plan.inputs.flatMap((input: WorkflowSetupPlan["inputs"][number]) => {
+          const sample = planInputSample(input);
+          return sample === undefined ? [] : [[input.name, sample]];
+        })
       ),
       /**
        * What the builder could not wire. Empty is the only value that means the

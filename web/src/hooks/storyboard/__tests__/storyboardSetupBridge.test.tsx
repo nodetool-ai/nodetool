@@ -33,8 +33,15 @@ jest.mock("../useExtractScriptFromBoard", () => ({
 jest.mock("../useReprojectShots", () => ({
   useReprojectShots: () => ({ reproject: jest.fn() })
 }));
+const mockDirect = jest.fn();
+let mockDirectError: string | null = null;
 jest.mock("../useDirectScreenplay", () => ({
-  useDirectScreenplay: () => ({ direct: jest.fn() })
+  useDirectScreenplay: () => ({
+    direct: mockDirect,
+    get errorRef() {
+      return { current: mockDirectError };
+    }
+  })
 }));
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: mockEntities })
@@ -250,5 +257,47 @@ describe("the agent bridge a setup host registers", () => {
   it("registers nothing before the host has a board id", () => {
     renderHook(() => useStoryboardAgentBridge(""));
     expect(hasStoryboardAgentHandler("")).toBe(false);
+  });
+});
+
+// The agent's run goes through the same hook as the flow's. A refusal or a
+// cancel there must reach the agent as what it was, not as a provider fault.
+describe("ui_storyboard_direct when the run does not land", () => {
+  const directable = (): void => {
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...board(),
+      directorModel: {
+        type: "language_model",
+        id: "director-1",
+        provider: "openai",
+        name: "Director"
+      }
+    });
+  };
+
+  beforeEach(() => {
+    mockDirect.mockReset();
+    mockDirect.mockResolvedValue(false);
+    mockDirectError = null;
+  });
+
+  it("passes on the hook's refusal while another run writes", async () => {
+    directable();
+    mockDirectError =
+      "The Director is already writing this storyboard. Wait for it to finish, or cancel it.";
+    renderHook(() => useStoryboardAgentBridge(BOARD));
+
+    await expect(
+      call("ui_storyboard_direct", { redirect: false })
+    ).rejects.toThrow(/already writing this storyboard/);
+  });
+
+  it("says a canceled run was canceled", async () => {
+    directable();
+    renderHook(() => useStoryboardAgentBridge(BOARD));
+
+    await expect(
+      call("ui_storyboard_direct", { redirect: false })
+    ).rejects.toThrow(/was canceled/);
   });
 });
