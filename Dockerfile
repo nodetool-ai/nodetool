@@ -90,6 +90,7 @@ ENV NODE_ENV=production \
     STATIC_FOLDER=/app/web/dist \
     ASSET_FOLDER=/workspace/assets \
     VECTORSTORE_DB_PATH=/workspace/vectorstore.db \
+    USERS_FILE=/workspace/users.json \
     HF_HOME=/workspace/hf-cache
 
 # Runtime-only OS packages. Key management is provided through
