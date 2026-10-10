@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import { gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
 import { browserGamepads, FixedTickClock, GameInput3D } from "@nodetool-ai/game-renderer";
-import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
+import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { GameReplayHistory } from "./gameReplayHistory";
 import type { ScriptFailure } from "./useGamePlaySession";
@@ -79,6 +79,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const display = useCallback((current: GameRenderFrame3D, alpha: number): void => {
     const renderer = rendererRef.current;
     if (!renderer) { return; }
+    audioRef.current?.updateSpatial(gameAudioSpatialView3D(current, alpha));
     if (displayQueueRef.current?.renderer !== renderer) { displayQueueRef.current = { renderer, busy: false, latest: null }; }
     const queue = displayQueueRef.current;
     queue.latest = { frame: current, alpha };

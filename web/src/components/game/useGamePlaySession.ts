@@ -3,7 +3,7 @@ import type { GameDocument, GameInputFrame, GameRenderFrame, GameSnapshot } from
 import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
-import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
+import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
 import { browserGamepads, FixedTickClock, GameInput, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -86,6 +86,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const width = Math.round(current.width * current.pixelsPerUnit);
     const height = Math.round(current.height * current.pixelsPerUnit);
     if (renderer.canvas.width !== width || renderer.canvas.height !== height) renderer.resize(width, height);
+    audioRef.current?.updateSpatial(gameAudioSpatialView2D(current, interpolation));
     await renderer.render(current, interpolation);
     if (renderer.capabilities.fallbackReason) {
       setBackend("Canvas 2D");
