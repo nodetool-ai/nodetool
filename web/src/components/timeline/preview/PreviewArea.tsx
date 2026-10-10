@@ -256,6 +256,54 @@ interface PreviewAreaProps {
   showFps?: boolean;
 }
 
+interface PlaybackScrubberProps {
+  max: number;
+  /** The paused position, or the drag position while scrubbing. */
+  value: number;
+  isPlaying: boolean;
+  subscribeTime: (cb: (timeMs: number) => void) => () => void;
+  step: number;
+  onChange: (event: Event, value: number | number[]) => void;
+  onChangeCommitted: (
+    event: Event | React.SyntheticEvent,
+    value: number | number[]
+  ) => void;
+}
+
+/**
+ * The scrub bar. While playing it follows the live playhead itself, so the
+ * position moves without a render of the whole preview on every frame.
+ */
+const PlaybackScrubber: React.FC<PlaybackScrubberProps> = memo(
+  ({ max, value, isPlaying, subscribeTime, step, onChange, onChangeCommitted }) => {
+    const [liveMs, setLiveMs] = useState<number | null>(null);
+    useEffect(() => {
+      if (!isPlaying) {
+        setLiveMs(null);
+        return;
+      }
+      // One step of the bar is one frame: finer updates move nothing.
+      return subscribeTime((ms) =>
+        setLiveMs(Math.round(ms / step) * step)
+      );
+    }, [isPlaying, subscribeTime, step]);
+
+    return (
+      <Slider
+        aria-label="Scrub timeline"
+        min={0}
+        max={max}
+        step={step}
+        value={Math.min(max, liveMs ?? value)}
+        onChange={onChange}
+        onChangeCommitted={onChangeCommitted}
+        density="compact"
+      />
+    );
+  }
+);
+PlaybackScrubber.displayName = "PlaybackScrubber";
+
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
   ({
     fps = 30,
@@ -1219,15 +1267,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             </Text>
           )}
           <div css={scrubberCss}>
-            <Slider
-              aria-label="Scrub timeline"
-              min={0}
+            <PlaybackScrubber
               max={scrubMax}
-              step={frameDeltaMs(fps)}
               value={scrubValue}
+              isPlaying={isPlaying}
+              subscribeTime={subscribeTime}
+              step={frameDeltaMs(fps)}
               onChange={handleScrubChange}
               onChangeCommitted={handleScrubCommit}
-              density="compact"
             />
           </div>
           {showDuration && (
