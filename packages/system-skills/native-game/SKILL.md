@@ -650,12 +650,14 @@ blends node translation, rotation and scale. It does not blend morph targets.
 
 #### Script time limits
 
-`maxTickMs` counts the CPU time of the thread running the script, from the
-moment its source starts evaluating until its output is checked. Time spent
-waiting for a processor does not count. A call ends only when both its CPU
-time and its wall time reach the limit, so coarse CPU accounting cannot end it
-early. Linux can report a thread's CPU time up to one scheduler tick late.
-Browsers have no thread CPU clock, so there the limit counts wall time. The
+`maxTickMs` counts the CPU time of the thread running the script. The count
+starts just before the call, or before the source is evaluated when the call
+must compile it, and ends when its output is checked. A resident script
+compiles on its first call only. Time spent waiting for a processor does not
+count. The operating system updates CPU time in steps: one scheduler tick on
+Linux (1 to 10 ms) and about 16 ms on Windows. A call ends only when both its
+CPU time and its wall time reach the limit, so these steps cannot end it
+early. Browsers have no thread CPU clock, so there the limit counts wall time. The
 50 ms script budget for a whole tick, which includes context setup, and the
 100 ms limit for evaluating a source during preparation count wall time on
 every host. A script that loops forever still ends at its limit.

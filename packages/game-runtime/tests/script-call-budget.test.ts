@@ -77,7 +77,7 @@ describe("per-call script clock", () => {
   const input = (tick: number) => ({ tick, pressed: [], justPressed: [], events: [], world: [] });
   // Linux can lag a running thread's CPU time by a scheduler tick, so the call's own work must stay well under the limit.
   // The block stays short because it also counts against the 50 ms wall-clock batch budget.
-  const shortCall: GameScriptCall = { ...call, maxTickMs: 12 };
+  const shortCall: GameScriptCall = { ...call, maxTickMs: 6 };
   const threadCpuMs = (): number => { const { user, system } = process.threadCpuUsage(); return (user + system) / 1000; };
   // A world entity whose snapshot copy blocks the thread without using CPU. The snapshot is built inside the call window.
   const blockingWorld = (ms: number) => [{
@@ -98,8 +98,8 @@ describe("per-call script clock", () => {
     const runner = await prepareGameScripts(fixture());
     try {
       const started = performance.now();
-      const batch = runner.run([shortCall], input(0), 1, blockingWorld(16));
-      expect(performance.now() - started).toBeGreaterThanOrEqual(16);
+      const batch = runner.run([shortCall], input(0), 1, blockingWorld(8));
+      expect(performance.now() - started).toBeGreaterThanOrEqual(8);
       expect(batch.results).toEqual([{ entityId: "worker", state: 1, commands: [] }]);
     } finally { runner.dispose(); }
   });
@@ -107,7 +107,7 @@ describe("per-call script clock", () => {
   it("counts the same blocked time against a wall-clock call limit", async () => {
     const runner = await prepareGameScripts(fixture(), { callClock: wallScriptCallClock });
     try {
-      expect(() => runner.run([shortCall], input(0), 1, blockingWorld(16))).toThrow(/interrupted: call 12 ms for worker at tick 0/);
+      expect(() => runner.run([shortCall], input(0), 1, blockingWorld(8))).toThrow(/interrupted: call 6 ms for worker at tick 0/);
     } finally { runner.dispose(); }
   });
 

@@ -15,7 +15,12 @@ export const wallScriptCallClock: ScriptCallClock = { kind: "wall", now: () => p
 export function threadCpuScriptCallClock(): ScriptCallClock | undefined {
   const usage = (globalThis as { process?: { threadCpuUsage?: ThreadCpuUsage } }).process?.threadCpuUsage;
   if (typeof usage !== "function") { return undefined; }
-  return { kind: "thread-cpu", now: () => { const { user, system } = usage(); return (user + system) / 1000; } };
+  const now = (): number => { const { user, system } = usage(); return (user + system) / 1000; };
+  try { now(); } catch {
+    // A host that declares the function but cannot read the thread's usage keeps the wall clock.
+    return undefined;
+  }
+  return { kind: "thread-cpu", now };
 }
 
 export const defaultScriptCallClock: ScriptCallClock = threadCpuScriptCallClock() ?? wallScriptCallClock;
