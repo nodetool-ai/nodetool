@@ -44,7 +44,7 @@ jest.mock('../server', () => ({
   runApp: jest.fn(),
   showItemInFolder: jest.fn(),
   initializeBackendServer: jest.fn(),
-  stopServer: jest.fn(),
+  restartServer: jest.fn(),
 }));
 
 jest.mock('../logger', () => ({
@@ -116,7 +116,7 @@ jest.mock('electron', () => {
 
 import path from 'path';
 import { ipcMain, BrowserWindow, clipboard, shell, dialog } from 'electron';
-import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer } from '../server';
+import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, restartServer } from '../server';
 import { logMessage } from '../logger';
 import { registerWorkflowShortcut, unregisterWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
 import { emitWorkflowsChanged } from '../tray';
@@ -186,7 +186,7 @@ const serverMock = {
   runApp: jest.mocked(runApp),
   showItemInFolder: jest.mocked(showItemInFolder),
   initializeBackendServer: jest.mocked(initializeBackendServer),
-  stopServer: jest.mocked(stopServer),
+  restartServer: jest.mocked(restartServer),
 };
 
 const packageManagerMock = {
@@ -403,21 +403,8 @@ describe('initializeIpcHandlers', () => {
       const restartServerHandler = invokeHandlerFor(Channels.RESTART_SERVER);
 
       await restartServerHandler({});
-      expect(serverMock.stopServer).toHaveBeenCalled();
-      expect(serverMock.initializeBackendServer).toHaveBeenCalled();
+      expect(serverMock.restartServer).toHaveBeenCalled();
       expect(setupWorkflowShortcutsMock).toHaveBeenCalled();
-    });
-
-    it('should handle RESTART_SERVER with stop server error', async () => {
-      serverMock.stopServer.mockRejectedValue(new Error('Stop error'));
-      
-      const restartServerHandler = invokeHandlerFor(Channels.RESTART_SERVER);
-
-      await restartServerHandler({});
-      expect(loggerMock).toHaveBeenCalledWith(
-        expect.stringContaining('Error while stopping server for restart'),
-        'warn'
-      );
     });
 
     it('should handle PACKAGE_LIST_AVAILABLE', async () => {

@@ -4,10 +4,9 @@
 
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ChatScreen from './ChatScreen';
 import { useChatStore } from '../stores/ChatStore';
-import type { RootStackParamList } from '../navigation/types';
+import type { TabScreenNavigationProp, TabScreenRouteProp } from '../navigation/types';
 import type { Message, MessageContent } from '../types/chat';
 
 /** The props the stubbed ChatView below actually reads. */
@@ -49,7 +48,10 @@ jest.mock('../stores/ChatStore', () => ({
 }));
 
 type ChatState = ReturnType<typeof useChatStore.getState>;
-type ChatScreenProps = NativeStackScreenProps<RootStackParamList, 'Chat'>;
+type ChatScreenProps = {
+  navigation: TabScreenNavigationProp<'Chat'>;
+  route: TabScreenRouteProp<'Chat'>;
+};
 
 /** The whole store these tests stand up, with the actions as spies. */
 type MockChatStore = ChatState & {

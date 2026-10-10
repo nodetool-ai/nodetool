@@ -39,7 +39,7 @@ below.
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
 | `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A push to `main` cancels the run of the push before it and diffs against the last `main` commit whose Test run passed. A nightly run and `merge_group` events are also wired | 0 | Required |
-| `quality-checks.yml` | Reusable gate: deps/lint static legs plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples, four `test-packages-*` shards of the backend suite, three web Jest shards or one related-tests leg, electron+mobile, bundle, harness gate). The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly. The nodes shard installs Blender, and so runs the Blender render suites, only when a diff touches `packages/blender-nodes/` and nightly | 0 | Required (infra called by `test.yml`) |
+| `quality-checks.yml` | Reusable gate: deps/lint static legs plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples, four `test-packages-*` shards of the backend suite, three web Jest shards or one related-tests leg, electron+mobile, bundle, harness gate). The shipped-workflow integration tests and the workflow-runner browser E2E run here too, so their failures fail the required check. The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly. The nodes shard installs Blender, and so runs the Blender render suites, only when a diff touches `packages/blender-nodes/` and nightly | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Advisory on PRs with the `browser-suites` label |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Advisory on PRs with the `browser-suites` label |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
@@ -145,14 +145,16 @@ job counts as a pass for a required check, so the check still lands.
 
 The prose set is `docs/**`, the Markdown at the repo root, `AGENTS.md` and
 `CLAUDE.md` anywhere, and the Markdown under `.github/`. Markdown that code
-reads at run time is deliberately outside it — a sandbox pack's `SKILL.md` or a
-package `README.md` runs the full gate.
+reads at run time is deliberately outside it — a shipped skill's `SKILL.md`
+under `packages/system-skills/` selects the agents suites, and a package
+`README.md` runs the full gate.
 
 It fails safe in both directions: the filter step is `continue-on-error` and
 its output falls back to "there is code here", and the legs skip only on an
 explicit "prose only", so a `changes` job that never reported runs everything.
 
-Prose still gets its own checks: `docs-lint.yml` on any `**/*.md`, and
+Prose still gets its own checks: `docs-lint.yml` on any `**/*.md` (link check
+and `check-agents-docs.mjs`), and
 `docs-ci.yml` (site build plus link check) on `docs/**`.
 
 ## Legs chosen per diff
@@ -172,7 +174,15 @@ The planner reuses `buildPlan` from `scripts/test-affected.mjs`, the mapping
   change to the gate itself (`test.yml`, `quality-checks.yml`,
   `.github/actions/`, the two planner scripts), runs every leg.
 - Each `test-packages-*` shard runs when the diff affects a package in its
-  slice, and still applies Turbo's `--affected` inside it.
+  slice, and applies Turbo's `--affected` inside it when the plan's
+  `turbo_affected` is true. Turbo attributes a file outside every workspace
+  directory to the root, which no package depends on, so for such a diff
+  `--affected` would select no task and the shard would pass without testing
+  anything. That covers every full plan and the directories a workspace owns
+  from outside (`EXTRA_WORKSPACE_PATHS` in `packages/cli/src/affected/affected.ts`:
+  `reliability/journeys`, `packages/system-skills`, `packages/sandbox-packs`).
+  The shard then runs its whole slice, and turbo's task hashes decide what
+  reruns. Each owner lists its directory in its `test` inputs in `turbo.json`.
 - Web runs three `--shard`ed Jest legs when a package it depends on changed,
   one `--findRelatedTests` leg when only files under `web/src` changed (test
   setup and `__mocks__` excepted), and nothing otherwise. Electron and mobile
@@ -202,7 +212,7 @@ Only one of the three is actually separable, and the gate now reflects that.
 `quality-checks.yml` takes it as the `shared` input. It is false only for a
 diff confined to `marketing/**` (plus that workflow's own file), and then every
 leg inside the gate skips — the same mechanism, and the same fail-safe reading,
-as `docs-only`. `integration` and `workflow-runner-e2e` skip with it. Before
+as `docs-only`. `integration` and `workflow-runner-e2e`, which also live in the gate, skip with it. Before
 this, a one-line marketing copy change built ~55 backend packages, typechecked
 three apps, ran every suite, built the container image and drove two browser
 E2E jobs.

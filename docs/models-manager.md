@@ -91,7 +91,7 @@ Each row can show these badges.
 
 ### Storage location
 
-Hugging Face models use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. NodeTool resolves it the way the `huggingface_hub` library does: `HF_HUB_CACHE`, then `HUGGINGFACE_HUB_CACHE`, then `$HF_HOME/hub`, then `$XDG_CACHE_HOME/huggingface/hub`. Downloads, the **Installed** list, the downloaded badges, llama.cpp, whisper.cpp, and the Python worker all read the same directory. Ollama keeps its models in its own directory. Transformers.js models download to `<data-dir>/transformers-js-cache`, or to `TRANSFORMERS_JS_CACHE_DIR` if set. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
+Hugging Face models use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. NodeTool resolves it the way the `huggingface_hub` library does: `HF_HUB_CACHE`, then `HUGGINGFACE_HUB_CACHE`, then `$HF_HOME/hub`, then `$XDG_CACHE_HOME/huggingface/hub`. Downloads, the **Installed** list, the downloaded badges, llama.cpp, whisper.cpp, and the Python worker all read the same directory. On Linux with `XDG_CACHE_HOME` set, as in the Flatpak build, the desktop app keeps using `~/.cache/huggingface/hub` when it already holds models. The full rule is under [`HF_HUB_CACHE`](configuration.md#environment-variables-index). Ollama keeps its models in its own directory. Transformers.js models download to `<data-dir>/transformers-js-cache`, or to `TRANSFORMERS_JS_CACHE_DIR` if set. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
 
 ---
 

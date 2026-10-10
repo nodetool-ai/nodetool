@@ -13,22 +13,23 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import { RouteProp, StackActions } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { apiService, Asset } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useAuthStore } from '../stores/AuthStore';
-import { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList, TabScreenNavigationProp, TabScreenRouteProp } from '../navigation/types';
 import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState';
 import { useTheme } from '../hooks/useTheme';
 import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type AssetsScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Assets'>;
-  route: RouteProp<RootStackParamList, 'Assets'>;
+  // The same screen is the Assets tab (the root folder) and, pushed on the
+  // root stack, any folder below it.
+  navigation: TabScreenNavigationProp<'Assets'>;
+  route: TabScreenRouteProp<'Assets'> | RouteProp<RootStackParamList, 'AssetFolder'>;
 };
 
 const GRID_COLUMNS = 3;
@@ -144,7 +145,7 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
   const isLoading = activeQuery.isLoading;
   const isRefreshing = activeQuery.isRefetching;
   const loadError = activeQuery.error
-    ? activeQuery.error.message || 'Network Error'
+    ? activeQuery.error.message || 'Network error'
     : null;
 
   const deleteAsset = trpc.assets.delete.useMutation({
@@ -196,10 +197,14 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
 
   const handleAssetPress = useCallback((asset: Asset) => {
     if (asset.content_type === 'folder') {
-      navigation.push('Assets', {
-        parentId: asset.id,
-        folderName: asset.name,
-      });
+      // A tab can't push, so the folder goes on the root stack above the
+      // tab bar, with a back button to the level it came from.
+      navigation.dispatch(
+        StackActions.push('AssetFolder', {
+          parentId: asset.id,
+          folderName: asset.name,
+        })
+      );
     } else {
       navigation.navigate('AssetViewer', { assetId: asset.id });
     }
@@ -258,7 +263,7 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
       utils.assets.search.invalidate();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Upload failed';
-      Alert.alert('Upload Error', msg);
+      Alert.alert('Upload failed', msg);
     } finally {
       setIsUploading(false);
     }

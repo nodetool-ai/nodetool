@@ -4,6 +4,7 @@ import { CondaRuntimePackage } from "./CondaRuntimePackage";
 import { NpmRuntimePackage } from "./NpmRuntimePackage";
 import { ElectronRuntimePackage } from "./ElectronRuntimePackage";
 import type { RuntimePackage } from "./types";
+import { MIN_UV_VERSION } from "../../torchruntime";
 
 /** Concrete runtime package definitions. */
 export const RUNTIME_PACKAGES = {
@@ -14,8 +15,8 @@ export const RUNTIME_PACKAGES = {
       "Python interpreter and uv package manager. Required for AI and data processing nodes.",
     category: "language",
     versionRange: ">=3.11 <3.12",
-    // uv 0.9+ knows the cu130 and rocm7 `--torch-backend` values.
-    condaPackages: ["python=3.11", "uv>=0.9"],
+    // The uv that accepts every `--torch-backend` value the app passes.
+    condaPackages: ["python=3.11", `uv>=${MIN_UV_VERSION}`],
     verifyBinary: "python",
     extraBinaries: { uv: "uv" },
     windowsBinSubdir: "Library\\bin",

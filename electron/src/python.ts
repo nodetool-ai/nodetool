@@ -218,7 +218,7 @@ async function getInstalledPythonPackageVersion(
       stdoutChunks.push(chunk);
     });
 
-    proc.on("exit", (code) => {
+    proc.on("close", (code) => {
       if (code === 0) {
         const version = Buffer.concat(stdoutChunks).toString().trim();
         resolve(version || null);

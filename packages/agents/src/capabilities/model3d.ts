@@ -269,6 +269,10 @@ const createModel3d: CapabilityExport = {
     const { createModel3DFile, MIME_FOR_FORMAT, serializeModel3D } =
       await import("@nodetool-ai/model3d");
     const file = createModel3DFile(name.trim().replace(/\.(glb|gltf)$/i, ""));
+    // A requested .glb name gets .glb bytes, not glTF JSON under that name.
+    if (/\.glb$/i.test(name.trim())) {
+      file.format = "glb";
+    }
 
     if (params["ops"] !== undefined) {
       const applied = await applyOps(file, params["ops"]);

@@ -23,6 +23,9 @@ import type {
 import { MAX_HISTORY_SIZE } from "../../types";
 import { selectionHasAnyPixels } from "../../selection";
 
+/** Action label of a snapshot that records an edit a checkpoint was pushed ahead of. `historyRows` reads it. */
+const UNRECORDED_TIP_ACTION = "current state";
+
 function cloneHistoryValue<T>(value: T): T {
   if (value === null || value === undefined) {
     return value;
@@ -98,6 +101,31 @@ function captureDocumentCanvas(
   canvas: SketchDocument["canvas"]
 ): SketchDocument["canvas"] {
   return { ...canvas };
+}
+
+/**
+ * A full snapshot of the live document, recorded as the unrecorded edit that
+ * follows a pre-edit checkpoint. The caller sets `selection` and `timestamp`.
+ */
+function captureLiveStateEntry(
+  document: SketchDocument,
+  layerCanvasSnapshots: Record<string, HTMLCanvasElement | null> | undefined
+): Omit<HistoryEntry, "selection" | "timestamp"> {
+  const layerSnapshots: Record<string, string | null> = {};
+  for (const layer of document.layers) {
+    layerSnapshots[layer.id] = layer.data;
+  }
+  return {
+    layerSnapshots,
+    layerCanvasSnapshots,
+    layerStructure: captureLayerStructure(document.layers),
+    documentCanvas: captureDocumentCanvas(document.canvas),
+    activeLayerId: document.activeLayerId,
+    maskLayerId: document.maskLayerId,
+    guides: document.guides ?? [],
+    restoreMode: "full",
+    action: UNRECORDED_TIP_ACTION
+  };
 }
 
 /** Which layer units an external merge took out of the draft's hands. */
@@ -410,6 +438,37 @@ export const createHistorySlice: StateCreator<
 
     // Truncate future history first so prevEntry is accurate
     const newHistory = state.history.slice(0, state.historyIndex + 1);
+    const tipIndex = newHistory.length - 1;
+    const liveAhead =
+      tipIndex >= 0 && isLiveStateAhead(state.document, newHistory, tipIndex);
+
+    if (options?.selectionOnly && liveAhead) {
+      // The tip was pushed before an edit that is still unrecorded (a stroke,
+      // a transform). A selection entry holds no layers, so it would resolve
+      // to the pre-edit pixels and the first undo would only drop the
+      // selection while the edit stayed. Record the edit first, with the
+      // selection and guides it ran under.
+      newHistory.push({
+        ...captureLiveStateEntry(state.document, undefined),
+        selection: newHistory[tipIndex]!.selection,
+        guides: newHistory[tipIndex]!.guides ?? state.document.guides ?? [],
+        timestamp: Date.now()
+      });
+      trimHistoryInPlace(newHistory);
+    } else if (
+      !options?.selectionOnly &&
+      options?.timing === "before" &&
+      tipIndex >= 0 &&
+      !liveAhead &&
+      newHistory[tipIndex]!.timing === "before" &&
+      newHistory[tipIndex]!.selection === state.selection
+    ) {
+      // The tip is a pre-edit checkpoint whose edit never landed or was
+      // undone, and the live state still equals it. Pushing another one
+      // would repeat the same state: the History panel would show the undone
+      // edit as a row, and one undo would do nothing. Replace it instead.
+      newHistory.pop();
+    }
 
     // Fast path: selection-only changes don't need layer data or structure.
     // Undo/redo of these entries restores the selection without touching layers.
@@ -422,6 +481,7 @@ export const createHistorySlice: StateCreator<
           activeLayerId: state.document.activeLayerId,
           maskLayerId: state.document.maskLayerId,
           selection: state.selection,
+          guides: state.document.guides ?? [],
           restoreMode: "structure-only",
           action,
           timestamp: Date.now()
@@ -455,6 +515,7 @@ export const createHistorySlice: StateCreator<
             activeLayerId: state.document.activeLayerId,
             maskLayerId: state.document.maskLayerId,
             selection: state.selection,
+            guides: state.document.guides ?? [],
             restoreMode,
             action,
             timestamp: Date.now()
@@ -494,20 +555,9 @@ export const createHistorySlice: StateCreator<
       // Append a full snapshot of the live state so redo can return to it,
       // then step back from that tip to the current checkpoint (a single
       // step back from the live edit — not two).
-      const tipSnapshot: Record<string, string | null> = {};
-      for (const layer of state.document.layers) {
-        tipSnapshot[layer.id] = layer.data;
-      }
       const tipEntry: HistoryEntry = {
-        layerSnapshots: tipSnapshot,
-        layerCanvasSnapshots,
-        layerStructure: captureLayerStructure(state.document.layers),
-        documentCanvas: captureDocumentCanvas(state.document.canvas),
-        activeLayerId: state.document.activeLayerId,
-        maskLayerId: state.document.maskLayerId,
+        ...captureLiveStateEntry(state.document, layerCanvasSnapshots),
         selection: state.selection,
-        restoreMode: "full",
-        action: "current state",
         timestamp: Date.now()
       };
       history = [...state.history, tipEntry];
@@ -561,7 +611,8 @@ export const createHistorySlice: StateCreator<
         maskLayerId:
           entry.maskLayerId !== undefined
             ? entry.maskLayerId
-            : state.document.maskLayerId
+            : state.document.maskLayerId,
+        guides: entry.guides ?? state.document.guides
       },
       selection: restoredSelection,
       hasActiveSelection: selectionHasAnyPixels(restoredSelection),
@@ -614,7 +665,8 @@ export const createHistorySlice: StateCreator<
         maskLayerId:
           entry.maskLayerId !== undefined
             ? entry.maskLayerId
-            : state.document.maskLayerId
+            : state.document.maskLayerId,
+        guides: entry.guides ?? state.document.guides
       },
       selection: restoredSelection,
       hasActiveSelection: selectionHasAnyPixels(restoredSelection),

@@ -71,7 +71,7 @@ describe("packageManager spawn contract", () => {
       capturedCmd = cmd;
       capturedArgs = args;
       const proc = makeProc();
-      process.nextTick(() => proc.emit("exit", 0));
+      process.nextTick(() => { proc.emit("exit", 0); proc.emit("close", 0); });
       return proc;
     });
 
@@ -91,7 +91,7 @@ describe("packageManager spawn contract", () => {
       proc.stdin.write.mockImplementation((data: unknown) => {
         stdinWrites.push(data);
       });
-      process.nextTick(() => proc.emit("exit", 0));
+      process.nextTick(() => { proc.emit("exit", 0); proc.emit("close", 0); });
       return proc;
     });
 
@@ -108,7 +108,7 @@ describe("packageManager spawn contract", () => {
     jest.mocked(spawn).mockImplementation((_cmd: string, _args: string[], opts: { env: Record<string, string> }) => {
       capturedEnv = opts.env;
       const proc = makeProc();
-      process.nextTick(() => proc.emit("exit", 0));
+      process.nextTick(() => { proc.emit("exit", 0); proc.emit("close", 0); });
       return proc;
     });
 
@@ -131,7 +131,7 @@ describe("packageManager spawn contract", () => {
     jest.mocked(spawn).mockImplementation((_cmd: string, _args: string[], opts: typeof capturedOpts) => {
       capturedOpts = opts;
       const proc = makeProc();
-      process.nextTick(() => proc.emit("exit", 0));
+      process.nextTick(() => { proc.emit("exit", 0); proc.emit("close", 0); });
       return proc;
     });
 
@@ -165,6 +165,7 @@ describe("packageManager spawn contract", () => {
       process.nextTick(() => {
         proc.stderr.emit("data", Buffer.from("uv: bad index"));
         proc.emit("exit", 1);
+        proc.emit("close", 1);
       });
       return proc;
     });

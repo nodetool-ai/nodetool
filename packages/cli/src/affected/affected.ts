@@ -40,12 +40,19 @@ export interface PackageInfo {
  * the reliability harness runs; editing one changes what
  * `nodetool reliability run` does, but the files sit outside
  * `reliability/harness/`, so a path-prefix match alone reports them as
- * belonging to no workspace.
+ * belonging to no workspace. `packages/system-skills/` and
+ * `packages/sandbox-packs/` are not workspaces either, for the same reason.
+ * Turbo cannot see this ownership: each owner's `test` inputs in turbo.json
+ * list the directory, and `scripts/ci-plan.mjs` drops `--affected` for it.
  */
 export const EXTRA_WORKSPACE_PATHS: Readonly<
   Record<string, readonly string[]>
 > = {
-  "@nodetool-ai/reliability-harness": ["reliability/journeys"]
+  "@nodetool-ai/reliability-harness": ["reliability/journeys"],
+  // Shipped skills, loaded by `agents` (src/system-skills.ts).
+  "@nodetool-ai/agents": ["packages/system-skills"],
+  // Guest packs, loaded by node-sdk's pack loader and so by everything above it.
+  "@nodetool-ai/node-sdk": ["packages/sandbox-packs"]
 };
 
 /**

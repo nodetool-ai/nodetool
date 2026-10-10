@@ -1,16 +1,19 @@
 name: Docs Lint
 
-# Validates Markdown documentation. Runs only when Markdown changes.
+# Validates Markdown documentation and the agent instruction tree. Runs only
+# when Markdown or the skill links change.
 on:
   push:
     branches: [main]
     paths:
       - "**/*.md"
+      - ".agents/**"
       - ".github/workflows/docs-lint.yml"
   pull_request:
     branches: [main]
     paths:
       - "**/*.md"
+      - ".agents/**"
       - ".github/workflows/docs-lint.yml"
 
 permissions:
@@ -38,3 +41,22 @@ jobs:
         with:
           args: --offline --no-progress --include-fragments "**/*.md"
           fail: false
+
+  # The quality gate's `deps` leg runs the same check, but the gate skips
+  # every leg for a prose-only diff, which is exactly when AGENTS.md pairing,
+  # reachability and the .agents/skills links can break.
+  agents-docs:
+    name: Agent docs (AGENTS.md pairing, skill links)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Check agent docs
+        run: node scripts/check-agents-docs.mjs

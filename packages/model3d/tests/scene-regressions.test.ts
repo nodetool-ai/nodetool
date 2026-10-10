@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  animationDurations,
   applyOperations,
   createModel3DFile,
+  deleteObject,
+  setTransform,
   decomposeMatrix,
   listScene,
   resolveTarget,
@@ -121,5 +124,136 @@ describe("validateModel3D on malformed input", () => {
   ])("reports %s instead of throwing", (_label, json) => {
     const report = validateModel3D(json as unknown as GltfJson);
     expect(report.ok).toBe(false);
+  });
+});
+
+describe("ids that collide in the stored file", () => {
+  it("addresses the object the listing showed, when a stored id equals another's fallback", () => {
+    // What the editor saves after a duplicate: the copy carries no id, and
+    // later nodes carry ids minted as node-<index> before the copy existed.
+    const json: GltfJson = {
+      asset: { version: "2.0" },
+      scene: 0,
+      scenes: [{ nodes: [0, 1, 2, 3] }],
+      nodes: [
+        { name: "A", extras: { nodetool_id: "node-0" } },
+        { name: "A 2" },
+        { name: "B", extras: { nodetool_id: "node-1" } },
+        { name: "C", extras: { nodetool_id: "node-2" } }
+      ]
+    };
+    const listed = listScene(json);
+    expect(new Set(listed.map((o) => o.uuid)).size).toBe(4);
+    const copyId = listed.find((o) => o.name === "A 2")!.uuid;
+    expect(setTransform(json, copyId, { position: [5, 0, 0] }).name).toBe("A 2");
+    expect(listScene(json).find((o) => o.name === "A 2")!.uuid).toBe(copyId);
+  });
+
+  it("lists a repeated stored id once and keeps it on the first node", () => {
+    const json: GltfJson = {
+      asset: { version: "2.0" },
+      scenes: [{ nodes: [0, 1] }],
+      nodes: [
+        { name: "X", extras: { nodetool_id: "abc" } },
+        { name: "Y", extras: { nodetool_id: "abc" } }
+      ]
+    };
+    const [x, y] = listScene(json);
+    expect(x.uuid).toBe("abc");
+    expect(y.uuid).not.toBe("abc");
+    expect(resolveTarget(json, y.uuid)).toBe(1);
+  });
+});
+
+describe("delete and animations", () => {
+  it("remaps a KHR_animation_pointer target and drops one aimed at the deleted node", () => {
+    const pointerTo = (pointer: string) => ({
+      sampler: 0,
+      target: { path: "pointer", extensions: { KHR_animation_pointer: { pointer } } }
+    });
+    const json: GltfJson = {
+      asset: { version: "2.0" },
+      scenes: [{ nodes: [0, 1, 2] }],
+      nodes: [{ name: "Doomed" }, { name: "Kept" }, { name: "Last" }],
+      accessors: [{ componentType: 5126, count: 1, type: "SCALAR", max: [1] }],
+      animations: [
+        {
+          channels: [pointerTo("/nodes/2/translation"), pointerTo("/nodes/0/scale")],
+          samplers: [{ input: 0, output: 0 }]
+        }
+      ]
+    };
+    deleteObject(json, "Doomed");
+    const channels = json.animations![0].channels;
+    expect(channels).toHaveLength(1);
+    expect(channels[0].target.extensions).toEqual({
+      KHR_animation_pointer: { pointer: "/nodes/1/translation" }
+    });
+  });
+
+  it("measures a clip by the samplers its remaining channels play", () => {
+    const json: GltfJson = {
+      asset: { version: "2.0" },
+      scenes: [{ nodes: [0, 1] }],
+      nodes: [{ name: "Keep" }, { name: "Gone" }],
+      accessors: [
+        { componentType: 5126, count: 2, type: "SCALAR", max: [1] },
+        { componentType: 5126, count: 2, type: "SCALAR", max: [5] },
+        { componentType: 5126, count: 2, type: "VEC3" }
+      ],
+      animations: [
+        {
+          name: "Walk",
+          channels: [
+            { sampler: 0, target: { node: 0, path: "translation" } },
+            { sampler: 1, target: { node: 1, path: "translation" } }
+          ],
+          samplers: [
+            { input: 0, output: 2 },
+            { input: 1, output: 2 }
+          ]
+        }
+      ]
+    };
+    expect(animationDurations(json)[0].durationSec).toBe(5);
+    deleteObject(json, "Gone");
+    expect(animationDurations(json)[0].durationSec).toBe(1);
+  });
+});
+
+describe("new names", () => {
+  it("does not reuse a name an existing node holds with stray spaces", () => {
+    const file = createModel3DFile();
+    file.json.nodes = [{ name: "Box " }];
+    file.json.scenes = [{ nodes: [0] }];
+    applyOperations(file, [{ op: "add_object", kind: "box" }]);
+    const added = file.json.nodes![1].name!;
+    expect(added).not.toBe("Box");
+    expect(resolveTarget(file.json, added)).toBe(1);
+  });
+});
+
+describe("validateModel3D structure checks", () => {
+  const base = (): GltfJson => ({ asset: { version: "2.0" }, scenes: [{ nodes: [0] }] });
+
+  it("reports a child listed twice under one parent", () => {
+    const json = { ...base(), nodes: [{ children: [1, 1] }, {}] };
+    expect(validateModel3D(json).errors.some((e) => /twice/.test(e.message))).toBe(true);
+  });
+
+  it("reports attributes of different lengths and an empty accessor", () => {
+    const json: GltfJson = {
+      ...base(),
+      nodes: [{ mesh: 0 }],
+      meshes: [{ primitives: [{ attributes: { POSITION: 0, NORMAL: 1, TEXCOORD_0: 2 } }] }],
+      accessors: [
+        { componentType: 5126, count: 2, type: "VEC3" },
+        { componentType: 5126, count: 1, type: "VEC3" },
+        { componentType: 5126, count: 0, type: "VEC2" }
+      ]
+    };
+    const messages = validateModel3D(json).errors.map((e) => e.message);
+    expect(messages.some((m) => /different lengths/.test(m))).toBe(true);
+    expect(messages.some((m) => /count is 0/.test(m))).toBe(true);
   });
 });

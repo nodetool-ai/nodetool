@@ -138,6 +138,16 @@ describe("ShapeTool snapping", () => {
     expect(useSketchStore.getState().activeSnapLines).toBeNull();
   });
 
+  it("clears the snap line when the drag is cancelled", () => {
+    const ctx = makeToolContext({ activeTool: "shape" });
+    const tool = new ShapeTool();
+    tool.onDown(ctx, pointer(3, 4));
+    tool.onMove(ctx, pointer(60, 61));
+    expect(useSketchStore.getState().activeSnapLines).not.toBeNull();
+    tool.onCancel?.(ctx);
+    expect(useSketchStore.getState().activeSnapLines).toBeNull();
+  });
+
   it("follows the pointer exactly while snapping is off", () => {
     act(() => {
       useSketchStore.setState({ snapEnabled: false });

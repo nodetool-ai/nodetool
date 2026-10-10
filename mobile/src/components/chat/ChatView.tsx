@@ -20,7 +20,14 @@ import { ChatMessageList } from './ChatMessageList';
 import { ChatComposer } from './ChatComposer';
 import { ChatOptionsBar } from './ChatOptionsBar';
 import { useTheme } from '../../hooks/useTheme';
+import { BrandMark } from '../BrandMark';
 import { FONT_SIZE, FONT_WEIGHT, HIT_SLOP, MIN_TOUCH_TARGET, RADIUS, SPACING } from '../../utils/tokens';
+
+const SUGGESTIONS: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
+  { icon: 'book-outline', text: 'Summarize a topic' },
+  { icon: 'pencil-outline', text: 'Help me write' },
+  { icon: 'bulb-outline', text: 'Explain a concept' },
+];
 
 interface ChatViewProps {
   status: ChatStatus;
@@ -78,31 +85,38 @@ export const ChatView: React.FC<ChatViewProps> = ({
     if (messages.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIconContainer, { backgroundColor: colors.primaryMuted }]}>
-            <Ionicons name="chatbubbles-outline" size={36} color={colors.primary} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Start a Conversation</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            Ask questions, get help with tasks,{'\n'}or explore ideas with AI.
+          <BrandMark size={52} style={styles.emptyMark} />
+          <Text style={[styles.emptyTitle, { color: colors.text }]} accessibilityRole="header">
+            What can I help with?
           </Text>
-          <View style={styles.suggestionsContainer}>
-            {[
-              { icon: 'book-outline' as const, text: 'Summarize a topic' },
-              { icon: 'pencil-outline' as const, text: 'Help me write' },
-              { icon: 'bulb-outline' as const, text: 'Explain a concept' },
-            ].map((suggestion) => (
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+            Ask a question or start a draft. Switch to Image or Video below to generate media.
+          </Text>
+          <View
+            style={[
+              styles.suggestionsContainer,
+              { borderColor: colors.borderLight, backgroundColor: colors.cardBg },
+            ]}
+          >
+            {SUGGESTIONS.map((suggestion, index) => (
               <TouchableOpacity
                 key={suggestion.text}
-                style={[styles.suggestionChip, { borderColor: colors.border, backgroundColor: colors.cardBg }]}
+                style={[
+                  styles.suggestionRow,
+                  index > 0 && { borderTopColor: colors.borderLight, borderTopWidth: StyleSheet.hairlineWidth },
+                ]}
                 onPress={() => {
                   void onSendMessage([{ type: 'text', text: suggestion.text } as MessageContent], suggestion.text);
                 }}
                 accessibilityRole="button"
                 accessibilityLabel={`Suggest: ${suggestion.text}`}
-                activeOpacity={0.7}
+                activeOpacity={0.6}
               >
-                <Ionicons name={suggestion.icon} size={15} color={colors.primary} style={{ marginRight: 6 }} />
+                <View style={[styles.suggestionIcon, { backgroundColor: colors.primaryLight }]}>
+                  <Ionicons name={suggestion.icon} size={16} color={colors.primary} />
+                </View>
                 <Text style={[styles.suggestionText, { color: colors.text }]}>{suggestion.text}</Text>
+                <Ionicons name="arrow-up-outline" size={16} color={colors.textTertiary} style={styles.suggestionArrow} />
               </TouchableOpacity>
             ))}
           </View>
@@ -218,24 +232,31 @@ export const ChatView: React.FC<ChatViewProps> = ({
         )}
       </View>
 
-      {(onToggleAgentMode || onToggleHelpMode || onChangeCollections || onChangeTools) && (
-        <ChatOptionsBar
-          agentMode={agentMode}
-          helpMode={helpMode}
-          selectedCollections={selectedCollections}
-          selectedTools={selectedTools}
-          onToggleAgentMode={onToggleAgentMode || (() => {})}
-          onToggleHelpMode={onToggleHelpMode || (() => {})}
-          onChangeCollections={onChangeCollections || (() => {})}
-          onChangeTools={onChangeTools || (() => {})}
-        />
-      )}
+      <View
+        style={[
+          styles.dock,
+          { backgroundColor: colors.surfaceHeader, borderTopColor: colors.borderLight },
+        ]}
+      >
+        {(onToggleAgentMode || onToggleHelpMode || onChangeCollections || onChangeTools) && (
+          <ChatOptionsBar
+            agentMode={agentMode}
+            helpMode={helpMode}
+            selectedCollections={selectedCollections}
+            selectedTools={selectedTools}
+            onToggleAgentMode={onToggleAgentMode || (() => {})}
+            onToggleHelpMode={onToggleHelpMode || (() => {})}
+            onChangeCollections={onChangeCollections || (() => {})}
+            onChangeTools={onChangeTools || (() => {})}
+          />
+        )}
 
-      <ChatComposer
-        status={status}
-        onSendMessage={handleSendMessage}
-        onStop={onStop}
-      />
+        <ChatComposer
+          status={status}
+          onSendMessage={handleSendMessage}
+          onStop={onStop}
+        />
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -250,46 +271,57 @@ const styles = StyleSheet.create({
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: SPACING.xl,
   },
-  emptyIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+  emptyMark: {
+    marginBottom: SPACING.lg,
   },
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 8,
+    fontSize: FONT_SIZE.title,
+    fontWeight: FONT_WEIGHT.bold,
+    marginBottom: SPACING.sm,
     textAlign: 'center',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   emptySubtitle: {
-    fontSize: 15,
+    fontSize: FONT_SIZE.body,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 28,
+    lineHeight: 21,
+    marginBottom: SPACING.xl,
+    alignSelf: 'center',
+    maxWidth: 320,
   },
   suggestionsContainer: {
-    width: '100%',
-    gap: 8,
+    borderRadius: RADIUS.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
   },
-  suggestionChip: {
+  suggestionRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.md,
+    minHeight: MIN_TOUCH_TARGET + SPACING.sm,
+    paddingHorizontal: SPACING.md + 2,
+  },
+  suggestionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   suggestionText: {
-    fontSize: 15,
-    fontWeight: '500',
+    flex: 1,
+    fontSize: FONT_SIZE.body,
+    fontWeight: FONT_WEIGHT.medium,
+  },
+  // Points up and to the right, the "send this" direction, without reading
+  // as a navigation chevron.
+  suggestionArrow: {
+    transform: [{ rotate: '45deg' }],
+  },
+  dock: {
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   banner: {
     flexDirection: 'row',

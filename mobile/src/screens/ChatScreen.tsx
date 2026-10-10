@@ -13,8 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import NetInfo from '@react-native-community/netinfo';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/types';
+import type { TabScreenNavigationProp, TabScreenRouteProp } from '../navigation/types';
 import { ChatView } from '../components/chat';
 import { useChatStore } from '../stores/ChatStore';
 import { useTheme } from '../hooks/useTheme';
@@ -24,7 +23,10 @@ import type { Message } from '../types/chat';
 
 const EMPTY_MESSAGES: Message[] = [];
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
+type Props = {
+  navigation: TabScreenNavigationProp<'Chat'>;
+  route: TabScreenRouteProp<'Chat'>;
+};
 
 export default function ChatScreen({ navigation, route }: Props) {
   const {

@@ -132,6 +132,19 @@ describe("guide store actions", () => {
     expect(useSketchStore.getState().document).toBe(before);
   });
 
+  it("records each guide edit as one undo step", () => {
+    useSketchStore.getState().pushHistory("open", undefined, { timing: "before" });
+    const id = useSketchStore.getState().addGuide("vertical", 120);
+    useSketchStore.getState().moveGuide(id, 200);
+    useSketchStore.getState().undo();
+    expect(useSketchStore.getState().document.guides?.[0]?.position).toBe(120);
+    useSketchStore.getState().undo();
+    expect(useSketchStore.getState().document.guides).toEqual([]);
+    useSketchStore.getState().redo();
+    useSketchStore.getState().redo();
+    expect(useSketchStore.getState().document.guides?.[0]?.position).toBe(200);
+  });
+
   it("keeps guides across a setDocument normalization", () => {
     const doc = { ...createDefaultDocument(200, 200), guides: [{ id: "g", orientation: "vertical" as const, position: 5 }] };
     useSketchStore.getState().setDocument(doc);

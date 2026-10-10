@@ -287,6 +287,13 @@ const LightIcon = memo(({ light, selected, palette, onSelect }: LightIconProps) 
     // of a hidden light would stay on screen and clickable.
     if (icon.current) {
       icon.current.style.visibility = shown ? "visible" : "hidden";
+      // The icon is memoized on the light object, so a color edit or its
+      // undo does not re-render it. Follow the color here.
+      const hex = `#${light.color.getHexString()}`;
+      if (icon.current.dataset.color !== hex) {
+        icon.current.dataset.color = hex;
+        icon.current.style.color = hex;
+      }
     }
     if (aims) {
       const aimed = light as THREE.DirectionalLight | THREE.SpotLight;
@@ -460,7 +467,8 @@ export const WireframeOverlay = memo(({ root, tick, color }: WireframeOverlayPro
 });
 WireframeOverlay.displayName = "WireframeOverlay";
 
-const isVisibleInTree = (object: THREE.Object3D): boolean => {
+/** Whether the object and every ancestor are visible. */
+export const isVisibleInTree = (object: THREE.Object3D): boolean => {
   let node: THREE.Object3D | null = object;
   while (node) {
     if (!node.visible) {
