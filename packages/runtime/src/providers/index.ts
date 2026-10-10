@@ -456,6 +456,7 @@ export type {
   ReferenceToVideoInputs,
   ReferenceToVideoParams,
   EntityReference,
+  NamedReferenceImage,
   ProviderStreamItem,
   ProviderSession,
   ProviderSessionUpdate,
