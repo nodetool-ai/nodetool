@@ -1361,6 +1361,37 @@ describe("StoryboardBoard next steps", () => {
   });
 });
 
+describe("StoryboardBoard linked timeline", () => {
+  it("offers no Open timeline button without a linked timeline", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" onAssemble={jest.fn()} />
+      </ThemeProvider>
+    );
+    expect(
+      screen.queryByRole("button", { name: "Open timeline" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the linked timeline next to the rebuild button", async () => {
+    mockTimelineId = "timeline-1";
+    const onOpenTimeline = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard
+          boardId="board-1"
+          onAssemble={jest.fn()}
+          onOpenTimeline={onOpenTimeline}
+        />
+      </ThemeProvider>
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Open timeline" }));
+
+    expect(onOpenTimeline).toHaveBeenCalledWith("timeline-1");
+  });
+});
+
 describe("StoryboardBoard selection", () => {
   it("opens the inspector for the selected shot", () => {
     mockShots = [makeShot("s1")];

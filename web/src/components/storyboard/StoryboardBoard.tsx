@@ -112,6 +112,7 @@ import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { exportStoryboardZip } from "../../utils/storyboardZip";
 import { flushStoryboardSave } from "../../hooks/storyboard/storyboardSaveRegistry";
 import { useTimeline } from "../../hooks/useTimelineSequence";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import {
   useRenderBatchCostEstimate,
   type RenderBatchCostEstimate
@@ -159,6 +160,10 @@ interface StoryboardBoardProps {
   directError?: string | null;
   /** Wired by the parent to the timeline handoff. */
   onAssemble?: () => void;
+  /**
+   * Opens the linked timeline. Absent: the board opens it as a workspace tab.
+   */
+  onOpenTimeline?: (timelineId: string) => void;
   /** True while assembly is in flight. */
   assembling?: boolean;
   /** Error from the last assembly, shown under the header fields. */
@@ -334,6 +339,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   directing,
   directError,
   onAssemble,
+  onOpenTimeline,
   assembling,
   assembleError,
   reviewRequest,
@@ -662,6 +668,22 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     }
     onAssemble?.();
   }, [timelineId, onAssemble]);
+  const handleOpenTimeline = useCallback(() => {
+    if (!timelineId) {
+      return;
+    }
+    if (onOpenTimeline) {
+      onOpenTimeline(timelineId);
+      return;
+    }
+    useWorkspaceTabsStore.getState().openTab({
+      type: "timeline",
+      ref: timelineId,
+      mode: "edit",
+      title: linkedTimeline.data?.name,
+      projectId: linkedTimeline.data?.projectId
+    });
+  }, [timelineId, onOpenTimeline, linkedTimeline.data]);
   const handleConfirmAssemble = useCallback(() => {
     setAssembleConfirmOpen(false);
     onAssemble?.();
@@ -1622,6 +1644,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                       ? "Rebuild linked timeline…"
                       : "Create timeline"}
                 </EditorButton>
+                {timelineId && (
+                  <EditorButton
+                    variant="outlined"
+                    startIcon={<MovieOutlinedIcon />}
+                    onClick={handleOpenTimeline}
+                  >
+                    Open timeline
+                  </EditorButton>
+                )}
               </FlexRow>
               {!hasRenderedShot && (
                 <Caption color="secondary">
