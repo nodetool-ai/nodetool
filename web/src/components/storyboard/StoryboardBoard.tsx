@@ -1196,7 +1196,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 <FlexColumn gap={SPACING.xl}>
                   <SectionHeader
                     title="Board settings"
-                    size="small"
+                    size="medium"
                     action={
                       <CloseButton
                         tooltip="Close board settings"

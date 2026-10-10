@@ -66,7 +66,6 @@ const styles = (theme: Theme) =>
 const SectionTitle = ({ children }: { children: ReactNode }) => (
   <Text
     size="smaller"
-    weight={600}
     sx={{ textTransform: "uppercase", letterSpacing: "0.06em", color: "text.secondary" }}
   >
     {children}
