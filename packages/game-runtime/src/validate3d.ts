@@ -8,6 +8,7 @@ import { scriptParamReferenceIssues } from "./script-params.js";
 import { GAME_ENGINE_4_UNAVAILABLE, validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 import { validateAnimationGraph3D, validateAnimatorGraph3D } from "./validate-animation-graph3d.js";
+import { collisionLayerIssues3D } from "./spatial3d/layers.js";
 
 export interface GameValidationResult3D {
   readonly valid: boolean;
@@ -49,6 +50,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
       if (new Set(names).size !== names.length) { add("duplicate_name", [key], "Names must be unique"); }
     }
     for (const issue of gameInputBindingIssues(document)) { add("missing_input_binding_target", issue.path, issue.message); }
+    for (const issue of collisionLayerIssues3D(document)) { add(issue.code, issue.path, issue.message); }
     for (const [slot, asset] of Object.entries(document.assets)) {
       if (asset.mediaKind === "model" || asset.mediaKind === "collider") {
         if (["x", "y", "z"].some((axis) => {

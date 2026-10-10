@@ -23,6 +23,7 @@ import { initialCamera3D, resolveCamera3D } from "./spatial3d/camera.js";
 import { digestGame3D } from "./spatial3d/digest.js";
 import { ZERO3 } from "./spatial3d/math.js";
 import { pairKey3D, type Contact3D, type EntityState3D } from "./spatial3d/state.js";
+import { resolveCollisionLayers3D } from "./spatial3d/layers.js";
 import { GAME_PHYSICS_BUILD_3D, prepareRapier3D, SpatialWorld3D, type PreparedCollider3D } from "./spatial3d/world.js";
 
 import { statefulGameSystem } from "./systems/pipeline.js";
@@ -163,7 +164,7 @@ export async function createGameSession3D(
   const validation = validateGame3D(value);
   if (!validation.valid || !validation.document) throw new Error(`Invalid 3D game: ${validation.errors.join("; ")}`);
   if (!Number.isSafeInteger(seed) || seed < 0) throw new Error("Game seed must be a nonnegative safe integer");
-  const document = validation.document;
+  const document = resolveCollisionLayers3D(validation.document);
   const contentDigest = await digestGame3D(document);
   const saved = savedSnapshot ? gameSnapshot3D.parse(savedSnapshot) : undefined;
   if (

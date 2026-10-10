@@ -115,6 +115,18 @@ function NumberField({ label, value, schema, degrees, error, axis, onChange }: {
   </FlexColumn>;
 }
 
+/**
+ * Sets one field of a record. Picking a 3D collider layer also resets raw category and
+ * mask to their defaults in the same edit, since a layered collider derives them and
+ * validation rejects non-default raw bits beside a layer.
+ */
+function withColliderLayer(path: string, record: Record<string, unknown>, key: string, next: unknown): Record<string, unknown> {
+  if (key === "layer" && path.endsWith("collider3d") && typeof next === "string") {
+    return { ...record, layer: next, category: 1, mask: 0xffff };
+  }
+  return { ...record, [key]: next };
+}
+
 export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, componentSections = false }: SchemaFieldsProps) {
   const selected = schemaVariant(schema, value);
   if (selected !== schema) {
@@ -137,7 +149,10 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
   if (schema.type === "object" || schema.properties) {
     const record = asRecord(value);
     // A const property is a union discriminator; the variant select above already edits it.
-    const properties = Object.entries(schema.properties ?? {}).filter(([key, child]) => key !== "kind" && key !== "property" && child.const === undefined);
+    // A 3D collider on a named layer derives its category and mask, so its raw bits are hidden.
+    const derivedBits = path.endsWith("collider3d") && typeof record.layer === "string";
+    const properties = Object.entries(schema.properties ?? {}).filter(([key, child]) => key !== "kind" && key !== "property" && child.const === undefined &&
+      !(derivedBits && (key === "category" || key === "mask")));
     const pairs = [
       { label: fieldLabel(path || "value"), keys: ["x", "y", "z"], axes: ["X", "Y", "Z"] },
       { label: path.endsWith("transform2d") ? "Position" : "Axes", keys: ["x", "y"], axes: ["X", "Y"] },
@@ -145,7 +160,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       { label: "Size", keys: ["width", "height"], axes: ["W", "H"] }
     ].filter((pair) => pair.keys.every((key) => typeof record[key] === "number" &&
       ["number", "integer"].includes(schema.properties?.[key]?.type ?? "") && schema.required?.includes(key)));
-    const absent = properties.filter(([key]) => record[key] === undefined);
+    const absent = properties.filter(([key]) => record[key] === undefined && !(key === "layer" && path.endsWith("collider3d") && !collisionLayers?.length));
     return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>
       {properties.filter(([key]) => record[key] !== undefined).map(([key, child]) => {
         const pair = pairs.find((entry) => entry.keys.includes(key));
@@ -161,7 +176,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         const label = path ? `${path}.${key}` : key;
         const childPath = [...issuePath, key];
         const field = <SchemaFields schema={child} value={childValue} path={label} issuePath={childPath} issues={issues} assets={assets} collisionLayers={collisionLayers}
-          onChange={(next) => onChange({ ...record, [key]: next })} />;
+          onChange={(next) => onChange(withColliderLayer(path, record, key, next))} />;
         const optional = !schema.required?.includes(key);
         const remove = (): void => { const copy = { ...record }; delete copy[key]; onChange(copy); };
         if (isVectorSchema(child) && !optional) {
@@ -186,7 +201,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       })}
       {absent.length > 0 && <FlexRow gap={SPACING.xs} sx={componentSections ? ADD_COMPONENT_ROW_SX : ADD_FIELD_ROW_SX}>
         {absent.map(([key, child]) => <EditorButton key={key} variant="outlined" startIcon={<AddIcon fontSize="small" />}
-          onClick={() => onChange({ ...record, [key]: schemaDefault(child) })}>Add {fieldLabel(key)}</EditorButton>)}
+          onClick={() => onChange(withColliderLayer(path, record, key, key === "layer" && path.endsWith("collider3d") ? collisionLayers?.[0] : schemaDefault(child)))}>Add {fieldLabel(key)}</EditorButton>)}
       </FlexRow>}
       {fieldError(issues, issuePath) && <Caption color="error">{fieldError(issues, issuePath)}</Caption>}
     </FlexColumn>;
@@ -238,6 +253,13 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
     const degrees = path.endsWith("transform2d.rotation");
     return <NumberField label={degrees ? "Rotation" : fieldLabel(path)} value={typeof value === "number" ? value : 0} schema={schema}
       degrees={degrees} error={error} onChange={onChange} />;
+  }
+  if (schema.type === "string" && path.endsWith("collider3d.layer")) {
+    const current = typeof value === "string" ? value : "";
+    const names = collisionLayers?.includes(current) ? collisionLayers : [current, ...(collisionLayers ?? [])];
+    return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}><InspectorFieldRow label="Layer"><InspectorSelect grow label="Layer" value={current}
+      options={names.map((name) => ({ value: name, label: name }))} onChange={onChange} /></InspectorFieldRow>
+      {error && <Caption color="error">{error}</Caption>}</FlexColumn>;
   }
   if (schema.type === "string") {
     const kind = assetKind(path);

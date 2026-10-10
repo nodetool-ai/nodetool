@@ -759,14 +759,91 @@ describe("OAuth API: Claude subscription endpoints", () => {
     await rm(configDir, { recursive: true, force: true });
   });
 
-  /** Mirrors the server: the router is handed a pathname, not a full URL. */
+  /**
+   * Mirrors the server: the router is handed a pathname, not a full URL.
+   * User "1" is the Local-mode user, an admin.
+   */
   function claudeRequest(
     path: string,
-    init?: RequestInit
+    init?: RequestInit,
+    userId = "1"
   ): Promise<Response | null> {
     const url = new URL(`http://localhost:7777${path}`);
-    return handleOAuthRequest(new Request(url, init), url.pathname, getUserId);
+    return handleOAuthRequest(
+      new Request(url, init),
+      url.pathname,
+      () => userId
+    );
   }
+
+  async function storeLogin(): Promise<void> {
+    await writeFile(
+      join(configDir, ".credentials.json"),
+      JSON.stringify({
+        claudeAiOauth: {
+          accessToken: "sk-ant-oat01-access",
+          refreshToken: "sk-ant-ort01-refresh",
+          expiresAt: Date.now() + 3_600_000,
+          scopes: ["user:inference"],
+          subscriptionType: "max"
+        }
+      })
+    );
+  }
+
+  it("refuses a non-admin who tries to start, finish or remove the login", async () => {
+    await storeLogin();
+    const requests: Array<[string, RequestInit | undefined]> = [
+      ["/api/oauth/claude/start?manual=true", undefined],
+      [
+        "/api/oauth/claude/complete",
+        { method: "POST", body: JSON.stringify({ code: "a#b" }) }
+      ],
+      ["/api/oauth/claude/disconnect", { method: "POST" }]
+    ];
+    for (const [path, init] of requests) {
+      const response = await claudeRequest(path, init, "test-user-1");
+      expect(response!.status).toBe(403);
+    }
+    // The stored login is untouched.
+    const tokens = (await jsonBody(
+      (await claudeRequest("/api/oauth/claude/tokens"))!
+    )) as { tokens: unknown[] };
+    expect(tokens.tokens).toHaveLength(1);
+  });
+
+  it("shows a non-admin the connection without the plan details", async () => {
+    await storeLogin();
+    const response = await claudeRequest(
+      "/api/oauth/claude/tokens",
+      undefined,
+      "test-user-1"
+    );
+    expect(response!.status).toBe(200);
+    const body = (await jsonBody(response!)) as {
+      tokens: Array<Record<string, unknown>>;
+    };
+    expect(body.tokens).toHaveLength(1);
+    expect(body.tokens[0]).toMatchObject({ provider: "claude", expired: false });
+    expect(body.tokens[0]).not.toHaveProperty("subscription_type");
+    expect(body.tokens[0]).not.toHaveProperty("rate_limit_tier");
+    expect(body.tokens[0]).not.toHaveProperty("credentials_path");
+  });
+
+  it("lets a user listed in ADMIN_USER_IDS manage the login", async () => {
+    await storeLogin();
+    vi.stubEnv("ADMIN_USER_IDS", "ops-user");
+    try {
+      const response = await claudeRequest(
+        "/api/oauth/claude/disconnect",
+        { method: "POST" },
+        "ops-user"
+      );
+      expect(response!.status).toBe(200);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 
   it("GET /api/oauth/claude/start returns both authorization URLs", async () => {
     const response = await claudeRequest("/api/oauth/claude/start");

@@ -243,3 +243,87 @@ export function compileOneTake(board: OneTakeBoard): CompiledOneTake {
     shot_total_seconds: shotTotal
   };
 }
+
+// ── Scene clips ─────────────────────────────────────────────────────────────
+
+/** The fewest shots one scene clip covers. One shot renders its own clip. */
+export const SCENE_CLIP_MIN_SHOTS = 2;
+/** The most shots one scene clip covers. */
+export const SCENE_CLIP_MAX_SHOTS = 5;
+
+/**
+ * A run of consecutive shots rendered as one clip: a one take over part of
+ * the board. It is stored on the board, so the run, its prompt and its
+ * settings survive a reload and a re-render. An absent setting falls back to
+ * the board's one-take direction, then as {@link OneTakeDirection} documents.
+ *
+ * The clip lands on the run's first shot and every other shot in the run is
+ * covered by its window of it (`Shot.covered_by`), exactly as a one take.
+ */
+export interface SceneClipDirection extends OneTakeDirection {
+  id: string;
+  /** The run's shot ids in board order. */
+  shot_ids: string[];
+}
+
+/** A scene clip's shots, or why they no longer form a run. */
+export type SceneClipRun =
+  | { shots: Shot[]; issue: null }
+  | { shots: Shot[]; issue: string };
+
+/**
+ * Resolve a scene clip's shots on the board. The run must name between
+ * {@link SCENE_CLIP_MIN_SHOTS} and {@link SCENE_CLIP_MAX_SHOTS} existing
+ * shots that sit next to each other in board order and share one scene.
+ * A deleted or moved shot breaks the run rather than silently changing what
+ * the clip covers.
+ */
+export function sceneClipRun(
+  shots: readonly Shot[],
+  shotIds: readonly string[]
+): SceneClipRun {
+  const ordered = byIndex(shots);
+  const positions = shotIds.map((id) =>
+    ordered.findIndex((shot) => shot.id === id)
+  );
+  const found = positions
+    .filter((position) => position >= 0)
+    .sort((a, b) => a - b);
+  const run = found.map((position) => ordered[position]);
+  if (found.length < shotIds.length) {
+    return { shots: run, issue: "A shot in this scene clip was deleted." };
+  }
+  if (run.length < SCENE_CLIP_MIN_SHOTS || run.length > SCENE_CLIP_MAX_SHOTS) {
+    return {
+      shots: run,
+      issue: `A scene clip covers ${SCENE_CLIP_MIN_SHOTS} to ${SCENE_CLIP_MAX_SHOTS} shots.`
+    };
+  }
+  if (found.some((position, i) => i > 0 && position !== found[i - 1] + 1)) {
+    return {
+      shots: run,
+      issue: "The shots in this scene clip are no longer next to each other."
+    };
+  }
+  if (run.some((shot) => (shot.scene_id ?? null) !== (run[0].scene_id ?? null))) {
+    return {
+      shots: run,
+      issue: "The shots in this scene clip are no longer in one scene."
+    };
+  }
+  return { shots: run, issue: null };
+}
+
+/**
+ * Compile a scene clip: {@link compileOneTake} over the run's shots alone, so
+ * `[Image N]` numbers and the step windows start at the run's first shot.
+ */
+export function compileSceneClip(
+  shots: readonly Shot[],
+  clip: SceneClipDirection
+): CompiledOneTake {
+  return compileOneTake({
+    shots: sceneClipRun(shots, clip.shot_ids).shots,
+    oneTake: clip
+  });
+}
