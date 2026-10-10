@@ -67,6 +67,25 @@ void main() {
 }`
 };
 
+/** three 0.185's SMAAPass keeps its lookups in private fields. The typings name the public fields of older releases. */
+class GameSMAAPass extends SMAAPass {
+  declare readonly _areaTexture: THREE.Texture;
+  declare readonly _searchTexture: THREE.Texture;
+
+  /**
+   * Waits until the area and search lookup images have decoded and marks their textures for upload.
+   * SMAAPass decodes them from data URLs and flags the textures only in a later onload task, so a
+   * composer that renders in the same task would run SMAA with unbound lookups and pass the image through.
+   */
+  async lookupsReady(): Promise<void> {
+    await Promise.all([this._areaTexture, this._searchTexture].map(async (texture) => {
+      if (!(texture instanceof THREE.Texture) || !(texture.image instanceof HTMLImageElement)) { throw new Error("SMAA lookup textures are missing"); }
+      await texture.image.decode();
+      texture.needsUpdate = true;
+    }));
+  }
+}
+
 interface ComposerState {
   readonly key: string;
   readonly composer: EffectComposer;
@@ -82,20 +101,27 @@ interface ComposerState {
 export class GamePostProcessor3D {
   private plan: GamePostProcessingPlan3D = resolveGamePostProcessing3D(undefined, 0);
   private state: ComposerState | null = null;
+  private readonly size = new THREE.Vector2();
+  private disposed = false;
 
   constructor(private readonly renderer: THREE.WebGLRenderer) {}
 
   /** Names of the composer passes the next render runs, or an empty list for a direct render. */
   get passNames(): readonly string[] { return gamePostProcessingPassNames3D(this.plan); }
 
-  configure(settings: GamePostProcessing3D | undefined): void {
+  /** Bytes of the composer's two full-resolution half-float colour targets, or 0 on the direct path. */
+  get targetBytes(): number { return this.state ? this.state.width * this.state.height * 8 * 2 : 0; }
+
+  async configure(settings: GamePostProcessing3D | undefined): Promise<void> {
     this.plan = resolveGamePostProcessing3D(settings, this.renderer.capabilities.maxSamples);
     this.renderer.toneMapping = this.plan.toneMapping;
     this.renderer.toneMappingExposure = this.plan.exposure;
     const composer = this.plan.composer;
     if (!composer) { this.release(); return; }
     const key = gamePostProcessingPassNames3D(this.plan).join(",") + `:${composer.samples}`;
-    if (this.state?.key !== key) { this.release(); this.state = this.build(key, composer); }
+    if (this.state?.key !== key) { this.release(); this.state = await this.build(key, composer); }
+    // A renderer disposed while SMAA lookups decoded must not keep the new targets.
+    if (this.disposed) { this.release(); return; }
     const state = this.state;
     if (!state) { return; }
     if (state.bloom && composer.bloom) {
@@ -118,7 +144,7 @@ export class GamePostProcessor3D {
       this.renderer.render(scene, camera);
       return;
     }
-    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    const size = this.renderer.getDrawingBufferSize(this.size);
     if (size.x !== state.width || size.y !== state.height) {
       state.composer.setPixelRatio(1);
       state.composer.setSize(size.x, size.y);
@@ -129,6 +155,11 @@ export class GamePostProcessor3D {
     state.composer.render();
   }
 
+  dispose(): void {
+    this.disposed = true;
+    this.release();
+  }
+
   /** Drops GPU targets, for example after a context loss. The next configure rebuilds them. */
   release(): void {
     if (!this.state) { return; }
@@ -137,8 +168,8 @@ export class GamePostProcessor3D {
     this.state = null;
   }
 
-  private build(key: string, plan: NonNullable<GamePostProcessingPlan3D["composer"]>): ComposerState {
-    const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+  private async build(key: string, plan: NonNullable<GamePostProcessingPlan3D["composer"]>): Promise<ComposerState> {
+    const size = this.renderer.getDrawingBufferSize(this.size);
     const target = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: plan.samples });
     const composer = new EffectComposer(this.renderer, target);
     composer.setPixelRatio(1);
@@ -157,7 +188,15 @@ export class GamePostProcessor3D {
       passes.push(vignette);
     }
     if (plan.antialias === "fxaa") { passes.push(new FXAAPass()); }
-    if (plan.antialias === "smaa") { passes.push(new SMAAPass()); }
+    if (plan.antialias === "smaa") {
+      const smaa = new GameSMAAPass();
+      passes.push(smaa);
+      try { await smaa.lookupsReady(); } catch (error) {
+        for (const pass of passes) { pass.dispose(); }
+        composer.dispose();
+        throw error;
+      }
+    }
     for (const pass of passes) { composer.addPass(pass); }
     return { key, composer, scenePass, passes, bloom, vignette, width: size.x, height: size.y };
   }

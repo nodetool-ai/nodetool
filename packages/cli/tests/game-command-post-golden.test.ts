@@ -53,8 +53,8 @@ async function capture(path: string, output: string): Promise<{ png: Buffer; rep
 }
 
 /** Writes a fixture's document with its post-processing replaced, or removed when `postProcessing` is undefined. */
-async function variant(name: string, postProcessing: Record<string, unknown> | undefined): Promise<string> {
-  const document = JSON.parse(await readFile(join(fixtureDirectory, "post-stack.json"), "utf8")) as PostDocument;
+async function variant(name: string, postProcessing: Record<string, unknown> | undefined, fixture = "post-stack"): Promise<string> {
+  const document = JSON.parse(await readFile(join(fixtureDirectory, `${fixture}.json`), "utf8")) as PostDocument;
   const environment = document.scenes[0]?.environment;
   if (!environment) { throw new Error("Post-processing fixture has no scene environment"); }
   if (postProcessing) { environment["postProcessing"] = postProcessing; } else { delete environment["postProcessing"]; }
@@ -68,6 +68,8 @@ it("covers every post-processing fixture with a stored golden", async () => {
     .map((name) => name.replace(/\.json$/, "")).sort();
   expect(fixtures).toEqual(names);
   expect(JSON.parse(await readFile(join(fixtureDirectory, "manifest.json"), "utf8"))).toEqual(metadata);
+  const pngs = (await readdir(fixtureDirectory)).filter((name) => name.endsWith(".png")).map((name) => name.replace(/\.png$/, "")).sort();
+  expect(pngs).toEqual(names);
 });
 
 it.each(names)("captures %s at the fixed tick within the stored pixel tolerance", async (name) => {
@@ -99,6 +101,10 @@ it("renders disabled or default post-processing with the same pixels as a scene 
   const defaults = await capture(await variant("defaults", {}), join(directory, "defaults.png"));
   expect((await compareGameCaptures(none.png, disabled.png, 0)).changedPixels).toBe(0);
   expect((await compareGameCaptures(none.png, defaults.png, 0)).changedPixels).toBe(0);
+  // SMAA must smooth edges in a single-frame capture, not pass the image through before its lookup textures load.
+  const aliased = await capture(await variant("aliased", { antialias: "none" }, "post-smaa"), join(directory, "aliased.png"));
+  const smaa = await capture(join(fixtureDirectory, "post-smaa.json"), join(directory, "smaa-live.png"));
+  expect((await compareGameCaptures(aliased.png, smaa.png, 0)).changedPixels, "smaa must differ from no antialiasing").toBeGreaterThan(0);
   for (const name of names) {
     const effect = await capture(join(fixtureDirectory, `${name}.json`), join(directory, `${name}-live.png`));
     expect((await compareGameCaptures(none.png, effect.png, 0)).changedPixels, `${name} must change the image`).toBeGreaterThan(0);

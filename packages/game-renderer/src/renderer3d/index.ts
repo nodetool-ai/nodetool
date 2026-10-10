@@ -276,7 +276,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     syncGameLights(this.scene, this.lights, frame);
     configureGameEnvironment(this.scene, this.ambient, this.renderer, frame.environment);
     await this.sky.apply(this.scene, frame);
-    this.postProcessor.configure(frame.environment.postProcessing);
+    await this.postProcessor.configure(frame.environment.postProcessing);
     this.controller.signal.throwIfAborted();
     await this.fonts.load(frame);
     this.controller.signal.throwIfAborted();
@@ -304,7 +304,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     for (const model of this.modelCache.loadedModels) { geometryBytes += model.prepared.geometryBytes; textureBytes += model.prepared.textureBytes; }
     return { backend: this.backend, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles,
       geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, geometryBytes, textureBytes,
-      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities };
+      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8 + this.postProcessor.targetBytes, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities };
   }
   dispose(): void {
     if (this.status === "disposed") { return; }
@@ -318,7 +318,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.modelCache.dispose();
     this.fonts.dispose();
     this.sky.dispose();
-    this.postProcessor.release();
+    this.postProcessor.dispose();
     this.lights.forEach((light) => removeGameLight(light));
     this.lights.clear();
     this.hudTexture.dispose();

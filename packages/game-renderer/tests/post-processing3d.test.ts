@@ -67,24 +67,24 @@ describe("post-processing in real Chromium", () => {
         return postProcessing ? { ...base, environment: { ...base.environment, postProcessing: settings(postProcessing) } } : base;
       };
       const frames = [frame(), frame({ bloom: { threshold: 0, intensity: 2 }, vignette: { intensity: 1 }, antialias: "smaa" }),
-        frame({ bloom: { threshold: 0, intensity: 1 }, vignette: { intensity: 0.5 }, antialias: "smaa" }), frame({ enabled: false, bloom: {} }), frame()];
+        frame({ bloom: { threshold: 0, intensity: 1 }, vignette: { intensity: 0.5 }, antialias: "smaa" }), frame({ enabled: false, bloom: {} }), frame(), frame({ antialias: "none" }), frame({ antialias: "smaa" })];
       const result = await page.evaluate(async (rendered) => {
         const canvas = document.querySelector("canvas"); if (!canvas) { throw new Error("Canvas missing"); }
         const renderer = await window.postHarness.factory({ canvas, preserveDrawingBuffer: true });
         try {
           renderer.resize(128, 128);
-          const images: string[] = []; const textures: number[] = []; const drawCalls: number[] = [];
+          const images: string[] = []; const textures: number[] = []; const drawCalls: number[] = []; const targetBytes: number[] = [];
           for (const item of rendered) {
             const stats = await renderer.render(item, 1);
-            images.push(canvas.toDataURL("image/png")); textures.push(stats.textures); drawCalls.push(stats.drawCalls);
+            images.push(canvas.toDataURL("image/png")); textures.push(stats.textures); drawCalls.push(stats.drawCalls); targetBytes.push(stats.targetBytes);
           }
-          return { images, textures, drawCalls };
+          return { images, textures, drawCalls, targetBytes };
         } finally { renderer.dispose(); }
       }, frames);
       expect(pageErrors).toEqual([]);
       const png = (dataUrl: string | undefined): Buffer => Buffer.from((dataUrl ?? "").replace(/^data:image\/png;base64,/, ""), "base64");
-      const [plain, stack, retuned, disabled, restored] = result.images.map(png);
-      if (!plain || !stack || !retuned || !disabled || !restored) { throw new Error("Post-processing captures are missing"); }
+      const [plain, stack, retuned, disabled, restored, aliased, smaa] = result.images.map(png);
+      if (!plain || !stack || !retuned || !disabled || !restored || !aliased || !smaa) { throw new Error("Post-processing captures are missing"); }
       const [plainDraws, stackDraws] = result.drawCalls;
       expect(stackDraws).toBeGreaterThan(plainDraws ?? Infinity);
       expect((await compareGameCaptures(plain, stack, 16)).changedFraction).toBeGreaterThan(0.05);
@@ -95,6 +95,11 @@ describe("post-processing in real Chromium", () => {
       expect(result.textures[3]).toBe(result.textures[0]);
       expect((await compareGameCaptures(plain, disabled, 0)).changedPixels).toBe(0);
       expect((await compareGameCaptures(plain, restored, 0)).changedPixels).toBe(0);
+      // Composer targets count toward target memory and are released with the composer.
+      expect(result.targetBytes[1]).toBe((result.targetBytes[0] ?? 0) + 128 * 128 * 8 * 2);
+      expect(result.targetBytes[3]).toBe(result.targetBytes[0]);
+      // The first frame of a new SMAA pass already smooths edges: its lookup textures are decoded before it renders.
+      expect((await compareGameCaptures(aliased, smaa, 0)).changedPixels).toBeGreaterThan(0);
     } finally { await browser.close(); }
   }, 60_000);
 });
