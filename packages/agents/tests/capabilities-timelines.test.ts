@@ -1043,6 +1043,30 @@ describe("set_timeline_document", () => {
     expect(stored?.fps).toBe(24);
   });
 
+  it("accepts the sequence get_timeline returned and applies its name", async () => {
+    const row = await makeTimeline();
+    const { timeline } = (await run().invoke("get_timeline", {
+      timeline_id: row.id
+    })) as { timeline: Record<string, unknown> };
+    const result = (await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: { ...timeline, ...replacement(), name: "Siam Awakening" }
+    })) as {
+      ok: boolean;
+      name: string;
+      validation: { warnings: { code: string; path?: string }[] };
+    };
+
+    expect(result).toMatchObject({ ok: true, name: "Siam Awakening" });
+    expect(
+      result.validation.warnings.filter((w) => w.code === "field_stripped")
+    ).toEqual([]);
+    const stored = await TimelineSequence.findById(row.id);
+    expect(stored?.name).toBe("Siam Awakening");
+    expect(stored?.project_id).toBe("default");
+    expect(stored?.toDocument()).not.toHaveProperty("name");
+  });
+
   it("fills the bookkeeping a hand-authored document leaves out", async () => {
     const row = await makeTimeline();
     const result = (await run().invoke("set_timeline_document", {
