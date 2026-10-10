@@ -128,6 +128,30 @@ function captureLiveStateEntry(
   };
 }
 
+/**
+ * The history a freshly loaded document starts with: one "Open" checkpoint
+ * holding the document as loaded. Without it, an edit pushed after it ran
+ * (add layer, select all) would become the first entry and could never be
+ * undone, because no entry would hold the state before it.
+ */
+export function initialHistory(
+  document: SketchDocument,
+  selection: HistoryEntry["selection"]
+): { history: HistoryEntry[]; historyIndex: number } {
+  return {
+    history: [
+      {
+        ...captureLiveStateEntry(document, undefined),
+        action: "open",
+        timing: "before",
+        selection,
+        timestamp: Date.now()
+      }
+    ],
+    historyIndex: 0
+  };
+}
+
 /** Which layer units an external merge took out of the draft's hands. */
 interface ExternalLayerOwnership {
   /** Layers the external write added or rewrote; the merged value wins. */
@@ -417,6 +441,13 @@ export interface HistorySlice {
   redo: () => HistoryEntry | null;
   canUndo: () => boolean;
   canRedo: () => boolean;
+  /**
+   * Record the edit a pre-edit checkpoint is still waiting on (a stroke, a
+   * transform) as its own entry. Called before an edit that is recorded after
+   * it runs, so that edit gets its own undo step instead of sharing one with
+   * the stroke before it.
+   */
+  commitPendingEdit: () => void;
 }
 
 export const createHistorySlice: StateCreator<
@@ -688,5 +719,28 @@ export const createHistorySlice: StateCreator<
       isLiveStateAheadCached(state.document, state.history, 0)
     );
   },
-  canRedo: () => get().historyIndex < get().history.length - 1
+  canRedo: () => get().historyIndex < get().history.length - 1,
+
+  commitPendingEdit: () => {
+    const state = get();
+    const tip = state.history[state.historyIndex];
+    if (
+      !tip ||
+      tip.timing !== "before" ||
+      state.historyIndex !== state.history.length - 1 ||
+      !isLiveStateAhead(state.document, state.history, state.historyIndex)
+    ) {
+      return;
+    }
+    const history = [
+      ...state.history,
+      {
+        ...captureLiveStateEntry(state.document, undefined),
+        selection: state.selection,
+        timestamp: Date.now()
+      }
+    ];
+    trimHistoryInPlace(history);
+    set({ history, historyIndex: history.length - 1 });
+  }
 });

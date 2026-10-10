@@ -425,6 +425,16 @@ export interface EntityReference {
   image?: Uint8Array | null;
 }
 
+/**
+ * A reference image a video model conditions on, with the name the prompt can
+ * call it by. Unlike {@link EntityReference}, it reaches the provider: only a
+ * provider with a reference mode reads it, and every other provider ignores it.
+ */
+export interface NamedReferenceImage {
+  name: string;
+  image: Uint8Array;
+}
+
 export interface TextToImageParams {
   model: ImageModel;
   prompt: string;
@@ -665,6 +675,8 @@ export interface TextToVideoParams {
   prompt: string;
   /** Consistency entities; descriptors join the prompt (text-only for video). */
   entities?: EntityReference[] | null;
+  /** Reference images for providers with a reference mode. */
+  references?: NamedReferenceImage[] | null;
   negativePrompt?: string | null;
   numFrames?: number | null;
   /** Requested duration in seconds (provider decides fps). */
@@ -695,6 +707,11 @@ export interface ImageToVideoParams {
    * would change its meaning.
    */
   entities?: EntityReference[] | null;
+  /**
+   * Reference images for providers with a reference mode, which condition on
+   * them beside the start frame. The rest ignore them.
+   */
+  references?: NamedReferenceImage[] | null;
   negativePrompt?: string | null;
   numFrames?: number | null;
   /** Requested duration in seconds (provider decides fps). */

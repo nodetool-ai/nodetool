@@ -114,8 +114,9 @@ async function fireRegistration(
     });
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
-    registration.last_error = error.message;
-    await registration.save();
+    await TriggerRegistration.updateColumns(registration.id, {
+      last_error: error.message
+    });
     log.warn(
       `Schedule registration ${registration.id} failed to deliver trigger input`,
       error
@@ -123,9 +124,10 @@ async function fireRegistration(
     return;
   }
 
-  registration.last_fired_at = new Date(nowMs).toISOString();
-  registration.last_error = null;
-  await registration.save();
+  await TriggerRegistration.updateColumns(registration.id, {
+    last_fired_at: new Date(nowMs).toISOString(),
+    last_error: null
+  });
 
   notify?.({ registrationId: registration.id, inputId });
 }

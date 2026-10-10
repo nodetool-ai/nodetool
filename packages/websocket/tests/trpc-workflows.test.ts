@@ -87,12 +87,18 @@ vi.mock("../src/storage-retention.js", () => ({
   }))
 }));
 
+vi.mock("../src/lib/workflow-service.js", async (orig) => ({
+  ...(await orig<typeof import("../src/lib/workflow-service.js")>()),
+  syncTriggerRegistrations: vi.fn(async () => undefined)
+}));
+
 import {
   Workflow,
   WorkflowVersion,
   WorkflowCollaborator,
   WorkflowShare
 } from "@nodetool-ai/models";
+import { syncTriggerRegistrations } from "../src/lib/workflow-service.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -962,7 +968,33 @@ describe("workflows router", () => {
           version: 1
         });
         expect(result.id).toBe("wf-1");
-        expect(wf.save).toHaveBeenCalled();
+        expect(result.graph).toEqual(ver.graph);
+        expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
+          "wf-1",
+          wf.updated_at,
+          { graph: ver.graph }
+        );
+        expect(wf.save).not.toHaveBeenCalled();
+        expect(syncTriggerRegistrations).toHaveBeenCalledWith(
+          expect.objectContaining({ id: "wf-1", graph: ver.graph })
+        );
+      });
+
+      it("answers CONFLICT when the workflow changed during the restore", async () => {
+        const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+        (
+          WorkflowVersion.findByVersion as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(makeVersion({ id: "ver-1", version: 1 }));
+        (
+          Workflow.updateFieldsIfUnchanged as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(null);
+
+        const caller = createCaller(makeCtx());
+        await expect(
+          caller.workflows.versions.restore({ id: "wf-1", version: 1 })
+        ).rejects.toMatchObject({ code: "CONFLICT" });
+        expect(syncTriggerRegistrations).not.toHaveBeenCalled();
       });
 
       it("throws NOT_FOUND for missing version", async () => {

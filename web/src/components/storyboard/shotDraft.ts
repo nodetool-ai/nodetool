@@ -49,6 +49,10 @@ export interface ShotDraft {
   renderMode: ShotRenderMode;
   graphics: Shot["graphics"];
   motion: string;
+  /** End → `end_state`, the picture the shot ends on. */
+  endState: string;
+  /** Sound → `sound`, what is heard. */
+  sound: string;
 }
 
 export type ShotDraftKey = keyof ShotDraft;
@@ -69,7 +73,9 @@ const DRAFT_KEYS = [
   "notes",
   "renderMode",
   "graphics",
-  "motion"
+  "motion",
+  "endState",
+  "sound"
 ] as const satisfies readonly ShotDraftKey[];
 
 /** The draft a freshly opened dialog starts from. */
@@ -90,7 +96,9 @@ export const draftFromShot = (shot: Shot, scene: Scene | null): ShotDraft => ({
   notes: shot.notes ?? "",
   renderMode: shot.render_mode ?? "keyframe",
   graphics: shot.graphics,
-  motion: shot.motion ?? ""
+  motion: shot.motion ?? "",
+  endState: shot.end_state ?? "",
+  sound: shot.sound ?? ""
 });
 
 /** Whether the creator has changed anything since the dialog opened. */
@@ -219,7 +227,9 @@ export const shotPatchFromDraft = (draft: ShotDraft): Partial<Shot> => {
     camera: hasCamera ? camera : undefined,
     render_mode: draft.renderMode,
     graphics: draft.graphics,
-    motion: orUndefined(draft.motion)
+    motion: orUndefined(draft.motion),
+    end_state: orUndefined(draft.endState),
+    sound: orUndefined(draft.sound)
   };
 };
 
@@ -258,6 +268,8 @@ export const shotPatchFromChangedDraft = (
   if (changed.has("renderMode")) patch.render_mode = draft.renderMode;
   if (changed.has("graphics")) patch.graphics = draft.graphics;
   if (changed.has("motion")) patch.motion = orUndefined(draft.motion);
+  if (changed.has("endState")) patch.end_state = orUndefined(draft.endState);
+  if (changed.has("sound")) patch.sound = orUndefined(draft.sound);
 
   if (CAMERA_KEYS.some((key) => changed.has(key))) {
     const camera = { ...current.camera };

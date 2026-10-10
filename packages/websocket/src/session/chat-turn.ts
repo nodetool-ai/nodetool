@@ -14,6 +14,7 @@ import {
   repairOrphanedToolCalls
 } from "../chat-tool-call-repair.js";
 import { attachChatPredictionForwarder } from "../chat-prediction-forwarder.js";
+import { admitSpend } from "../credit-gate.js";
 import { isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
 import {
   isFunctionValue,
@@ -1568,6 +1569,22 @@ export class ChatTurnHandler {
         thread_id: threadId
       });
       return;
+    }
+
+    // The managed provider spends NodeTool's own keys against the user's
+    // credits. Every other managed entry point admits against the balance and
+    // the operator's model whitelist first, and so does a chat turn.
+    if (providerId === "nodetool") {
+      const decision = await admitSpend(userId, 0, [model]);
+      if (!decision.allowed) {
+        await settleRegisteredRunTrace(rootContext, "failed", decision.reason);
+        await this.session.send({
+          type: "error",
+          message: decision.reason,
+          thread_id: threadId
+        });
+        return;
+      }
     }
 
     // Route to the workflow processor ONLY when the client explicitly opts in

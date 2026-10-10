@@ -22,6 +22,7 @@ import type {
   CreativeContext,
   Entity,
   ImageRef,
+  OneTakeDirection,
   Scene,
   Screenplay,
   Shot,
@@ -39,6 +40,7 @@ import {
   rebaseHistoryForMerge,
   type HistoryMap
 } from "../documentHistory";
+import isEqual from "../../utils/isEqual";
 import { rebaseDocumentSnapshots } from "../documentMerge";
 import { storyboardMergeAdapter } from "./merge";
 import type {
@@ -106,6 +108,11 @@ export interface StoryboardBoard {
   setupShotCount?: number;
   /** The inputs the current screenplay was directed from (PRD § 7.2). */
   setupDirectedFrom?: string | null;
+  /**
+   * The parts of the one-take prompt, when the board renders as one
+   * continuous clip. `compileOneTake` builds the prompt from them.
+   */
+  oneTake?: OneTakeDirection;
   /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
   updatedAt: number;
 }
@@ -184,6 +191,8 @@ interface StoryboardStoreState {
    * three (PRD § 7.7.1).
    */
   setSetup: (boardId: string, patch: StoryboardSetupPatch) => void;
+  /** Replace the board's one-take direction. Rapid edits merge into one undo step. */
+  setOneTake: (boardId: string, oneTake: OneTakeDirection) => void;
   /** Replace the board's entity selection. */
   setEntityIds: (boardId: string, entityIds: string[]) => void;
   /**
@@ -956,6 +965,17 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         },
         // Typing in a setup field coalesces the same way a brief edit does.
         { coalesceKey: `setup:${Object.keys(patch).sort().join(",")}` }
+      )
+    ),
+
+  setOneTake: (boardId, oneTake) =>
+    set((state) =>
+      withBoard(
+        state,
+        boardId,
+        (b) => (isEqual(b.oneTake, oneTake) ? null : { ...b, oneTake }),
+        // Typing in a section is one undo step, as for the brief.
+        { coalesceKey: "oneTake" }
       )
     ),
 

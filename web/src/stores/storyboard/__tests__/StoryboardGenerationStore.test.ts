@@ -296,6 +296,56 @@ describe("production candidate responses", () => {
     expect(landed?.status).toBe("rendered");
   });
 
+  it("selects a later render's clip over the one already on the shot", () => {
+    const shotId = "s-second-render";
+    seedShot(shotId);
+    const land = (batchId: string, assetId: string): void => {
+      const production = compileProductionCandidates({
+        batchId,
+        destinationId: shotId,
+        destinationKind: "storyboard_shot",
+        operation: "initial_generation",
+        prompt: "one take",
+        routeSupport: { referenceToVideo: true, audioDrivenPerformance: false }
+      })[0];
+      if (!production) throw new Error("Expected a production candidate.");
+      useStoryboardGenerationStore
+        .getState()
+        .registerJob(
+          shotId,
+          BOARD,
+          production.identity.requestId,
+          "clip",
+          undefined,
+          undefined,
+          "planned",
+          production
+        );
+      __handleShotJobMessageForTests(
+        production.identity.requestId,
+        { shotId, boardId: BOARD, kind: "clip", production },
+        {
+          type: "rpc_response",
+          request_id: production.identity.requestId,
+          result: { asset_ids: [assetId] }
+        } as never
+      );
+    };
+
+    land("batch-first", "clip-1");
+    land("batch-second", "clip-2");
+
+    const shot = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((candidate) => candidate.id === shotId);
+    expect(shot?.clip?.asset_id).toBe("clip-2");
+    expect(shot?.clip_versions?.map((version) => version.asset_id)).toEqual([
+      "clip-1",
+      "clip-2"
+    ]);
+  });
+
   it("lets a plain render take the row a settled candidate left behind", () => {
     const shotId = "s-after-production";
     seedShot(shotId);

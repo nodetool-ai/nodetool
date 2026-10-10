@@ -100,6 +100,8 @@ describe("a layer split that lands after a tab switch", () => {
       "Boat"
     ]);
     expect(layers[0].id).toBe(layerId);
-    expect(pushHistory).toHaveBeenCalledWith("Split Selected Layer");
+    expect(pushHistory).toHaveBeenCalledWith("Split Selected Layer", undefined, {
+      timing: "before"
+    });
   });
 });

@@ -743,7 +743,45 @@ Both functions pull colors from `theme.vars.palette.c_scroll_*` so they automati
 
 ---
 
-## 10. Migration Checklist
+## 10. Panels
+
+Every docked or floating panel uses the same title strip: side panels, bottom
+panel views, editor sidebars, agent panels and overlays. Use `PanelHeader`
+instead of a hand-built header row.
+
+```tsx
+import { PanelHeader, ToolbarIconButton } from "../ui_primitives";
+
+<PanelHeader
+  title="Versions"
+  count={versions.length}
+  docsTopic="debugging"
+  actions={<ToolbarIconButton icon={<AddIcon />} tooltip="New version" />}
+  onClose={close}
+/>
+```
+
+| Part | Rule |
+|---|---|
+| Height | `PANEL_HEADER_HEIGHT` (`CONTROL.height.lg`, 36px) |
+| Horizontal padding | `SPACING.lg` (12px), the same inset as the panel body |
+| Title | `TYPOGRAPHY.sans.label` (13px / 500), `text.primary`, sentence case, one line |
+| Count | `TYPOGRAPHY.sans.caption` (11px / 400), `text.secondary` |
+| Divider | 1px `divider` border below the strip |
+| Actions | `ToolbarIconButton`s, right-aligned, `SPACING.micro` apart |
+| Close | `onClose` renders a small `CloseButton` as the last action |
+
+Below the header, the panel body pads `SPACING.lg` horizontally. A panel that
+groups rows uses `SectionHeader size="small"` for each group: caption type,
+uppercase, `text.secondary`. Omit `title` only when a tab strip above already
+names the panel, as in the agent panels.
+
+Dialogs are not panels. A dialog title uses `TYPOGRAPHY.sans.title`
+(18px / 600), which the `Dialog` primitive applies.
+
+---
+
+## 11. Migration Checklist
 
 When editing any UI file, scan for these violations and fix them in the same PR.
 
@@ -782,10 +820,11 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 | `display: "flex"` in sx | `<FlexRow>` or `<FlexColumn>` |
 | `overflow: "auto"` container | `<ScrollArea>` |
 | `textOverflow: "ellipsis"` | `<TruncatedText>` |
+| Hand-built panel title row | `<PanelHeader>` |
 
 ---
 
-## 11. Adding New Tokens
+## 12. Adding New Tokens
 
 1. **Spacing**: Only add a new `SPACING.*` step if the existing nine steps genuinely cannot express the design intent. Justify in the PR. Update `spacing.ts`.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
@@ -797,7 +836,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 12. Design Decisions and Tradeoffs
+## 13. Design Decisions and Tradeoffs
 
 Documented rationale for choices that differ from common defaults.
 

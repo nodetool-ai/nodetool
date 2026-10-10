@@ -192,10 +192,8 @@ const identityWrapStyles = css({
 
 const identityNameStyles = (theme: Theme) =>
   css({
-    ...TYPOGRAPHY.sans.body,
-    fontWeight: TYPOGRAPHY.sans.title.fontWeight,
+    ...TYPOGRAPHY.sans.label,
     color: theme.vars.palette.text.primary,
-    lineHeight: 1.3,
     overflowWrap: "anywhere"
   });
 

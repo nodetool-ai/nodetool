@@ -672,7 +672,8 @@ function saveGenerations(
 export async function runWorkflow(
   options: RunWorkflowOptions
 ): Promise<RunWorkflowOutcome> {
-  const { workflowId, userId } = options;
+  const { userId } = options;
+  let workflowId = options.workflowId;
   const params = options.params ?? {};
   const debug = options.debug === true;
   const interactive = options.interactive === true;
@@ -692,6 +693,8 @@ export async function runWorkflow(
     if (!workflow) {
       return { kind: "error", status: 404, detail: "Workflow not found" };
     }
+    // The caller may have named it by its short id.
+    workflowId = workflow.id;
 
     const runMode = workflow.run_mode ?? "workflow";
     if (runMode !== "workflow") {

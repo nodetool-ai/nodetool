@@ -101,9 +101,9 @@
           "name": "model",
           "value": {
             "type": "language_model",
-            "provider": "anthropic",
-            "id": "claude-sonnet-5",
-            "name": "Claude Sonnet 5",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

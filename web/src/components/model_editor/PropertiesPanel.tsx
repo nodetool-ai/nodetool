@@ -35,7 +35,7 @@ import {
   readGeometryParams,
   type GeometryParams
 } from "./geometryParams";
-import type { RecordEdit } from "./editorCommands";
+import type { RecordEdit, ValueEdit } from "./editorCommands";
 import { isBoolean, isNumber } from "../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
@@ -66,7 +66,6 @@ const styles = (theme: Theme) =>
 const SectionTitle = ({ children }: { children: ReactNode }) => (
   <Text
     size="smaller"
-    weight={600}
     sx={{ textTransform: "uppercase", letterSpacing: "0.06em", color: "text.secondary" }}
   >
     {children}
@@ -155,6 +154,27 @@ const CheckboxRow = ({ label, checked, onChange }: CheckboxRowProps) => (
 export const toOpaqueHex = (value: string): string =>
   /^#[0-9a-f]{8}$/i.test(value) ? value.slice(0, 7) : value;
 
+/**
+ * The edit for a color picked in the Inspector. It snapshots the exact
+ * color, not its 8-bit hex, so undo restores the file's value instead of a
+ * rounded one that the next save would write.
+ */
+export const colorEdit = (
+  label: string,
+  color: THREE.Color,
+  picked: string,
+  mergeKey: string
+): ValueEdit<THREE.Color> => ({
+  label: `Change ${label.toLowerCase()}`,
+  mergeKey,
+  get: () => color.clone(),
+  set: (value) => {
+    color.copy(value);
+  },
+  value: new THREE.Color(toOpaqueHex(picked)),
+  equals: (a, b) => a.getHex() === b.getHex()
+});
+
 interface ColorRowProps {
   label: string;
   color: THREE.Color;
@@ -171,14 +191,7 @@ const ColorRow = ({ label, color, record, mergeKey }: ColorRowProps) => (
         if (!c) {
           return;
         }
-        const next = new THREE.Color(toOpaqueHex(c)).getHex();
-        record({
-          label: `Change ${label.toLowerCase()}`,
-          mergeKey,
-          get: () => color.getHex(),
-          set: (hex) => color.setHex(hex),
-          value: next
-        });
+        record(colorEdit(label, color, c, mergeKey));
       }}
     />
   </PropertyFieldRow>
@@ -206,6 +219,9 @@ interface AxisFieldProps {
  */
 const AxisField = ({ axis, label, value, step, onCommit }: AxisFieldProps) => {
   const drag = useRef<{ x: number; value: number } | null>(null);
+  const endDrag = () => {
+    drag.current = null;
+  };
   return (
     <FlexRow align="center" sx={{ flex: 1, minWidth: 0 }}>
       <Box
@@ -219,18 +235,23 @@ const AxisField = ({ axis, label, value, step, onCommit }: AxisFieldProps) => {
           drag.current = { x: e.clientX, value };
         }}
         onPointerMove={(e: React.PointerEvent<HTMLSpanElement>) => {
-          if (!drag.current) {
+          // No button held means the release was missed (a cancelled touch,
+          // a window switch). End the scrub instead of editing on hover.
+          if (!drag.current || e.buttons === 0) {
+            drag.current = null;
             return;
           }
           const scale = e.shiftKey ? 0.1 : e.ctrlKey || e.metaKey ? 10 : 1;
           const next = drag.current.value + (e.clientX - drag.current.x) * step * scale * 0.25;
           onCommit(Math.round(next * 1000) / 1000);
         }}
-        onPointerUp={() => {
-          drag.current = null;
-        }}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onLostPointerCapture={endDrag}
         sx={{
           flexShrink: 0,
+          // Without this a touch drag scrolls the Inspector instead of scrubbing.
+          touchAction: "none",
           px: SPACING.xs,
           alignSelf: "stretch",
           display: "grid",
@@ -769,7 +790,7 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
                     value={display}
                     integer={spec.kind === "int"}
                     min={isAngle ? 0 : spec.min}
-                    max={isAngle ? 360 : undefined}
+                    max={isAngle ? 360 : "max" in spec ? spec.max : undefined}
                     step={isAngle ? 1 : spec.step}
                     onCommit={rebuildGeometry(spec.key, isAngle)}
                   />

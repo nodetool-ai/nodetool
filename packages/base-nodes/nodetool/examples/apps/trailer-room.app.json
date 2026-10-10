@@ -600,7 +600,7 @@
     {
       "key": "beats",
       "name": "Trailer Beats from a Premise",
-      "description": "The beat structure a trailer needs — hook, escalation, turn, title card — written before any footage is paid for.",
+      "description": "The beat structure a trailer needs — hook, setup, escalation, turn, title card — written before any footage is paid for.",
       "sourceId": "nodetool-base/Trailer Beats from a Premise",
       "graph": {
         "nodes": [

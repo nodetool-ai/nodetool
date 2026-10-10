@@ -22,10 +22,21 @@ it.each(["404", "403", "network"])("renders a settled %s metadata failure and ca
 
 jest.mock("../../model_editor/Model3DEditor", () => ({
   __esModule: true,
-  default: ({ url, onDirtyChange }: { url: string; onDirtyChange?: (dirty: boolean) => void }) => (
-    <button type="button" onClick={() => onDirtyChange?.(true)}>
-      {`Editing ${url}`}
-    </button>
+  default: ({
+    url,
+    onDirtyChange,
+    externallyChanged
+  }: {
+    url: string;
+    onDirtyChange?: (dirty: boolean) => void;
+    externallyChanged?: boolean;
+  }) => (
+    <>
+      <button type="button" onClick={() => onDirtyChange?.(true)}>
+        {`Editing ${url}`}
+      </button>
+      {externallyChanged && <span>Changed outside the editor</span>}
+    </>
   )
 }));
 
@@ -64,4 +75,41 @@ it("marks the tab dirty while the editor has unsaved edits", async () => {
   render(renderSurface("edit"));
   await userEvent.click(await screen.findByRole("button", { name: /Editing/ }));
   expect(useDocumentDraftStore.getState().dirtyTabs["model3d:model-1"]).toBe(true);
+});
+
+const versionedAsset = (updatedAt: string) => ({
+  data: {
+    id: "model-1",
+    content_type: "model/gltf-binary",
+    name: "Model.glb",
+    get_url: "https://host.example/model-1.glb",
+    updated_at: updatedAt
+  },
+  isPending: false
+});
+
+it("reloads a clean editor when the file is written from elsewhere", async () => {
+  mockQuery.mockReturnValue(versionedAsset("t1"));
+  const page = render(renderSurface("edit"));
+  expect(await screen.findByText("Editing https://host.example/model-1.glb")).toBeInTheDocument();
+
+  mockQuery.mockReturnValue(versionedAsset("t2"));
+  page.rerender(renderSurface("edit"));
+
+  expect(
+    await screen.findByText("Editing https://host.example/model-1.glb?v=t2")
+  ).toBeInTheDocument();
+  expect(screen.queryByText("Changed outside the editor")).toBeNull();
+});
+
+it("warns instead of reloading when the editor has unsaved edits", async () => {
+  mockQuery.mockReturnValue(versionedAsset("t1"));
+  const page = render(renderSurface("edit"));
+  await userEvent.click(await screen.findByRole("button", { name: /Editing/ }));
+
+  mockQuery.mockReturnValue(versionedAsset("t2"));
+  page.rerender(renderSurface("edit"));
+
+  expect(await screen.findByText("Changed outside the editor")).toBeInTheDocument();
+  expect(screen.getByText("Editing https://host.example/model-1.glb")).toBeInTheDocument();
 });

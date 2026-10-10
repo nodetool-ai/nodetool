@@ -102,7 +102,7 @@ describe("file-watch listener races", () => {
       undefined as never
     );
     const saveSpy = vi
-      .spyOn(TriggerRegistration.prototype, "save")
+      .spyOn(TriggerRegistration, "updateColumns")
       .mockRejectedValue(new Error("database is locked"));
     const unhandled = vi.fn();
     process.on("unhandledRejection", unhandled);
@@ -116,5 +116,34 @@ describe("file-watch listener races", () => {
     } finally {
       process.off("unhandledRejection", unhandled);
     }
+  });
+
+  it("does not undo a Stop or a failure count written after the watcher attached", async () => {
+    const wakeupService = new TriggerWakeupService();
+    vi.spyOn(wakeupService, "deliverTriggerInput").mockResolvedValue(
+      undefined as never
+    );
+    const listener = await watchWithListener(wakeupService);
+    const [registration] = await TriggerRegistration.findByWorkflow("wf-1");
+    // The user presses Stop and the dispatcher has counted failures since.
+    await TriggerRegistration.updateColumns(registration.id, {
+      enabled: 0,
+      consecutive_failures: 4
+    });
+
+    fs.writeFileSync(path.join(tmpDir, "b.txt"), "x");
+    listener("rename", "b.txt");
+
+    await vi.waitFor(async () => {
+      const row = await TriggerRegistration.get<TriggerRegistration>(
+        registration.id
+      );
+      expect(row?.last_fired_at).not.toBeNull();
+    });
+    const row = await TriggerRegistration.get<TriggerRegistration>(
+      registration.id
+    );
+    expect(row?.enabled).toBe(0);
+    expect(row?.consecutive_failures).toBe(4);
   });
 });

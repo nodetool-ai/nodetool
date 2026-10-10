@@ -223,3 +223,43 @@ describe("USERS_FILE env var", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// verifyToken / getUserById
+// ---------------------------------------------------------------------------
+describe("FileUserManager.verifyToken", () => {
+  it("returns the user a token was issued to", async () => {
+    await manager.addUser("alice");
+    const bob = await manager.addUser("bob", "admin");
+    const user = await manager.verifyToken(bob.token);
+    expect(user?.id).toBe(bob.userId);
+    expect(user?.role).toBe("admin");
+  });
+
+  it("rejects an unknown, empty, or rotated token", async () => {
+    const alice = await manager.addUser("alice");
+    expect(await manager.verifyToken("not-a-token")).toBeNull();
+    expect(await manager.verifyToken("")).toBeNull();
+    const rotated = await manager.resetToken("alice");
+    expect(await manager.verifyToken(alice.token)).toBeNull();
+    expect((await manager.verifyToken(rotated.token))?.id).toBe(alice.userId);
+  });
+
+  it("rejects the token of a removed user", async () => {
+    const alice = await manager.addUser("alice");
+    await manager.removeUser("alice");
+    expect(await manager.verifyToken(alice.token)).toBeNull();
+  });
+
+  it("rejects everything when the users file does not exist", async () => {
+    expect(await manager.verifyToken("anything")).toBeNull();
+  });
+});
+
+describe("FileUserManager.getUserById", () => {
+  it("finds a user by id and returns null for an unknown id", async () => {
+    const alice = await manager.addUser("alice");
+    expect((await manager.getUserById(alice.userId))?.username).toBe("alice");
+    expect(await manager.getUserById("user_nobody_00000000")).toBeNull();
+  });
+});

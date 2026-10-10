@@ -79,7 +79,7 @@ Media that is being generated shows `MagicGenerationFill` over its host: the ske
 `ConflictBanner` — the one document-level notice listing the external values a dirty draft refused, with per-value Accept/Discard and an optional viewer. A string `detail` shows the external value; with `draftDetail` too, the viewer is a two-pane Your-edit / External view (JS script `code`). Mounted by every document editor shell; fed by `useDocumentConflicts`.
 
 ### Composite (replace manual layout combos)
-`FormField` | `PropertyFieldRow` | `InspectorFieldRow` | `InspectorToggleRow` | `SectionHeader` | `CollapsibleSection` | `TabGroup` / `TabPanel` | `ActionButtonGroup` | `ButtonGroup` | `ToggleGroup` | `SelectionControls` | `ListGroup` / `ListItemRow` | `TreeRow` | `DataTable`
+`FormField` | `PropertyFieldRow` | `InspectorFieldRow` | `InspectorToggleRow` | `SectionHeader` | `PanelHeader` | `CollapsibleSection` | `TabGroup` / `TabPanel` | `ActionButtonGroup` | `ButtonGroup` | `ToggleGroup` | `SelectionControls` | `ListGroup` / `ListItemRow` | `TreeRow` | `DataTable`
 
 ### Menus & Navigation
 `EditorMenu` | `EditorMenuItem` | `MenuItemPrimitive` | `ContextMenu` | `Breadcrumbs` | `Tooltip` | `Popover`
@@ -169,6 +169,7 @@ For a compact inspector with one label and several controls, use `PropertyFieldR
 Need a container/surface?
 ├── Content card → Card
 ├── Panel with header/footer → Panel
+├── Title strip of a docked or floating panel → PanelHeader
 ├── Generic surface → Surface
 ├── Modal → Dialog
 ├── Backdrop → Overlay
