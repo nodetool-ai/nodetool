@@ -9,8 +9,8 @@
 //
 // This is the CI guardrail (Phase 0 of docs/plans/examples-revamp.md): every
 // example must validate with --warnings-as-errors, so a warning-level drift
-// fails the gate too, not just hard errors. Unselected language models are
-// exempt: examples ship them blank and the server fills them at install. It
+// fails the gate too, not just hard errors. Unselected models are exempt:
+// examples ship them blank and the editor fills them when the graph loads. It
 // runs against the built CLI (packages/cli/dist), since validate loads the
 // node registry from the decorator packages' dist output.
 //
@@ -72,11 +72,11 @@ function withoutPythonOnlyNodes(report, allowed) {
   const allow = new Set(allowed);
   const exercised = new Set();
   const issues = report.issues.filter((issue) => {
-    // Examples ship language models unselected on purpose: the server fills
-    // them with a model the user can run when the example is installed.
+    // Examples ship every model unselected on purpose: the editor fills each
+    // with the user's default (web/src/utils/applyDefaultModels.ts).
     if (
       issue.code === "property" &&
-      /requires a language_model\b/.test(issue.message ?? "")
+      /requires a [a-z0-9_]+_model\b/.test(issue.message ?? "")
     ) {
       return false;
     }

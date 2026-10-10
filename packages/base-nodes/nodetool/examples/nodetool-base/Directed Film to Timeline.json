@@ -125,7 +125,7 @@
         "id": "comment_main",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Directed Film to Timeline\n\nTurns a one-line brief into an editable rough cut. Use it to see a whole short film take shape before you refine individual shots.\n\n**How it works:** \"Brief\" feeds the \"Director\", which writes a screenplay of 5 shots in a 16:9 style bible. \"Fan out one prompt per shot\" emits one shot prompt at a time. Each prompt renders a keyframe in \"Storyboard keyframes\" (FLUX schnell, 2K) and the same prompt drives \"Animate each shot\" (Veo 3.1, 4 seconds at 720p). \"Collect the clips\" gathers the clips, \"Assemble into a timeline\" appends them to a sequence named \"Directed Film\", and \"Render the rough cut\" produces the video. Pick a language model on the \"Director\". The keyframe and video steps are paid, and Veo costs the most.\n\n**Try this:** Set \"shot_count\" on the \"Director\" to 3. The rough cut drops to three clips and the run costs less. Reopen the rendered timeline in the timeline editor to trim or reorder shots."
+          "comment": "# 🎬 Directed Film to Timeline\n\nTurns a one-line brief into an editable rough cut. Use it to see a whole short film take shape before you refine individual shots.\n\n**How it works:** \"Brief\" feeds the \"Director\", which writes a screenplay of 5 shots in a 16:9 style bible. \"Fan out one prompt per shot\" emits one shot prompt at a time. Each prompt renders a keyframe in \"Storyboard keyframes\" (2K) and the same prompt drives \"Animate each shot\" (4 seconds at 720p). \"Collect the clips\" gathers the clips, \"Assemble into a timeline\" appends them to a sequence named \"Directed Film\", and \"Render the rough cut\" produces the video. Pick a language model on the \"Director\". Each model step uses your default model for its type, or the one you pick on the node. The keyframe and video steps are paid, and the video step costs the most.\n\n**Try this:** Set \"shot_count\" on the \"Director\" to 3. The rough cut drops to three clips and the run costs less. Reopen the rendered timeline in the timeline editor to trim or reorder shots."
         },
         "ui_properties": {
           "position": {
@@ -220,9 +220,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -252,9 +252,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "gemini",
-            "id": "veo-3.1-generate-preview",
-            "name": "Veo 3.1 Preview",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

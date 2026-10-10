@@ -5,7 +5,7 @@
   "updated_at": "2026-07-17T09:00:00.000Z",
   "name": "Workflow As A Tool",
   "tool_name": null,
-  "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager, on a model you pick, decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+  "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research gathers the facts, Copy Editor polishes the draft, and the manager decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
   "tags": [
     "agents",
     "composition",
@@ -21,7 +21,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🧩 Workflow As A Tool\n\nShows how one agent can call other agents as tools inside a single graph. Use this shape when a manager should decide whether and in what order specialists run, instead of a fixed pipeline.\n\n**How it works:** \"Topic\" fills \"Objective\", which asks for a 250 to 350 word explainer and tells the orchestrator to research, draft, then edit. \"Orchestrator\" receives it as its prompt. Control edges from its __control__ port into \"Tool: Research (Gemini)\" and \"Tool: Copy Editor (Claude)\" turn those agents into tools it calls by name with a task string. The research agent runs Gemini 3.5 Flash and returns a bulleted fact brief. The copy editor runs Claude Sonnet 5 and returns a tightened draft. The orchestrator's text goes to \"Final article\". Pick a language model on \"Orchestrator\". The specialists need Gemini and Anthropic keys.\n\n**Try this:** Change \"Topic\", or edit the orchestrator's system prompt to call only research_specialist and compare the unedited result."
+          "comment": "# 🧩 Workflow As A Tool\n\nShows how one agent can call other agents as tools inside a single graph. Use this shape when a manager should decide whether and in what order specialists run, instead of a fixed pipeline.\n\n**How it works:** \"Topic\" fills \"Objective\", which asks for a 250 to 350 word explainer and tells the orchestrator to research, draft, then edit. \"Orchestrator\" receives it as its prompt. Control edges from its __control__ port into \"Tool: Research\" and \"Tool: Copy Editor\" turn those agents into tools it calls by name with a task string. The research agent returns a bulleted fact brief. The copy editor returns a tightened draft. The orchestrator's text goes to \"Final article\". Each agent uses your default language model, or the one you pick on the node.\n\n**Try this:** Change \"Topic\", or edit the orchestrator's system prompt to call only research_specialist and compare the unedited result."
         },
         "ui_properties": {
           "selected": false,
@@ -122,9 +122,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "gemini",
-            "id": "gemini-3.5-flash",
-            "name": "Gemini 3.5 Flash",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -135,7 +135,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "🔧 Tool: Research (Gemini)",
+          "title": "🔧 Tool: Research",
           "position": {
             "x": 1160,
             "y": 510
@@ -154,9 +154,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "anthropic",
-            "id": "claude-sonnet-5",
-            "name": "Claude Sonnet 5",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -167,7 +167,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "🔧 Tool: Copy Editor (Claude)",
+          "title": "🔧 Tool: Copy Editor",
           "position": {
             "x": 1160,
             "y": 773

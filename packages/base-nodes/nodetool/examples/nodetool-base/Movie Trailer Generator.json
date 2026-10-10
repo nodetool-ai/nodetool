@@ -5,7 +5,7 @@
   "updated_at": "2026-08-03T00:00:00.000Z",
   "name": "Movie Trailer Generator",
   "tool_name": null,
-  "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+  "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through image-to-video, which is usually metered per second of generated video and is the most expensive step in the pipeline. A 6-shot trailer makes 6 video generations.",
   "tags": [
     "video",
     "generation",
@@ -133,7 +133,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. Use it to pitch a film idea as a short cut of animated shots.\n\n**How it works:** \"1️⃣ Logline\", \"2️⃣ Visual style\" and \"3️⃣ Shot count\" (6) feed \"4️⃣ Direct the storyboard\", the same Director node the Storyboard editor runs behind its Direct button. It writes the screenplay, camera direction and one style bible. \"5️⃣ One prompt per shot\" emits one prompt per shot. \"6️⃣ Render keyframes\" draws each as a 16:9 2K still, and \"7️⃣ Animate each keyframe (Veo, metered per second)\" turns it into a 4-second 720p clip. \"Collect video clips\" gathers the clips and \"🎬 Final trailer\" joins them for \"8️⃣ Trailer output\". The Director uses Gemini, the keyframes use GPT Image 2 through Kie, and the animation uses Veo 3.1, which is billed per second and costs the most. A 6-shot trailer makes 6 Veo calls.\n\n**Try this:** Set \"3️⃣ Shot count\" to 3 for a cheaper test run and confirm the trailer has three clips."
+          "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. Use it to pitch a film idea as a short cut of animated shots.\n\n**How it works:** \"1️⃣ Logline\", \"2️⃣ Visual style\" and \"3️⃣ Shot count\" (6) feed \"4️⃣ Direct the storyboard\", the same Director node the Storyboard editor runs behind its Direct button. It writes the screenplay, camera direction and one style bible. \"5️⃣ One prompt per shot\" emits one prompt per shot. \"6️⃣ Render keyframes\" draws each as a 16:9 2K still, and \"7️⃣ Animate each keyframe (metered per second)\" turns it into a 4-second 720p clip. \"Collect video clips\" gathers the clips and \"🎬 Final trailer\" joins them for \"8️⃣ Trailer output\". Each model step uses your default model for its type, or the one you pick on the node. The animation step is usually billed per second and costs the most. A 6-shot trailer makes 6 video generations.\n\n**Try this:** Set \"3️⃣ Shot count\" to 3 for a cheaper test run and confirm the trailer has three clips."
         },
         "ui_properties": {
           "position": {
@@ -220,9 +220,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "gemini",
-            "id": "gemini-3.1-pro-preview",
-            "name": "Gemini 3.1 Pro Preview",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -274,9 +274,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "kie",
-            "id": "gpt-image-2-text-to-image",
-            "name": "GPT Image-2",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -308,9 +308,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "gemini",
-            "id": "veo-3.1-generate-preview",
-            "name": "Veo 3.1 Preview",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -329,7 +329,7 @@
           "zIndex": 0,
           "width": 331,
           "height": 222,
-          "title": "7️⃣ Animate each keyframe (Veo, metered per second)",
+          "title": "7️⃣ Animate each keyframe (metered per second)",
           "selectable": true,
           "bypassed": false,
           "selected_generation": "8fb0f284a8e54876858f8155aff3dd5d",

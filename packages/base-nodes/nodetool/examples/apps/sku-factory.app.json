@@ -959,9 +959,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/bria/background/remove",
-                "name": "Bria Background Remove",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               }
@@ -985,9 +985,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/nano-banana/edit",
-                "name": "Nano Banana Edit",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1198,9 +1198,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/image-apps-v2/relighting",
-                "name": "Relight",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1317,9 +1317,9 @@
               "image": [],
               "model": {
                 "type": "video_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/ltx-2.3/image-to-video/fast",
-                "name": "LTX-2.3 Image Fast",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1440,9 +1440,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/clarity-upscaler",
-                "name": "Clarity Upscaler",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },

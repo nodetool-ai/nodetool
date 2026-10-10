@@ -1145,7 +1145,7 @@
             "id": "comment_main",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Script to Screen\n\nTurns a short brief into a narrated, scored short film, with a storyboard you can check before spending on video.\n\n**How it works:** \"Brief\", \"Visual style\" and \"Shot count\" (5) fill \"Build director brief\", and the Director agent writes the direction document. \"Extract production data\" pulls out narration, a music prompt and a style frame prompt for \"Master style frame\" (FLUX schnell). \"Build shot-list prompt\" drives \"Stream the shots\", which emits one line per shot. Each shot becomes a keyframe in \"Storyboard keyframes (anchored to style frame)\", a Nano Banana edit of the style frame at strength 0.82, collected into the storyboard output. \"Animate each shot (the expensive step)\" makes 4 s Veo 3.1 clips at 720p, joined by \"Cut the shots together\". \"Narration\" (OpenAI tts-1) and \"Score\" (MusicGen, 30 s) are mixed in at volumes 1 and 0.3. Pick language models on the Director agent, \"Extract production data\" and \"Stream the shots\". Media steps need fal, Gemini, OpenAI and Replicate keys.\n\n**Try this:** Bypass \"Animate each shot (the expensive step)\" (right-click, Bypass), set \"Shot count\" to 3, and run to review a cheap three-frame storyboard before any video spend."
+              "comment": "# 🎬 Script to Screen\n\nTurns a short brief into a narrated, scored short film, with a storyboard you can check before spending on video.\n\n**How it works:** \"Brief\", \"Visual style\" and \"Shot count\" (5) fill \"Build director brief\", and the Director agent writes the direction document. \"Extract production data\" pulls out narration, a music prompt and a style frame prompt for \"Master style frame\". \"Build shot-list prompt\" drives \"Stream the shots\", which emits one line per shot. Each shot becomes a keyframe in \"Storyboard keyframes (anchored to style frame)\", an image edit of the style frame at strength 0.82, collected into the storyboard output. \"Animate each shot (the expensive step)\" makes 4 s clips at 720p, joined by \"Cut the shots together\". \"Narration\" and \"Score\" (30 s) are mixed in at volumes 1 and 0.3. Pick language models on the Director agent, \"Extract production data\" and \"Stream the shots\". Media steps use your default model for each type, or the one you pick on the node.\n\n**Try this:** Bypass \"Animate each shot (the expensive step)\" (right-click, Bypass), set \"Shot count\" to 3, and run to review a cheap three-frame storyboard before any video spend."
             },
             "ui_properties": {
               "position": {
@@ -1350,9 +1350,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/flux/schnell",
-                "name": "FLUX.1 Schnell",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1458,9 +1458,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/nano-banana/edit",
-                "name": "Nano Banana",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1549,9 +1549,9 @@
             "data": {
               "model": {
                 "type": "video_model",
-                "provider": "gemini",
-                "id": "veo-3.1-generate-preview",
-                "name": "Veo 3.1 Preview",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1621,19 +1621,12 @@
             "data": {
               "model": {
                 "type": "tts_model",
-                "provider": "openai",
-                "id": "tts-1",
-                "name": "TTS 1",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
-                "voices": [
-                  "alloy",
-                  "echo",
-                  "fable",
-                  "onyx",
-                  "nova",
-                  "shimmer"
-                ],
-                "selected_voice": "onyx"
+                "voices": [],
+                "selected_voice": ""
               },
               "speed": 1
             },
@@ -1658,9 +1651,9 @@
             "data": {
               "model": {
                 "type": "music_model",
-                "provider": "replicate",
-                "id": "meta/musicgen",
-                "name": "MusicGen",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null
               },
               "lyrics": "",
@@ -1859,7 +1852,7 @@
             "id": "comment_main",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Directed Film to Timeline\n\nTurns a one-line brief into an editable rough cut. Use it to see a whole short film take shape before you refine individual shots.\n\n**How it works:** \"Brief\" feeds the \"Director\", which writes a screenplay of 5 shots in a 16:9 style bible. \"Fan out one prompt per shot\" emits one shot prompt at a time. Each prompt renders a keyframe in \"Storyboard keyframes\" (FLUX schnell, 2K) and the same prompt drives \"Animate each shot\" (Veo 3.1, 4 seconds at 720p). \"Collect the clips\" gathers the clips, \"Assemble into a timeline\" appends them to a sequence named \"Directed Film\", and \"Render the rough cut\" produces the video. Pick a language model on the \"Director\". The keyframe and video steps are paid, and Veo costs the most.\n\n**Try this:** Set \"shot_count\" on the \"Director\" to 3. The rough cut drops to three clips and the run costs less. Reopen the rendered timeline in the timeline editor to trim or reorder shots."
+              "comment": "# 🎬 Directed Film to Timeline\n\nTurns a one-line brief into an editable rough cut. Use it to see a whole short film take shape before you refine individual shots.\n\n**How it works:** \"Brief\" feeds the \"Director\", which writes a screenplay of 5 shots in a 16:9 style bible. \"Fan out one prompt per shot\" emits one shot prompt at a time. Each prompt renders a keyframe in \"Storyboard keyframes\" (2K) and the same prompt drives \"Animate each shot\" (4 seconds at 720p). \"Collect the clips\" gathers the clips, \"Assemble into a timeline\" appends them to a sequence named \"Directed Film\", and \"Render the rough cut\" produces the video. Pick a language model on the \"Director\". Each model step uses your default model for its type, or the one you pick on the node. The keyframe and video steps are paid, and the video step costs the most.\n\n**Try this:** Set \"shot_count\" on the \"Director\" to 3. The rough cut drops to three clips and the run costs less. Reopen the rendered timeline in the timeline editor to trim or reorder shots."
             },
             "ui_properties": {
               "position": {
@@ -1954,9 +1947,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/flux/schnell",
-                "name": "FLUX.1 Schnell",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1986,9 +1979,9 @@
             "data": {
               "model": {
                 "type": "video_model",
-                "provider": "gemini",
-                "id": "veo-3.1-generate-preview",
-                "name": "Veo 3.1 Preview",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -2557,9 +2550,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/flux/schnell",
-                "name": "FLUX.1 Schnell",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },

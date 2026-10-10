@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Product Video Generator",
   "tool_name": null,
-  "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
+  "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then an image-to-video model animates the shot. Cost note: the video step is a paid generation, so this run costs noticeably more than an image-only template.",
   "tags": [
     "business",
     "data",
@@ -107,7 +107,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Product Video Generator\n\nTurns a campaign brief and product image into a cinematic 16:9 launch clip. Use it when you already have a product photo and want a short animated shot.\n\n**How it works:** \"1️⃣ Campaign brief\", \"2️⃣ Target audience\" and \"3️⃣ Key features\" fill \"5️⃣ Build prompt\". \"6️⃣ Write video prompt\" is an Agent that reads that prompt together with \"4️⃣ Product image\" and writes one image-to-video paragraph. \"7️⃣ Animate product video\" animates the same product image with that prompt for 8 seconds at 720p. Pick a language model on \"6️⃣ Write video prompt\". The animation step runs on Veo 3.1, a paid per-second video model, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"2️⃣ Target audience\" to \"retirees who walk daily\" and compare the setting and pace of the new clip."
+          "comment": "# 🎬 Product Video Generator\n\nTurns a campaign brief and product image into a cinematic 16:9 launch clip. Use it when you already have a product photo and want a short animated shot.\n\n**How it works:** \"1️⃣ Campaign brief\", \"2️⃣ Target audience\" and \"3️⃣ Key features\" fill \"5️⃣ Build prompt\". \"6️⃣ Write video prompt\" is an Agent that reads that prompt together with \"4️⃣ Product image\" and writes one image-to-video paragraph. \"7️⃣ Animate product video\" animates the same product image with that prompt for 8 seconds at 720p. Pick a language model on \"6️⃣ Write video prompt\". The animation step uses your default video model, or the one you pick on the node. It is a paid video generation, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"2️⃣ Target audience\" to \"retirees who walk daily\" and compare the setting and pace of the new clip."
         },
         "ui_properties": {
           "position": {
@@ -285,9 +285,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "gemini",
-            "id": "veo-3.1-generate-preview",
-            "name": "Veo 3.1 Preview",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

@@ -19,7 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Video Restyle Studio\n\nRestyles a clip without re-shooting or re-animating it. Motion, timing and framing come from the source video, and only the look changes.\n\n**How it works:** \"Target style\" and \"Preserve\" fill the \"Restyle brief\" prompt, which asks for a uniform look and no change to camera or subject motion. \"Restyle\" applies the brief to \"Source clip\" with Lucy Edit 2 on Replicate at strength 0.45, with a negative prompt against flicker, warping and unreadable text. \"Restyled clip\" shows the result. Strength is the dial to turn: 0.3 to 0.5 keeps faces and text legible, and 0.7 or higher commits to the style and will drift. The restyle step needs a Replicate key, and you supply your own clip.\n\n**Try this:** Raise \"strength\" on \"Restyle\" from 0.45 to 0.75 and compare how far faces and text drift from the source."
+          "comment": "# Video Restyle Studio\n\nRestyles a clip without re-shooting or re-animating it. Motion, timing and framing come from the source video, and only the look changes.\n\n**How it works:** \"Target style\" and \"Preserve\" fill the \"Restyle brief\" prompt, which asks for a uniform look and no change to camera or subject motion. \"Restyle\" applies the brief to \"Source clip\" at strength 0.45, with a negative prompt against flicker, warping and unreadable text. \"Restyled clip\" shows the result. Strength is the dial to turn: 0.3 to 0.5 keeps faces and text legible, and 0.7 or higher commits to the style and will drift. The restyle step uses your default video-to-video model, or the one you pick on the node, and you supply your own clip.\n\n**Try this:** Raise \"strength\" on \"Restyle\" from 0.45 to 0.75 and compare how far faces and text drift from the source."
         },
         "ui_properties": {
           "position": {
@@ -125,9 +125,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "replicate",
-            "id": "decart/lucy-edit-2",
-            "name": "Lucy Edit 2",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

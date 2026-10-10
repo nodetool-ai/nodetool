@@ -63,9 +63,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/bria/background/remove",
-            "name": "Bria Background Remove",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           }
@@ -89,9 +89,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/nano-banana/edit",
-            "name": "Nano Banana Edit",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

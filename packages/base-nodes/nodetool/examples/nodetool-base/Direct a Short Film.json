@@ -5,7 +5,7 @@
   "updated_at": "2026-08-03T10:00:00.000Z",
   "name": "Direct a Short Film",
   "tool_name": null,
-  "description": "Type a brief; get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count — at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
+  "description": "Type a brief, get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Some providers publish those as separate model ids, so Continuation Model carries the second. On a provider where one id does both you can leave it empty.\n\nCost scales with shot count and with the video models you pick. Text costs pennies.",
   "tags": [
     "video",
     "example"
@@ -110,17 +110,17 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "kie",
-            "id": "kling-2.6/text-to-video",
-            "name": "Kling 2.6 Text to Video",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
           "continuation_model": {
             "type": "video_model",
-            "provider": "kie",
-            "id": "kling-2.6/image-to-video",
-            "name": "Kling 2.6 Image to Video",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

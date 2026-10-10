@@ -48,7 +48,7 @@
         "id": "9f51da20-90d9-46a7-8131-c79ac63df648",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Image To Audio Story\n\nUpload a photo and a vision agent invents a short story about it, then text-to-speech narrates that story aloud.\n\n**How it works:** \"Load image\" sends the photo to \"Write a story\", an Agent told to write a 150 to 250 word story with a title line, inspired by the image rather than describing it. \"Narrate aloud\" reads the story with OpenAI tts-1 at speed 1, and the Output node plays the narration. Pick a vision-capable language model on \"Write a story\". The speech step is a paid OpenAI call.\n\n**Try this:** Change the prompt on \"Write a story\" to \"Write a short poem inspired by this image, eight lines, no title.\" The narration becomes a brief poem instead of a story."
+          "comment": "# 🎙️ Image To Audio Story\n\nUpload a photo and a vision agent invents a short story about it, then text-to-speech narrates that story aloud.\n\n**How it works:** \"Load image\" sends the photo to \"Write a story\", an Agent told to write a 150 to 250 word story with a title line, inspired by the image rather than describing it. \"Narrate aloud\" reads the story aloud at speed 1, and the Output node plays the narration. Pick a vision-capable language model on \"Write a story\" and a speech model on \"Narrate aloud\". The speech step is a paid call.\n\n**Try this:** Change the prompt on \"Write a story\" to \"Write a short poem inspired by this image, eight lines, no title.\" The narration becomes a brief poem instead of a story."
         },
         "ui_properties": {
           "position": {
@@ -126,19 +126,12 @@
         "data": {
           "model": {
             "type": "tts_model",
-            "provider": "openai",
-            "id": "tts-1",
-            "name": "TTS 1",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
-            "voices": [
-              "alloy",
-              "echo",
-              "fable",
-              "onyx",
-              "nova",
-              "shimmer"
-            ],
-            "selected_voice": "alloy"
+            "voices": [],
+            "selected_voice": ""
           },
           "speed": 1
         },

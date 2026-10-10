@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Edit a Still with Words",
   "tool_name": null,
-  "description": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
+  "description": "Change an image by describing the change. The model edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
   "tags": [
     "image",
     "example"
@@ -124,9 +124,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/nano-banana/edit",
-            "name": "Nano Banana Edit",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
