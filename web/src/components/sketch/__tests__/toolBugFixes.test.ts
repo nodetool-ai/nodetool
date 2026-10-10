@@ -11,6 +11,8 @@
 import { CropTool } from "../tools/CropTool";
 import { stub } from "../../../test-utils/doubles";
 import { FillTool, floodFill } from "../tools/FillTool";
+import { GradientTool } from "../tools/GradientTool";
+import { setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import { applyLayerSourceBySelectionMask } from "../rendering/canvas2d/maskAndExport";
 import { MoveTool } from "../tools/MoveTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
@@ -201,6 +203,28 @@ describe("FillTool on a layer", () => {
     ctx.doc.layers[0].alphaLock = true;
     new FillTool().onDown(ctx, makeToolPointerEvent({ x: 30, y: 30 }));
     expect(pixel(30, 30)[3]).toBe(0);
+  });
+});
+
+describe("GradientTool on a trimmed layer", () => {
+  it("fills the whole canvas, not only the layer's raster", () => {
+    const ctx = makeToolContext({ activeTool: "gradient" });
+    const layer = ctx.doc.layers[0];
+    const small = document.createElement("canvas");
+    small.width = 16;
+    small.height = 16;
+    setCanvasRasterBounds(small, { x: 0, y: 0, width: 16, height: 16 });
+    layer.contentBounds = { x: 0, y: 0, width: 16, height: 16 };
+    ctx.layerCanvasesRef.current.set(layer.id, small);
+
+    const tool = new GradientTool();
+    tool.onDown(ctx, makeToolPointerEvent({ x: 0, y: 32 }));
+    tool.onMove(ctx, makeToolPointerEvent({ x: 64, y: 32 }));
+    tool.onUp(ctx, makeToolPointerEvent({ x: 64, y: 32 }));
+
+    const canvas = ctx.getOrCreateLayerCanvas(layer.id);
+    expect(canvas.width).toBeGreaterThanOrEqual(64);
+    expect(canvas.getContext("2d")!.getImageData(50, 50, 1, 1).data[3]).toBe(255);
   });
 });
 
