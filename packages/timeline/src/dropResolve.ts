@@ -70,11 +70,13 @@ function movedWithDependants(
  * so each clears its own track and none is a victim. A group clip is never a
  * victim either: removing or trimming it as media would strand its children.
  * A clip that refuses a trim or split (a time-remapped one) is left where it
- * is rather than half-edited.
+ * is rather than half-edited, and so is a locked clip or one on a locked
+ * track: the mover overlaps it instead.
  */
 export function resolveOverwrite(
   clips: readonly TimelineClip[],
-  movedIds: ReadonlySet<string>
+  movedIds: ReadonlySet<string>,
+  options: RippleOptions = {}
 ): TimelineClip[] {
   const movingIds = movedWithDependants(clips, movedIds);
   const movers = clips.filter((c) => movingIds.has(c.id));
@@ -89,7 +91,9 @@ export function resolveOverwrite(
       if (
         movingIds.has(c.id) ||
         c.trackId !== m.trackId ||
-        isGroupClip(c)
+        isGroupClip(c) ||
+        options.lockedTrackIds?.has(c.trackId) === true ||
+        options.lockedClipIds?.has(c.id) === true
       ) {
         out.push(c);
         continue;
@@ -220,7 +224,7 @@ export function resolveDrop(
 ): TimelineClip[] {
   switch (mode) {
     case "overwrite":
-      return resolveOverwrite(clips, movedIds);
+      return resolveOverwrite(clips, movedIds, options);
     case "insert":
       return resolveInsert(clips, movedIds, options);
     case "overlap":

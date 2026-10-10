@@ -806,6 +806,12 @@ describe("scenes do not change the cut", () => {
       "Narration",
       "Music"
     ]);
+    // Generate must compose the score, not read the music prompt aloud (S5).
+    const music = unscened.clips.find((c) => c.name === "Music");
+    expect(music?.bindingKind).toBe("text-to-music");
+    expect(unscened.clips.find((c) => c.name === "Narration")?.bindingKind).toBe(
+      "text-to-audio"
+    );
   });
 
   it("assembles the same cut however the shots are grouped", () => {

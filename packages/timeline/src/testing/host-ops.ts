@@ -188,7 +188,7 @@ export const HOST_OP_FIXTURES: readonly HostOpFixture[] = [
     error: /longer than its source/i
   },
   {
-    name: "snap trim preserves the source in-point",
+    name: "snap trim moves the source in-point with a snapped head",
     initial: snapState,
     op: {
       op: "snap_to_beats",
@@ -198,7 +198,17 @@ export const HOST_OP_FIXTURES: readonly HostOpFixture[] = [
       action: "trim",
       tolerance_ms: 200
     },
-    clips: [{ id: "clip_a", startMs: 0, durationMs: 1000, inPointMs: 200 }],
+    // The head grows 120ms earlier over source the clip had hidden; the tail
+    // then comes in 80ms. Each edge carries its own source point.
+    clips: [
+      {
+        id: "clip_a",
+        startMs: 0,
+        durationMs: 1000,
+        inPointMs: 80,
+        outPointMs: 1080
+      }
+    ],
     result: { snapped: 1, skipped: 0 }
   },
   {

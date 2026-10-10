@@ -204,14 +204,39 @@ describe("TranscriptPanel", () => {
     expect(caret).toBeTruthy();
     expect(caret.style.display).toBe("block");
 
-    // Arrows step the playhead word-to-word (the caret follows).
+    // Arrows step the playhead word-to-word (the caret follows) while focus
+    // is in the transcript.
+    const surface = screen.getByTestId("transcript-surface");
     act(() => {
-      pressKey(document.body, "ArrowRight");
+      surface.focus();
+    });
+    expect(document.activeElement).toBe(surface);
+    act(() => {
+      pressKey(surface, "ArrowRight");
     });
     expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(300);
     act(() => {
-      pressKey(document.body, "ArrowLeft");
+      pressKey(surface, "ArrowLeft");
     });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(0);
+  });
+
+  it("leaves arrow keys to the timeline while focus is outside the transcript (S6)", () => {
+    renderPanel();
+    seed(
+      [voicedBeat([
+        { word: "hello", startMs: 0, endMs: 300 },
+        { word: "world", startMs: 300, endMs: 900 }
+      ])],
+      900
+    );
+
+    let notPrevented = false;
+    act(() => {
+      notPrevented = fireEvent.keyDown(document.body, { key: "ArrowRight" });
+      fireEvent.keyUp(document.body, { key: "ArrowRight" });
+    });
+    expect(notPrevented).toBe(true);
     expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(0);
   });
 

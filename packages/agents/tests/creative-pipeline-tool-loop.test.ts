@@ -405,9 +405,11 @@ function fullPipelineScript(): ScriptedCall[] {
   // that trims the wrong clip and re-measures with ui_review_get_cut sees that
   // immediately; one that trims and declares victory does not, which is the
   // discrimination this case exists to make.
+  // A generated clip is named by its prompt, so the last shot's action names
+  // the last clip.
   script.push({
     name: "ui_timeline_trim_clip",
-    args: { target: "clip_3", durationMs: 3000 }
+    args: { target: shots[2], durationMs: 3000 }
   });
   return script;
 }

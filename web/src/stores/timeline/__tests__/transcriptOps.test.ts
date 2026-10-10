@@ -258,6 +258,33 @@ describe("rippleDeleteRange", () => {
     expect(out.clips).toHaveLength(0);
     expect(out.durationMs).toBe(0);
   });
+
+  it("links the head remnants and the tail remnants of a linked pair separately (S4)", () => {
+    const audio = {
+      ...beat("a", { startMs: 0, durationMs: 900, words: words(["x", 0, 300], ["y", 600, 900]) }),
+      linkId: "L"
+    };
+    const video: TimelineClip = makeClip({
+      id: "v",
+      trackId: "video",
+      mediaType: "video",
+      sourceType: "imported",
+      startMs: 0,
+      durationMs: 900,
+      linkId: "L"
+    });
+    const out = rippleDeleteRange([audio, video], 300, 600);
+    expect(out.clips).toHaveLength(4);
+    const heads = out.clips.filter((c) => c.startMs === 0);
+    const tails = out.clips.filter((c) => c.startMs === 300);
+    expect(heads).toHaveLength(2);
+    expect(tails).toHaveLength(2);
+    expect(heads[0].linkId).toBeDefined();
+    expect(heads[0].linkId).toBe(heads[1].linkId);
+    expect(tails[0].linkId).toBe(tails[1].linkId);
+    expect(heads[0].linkId).not.toBe(tails[0].linkId);
+    expect(heads[0].linkId).not.toBe("L");
+  });
 });
 
 describe("relabelWord", () => {
@@ -400,6 +427,88 @@ describe("applyEditorEdits", () => {
       .map((t) => t.text);
     expect(texts).toEqual(["a"]);
   });
+
+  describe("keeps the layout of beats the edit did not add or remove (S1)", () => {
+    const spaced = (): TimelineClip[] => [
+      beat("a", { startMs: 0, durationMs: 1000, words: words(["helo", 0, 500]) }),
+      beat("b", { startMs: 2500, durationMs: 1000, words: words(["there", 0, 500]) }),
+      beat("c", { startMs: 6000, durationMs: 1000, words: words(["friend", 0, 500]) })
+    ];
+    const starts = (clips: TimelineClip[]): Array<[string, number]> =>
+      clips.map((c) => [c.id, c.startMs]);
+    const all = (text: string) => [
+      { clipId: "a", wordIndex: 0, text },
+      { clipId: "b", wordIndex: 0, text: "there" },
+      { clipId: "c", wordIndex: 0, text: "friend" }
+    ];
+
+    it("does not move any beat when a word is relabeled", () => {
+      const out = applyEditorEdits(
+        spaced(),
+        { survivors: all("hello"), draftUpdates: [], newDraftTexts: [] },
+        "audio"
+      );
+      expect(out.clips[0].caption?.words[0].word).toBe("hello");
+      expect(starts(out.clips)).toEqual([
+        ["a", 0],
+        ["b", 2500],
+        ["c", 6000]
+      ]);
+      expect(out.durationMs).toBe(7000);
+    });
+
+    it("ripples a cut word without re-laying the remaining gaps", () => {
+      const out = applyEditorEdits(
+        spaced(),
+        {
+          survivors: all("helo").filter((w) => w.clipId !== "b"),
+          draftUpdates: [],
+          newDraftTexts: []
+        },
+        "audio"
+      );
+      // The tail remnant of "b" (a fresh id) stays at 2500, "c" moves by the cut.
+      expect(out.clips.map((c) => c.startMs)).toEqual([0, 2500, 5500]);
+    });
+
+    it("appends a new line after the last clip and keeps existing gaps", () => {
+      const out = applyEditorEdits(
+        spaced(),
+        { survivors: all("helo"), draftUpdates: [], newDraftTexts: ["more"] },
+        "audio"
+      );
+      expect(starts(out.clips).slice(0, 3)).toEqual([
+        ["a", 0],
+        ["b", 2500],
+        ["c", 6000]
+      ]);
+      expect(out.clips[3]).toMatchObject({ prompt: "more", startMs: 7000 });
+    });
+
+    it("closes only the gap a removed draft leaves", () => {
+      const clips = [
+        beat("a", { startMs: 0, durationMs: 1000, words: words(["one", 0, 500]) }),
+        beat("d", { startMs: 2000, durationMs: PLACEHOLDER_BEAT_MS, prompt: "draft" }),
+        beat("c", { startMs: 6000, durationMs: 1000, words: words(["two", 0, 500]) })
+      ];
+      const out = applyEditorEdits(
+        clips,
+        {
+          survivors: [
+            { clipId: "a", wordIndex: 0, text: "one" },
+            { clipId: "c", wordIndex: 0, text: "two" }
+          ],
+          draftUpdates: [],
+          newDraftTexts: []
+        },
+        "audio"
+      );
+      expect(starts(out.clips)).toEqual([
+        ["a", 0],
+        ["c", 3000]
+      ]);
+    });
+  });
 });
 
 // ── Move (cut / paste) ───────────────────────────────────────────────────────
@@ -449,6 +558,20 @@ describe("pasteClipsAt", () => {
     const xClip = out.clips.find((cl) => cl.caption?.words[0]?.word === "x")!;
     expect(xClip.startMs).toBe(300);
     expect(out.durationMs).toBe(900);
+  });
+
+  it("links the split halves of a linked pair per side (S4)", () => {
+    const pair = ["a", "v"].map((id) => ({
+      ...beat(id, { startMs: 0, durationMs: 600, words: words([id, 0, 600]) }),
+      linkId: "L"
+    }));
+    const block = [beat("x", { durationMs: 300, words: words(["x", 0, 300]) })];
+    const out = pasteClipsAt(pair, 300, block);
+    const heads = out.clips.filter((c) => c.startMs === 0);
+    const tails = out.clips.filter((c) => c.startMs === 600);
+    expect(heads.map((c) => c.linkId)).toEqual([heads[0].linkId, heads[0].linkId]);
+    expect(tails.map((c) => c.linkId)).toEqual([tails[0].linkId, tails[0].linkId]);
+    expect(new Set([heads[0].linkId, tails[0].linkId, "L"]).size).toBe(3);
   });
 });
 

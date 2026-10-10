@@ -127,12 +127,12 @@ export function useClipFade({
 
   const onFadeContextMenu = useCallback<ClipFadeHandlers["onFadeContextMenu"]>(
     (edge, e) => {
-      if (!clip) return;
+      if (!clip || interactionLocked) return;
       e.preventDefault();
       e.stopPropagation();
       onRequestShapeMenu(edge, e.clientX, e.clientY);
     },
-    [clip, onRequestShapeMenu]
+    [clip, interactionLocked, onRequestShapeMenu]
   );
 
   // The pointer is not the only way in: a focused handle takes arrow keys,
