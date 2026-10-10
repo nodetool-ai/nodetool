@@ -4,6 +4,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CodeOutlinedIcon from "@mui/icons-material/CodeOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
+import TerminalOutlinedIcon from "@mui/icons-material/TerminalOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import VideogameAssetOutlinedIcon from "@mui/icons-material/VideogameAssetOutlined";
 
@@ -61,6 +62,7 @@ for (const panel of [
   { id: "viewport", title: "Viewport", icon: createElement(VideogameAssetOutlinedIcon), defaultRegion: "viewport" },
   { id: "scripts", title: "Scripts", icon: createElement(CodeOutlinedIcon), defaultRegion: "bottom" },
   { id: "assets", title: "Assets", icon: createElement(PermMediaOutlinedIcon), defaultRegion: "bottom" },
+  { id: "console", title: "Console", icon: createElement(TerminalOutlinedIcon), defaultRegion: "bottom" },
   { id: "inspector", title: "Inspector", icon: createElement(TuneOutlinedIcon), defaultRegion: "right" },
   { id: "assistant", title: "Assistant", icon: createElement(AutoAwesomeOutlinedIcon), defaultRegion: "right" }
 ] satisfies readonly Omit<GamePanelRegistration, "dimensions">[]) {
