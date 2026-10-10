@@ -1907,6 +1907,35 @@ npm run dev:nodetool -- affected packages/cli/src/x.ts # explicit files
 npm run dev:nodetool -- affected --json
 ```
 
+### npm run mutate (Mutation Testing for TypeScript)
+
+Mutates one TypeScript site at a time (`<` to `<=`, `&&` to `||`, `true` to
+`false`, delete `!`, `?.` to `.`, …), runs the owning package's tests, and
+reports each mutant the tests fail to kill. A port of
+[unclebob/mutator](https://github.com/unclebob/mutator). Use it to check that
+a new test actually pins the behavior it claims to.
+
+```bash
+npm run mutate -- packages/kernel/src/graph.ts           # one file
+npm run mutate -- --base origin/main packages/kernel/src # functions changed on this branch
+npm run mutate -- --scan packages/kernel/src             # list sites, run nothing
+npm run test:mutation --workspace=packages/kernel        # the package's configured run
+node scripts/mutation-score.mjs --survivors kernel       # survivors from the snapshots
+```
+
+- **Tests:** a Vitest package runs `vitest related --run` for the mutated
+  file. A mutant is killed when that fails or exceeds ten times the baseline
+  duration.
+- **Coverage:** sites on lines the package's V8 coverage run never hits are
+  reported as uncovered and skipped. `--no-coverage` runs them too.
+- **Snapshots:** `.metrics/mutate/<namespace>.json` records each function's
+  hash and each outcome, so a rerun only retries survivors and functions whose
+  text changed.
+- **Isolation:** mutants run in overlays under `target/mutation-workers`, one
+  per core, each holding a copy of the package. The checkout is never edited.
+- **Exit codes:** `0` all killed, `2` baseline failed, `3` a mutant survived.
+  Details: [packages/mutator/README.md](../packages/mutator/README.md).
+
 ### npm run probe:providers (Provider Contract Probes)
 
 Asks OpenAI, Gemini, fal, and KIE for one real response each and decodes it with

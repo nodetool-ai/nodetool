@@ -26,6 +26,7 @@
     { "path": "packages/browser" },
     { "path": "reliability/harness" },
     { "path": "packages/fal-codegen" },
+    { "path": "packages/mutator" },
     { "path": "packages/fal-nodes" },
     { "path": "packages/replicate-codegen" },
     { "path": "packages/replicate-nodes" },

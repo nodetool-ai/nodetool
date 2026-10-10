@@ -1,9 +1,13 @@
 name: Mutation Testing
 
-# Runs Stryker mutation testing across the backend packages that have a
-# stryker.config.json and reports the aggregate mutation score. Mutation
-# testing is slow, so this runs on a weekly schedule (and on demand) rather
-# than on every push. Reporting only — it never fails the build on a low score.
+# Runs nodetool-mutator (packages/mutator, a TypeScript port of
+# unclebob/mutator) over the correctness- and security-critical packages and
+# reports the mutation score. Each package is one matrix leg.
+#
+# Runs are differential: the previous week's snapshots are restored from the
+# cache, so a leg reruns only survivors and the functions whose text changed.
+# Dispatch with `mutate_all` to rerun everything. Reporting only — a low score
+# or a surviving mutant never fails the build.
 
 on:
   schedule:
@@ -14,58 +18,117 @@ on:
         description: "Space-separated package names to run (default: all)"
         required: false
         default: ""
+      mutate_all:
+        description: "Rerun every covered mutant, ignoring the cached snapshots"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
 
 jobs:
-  mutation:
+  mutate:
+    name: mutate ${{ matrix.package }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each package's `test:mutation` script names its targets and, where
+        # the full suite is unsuitable, its test and coverage commands.
+        package: [agents, auth, config, kernel, node-sdk, runtime, security, storage]
+    steps:
+      - name: Check whether this leg was requested
+        id: wanted
+        env:
+          REQUESTED: ${{ github.event.inputs.packages }}
+          PACKAGE: ${{ matrix.package }}
+        run: |
+          if [ -z "$REQUESTED" ] || [[ " $REQUESTED " == *" $PACKAGE "* ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repository
+        if: steps.wanted.outputs.run == 'true'
+        uses: actions/checkout@v7
+
+      - name: Set up Node, install deps, build packages
+        if: steps.wanted.outputs.run == 'true'
+        uses: ./.github/actions/setup-build
+
+      - name: Restore the previous snapshots
+        if: steps.wanted.outputs.run == 'true' && github.event.inputs.mutate_all != 'true'
+        uses: actions/cache/restore@v5
+        with:
+          path: .metrics/mutate
+          key: mutation-snapshots-${{ matrix.package }}-${{ github.run_id }}
+          restore-keys: mutation-snapshots-${{ matrix.package }}-
+
+      - name: Run nodetool-mutator
+        if: steps.wanted.outputs.run == 'true'
+        env:
+          MUTATE_ALL: ${{ github.event.inputs.mutate_all }}
+        run: |
+          ARGS=()
+          if [ "$MUTATE_ALL" = "true" ]; then ARGS+=(--mutate-all); fi
+          # Exit 3 means a mutant survived, which this report expects. Exit 2
+          # (the baseline tests failed) is worth a warning.
+          set +e
+          npm run test:mutation --workspace=packages/${{ matrix.package }} -- "${ARGS[@]}"
+          CODE=$?
+          set -e
+          if [ "$CODE" -eq 2 ]; then
+            echo "::warning::The baseline tests failed in packages/${{ matrix.package }}; its snapshot was not updated."
+          elif [ "$CODE" -ne 0 ] && [ "$CODE" -ne 3 ]; then
+            exit "$CODE"
+          fi
+
+      - name: Save the snapshots
+        if: always() && steps.wanted.outputs.run == 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: .metrics/mutate
+          key: mutation-snapshots-${{ matrix.package }}-${{ github.run_id }}
+
+      - name: Upload the snapshots
+        if: always() && steps.wanted.outputs.run == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-snapshots-${{ matrix.package }}
+          path: .metrics/mutate/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
+
+  report:
+    needs: mutate
+    if: always()
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Download the snapshots
+        uses: actions/download-artifact@v8
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-
-      - name: Build packages
-        run: npm run build:packages
-
-      - name: Run mutation testing
-        run: |
-          PKGS="${{ github.event.inputs.packages }}"
-          if [ -z "$PKGS" ]; then
-            PKGS="agents auth kernel node-sdk runtime security"
-          fi
-          echo "Running mutation testing for: $PKGS"
-          for pkg in $PKGS; do
-            echo "::group::stryker $pkg"
-            npm run test:mutation --workspace=packages/$pkg || echo "stryker run failed for $pkg (continuing)"
-            echo "::endgroup::"
-          done
+          pattern: mutation-snapshots-*
+          path: .metrics/mutate
+          merge-multiple: true
 
       - name: Report mutation score
-        if: always()
+        env:
+          REQUESTED: ${{ github.event.inputs.packages }}
         run: |
-          echo "## 🧬 Mutation Score" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          PKGS="${{ github.event.inputs.packages }}"
-          node scripts/mutation-score.mjs $PKGS >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload mutation reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: mutation-reports
-          path: packages/*/reports/mutation/
-          if-no-files-found: warn
-          retention-days: 30
+          PKGS="${REQUESTED:-agents auth config kernel node-sdk runtime security storage}"
+          {
+            echo "## 🧬 Mutation Score"
+            echo ""
+            node scripts/mutation-score.mjs $PKGS
+            echo ""
+            echo "### Survivors"
+            echo ""
+            node scripts/mutation-score.mjs --survivors --limit 100 $PKGS
+          } >> "$GITHUB_STEP_SUMMARY"

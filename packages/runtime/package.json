@@ -12,6 +12,7 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').mkdirSync('dist/providers',{recursive:true}); require('node:fs').cpSync('src/providers/aki-manifest.json', 'dist/providers/aki-manifest.json')\"",
     "test": "node ../../scripts/run-vitest.mjs run",
     "test:watch": "node ../../scripts/run-vitest.mjs",
+    "test:mutation": "node ../mutator/dist/cli.js --root ../.. src/providers/cost-calculator.ts src/providers/defaults.ts src/media-ref-bytes.ts src/image-codec.ts src/provider-cache.ts src/context-packer.ts src/cost-reconciler.ts src/recommended-models.ts src/providers/provider-registry.ts src/providers/manifest-models.ts src/agent-memory.ts src/trace-exporters.ts src/python-worker-stderr.ts src/python-bridge-factory.ts src/providers/alibaba-provider.ts src/providers/cerebras-provider.ts src/providers/gmi-provider.ts src/providers/groq-provider.ts src/providers/xai-provider.ts src/providers/deepseek-provider.ts src/providers/moonshot-provider.ts src/providers/mistral-provider.ts src/providers/lmstudio-provider.ts src/providers/vllm-provider.ts src/providers/openrouter-provider.ts src/providers/aki-provider.ts src/providers/cohere-provider.ts src/providers/jina-provider.ts src/providers/voyage-provider.ts src/providers/reve-provider.ts src/providers/meshy-provider.ts src/providers/rodin-provider.ts",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
