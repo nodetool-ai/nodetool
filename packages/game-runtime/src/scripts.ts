@@ -1,6 +1,6 @@
 import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
-import { gameNonSpatialScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
+import { gameNonSpatialScriptCommand, gameUiScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
 
 import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
 import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
@@ -25,7 +25,8 @@ export const gameScriptCommand = z.discriminatedUnion("kind", [
   gameNonSpatialScriptCommand.options[4],
   gameNonSpatialScriptCommand.options[5],
   gameNonSpatialScriptCommand.options[6],
-  gameNonSpatialScriptCommand.options[7]
+  gameNonSpatialScriptCommand.options[7],
+  gameUiScriptCommand
 ]);
 
 export type GameScriptCommand = z.infer<typeof gameScriptCommand>;

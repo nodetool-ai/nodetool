@@ -13,6 +13,7 @@ import { initTestDb } from "../src/db.js";
 import { Workflow } from "../src/workflow.js";
 import { WorkflowCollaborator } from "../src/workflow-collaborator.js";
 import { WorkflowShare } from "../src/workflow-share.js";
+import { TriggerRegistration } from "../src/trigger-registration.js";
 import { TimelineSequence } from "../src/timeline-sequence.js";
 import { TimelineSequenceVersion } from "../src/timeline-sequence-version.js";
 import { ImageDocument } from "../src/image-document.js";
@@ -185,6 +186,51 @@ describe("deleteOwned cascades", () => {
     // would then apply to a workflow its holder was never given.
     expect(await WorkflowCollaborator.findFor(wf.id, OTHER)).toBeNull();
     expect(await WorkflowShare.listForWorkflow(wf.id)).toEqual([]);
+  });
+
+  it("cascades by the full id when named by a 12-character prefix", async () => {
+    const wf = await Workflow.create<Workflow>({
+      user_id: OWNER,
+      name: "wf",
+      description: "",
+      tags: [],
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      run_mode: "workflow"
+    });
+    await WorkflowShare.ensure({
+      workflowId: wf.id,
+      role: "viewer",
+      createdBy: OWNER
+    });
+
+    expect(await Workflow.deleteOwned(OWNER, wf.id.slice(0, 12))).toBe(true);
+
+    expect(await WorkflowShare.listForWorkflow(wf.id)).toEqual([]);
+  });
+
+  it("disarms a workflow's triggers with it", async () => {
+    const wf = await Workflow.create<Workflow>({
+      user_id: OWNER,
+      name: "wf",
+      description: "",
+      tags: [],
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      run_mode: "workflow"
+    });
+    await TriggerRegistration.create<TriggerRegistration>({
+      user_id: OWNER,
+      workflow_id: wf.id,
+      node_id: "n1",
+      kind: "webhook",
+      config_json: {},
+      enabled: 1
+    });
+
+    expect(await Workflow.deleteOwned(OWNER, wf.id)).toBe(true);
+
+    expect(await TriggerRegistration.findByWorkflow(wf.id)).toEqual([]);
   });
 
   it("takes a timeline's version rows with it", async () => {

@@ -1,4 +1,4 @@
-import { gameParticleEmissionOf, type GameEntityProps } from "@nodetool-ai/protocol";
+import { applyGameUiCommand, gameParticleEmissionOf, gameUiCommandTarget, type GameEntityProps } from "@nodetool-ai/protocol";
 import { evaluateVisual } from "../visual-animation.js";
 import { gravityScaleOf, touchingOf } from "./collision2d.js";
 import type { EntityState } from "./state2d.js";
@@ -199,6 +199,10 @@ export function stepScripts2D(context: GameSystemContext2D): void {
         if (command.kind === "hud" && command.fontId && context.document.assets[command.fontId]?.mediaKind !== "font") {
           throw new Error(`Game script uses missing font ${command.fontId}`);
         }
+        if (command.kind === "ui") {
+          const target = gameUiCommandTarget([...(context.document.ui?.nodes ?? []), ...(context.scene.ui?.nodes ?? [])], command);
+          if (typeof target === "string") { throw new Error(target); }
+        }
         // A spawned instance can expire in the tick before a script reacts to its contact.
         if (command.kind === "despawn" && !byId.get(command.entityId)?.active && !context.isSpawnedId(command.entityId)) {
           throw new Error(`Game script uses missing entity ${command.entityId}`);
@@ -241,6 +245,8 @@ export function stepScripts2D(context: GameSystemContext2D): void {
             state.animation = command.clip;
             state.animationTick = context.tick + 1;
           }
+        } else if (command.kind === "ui") {
+          applyGameUiCommand(context.ui, command);
         } else if (command.kind === "emitParticles") {
           (context.queues.particles ??= []).push(gameParticleEmissionOf(command, item.entityId));
         } else {

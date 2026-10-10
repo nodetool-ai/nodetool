@@ -350,6 +350,31 @@ export class Job extends DBModel {
   }
 
   /**
+   * Cancel a run only while it is still waiting for a slot. A run that a
+   * dequeue has already started is left alone, so the caller can tell the two
+   * apart instead of overwriting a live row.
+   */
+  static async markCancelledIfQueued(
+    jobId: string,
+    userId: string
+  ): Promise<boolean> {
+    const db = getPortableDb();
+    const now = new Date().toISOString();
+    const updated = await db
+      .update(jobs)
+      .set({ status: "cancelled", finished_at: now, updated_at: now })
+      .where(
+        and(
+          eq(jobs.id, jobId),
+          eq(jobs.user_id, userId),
+          eq(jobs.status, "queued")
+        )
+      )
+      .returning({ id: jobs.id });
+    return updated.length > 0;
+  }
+
+  /**
    * Which of these ids are now cancelled. The poller's one query per tick —
    * indexed on the primary key, and bounded by how many runs an instance is
    * actually executing.

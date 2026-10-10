@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { shallow } from "zustand/shallow";
-import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box, MOTION, BORDER_RADIUS, SHADOW, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, Text, EditorButton, PanelHeader, Box, MOTION, BORDER_RADIUS, SHADOW, SPACING, getSpacingPx } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -85,14 +85,7 @@ const styles = (theme: Theme) =>
     "& .panel-content": {
       flex: 1,
       overflowY: "auto",
-      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`
-    },
-    "& .node-name": {
-      fontSize: "var(--fontSizeNormal)",
-      fontWeight: 600,
-      color: theme.vars.palette.text.primary,
-      wordBreak: "break-word",
-      marginBottom: getSpacingPx(SPACING.xs)
+      padding: getSpacingPx(SPACING.lg)
     },
     "& .node-description": {
       fontSize: "var(--fontSizeSmall)",
@@ -354,22 +347,15 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
 
   return (
     <Box className="node-info-panel" css={panelStyles} style={panelStyle}>
+      <PanelHeader title={nodeInfo.label} onClose={handleClose} />
       <Box className="panel-content">
-        <FlexRow align="center" justify="space-between" sx={{ mb: 1 }}>
-          <Text className="node-name">{nodeInfo.label}</Text>
-          <CloseButton
-            onClick={handleClose}
-            sx={{ color: "text.secondary" }}
-            nodrag={false}
-          />
-        </FlexRow>
 
         <Tooltip
           title={
             <span>
               <Text
                 component="span"
-                sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
+                sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 500 }}
               >
                 {nodeInfo.namespace}
               </Text>

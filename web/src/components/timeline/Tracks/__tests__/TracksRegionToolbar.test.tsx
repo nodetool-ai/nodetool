@@ -24,11 +24,11 @@ jest.mock("../../../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
 }));
 
-const renderRegion = () =>
+const renderRegion = (onGenerate?: () => void) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <TimelineProvider>
-        <TracksRegion heightPx={400} />
+        <TracksRegion heightPx={400} onGenerate={onGenerate} />
       </TimelineProvider>
     </ThemeProvider>
   );
@@ -66,6 +66,20 @@ describe("TracksRegion toolbar undo/redo", () => {
       fireEvent.click(redo);
     });
     expect(useTimelineStore.getState().tracks).toHaveLength(1);
+  });
+});
+
+describe("TracksRegion toolbar Generate button", () => {
+  it("opens the Generate dialog", () => {
+    const onGenerate = jest.fn();
+    renderRegion(onGenerate);
+    fireEvent.click(screen.getByTestId("timeline-generate"));
+    expect(onGenerate).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers no Generate button without a handler", () => {
+    renderRegion();
+    expect(screen.queryByTestId("timeline-generate")).not.toBeInTheDocument();
   });
 });
 

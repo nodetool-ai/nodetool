@@ -75,6 +75,7 @@ export const storyboardMergeAdapter: DocumentMergeAdapter<StoryboardBoard> = {
     scalar("brief", "brief"),
     scalar("style", "style"),
     scalar("creativeContext", "creativeContext"),
+    scalar("oneTake", "oneTake"),
     scalar("entityIds", "entityIds"),
     scalar("aspectRatio", "aspectRatio"),
     scalar("directorModel", "directorModel"),

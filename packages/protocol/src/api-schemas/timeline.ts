@@ -1644,6 +1644,9 @@ export const timelineClip = z.object({
    * than at the size the user picked. */
   aspectRatio: z.string().optional(),
   resolution: z.string().optional(),
+  /** Direct-gen video references: image assets, then entities. */
+  referenceImageIds: z.array(z.string()).optional(),
+  referenceEntityIds: z.array(z.string()).optional(),
   strength: z.number().optional(),
   numInferenceSteps: z.number().optional(),
   seed: z.number().optional(),

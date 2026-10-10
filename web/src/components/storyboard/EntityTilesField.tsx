@@ -42,6 +42,8 @@ export interface EntityTilesFieldProps {
   /** A heading above the tiles, for a host that has no field label. */
   label?: string;
   readOnly?: boolean;
+  /** A control beside "Choose entities", such as creating a new entity. */
+  extraAction?: React.ReactNode;
   "data-testid"?: string;
 }
 
@@ -128,6 +130,7 @@ const EntityTilesFieldInner: React.FC<EntityTilesFieldProps> = ({
   emptyText,
   label,
   readOnly,
+  extraAction,
   "data-testid": testId
 }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -152,18 +155,21 @@ const EntityTilesFieldInner: React.FC<EntityTilesFieldProps> = ({
       )}
       {!readOnly && (
         <>
-          <EditorButton
-            ref={chooseRef}
-            variant="outlined"
-            fullWidth
-            endIcon={<ExpandMoreIcon />}
-            onClick={() => setPickerOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={pickerOpen}
-            sx={{ justifyContent: "space-between" }}
-          >
-            Choose entities
-          </EditorButton>
+          <FlexRow gap={SPACING.sm} align="center">
+            <EditorButton
+              ref={chooseRef}
+              variant="outlined"
+              fullWidth
+              endIcon={<ExpandMoreIcon />}
+              onClick={() => setPickerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={pickerOpen}
+              sx={{ justifyContent: "space-between" }}
+            >
+              Choose entities
+            </EditorButton>
+            {extraAction}
+          </FlexRow>
           <Popover
             open={pickerOpen}
             anchorEl={chooseRef.current}

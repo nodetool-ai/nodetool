@@ -60,6 +60,7 @@ import {
   Tooltip,
   UndoRedoButtons,
   CloseButton,
+  PanelHeader,
   BORDER_RADIUS,
   SPACING,
   Z_INDEX,
@@ -99,8 +100,10 @@ import {
   computeSceneStats,
   nextAvailableName,
   removeStrayLightChildren,
+  restoreEditorSettings,
   restoreHiddenFlags,
   restoreNodeNames,
+  stampObjectIds,
   type LoadedGltfNames
 } from "./sceneOps";
 import { createEditorHistory, type EditorCommand } from "./editorHistory";
@@ -199,18 +202,6 @@ const styles = (theme: Theme) =>
       width: `${RIGHT_PANEL_WIDTH}px`,
       borderRight: "none",
       borderLeft: `1px solid ${theme.vars.palette.divider}`
-    },
-    ".panel-header": {
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      flexShrink: 0,
-      minHeight: 36,
-      boxSizing: "border-box"
-    },
-    ".panel-title": {
-      textTransform: "uppercase",
-      letterSpacing: "0.06em",
-      color: theme.vars.palette.text.secondary
     },
     ".panel-body": {
       flex: 1,
@@ -377,6 +368,14 @@ interface Model3DEditorProps {
   active?: boolean;
   /** Told whenever the scene gains or loses unsaved edits. */
   onDirtyChange?: (dirty: boolean) => void;
+  /**
+   * The file was written from elsewhere while this editor had unsaved
+   * edits. The editor warns that a save would replace that change.
+   */
+  externallyChanged?: boolean;
+  /** Reopen the file from storage, discarding the unsaved edits. */
+  onReloadExternal?: () => void;
+  onDismissExternal?: () => void;
 }
 
 const Model3DEditor = ({
@@ -387,7 +386,10 @@ const Model3DEditor = ({
   cameraPose,
   offlineLighting = false,
   active = true,
-  onDirtyChange
+  onDirtyChange,
+  externallyChanged = false,
+  onReloadExternal,
+  onDismissExternal
 }: Model3DEditorProps) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -467,6 +469,11 @@ const Model3DEditor = ({
   }, []);
 
   const bump = useCallback(() => setTick((t) => t + 1), []);
+  // A gizmo drag changes only the dragged object's transform. It refreshes
+  // the Inspector alone, so the outliner, stats and wireframe are not rebuilt
+  // on every pointer move.
+  const [dragTick, setDragTick] = useState(0);
+  const bumpDrag = useCallback(() => setDragTick((t) => t + 1), []);
   const nonce = useRef(0);
   const requestCamera = useCallback(
     (request: CameraRequestInput) => {
@@ -570,9 +577,11 @@ const Model3DEditor = ({
         bindTracksToUuids(gltf.animations, gltf.scene);
         if (gltf.parser) {
           restoreNodeNames(gltf as unknown as LoadedGltfNames);
+          stampObjectIds(gltf as unknown as LoadedGltfNames);
         }
         removeStrayLightChildren(gltf.scene);
         restoreHiddenFlags(gltf.scene);
+        restoreEditorSettings(gltf.scene);
         replaceSceneContent(root, gltf.scene);
         setAnimationClips(gltf.animations);
         setPreviewActive(false);
@@ -976,8 +985,10 @@ const Model3DEditor = ({
       return;
     }
     e.stopPropagation();
-    // A drag that orbited the camera is not a click.
-    if (e.delta > 4) {
+    // A drag that orbited the camera is not a click. Neither is a press on
+    // the gizmo: it is not part of the scene, so the click reaches the
+    // object behind the handle.
+    if (e.delta > 4 || performance.now() - lastDragEnd.current < 250) {
       return;
     }
     setSelectedUuid(e.object.uuid);
@@ -1370,14 +1381,10 @@ const Model3DEditor = ({
 
       <FlexRow className="editor-body" fullWidth>
         <FlexColumn className="side-panel left" fullHeight>
-          <FlexRow className="panel-header" align="center" justify="space-between">
-            <Text size="smaller" weight={600} className="panel-title">
-              Scene
-            </Text>
-            <Text size="smaller" color="secondary">
-              {stats.objects} {stats.objects === 1 ? "object" : "objects"}
-            </Text>
-          </FlexRow>
+          <PanelHeader
+            title="Scene"
+            count={`${stats.objects} ${stats.objects === 1 ? "object" : "objects"}`}
+          />
           <div className="panel-body">
             <SceneOutliner
               nodes={treeNodes}
@@ -1420,6 +1427,26 @@ const Model3DEditor = ({
               <Text>Drop a .glb or .gltf model to add it to the scene</Text>
             </FlexColumn>
           )}
+          {externallyChanged && !saveError && (
+            <Box className="viewport-banner">
+              <AlertBanner
+                severity="warning"
+                compact
+                action={
+                  <FlexRow gap={SPACING.xs}>
+                    <EditorButton density="compact" variant="text" onClick={onDismissExternal}>
+                      Keep editing
+                    </EditorButton>
+                    <EditorButton density="compact" variant="outlined" onClick={onReloadExternal}>
+                      Reload
+                    </EditorButton>
+                  </FlexRow>
+                }
+              >
+                This model was changed outside the editor. Reload to see that change and lose your unsaved edits, or save to replace it.
+              </AlertBanner>
+            </Box>
+          )}
           {saveError && (
             <Box className="viewport-banner">
               <AlertBanner
@@ -1443,6 +1470,9 @@ const Model3DEditor = ({
             </FlexColumn>
           ) : (
             <Canvas
+              // Background workspace tabs stay mounted at opacity 0. Rendering
+              // them at full frame rate would spend GPU time on nothing.
+              frameloop={active ? "always" : "never"}
               camera={{ position: [3, 2, 3], fov: 50 }}
               gl={{ preserveDrawingBuffer: true, alpha: true, antialias: true }}
               onPointerMissed={handlePointerMissed}
@@ -1501,7 +1531,7 @@ const Model3DEditor = ({
                   scaleSnap={snapActive ? SNAP.scale : null}
                   onMouseDown={handleGizmoDown}
                   onMouseUp={handleGizmoUp}
-                  onObjectChange={bump}
+                  onObjectChange={bumpDrag}
                 />
               )}
               {cameraPose ? (
@@ -1541,12 +1571,8 @@ const Model3DEditor = ({
         </div>
 
         <FlexColumn className="side-panel right" fullHeight>
-          <FlexRow className="panel-header" align="center">
-            <Text size="smaller" weight={600} className="panel-title">
-              Inspector
-            </Text>
-          </FlexRow>
-          <PropertiesPanel object={selectedObject} tick={tick} record={record} />
+          <PanelHeader title="Inspector" />
+          <PropertiesPanel object={selectedObject} tick={tick + dragTick} record={record} />
         </FlexColumn>
 
         {/* Kept mounted (toggled via display) so the chat connection and
@@ -1557,18 +1583,12 @@ const Model3DEditor = ({
             defaultWidth={ASSISTANT_PANEL_WIDTH}
             ariaLabel="Resize 3D assistant"
           >
-            <FlexRow className="panel-header" justify="space-between" align="center">
-              <FlexRow gap={SPACING.xs} align="center">
-                <AutoAwesomeIcon fontSize="small" />
-                <Text size="smaller" weight={600} className="panel-title">
-                  Assistant
-                </Text>
-              </FlexRow>
-              <CloseButton
-                onClick={() => toggleAssistant()}
-                tooltip="Hide assistant"
-              />
-            </FlexRow>
+            <PanelHeader
+              title="Assistant"
+              icon={<AutoAwesomeIcon />}
+              onClose={() => toggleAssistant()}
+              closeLabel="Hide assistant"
+            />
             <div className="panel-body">
               <Model3DChatPanel />
             </div>

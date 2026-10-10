@@ -170,7 +170,11 @@ export function parseOperation(raw: unknown): Model3DOperation {
     }
     case "select_object": {
       const target = raw["target"];
-      if (target === undefined || target === null || target === "") {
+      if (
+        target === undefined ||
+        target === null ||
+        (typeof target === "string" && target.trim() === "")
+      ) {
         return { op: "select_object", target: null };
       }
       return { op: "select_object", target: requireTarget(raw, op) };

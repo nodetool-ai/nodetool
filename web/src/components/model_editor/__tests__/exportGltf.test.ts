@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { exportSceneToGlb } from "../exportGltf";
-import { HIDDEN_EXTRA } from "../sceneOps";
+import { EDITOR_SETTINGS_EXTRA, HIDDEN_EXTRA } from "../sceneOps";
 import { createPrimitive } from "../objectFactory";
 
 const mockParse = jest.fn();
@@ -74,6 +74,59 @@ describe("exportSceneToGlb", () => {
     expect(seen).toEqual({ visible: false, extra: true });
     expect(mockParse.mock.calls[0][3]).toMatchObject({ onlyVisible: false });
     expect(hidden.userData).toEqual({});
+  });
+
+  it("exports a wireframe mesh as triangles and keeps its settings in an extra", async () => {
+    const root = new THREE.Group();
+    const material = new THREE.MeshStandardMaterial({ wireframe: true, side: THREE.BackSide });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(), material);
+    mesh.castShadow = true;
+    mesh.renderOrder = 3;
+    root.add(mesh);
+    let seen: { wireframe: boolean; material: unknown; object: unknown } | null = null;
+    mockParse.mockImplementation(
+      (_input: unknown, onDone: (result: ArrayBuffer) => void) => {
+        seen = {
+          wireframe: material.wireframe,
+          material: material.userData[EDITOR_SETTINGS_EXTRA],
+          object: mesh.userData[EDITOR_SETTINGS_EXTRA]
+        };
+        onDone(new ArrayBuffer(4));
+      }
+    );
+
+    await exportSceneToGlb(root);
+
+    // GLTFExporter writes a wireframe material's mesh as LINES over the
+    // triangle indices, which reloads as broken line segments.
+    expect(seen).toEqual({
+      wireframe: false,
+      material: { wireframe: true, backSide: true },
+      object: { castShadow: true, renderOrder: 3 }
+    });
+    expect(material.wireframe).toBe(true);
+    expect(material.userData).toEqual({});
+    expect(mesh.userData).toEqual({});
+  });
+
+  it("writes no settings extra for default objects and materials", async () => {
+    const root = new THREE.Group();
+    const mesh = createPrimitive("box") as THREE.Mesh;
+    root.add(mesh);
+    let seen: unknown[] = [];
+    mockParse.mockImplementation(
+      (_input: unknown, onDone: (result: ArrayBuffer) => void) => {
+        seen = [
+          mesh.userData[EDITOR_SETTINGS_EXTRA],
+          (mesh.material as THREE.Material).userData[EDITOR_SETTINGS_EXTRA]
+        ];
+        onDone(new ArrayBuffer(4));
+      }
+    );
+
+    await exportSceneToGlb(root);
+
+    expect(seen).toEqual([undefined, undefined]);
   });
 
   it("leaves a light's target out of the export and puts it back", async () => {

@@ -17,6 +17,7 @@ import {
 } from "./editorCommands";
 import type { EditorCommand, EditorHistory } from "./editorHistory";
 import type { PrimitiveKind } from "./objectFactory";
+import { OBJECT_ID_EXTRA } from "./sceneOps";
 import { isLightTarget } from "./sceneTree";
 import type { CameraRequestInput } from "./ViewportHelpers";
 import {
@@ -54,7 +55,10 @@ export interface Model3DAgentToolsOptions {
 const toDegrees = THREE.MathUtils.radToDeg;
 const toRadians = THREE.MathUtils.degToRad;
 
-/** Find an object by uuid, then by exact name, then by case-insensitive name. */
+/**
+ * Find an object by uuid, then by the stable id the headless scene tools
+ * list (`get_model3d`), then by exact name, then by case-insensitive name.
+ */
 export const findSceneObject = (
   root: THREE.Object3D,
   idOrName: string
@@ -62,6 +66,16 @@ export const findSceneObject = (
   const byUuid = root.getObjectByProperty("uuid", idOrName);
   if (byUuid) {
     return byUuid;
+  }
+  const id = idOrName.trim();
+  let byStoredId: THREE.Object3D | null = null;
+  root.traverse((child) => {
+    if (!byStoredId && child !== root && child.userData[OBJECT_ID_EXTRA] === id) {
+      byStoredId = child;
+    }
+  });
+  if (byStoredId) {
+    return byStoredId;
   }
   const byName = root.getObjectByName(idOrName);
   if (byName) {

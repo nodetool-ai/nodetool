@@ -940,6 +940,9 @@ export interface TimelineStoreState {
     height?: number;
     aspectRatio?: string;
     resolution?: string;
+    /** Video: image assets and entities the clip renders with. */
+    referenceImageIds?: string[];
+    referenceEntityIds?: string[];
     strength?: number;
     numInferenceSteps?: number;
     name?: string;
@@ -4060,6 +4063,12 @@ export const createTimelineStore = (
             height: opts.height,
             aspectRatio: opts.aspectRatio,
             resolution: opts.resolution,
+            ...(opts.referenceImageIds?.length && {
+              referenceImageIds: [...opts.referenceImageIds]
+            }),
+            ...(opts.referenceEntityIds?.length && {
+              referenceEntityIds: [...opts.referenceEntityIds]
+            }),
             strength: opts.strength,
             numInferenceSteps: opts.numInferenceSteps,
             status: "draft",

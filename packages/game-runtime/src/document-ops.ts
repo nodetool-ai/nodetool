@@ -8,6 +8,7 @@ import {
   gameEntity,
   gameInputBindings,
   gameRenderEffect,
+  gameUiTree,
   gameScene,
   gameScriptParamValue,
   gameScriptParams,
@@ -83,6 +84,7 @@ export const gameDocumentOp = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("set_effects"), effects: z.array(gameRenderEffect).max(8).nullable(), hud_effect_order: gameDocument.shape.hudEffectOrder.nullable().optional() }),
   z.strictObject({ op: z.literal("set_game"), pixels_per_unit: gameDocument.shape.pixelsPerUnit.optional(), input_actions: gameDocument.shape.inputActions.optional(), input_bindings: gameInputBindings.nullable().optional(), entry_scene_id: id.optional(), collision_layers: gameDocument.shape.collisionLayers.nullable().optional() }),
   z.strictObject({ op: z.literal("set_audio"), mixer: gameAudioMixer.nullable() }),
+  z.strictObject({ op: z.literal("set_ui"), scene_id: id.optional(), ui: gameUiTree.nullable() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding }),
   z.strictObject({ op: z.literal("unbind_asset"), slot: id })
 ]);
@@ -172,6 +174,7 @@ function responsibleOpIndex(document: GameDocument, ops: readonly GameDocumentOp
     if (head === "assets" && "slot" in op && op.slot === position) { return index; }
     if (head === "renderEffects" && op.op === "set_effects") { return index; }
     if (head === "audio" && op.op === "set_audio") { return index; }
+    if (head === "ui" && op.op === "set_ui" && op.scene_id === undefined) { return index; }
     if ((head === "entrySceneId" || head === "pixelsPerUnit" || head === "inputActions" || head === "inputBindings" || head === "collisionLayers") && op.op === "set_game") { return index; }
   }
   return Math.max(0, ops.length - 1);
@@ -435,6 +438,15 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         if (op.entry_scene_id !== undefined) { draft.entrySceneId = op.entry_scene_id; }
         if (op.collision_layers === null) { delete draft.collisionLayers; }
         else if (op.collision_layers !== undefined) { draft.collisionLayers = op.collision_layers; }
+        break;
+      }
+      case "set_ui": {
+        if (op.scene_id === undefined) {
+          if (op.ui === null) { delete draft.ui; } else { draft.ui = op.ui; }
+        } else {
+          const { scene } = findScene(draft, op.scene_id, opIndex);
+          if (op.ui === null) { delete scene.ui; } else { scene.ui = op.ui; }
+        }
         break;
       }
       case "set_audio": {

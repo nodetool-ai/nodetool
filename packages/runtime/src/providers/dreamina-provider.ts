@@ -6,7 +6,7 @@ import { fetchExternalMedia } from "../external-media-fetch.js";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createDreaminaMusic, type DreaminaMusic } from "./dreamina-music.js";
 import { DREAMINA_IMAGE_MODELS, DREAMINA_VIDEO_MODELS } from "./dreamina-models.js";
-import type { EncodedAudioResult, ImageModel, Message, MusicModel, ImageToImageParams, ImageToVideoParams, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToMusicParams, TextToVideoParams, VideoModel } from "./types.js";
+import type { EncodedAudioResult, ImageModel, Message, MusicModel, ImageToImageParams, ImageToVideoParams, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToMusicParams, TextToVideoParams, VideoModel, NamedReferenceImage } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.dreamina");
 
@@ -96,6 +96,9 @@ const DA_VERSION = "3.3.28";
 const WEB_VERSION = "7.5.0";
 const POLL_INTERVAL_MS = 2500;
 const MAX_POLL_FAILURES = 5;
+/** How long a submit cut off by a lost tab has to show up in the history. */
+const UNCONFIRMED_SUBMIT_GRACE_MS = 30_000;
+const GENERATE_PATH = "/mweb/v1/aigc_draft/generate";
 const DEFAULT_TIMEOUT_MS = 5 * 60_000;
 const VIDEO_TIMEOUT_MS = 10 * 60_000;
 const CONFIG_TTL_MS = 5 * 60_000;
@@ -165,7 +168,34 @@ function signedHeaders(path: string): Record<string, string> {
   };
 }
 
+/**
+ * Whether `error` means the Dreamina tab went away: closed, reloaded or
+ * navigated while a command ran. The runner drops its attach on any error, so
+ * the next call attaches afresh.
+ */
+function tabLost(error: unknown): boolean {
+  return error instanceof Error && /detached|target[ _]closed|no tab with/i.test(error.message);
+}
+
+/**
+ * Run `step` and, if the tab is lost, once more on a fresh attach. Only for
+ * steps that cost nothing and can repeat: never the generate request.
+ */
+async function retryOnTabLoss<T>(what: string, step: () => Promise<T>): Promise<T> {
+  try {
+    return await step();
+  } catch (error) {
+    if (!tabLost(error)) throw error;
+    log.warn("Dreamina tab lost, retrying on a fresh attach", { what, error: (error as Error).message });
+    return step();
+  }
+}
+
 async function callApi<T>(path: string, body: unknown): Promise<T> {
+  return path === GENERATE_PATH ? callApiOnce<T>(path, body) : retryOnTabLoss(path, () => callApiOnce<T>(path, body));
+}
+
+async function callApiOnce<T>(path: string, body: unknown): Promise<T> {
   const query = new URLSearchParams({ aid: APP_ID, device_platform: "web", region: region(), da_version: DA_VERSION, web_version: WEB_VERSION, aigc_features: "app_lip_sync" });
   const request = { url: `${API_BASE}${path}?${query}`, headers: signedHeaders(path), body: JSON.stringify(body) };
   const expression = `(() => { const a = ${JSON.stringify(request)};
@@ -179,7 +209,9 @@ async function callApi<T>(path: string, body: unknown): Promise<T> {
       x.send(a.body);
     });
   })()`;
+  const started = Date.now();
   const response = (await runner().evaluate(expression)) as DreaminaResponse<T>;
+  log.debug("Dreamina API call", { path, ret: response.ret, ms: Date.now() - started });
   // `submit_audit_job` answers with an empty `ret`, which carries no error.
   if (response.ret !== "0" && response.ret !== "") {
     const hint = response.ret === "1015" || response.ret === "1014" ? " (is the Dreamina tab logged in?)" : "";
@@ -384,7 +416,11 @@ interface CommitResult {
 }
 
 /** Upload an image through ImageX the way the web app does and return its store URI. */
-async function uploadImage(bytes: Uint8Array): Promise<UploadedImage> {
+function uploadImage(bytes: Uint8Array): Promise<UploadedImage> {
+  return retryOnTabLoss("image upload", () => uploadImageOnce(bytes));
+}
+
+async function uploadImageOnce(bytes: Uint8Array): Promise<UploadedImage> {
   const token = await callApi<UploadToken>("/mweb/v1/get_upload_token", { scene: 2 });
   const account = (await runner().evaluate(`fetch("https://dreamina.capcut.com/passport/web/account/info/?aid=${APP_ID}&account_sdk_source=web&language=en", { credentials: "include" }).then((r) => r.json())`)) as { data?: { user_id_str?: string } };
   const userId = account.data?.user_id_str;
@@ -438,7 +474,11 @@ interface VodCommitResult {
 }
 
 /** Upload a video or audio file through VOD the way the web app does and return its vid and size. VOD files audio as `video`. */
-async function uploadVideo(bytes: Uint8Array): Promise<UploadedVideo> {
+function uploadVideo(bytes: Uint8Array): Promise<UploadedVideo> {
+  return retryOnTabLoss("video upload", () => uploadVideoOnce(bytes));
+}
+
+async function uploadVideoOnce(bytes: Uint8Array): Promise<UploadedVideo> {
   const token = await callApi<UploadToken>("/mweb/v1/get_upload_token", { scene: 1 });
   const account = (await runner().evaluate(`fetch("https://dreamina.capcut.com/passport/web/account/info/?aid=${APP_ID}&account_sdk_source=web&language=en", { credentials: "include" }).then((r) => r.json())`)) as { data?: { user_id_str?: string } };
   const userId = account.data?.user_id_str;
@@ -498,37 +538,36 @@ async function auditReferences(model: string, images: UploadedImage[], videos: U
   }
 }
 
-type MetaPart = { meta_type: "text" | "image" | "video" | "audio"; text: string; material_ref?: { material_idx: number } };
+type MetaPart = { type: ""; id: string; meta_type: "text" | "image" | "video" | "audio"; text: string; material_ref?: { type: ""; id: string; material_idx: number } };
 
 /**
  * Split a prompt on `[Image N]`, `[Video N]` and `[Audio N]` markers into the
- * text, image, video and audio segments the site's editor produces. A
- * material's index counts images first, then videos, then audios. Without
- * markers every image, video and audio leads and the prompt follows.
+ * segments the site's editor produces: every image, video and audio leads,
+ * then the prompt follows with each marker as an inline mention of its
+ * material. A material's index counts images first, then videos, then audios.
  */
 function referenceMeta(prompt: string, imageCount: number, videoCount = 0, audioCount = 0): MetaPart[] {
   const counts = { image: imageCount, video: videoCount, audio: audioCount };
   const offsets = { image: 0, video: imageCount, audio: imageCount + videoCount };
-  const media = (kind: "image" | "video" | "audio", index: number): MetaPart => ({ meta_type: kind, text: "", material_ref: { material_idx: offsets[kind] + index } });
-  if (!/\[(Image|Video|Audio) (\d+)\]/.test(prompt)) {
-    return [
-      ...Array.from({ length: imageCount }, (_, i) => media("image", i)),
-      ...Array.from({ length: videoCount }, (_, i) => media("video", i)),
-      ...Array.from({ length: audioCount }, (_, i) => media("audio", i)),
-      ...(prompt ? [{ meta_type: "text" as const, text: prompt }] : [])
-    ];
-  }
-  const parts: MetaPart[] = [];
+  const media = (kind: "image" | "video" | "audio", index: number): MetaPart => ({ type: "", id: randomUUID(), meta_type: kind, text: "", material_ref: { type: "", id: randomUUID(), material_idx: offsets[kind] + index } });
+  const text = (value: string): MetaPart => ({ type: "", id: randomUUID(), meta_type: "text", text: value });
+  // Captured from the web app: the materials always lead, in order, even when
+  // the prompt mentions them again inline.
+  const parts: MetaPart[] = [
+    ...Array.from({ length: imageCount }, (_, i) => media("image", i)),
+    ...Array.from({ length: videoCount }, (_, i) => media("video", i)),
+    ...Array.from({ length: audioCount }, (_, i) => media("audio", i))
+  ];
   let last = 0;
   for (const match of prompt.matchAll(/\[(Image|Video|Audio) (\d+)\]/g)) {
     const kind = match[1].toLowerCase() as "image" | "video" | "audio";
     const index = Number(match[2]) - 1;
     if (index < 0 || index >= counts[kind]) throw new Error(`The prompt refers to [${match[1]} ${match[2]}] but only ${counts[kind]} reference ${kind}(s) were given`);
-    if (match.index > last) parts.push({ meta_type: "text", text: prompt.slice(last, match.index) });
+    if (match.index > last) parts.push(text(prompt.slice(last, match.index)));
     parts.push(media(kind, index));
     last = match.index + match[0].length;
   }
-  if (last < prompt.length) parts.push({ meta_type: "text", text: prompt.slice(last) });
+  if (last < prompt.length) parts.push(text(prompt.slice(last)));
   return parts;
 }
 
@@ -537,12 +576,17 @@ interface FrameImages { first: UploadedImage; last?: UploadedImage }
 
 function videoDraftFor(model: string, prompt: string, seed: number, ratio: string, resolution: string, durationMs: number, submitId: string, references: UploadedImage[] = [], frames?: FrameImages, videos: UploadedVideo[] = [], audios: UploadedVideo[] = []): string {
   const id = (): string => randomUUID();
+  // Seedance 2.5's 480p preview model renders in Dreamina's draft mode. The web
+  // app marks the input as a draft on the current schema version, and the API
+  // answers "invalid parameter" (ret 1000) without it.
+  const draftMode = model.endsWith("_draft");
   const frameImage = (image: UploadedImage) => ({ type: "image", source_from: "upload", platform_type: 1, name: "", image_uri: image.uri, aigc_image: {}, width: image.width, height: image.height, format: "", uri: image.uri });
   const videoInput: Record<string, unknown> = {
     type: "",
     id: id(),
-    min_version: references.length + videos.length + audios.length > 0 ? "3.3.9" : "3.0.5",
+    min_version: draftMode ? DA_VERSION : references.length + videos.length + audios.length > 0 ? "3.3.9" : "3.0.5",
     prompt: references.length + videos.length + audios.length > 0 ? "" : prompt,
+    ...(draftMode && { is_draft_mode: true }),
     video_mode: 2,
     fps: VIDEO_FPS,
     duration_ms: durationMs,
@@ -559,12 +603,18 @@ function videoDraftFor(model: string, prompt: string, seed: number, ratio: strin
   if (references.length + videos.length + audios.length > 0) {
     videoInput.unified_edit_input = {
       material_list: [...references.map((image) => ({
+        type: "",
+        id: id(),
         material_type: "image",
         image_info: { type: "image", source_from: "upload", platform_type: 1, name: "", image_uri: image.uri, aigc_image: {}, width: image.width, height: image.height, format: "", title: "", uri: image.uri }
       })), ...videos.map((video) => ({
+        type: "",
+        id: id(),
         material_type: "video",
         video_info: { type: "video", source_from: "upload", name: "", vid: video.vid, fps: 0, width: video.width, height: video.height, duration: video.durationMs }
       })), ...audios.map((audio) => ({
+        type: "",
+        id: id(),
         material_type: "audio",
         audio_info: { type: "audio", source_from: "upload", vid: audio.vid, duration: audio.durationMs, name: "" }
       }))],
@@ -598,14 +648,36 @@ function videoDraftFor(model: string, prompt: string, seed: number, ratio: strin
     },
     process_type: 1
   };
-  return JSON.stringify({ type: "draft", id: id(), min_version: "3.0.5", min_features: [], is_from_tsn: true, version: DA_VERSION, main_component_id: component.id, component_list: [component] });
+  // Captured from the web app: reference input declares the unified-edit
+  // feature on the 3.3.9 schema, and every Seedance 2.5 model the 2.5 result
+  // action.
+  const unifiedEdit = references.length + videos.length + audios.length > 0;
+  const minFeatures = [
+    ...(unifiedEdit ? ["AIGC_Video_UnifiedEdit"] : []),
+    ...(model.includes("seedance_45") ? ["AIGC_Video_Seedance25ResultAction"] : [])
+  ];
+  const minVersion = draftMode ? DA_VERSION : unifiedEdit ? "3.3.9" : "3.0.5";
+  return JSON.stringify({ type: "draft", id: id(), min_version: minVersion, min_features: minFeatures, is_from_tsn: true, version: DA_VERSION, main_component_id: component.id, component_list: [component] });
 }
 
 /** Submit a generation and poll until it finishes, then return the finished record. */
 async function submitAndAwait(body: Record<string, unknown>, submitId: string, timeoutMs: number, signal?: AbortSignal): Promise<HistoryRecord> {
-  await callApi("/mweb/v1/aigc_draft/generate", body);
-  const deadline = Date.now() + timeoutMs;
+  // A lost tab leaves the submit's outcome unknown: Dreamina may already run
+  // (and bill) the job. Sending it again could pay twice, so the job is looked
+  // up by its submit id instead, and only a job that never appears fails.
+  let unconfirmed: Error | null = null;
+  try {
+    await callApi(GENERATE_PATH, body);
+  } catch (error) {
+    if (!tabLost(error)) throw error;
+    unconfirmed = error as Error;
+    log.warn("Dreamina tab lost during submit, looking the job up by id", { submitId, error: unconfirmed.message });
+  }
+  const started = Date.now();
+  const deadline = started + timeoutMs;
+  log.info("Dreamina generation submitted", { submitId, timeoutMs, confirmed: !unconfirmed });
   let pollFailures = 0;
+  let lastStatus: number | undefined;
   for (;;) {
     await sleep(POLL_INTERVAL_MS, signal);
     let history: Record<string, HistoryRecord>;
@@ -614,17 +686,30 @@ async function submitAndAwait(body: Record<string, unknown>, submitId: string, t
     } catch (error) {
       // Reading the history is idempotent, and Dreamina answers it with a
       // transient error while a fresh task registers. The submit is never retried.
+      log.warn("Dreamina poll failed", { submitId, pollFailures: pollFailures + 1, error: error instanceof Error ? error.message : String(error) });
       if (++pollFailures > MAX_POLL_FAILURES) throw error;
       continue;
     }
     pollFailures = 0;
     const record = history[submitId];
+    if (record) {
+      unconfirmed = null;
+    } else if (unconfirmed && Date.now() - started > UNCONFIRMED_SUBMIT_GRACE_MS) {
+      throw new Error(`Dreamina generation ${submitId} did not reach Dreamina before the tab was lost (${unconfirmed.message}). Keep the Dreamina tab open and try again`);
+    }
     const status = record?.task?.status;
+    if (status !== lastStatus) {
+      log.info("Dreamina task status", { submitId, status, hasRecord: record !== undefined, elapsedMs: Date.now() - started });
+      lastStatus = status;
+    }
     if (status === TASK_DONE) return record;
     if (status === TASK_FAILED) {
       throw new Error(`Dreamina generation failed: ${record?.fail_msg || "unknown reason"} (fail_code ${record?.fail_code ?? "unknown"})`);
     }
-    if (Date.now() > deadline) throw new Error(`Dreamina generation timed out after ${timeoutMs / 1000}s`);
+    if (Date.now() > deadline) {
+      log.warn("Dreamina generation timed out", { submitId, lastStatus, record: JSON.stringify(record ?? null).slice(0, 2000) });
+      throw new Error(`Dreamina generation ${submitId} timed out after ${timeoutMs / 1000}s (last task status ${lastStatus ?? "none"})`);
+    }
   }
 }
 
@@ -643,6 +728,39 @@ function videoEnum(model: DreaminaVideoModelConfig, key: string): { values: Arra
 /** Seedance 2.x models list reference input as `unified_edit`, as an option or an input type. */
 function takesReferences(model: DreaminaVideoModelConfig): boolean {
   return Boolean(model.options?.some((o) => o.key === "unified_edit")) || videoEnum(model, "input_media_type").values.includes("unified_edit");
+}
+
+/** Images and prompt for one omni-reference render. */
+interface OmniInputs {
+  prompt: string;
+  references: Uint8Array[];
+}
+
+/**
+ * Turn a start frame, an end frame and named references into omni-reference
+ * input: every image becomes a reference, and the prompt opens with one
+ * mention per image (`[Image 2] is Mara.`), which the draft turns into inline
+ * image mentions. The caller's own references keep their numbers, so markers
+ * already in the prompt still point at them. Named references past the
+ * model's limit drop.
+ */
+function omniInputs(prompt: string, inputs: { references: readonly Uint8Array[]; first?: Uint8Array; last?: Uint8Array; named?: readonly NamedReferenceImage[] }): OmniInputs {
+  const references = [...inputs.references];
+  const mentions: string[] = [];
+  const mention = (image: Uint8Array, says: (marker: string) => string): void => {
+    references.push(image);
+    mentions.push(says(`[Image ${references.length}]`));
+  };
+  if (inputs.first) mention(inputs.first, (m) => `${m} is the first frame.`);
+  if (inputs.last) mention(inputs.last, (m) => `${m} is the last frame.`);
+  for (const named of inputs.named ?? []) {
+    if (references.length >= MAX_REFERENCE_IMAGES) {
+      log.warn("Dreamina reference limit reached, dropping a named reference", { name: named.name, limit: MAX_REFERENCE_IMAGES });
+      continue;
+    }
+    mention(named.image, (m) => (named.name ? `${m} is ${named.name}.` : `${m} is a reference.`));
+  }
+  return { prompt: [mentions.join(" "), prompt].filter((part) => part.trim().length > 0).join("\n\n"), references };
 }
 
 function videoInputTypes(model: DreaminaVideoModelConfig): string[] {
@@ -776,16 +894,18 @@ export class DreaminaProvider extends BaseProvider {
   }
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
-    return this.generateVideo(params, { references: [] });
+    return this.generateVideo(params, { references: [], named: params.references ?? [] });
   }
 
   /**
-   * Image-to-video through Dreamina's "first and last frames" mode. The image
-   * is the first frame. `endImage` sets the last frame on models that list
-   * `end_frame`. The prompt describes the motion and may stay empty.
+   * Image-to-video. Models that take references (Seedance 2.x) always render
+   * in "omni reference" mode: the image, `endImage` and `references` all go in
+   * as references, and the prompt names each one, starting with
+   * `[Image 1] is the first frame.` Older models use "first and last frames"
+   * mode, where `endImage` needs `end_frame` and references are ignored.
    */
   override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
-    return this.generateVideo({ ...params, prompt: params.prompt ?? "" }, { references: [], first: image, last: params.endImage ?? undefined });
+    return this.generateVideo({ ...params, prompt: params.prompt ?? "" }, { references: [], first: image, last: params.endImage ?? undefined, named: params.references ?? [] });
   }
 
   /**
@@ -802,7 +922,7 @@ export class DreaminaProvider extends BaseProvider {
     if (audios.length > MAX_REFERENCE_AUDIOS) throw new Error(`Dreamina takes at most ${MAX_REFERENCE_AUDIOS} reference audios, not ${audios.length}`);
     if (inputs.images.length > MAX_REFERENCE_IMAGES) throw new Error(`Dreamina takes at most ${MAX_REFERENCE_IMAGES} reference images, not ${inputs.images.length}`);
     if (inputs.videos.length > MAX_REFERENCE_VIDEOS) throw new Error(`Dreamina takes at most ${MAX_REFERENCE_VIDEOS} reference videos, not ${inputs.videos.length}`);
-    return this.generateVideo(params, { references: inputs.images, videos: inputs.videos, audios });
+    return this.generateVideo(params, { references: inputs.images, videos: inputs.videos, audios, named: params.references ?? undefined });
   }
 
   override async getAvailableMusicModels(): Promise<MusicModel[]> {
@@ -814,9 +934,19 @@ export class DreaminaProvider extends BaseProvider {
     return this.music.generate(params);
   }
 
-  private async generateVideo(params: TextToVideoParams, inputs: { references: readonly Uint8Array[]; videos?: readonly Uint8Array[]; audios?: readonly Uint8Array[]; first?: Uint8Array; last?: Uint8Array }): Promise<Uint8Array> {
+  private async generateVideo(params: TextToVideoParams, requested: { references: readonly Uint8Array[]; videos?: readonly Uint8Array[]; audios?: readonly Uint8Array[]; first?: Uint8Array; last?: Uint8Array; named?: readonly NamedReferenceImage[] }): Promise<Uint8Array> {
     const config = (await this.videoConfigs()).find((m) => m.model_req_key === params.model.id);
     if (!config) throw new Error(`Unknown Dreamina video model: ${params.model.id}`);
+    // Models that take references always render in omni-reference mode, so a
+    // start frame sits beside the entity images instead of excluding them.
+    const omni = takesReferences(config) && Boolean(requested.first || requested.named?.length)
+      ? omniInputs(params.prompt, requested)
+      : null;
+    if (!omni && requested.named?.length) {
+      log.debug("Dreamina model takes no references, ignoring them", { model: config.model_req_key, count: requested.named.length });
+    }
+    const inputs = omni ? { ...requested, references: omni.references, first: undefined, last: undefined } : requested;
+    const prompt = omni?.prompt ?? params.prompt;
 
     const resolutions = videoEnum(config, "resolution");
     const resolution = params.resolution
@@ -860,7 +990,7 @@ export class DreaminaProvider extends BaseProvider {
       extend: { root_model: config.model_req_key },
       submit_id: submitId,
       metrics_extra: JSON.stringify({ isDefaultSeed: 1, originSubmitId: submitId, isRegenerate: false }),
-      draft_content: videoDraftFor(config.model_req_key, params.prompt, seed, ratio, resolution, seconds * 1000, submitId, references, bounds, videos, audios),
+      draft_content: videoDraftFor(config.model_req_key, prompt, seed, ratio, resolution, seconds * 1000, submitId, references, bounds, videos, audios),
       http_common_info: { aid: Number(APP_ID) }
     }, submitId, (params.timeoutSeconds ?? VIDEO_TIMEOUT_MS / 1000) * 1000, params.signal);
     const url = record.item_list?.[0]?.video?.transcoded_video?.origin?.video_url;

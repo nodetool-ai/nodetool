@@ -80,6 +80,21 @@ function applyAltCenterDraw(
   return { start, end };
 }
 
+/**
+ * The two corners (or a line's two ends) the shape is drawn between once Alt
+ * and Shift are applied, in the same space as `start` and `end`.
+ */
+function shapeEndpoints(
+  start: Point,
+  end: Point,
+  tool: ShapeToolType,
+  shiftHeld: boolean,
+  altHeld: boolean
+): [Point, Point] {
+  const centered = applyAltCenterDraw(start, end, tool, altHeld);
+  return [centered.start, constrainEnd(centered.start, centered.end, tool, shiftHeld)];
+}
+
 export function drawShapeOnCtx(
   ctx: CanvasRenderingContext2D,
   tool: ShapeToolType,
@@ -90,14 +105,7 @@ export function drawShapeOnCtx(
   altHeld: boolean
 ): void {
   // Apply Alt (draw from center) before constraint
-  const centered = applyAltCenterDraw(start, end, tool, altHeld);
-  const constrained = constrainEnd(
-    centered.start,
-    centered.end,
-    tool,
-    shiftHeld
-  );
-  const s = centered.start;
+  const [s, constrained] = shapeEndpoints(start, end, tool, shiftHeld, altHeld);
   ctx.save();
   ctx.strokeStyle = settings.strokeColor;
   ctx.lineWidth = settings.strokeWidth;
@@ -236,7 +244,21 @@ export class ShapeTool implements ToolHandler {
     if (!this.activeCtx || !this.shapeStart || !this.lastEnd) {
       return;
     }
+    this.showShapeSnapLines(this.activeCtx, this.shapeStart, this.lastEnd);
     this.activeCtx.drawOverlayShape(this.shapeStart, this.lastEnd);
+  }
+
+  /** Show only the snap lines the constrained shape still ends on. */
+  private showShapeSnapLines(ctx: ToolContext, start: Point, end: Point): void {
+    this.snapping.keepLinesThrough(
+      shapeEndpoints(
+        start,
+        end,
+        ctx.doc.toolSettings.shape.shapeType,
+        ctx.shiftHeldRef.current,
+        ctx.altHeldRef.current
+      )
+    );
   }
 
   private installModifierListener(ctx: ToolContext): void {
@@ -301,6 +323,7 @@ export class ShapeTool implements ToolHandler {
     ctx.altHeldRef.current = event.nativeEvent.altKey;
     const end = this.snapping.snap(ctx, event.point);
     this.lastEnd = end;
+    this.showShapeSnapLines(ctx, this.shapeStart, end);
     ctx.drawOverlayShape(this.shapeStart, end);
   }
 

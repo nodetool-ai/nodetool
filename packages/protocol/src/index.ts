@@ -29,6 +29,7 @@ export {
 export * from "./toolSchemas.js";
 export * from "./creative.js";
 export * from "./shot-prompt.js";
+export * from "./one-take.js";
 export * from "./render-record.js";
 export * from "./storyboard-render-spec.js";
 export * from "./style-presets.js";

@@ -163,6 +163,10 @@ export const storyboardShot = z
     status: z.string(),
     slug: z.string().optional(),
     motion: z.string().optional(),
+    /** The picture the shot ends on; a one-take step's "End:". */
+    end_state: z.string().optional(),
+    /** What is heard in the shot; a one-take audio cue. */
+    sound: z.string().optional(),
     graphics: storyboardShotGraphics.optional(),
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),
@@ -248,7 +252,8 @@ const SHOT_KEY_ALIASES: Readonly<Record<string, string>> = {
   scriptTextSnapshot: "script_text_snapshot",
   durationSource: "duration_source",
   renderMode: "render_mode",
-  sceneId: "scene_id"
+  sceneId: "scene_id",
+  endState: "end_state"
 };
 
 // A scene has no multi-word key, so there is no scene alias table: `slugline`
@@ -466,6 +471,24 @@ export const storyboardImportSource = z
   .passthrough();
 export type StoryboardImportSource = z.infer<typeof storyboardImportSource>;
 
+// ── One take ────────────────────────────────────────────────────────────────
+// Mirrors `OneTakeDirection` in `one-take.ts`: the creator's own prompt. The
+// rest of the one-take prompt is compiled from the board by `compileOneTake`.
+// A missing prompt reads as empty, so a direction saved in an earlier shape
+// still loads.
+
+export const oneTakeDirection = z.object({
+  prompt: z.string().default(""),
+  duration_seconds: z.number().positive().nullable().optional(),
+  aspect_ratio: z.string().nullable().optional(),
+  resolution: z.string().nullable().optional(),
+  model: z
+    .object({ id: z.string(), provider: z.string(), name: z.string().optional() })
+    .nullable()
+    .optional()
+});
+export type OneTakeDirectionSchema = z.infer<typeof oneTakeDirection>;
+
 /** What the Director is asked for when the flow does not say otherwise. */
 export const DEFAULT_SETUP_SHOT_COUNT = 6;
 
@@ -508,7 +531,12 @@ export const storyboardDocument = z.object({
    */
   setupDirectedFrom: z.string().nullable().optional(),
   /** Optional shared product, audience, and reference context. */
-  creative_context: creativeContext.optional()
+  creative_context: creativeContext.optional(),
+  /**
+   * The board's one-take direction, when it renders as one continuous clip.
+   * Optional and additive: a board without it renders shot by shot.
+   */
+  one_take: oneTakeDirection.optional()
 });
 export type StoryboardDocumentSchema = z.infer<typeof storyboardDocument>;
 

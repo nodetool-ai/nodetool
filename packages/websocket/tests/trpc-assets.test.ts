@@ -244,12 +244,14 @@ describe("assets router", () => {
   // ── get ─────────────────────────────────────────────────────────
   describe("get", () => {
     it("returns the asset when the user owns it", async () => {
-      const a = makeAsset({ id: "a1" });
+      const a = makeAsset({ id: "a1", updated_at: "2026-05-01T10:00:00Z" });
       (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(a);
 
       const caller = createCaller(makeCtx());
       const result = await caller.assets.get({ id: "a1" });
       expect(result.id).toBe("a1");
+      // The 3D editor compares it to notice a write from elsewhere.
+      expect(result.updated_at).toBe("2026-05-01T10:00:00Z");
     });
 
     it("returns the synthetic 'Home' folder when id === userId", async () => {

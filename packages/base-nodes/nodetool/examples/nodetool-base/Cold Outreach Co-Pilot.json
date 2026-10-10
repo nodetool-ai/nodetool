@@ -122,7 +122,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an agent researches them on the web, then drafts a personalized cold email that opens with a real, specific detail. The pieces come back as separate fields, ready for a CRM or email tool.\n\n**How it works:** \"3 Build research objective\" puts \"1 Prospect\" and \"2 Your offer\" into a task brief. \"4 Research + write outreach\" is an Agent with the google_search and browser tools, set to Claude Sonnet. It returns company_summary, pain_points, subject, body and follow_up as typed outputs, each shown in its own Preview (\"Company summary\", \"Pain points\", \"Subject line\", \"Email body\", \"Follow-up\"). \"Agent thinking (live)\" streams its progress. The agent needs a language model and search access.\n\n**Try this:** Change \"1 Prospect\" to a company you know well and check whether the opening line of \"Email body\" cites a detail you recognize."
+          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an agent researches them on the web, then drafts a personalized cold email that opens with a real, specific detail. The pieces come back as separate fields, ready for a CRM or email tool.\n\n**How it works:** \"3 Build research objective\" puts \"1 Prospect\" and \"2 Your offer\" into a task brief. \"4 Research + write outreach\" is an Agent with the web_search and browser tools, set to Claude Sonnet. It returns company_summary, pain_points, subject, body and follow_up as typed outputs, each shown in its own Preview (\"Company summary\", \"Pain points\", \"Subject line\", \"Email body\", \"Follow-up\"). \"Agent thinking (live)\" streams its progress. The agent needs a language model and search access.\n\n**Try this:** Change \"1 Prospect\" to a company you know well and check whether the opening line of \"Email body\" cites a detail you recognize."
         },
         "ui_properties": {
           "position": {
@@ -187,7 +187,7 @@
         "id": "objective",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Research the prospect and draft outreach.\n\nPROSPECT:\n{{ prospect }}\n\nMY OFFER:\n{{ offer }}\n\nSteps:\n1. Use google_search and browser to learn what the prospect does, their stage, and anything recent (a launch, hire, funding, or post).\n2. Identify 2–4 pain points my offer plausibly solves for them.\n3. Write a cold email under 120 words that OPENS with a specific researched detail, ties it to one pain point, and ends with a low-friction ask.\n4. Write one short follow-up for no-reply, 3–5 days later.\n\nReturn JSON with these exact fields (subject and body as separate, structured fields — never combine them into one string):\n{\n  \"company_summary\": \"<2–3 sentences on what they do + recent signal>\",\n  \"pain_points\": [\"<pain 1>\", \"<pain 2>\", ...],\n  \"subject\": \"<email subject line, under 8 words, no clickbait>\",\n  \"body\": \"<email body only, no subject line inside it, under 120 words>\",\n  \"follow_up\": \"<short nudge, under 40 words>\"\n}"
+          "prompt": "Research the prospect and draft outreach.\n\nPROSPECT:\n{{ prospect }}\n\nMY OFFER:\n{{ offer }}\n\nSteps:\n1. Use web_search and browser to learn what the prospect does, their stage, and anything recent (a launch, hire, funding, or post).\n2. Identify 2–4 pain points my offer plausibly solves for them.\n3. Write a cold email under 120 words that OPENS with a specific researched detail, ties it to one pain point, and ends with a low-friction ask.\n4. Write one short follow-up for no-reply, 3–5 days later.\n\nReturn JSON with these exact fields (subject and body as separate, structured fields — never combine them into one string):\n{\n  \"company_summary\": \"<2–3 sentences on what they do + recent signal>\",\n  \"pain_points\": [\"<pain 1>\", \"<pain 2>\", ...],\n  \"subject\": \"<email subject line, under 8 words, no clickbait>\",\n  \"body\": \"<email body only, no subject line inside it, under 120 words>\",\n  \"follow_up\": \"<short nudge, under 40 words>\"\n}"
         },
         "ui_properties": {
           "position": {
@@ -220,7 +220,7 @@
           "tools": [
             {
               "type": "tool_name",
-              "name": "google_search"
+              "name": "web_search"
             },
             {
               "type": "tool_name",
@@ -228,7 +228,7 @@
             }
           ],
           "max_tokens": 100000,
-          "system": "You are a B2B research assistant and senior cold-outreach copywriter.\n\nGoal\n- Research the given prospect/company using the tools, then draft outreach that references something specific and true about them.\n\nTools Available\n- google_search: Search the web for information\n- browser: Open URLs and read content\n\nWorkflow\n1. Search for the prospect/company; identify what they do and recent news.\n2. Browse their site or a recent post to find concrete, current details.\n3. Map their likely pain points to the offer.\n4. Draft a short, human, non-salesy email plus one follow-up.\n\nOutput Format\n- Return a single JSON object matching the defined output schema — `subject`, `body`, and `follow_up` are separate fields, never merged into one string.\n- The email body must open with a specific, researched detail (never \"I hope this finds you well\").\n- Keep the body under 120 words and the follow-up under 40. Cite sources where useful.\n"
+          "system": "You are a B2B research assistant and senior cold-outreach copywriter.\n\nGoal\n- Research the given prospect/company using the tools, then draft outreach that references something specific and true about them.\n\nTools Available\n- web_search: Search the web for information\n- browser: Open URLs and read content\n\nWorkflow\n1. Search for the prospect/company; identify what they do and recent news.\n2. Browse their site or a recent post to find concrete, current details.\n3. Map their likely pain points to the offer.\n4. Draft a short, human, non-salesy email plus one follow-up.\n\nOutput Format\n- Return a single JSON object matching the defined output schema — `subject`, `body`, and `follow_up` are separate fields, never merged into one string.\n- The email body must open with a specific, researched detail (never \"I hope this finds you well\").\n- Keep the body under 120 words and the follow-up under 40. Cite sources where useful.\n"
         },
         "ui_properties": {
           "selected": false,

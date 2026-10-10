@@ -159,7 +159,7 @@ const AssistantChatPanel = ({
         sx={{ textAlign: "center" }}
       >
         <WelcomeIcon fontSize="large" sx={{ mb: 1.5, opacity: 0.5 }} />
-        <Text size="normal" weight={600} sx={{ mb: 1 }}>
+        <Text size="big" sx={{ mb: 1 }}>
           {welcomeTitle}
         </Text>
         <Text size="small" color="secondary" sx={{ maxWidth: 280 }}>

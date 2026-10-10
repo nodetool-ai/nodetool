@@ -8,6 +8,7 @@ import { parseColorToRgba } from "../types";
 import { fillRegion } from "@nodetool-ai/image-editor/raster.js";
 import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
 import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
 import {
   getCanvasRasterBounds,
@@ -153,11 +154,11 @@ function computeFloodFillMask(
 }
 
 /**
- * Build a temporary ROI canvas containing only the flood-filled output.
+ * Build a temporary canvas containing only the flood-filled output.
  *
- * The returned canvas is transparent outside the fill result and is sized to
- * the minimal fill bounds so the runtime can composite it through the active
- * selection mask without restoring the whole layer.
+ * The returned canvas is the size of the layer raster and transparent outside
+ * the fill result, because the runtime composites it through the active
+ * selection mask in layer raster coordinates.
  */
 function createFloodFillOverlayCanvas(
   sourceCtx: CanvasRenderingContext2D,
@@ -206,8 +207,8 @@ function createFloodFillOverlayCanvas(
   }
 
   const overlayCanvas = document.createElement("canvas");
-  overlayCanvas.width = bounds.width;
-  overlayCanvas.height = bounds.height;
+  overlayCanvas.width = width;
+  overlayCanvas.height = height;
   const overlayCtx = overlayCanvas.getContext("2d");
   if (!overlayCtx) {
     return null;
@@ -227,7 +228,7 @@ function createFloodFillOverlayCanvas(
       overlay.data[i + 3] = fillA;
     }
   }
-  overlayCtx.putImageData(overlay, 0, 0);
+  overlayCtx.putImageData(overlay, bounds.x, bounds.y);
   return overlayCanvas;
 }
 
@@ -267,6 +268,9 @@ export class FillTool implements ToolHandler {
 
     ctx.onStrokeStart();
 
+    // Lock Transparency: keep every pixel's alpha as it was before the fill.
+    const alphaSnapshot = activeLayer.alphaLock ? captureAlphaSnapshot(layerCanvas) : null;
+
     // Map the document-space click into the layer's backing raster space.
     // Use the expanded bounds so the coordinate mapping accounts for the
     // full-viewport canvas origin.
@@ -304,6 +308,9 @@ export class FillTool implements ToolHandler {
       }
     } else {
       floodFill(layerCtx, localPt.x, localPt.y, fillSettings);
+    }
+    if (alphaSnapshot) {
+      restoreAlphaFromSnapshot(layerCanvas, alphaSnapshot);
     }
     const committedBounds = getCanvasRasterBounds(layerCanvas) ?? undefined;
     ctx.onStrokeEnd(activeLayer.id, null, committedBounds);

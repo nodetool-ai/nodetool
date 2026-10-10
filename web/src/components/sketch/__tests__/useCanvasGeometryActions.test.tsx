@@ -25,7 +25,6 @@ function makeParams() {
     document: store.document,
     pushHistory: store.pushHistory,
     updateLayerData: store.updateLayerData,
-    setDocument: store.setDocument,
     setZoom: store.setZoom,
     setPan: store.setPan,
     resizeCanvas: store.resizeCanvas,

@@ -1053,6 +1053,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "8dfc3e1b4b9e",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -2737,7 +2738,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "1842395da245",
+    contract: "2cf404523ec2",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -3081,7 +3082,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "f31d34b81534",
+    contract: "f38becbcfd51",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
@@ -3123,6 +3124,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "get_storyboard_one_take",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "8f796a7718b5",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboard-one-take.test.ts",
+    ],
+  },
+  {
+    name: "update_storyboard_one_take",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "f4ba951d881a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboard-one-take.test.ts",
     ],
   },
   {
