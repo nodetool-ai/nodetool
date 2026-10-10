@@ -1,7 +1,13 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 
-import { HIDDEN_EXTRA } from "./sceneOps";
+import {
+  EDITOR_SETTINGS_EXTRA,
+  HIDDEN_EXTRA,
+  materialEditorSettings,
+  materialsOf,
+  objectEditorSettings
+} from "./sceneOps";
 import { isLightTarget } from "./sceneTree";
 
 /**
@@ -13,10 +19,27 @@ import { isLightTarget } from "./sceneTree";
  * - A light's target child is taken out of its `children` list for the
  *   export. The light's direction already encodes it, and writing it as a
  *   node would add an empty child to the light on every save.
+ * - Inspector settings glTF has no field for go into a `nodetool_editor`
+ *   extra. Wireframe is also switched off for the export: GLTFExporter
+ *   writes a wireframe mesh as LINES over its triangle indices, which
+ *   reloads as a tangle of line segments with no material to fix it.
  */
 const prepareForExport = (root: THREE.Object3D): (() => void) => {
   const flagged: THREE.Object3D[] = [];
   const targets: THREE.Object3D[] = [];
+  const withSettings: { userData: Record<string, unknown> }[] = [];
+  const wireframes: (THREE.Material & { wireframe: boolean })[] = [];
+  const colored = new Set<THREE.Material>();
+  const materials = new Set<THREE.Material>();
+  const flagSettings = (
+    owner: { userData: Record<string, unknown> },
+    settings: Record<string, boolean | number>
+  ) => {
+    if (Object.keys(settings).length > 0) {
+      owner.userData[EDITOR_SETTINGS_EXTRA] = settings;
+      withSettings.push(owner);
+    }
+  };
   root.traverse((node) => {
     if (node === root) {
       return;
@@ -29,7 +52,22 @@ const prepareForExport = (root: THREE.Object3D): (() => void) => {
       node.userData[HIDDEN_EXTRA] = true;
       flagged.push(node);
     }
+    flagSettings(node, objectEditorSettings(node));
+    for (const material of materialsOf(node)) {
+      materials.add(material);
+      if (node instanceof THREE.Mesh && node.geometry.getAttribute("color")) {
+        colored.add(material);
+      }
+    }
   });
+  for (const material of materials) {
+    flagSettings(material, materialEditorSettings(material, colored.has(material)));
+    if ("wireframe" in material && material.wireframe === true) {
+      const wire = material as THREE.Material & { wireframe: boolean };
+      wire.wireframe = false;
+      wireframes.push(wire);
+    }
+  }
   // Splice rather than `remove`, so `parent` stays and nothing is notified.
   const detached = targets.map((target) => {
     const siblings = (target.parent as THREE.Object3D).children;
@@ -40,6 +78,12 @@ const prepareForExport = (root: THREE.Object3D): (() => void) => {
   return () => {
     for (const node of flagged) {
       delete node.userData[HIDDEN_EXTRA];
+    }
+    for (const owner of withSettings) {
+      delete owner.userData[EDITOR_SETTINGS_EXTRA];
+    }
+    for (const material of wireframes) {
+      material.wireframe = true;
     }
     for (const { siblings, index, target } of detached.reverse()) {
       siblings.splice(index, 0, target);

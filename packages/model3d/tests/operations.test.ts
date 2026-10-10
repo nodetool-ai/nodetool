@@ -34,6 +34,10 @@ describe("parseOperation", () => {
       op: "select_object",
       target: null
     });
+    expect(parseOperation({ op: "select_object", target: "   " })).toEqual({
+      op: "select_object",
+      target: null
+    });
   });
 
   // Each of these is a shape a model produces, and each one used to write

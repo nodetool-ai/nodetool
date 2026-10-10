@@ -216,4 +216,13 @@ describe("ui_3d_* tools", () => {
     ).rejects.toThrow();
     expect(handler.setLight).not.toHaveBeenCalled();
   });
+
+  it("rejects a transform with no fields instead of recording an empty edit", async () => {
+    const handler = createMockHandler();
+    setModel3DToolHandler(handler);
+    await expect(
+      FrontendToolRegistry.call("ui_3d_set_transform", { target: "Box" }, "tc-10", ctx)
+    ).rejects.toThrow(/at least one of position, rotation or scale/);
+    expect(handler.setTransform).not.toHaveBeenCalled();
+  });
 });

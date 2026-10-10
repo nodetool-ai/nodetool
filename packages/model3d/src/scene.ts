@@ -175,6 +175,14 @@ function objectIds(nodes: readonly GltfNode[]): string[] {
   return ids;
 }
 
+/**
+ * The id each node of `nodes` lists under, in node order. The browser editor
+ * stamps these onto the objects it loads, so an id an agent read from the
+ * file keeps naming the same object after the editor saves it in its own
+ * node order.
+ */
+export const listObjectIds = (nodes: readonly GltfNode[]): string[] => objectIds(nodes);
+
 /** A 32-hex id, the repository's resource id form. */
 const freshObjectId = (): string =>
   Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (byte) =>

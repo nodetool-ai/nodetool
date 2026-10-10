@@ -156,6 +156,7 @@ const OutlinerRow = memo(
         tabIndex={focusable ? 0 : -1}
         aria-selected={selected}
         aria-expanded={hasChildren ? expanded : undefined}
+        aria-level={node.depth + 1}
         aria-label={`${node.name} (${node.type})`}
         data-uuid={node.uuid}
         selected={selected}
@@ -272,6 +273,8 @@ const OutlinerRow = memo(
         <IconButton
           className="outliner-eye"
           size="small"
+          // One tab stop per tree, not one per row: H toggles the selection.
+          tabIndex={-1}
           aria-label={node.visible ? "Hide object" : "Show object"}
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();

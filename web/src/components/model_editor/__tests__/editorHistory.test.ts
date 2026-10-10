@@ -1,4 +1,5 @@
 import { createEditorHistory, MERGE_WINDOW_MS, type EditorCommand } from "../editorHistory";
+import { setValueCommand } from "../editorCommands";
 
 /** A command that moves `state.value` between two numbers. */
 const setter = (
@@ -124,5 +125,50 @@ describe("createEditorHistory", () => {
     expect(undone).toHaveBeenCalledWith(true);
     expect(history.canUndo()).toBe(false);
     expect(history.canRedo()).toBe(false);
+  });
+
+  it("releases the unreachable middle value of a merged step at once", () => {
+    const history = createEditorHistory();
+    let live = "A";
+    const released: string[] = [];
+    const push = (from: string, to: string, at: number) => {
+      live = to;
+      history.push(
+        setValueCommand(
+          "Edit geometry",
+          (v: string) => {
+            live = v;
+          },
+          from,
+          to,
+          "geometry",
+          (v) => released.push(v)
+        ),
+        at
+      );
+    };
+    push("A", "B", 0);
+    push("B", "C", 10);
+    push("C", "D", 20);
+    expect(released).toEqual(["B", "C"]);
+
+    history.undo();
+    expect(live).toBe("A");
+    history.redo();
+    expect(live).toBe("D");
+    history.clear();
+    expect(released).toEqual(["B", "C", "A"]);
+  });
+
+  it("releases the merged result when a merged step is dropped while undone", () => {
+    const history = createEditorHistory();
+    const released: string[] = [];
+    const command = (from: string, to: string) =>
+      setValueCommand("Edit", () => {}, from, to, "k", (v: string) => released.push(v));
+    history.push(command("A", "B"), 0);
+    history.push(command("B", "C"), 10);
+    history.undo();
+    history.clear();
+    expect(released).toEqual(["B", "C"]);
   });
 });
