@@ -30,6 +30,13 @@
 import type { TimelineClip, TimelineSequence } from "../types.js";
 import { isBundledFamily } from "./catalog.js";
 
+/**
+ * The one weight a caption is drawn at. It lives here, beside the request
+ * collector, so the face a host loads for a caption is the face
+ * `drawCaption` asks for.
+ */
+export const CAPTION_FONT_WEIGHT = 700;
+
 /** The one host every Google Fonts URL this module builds resolves to. */
 export const GOOGLE_FONTS_HOST = "raw.githubusercontent.com";
 
@@ -208,7 +215,7 @@ export function collectFontFaceRequests(
       clip.textStyle?.fontWeight,
       clip.textStyle?.fontStyle
     );
-    add(clip.caption?.style?.fontFamily, undefined, undefined);
+    add(clip.caption?.style?.fontFamily, CAPTION_FONT_WEIGHT, undefined);
   }
   return [...seen.values()];
 }

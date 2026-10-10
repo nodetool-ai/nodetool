@@ -217,6 +217,9 @@ export interface TimelineBridgeSequenceSeed {
   transcript?: TimelineSequence["transcript"];
   scriptEnabled?: TimelineSequence["scriptEnabled"];
   templateId?: TimelineSequence["templateId"];
+  /** Track folders and storyboard ownership, carried into a format adaptation. */
+  trackFolders?: TimelineSequence["trackFolders"];
+  storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
   /**
    * The document's tempo. Absent is a document that has never carried one:
    * midi clips read at {@link DEFAULT_TEMPO} until a midi track is added or
@@ -907,6 +910,29 @@ export function createTimelineToolBridge(
     );
   }
 
+  /**
+   * A unit by exact id or by an exact unique 12-character prefix — never by
+   * name. The AI edit tools take a durable destination, so a name match that
+   * could later point elsewhere is refused.
+   */
+  function findByIdOrShortId<T extends { id: string }>(
+    units: readonly T[],
+    target: string,
+    kind: string
+  ): T | undefined {
+    const exact = units.find((unit) => unit.id === target);
+    if (exact || !isShortResourceId(target)) {
+      return exact;
+    }
+    const matches = units.filter((unit) => unit.id.startsWith(target));
+    if (matches.length > 1) {
+      throw new Error(
+        `Short ${kind} id "${target}" matches more than one ${kind}. Use the full id.`
+      );
+    }
+    return matches[0];
+  }
+
   function serializeClip(c: TimelineClip) {
     const track = tracks.find((t) => t.id === c.trackId);
     return {
@@ -1043,6 +1069,10 @@ export function createTimelineToolBridge(
       transcript: seed?.transcript,
       scriptEnabled: seed?.scriptEnabled,
       templateId: seed?.templateId,
+      trackFolders: structuredClone(seed?.trackFolders),
+      storyboardMaterializations: structuredClone(
+        seed?.storyboardMaterializations
+      ),
       camera2d: structuredClone(seed?.camera2d ?? null)
     };
   }
@@ -1273,7 +1303,7 @@ export function createTimelineToolBridge(
       async ({ clip_id, instruction, provider, model }) => {
         // The P0 request captures a durable destination. Unlike general
         // timeline actions, this intentionally refuses names and selection.
-        const clip = clips.find((candidate) => candidate.id === clip_id);
+        const clip = findByIdOrShortId(clips, clip_id as string, "clip");
         if (!clip) {
           throw new Error(
             `No clip with id "${clip_id}" exists on this timeline. Call ui_timeline_get_state and pass the clip id.`
@@ -1344,21 +1374,28 @@ export function createTimelineToolBridge(
     ),
 
     sharedTool("ui_timeline_apply_take", async ({ clip_id, take_id }) => {
-      const clip = clips.find((candidate) => candidate.id === clip_id);
+      const clip = findByIdOrShortId(clips, clip_id as string, "clip");
       if (!clip) {
         throw new Error(
           `No clip with id "${clip_id}" exists on this timeline. Call ui_timeline_get_state and pass the clip id.`
         );
       }
-      const take = (clip.versions ?? []).find(
-        (candidate) => candidate.id === take_id
+      if (clip.locked || tracks.find((t) => t.id === clip.trackId)?.locked) {
+        throw new Error(
+          `Clip "${clip.name}" or its track is locked. Unlock it before editing.`
+        );
+      }
+      const take = findByIdOrShortId(
+        clip.versions ?? [],
+        take_id as string,
+        "take"
       );
       if (!take?.mediaEdit) {
         throw new Error(
           `Take "${take_id}" is not an AI edit candidate for "${clip.name}". Apply only the candidate returned by ui_timeline_generatively_edit_clip.`
         );
       }
-      const result = applyTakeToClip(clip, take_id as string);
+      const result = applyTakeToClip(clip, take.id);
       if (result.error) {
         throw new Error(result.error);
       }

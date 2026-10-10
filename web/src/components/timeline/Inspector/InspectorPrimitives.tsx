@@ -357,7 +357,7 @@ const sliderValueStyles = (theme: Theme) =>
  * the neutral point.
  */
 const precisionSliderSx = (theme: Theme) => {
-  const rail = "rgba(255, 255, 255, 0.14)";
+  const rail = theme.vars.palette.c_overlay_strong;
   const accent = theme.vars.palette.primary.main;
   const ring = theme.vars.palette.primary.mainChannel;
   const shadow = `0 1px 2px rgba(${theme.vars.palette.common.blackChannel} / 0.45)`;
