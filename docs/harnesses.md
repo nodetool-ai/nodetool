@@ -1340,9 +1340,18 @@ diagnostic; external-engine scene behavior requires manual reconstruction.
 
 ### Game flow (guided design and asset graph)
 
-The Game entry creates a playable native game. `design_game` writes a reviewed
-game brief to workflow settings. `build_game` creates or selects a game in the
-workflow's project and stages a generation graph. The pure design, prompt, and
+The Game entry opens a guided flow: idea, design, review, look, then build.
+Its document is a workflow row carrying `settings.game`, the same record the
+headless capabilities use. `design_game` writes a reviewed game design to
+workflow settings, and `build_game` creates or selects a game in the
+workflow's project and stages a generation graph. The web flow
+(`web/src/components/setup/game/`) designs with the same prompt and parser,
+then builds without a graph: it creates the template's game, records its id on
+the workflow, and generates each image slot through `games.generateAsset` with
+the chosen style and image model. Sound slots keep the template's built-in
+effects. The built-in templates and their manifests live in
+`packages/protocol/src/native-game-templates.ts`, and the inspiration chips for
+them in `NATIVE_GAME_INSPIRATION_CHIPS`. The pure design, prompt, and
 graph placement contracts live in `packages/protocol/src/game-design.ts`,
 `game-flow-prompt.ts`, and `game-graph.ts`. Re-running the graph produces asset
 candidates; it does not overwrite a published game.

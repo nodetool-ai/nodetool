@@ -7,12 +7,11 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { DEFAULT_NATIVE_GAME_TEMPLATE } from "@nodetool-ai/protocol";
 import {
+  writeGameSetup,
   writeWorkflowSetup
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-
-import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
-import { newDocumentId } from "../../lib/newDocumentId";
 
 import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
 import { useCreateScript } from "../../hooks/script/useScripts";
@@ -232,25 +231,32 @@ export const useGuidedFlowStarters = (
     [runStart, createWorkflow, openTab]
   );
 
+  // The Game flow's document is a workflow row carrying `settings.game`; the
+  // workflow tab hosts the flow until the build opens the game.
   const startGame = useCallback(
     (projectIdOverride?: string) =>
       runStart("game", async () => {
         const projectId = projectIdOverride ?? creationProjectId();
-        const created = await trpcClient.games.create.mutate({
+        const created = await createWorkflow({
           name: "Untitled game",
-          projectId,
-          dimension: "2d",
-          document: createTopDownRoomGame(newDocumentId())
+          description: "",
+          tags: [],
+          access: "private",
+          project_id: projectId,
+          settings: writeGameSetup(
+            {},
+            { stage: "idea", brief: "", template: DEFAULT_NATIVE_GAME_TEMPLATE }
+          )
         });
         openTab({
-          type: "game",
-          ref: created.game.id,
+          type: "workflow",
+          ref: created.id,
           mode: "edit",
-          title: created.game.name || "Untitled game",
-          projectId: created.game.projectId
+          title: created.name || "Untitled game",
+          projectId
         });
       }),
-    [runStart, openTab]
+    [runStart, createWorkflow, openTab]
   );
 
   // Entities have no document tab — the library is their surface — so the

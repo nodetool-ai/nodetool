@@ -52,7 +52,8 @@ import {
   GAME_DESIGNER_SYSTEM_PROMPT,
   GAME_DESIGN_TOOL_DESCRIPTION,
   GAME_DESIGN_TOOL_NAME,
-  GAME_INSPIRATION_CHIPS,
+  NATIVE_GAME_INSPIRATION_CHIPS,
+  pinnedGameInspirationChip,
   WORKFLOW_PLANNER_SYSTEM_PROMPT,
   WORKFLOW_PLAN_TOOL_DESCRIPTION,
   WORKFLOW_PLAN_TOOL_NAME,
@@ -1733,18 +1734,16 @@ const designGame: CapabilityExport = {
     } else {
       // No model: the shipped chip whose brief this is carries a pinned design,
       // so a keyless install still reaches the review step.
-      const chip = GAME_INSPIRATION_CHIPS.find(
-        (entry) =>
-          entry.template === template.id &&
-          entry.brief.trim().toLowerCase() === brief.toLowerCase()
-      );
+      const chip = pinnedGameInspirationChip(template.id, brief);
       if (!chip) {
         return {
           error:
             "Pass provider and model to design, or pass a `design` to store without calling one. " +
-            `Without either, only a shipped inspiration chip's brief designs: ${GAME_INSPIRATION_CHIPS.map(
-              (entry) => `"${entry.brief}"`
-            ).join(", ")}.`
+            `Without either, only a shipped inspiration chip's brief designs: ${NATIVE_GAME_INSPIRATION_CHIPS.filter(
+              (entry) => entry.template === template.id
+            )
+              .map((entry) => `"${entry.brief}"`)
+              .join(", ")}.`
         };
       }
       raw = chip.design;

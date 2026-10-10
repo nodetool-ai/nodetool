@@ -28,6 +28,13 @@ import { useCreateApplication } from "../../hooks/useApplications";
 import { useOpenApplication } from "../../hooks/useOpenApplication";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
+import GameSetupHost from "../setup/game/GameSetupHost";
+import type { GameStartAlternative } from "../setup/game/IdeaStep";
+import { useGameSetupStage } from "../../hooks/game/useGameSetup";
+import type { BuildGameResult } from "../../hooks/game/useBuildGame";
+import { createNative3DGame, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { newDocumentId } from "../../lib/newDocumentId";
+import { trpcClient } from "../../trpc/client";
 import ReportBugButton from "../support/ReportBugButton";
 import {
   examplePackageName,
@@ -81,14 +88,12 @@ interface WorkflowEditorSurfaceProps {
  * The per-workflow NodeStore stays owned by the WorkflowManager; this surface
  * just looks it up (and triggers a fetch when a restored tab has none yet).
  *
- * A workflow whose `settings.game` is not at stage `done` is still mid-flow,
- * and this tab is where it is reopened after a refresh or a close — the New
- * Project tab that started the flow holds its target in component state, which
- * a reload throws away (game-prd criterion 2). So the setup host takes the tab
- * until the flow finishes, and `Build your game` hands the same tab back to
- * the canvas rather than opening a second one. A workflow saved before the
- * flow existed has no `game` key and reads `done`, so it opens as it always
- * did.
+ * A workflow whose `settings.game` is not at stage `done` is still in the
+ * Game flow, and this tab is where it is reopened after a refresh or a close,
+ * or where the `+ New` menu's Game entry opens it. The game setup host takes
+ * the tab until the build makes the game, which then opens in its own tab
+ * while this one closes. A workflow saved before the flow existed has no
+ * `game` key and reads `done`, so it opens as it always did.
  */
 const WorkflowEditorSurface = ({
   workflowId,
@@ -128,6 +133,8 @@ const WorkflowEditorSurface = ({
   // above. A workflow saved before the flow existed has no `setup` key and
   // reads `done`, so it opens as the canvas it always did.
   const setupStage = useWorkflowSetupStage(workflowId);
+  const gameStage = useGameSetupStage(workflowId);
+  const [gameFinished, setGameFinished] = useState(false);
   const setup = useWorkflowSetupDocument(workflowId);
   const persistedBuild = readWorkflowBuild(setup);
   // The document reaches stage `done` in the same click that places the nodes,
@@ -272,6 +279,80 @@ const WorkflowEditorSurface = ({
     workflowProjectId
   ]);
   /**
+   * The Game flow made its game: the game opens in its own tab, and this
+   * tab, which only hosted the flow, closes with the workflow row that
+   * carried it. A refused delete leaves a harmless row, so it is reported.
+   */
+  const finishGameFlow = useCallback(
+    async (result: BuildGameResult) => {
+      setGameFinished(true);
+      openTab({
+        type: "game",
+        ref: result.gameId,
+        mode: "edit",
+        title: result.name,
+        projectId: workflowProjectId ?? result.projectId
+      });
+      if (result.failures.length > 0) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: `Opened your game, but ${result.failures.length} piece${
+            result.failures.length === 1 ? "" : "s"
+          } of art kept the placeholder: ${result.failures[0]?.reason ?? ""}`
+        });
+      }
+      closeTab(tabId("workflow", workflowId));
+      if (workflow) {
+        try {
+          await deleteWorkflow(workflow);
+        } catch (cause) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: `Opened your game, but could not remove its setup workflow: ${
+              cause instanceof Error ? cause.message : String(cause)
+            }`
+          });
+        }
+      }
+    },
+    [
+      addNotification,
+      closeTab,
+      deleteWorkflow,
+      openTab,
+      workflow,
+      workflowId,
+      workflowProjectId
+    ]
+  );
+
+  /** "Start with a blank room" or a blank 3D game, from the flow's step 1. */
+  const startBlankGame = useCallback(
+    async (kind: GameStartAlternative) => {
+      const projectId = workflowProjectId ?? workflow?.project_id ?? "";
+      const name = workflow?.name || "Untitled game";
+      const created = await trpcClient.games.create.mutate({
+        projectId,
+        name,
+        dimension: kind === "blank-3d" ? "3d" : "2d",
+        document:
+          kind === "blank-3d"
+            ? createNative3DGame(newDocumentId())
+            : createTopDownRoomGame(newDocumentId())
+      });
+      await finishGameFlow({
+        gameId: created.game.id,
+        name: created.game.name || name,
+        projectId,
+        failures: []
+      });
+    },
+    [finishGameFlow, workflow, workflowProjectId]
+  );
+
+  /**
    * "Start from an example" in step 1's inline browser: the copy lands in a
    * new row (materialized server-side from the example's package), which
    * opens as its own tab while this placeholder closes. The tab's project
@@ -415,6 +496,17 @@ const WorkflowEditorSurface = ({
         workflowId={workflowId}
         width="100%"
         height="100%"
+      />
+    );
+  }
+
+  if (gameStage !== "done" && !gameFinished) {
+    return (
+      <GameSetupHost
+        workflowId={workflowId}
+        {...(workflowProjectId && { projectId: workflowProjectId })}
+        onStartAlternative={startBlankGame}
+        onFinish={(result) => void finishGameFlow(result)}
       />
     );
   }

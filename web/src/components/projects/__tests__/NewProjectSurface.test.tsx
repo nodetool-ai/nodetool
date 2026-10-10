@@ -310,6 +310,13 @@ jest.mock("../../setup/workflow/WorkflowSetupHost", () => ({
   )
 }));
 
+jest.mock("../../setup/game/GameSetupHost", () => ({
+  __esModule: true,
+  default: ({ workflowId }: { workflowId: string }) => (
+    <div data-testid="game-setup-flow">{workflowId}</div>
+  )
+}));
+
 // The flow's real host runs the board's server sync and agent bridge; this
 // suite only asks whether the surface swapped itself for it.
 jest.mock("../../setup/storyboard/StoryboardSetupHost", () => ({
@@ -1351,7 +1358,7 @@ describe("NewProjectSurface", () => {
     ["Script", () => createScript],
     ["Image", () => startImageFlowMock],
     ["Workflow", () => managerCreateWorkflow],
-    ["Game", () => createGame]
+    ["Game", () => managerCreateWorkflow]
   ])("starts the %s flow from its own card", async (title, mock) => {
     const user = userEvent.setup();
     renderSurface();
@@ -1388,24 +1395,35 @@ describe("NewProjectSurface", () => {
     );
   });
 
-  it("creates a playable native game and opens its tab", async () => {
+  it("starts the game flow on a workflow that carries the brief", async () => {
     const user = userEvent.setup();
     renderSurface();
+    await user.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A fox collects acorns"
+    );
     const cards = screen.getByRole("group", {
       name: "Guided creation flows"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Game / }));
 
-
-    await waitFor(() => expect(createGame).toHaveBeenCalled());
+    expect(await screen.findByTestId("game-setup-flow")).toHaveTextContent(
+      "wf-new"
+    );
+    expect(managerCreateWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          game: expect.objectContaining({
+            stage: "idea",
+            brief: "A fox collects acorns",
+            template: "topdown"
+          })
+        })
+      })
+    );
+    expect(createGame).not.toHaveBeenCalled();
     expect(createProject).not.toHaveBeenCalled();
-    expect(createGame).toHaveBeenCalledWith(expect.objectContaining({
-      document: expect.objectContaining({ entrySceneId: "room", engineVersion: "1" })
-    }));
-    expect(openTab).toHaveBeenCalledWith(expect.objectContaining({
-      type: "game", ref: "game-1"
-    }));
   });
 
   it.each(["Workflow", "Game"])(
@@ -1425,13 +1443,11 @@ describe("NewProjectSurface", () => {
       );
 
 
-      await waitFor(() => {
-        if (title === "Game") {
-          expect(createGame).toHaveBeenCalledWith(expect.objectContaining({ projectId: "current-project" }));
-        } else {
-          expect(managerCreateWorkflow).toHaveBeenCalledWith(expect.objectContaining({ project_id: "current-project" }));
-        }
-      });
+      await waitFor(() =>
+        expect(managerCreateWorkflow).toHaveBeenCalledWith(
+          expect.objectContaining({ project_id: "current-project" })
+        )
+      );
     }
   );
 

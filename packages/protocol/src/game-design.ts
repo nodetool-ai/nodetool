@@ -505,3 +505,182 @@ export const GAME_INSPIRATION_CHIPS: readonly GameInspirationChip[] = [
     }
   }
 ];
+
+/**
+ * Inspiration chips for the built-in engine's `topdown` template, which the
+ * guided Game flow builds into a native game.
+ *
+ * The chips above were written for the retired external-engine templates and
+ * stay because the asset graph harness grades them. These cover the native
+ * manifest — `player`, `wall`, `gem` and `sfx.collect` — and play the way the
+ * template plays: one walled room, one collectible that wins it. The slot ids
+ * are written out for the same reason as above; `game-design.test.ts` fails
+ * when a chip stops covering the template in `native-game-templates.ts`.
+ */
+export const NATIVE_GAME_INSPIRATION_CHIPS: readonly GameInspirationChip[] = [
+  {
+    id: "acorn-clearing",
+    brief: "A fox gathering the last acorn in an autumn clearing",
+    template: "topdown",
+    design: {
+      title: "Last Acorn",
+      premise:
+        "Winter is a night away and the clearing has been picked clean, except for one acorn the squirrels missed. A young fox noses through the leaves to find it before the frost does.",
+      core_loop:
+        "Walk the clearing along the hedge walls, read the leaf litter for the glint of the acorn, and reach it without backing into a corner.",
+      player_verbs: ["walk", "search", "collect"],
+      enemies: [],
+      level:
+        "One square clearing walled in by thick hedges of bramble and holly, the floor deep in orange and brown leaves, the acorn resting a few steps to the right of where the fox starts.",
+      win: "Pick up the acorn.",
+      lose: "There is no way to lose; the clearing is a quiet first room.",
+      cast: [
+        {
+          slot_id: "player",
+          name: "Bramble",
+          descriptor:
+            "A small young fox seen from above, rust-orange back with a cream muzzle, black socks on all four paws and a white-tipped brush tail as long as her body."
+        },
+        {
+          slot_id: "gem",
+          name: "The last acorn",
+          descriptor:
+            "A single plump acorn, glossy chestnut brown with a rough tan cap and a short stem, a soft highlight on one side."
+        }
+      ],
+      slot_prompts: [
+        {
+          slot_id: "player",
+          prompt:
+            "Bramble the fox seen from directly above: standing still with her tail curled, then four steps of a trotting walk."
+        },
+        {
+          slot_id: "wall",
+          prompt:
+            "A dense hedge of bramble and dark holly leaves with a few red berries, seen from directly above."
+        },
+        {
+          slot_id: "gem",
+          prompt: "The last acorn lying on its side, seen from directly above."
+        },
+        { slot_id: "sfx.collect", prompt: "A soft crunch of leaves and a bright woody click." }
+      ]
+    }
+  },
+  {
+    id: "sunken-pearl",
+    brief: "A diver reaching a pearl in a sunken temple",
+    template: "topdown",
+    design: {
+      title: "Pearl of the Drowned Hall",
+      premise:
+        "A temple sank into the bay a century ago and the pearl on its altar is still there. A diver with one lungful of courage swims in through the broken roof to bring it home.",
+      core_loop:
+        "Swim the flooded hall between the carved stone walls, follow the shimmer of the pearl, and reach it in one steady line.",
+      player_verbs: ["swim", "explore", "collect"],
+      enemies: [],
+      level:
+        "One drowned temple hall framed by mossy carved stone walls, the floor sandy with broken tiles, the pearl glowing a short swim to the right of the entry.",
+      win: "Take the pearl from the altar.",
+      lose: "There is no way to lose; the hall is a calm first dive.",
+      cast: [
+        {
+          slot_id: "player",
+          name: "Nia",
+          descriptor:
+            "A slim diver seen from above in a teal wetsuit with a yellow air tank on her back, long black hair streaming behind her, orange fins."
+        },
+        {
+          slot_id: "gem",
+          name: "The drowned pearl",
+          descriptor:
+            "A large round pearl, milky white with a pink and blue sheen, resting in an open grey clam shell."
+        }
+      ],
+      slot_prompts: [
+        {
+          slot_id: "player",
+          prompt:
+            "Nia the diver seen from directly above: floating still with her arms out, then four strokes of a kicking swim."
+        },
+        {
+          slot_id: "wall",
+          prompt:
+            "A block of carved temple stone under water, green moss and small barnacles on it, seen from directly above."
+        },
+        {
+          slot_id: "gem",
+          prompt: "The drowned pearl in its open clam shell, seen from directly above."
+        },
+        { slot_id: "sfx.collect", prompt: "A soft underwater chime with a rising bubble." }
+      ]
+    }
+  },
+  {
+    id: "server-cell",
+    brief: "A maintenance robot grabbing a power cell in a neon server room",
+    template: "topdown",
+    design: {
+      title: "Power Cell",
+      premise:
+        "The night shift left a spare power cell on the server room floor and the cooling fans are starting to whine. A boxy maintenance robot rolls out of its dock to plug the gap before the racks overheat.",
+      core_loop:
+        "Roll between the server rack walls, line up with the glowing cell, and drive over it to pick it up.",
+      player_verbs: ["roll", "turn", "collect"],
+      enemies: [],
+      level:
+        "One server room boxed in by rows of black server racks with blinking lights, a dark floor grid lit magenta and cyan, the power cell glowing just right of the robot's dock.",
+      win: "Pick up the power cell.",
+      lose: "There is no way to lose; the room is a first shift.",
+      cast: [
+        {
+          slot_id: "player",
+          name: "Unit 7",
+          descriptor:
+            "A small square maintenance robot seen from above, scuffed white casing with an orange stripe, two treads at the sides and a single cyan eye light at the front."
+        },
+        {
+          slot_id: "gem",
+          name: "Power cell",
+          descriptor:
+            "A short cylindrical power cell with a bright green glowing core between two silver end caps."
+        }
+      ],
+      slot_prompts: [
+        {
+          slot_id: "player",
+          prompt:
+            "Unit 7 the robot seen from directly above: idle with its eye light on, then four frames of rolling forward on its treads."
+        },
+        {
+          slot_id: "wall",
+          prompt:
+            "The top of a black server rack with rows of blinking green and blue status lights, seen from directly above."
+        },
+        {
+          slot_id: "gem",
+          prompt: "The glowing power cell lying on the floor, seen from directly above."
+        },
+        { slot_id: "sfx.collect", prompt: "A short electric power-up blip." }
+      ]
+    }
+  }
+];
+
+/**
+ * The shipped chip whose brief this is, for a template — the design a keyless
+ * install uses in place of a designer call. Briefs match case-insensitively
+ * and ignore surrounding whitespace, as the Workflow flow's pinned plans do.
+ */
+export function pinnedGameInspirationChip(
+  template: string,
+  brief: string
+): GameInspirationChip | null {
+  const wanted = brief.trim().toLowerCase();
+  return (
+    [...NATIVE_GAME_INSPIRATION_CHIPS, ...GAME_INSPIRATION_CHIPS].find(
+      (chip) =>
+        chip.template === template && chip.brief.trim().toLowerCase() === wanted
+    ) ?? null
+  );
+}
