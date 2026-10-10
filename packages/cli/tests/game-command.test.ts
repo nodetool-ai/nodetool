@@ -238,6 +238,28 @@ describe("game capture backend", () => {
   }, 30000);
 });
 
+describe("game capture particles", () => {
+  it("simulates particles up to the captured tick and draws them", async () => {
+    const game = createTopDownRoomGame("capture-particles");
+    game.schemaVersion = 2;
+    game.scenes[0]!.entities.push({ id: "torch", name: "Torch", transform2d: { x: 1, y: 1 }, behaviors: [],
+      particles: gameParticles.parse({ emitters: [{ id: "glow", rate: 60, lifetime: 10, speed: 0, size: 1, color: "#00ff00", unlit: true }] }) });
+    await writeFile(gamePath, JSON.stringify(game));
+    const program = new Command();
+    registerGameCommands(program);
+    const imagePath = join(directory, "particles.png");
+    await program.parseAsync(["node", "nodetool", "game", "capture", gamePath, "--ticks", "30", "--out", imagePath, "--json"]);
+    const { createCanvas, loadImage } = await import("@napi-rs/canvas");
+    const image = await loadImage(await readFile(imagePath));
+    const canvas = createCanvas(image.width, image.height);
+    canvas.getContext("2d").drawImage(image, 0, 0);
+    const [red, green, blue] = canvas.getContext("2d").getImageData(288, 112, 1, 1).data;
+    expect(green).toBeGreaterThan(200);
+    expect(red).toBeLessThan(40);
+    expect(blue).toBeLessThan(40);
+  });
+});
+
 describe("game build assets", () => {
   it("reads TrueType fonts from the assets directory", async () => {
     const game = createTopDownRoomGame("font-build");

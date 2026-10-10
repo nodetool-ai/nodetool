@@ -524,11 +524,34 @@ event from `takePresentationEvents()`. It never appears in gameplay events or
 snapshots. Particles cannot affect scores, physics or scripts. Prefer them over
 spawned prefabs for sparks, smoke and dust.
 
-The renderer simulates particles with `ParticleSimulator` from
-`@nodetool-ai/game-renderer`. Each tick, call `sync(particleSourcesFromFrame(frame))`,
-`emit(session.takePresentationEvents())` and `step(seconds)`, then read
-`forEachParticle`. One `step` simulates at most 0.25 seconds, so a resumed tab does not replay a long pause. Each emitter's random stream is seeded from its entity and
-emitter ids, so captures repeat. The built-in players do not draw particles yet.
+Each emitter also sets how its particles draw in 2D. Without `sprite`, a
+particle is a soft round dot tinted by its colour. `sprite: { assetId, columns,
+rows, frameCount?, cycles?, sampling? }` uses an image asset instead. A sheet is
+cut into `columns` by `rows` cells read left to right and top to bottom, and the
+first `frameCount` cells play `cycles` times over each particle's life.
+`sampling` defaults to `nearest`. `blend: "additive"` adds light, which suits
+fire, sparks and magic. The default `normal` alpha-blends, which suits smoke and
+dust. Particles take scene lighting like sprites. Set `unlit: true` so glowing
+particles keep their colour in the dark. `layer` sets the draw layer. It
+defaults to the entity's sprite layer, or 0 without a sprite, and particles
+draw above sprites of the same layer. `size` is the particle's width in world
+units. `rotation` and `angularVelocity` are radians and radians per second.
+
+The standalone player, `nodetool game capture` and the agent's
+`capture_native_game_frame` draw 2D particles. A capture simulates particles
+for every tick up to the captured one, so a burst at tick 0 is still visible a
+few ticks later. WebGPU draws every live particle as instanced quads. The
+Canvas2D fallback draws at most 1024 visible particles. The editor's play view
+does not draw particles yet, so capture a frame to review them. 3D particles
+are not drawn yet.
+
+Hosts run 2D particles with `GameParticles2D` from
+`@nodetool-ai/game-renderer`. After every session step, call
+`particles.tick(step.frame, session.takePresentationEvents())`, then pass
+`particles` as the third argument of `renderer.render`. Underneath it is a
+`ParticleSimulator`: each tick it calls `sync(particleSourcesFromFrame(frame))`,
+`emit(events)` and `step(seconds)`. One `step` simulates at most 0.25 seconds, so a resumed tab does not replay a long pause. Each emitter's random stream is seeded from its entity and
+emitter ids, so captures repeat.
 
 ### P: Physics
 
@@ -785,8 +808,8 @@ Both are presentation only. They never change simulation, snapshots or replay.
   editor camera shows every entity.
 - Budgets left out use the player defaults: 1000 draw calls, 1,000,000
   triangles, 4096 particles and 24 voices. The standalone player warns in the
-  browser console once each time the draw call, triangle or voice budget is
-  exceeded. No player counts particles yet, so the particles budget does not
-  warn. `nodetool game capture` reports `budget.overruns` for a 3D frame.
+  browser console once each time the draw call, triangle, particle or voice
+  budget is exceeded. Only the 2D standalone player counts particles, and it
+  uses the default particle budget because 2D documents have no `performance`. `nodetool game capture` reports `budget.overruns` for a 3D frame.
 
 ### M: Milestone games
