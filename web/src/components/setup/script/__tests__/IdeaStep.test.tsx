@@ -18,6 +18,7 @@ jest.mock("../../../../lib/rest-fetch", () => ({
 import {
   readScriptSource,
   scriptSourcePatch,
+  importedFromFdx,
   importedFromText
 } from "../../../../lib/script/importedScript";
 import { scriptSetupContextPatch } from "../scriptSetupContext";
@@ -87,6 +88,27 @@ describe("script IdeaStep", () => {
     expect(sourceNow()).toBeNull();
     expect(
       screen.getByText(/writing brief and may be rewritten/)
+    ).toBeInTheDocument();
+  });
+
+  // A screenplay is applied with no model, so the note beside it reaches
+  // nothing. The field used to promise it guides who reads each line.
+  it("does not promise a note guides a screenplay import", () => {
+    useScriptStore
+      .getState()
+      .setSetup(
+        SCRIPT_ID,
+        scriptSourcePatch(
+          importedFromFdx({
+            shots: [{ dialogue: "SOPHIA\nAre you coming or not?" }]
+          } as never)
+        )
+      );
+    renderStep();
+
+    expect(screen.queryByText(/guides how they are split/)).toBeNull();
+    expect(
+      screen.getByText(/does not change how the lines are prepared/)
     ).toBeInTheDocument();
   });
 

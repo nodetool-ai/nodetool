@@ -44,6 +44,10 @@ interface DialogueBlock {
   lines: string[];
 }
 
+/** A parenthetical's words, without the brackets around them. */
+const unwrap = (parenthetical: string): string =>
+  parenthetical.replace(/^\(|\)$/g, "").trim();
+
 /** Every `<Text>` run inside a paragraph, joined — FDX splits styled runs. */
 function paragraphText(paragraph: Element): string {
   const runs = paragraph.getElementsByTagName("Text");
@@ -157,7 +161,12 @@ export function parseFdx(xml: string): FdxImport {
       continue;
     }
     if (type === PARENTHETICAL && block) {
-      block.parenthetical = text;
+      // A speech can carry several. Each used to replace the last, so all but
+      // one were lost from the line and the shot.
+      block.parenthetical =
+        block.parenthetical === "" || text === ""
+          ? block.parenthetical || text
+          : `(${unwrap(block.parenthetical)}; ${unwrap(text)})`;
       continue;
     }
     if (type === DIALOGUE) {

@@ -49,6 +49,7 @@ import { useGenerateVariations } from "../../../hooks/sketch/useGenerateVariatio
 import { OptionCardGrid, type OptionCardItem } from "../OptionCardGrid";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
 import ImageModelSelect from "../../properties/ImageModelSelect";
+import ReportBugButton from "../../support/ReportBugButton";
 import { SetupFooterField } from "../SetupFooterField";
 import {
   sizePresetFor,
@@ -318,9 +319,17 @@ const ModelListState: React.FC<{
       <AlertBanner
         severity="error"
         action={
-          <EditorButton variant="text" onClick={onRetry}>
-            Try again
-          </EditorButton>
+          <FlexRow gap={GAP.tight} align="center">
+            <EditorButton variant="text" onClick={onRetry}>
+              Try again
+            </EditorButton>
+            <ReportBugButton
+              context={{
+                source: "operation-failure",
+                summary: "Image model list failed to load"
+              }}
+            />
+          </FlexRow>
         }
       >
         The image models could not be loaded.

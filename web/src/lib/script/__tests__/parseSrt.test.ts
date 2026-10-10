@@ -81,6 +81,27 @@ describe("parseSrt", () => {
     expect(parsed.lines[0].text).toBe("if x < y then stop");
   });
 
+  // A separator row holding a space or a tab is still a blank row. Read as
+  // part of a cue, it folded the next cue's index and timing into the words.
+  it("splits cues separated by a row of whitespace", () => {
+    const parsed = parseSrt(
+      "1\n00:00:00,000 --> 00:00:02,000\nHello there.\n \n2\n00:00:02,000 --> 00:00:04,000\nGoodbye.\n\t\n"
+    );
+    expect(parsed.lines.map((line) => line.text)).toEqual([
+      "Hello there.",
+      "Goodbye."
+    ]);
+  });
+
+  // WebVTT escapes `&`, `<` and `>` in cue text. Left escaped, a voice read
+  // "Tom amp Jerry".
+  it("decodes the character references a cue's words are escaped with", () => {
+    const parsed = parseSrt(
+      "WEBVTT\n\n00:00.000 --> 00:02.000\nTom &amp; Jerry&nbsp;say 3 &lt; 4 &gt; 2\n"
+    );
+    expect(parsed.lines[0].text).toBe("Tom & Jerry say 3 < 4 > 2");
+  });
+
   it("drops a cue with no words and one with no duration", () => {
     // The SRT fixture's fourth cue is both.
     expect(parseSrt(fixture("tide-clock.srt")).lines).toHaveLength(3);

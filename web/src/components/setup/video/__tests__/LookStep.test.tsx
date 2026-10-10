@@ -402,7 +402,7 @@ describe("useLookStep — the gate before the paid button", () => {
     );
   });
 
-  it("judges no tile while the catalog is still loading (F14)", () => {
+  it("holds Generate while the video model list loads (V1)", () => {
     seedPlan();
     videoCatalog = {
       models: [],
@@ -411,10 +411,52 @@ describe("useLookStep — the gate before the paid button", () => {
       error: null
     };
     useLastModelStore.setState({
-      byKind: { video: { provider: "nodetool", model: CLIP_MODEL.id } }
+      byKind: { video: { provider: "nodetool", model: "retired/model" } }
     });
     const { result } = renderHook(() =>
       useLookStep({ voiceOn: false, musicOn: false })
+    );
+    expect(result.current.canAdvance).toBe(false);
+    expect(result.current.blockedReason).toBe(
+      "Checking that your providers still offer that video model"
+    );
+  });
+
+  it("holds Generate while the voice list loads (V1)", () => {
+    seedPlan();
+    voiceCatalog = {
+      models: [],
+      providers: ["nodetool"],
+      isLoading: true,
+      error: null
+    };
+    useLastModelStore.setState({
+      byKind: {
+        video: { provider: "nodetool", model: CLIP_MODEL.id },
+        audio: { provider: "nodetool", model: "retired-tts", voice: "gone" }
+      }
+    });
+    const { result } = renderHook(() =>
+      useLookStep({ voiceOn: true, musicOn: false })
+    );
+    expect(result.current.canAdvance).toBe(false);
+    expect(result.current.blockedReason).toBe(
+      "Checking that your providers still offer that voice"
+    );
+  });
+
+  it("keeps Generate live when the model lists failed (V1)", () => {
+    seedPlan();
+    videoCatalog = { ...videoCatalog, error: new Error("offline") };
+    voiceCatalog = { ...voiceCatalog, error: new Error("offline") };
+    useLastModelStore.setState({
+      byKind: {
+        video: { provider: "nodetool", model: "retired/model" },
+        audio: { provider: "nodetool", model: "retired-tts", voice: "gone" }
+      }
+    });
+    const { result } = renderHook(() =>
+      useLookStep({ voiceOn: true, musicOn: false })
     );
     expect(result.current.canAdvance).toBe(true);
   });
@@ -440,6 +482,31 @@ describe("LookStep body", () => {
     renderBody(false);
     expect(
       screen.getByRole("button", { name: "Try again" })
+    ).toBeInTheDocument();
+    // Every error surface reaches the bug-report dialog (V4).
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
+  });
+
+  it("names the remembered models a failed list could not check (V1)", () => {
+    seedPlan();
+    videoCatalog = { ...videoCatalog, error: new Error("offline") };
+    voiceCatalog = { ...voiceCatalog, error: new Error("offline") };
+    useLastModelStore.setState({
+      byKind: {
+        video: { provider: "nodetool", model: CLIP_MODEL.id },
+        audio: { provider: "elevenlabs", model: "tts-1", voice: "adam" }
+      }
+    });
+    renderBody(true);
+    expect(
+      screen.getByText(
+        `Could not check that your providers still offer ${CLIP_MODEL.label}. Generate will try it anyway.`
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Could not check that your providers still offer adam. Generate will try it anyway."
+      )
     ).toBeInTheDocument();
   });
 
@@ -661,5 +728,22 @@ describe("LookStep after a Generate that failed past the shell (V11)", () => {
     expect(
       screen.getByText(/No generation requests were submitted/)
     ).toBeInTheDocument();
+  });
+
+  it("offers Report beside the failure (V4)", () => {
+    seedPlan();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LookStep
+          voiceOn={false}
+          musicOn={false}
+          onVoiceChange={jest.fn()}
+          onMusicChange={jest.fn()}
+          musicAvailable={false}
+          error="Could not save the prepared video."
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
   });
 });

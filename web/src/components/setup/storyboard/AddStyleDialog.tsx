@@ -7,9 +7,9 @@
  * rendering a locator the media primitives have nothing to resolve.
  *
  * The call costs money, so the dialog says which model it goes to and what it
- * is likely to cost before it is made, and the confirm button carries the
- * dialog's own loading and disabled state — a button that only changed its
- * words while saving took a second press and made a second call (F18).
+ * is likely to cost before it is made, and the confirm button is disabled
+ * while saving — a button that only changed its words while saving took a
+ * second press and made a second call (F18).
  */
 
 import React, { Suspense, lazy, useCallback, useRef, useState } from "react";
@@ -64,6 +64,8 @@ export interface AddStyleDialogProps {
   onClose: () => void;
   /** Resolves true when the style was saved and applied. */
   onSubmit: (files: readonly File[]) => Promise<boolean>;
+  /** Stops the save in flight, so its style is never applied. */
+  onCancelSave?: () => void;
 }
 
 export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
@@ -72,7 +74,8 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
   error,
   model,
   onClose,
-  onSubmit
+  onSubmit,
+  onCancelSave
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const input = useRef<HTMLInputElement>(null);
@@ -131,6 +134,17 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
     onClose();
   }, [onClose, saving]);
 
+  // The Cancel button is the one way out of a save: the descriptor call has
+  // no timeout, and a reply that never came held Generate forever. It stops
+  // the save, so nothing lands after the dialog closes.
+  const handleCancelButton = useCallback(() => {
+    if (saving) {
+      onCancelSave?.();
+    }
+    setFiles([]);
+    onClose();
+  }, [onCancelSave, onClose, saving]);
+
   return (
     <Dialog
       open={open}
@@ -139,11 +153,13 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
       showActions
       onConfirm={handleSubmit}
       confirmText={saving ? "Reading your references…" : "Add style"}
-      isLoading={saving}
+      // The primitive holds Cancel while it shows loading, and Cancel is what
+      // stops the save. The confirm button names the wait and stays disabled.
+      isLoading={saving && !onCancelSave}
       confirmDisabled={saving || files.length === 0}
-      cancelDisabled={saving}
+      cancelDisabled={saving && !onCancelSave}
       cancelText="Cancel"
-      onCancel={handleCancel}
+      onCancel={handleCancelButton}
     >
       <FlexColumn gap={GAP.comfortable}>
         <Text size="normal" color="secondary">

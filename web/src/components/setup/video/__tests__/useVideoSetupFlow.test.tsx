@@ -7,12 +7,18 @@ import type { ReactElement } from "react";
 import { act, renderHook } from "@testing-library/react";
 import { makeClip } from "@nodetool-ai/timeline";
 
-import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../../stores/timeline/TimelineStore";
 import type { TimelineSetupStage } from "@nodetool-ai/timeline";
 import { newVideoSetupDocument, useVideoSetupFlow } from "../useVideoSetupFlow";
 import { readVideoSetupContext } from "../setupContext";
 import { rpcRequest } from "../../../../lib/websocket/rpcRequest";
-import { PLAN_INPUTS_CHANGED } from "../../../../hooks/timeline/usePlanBeats";
+import {
+  beginPlanRun,
+  PLAN_INPUTS_CHANGED
+} from "../../../../hooks/timeline/usePlanBeats";
 
 jest.mock("../../../../lib/websocket/rpcRequest", () => ({
   rpcRequest: jest.fn(async () => ({}))
@@ -502,6 +508,19 @@ describe("useVideoSetupFlow plan outcomes", () => {
       "Loading the models that can draft the beats"
     );
   });
+
+  it("holds Plan the beats on a stored model while the list loads (V2)", () => {
+    languageModels = [];
+    languageModelsLoading = true;
+    seed("format", {
+      directorModel: { id: "retired/model", provider: "openai", name: "Old" }
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[1].canAdvance).toBe(false);
+    expect(result.current.steps[1].blockedReason).toBe(
+      "Loading the models that can draft the beats"
+    );
+  });
 });
 
 describe("useVideoSetupFlow audit fixes", () => {
@@ -747,6 +766,40 @@ describe("useVideoSetupFlow audit fixes", () => {
       readOnly: true
     }) as ReactElement<{ readOnly: boolean }>;
     expect(idea.props.readOnly).toBe(true);
+  });
+
+  it("holds the flow with Cancel while the agent plans the beats (V5)", () => {
+    seed("format");
+    const { result } = renderHook(() => ({
+      flow: useVideoSetupFlow(),
+      store: useTimelineStoreApi()
+    }));
+    const controller = new AbortController();
+    act(() => {
+      beginPlanRun(result.current.store, controller);
+    });
+    expect(result.current.flow.steps[1].pending).toBe(true);
+    expect(result.current.flow.steps[3].canAdvance).toBe(false);
+    expect(result.current.flow.steps[3].blockedReason).toBe(
+      "The beats are being planned"
+    );
+    act(() => {
+      void result.current.flow.steps[1].onCancel?.();
+    });
+    expect(controller.signal.aborted).toBe(true);
+    expect(result.current.flow.steps[1].pending).toBe(false);
+  });
+
+  it("prices the review's Re-plan on the picked model and the edited plan (V3)", () => {
+    seed("review", {
+      beats: [{ id: "b", prompt: "A folded hull drifts", duration_ms: 3000 }]
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const review = result.current.steps[2].render() as ReactElement<{
+      generation?: { model: { id: string } | null; brief: string };
+    }>;
+    expect(review.props.generation?.model?.id).toBe("nodetool/director");
+    expect(review.props.generation?.brief).toContain("A folded hull drifts");
   });
 
   it("prices the re-plan on what the Director is sent, not the brief alone (V13)", () => {

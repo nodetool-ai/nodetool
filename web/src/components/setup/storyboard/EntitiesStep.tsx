@@ -65,8 +65,13 @@ import {
 } from "./referenceImageModel";
 import {
   boardScreenplaySnapshot,
+  cancelEntityFind,
+  finishEntityFind,
   getEntitySuggestions,
   setEntitySuggestions,
+  startEntityFind,
+  useEntityFindEmpty,
+  useEntityFindRunning,
   useEntitySuggestions
 } from "./setupChoices";
 import {
@@ -185,7 +190,9 @@ export const EntitiesStep = ({
         (candidate) => `${candidate.kind}:${candidate.name}` !== key
       )
     );
-  const [suggesting, setSuggesting] = useState(false);
+  // Held per board, so a step remounted mid-call shows it running (B1).
+  const suggesting = useEntityFindRunning(boardId);
+  const foundNone = useEntityFindEmpty(boardId);
   const [creatingKeys, setCreatingKeys] = useState<ReadonlySet<string>>(
     () => new Set()
   );
@@ -197,8 +204,6 @@ export const EntitiesStep = ({
   );
   const mountedRef = useRef(true);
   const priceIdBase = useId();
-  // The running `Find entities` call, so its Cancel can stop it.
-  const findControllerRef = useRef<AbortController | null>(null);
   const findButtonRef = useRef<HTMLButtonElement>(null);
   const [findEnded, setFindEnded] = useState(false);
 
@@ -300,11 +305,9 @@ export const EntitiesStep = ({
       );
       return;
     }
-    const controller = new AbortController();
-    findControllerRef.current?.abort();
-    findControllerRef.current = controller;
-    setSuggesting(true);
+    const controller = startEntityFind(boardId);
     setAssistError(null);
+    let found: EntitySuggestion[] | null = null;
     try {
       const answer = await rpcRequest(
         "generate_text",
@@ -322,10 +325,9 @@ export const EntitiesStep = ({
         undefined,
         controller.signal
       );
-      if (controller.signal.aborted) return;
       // Kept per board, so an answer paid for after the creator moved on
       // (Continue, Back) is waiting when they return.
-      setEntitySuggestions(boardId, parseEntitySuggestions(answer.data));
+      found = parseEntitySuggestions(answer.data);
     } catch (error) {
       if (!mountedRef.current || controller.signal.aborted) return;
       setAssistFailure("find");
@@ -335,20 +337,14 @@ export const EntitiesStep = ({
           : "Could not find entities in the story."
       );
     } finally {
-      if (findControllerRef.current === controller) {
-        findControllerRef.current = null;
-        if (mountedRef.current) {
-          setSuggesting(false);
-          setFindEnded(true);
-        }
+      if (finishEntityFind(boardId, controller, found) && mountedRef.current) {
+        setFindEnded(true);
       }
     }
   };
 
   const cancelFind = (): void => {
-    findControllerRef.current?.abort();
-    findControllerRef.current = null;
-    setSuggesting(false);
+    cancelEntityFind(boardId);
     setFindEnded(true);
   };
 
@@ -525,11 +521,23 @@ export const EntitiesStep = ({
                     : "Find entities"}
               </EditorButton>
               {suggesting ? (
-                <EditorButton variant="text" onClick={cancelFind}>
+                // Named apart from the footer's Cancel, which stops entity
+                // creations: both can be on screen at once.
+                <EditorButton
+                  variant="text"
+                  onClick={cancelFind}
+                  aria-label="Cancel finding entities"
+                >
                   Cancel
                 </EditorButton>
               ) : null}
             </FlexRow>
+            {foundNone && !suggesting ? (
+              <Caption role="status">
+                No recurring characters, places or props were found in your
+                screenplay.
+              </Caption>
+            ) : null}
             {readOnly ? null : (
               <Suspense
                 fallback={

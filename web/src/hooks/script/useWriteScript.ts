@@ -69,6 +69,8 @@ import {
   type ImportedScript
 } from "../../lib/script/importedScript";
 import { writerSignature, writerSignaturePatch } from "./scriptWriteSignature";
+import { activeWrites, notifyWrites, subscribeWrites } from "./scriptWrites";
+import { isVoicingLive } from "../../stores/script/scriptVoicing";
 
 /** The length a script is written to when no step wrote one. */
 export const DEFAULT_SCRIPT_SECONDS = 60;
@@ -192,28 +194,6 @@ const nextIdPrefix = (): string =>
   `w${Date.now().toString(36)}${(writeSequence++).toString(36)}`;
 
 /**
- * The write running on each script, whichever hook instance started it. The
- * setup flow and the agent bridge each hold their own `useWriteScript`, so a
- * per-instance flag let the agent's `ui_script_write` run while the flow's
- * format and review steps stayed open, and a second paid write could start.
- */
-interface ActiveWrite {
-  controller: AbortController;
-  owner: symbol;
-}
-const activeWrites = new Map<string, ActiveWrite>();
-const writeListeners = new Set<() => void>();
-const notifyWrites = (): void => {
-  writeListeners.forEach((listener) => listener());
-};
-const subscribeWrites = (listener: () => void): (() => void) => {
-  writeListeners.add(listener);
-  return () => {
-    writeListeners.delete(listener);
-  };
-};
-
-/**
  * `scriptId` scopes `writing` and `cancel` to one script, so a write the agent
  * started shows (and can be canceled) on the flow that shows that script.
  * Without it they cover only this instance's own writes.
@@ -304,6 +284,13 @@ export const useWriteScript = (scriptId?: string): UseWriteScriptResult => {
 
       if (activeWrites.has(scriptId)) {
         setError("This script is already being written.");
+        return false;
+      }
+      // A write replaces the lines a running voicing is paying to record.
+      if (isVoicingLive(scriptId)) {
+        setError(
+          "This script is being voiced. Write it again once voicing finishes."
+        );
         return false;
       }
       const signature = writerSignature(setup, imported);

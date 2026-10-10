@@ -472,6 +472,11 @@ describe("a failed batch", () => {
     expect(onOpenEditor).toHaveBeenCalled();
   });
 
+  it("offers Report when nothing rendered", () => {
+    renderSheet(seedFailedBatch());
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
+  });
+
   it("announces the counts and retries one variation", async () => {
     const layerIds = seedFailedBatch();
     renderSheet(layerIds);
@@ -604,5 +609,26 @@ describe("ContactSheet prices", () => {
     expect(
       screen.getAllByRole("button", { name: "Regenerate · about $0.04" })
     ).toHaveLength(4);
+  });
+});
+
+describe("ContactSheet failed follow-up", () => {
+  it("offers Report when another batch could not start", () => {
+    const layerIds = seedBatch();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          makeMoreError="The provider refused the request."
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
   });
 });

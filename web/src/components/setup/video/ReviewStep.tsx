@@ -19,6 +19,10 @@ import type { TimelineBeat } from "@nodetool-ai/timeline";
 
 import { FlexColumn, FlexRow, GAP, Text } from "../../ui_primitives";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import ReportBugButton from "../../support/ReportBugButton";
+import GenerationSummary, {
+  type GenerationSummaryProps
+} from "../GenerationSummary";
 import { PlanReview } from "../PlanReview";
 import type { PlanReviewSection } from "../PlanReview";
 import { videoFormatById } from "./formats";
@@ -69,6 +73,8 @@ export interface ReviewStepProps {
   /** Why the last plan or re-plan failed, shown under the plan. */
   error?: string | null;
   onValidationChange?: (reason: string | undefined) => void;
+  /** What `Re-plan` costs, beside it: it is a paid Director run. */
+  generation?: GenerationSummaryProps;
 }
 
 /**
@@ -86,7 +92,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onReplan,
   replanPending,
   error,
-  onValidationChange
+  onValidationChange,
+  generation
 }) => {
   const beats = useTimelineStore((state) => state.setup?.beats);
   const formatId = useTimelineStore((state) => state.setup?.format);
@@ -277,10 +284,20 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         onRemoveSection={removeBeat}
         sectionNoun="beat"
       />
+      {generation ? <GenerationSummary {...generation} compact /> : null}
       {error ? (
-        <Text size="small" color="error" role="alert">
-          {error}
-        </Text>
+        <FlexRow gap={GAP.normal} align="center" wrap>
+          <Text size="small" color="error" role="alert">
+            {error}
+          </Text>
+          <ReportBugButton
+            context={{
+              source: "provider-call",
+              summary: "Video beat re-plan failed",
+              errorText: error
+            }}
+          />
+        </FlexRow>
       ) : null}
     </FlexColumn>
   );

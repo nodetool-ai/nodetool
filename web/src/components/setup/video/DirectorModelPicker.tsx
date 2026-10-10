@@ -11,6 +11,7 @@ import React, { memo } from "react";
 
 import { Caption, EditorButton, FlexRow, GAP } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
+import ReportBugButton from "../../support/ReportBugButton";
 import { SetupFooterField } from "../SetupFooterField";
 import { directorModelKey, useDirectorModel } from "./directorModel";
 
@@ -31,6 +32,13 @@ const DirectorModelPickerInternal: React.FC<{ readOnly?: boolean }> = ({
         <EditorButton size="small" variant="text" onClick={refetch}>
           Try again
         </EditorButton>
+        <ReportBugButton
+          context={{
+            source: "provider-call",
+            summary: "Director model list could not be read",
+            errorText: error
+          }}
+        />
       </FlexRow>
     );
   }

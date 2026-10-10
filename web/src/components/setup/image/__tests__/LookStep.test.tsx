@@ -7,6 +7,7 @@
  */
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import type { StylePresetEntity } from "../../../../serverState/useStylePresets";
 
@@ -112,5 +113,27 @@ describe("LookStep with no image provider", () => {
       open: true,
       capability: "text_to_image"
     });
+  });
+});
+
+describe("LookStep when the model list fails", () => {
+  it("offers Report beside Try again", () => {
+    const look = {
+      availability: "error",
+      modelMissing: false,
+      sizePresets: [],
+      styleChoice: null,
+      setStyleChoice: jest.fn(),
+      refetchModels: jest.fn()
+    } as unknown as LookStepControls;
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider theme={mockTheme}>
+          <LookStep look={look} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Report" })).toBeTruthy();
   });
 });

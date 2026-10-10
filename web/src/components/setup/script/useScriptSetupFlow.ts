@@ -34,11 +34,12 @@ import {
 import { getScriptAgentHandler } from "../../../components/script/scriptAgentBridge";
 import { useVoiceCostEstimate } from "../../../hooks/script/useVoiceCostEstimate";
 import { useWriteScript } from "../../../hooks/script/useWriteScript";
+import { isWrittenFrom } from "../../../hooks/script/scriptWriteSignature";
 import {
-  readWriterSignature,
-  writerSignature
-} from "../../../hooks/script/scriptWriteSignature";
-import { voicingPatch } from "../../../stores/script/scriptVoicing";
+  isVoicingLive,
+  useVoicingLive,
+  voicingPatch
+} from "../../../stores/script/scriptVoicing";
 import type { SetupFlowConfig, SetupStep } from "../types";
 import { FormatStep, WriterModelFooterField } from "./FormatStep";
 import { IdeaStep } from "./IdeaStep";
@@ -100,6 +101,8 @@ export const newScriptSetupDocument = (
  * and subline (PRD § 9.1–9.3), so this says what is being made and no more.
  */
 const FLOW_LABELS = { title: "Script" } as const;
+
+const VOICING_LIVE = "This script is already being voiced";
 
 const TRANSCRIPTION_EXTRA = "Word timing transcription is extra.";
 
@@ -214,13 +217,14 @@ export const useScriptSetupFlow = ({
   } = useWriteScript(scriptId);
 
   const cost = useVoiceCostEstimate(scriptId);
+  // A run the agent or another tab started is voicing these lines already.
+  const voicingLive = useVoicingLive(scriptId);
   const writerModel = setup?.writer_model ?? chatModel ?? null;
   const imported = useMemo(() => readScriptSource(setup), [setup]);
   // Whether the script in the review still answers the inputs on the format
   // step. Unchanged inputs mean there is nothing to write: the button carries
   // the creator forward to the script they came back from (F15).
-  const inputsChanged =
-    readWriterSignature(setup) !== writerSignature(setup, imported);
+  const inputsChanged = !isWrittenFrom(setup, imported);
   const needsWrite = !hasLines || inputsChanged;
   // An attributed import is applied as it stands, with no model in the loop, so
   // it does not need a writer model to be picked first (F16).
@@ -412,10 +416,21 @@ export const useScriptSetupFlow = ({
         stage: "voices",
         label: "Voices",
         primaryLabel: "Voice your script",
-        canAdvance: castNeedingVoice === 0 && hasLines && unassignedLines === 0,
-        blockedReason: !hasLines
-          ? "Add at least one script line"
-          : (unassignedReason ?? "Choose a voice for every speaker"),
+        canAdvance:
+          !voicingLive &&
+          castNeedingVoice === 0 &&
+          hasLines &&
+          unassignedLines === 0,
+        blockedReason: voicingLive
+          ? VOICING_LIVE
+          : !hasLines
+            ? "Add at least one script line"
+            : (unassignedReason ?? "Choose a voice for every speaker"),
+        // A write the agent started replaces the cast and the lines, so the
+        // voices picked now and the lines voiced now would be thrown away.
+        pending: writing,
+        pendingLabel: "Writing your script",
+        onCancel: cancel,
         primaryDetail: formatCost(
           cost.cost,
           cost.lineCount,
@@ -430,6 +445,11 @@ export const useScriptSetupFlow = ({
         // closed mid-voicing reopens on the editor with the takes still
         // arriving rather than back in setup (PRD § 9.3, D3).
         onAdvance: async () => {
+          // Checked before the record is written: a refused run must not
+          // reset the progress of the run that is going.
+          if (isVoicingLive(scriptId)) {
+            throw new Error(`${VOICING_LIVE}.`);
+          }
           // Queued, then opened, then completed: `voiceAll` moves the record to
           // `running` and finally to `completed` with the lines that failed, so
           // an editor opened before the takes land can still say what happened
@@ -485,6 +505,7 @@ export const useScriptSetupFlow = ({
       setup?.length_seconds,
       unassignedLines,
       unassignedReason,
+      voicingLive,
       writeError
     ]
   );

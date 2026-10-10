@@ -65,6 +65,23 @@ const toMs = (
 const CUE_TAG = /<[^<>]*>/g;
 
 /**
+ * The character references WebVTT escapes cue text with. Decoded in one pass,
+ * after the markup is gone, so `&amp;lt;` reads as `&lt;` and an escaped `<`
+ * is never taken for a tag.
+ */
+const REFERENCES: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&nbsp;": " ",
+  "&lrm;": "",
+  "&rlm;": ""
+};
+
+const decodeReferences = (text: string): string =>
+  text.replace(/&(?:amp|lt|gt|nbsp|lrm|rlm);/g, (match) => REFERENCES[match]);
+
+/**
  * Player markup, which is not part of what is said.
  *
  * Repeated to a fixed point. A single pass is incomplete sanitization: removing
@@ -80,7 +97,7 @@ const stripMarkup = (text: string): string => {
     previous = out;
     out = out.replace(CUE_TAG, "");
   }
-  return out.replace(/\s+/g, " ").trim();
+  return decodeReferences(out).replace(/\s+/g, " ").trim();
 };
 
 /**
@@ -94,7 +111,8 @@ export function parseSrt(source: string): SubtitleImport {
     // A byte-order mark, which a subtitle file exported on Windows often has.
     .replace(/^\uFEFF/, "")
     .replace(/\r\n?/g, "\n")
-    .split(/\n{2,}/);
+    // A separator row may hold spaces or a tab and is still blank.
+    .split(/\n(?:[ \t]*\n)+/);
 
   const lines: SubtitleLine[] = [];
   for (const block of blocks) {

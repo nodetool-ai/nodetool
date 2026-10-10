@@ -31,6 +31,7 @@ import { useEntities } from "../../../serverState/useEntities";
 import { ExampleBriefs } from "../ExampleBriefs";
 import { GalleryFrame } from "../MediaGallery";
 import { AlternativesColumn } from "../AlternativesColumn";
+import ReportBugButton from "../../support/ReportBugButton";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import type { UploadFirstLayerResult } from "../../../hooks/sketch/useUploadFirstLayer";
 import { readEntityIds, readReferences } from "./setupContext";
@@ -157,7 +158,19 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         />
 
         {upload.error ? (
-          <AlertBanner severity="error" onClose={upload.clearError}>
+          <AlertBanner
+            severity="error"
+            onClose={upload.clearError}
+            action={
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Image upload failed",
+                  errorText: upload.error
+                }}
+              />
+            }
+          >
             {upload.error}
           </AlertBanner>
         ) : null}

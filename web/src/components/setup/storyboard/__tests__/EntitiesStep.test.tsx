@@ -902,13 +902,17 @@ it("cancels Find entities and returns focus to its button", async () => {
   expect(
     screen.getByRole("button", { name: "Finding entities" })
   ).toBeDisabled();
-  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  await user.click(
+    screen.getByRole("button", { name: "Cancel finding entities" })
+  );
 
   expect(findSignal?.aborted).toBe(true);
   const find = screen.getByRole("button", { name: "Find entities" });
   expect(find).toBeEnabled();
   await waitFor(() => expect(find).toHaveFocus());
-  expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Cancel finding entities" })
+  ).toBeNull();
   expect(screen.queryByText("Could not find entities")).toBeNull();
 });
 
@@ -942,5 +946,55 @@ it("keeps suggestions that land after the step is left", async () => {
 
   expect(
     await screen.findByText("A dented brass railway lantern with amber glass")
+  ).toBeInTheDocument();
+});
+
+// Continue and Back remount the step while Find is still running. The step
+// must still show the call as running, so it is not bought a second time, and
+// its Cancel must still stop it.
+it("shows a Find that is still running after the step remounts", async () => {
+  let findSignal: AbortSignal | undefined;
+  rpcRequest.mockImplementationOnce(
+    (
+      _method: string,
+      _input: unknown,
+      _options: unknown,
+      signal: AbortSignal
+    ) => {
+      findSignal = signal;
+      return new Promise(() => undefined);
+    }
+  );
+  const user = userEvent.setup();
+  const { unmount } = renderStep();
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  unmount();
+
+  renderStep();
+
+  expect(
+    screen.getByRole("button", { name: "Finding entities" })
+  ).toBeDisabled();
+  await user.click(
+    screen.getByRole("button", { name: "Cancel finding entities" })
+  );
+  expect(findSignal?.aborted).toBe(true);
+  expect(screen.getByRole("button", { name: "Find entities" })).toBeEnabled();
+  expect(rpcRequest).toHaveBeenCalledTimes(1);
+});
+
+// A paid Find that found nothing must say so, rather than leave the step
+// looking as if the button did nothing.
+it("says when Find entities found nothing", async () => {
+  rpcRequest.mockResolvedValueOnce({ data: { entities: [] } });
+  const user = userEvent.setup();
+  renderStep();
+
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+
+  expect(
+    await screen.findByText(
+      "No recurring characters, places or props were found in your screenplay."
+    )
   ).toBeInTheDocument();
 });

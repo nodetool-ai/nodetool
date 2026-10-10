@@ -430,11 +430,23 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
         // Nothing above placed a node — criterion 3. `plan_source` records what
         // this plan answers, so returning to the category step and pressing its
         // button continues to this plan rather than replacing it (F15).
-        await setSetup({
-          plan: resolved,
-          stage: "review",
-          [PLAN_SOURCE_KEY]: planSourceOf(brief, input.category)
-        });
+        try {
+          await setSetup({
+            plan: resolved,
+            stage: "review",
+            [PLAN_SOURCE_KEY]: planSourceOf(brief, input.category)
+          });
+        } catch (cause) {
+          // The plan is already on screen at review, so the refusal belongs
+          // to that step. The stage reset below must not clear it.
+          stageRef.current = "review";
+          const reason = `The plan could not be saved: ${
+            cause instanceof Error ? cause.message : String(cause)
+          }`;
+          setError(reason);
+          setPlanningStatus("error");
+          return reason;
+        }
         return null;
       } catch (cause) {
         if (!isCurrent()) {
