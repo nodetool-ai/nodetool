@@ -145,3 +145,39 @@ describe("the first edit on a freshly loaded document", () => {
     expect(rowLabels()).toEqual(["Open", "Stroke A"]);
   });
 });
+
+describe("commitPendingEdit", () => {
+  it("gives a stroke and the layer edit after it separate undo steps", () => {
+    const layerId = useSketchStore.getState().document.layers[0].id;
+    act(() => {
+      stroke("brush stroke", A);
+      useSketchStore.getState().commitPendingEdit();
+      useSketchStore.getState().renameLayer(layerId, "Renamed");
+      useSketchStore.getState().pushHistory("rename layer");
+    });
+    expect(rowLabels()).toEqual(["Open", "Brush stroke", "Rename layer"]);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.layers[0].name).not.toBe("Renamed");
+    expect(liveData()).toBe(A);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(liveData()).not.toBe(A);
+  });
+
+  it("records nothing when no edit is pending", () => {
+    act(() => {
+      stroke("brush stroke", A);
+      useSketchStore.getState().commitPendingEdit();
+    });
+    const { history } = useSketchStore.getState();
+    act(() => {
+      useSketchStore.getState().commitPendingEdit();
+    });
+    expect(useSketchStore.getState().history).toBe(history);
+  });
+});

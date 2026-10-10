@@ -476,11 +476,12 @@ export function useCanvasGeometryActions({
       const { document: doc } = useSketchStore.getState();
       const dW = width - doc.canvas.width;
       const dH = height - doc.canvas.height;
+      editor.getState().commitPendingEdit();
       resizeCanvas(width, height);
       nudgePanForCanvasPixelDelta(dW, dH);
       pushHistory("resize canvas");
     },
-    [pushHistory, resizeCanvas, nudgePanForCanvasPixelDelta]
+    [editor, pushHistory, resizeCanvas, nudgePanForCanvasPixelDelta]
   );
 
   /** Push a single history snapshot before a drag-resize begins. */
@@ -563,11 +564,12 @@ export function useCanvasGeometryActions({
       if (!canvasRef.current) {
         return;
       }
+      editor.getState().commitPendingEdit();
       reconcileAllLayerTransforms();
       finalizeCanvasCrop(x, y, width, height);
       pushHistory("crop");
     },
-    [pushHistory, canvasRef, reconcileAllLayerTransforms, finalizeCanvasCrop]
+    [editor, pushHistory, canvasRef, reconcileAllLayerTransforms, finalizeCanvasCrop]
   );
 
   const handleCropCanvasToActiveLayerVisiblePixels = useCallback(() => {
@@ -611,6 +613,7 @@ export function useCanvasGeometryActions({
       return;
     }
 
+    editor.getState().commitPendingEdit();
     reconcileAllLayerTransforms();
     finalizeCanvasCrop(
       cropBounds.x,
@@ -620,6 +623,7 @@ export function useCanvasGeometryActions({
     );
     pushHistory("crop to active layer visible pixels");
   }, [
+    editor,
     document.activeLayerId,
     document.layers,
     document.canvas.width,
@@ -657,6 +661,7 @@ export function useCanvasGeometryActions({
       activeLayer.transform
     );
 
+    editor.getState().commitPendingEdit();
     reconcileAllLayerTransforms();
     finalizeCanvasCrop(
       cropBounds.x,
@@ -666,6 +671,7 @@ export function useCanvasGeometryActions({
     );
     pushHistory("crop to active layer extents");
   }, [
+    editor,
     document.activeLayerId,
     document.layers,
     canvasRef,
@@ -703,6 +709,7 @@ export function useCanvasGeometryActions({
       return;
     }
 
+    editor.getState().commitPendingEdit();
     reconcileAllLayerTransforms();
     finalizeCanvasCrop(minX, minY, cropW, cropH);
     // Drop the selection: after the canvas is cropped to the bbox, the
@@ -711,7 +718,7 @@ export function useCanvasGeometryActions({
     // at the wrong place is more confusing than just clearing it.
     useSketchStore.getState().setSelection(null);
     pushHistory("crop to selection");
-  }, [reconcileAllLayerTransforms, finalizeCanvasCrop, pushHistory]);
+  }, [editor, reconcileAllLayerTransforms, finalizeCanvasCrop, pushHistory]);
 
   // ─── Context menu ──────────────────────────────────────────────
   const [contextMenu, setContextMenu] = useState<{
@@ -1082,6 +1089,9 @@ export function useCanvasGeometryActions({
         return;
       }
       if (adjustmentBaseRef.current === null) {
+        // The preview is recorded as one edit when applied. Record a pending
+        // stroke first so it keeps its own undo step.
+        editor.getState().commitPendingEdit();
         adjustmentBaseRef.current =
           canvasRef.current.snapshotLayerCanvas(layerId);
       }
@@ -1094,7 +1104,7 @@ export function useCanvasGeometryActions({
       canvasRef.current.applyAdjustments(brightness, contrast, saturation);
       syncPixelLayerFromCanvas(layerId);
     },
-    [document.activeLayerId, syncPixelLayerFromCanvas, canvasRef]
+    [document.activeLayerId, editor, syncPixelLayerFromCanvas, canvasRef]
   );
 
   /** Commit the current adjustment preview — exactly one undo step. */
