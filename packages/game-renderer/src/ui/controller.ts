@@ -3,7 +3,7 @@ import type { GamepadLike } from "../input-bindings.js";
 import { gameUiFont } from "./paint.js";
 import { hitGameUiButton, layoutGameUi, nextGameUiFocus, type GameUiBox, type GameUiDirection, type GameUiInsets, type GameUiMeasureText, type GameUiViewport } from "./layout.js";
 
-/** Where HUD button presses go: `GameInput` and `GameInput3D` hold the button's action like a bound control. */
+/** Where HUD button presses go: `GameInput` holds the button's action like a bound control. */
 export interface GameUiActionSink {
   pressUiAction(action: string): void;
   releaseUiAction(action: string): void;

@@ -829,6 +829,8 @@ Scripts change nodes with `{kind: "ui", id, text?, value?, max?, visible?}`.
 `text` applies to text and buttons, `value` and `max` to bars, and `visible`
 to any node. A change lasts until the scene changes and is saved in snapshots.
 A command for a missing node, or a field the node does not have, fails the step.
+An `onDestroy` hook cannot return `ui` commands. Change the HUD from another
+behavior's update.
 
 A button press reaches scripts as its action in `pressed` and `justPressed`,
 exactly like a key, so replays and snapshots need nothing extra. With

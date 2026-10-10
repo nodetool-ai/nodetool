@@ -87,6 +87,8 @@ const overrideFields = {
 
 /** What scripts changed on one node since the scene started. Saved in snapshots. */
 export const gameUiOverride = z.strictObject(overrideFields);
+/** Script overrides saved in a snapshot, keyed by HUD node id. */
+export const gameUiOverrides = z.record(uiId, gameUiOverride);
 
 export type GameUiOverride = z.infer<typeof gameUiOverride>;
 

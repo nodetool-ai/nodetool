@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
+import { gameDocument, gameSnapshot, type GameDocument } from "@nodetool-ai/protocol";
 import { applyGameOps, createScriptedGameSession, validateGame } from "../src/index.js";
 
 const IMAGE = { assetId: "builtin:dot", digest: "builtin:dot-v1", width: 8, height: 8 };
@@ -94,6 +94,15 @@ describe("HUD widget tree", () => {
     expect(Object.keys(session.frame())).not.toContain("ui");
     expect(Object.keys(session.snapshot())).not.toContain("ui");
     session.dispose();
+  });
+
+  it("keys saved overrides by HUD node ids of at most 64 characters", async () => {
+    const session = await createScriptedGameSession(game(SET_HUD), 1);
+    const shape = session.snapshot();
+    session.dispose();
+    expect(gameSnapshot.safeParse({ ...shape, ui: { ["n".repeat(64)]: { text: "ok" } } }).success).toBe(true);
+    expect(gameSnapshot.safeParse({ ...shape, ui: { ["n".repeat(65)]: { text: "ok" } } }).success).toBe(false);
+    expect(gameSnapshot.safeParse({ ...shape, ui: { "": { text: "ok" } } }).success).toBe(false);
   });
 
   it("reports tree reference problems through validateGame", () => {

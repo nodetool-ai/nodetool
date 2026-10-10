@@ -65,6 +65,16 @@ describe("HUD layout", () => {
     expect(boxOf(layoutGameUi(frame(nodes, { safeArea: false }), viewport, measure, insets), "top")).toMatchObject({ x: 502, y: 0 });
   });
 
+  it("places a container once when a scene tree reuses a document container id", () => {
+    // Validation keeps ids unique within one tree, but the document and scene trees are merged into one frame.
+    const boxes = layoutGameUi(frame([
+      { kind: "panel", id: "box", width: 40, height: 20 },
+      { kind: "stack", id: "box", parent: "box" },
+      { kind: "text", id: "label", parent: "box", text: "ab", size: 8 }
+    ]), viewport, measure);
+    expect(boxes.map((box) => box.node.id)).toEqual(["box", "label"]);
+  });
+
   it("moves focus to the nearest button in the pressed direction", () => {
     const button = (id: string, x: number, y: number) => ({ kind: "button" as const, id, action: "a", offset: { x, y }, width: 40, height: 20 });
     const boxes = layoutGameUi(frame([button("left", 0, 100), button("right", 200, 100), button("below", 0, 200), button("far", 400, 300)]), viewport, measure);

@@ -49,10 +49,16 @@ export function layoutGameUi(ui: GameUiFrame, viewport: GameUiViewport, measure:
     list.push(node);
     children.set(node.parent, list);
   }
+  // The document and scene trees merge into one frame, so a container id can repeat. Sizing and placing
+  // each id once keeps a repeated id from making a node its own descendant.
   const sizes = new Map<string, Size>();
+  const sizing = new Set<string>();
+  const placed = new Set<string>();
   const sizeOf = (node: GameUiNode): Size => {
     const known = sizes.get(node.id);
     if (known) { return known; }
+    if (sizing.has(node.id)) { return { width: 0, height: 0 }; }
+    sizing.add(node.id);
     const content = contentSize(node, children.get(node.id) ?? [], sizeOf, measure);
     const size = { width: node.width ?? content.width, height: node.height ?? content.height };
     sizes.set(node.id, size);
@@ -63,6 +69,8 @@ export function layoutGameUi(ui: GameUiFrame, viewport: GameUiViewport, measure:
     width: Math.max(0, viewport.width - safe.left - safe.right), height: Math.max(0, viewport.height - safe.top - safe.bottom) };
   const boxes: GameUiBox[] = [];
   const place = (node: GameUiNode, x: number, y: number, inherited: number): void => {
+    if (placed.has(node.id)) { return; }
+    placed.add(node.id);
     const size = sizeOf(node);
     const box = { node, x: x + (node.offset?.x ?? 0), y: y + (node.offset?.y ?? 0), width: size.width, height: size.height,
       opacity: inherited * (node.opacity ?? 1) };

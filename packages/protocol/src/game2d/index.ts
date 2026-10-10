@@ -13,7 +13,7 @@ import { gameAuthoring } from "../game-authoring.js";
 import { gameAudioSettings } from "./components/audio.js";
 import { gameAudioEmitter } from "./components/audioSource.js";
 import { gameInputBindings } from "../game-input.js";
-import { gameUiFrame, gameUiOverride, gameUiTree } from "../game-ui.js";
+import { gameUiFrame, gameUiOverrides, gameUiTree } from "../game-ui.js";
 
 export * from "../game-input.js";
 export * from "../game-ui.js";
@@ -160,7 +160,7 @@ export const gameSnapshot = z.object({
   activeContacts: z.array(z.strictObject({ entityId: z.string(), otherId: z.string(), sensor: z.boolean() })).default([]),
   scriptState: z.record(z.string(), z.json()).default({}),
   hud: z.array(gameHudLabel).default([]),
-  ui: z.record(z.string(), gameUiOverride).optional(),
+  ui: gameUiOverrides.optional(),
   entities: z.array(z.object({ id: z.string(), sourceId: z.string().optional(), spawnTick: z.number().int().nonnegative().optional(),
     rotation: finite.optional(), scaleX: positive.optional(), scaleY: positive.optional(), tint: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), opacity: finite.min(0).max(1).optional(), flipX: z.boolean().optional(),
     animation: z.string().optional(), animationTick: z.number().int().nonnegative().optional(), x: finite, y: finite, previousX: finite, previousY: finite, velocityX: finite, velocityY: finite, active: z.boolean(), props: gameEntityProps.optional(), health: z.number().int().optional(), patrolOrigin: finite.optional(), patrolDirection: z.union([z.literal(-1), z.literal(1)]).optional() }))
