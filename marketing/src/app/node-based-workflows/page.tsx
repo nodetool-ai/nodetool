@@ -366,8 +366,9 @@ export default function NodeBasedWorkflowsPage() {
               Hundreds of nodes, one canvas
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
-              Ready-made nodes for models, media, data, and files, plus one for
-              every model on Replicate, FAL, and Kie.ai. A sample:
+              Ready-made nodes for models, media, data, and files, plus
+              generated nodes for thousands of models on Replicate, FAL, and
+              Kie.ai. A sample:
             </p>
           </div>
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
