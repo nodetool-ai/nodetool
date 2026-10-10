@@ -14,6 +14,7 @@ import SchemaFields from "../../inspector/SchemaFields";
 import { COMPONENT_SECTION_SX } from "../../inspector/componentSection";
 import GameOverrideFields from "../../GameOverrideFields";
 import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
+import CollisionMatrixEditor from "../../inspector/editors/CollisionMatrixEditor";
 import { gameSchemaFields } from "../../inspector/schemaForm";
 
 interface GameInspector3DProps {
@@ -65,6 +66,9 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
           const updated = gameScene3D.parse({ ...gameScene3D.omit({ id: true, entities: true }).parse(value), id: scene.id, entities: scene.entities });
           applyDocument({ ...document, scenes: document.scenes.map((item) => item.id === sceneId ? updated : item) }, "Change Scene Settings");
         }} />}
+      <CollapsibleSection title="Collision layers" compact sx={COMPONENT_SECTION_SX}>
+        <CollisionMatrixEditor document={document} onDocument={applyDocument} />
+      </CollapsibleSection>
       {validation.diagnostics.map((issue, index) => <Caption key={`${issue.code}:${index}`} color="error" sx={{ px: SPACING.md }}>{issue.path.join(".")}: {issue.message}</Caption>)}
       {validation.diagnostics.length > 0 && <ReportBugButton context={{ source: "panel-crash", summary: "3D game validation failed",
         errorText: validation.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("\n"),
