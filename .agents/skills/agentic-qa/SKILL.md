@@ -30,7 +30,9 @@ Use the user's target, scope, and permissions. Otherwise use these defaults:
   understanding, app first use, and one outcome-led task, each independently cold.
   Include persistence and recovery inside the task session. Report omissions.
 - Use desktop at 1440 × 900 CSS pixels, device scale 1, a fresh browser context,
-  and ordinary browser proficiency but no assumed product knowledge.
+  and ordinary browser proficiency but no assumed product knowledge. For a UX
+  campaign, run at least one session at a small laptop size (`viewport` in the
+  packet, for example 1280 × 720).
 - Limit a discovery session to 20 actions and a task session to 50 actions. Limit
   each to 10 minutes elapsed, including tool/model overhead. Record this overhead
   separately where possible. Permit at most two reasonable recovery attempts per
@@ -190,6 +192,11 @@ participant chasing its goal often passes over incidental defects in plain
 view: "[object Object]", "undefined" or "NaN" in a label or tooltip, a raw
 error, a control drawn over the result it should reveal. Record each one as a
 finding with its screenshot, even when the participant never mentioned it.
+Run the checks in [ux-review.md](references/ux-review.md) on every session:
+typed text against the screen, legibility in both themes, names across a
+reload, leftovers after a delete, duplicate messages, and empty states that
+contradict a save. A participant that works around a defect, such as
+retyping garbled text, often reports it as its own mistake.
 
 To review a session quickly, tile its screenshots with ImageMagick
 (`montage screenshots/S0*.png -tile 4x -geometry 720x450+3+3 -set label '%t'
