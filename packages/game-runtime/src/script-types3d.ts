@@ -1,5 +1,5 @@
 import { gameQueryResult3D, gameScriptCommand3D } from "@nodetool-ai/protocol";
-import { gameScriptSchemaDeclaration, gameScriptWorldDeclaration } from "./script-declarations.js";
+import { gameScriptLifecycleDeclaration, gameScriptSchemaDeclaration, gameScriptWorldDeclaration } from "./script-declarations.js";
 
 export const GAME_SCRIPT_TYPES_3D = `
 type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue };
@@ -27,3 +27,6 @@ type GameScript3D = (input: GameScriptInput3D) => GameScriptResult3D;
 export const GAME_SCRIPT_WORLD_TYPES_3D = gameScriptWorldDeclaration(
   "{ id: string; source: string; position: Vector3; velocity: Vector3; grounded: boolean }"
 );
+
+/** Lifecycle-object scripts and timers, composed after the compatibility-pinned input types. */
+export const GAME_SCRIPT_LIFECYCLE_TYPES_3D = gameScriptLifecycleDeclaration("GameScriptHooks3D", "GameScriptInput3D", "GameScriptCommand3D");

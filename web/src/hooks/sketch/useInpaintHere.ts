@@ -10,9 +10,7 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import { useSketchStore } from "../../components/sketch/state/useSketchStore";
-import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
-import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
+import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import { useAssetStore } from "../../stores/AssetStore";
 import { selectionToMaskDataUrl } from "../../lib/sketch/selectionMaskImage";
 
@@ -43,6 +41,9 @@ async function dataUrlToFile(dataUrl: string, name: string): Promise<File> {
 }
 
 export function useInpaintHere(): UseInpaintHereResult {
+  // The uploads take seconds, so the new layer is added to this editor even
+  // if another tab is focused by the time they finish.
+  const { editor, session, canvasRef } = useSketchInstance();
   const [isBusy, setIsBusy] = useState(false);
   const busyRef = useRef(false);
 
@@ -57,18 +58,18 @@ export function useInpaintHere(): UseInpaintHereResult {
       if (busyRef.current) {
         return { ok: false, reason: "error", message: "Already running" };
       }
-      const documentId = useSketchSessionStore.getState().documentId;
+      const documentId = session.getState().documentId;
       if (!documentId) {
         return { ok: false, reason: "no-document" };
       }
 
-      const sketchState = useSketchStore.getState();
+      const sketchState = editor.getState();
       const selection = sketchState.selection;
       if (!selection || !sketchState.hasActiveSelection) {
         return { ok: false, reason: "no-selection" };
       }
 
-      const flatten = useSketchCanvasRefStore.getState().flattenToDataUrl;
+      const flatten = canvasRef.getState().flattenToDataUrl;
       if (!flatten) {
         return { ok: false, reason: "no-canvas" };
       }
@@ -94,11 +95,9 @@ export function useInpaintHere(): UseInpaintHereResult {
             .getState()
             .createAsset(sourceFile, undefined, undefined, undefined, "file");
 
-          const newLayerId = useSketchStore
-            .getState()
-            .addLayer("Edit", "raster");
+          const newLayerId = editor.getState().addLayer("Edit", "raster");
 
-          useSketchSessionStore.getState().upsertBinding({
+          session.getState().upsertBinding({
             layerId: newLayerId,
             kind: "image-to-image",
             prompt: options.prompt,
@@ -134,11 +133,11 @@ export function useInpaintHere(): UseInpaintHereResult {
             .createAsset(maskFile, undefined, undefined, undefined, "file")
         ]);
 
-        const newLayerId = useSketchStore
+        const newLayerId = editor
           .getState()
           .addLayer("Inpaint Here", "raster");
 
-        useSketchSessionStore.getState().upsertBinding({
+        session.getState().upsertBinding({
           layerId: newLayerId,
           kind: "inpaint",
           prompt: options.prompt,
@@ -162,7 +161,7 @@ export function useInpaintHere(): UseInpaintHereResult {
         setIsBusy(false);
       }
     },
-    []
+    [canvasRef, editor, session]
   );
 
   return { inpaintHere, isBusy };

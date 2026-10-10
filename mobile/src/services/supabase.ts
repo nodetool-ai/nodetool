@@ -1,4 +1,5 @@
 import 'react-native-url-polyfill/auto';
+import { AppState, type AppStateStatus } from 'react-native';
 import Constants from 'expo-constants';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { secureStorageAdapter } from './secureStorage';
@@ -49,3 +50,45 @@ export const supabase: SupabaseClient = createClient(
     },
   }
 );
+
+/** The slice of `AppState` that {@link bindAuthRefreshToAppState} needs. */
+interface AppStateSource {
+  currentState: AppStateStatus | null;
+  addEventListener: (
+    type: 'change',
+    listener: (state: AppStateStatus) => void
+  ) => { remove: () => void };
+}
+
+/** The slice of `supabase.auth` that {@link bindAuthRefreshToAppState} drives. */
+interface AutoRefreshControl {
+  startAutoRefresh: () => Promise<void>;
+  stopAutoRefresh: () => Promise<void>;
+}
+
+/**
+ * Run Supabase's token auto-refresh only while the app is in the foreground,
+ * as Supabase's React Native guide requires. The refresh timer does not fire
+ * while iOS/Android suspend the JS thread, so without this a session that sat
+ * in the background past the access token's lifetime comes back expired.
+ * `startAutoRefresh` also refreshes immediately when the token is near expiry.
+ *
+ * Returns a cleanup that removes the listener and stops the timer.
+ */
+export function bindAuthRefreshToAppState(
+  appState: AppStateSource = AppState,
+  auth: AutoRefreshControl = supabase.auth
+): () => void {
+  const apply = (state: AppStateStatus | null): void => {
+    const result = state === 'active' ? auth.startAutoRefresh() : auth.stopAutoRefresh();
+    result.catch((error: unknown) => {
+      console.warn('[supabase] failed to toggle token auto-refresh', error);
+    });
+  };
+  apply(appState.currentState ?? 'active');
+  const subscription = appState.addEventListener('change', apply);
+  return () => {
+    subscription.remove();
+    void auth.stopAutoRefresh().catch(() => undefined);
+  };
+}

@@ -204,7 +204,8 @@ not change runtime state.
 
 ## 2D scripts and visuals
 
-A `script` behavior is a function expression. It receives `{tick, pressed,
+A `script` behavior is a function expression, or an object of lifecycle
+hooks (see "Lifecycle hooks and timers"). A function receives `{tick, pressed,
 justPressed, events, entity, world, state, random}` and returns `{state,
 commands}`. `events` are the previous tick's events. `world` lists every active
 entity with a collider or camera as `{id, source, x, y}`. `entity` holds the
@@ -524,11 +525,34 @@ event from `takePresentationEvents()`. It never appears in gameplay events or
 snapshots. Particles cannot affect scores, physics or scripts. Prefer them over
 spawned prefabs for sparks, smoke and dust.
 
-The renderer simulates particles with `ParticleSimulator` from
-`@nodetool-ai/game-renderer`. Each tick, call `sync(particleSourcesFromFrame(frame))`,
-`emit(session.takePresentationEvents())` and `step(seconds)`, then read
-`forEachParticle`. One `step` simulates at most 0.25 seconds, so a resumed tab does not replay a long pause. Each emitter's random stream is seeded from its entity and
-emitter ids, so captures repeat. The built-in players do not draw particles yet.
+Each emitter also sets how its particles draw in 2D. Without `sprite`, a
+particle is a soft round dot tinted by its colour. `sprite: { assetId, columns,
+rows, frameCount?, cycles?, sampling? }` uses an image asset instead. A sheet is
+cut into `columns` by `rows` cells read left to right and top to bottom, and the
+first `frameCount` cells play `cycles` times over each particle's life.
+`sampling` defaults to `nearest`. `blend: "additive"` adds light, which suits
+fire, sparks and magic. The default `normal` alpha-blends, which suits smoke and
+dust. Particles take scene lighting like sprites. Set `unlit: true` so glowing
+particles keep their colour in the dark. `layer` sets the draw layer. It
+defaults to the entity's sprite layer, or 0 without a sprite, and particles
+draw above sprites of the same layer. `size` is the particle's width in world
+units. `rotation` and `angularVelocity` are radians and radians per second.
+
+The standalone player, `nodetool game capture` and the agent's
+`capture_native_game_frame` draw 2D particles. A capture simulates particles
+for every tick up to the captured one, so a burst at tick 0 is still visible a
+few ticks later. WebGPU draws every live particle as instanced quads. The
+Canvas2D fallback draws at most 1024 visible particles. The editor's play view
+does not draw particles yet, so capture a frame to review them. 3D particles
+are not drawn yet.
+
+Hosts run 2D particles with `GameParticles2D` from
+`@nodetool-ai/game-renderer`. After every session step, call
+`particles.tick(step.frame, session.takePresentationEvents())`, then pass
+`particles` as the third argument of `renderer.render`. Underneath it is a
+`ParticleSimulator`: each tick it calls `sync(particleSourcesFromFrame(frame))`,
+`emit(events)` and `step(seconds)`. One `step` simulates at most 0.25 seconds, so a resumed tab does not replay a long pause. Each emitter's random stream is seeded from its entity and
+emitter ids, so captures repeat.
 
 ### P: Physics
 
@@ -565,7 +589,62 @@ so a mixer edit never changes `nodetool game simulate` results or replay.
 Players can scale and mute a bus at runtime through `GameAudioPlayer`
 `setBusVolume` and `setBusMuted`.
 
+Set `audioSource.spatial: true` to play an entity's effect at its position in
+2D and 3D. The listener is the active camera, so an emitter right of the camera
+plays in the right ear. Effects play at full volume within `minDistance`
+(default 1 world unit) and fall off by `distanceModel` (`linear`, `inverse`
+by default, or `exponential`) and `rolloff` (default 1) out to `maxDistance`
+(default 50), which must exceed `minDistance`. The `linear` model clamps
+`rolloff` to 1 and is silent at `maxDistance`. A 3D `cone {innerAngle,
+outerAngle, outerGain}` points along the entity's -Z axis. 2D emitters ignore
+the cone. `doppler` (default 0, 1 is physical) shifts pitch with emitter and
+camera motion. Set a field to `null` in `update_entity` to return it to its
+default. Positions follow the interpolated frame every rendered frame. The
+event that starts the effect carries the emitter position, so a collectible
+that despawns as it plays still sounds where it was. Spatial settings never
+change simulation. Players pan with HRTF. `GameAudioPlayer`
+`spatialQuality: "low"` switches to cheaper equal-power panning.
+
 ### N: Animation
+
+A 3D animation graph lives in the document's `animationGraphs` map. An
+entity's `animator3d.graph` names one, and its `animator3d.clips` maps the
+graph's clip aliases to prepared clip IDs, so one graph can drive several rigs.
+Store a graph with `set_animation_graph {graph_id, graph}` and delete it with
+`remove_animation_graph {graph_id}`. An animator with a graph cannot also set
+`initialClip`.
+
+A graph declares `parameters` (`float` with a default, `bool` with a default,
+or `trigger`) and one to eight `layers`. Each layer has an `initialState`,
+`states` and `transitions`. A state plays a `motion`: one `clip`, a `blend1d`
+over a float parameter with points in increasing `value` order, or a `blend2d`
+over two float parameters. `speed` scales the animator's `playbackRate`, and
+`loop` defaults to true. The first layer is the unmasked override base. Later
+layers can be `additive` and can set `weight` and a `mask` of prepared model
+node IDs. A mask covers each listed node and its descendants.
+
+A transition names `from` (a state ID, or `*` for any state), `to`,
+`conditions`, optional `exitTicks` and `durationTicks` for the crossfade. Every
+condition must hold. Float conditions use `gt`, `gte`, `lt`, `lte`, `eq` or
+`neq` with a `value`. Bool conditions use `true` or `false`. A trigger uses
+`set` and resets once a transition consumes it. `exitTicks` is how long the
+source state must run before the transition may fire. Each transition needs a
+condition or `exitTicks`. A crossfading layer does not start another
+transition. Transitions are checked in document order.
+
+Scripts set parameters with `setAnimParam {name, value}`. Pass `true` to fire
+a trigger. `playAnimation {clip}` on a graph entity switches the base layer
+directly to the state with that ID, or else to the first state that plays that
+clip alias, using `animator3d.transitionTicks`. Example locomotion: a `speed`
+float, a `move` state with `blend1d` points idle at 0, walk at 2 and run at 6,
+and a script that sends `setAnimParam` with the character's planar speed.
+
+Graph state (current state, entry tick, crossfade source and parameter values)
+is simulation state. It is saved in snapshots and replays exactly with
+`nodetool game simulate --verify-replay`. Render frames carry the resolved
+`animationPose` (clip weights per layer), and the renderer samples it at the
+interpolated tick. Blended clips share one normalized phase. The pose sampler
+blends node translation, rotation and scale. It does not blend morph targets.
 
 ### S: Scripting and gameplay
 
@@ -596,6 +675,49 @@ asset slot, an asset of the wrong `kind`, and in 3D an entity reference inside
 a prefab or an undeclared prefab asset. A behavior without `params` has no
 `input.params` key. Params count once per behavior definition toward the
 64 KiB script input limit.
+
+#### Lifecycle hooks and timers
+
+A script source may be an object of hooks instead of a function. It works in
+2D and 3D with no schema change.
+
+```js
+({
+  onStart(input) { every(30, "fire"); return { state: { shots: 0 } }; },
+  fire(input) { return { state: { shots: input.state.shots + 1 },
+    commands: [{ kind: "spawn", prefabId: "bolt" }] }; },
+  onTriggerEnter(input, contact) { return { commands: [{ kind: "emit", event: "hit:" + contact.otherId }] }; },
+  onDestroy(input) { return { commands: [{ kind: "emit", event: "gone" }] }; }
+})
+```
+
+Hooks receive the same `input` as a function script and return
+`{state?, commands?}` or nothing. Each hook sees the state returned by the
+one before it. Within a tick they run in this order:
+
+1. `onStart`, on the behavior's first call.
+2. `onSceneEnter`, on the first tick of the scene.
+3. `onTriggerEnter`, `onTriggerExit` and `onContact`, once per contact of
+   the entity in the previous tick's events, in event order. A contact where
+   either collider is a sensor is a trigger. Triggers fire on `enter` and
+   `exit`. `onContact` receives every phase of a solid contact. The second
+   argument is `{otherId, phase, sensor}`.
+4. Due timers, in the order they were scheduled.
+5. `onFixedUpdate` or `onUpdate`. They are aliases. Define one of them.
+
+`onDestroy` runs alone in the tick after the entity despawns. It may return
+only `hud`, `emit`, `spawn`, `despawn` and `sceneTransition` commands. A scene
+transition discards behavior state without calling `onDestroy`.
+
+`after(ticks, name)` calls the object's method `name` once, `ticks` ticks
+later. `every(ticks, name)` calls it every `ticks` ticks. `ticks` is an
+integer from 1 to 1000000, `name` must be a method that is not a hook, and a
+behavior holds at most 32 timers. Scheduling an existing name replaces that
+timer. Timers live in the behavior's snapshot state, so they replay from any
+snapshot. Session preparation rejects an unknown `on*` key, a hook that is not
+a function, and an object that defines both `onUpdate` and `onFixedUpdate`.
+Lifecycle objects run in a fresh context each call, like any function the
+persistence check does not accept.
 
 ### U: Input and game UI
 
@@ -655,6 +777,15 @@ the active play session's recorded history. It does not replay the independent
 diagnostic session. Use **Ask the assistant** to pass the script context to
 the game assistant.
 
+The **Console** panel in the bottom dock lists play-session errors, script
+errors with their tick, failures from **Run 10 s**, and validation errors
+for the current draft. Identical consecutive lines collapse into one line with
+a repeat count and a tick range. Filter by level or by text, which also
+matches entity names. Select an entity link to select that entity in its
+scene. **Ask the assistant** on a line writes that line into the assistant
+input without sending it. Console lines are editor data: they are not saved
+with the game and never enter a snapshot. Scripts cannot write log lines yet.
+
 Both editors read their commands and default shortcuts from one registry.
 Press Ctrl+K (Cmd+K on macOS) to open the command palette. It lists editor
 commands with their current shortcuts and assistant actions, such as a
@@ -701,5 +832,28 @@ at `<source_root>/candidates/<digest>.json`. Files staged by
 `generate_game_asset` itself have none and list as unrecorded.
 
 ### D: Performance and delivery
+
+#### Distance culling and frame budgets (3D)
+
+Both are presentation only. They never change simulation, snapshots or replay.
+
+- `set_performance {performance}` replaces document `performance`. `null`
+  removes it. `cullLayers` maps a layer name to `{maxDistance}` (at most 32
+  layers). `budgets` sets `drawCalls`, `triangles`, `particles` and `voices`.
+- `update_entity` with `set: {renderCulling: {layer?, maxDistance?}}` hides
+  that entity and its children when the game camera is farther than the
+  distance from the entity's origin. The nearest setting in the parent chain
+  wins, and an entity's own `maxDistance` wins over its layer's. A layer must
+  be declared, or validation reports `missing_cull_layer`.
+- Distance is measured to the entity origin, not to its nearest surface. Cull
+  props and small decoration. Do not cull large scenery such as terrain or
+  buildings, because they disappear while the camera is still close to their
+  edges. Never cull the player or anything the player must see to win. The
+  editor camera shows every entity.
+- Budgets left out use the player defaults: 1000 draw calls, 1,000,000
+  triangles, 4096 particles and 24 voices. The standalone player warns in the
+  browser console once each time the draw call, triangle, particle or voice
+  budget is exceeded. Only the 2D standalone player counts particles, and it
+  uses the default particle budget because 2D documents have no `performance`. `nodetool game capture` reports `budget.overruns` for a 3D frame.
 
 ### M: Milestone games

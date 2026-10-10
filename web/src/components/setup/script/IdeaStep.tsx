@@ -99,6 +99,8 @@ interface SourcePanelProps {
   onReplace: () => void;
   onRemove: () => void;
   readOnly: boolean;
+  /** A file is being read. Removing the words now would not stop it landing. */
+  importing: boolean;
 }
 
 /**
@@ -110,7 +112,8 @@ const SourcePanel: React.FC<SourcePanelProps> = ({
   source,
   onReplace,
   onRemove,
-  readOnly
+  readOnly,
+  importing
 }) => (
   <FlexColumn
     gap={GAP.normal}
@@ -157,7 +160,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({
       <EditorButton
         variant="text"
         size="small"
-        disabled={readOnly}
+        disabled={readOnly || importing}
         onClick={onRemove}
       >
         Remove them
@@ -373,6 +376,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
             onReplace={replaceSource}
             onRemove={removeSource}
             readOnly={readOnly}
+            importing={imports.importing}
           />
         ) : null}
 
@@ -451,6 +455,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         title={source ? "Replace your script" : "Paste your script"}
         showActions
         confirmText="Use this text"
+        // Empty text changes nothing, so the button is held until there is some.
+        confirmDisabled={pasted.trim() === ""}
         onConfirm={usePasted}
         onCancel={() => setPasting(false)}
         fullWidth

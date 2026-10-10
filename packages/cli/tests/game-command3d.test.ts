@@ -74,6 +74,29 @@ describe("native 3D game CLI commands", () => {
     expect(process.exitCode).toBe(originalExitCode);
   });
 
+  it("simulates an animation graph driven by setAnimParam and verifies replay", async () => {
+    const document = createNative3DGame("a".repeat(32));
+    document.assets.hero = { mediaKind: "model", assetId: "hero", digest: "hero-digest", required: true, format: "glb", preparationVersion: "1",
+      bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 2, z: 1 } }, nodeIds: ["node:0"], clipIds: ["clip:0", "clip:1", "clip:2"],
+      geometryBytes: 1, textureBytes: 0, triangles: 1, supportedExtensions: [] };
+    document.animationGraphs = { locomotion: { parameters: { speed: { kind: "float", default: 0 }, jump: { kind: "trigger" } }, layers: [{ id: "base", mode: "override", weight: 1, initialState: "move",
+      states: { move: { motion: { kind: "blend1d", parameter: "speed", points: [{ value: 0, clip: "idle" }, { value: 2, clip: "walk" }, { value: 6, clip: "run" }] }, speed: 1, loop: true },
+        jump: { motion: { kind: "clip", clip: "run" }, speed: 1, loop: false } },
+      transitions: [{ from: "*", to: "jump", conditions: [{ parameter: "jump", op: "set" }], durationTicks: 8 }, { from: "jump", to: "move", conditions: [], exitTicks: 12, durationTicks: 8 }] }] } };
+    const visual = document.scenes[0].entities.find((entity) => entity.id === "player-visual");
+    if (!visual) { throw new Error("Player visual fixture is missing"); }
+    delete visual.primitive;
+    visual.model = { assetId: "hero", castShadow: true, receiveShadow: true };
+    visual.animator3d = { clips: { idle: "clip:0", walk: "clip:1", run: "clip:2" }, playbackRate: 1, loop: true, transitionTicks: 6, graph: "locomotion" };
+    visual.behaviors = [{ kind: "script", maxTickMs: 50, maxCommands: 4,
+      source: "input=>({state:null,commands:[{kind:'setAnimParam',name:'speed',value:Math.min(6,input.tick/10)},...(input.tick%20===10?[{kind:'setAnimParam',name:'jump',value:true}]:[])]})" }];
+    await writeFile(gamePath, JSON.stringify(document));
+    const report = await run("simulate", "--ticks", "60", "--verify-replay");
+    expect(report).toMatchObject({ ok: true, replay: { resumeTick: 30, verified: true } });
+    const snapshot = gameSnapshot3D.parse(report.snapshot);
+    expect(snapshot.entities.find((entity) => entity.id === "player-visual")?.animationGraph).toMatchObject({ graphId: "locomotion", parameters: { speed: 5.9, jump: false } });
+  });
+
   it("reports failed z/grounded assertions and rejects misspelled 3D event fields", async () => {
     const assertions = join(directory, "assertions.json");
     await writeFile(assertions, JSON.stringify({ ticks: [{ tick: 0, entities: [{ id: "player", z: 99, grounded: true }] }] }));

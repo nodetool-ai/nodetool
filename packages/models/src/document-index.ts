@@ -149,6 +149,19 @@ async function listNamed(
 }
 
 /**
+ * The project's workflows as the navigator lists them: the same run modes, the
+ * three columns a card draws, newest first. The project overview reads these
+ * so a saved workflow counts as one of the project's documents there too.
+ */
+export async function listProjectWorkflows(
+  userId: string,
+  projectId: string,
+  limit: number
+): Promise<NamedRow[]> {
+  return listNamed(workflows, userId, projectId, limit, listedRunModes());
+}
+
+/**
  * The project's entities. Only the project's own assets are read — the
  * `(user_id, project_id)` index — and the marker lives inside the metadata
  * JSON, stored as text in both dialects, so the predicate is a substring match

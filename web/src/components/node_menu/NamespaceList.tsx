@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo } from "react";
-import { Text, EditorButton, BORDER_RADIUS, Box, ListGroup, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, EditorButton, BORDER_RADIUS, Box, ListGroup, MOTION, SPACING, getSpacingPx, SHADOW } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
@@ -241,7 +241,7 @@ const namespaceStyles = (theme: Theme) =>
       backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.1)",
       borderRadius: BORDER_RADIUS.lg,
       border: "1px solid rgba(var(--palette-primary-mainChannel) / 0.2)",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+      boxShadow: SHADOW(theme).sm
     },
     ".namespace-text": {
       color: "var(--palette-grey-500)",

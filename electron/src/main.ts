@@ -322,6 +322,23 @@ async function waitForWebDevServerReady(
 }
 
 /**
+ * Loads a URL into the current main window. The backend can take minutes to
+ * start, and the user may close the window meanwhile (it is destroyed, not
+ * hidden). A window opened later loads the app itself once it sees the
+ * server has started.
+ */
+function loadIntoMainWindow(url: string): void {
+  const window = getMainWindow();
+  if (!window || window.isDestroyed()) {
+    logMessage("Main window closed during startup; not loading the app");
+    return;
+  }
+  window.loadURL(url).catch((error: unknown) => {
+    logMessage(`Failed to load ${url}: ${String(error)}`, "warn");
+  });
+}
+
+/**
  * Initializes the application, verifies paths, and starts required servers
  * @throws {Error} When critical permissions are missing
  */
@@ -365,8 +382,6 @@ async function initialize(): Promise<void> {
       logCondaEnvironmentForDevMode();
     }
 
-    assert(mainWindow, "MainWindow is not initialized");
-
     if (isDevMode) {
       logMessage("Skipping environment installation and package update checks");
       // Explain the upcoming keychain prompt before the backend touches keytar.
@@ -376,7 +391,7 @@ async function initialize(): Promise<void> {
       logMessage("initializeBackendServer() completed");
       await waitForWebDevServerReady(getWebDevServerUrl());
       const timestamp = new Date().getTime();
-      mainWindow.loadURL(`${getWebDevServerUrl()}/?nocache=${timestamp}`);
+      loadIntoMainWindow(`${getWebDevServerUrl()}/?nocache=${timestamp}`);
     } else {
       // Check Python environment status (non-blocking — no wizard)
       const hasPython = await checkPythonEnvironmentExists();
@@ -402,7 +417,7 @@ async function initialize(): Promise<void> {
       // Always load the web app — runtimes panel in the dashboard handles setup
       logMessage("Loading web app...");
       const timestamp = new Date().getTime();
-      mainWindow.loadURL(`${serverState.initialURL}/?nocache=${timestamp}`);
+      loadIntoMainWindow(`${serverState.initialURL}/?nocache=${timestamp}`);
     }
 
     void notifyPackageUpdates();

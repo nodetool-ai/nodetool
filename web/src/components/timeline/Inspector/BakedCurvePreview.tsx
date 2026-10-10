@@ -90,7 +90,7 @@ const svgStyles = css({
 const rangeRowStyles = css({
   display: "flex",
   justifyContent: "space-between",
-  fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+  fontFamily: "var(--fontFamily2)",
   fontSize: FONT_SIZE_MONO.caption,
   color: "var(--palette-text-secondary)"
 });

@@ -185,6 +185,17 @@ Read the fixture list in
 before judging results. Placeholder text, the fixed chat reply, and the
 gradient image are the fakes, not defects.
 
+Review every screenshot yourself, not only the participant's account. A
+participant chasing its goal often passes over incidental defects in plain
+view: "[object Object]", "undefined" or "NaN" in a label or tooltip, a raw
+error, a control drawn over the result it should reveal. Record each one as a
+finding with its screenshot, even when the participant never mentioned it.
+
+To review a session quickly, tile its screenshots with ImageMagick
+(`montage screenshots/S0*.png -tile 4x -geometry 720x450+3+3 -set label '%t'
+sheet.png`) and crop at full size (`convert S012.png -crop 260x80+780+290`)
+to read small text. A tile is too small to quote from.
+
 Separate discoverability, comprehension, affordance, feedback, recovery,
 persistence, and visual hierarchy from technical breakage. A working control
 that the participant cannot find can still be a UX finding. A speculative cause
@@ -200,6 +211,12 @@ Correlate each issue with the recorded user-visible failure. Distinguish observe
 behavior, an independently reproduced defect, a proposed explanation, a fixture
 artifact, and an untested recommendation. Add relevant source locations only when
 verified. Preserve all failed reproductions and environment differences.
+
+When a result was saved but the participant could not find it again,
+reproduce the path with a scripted browser and compare what each surface
+reads: a navigator and an overview can list a project's documents from
+different queries, so one can show the result while the other says the
+project is empty.
 
 Propose the smallest useful regression for confirmed issues using the existing
 journey suite. Diagnostic tests may use normal robust selectors and assertions.

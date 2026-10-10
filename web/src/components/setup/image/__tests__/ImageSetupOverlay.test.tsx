@@ -895,6 +895,43 @@ describe("a use-case refinement failure", () => {
   });
 });
 
+// A failed Re-refine shows under its button on the review. Once the creator
+// moved on with the brief they had, coming back must not show it again.
+describe("a failed Re-refine", () => {
+  it("is gone when the creator comes back to the review", async () => {
+    useGlobalChatStore.setState({ selectedModel: undefined });
+    seed({
+      stage: "review",
+      brief: "a dripper",
+      use_case: "product",
+      refined: {
+        subject: "a ceramic pour-over dripper",
+        composition: "centred",
+        lighting: "soft",
+        style_words: "85mm",
+        negative: "hands"
+      }
+    });
+    jest
+      .mocked(rpcRequest)
+      .mockRejectedValueOnce(new Error("The provider is down."));
+    renderOverlay();
+    await userEvent.click(screen.getByRole("button", { name: "Re-refine" }));
+    expect(await screen.findByText("The provider is down.")).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Continue to look" })
+    );
+    expect(useSketchStore.getState().document.setup?.stage).toBe("look");
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(screen.getByLabelText("Subject")).toHaveValue(
+      "a ceramic pour-over dripper"
+    );
+    expect(screen.queryByText("The provider is down.")).not.toBeInTheDocument();
+  });
+});
+
 // Swapping the flow for the sheet (and back) removes the control that was
 // pressed. Focus goes to the new view's heading, not to the page.
 describe("focus across the sheet", () => {

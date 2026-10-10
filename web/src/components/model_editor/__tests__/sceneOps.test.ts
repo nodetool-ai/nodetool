@@ -12,6 +12,22 @@ import {
 import { createPrimitive } from "../objectFactory";
 
 describe("cloneObjectDeep", () => {
+  it("binds a copied skinned mesh to the copied bones", () => {
+    const rig = new THREE.Group();
+    const bone = new THREE.Bone();
+    const mesh = new THREE.SkinnedMesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+    rig.add(bone, mesh);
+    mesh.bind(new THREE.Skeleton([bone]));
+
+    const copy = cloneObjectDeep(rig);
+    const [copyBone, copyMesh] = copy.children as [THREE.Bone, THREE.SkinnedMesh];
+
+    expect(copyMesh.skeleton).not.toBe(mesh.skeleton);
+    expect(copyMesh.skeleton.bones).toHaveLength(1);
+    expect(copyMesh.skeleton.bones[0]).toBe(copyBone);
+    expect(mesh.skeleton.bones[0]).toBe(bone);
+  });
+
   it("gives the copy its own geometry and material", () => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
     const copy = cloneObjectDeep(mesh) as THREE.Mesh;

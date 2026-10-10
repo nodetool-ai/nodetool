@@ -299,10 +299,14 @@ describe("useScriptSetupFlow", () => {
 
   it("says how many lines a partial voice estimate covers (F6)", () => {
     expect(formatCost(0.42, 5, 3)).toBe(
-      "About $0.42 for 3 of 5 lines, the rest unpriced"
+      "About $0.42 for 3 of 5 lines, the rest unpriced. Word timing transcription is extra."
     );
-    expect(formatCost(0.42, 5, 5)).toBe("About $0.42 to voice 5 lines");
-    expect(formatCost(0.1, 1, 1)).toBe("About $0.10 to voice 1 line");
+    expect(formatCost(0.42, 5, 5)).toBe(
+      "About $0.42 to voice 5 lines. Word timing transcription is extra."
+    );
+    expect(formatCost(0.1, 1, 1)).toBe(
+      "About $0.10 to voice 1 line. Word timing transcription is extra."
+    );
     expect(formatCost(0, 1, 0)).toBe("1 line to voice");
     expect(formatCost(0, 0, 0)).toBeUndefined();
   });

@@ -7,6 +7,7 @@
  * provider onboarding. Both are what `Continue to setup` reads (criterion 4);
  * the flow's own suite pins the button.
  */
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -236,6 +237,40 @@ describe("WorkflowReviewStep", () => {
     expect(onPlanChange.mock.calls[1][0].steps.map((s: { id: string }) => s.id)).toEqual([
       "s2"
     ]);
+  });
+
+  it("moves keyboard focus to the next row when a step is removed", async () => {
+    const Stateful = () => {
+      const [plan, setPlan] = React.useState<WorkflowSetupPlan>({
+        ...PLAN,
+        steps: [
+          ...PLAN.steps,
+          {
+            id: "s2",
+            title: "Join",
+            summary: "",
+            node_type: "nodetool.text.Concat"
+          }
+        ]
+      });
+      return (
+        <ThemeProvider theme={mockTheme}>
+          <WorkflowReviewStep
+            plan={plan}
+            onPlanChange={setPlan}
+            onReplan={jest.fn()}
+            providerConfigured={() => true}
+          />
+        </ThemeProvider>
+      );
+    };
+    render(<Stateful />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove step 1" }));
+    expect(screen.getByRole("button", { name: "Remove step 1" })).toHaveFocus();
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove step 1" }));
+    expect(screen.getByRole("button", { name: "Add a step" })).toHaveFocus();
   });
 
   it("adds a step with no node type, which the red marker then blocks on", async () => {

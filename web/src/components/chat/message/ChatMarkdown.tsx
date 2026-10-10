@@ -22,6 +22,7 @@ import ResourceChip from "./ResourceChip";
 import { EntityMentionChip } from "../../node_types/editing/promptComposer/EntityMentionChip";
 import { remarkEntityMentions } from "./remarkEntityMentions";
 import { remarkResourceMentions } from "./remarkResourceMentions";
+import rehypeSanitizeChatHtml from "./rehypeSanitizeChatHtml";
 import {
   loadMathPlugins,
   mayContainMath,
@@ -131,7 +132,11 @@ const REMARK_PLUGINS: Options["remarkPlugins"] = [
   remarkEntityMentions,
   remarkResourceMentions
 ];
-const REHYPE_PLUGINS: Options["rehypePlugins"] = [rehypeRaw];
+// Raw HTML in a message renders, but only through the allowlist right after it.
+const REHYPE_PLUGINS: Options["rehypePlugins"] = [
+  rehypeRaw,
+  rehypeSanitizeChatHtml
+];
 
 /** An `entity://<id>` mention — its own scheme, not one of the resource kinds. */
 const isEntityUri = (url: string): boolean => url.startsWith("entity://");

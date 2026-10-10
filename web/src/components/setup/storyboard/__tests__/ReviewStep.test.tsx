@@ -132,10 +132,11 @@ beforeEach(() => {
   seed();
 });
 
-
 /** Production settings sit behind each block's "More options" toggle. */
 const openAllOptions = async (): Promise<void> => {
-  for (const toggle of screen.getAllByRole("button", { name: "More options" })) {
+  for (const toggle of screen.getAllByRole("button", {
+    name: "More options"
+  })) {
     await userEvent.click(toggle);
   }
 };
@@ -495,6 +496,8 @@ describe("ReviewStep", () => {
     ).toBeTruthy();
     expect(board()?.shots).toHaveLength(2);
     expect(board()?.setupStage).toBe("review");
+    // Every error surface reaches the bug-report dialog.
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
   });
 });
 

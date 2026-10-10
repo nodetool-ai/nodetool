@@ -14,6 +14,7 @@ import {
 } from "../../../serverState/useEntities";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { SetupFlow } from "../SetupFlow";
 import type { SetupFlowConfig, SetupStep } from "../types";
 import {
@@ -25,6 +26,7 @@ import { ReviewFallback, ReviewStep } from "./ReviewStep";
 import {
   clearEntitySetupDraft,
   readEntitySetupDraft,
+  sweepClosedGuidedEntityDrafts,
   writeEntitySetupDraft,
   type EntitySetupStage
 } from "./entitySetupDraft";
@@ -130,6 +132,36 @@ const EntitySetupHost = ({
       assetId
     });
   }, [assetId, details, draftKey, projectId, stage]);
+
+  // Drafts left by guided tabs that closed while another flow ran, or before
+  // the unmount cleanup below existed, go when an entity flow opens.
+  useEffect(() => {
+    sweepClosedGuidedEntityDrafts(
+      new Set(
+        useWorkspaceTabsStore
+          .getState()
+          .tabs.filter((tab) => tab.type === "guided-flow")
+          .map((tab) => tab.ref)
+      )
+    );
+  }, []);
+
+  // A draft keyed by a guided tab can only be recovered by that tab, so it
+  // goes when the tab closes. Unmounting with the tab still open (another
+  // route, a flow change) keeps it.
+  useEffect(() => {
+    if (!draftKey) {
+      return;
+    }
+    return () => {
+      const tabOpen = useWorkspaceTabsStore
+        .getState()
+        .tabs.some((tab) => tab.type === "guided-flow" && tab.ref === draftKey);
+      if (!tabOpen) {
+        clearEntitySetupDraft(draftKey);
+      }
+    };
+  }, [draftKey]);
 
   const handlePick = useCallback((pickedAssetId: string) => {
     setAssetId(pickedAssetId);

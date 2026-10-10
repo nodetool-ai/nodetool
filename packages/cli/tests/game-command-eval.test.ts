@@ -7,6 +7,6 @@ it("lists the native entity metadata case through the public eval registry", asy
   const suite = EVAL_SUITES.find(candidate=>candidate.id==="game-tools");
   if (!suite) { throw new Error("Native game eval suite must be registered"); }
   const cases = await suite.listCases();
-  expect(cases.map(candidate=>candidate.id)).toEqual(["entity-tags-properties", "audio-mixer-buses", "procedural-sky", "script-parameters", "particle-emitter", "input-bindings"]);
+  expect(cases.map(candidate=>candidate.id)).toEqual(["entity-tags-properties", "audio-mixer-buses", "procedural-sky", "script-parameters", "particle-emitter", "render-culling", "input-bindings", "spatial-audio-source", "particle-rendering", "lifecycle-timer-script"]);
   expect(cases[0].description).toContain("nested JSON properties");
 });

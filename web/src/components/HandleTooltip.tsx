@@ -311,9 +311,11 @@ const HandleTooltip = memo(function HandleTooltip({
           <div className="property-handle-tooltip-type">{displayType}</div>
         </div>
       )}
-      {canOpenConnectionPicker && nodeId && handleDirection ? (
+      {/* Mounted only while open: every handle on the canvas renders this
+          tooltip, and a closed picker still costs a Dialog per handle. */}
+      {canOpenConnectionPicker && connectionPickerOpen && nodeId && handleDirection ? (
         <KeyboardConnectionPicker
-          open={connectionPickerOpen}
+          open
           nodeId={nodeId}
           handleId={paramName}
           direction={handleDirection}

@@ -25,11 +25,32 @@ import {
   Text
 } from "../../ui_primitives";
 import type { GenerationModel } from "../generationEstimate";
+import ReportBugButton from "../../support/ReportBugButton";
 import { MAX_STYLE_REFERENCES, STYLE_ACCEPT } from "./useCustomStyle";
 
 // The estimate pulls in the provider price tables; nothing needs them until
 // the dialog is open.
-const GenerationSummary = lazy(() => import("../GenerationSummary"));
+// Every reference goes to the model as an image, priced as input the way the
+// image flow prices its references.
+const ReferencesEstimate = lazy(async () => {
+  const [{ default: GenerationSummary }, { IMAGE_INPUT_TOKENS }] =
+    await Promise.all([
+      import("../GenerationSummary"),
+      import("../generationEstimate")
+    ]);
+  const Estimate = ({
+    references,
+    ...props
+  }: React.ComponentProps<typeof GenerationSummary> & {
+    references: number;
+  }) => (
+    <GenerationSummary
+      {...props}
+      extraInputTokens={Math.max(references, 1) * IMAGE_INPUT_TOKENS}
+    />
+  );
+  return { default: Estimate };
+});
 
 /** What the descriptor call is allowed to answer with. */
 const STYLE_MAX_OUTPUT_TOKENS = 1024;
@@ -194,7 +215,8 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
         <Suspense
           fallback={<Caption color="secondary">Loading estimate…</Caption>}
         >
-          <GenerationSummary
+          <ReferencesEstimate
+            references={files.length}
             result="Describe your references as a style you can reuse"
             next="Saves the style and applies it to this board. No stills are rendered here."
             model={model}
@@ -202,7 +224,22 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
             maxOutputTokens={STYLE_MAX_OUTPUT_TOKENS}
           />
         </Suspense>
-        {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}
+        {error ? (
+          <AlertBanner
+            severity="error"
+            action={
+              <ReportBugButton
+                context={{
+                  source: "provider-call",
+                  summary: "Storyboard custom style failed",
+                  errorText: error
+                }}
+              />
+            }
+          >
+            {error}
+          </AlertBanner>
+        ) : null}
       </FlexColumn>
     </Dialog>
   );

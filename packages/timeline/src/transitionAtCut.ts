@@ -298,35 +298,82 @@ function applyTransitionAtCutPair(
   });
 }
 
+/** Host policy for growing the predecessor under a transition. */
+export interface TransitionGrowthOptions {
+  /**
+   * The source length of a clip's media, when known. The predecessor (and
+   * every linked clip grown with it) may not grow past it.
+   */
+  readonly sourceDurationMs?: (clip: TimelineClip) => number | undefined;
+  /** Whether a clip may be extended. A locked predecessor is left alone. */
+  readonly canExtend?: (clip: TimelineClip) => boolean;
+}
+
+/**
+ * Extend `prev` and the linked clips that end with it by `missingMs`, or
+ * nothing when any of them cannot grow, so linked picture and sound keep the
+ * same out-point.
+ */
+function growPredecessor(
+  clips: readonly TimelineClip[],
+  prev: TimelineClip,
+  missingMs: number,
+  options: TransitionGrowthOptions
+): Map<string, TimelineClip> {
+  const unit = [prev];
+  if (prev.linkId !== undefined) {
+    for (const c of clips) {
+      if (
+        c.id !== prev.id &&
+        c.linkId === prev.linkId &&
+        Math.abs(clipEndMs(c) - clipEndMs(prev)) <= 1
+      ) {
+        unit.push(c);
+      }
+    }
+  }
+  const grown = new Map<string, TimelineClip>();
+  for (const c of unit) {
+    if (options.canExtend && !options.canExtend(c)) return new Map();
+    try {
+      grown.set(
+        c.id,
+        trimClip(c, "end", missingMs, options.sourceDurationMs?.(c))
+      );
+    } catch {
+      // A clip that cannot grow (time-remapped, out of source) leaves the
+      // whole unit alone, and the incoming clip fades in on its own.
+      return new Map();
+    }
+  }
+  return grown;
+}
+
 /**
  * Give `clipId` a transition of `durationMs`, extending an abutting
  * predecessor under it so the two overlap for that long. A predecessor that
- * already overlaps is grown only by what the transition still lacks. The
- * An explicit transition replaces the clip's current transition. Without one,
+ * already overlaps is grown only by what the transition still lacks, together
+ * with the linked clips that end with it, and only within `options`. An
+ * explicit transition replaces the clip's current transition. Without one,
  * the current transition is resized or a crossfade is created.
  */
 export function applyTransitionAtCut(
   clips: readonly TimelineClip[],
   clipId: string,
   durationMs: number,
-  transition?: KnownClipTransition
+  transition?: KnownClipTransition,
+  options: TransitionGrowthOptions = {}
 ): TimelineClip[] {
   const clip = clips.find((c) => c.id === clipId);
   if (!clip) throw new Error(`applyTransitionAtCut: clip ${clipId} not found`);
   const wanted = Math.max(0, Math.min(durationMs, maxTransitionMs(clips, clip)));
   const prev = transitionPredecessor(clips, clip);
 
-  let grownPrev: TimelineClip | undefined;
+  let grown = new Map<string, TimelineClip>();
   if (prev && wanted > 0) {
     const overlap = clipEndMs(prev) - clip.startMs;
     const missing = wanted - Math.max(0, overlap);
-    if (missing > 0) {
-      try {
-        grownPrev = trimClip(prev, "end", missing);
-      } catch {
-        // The predecessor cannot grow; the incoming clip fades in on its own.
-      }
-    }
+    if (missing > 0) grown = growPredecessor(clips, prev, missing, options);
   }
 
   const existing = clip.transitionIn;
@@ -338,8 +385,7 @@ export function applyTransitionAtCut(
 
   return clips.map((c) => {
     if (c.id === clipId) return { ...c, transitionIn };
-    if (grownPrev && c.id === grownPrev.id) return grownPrev;
-    return c;
+    return grown.get(c.id) ?? c;
   });
 }
 

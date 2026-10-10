@@ -706,3 +706,68 @@ describe("computeTransformForHandle", () => {
     expect(result.scaleX).toBeCloseTo(1, 0);
   });
 });
+
+// ─── Scale handles on a flipped layer ───────────────────────────────────────
+
+describe("computeTransformForHandle on a flipped layer", () => {
+  const bounds = { x: 0, y: 0, width: 100, height: 100 };
+  const center = { x: 50, y: 50 };
+
+  it("scales a horizontally flipped layer from an edge handle", () => {
+    // With scaleX = -1 the "right" handle sits on the visual left edge (x = 0).
+    const flipped = affine({ scaleX: -1 });
+    const result = computeTransformForHandle(
+      "right",
+      flipped,
+      { x: 0, y: 50 },
+      { x: -20, y: 50 },
+      center,
+      bounds,
+      false,
+      true
+    );
+    expect(isAffineTransform(result)).toBe(true);
+    if (isAffineTransform(result)) {
+      expect(result.scaleX).toBeCloseTo(-1.4);
+      expect(result.scaleY).toBe(1);
+    }
+  });
+
+  it("scales a vertically flipped layer from an edge handle", () => {
+    const flipped = affine({ scaleY: -1 });
+    const result = computeTransformForHandle(
+      "bottom",
+      flipped,
+      { x: 50, y: 0 },
+      { x: 50, y: -20 },
+      center,
+      bounds,
+      false,
+      true
+    );
+    expect(isAffineTransform(result)).toBe(true);
+    if (isAffineTransform(result)) {
+      expect(result.scaleY).toBeCloseTo(-1.4);
+      expect(result.scaleX).toBe(1);
+    }
+  });
+
+  it("scales a flipped layer from a corner handle with Shift", () => {
+    const flipped = affine({ scaleX: -1 });
+    const result = computeTransformForHandle(
+      "bottom-right",
+      flipped,
+      { x: 0, y: 100 },
+      { x: -20, y: 100 },
+      center,
+      bounds,
+      true,
+      true
+    );
+    expect(isAffineTransform(result)).toBe(true);
+    if (isAffineTransform(result)) {
+      expect(result.scaleX).toBeCloseTo(-1.4);
+      expect(result.scaleY).toBeCloseTo(1);
+    }
+  });
+});

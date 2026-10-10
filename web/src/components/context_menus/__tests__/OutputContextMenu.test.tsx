@@ -189,3 +189,64 @@ describe("OutputContextMenu image quick actions", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("OutputContextMenu node creation", () => {
+  it("wires a Reroute to its declared input without adding a dynamic input", async () => {
+    const user = userEvent.setup();
+    const addNode = jest.fn();
+    const addEdge = jest.fn();
+    useMetadataStore.setState({
+      metadata: {
+        "nodetool.control.Reroute": {
+          node_type: "nodetool.control.Reroute",
+          title: "Reroute",
+          properties: [{ name: "input_value", type: { type: "any" } }],
+          outputs: []
+        }
+      }
+    } as never);
+    mockNodeState = {
+      createNode: jest.fn(() => ({
+        id: "reroute-1",
+        data: { properties: {}, dynamic_properties: {} }
+      })),
+      addNode,
+      addEdge,
+      generateEdgeId: jest.fn(() => "e1"),
+      findNode: () => ({ id: "node-1", data: {} }),
+      updateNode: jest.fn(),
+      deleteEdges: jest.fn(),
+      updateNodeData: jest.fn(),
+      edges: []
+    };
+    mockMenuState = {
+      nodeId: "node-1",
+      menuPosition: { x: 10, y: 10 },
+      closeContextMenu: mockCloseContextMenu,
+      type: { type: "image" },
+      handleId: "output",
+      payload: null
+    };
+    renderMenu();
+
+    const quickAction = screen
+      .getAllByRole("button", { name: "Reroute" })
+      .find((button) => button.classList.contains("create-reroute-node"));
+    if (!quickAction) {
+      throw new Error("Reroute quick action is missing");
+    }
+    await user.click(quickAction);
+
+    // A dynamic entry would duplicate the static `input_value` handle and,
+    // at run time, override the property with `true`.
+    expect(addNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "reroute-1",
+        data: expect.objectContaining({ dynamic_properties: {} })
+      })
+    );
+    expect(addEdge).toHaveBeenCalledWith(
+      expect.objectContaining({ target: "reroute-1", targetHandle: "input_value" })
+    );
+  });
+});

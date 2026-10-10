@@ -3,8 +3,8 @@ import type { GameDocument, GameInputFrame, GameRenderFrame, GameSnapshot } from
 import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
-import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
-import { browserGamepads, FixedTickClock, GameInput, type GameRenderer } from "@nodetool-ai/game-renderer";
+import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
+import { browserGamepads, FixedTickClock, GameInput, GameParticles2D, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
@@ -38,6 +38,7 @@ interface UseGamePlaySessionOptions {
 export function useGamePlaySession({ refId, active, document, editorSceneId, name }: UseGamePlaySessionOptions) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<GameSession | null>(null);
+  const particlesRef = useRef<GameParticles2D | null>(null);
   const sessionFailedRef = useRef(false);
   const rendererRef = useRef<GameRenderer | null>(null);
   const sessionGenerationRef = useRef(0);
@@ -86,7 +87,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const width = Math.round(current.width * current.pixelsPerUnit);
     const height = Math.round(current.height * current.pixelsPerUnit);
     if (renderer.canvas.width !== width || renderer.canvas.height !== height) renderer.resize(width, height);
-    await renderer.render(current, interpolation);
+    audioRef.current?.updateSpatial(gameAudioSpatialView2D(current, interpolation));
+    await renderer.render(current, interpolation, particlesRef.current ?? undefined);
     if (renderer.capabilities.fallbackReason) {
       setBackend("Canvas 2D");
       setError("GPU effects omitted after WebGPU failure");
@@ -132,6 +134,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const disposeSession = useCallback(() => {
     const current = sessionRef.current;
     sessionRef.current = null;
+    particlesRef.current = null;
     current?.dispose();
   }, []);
 
@@ -141,6 +144,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (playDocument) inputHistoryRef.current.record(input, () => session.snapshot());
     try {
       const result = session.step(input);
+      particlesRef.current?.tick(result.frame, session.takePresentationEvents());
       result.events.forEach((event) => audioRef.current?.handle(event));
       const state = session.snapshot();
       lastTickRef.current = state.tick;
@@ -214,6 +218,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       if (!createdSession) return;
       if (cancelled || sessionGenerationRef.current !== generation) { createdSession.dispose(); return; }
       sessionRef.current = createdSession;
+      particlesRef.current = new GameParticles2D(sessionDocument.tickRate);
       sessionFailedRef.current = false;
       lastTickRef.current = createdSession.snapshot().tick;
       audio.reset(createdSession.snapshot());
@@ -339,6 +344,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       setScriptError(null);
       disposeSession();
       sessionRef.current = restored;
+      particlesRef.current = new GameParticles2D(sessionDocument.tickRate);
       sessionFailedRef.current = false;
       audioRef.current?.reset(restored.snapshot());
       showCurrentFrame();
@@ -357,6 +363,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       catch (cause) { replay.dispose(); throw cause; }
       disposeSession();
       sessionRef.current = replay;
+      particlesRef.current = new GameParticles2D(playDocument.tickRate);
       sessionFailedRef.current = false;
       audioRef.current?.reset(replay.snapshot());
       showCurrentFrame();

@@ -87,7 +87,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_script_write",
   description:
-    "Write the script from its brief, format and length (set them first with ui_script_set_setup), replacing the cast and the lines with what the writer returns. Pass `rewrite: true` to rewrite the script that is already there — the lines it keeps keep their ids, so their takes and their storyboard links survive. Words imported from a file or pasted in are never rewritten: they are only split into lines and given speakers. Records no take; voice the lines with ui_script_voice_all.",
+    "Write the script from its brief, format and length (set them first with ui_script_set_setup), replacing the cast and the lines with what the writer returns. Without `rewrite`, words imported from a file or pasted in are kept as written: they are only split into lines and given speakers. Pass `rewrite: true` to rewrite the script that is already there — the lines it keeps keep their ids, so their takes and their storyboard links survive. A rewrite gives up the imported words: the writer rewrites them and the import is dropped, so do not pass it on an imported script unless the creator asked for new wording. Refused while the script is already being written. Records no take; voice the lines with ui_script_voice_all.",
   parameters: z.object({
     script_id: scriptIdParam,
     rewrite: z

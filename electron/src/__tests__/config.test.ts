@@ -1,5 +1,6 @@
 import {
   getCondaEnvPath,
+  setCondaEnvPath,
   getPythonPath,
   getUVPath,
   getProcessEnv,
@@ -9,7 +10,7 @@ import {
   PID_FILE_PATH,
   webPath,
 } from '../config';
-import { readSettings } from '../settings';
+import { readSettings, updateSetting } from '../settings';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -67,6 +68,16 @@ describe('Config', () => {
   });
 
   describe('getCondaEnvPath', () => {
+    it('returns a location set after the path was first read', () => {
+      mockReadSettings.mockReturnValue({ CONDA_ENV: '/old/env' });
+      expect(getCondaEnvPath()).toBe('/old/env');
+
+      setCondaEnvPath('/picked/nodetool-env');
+
+      expect(jest.mocked(updateSetting)).toHaveBeenCalledWith('CONDA_ENV', '/picked/nodetool-env');
+      expect(getCondaEnvPath()).toBe('/picked/nodetool-env');
+    });
+
     it('should return path from settings when available', () => {
       const customPath = '/custom/conda/path';
       mockReadSettings.mockReturnValue({ CONDA_ENV: customPath });

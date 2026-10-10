@@ -193,10 +193,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       apiOptions,
       frontendRendererRegistry
     });
-    const runnerTargetId = sdkLiveRunnerRegistry?.register(
-      req.userId ?? "1",
-      runner.jobs
-    );
+    // An app visitor's socket is not an SDK execution target for its owner.
+    const runnerTargetId = req.appSession
+      ? undefined
+      : sdkLiveRunnerRegistry?.register(req.userId ?? "1", runner.jobs);
     if (runnerTargetId) {
       try {
         socket.send(

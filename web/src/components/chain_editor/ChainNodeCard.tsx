@@ -16,7 +16,8 @@ import {
   ToolbarIconButton,
   Box,
   reducedMotion,
-  activateOnKey
+  activateOnKey,
+  SHADOW
 } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { getOutputFromResult } from "../node/outputResult";
@@ -138,7 +139,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         backgroundColor: theme.vars.palette.background.paper,
         overflow: "hidden",
         transition: MOTION.border,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+        boxShadow: SHADOW(theme).sm,
       }}
     >
       {isRunning && (

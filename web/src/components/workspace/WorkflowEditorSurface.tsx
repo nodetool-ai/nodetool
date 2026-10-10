@@ -28,6 +28,7 @@ import { useCreateApplication } from "../../hooks/useApplications";
 import { useOpenApplication } from "../../hooks/useOpenApplication";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
+import ReportBugButton from "../support/ReportBugButton";
 import {
   examplePackageName,
   exampleSeedRef
@@ -42,7 +43,10 @@ import NodeCreateBridge from "../editor/NodeCreateBridge";
 import WorkflowChainSurface from "./WorkflowChainSurface";
 import SubgraphTabStrip from "./SubgraphTabStrip";
 import SubgraphTabContent from "./SubgraphTabContent";
-import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import {
+  findActiveChildTab,
+  useSubgraphTabsStore
+} from "../../stores/SubgraphTabsStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   BORDER_RADIUS,
@@ -116,7 +120,8 @@ const WorkflowEditorSurface = ({
     (state) => state.settings.editorViewMode
   );
   const [missing, setMissing] = useState(false);
-  const [loadFailed, setLoadFailed] = useState(false);
+  // Why the last load failed, or null while it has not.
+  const [loadFailed, setLoadFailed] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   // A workflow flow still in setup (`settings.setup` not at `done`) is where
   // this tab lands after a refresh or a close — same rule as the game flow
@@ -332,11 +337,10 @@ const WorkflowEditorSurface = ({
     ]
   );
   // Only this workflow's subgraph tabs may take over its canvas — another
-  // workflow tab's open subgraph must not hijack this one.
+  // workflow tab's open subgraph must not hijack this one. A nested subgraph
+  // is reached through the top-level subgraph that contains it.
   const activeSubgraph = useSubgraphTabsStore((state) =>
-    state.tabs.find(
-      (tab) => tab.key === state.activeKey && tab.workflowId === workflowId
-    )
+    findActiveChildTab(state.tabs, state.activeKey, workflowId)
   );
 
   useEffect(() => {
@@ -346,7 +350,7 @@ const WorkflowEditorSurface = ({
     }
 
     let cancelled = false;
-    setLoadFailed(false);
+    setLoadFailed(null);
     void fetchWorkflow(workflowId, { throwOnError: true })
       .then((loadedWorkflow) => {
         if (cancelled || loadedWorkflow) {
@@ -355,9 +359,9 @@ const WorkflowEditorSurface = ({
         setMissing(true);
         closeTab(tabId("workflow", workflowId));
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         if (!cancelled) {
-          setLoadFailed(true);
+          setLoadFailed(cause instanceof Error ? cause.message : String(cause));
         }
       });
 
@@ -367,12 +371,24 @@ const WorkflowEditorSurface = ({
   }, [nodeStore, fetchWorkflow, workflowId, closeTab, loadAttempt]);
 
   if (!nodeStore) {
-    if (loadFailed) {
+    if (loadFailed !== null) {
       return (
         <EmptyState
           variant="error"
           title="Could not load workflow"
-          description="Check your connection and try again. Your tab is still open."
+          description={
+            <FlexColumn align="center" gap={SPACING.sm}>
+              Check your connection and try again. Your tab is still open.
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Workflow tab failed to load",
+                  errorText: loadFailed,
+                  workflowId
+                }}
+              />
+            </FlexColumn>
+          }
           actionText="Retry"
           onAction={() => setLoadAttempt((attempt) => attempt + 1)}
         />
@@ -503,7 +519,7 @@ const WorkflowEditorSurface = ({
                     mounted underneath so returning to it keeps its viewport. */}
                 {activeSubgraph && !showChain && (
                   <div style={{ position: "absolute", inset: 0 }}>
-                    <SubgraphTabContent tab={activeSubgraph} />
+                    <SubgraphTabContent tab={activeSubgraph} active={active} />
                   </div>
                 )}
                 {showChain && (
@@ -524,7 +540,9 @@ const WorkflowEditorSurface = ({
               </div>
               {active && <FloatingToolBar />}
               {active && <QueueOverlay />}
-              {active && <NodeCreateBridge />}
+              {active && !(activeSubgraph && !showChain) && (
+                <NodeCreateBridge />
+              )}
             </KeyboardProvider>
           </ConnectableNodesProvider>
         </ContextMenuProvider>

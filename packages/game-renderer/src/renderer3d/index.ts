@@ -8,8 +8,9 @@ import { syncGameLights, removeGameLight } from "./lights/index.js";
 import { configureGameEnvironment } from "./environment/index.js";
 import { GameSkyRenderer3D, type GameSkySources3D } from "./environment/sky.js";
 import { paintGameHud } from "./hud/paint.js";
+import { applyDistanceCulling3D } from "./culling.js";
 export { interpolateGameTransform3D } from "./scene-sync.js";
-export { sampleGameAnimation3D } from "./animation/index.js";
+export { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
 import * as THREE from "three";
 import type { GameRenderFrame3D } from "@nodetool-ai/protocol";
 
@@ -42,6 +43,8 @@ export interface GameRendererStats3D {
   readonly targetBytes: number;
   readonly diagnostics: readonly string[];
   readonly renderMs: number;
+  /** Entities hidden by distance culling in this frame. */
+  readonly culledEntities: number;
 }
 export interface GameModelSource3D {
   readonly bytes: Uint8Array;
@@ -266,6 +269,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.configureCamera(frame, interpolation);
     const activeCamera = this.editorCamera ?? this.camera;
     activeCamera.updateMatrixWorld(true);
+    const culledEntities = applyDistanceCulling3D(this.instances, frame, this.editorCamera ? null : this.camera);
     syncGameLights(this.scene, this.lights, frame);
     configureGameEnvironment(this.scene, this.ambient, this.renderer, frame.environment);
     await this.sky.apply(this.scene, frame);
@@ -296,7 +300,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     for (const model of this.modelCache.loadedModels) { geometryBytes += model.prepared.geometryBytes; textureBytes += model.prepared.textureBytes; }
     return { backend: this.backend, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles,
       geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, geometryBytes, textureBytes,
-      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8, diagnostics: [...this.diagnostics], renderMs: performance.now() - started };
+      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities };
   }
   dispose(): void {
     if (this.status === "disposed") { return; }

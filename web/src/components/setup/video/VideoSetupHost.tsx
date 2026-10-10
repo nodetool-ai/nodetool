@@ -28,7 +28,10 @@ import DocumentLoadStatus from "../../workspace/DocumentLoadStatus";
 import { FlexColumn, PADDING, ThinkingIndicator } from "../../ui_primitives";
 import { SetupFlow } from "../SetupFlow";
 import { useFinishIfLoadedDone } from "../useFinishIfLoadedDone";
-import { useVideoSetupFlow } from "./useVideoSetupFlow";
+import {
+  useVideoSetupFlow,
+  type VideoSetupFlowOptions
+} from "./useVideoSetupFlow";
 
 export interface VideoSetupHostProps {
   sequenceId: string;
@@ -37,8 +40,8 @@ export interface VideoSetupHostProps {
    * The flow saves and refreshes the cached sequence before calling it.
    */
   onFinish: () => void | Promise<void>;
-  /** Hands the brief to the script flow (E3). */
-  onStartFromScript?: (brief: string) => void;
+  /** Hands the brief and the typed creative context to the script flow (E3). */
+  onStartFromScript?: VideoSetupFlowOptions["onStartFromScript"];
   /**
    * Takes the creator back to the entry surface to pick a different card. The
    * shell shows it on step 1 only, and only when a host supplies it; what
@@ -48,6 +51,12 @@ export interface VideoSetupHostProps {
    * the server copy can be a keystroke or a failed save behind.
    */
   onChangeFlow?: (brief: string) => void | Promise<void>;
+  /**
+   * Whether the host is the visible surface. A hidden workspace tab passes
+   * false so its instance does not take undo, save and generation statics
+   * from the timeline the user is looking at. Defaults to true.
+   */
+  active?: boolean;
 }
 
 const VideoSetupBody = ({
@@ -139,8 +148,8 @@ const VideoSetupBody = ({
   );
 };
 
-const VideoSetupHost = (props: VideoSetupHostProps) => (
-  <TimelineProvider>
+const VideoSetupHost = ({ active = true, ...props }: VideoSetupHostProps) => (
+  <TimelineProvider active={active}>
     <VideoSetupBody {...props} />
   </TimelineProvider>
 );

@@ -70,6 +70,21 @@ export interface ImportedScript {
 const dedupe = (names: readonly string[]): string[] =>
   Array.from(new Set(names.filter((name) => name !== "")));
 
+/** A whole row in brackets. A spoken row that only opens with one is words. */
+const isParenthetical = (row: string): boolean => {
+  const trimmed = row.trim();
+  return trimmed.startsWith("(") && trimmed.endsWith(")");
+};
+
+/**
+ * The character a cue names, without its extensions. "MARA (V.O.)" and
+ * "MARA (CONT'D)" are the same speaker as "MARA", not two more to cast.
+ */
+const characterName = (cue: string): string => {
+  const name = cue.replace(/(\s*\([^()]*\))+\s*$/, "").trim();
+  return name !== "" ? name : cue.trim();
+};
+
 /**
  * A Final Draft screenplay as script lines: one line per dialogue block,
  * spoken by the character the block names, with the parenthetical carried
@@ -86,11 +101,11 @@ export function importedFromFdx(parsed: FdxImport): ImportedScript {
     let speakerName = "";
     let direction = "";
     let start = 0;
-    if (rows.length > 1 && !rows[0].startsWith("(")) {
-      speakerName = rows[0].trim();
+    if (rows.length > 1 && !isParenthetical(rows[0])) {
+      speakerName = characterName(rows[0]);
       start = 1;
     }
-    if (rows[start]?.startsWith("(")) {
+    if (start < rows.length && isParenthetical(rows[start])) {
       direction = rows[start].replace(/^\(|\)$/g, "").trim();
       start += 1;
     }

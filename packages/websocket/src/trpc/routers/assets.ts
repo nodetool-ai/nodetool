@@ -201,15 +201,26 @@ async function getAllAssetsRecursive(
  * `update_asset` capability, so the two surfaces cannot disagree about what a
  * legal move is. This wrapper only turns the answer into an HTTP error.
  */
-async function assertValidParent(
+/**
+ * Validate a move and return the parent's full id. `Asset.find` accepts a
+ * 12-character prefix, and storing the prefix would leave the asset in no
+ * folder listing, since listings match `parent_id` exactly.
+ */
+async function resolveValidParent(
   userId: string,
   asset: AssetModel,
   parentId: string
-): Promise<void> {
+): Promise<string> {
   const problem = await Asset.validateParent(userId, asset, parentId);
   if (problem) {
     throwApiError(ApiErrorCode.INVALID_INPUT, problem);
   }
+  if (parentId === userId) return userId;
+  const parent = await Asset.find(userId, parentId);
+  if (!parent) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Parent folder not found");
+  }
+  return parent.id;
 }
 
 /**
@@ -734,8 +745,11 @@ export const assetsRouter = router({
         asset.content_type = input.content_type;
       }
       if (input.parent_id !== undefined) {
-        await assertValidParent(ctx.userId, asset, input.parent_id);
-        asset.parent_id = input.parent_id;
+        asset.parent_id = await resolveValidParent(
+          ctx.userId,
+          asset,
+          input.parent_id
+        );
       }
       if (input.metadata !== undefined) {
         asset.metadata = isExternal
@@ -806,10 +820,10 @@ export const assetsRouter = router({
 
       let deletedAssetIds: string[];
       if (asset.content_type === "folder") {
-        deletedAssetIds = await deleteFolderRecursive(ctx.userId, input.id);
+        deletedAssetIds = await deleteFolderRecursive(ctx.userId, asset.id);
       } else {
         await deleteAssetWithObjects(asset);
-        deletedAssetIds = [input.id];
+        deletedAssetIds = [asset.id];
       }
       return { deleted_asset_ids: deletedAssetIds };
     }),

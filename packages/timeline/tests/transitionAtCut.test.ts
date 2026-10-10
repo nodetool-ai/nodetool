@@ -100,6 +100,71 @@ describe("applyTransitionAtCut", () => {
   });
 });
 
+describe("applyTransitionAtCut growth policy (F28)", () => {
+  it("does not grow the predecessor past its known source length", () => {
+    const out = applyTransitionAtCut(
+      [clip("a", 0, 1000), clip("b", 1000, 1000)],
+      "b",
+      400,
+      undefined,
+      { sourceDurationMs: () => 1100 }
+    );
+    expect(byId(out, "a").durationMs).toBe(1000);
+    expect(byId(out, "a").outPointMs).toBe(1000);
+    expect(byId(out, "b").transitionIn?.durationMs).toBe(400);
+  });
+
+  it("leaves a predecessor the host cannot extend alone", () => {
+    const out = applyTransitionAtCut(
+      [clip("a", 0, 1000), clip("b", 1000, 1000)],
+      "b",
+      400,
+      undefined,
+      { canExtend: (c) => c.id !== "a" }
+    );
+    expect(byId(out, "a").durationMs).toBe(1000);
+    expect(byId(out, "b").transitionIn?.durationMs).toBe(400);
+  });
+
+  it("grows the predecessor's linked audio with it", () => {
+    const out = applyTransitionAtCut(
+      [
+        clip("a", 0, 1000, { linkId: "L" }),
+        clip("a-audio", 0, 1000, {
+          linkId: "L",
+          trackId: "a1",
+          mediaType: "audio"
+        }),
+        clip("b", 1000, 1000)
+      ],
+      "b",
+      400
+    );
+    expect(byId(out, "a").durationMs).toBe(1400);
+    expect(byId(out, "a-audio").durationMs).toBe(1400);
+  });
+
+  it("grows neither linked clip when one of them cannot grow", () => {
+    const out = applyTransitionAtCut(
+      [
+        clip("a", 0, 1000, { linkId: "L" }),
+        clip("a-audio", 0, 1000, {
+          linkId: "L",
+          trackId: "a1",
+          mediaType: "audio"
+        }),
+        clip("b", 1000, 1000)
+      ],
+      "b",
+      400,
+      undefined,
+      { sourceDurationMs: (c) => (c.id === "a-audio" ? 1000 : undefined) }
+    );
+    expect(byId(out, "a").durationMs).toBe(1000);
+    expect(byId(out, "a-audio").durationMs).toBe(1000);
+  });
+});
+
 describe("removeTransitionAtCut", () => {
   it("drops the field and leaves other clips untouched", () => {
     const clips = [

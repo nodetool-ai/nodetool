@@ -175,10 +175,10 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
       <Ionicons
         name={iconName}
         size={13}
-        color={active ? '#fff' : colors.textSecondary}
+        color={active ? colors.textOnPrimary : colors.textSecondary}
         style={{ marginRight: 4 }}
       />
-      <Text style={[styles.chipText, { color: active ? '#fff' : colors.text }]} numberOfLines={1}>
+      <Text style={[styles.chipText, { color: active ? colors.textOnPrimary : colors.text }]} numberOfLines={1}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -292,7 +292,7 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
                       },
                     ]}
                   >
-                    {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    {checked && <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} />}
                   </View>
                 </TouchableOpacity>
               );
@@ -303,7 +303,7 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Done"
             >
-              <Text style={styles.doneText}>Done</Text>
+              <Text style={[styles.doneText, { color: colors.textOnPrimary }]}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -392,7 +392,7 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
                           },
                         ]}
                       >
-                        {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+                        {checked && <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} />}
                       </View>
                     </TouchableOpacity>
                   );
@@ -406,7 +406,7 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Done"
             >
-              <Text style={styles.doneText}>Done</Text>
+              <Text style={[styles.doneText, { color: colors.textOnPrimary }]}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  doneText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  doneText: { fontSize: 15, fontWeight: '600' },
 });
 
 export default ChatOptionsBar;

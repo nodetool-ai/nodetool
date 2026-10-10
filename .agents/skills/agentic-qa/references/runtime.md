@@ -135,6 +135,13 @@ npx tsx tests/agentic-qa/serveApp.ts [--state empty|seeded-demo] \
   [--backend-port 7790] [--web-port 3010]
 ```
 
+Run `npm run build:packages` first. In a sandbox that blocks
+`cdn.sheetjs.com`, `npm install` stops with `E403` on `xlsx`. Point the
+lockfile's `xlsx` entries at the npm registry's `0.18.5` for the install, then
+restore `package-lock.json` before committing. The backend imports built packages, and
+an unbuilt tree fails at startup with `ERR_MODULE_NOT_FOUND` for a
+`dist/index.js`.
+
 This starts the journey suite's backend
 (`packages/websocket/src/screenshot-server.ts`) with
 `NODETOOL_FAKE_PROVIDERS=1` and a Vite server proxied to it. The ports differ
@@ -158,7 +165,25 @@ curl -X POST http://127.0.0.1:7790/api/test/reset
 ```
 
 The backend is one in-memory database. Run app sessions in series and reset
-between them. A public-website session can run beside an app session because
+between them:
+
+```bash
+cd web
+R=test-results/agentic-qa/<run>
+for s in app-first-use task-automation; do
+  curl -s -X POST http://127.0.0.1:7790/api/test/reset >/dev/null
+  npx tsx tests/agentic-qa/runParticipant.ts --packet $R/packets/$s.json --out $R/$s
+done
+```
+
+Vite compiles the app on its first page load, so the first session after a
+start sees a black viewport for several seconds. Load the app once in a
+scripted browser before that session, then reset the backend.
+
+Restart `serveApp.ts` after changing backend source such as
+`fake-runtime.ts`. Vite reloads web changes without a restart. To stop it, end
+the `serveApp.ts` process by its PID. `pkill -f` with a pattern that also
+appears in your own command line kills the calling shell. A public-website session can run beside an app session because
 it shares no state.
 
 ### What the fake runtime shows a participant
@@ -168,13 +193,22 @@ goal completable, with placeholder content:
 
 - OpenAI lists "Test Chat Model" and "Test Image Model". Anthropic lists "Test
   Assistant Model". No other provider lists a model.
-- Chat replies read "deterministic e2e response". Workflow text outputs read
-  "deterministic e2e output".
+- Chat replies read "deterministic e2e response". So does an Agent or other
+  node with a language-model setting, which runs for real against the fake
+  provider. Other faked nodes' text outputs read "deterministic e2e output".
+- The guided workflow planner gets a fixed plan that builds and runs: one text
+  input, a Code step that returns it in capital letters, and one output.
 - A request that forces a tool (structured output: an image brief, a workflow
   plan, a Director screenplay) gets arguments that fit the schema, with the
   string "fake" in every text field.
-- Generated images are a 256 × 256 colour gradient.
-- Any key passes the onboarding key check without a network call.
+- Generated images, and edits of an uploaded image, are a 256 × 256 colour
+  gradient. "Test Image Model" is listed for both text-to-image and
+  image-to-image.
+- Any key passes the onboarding key check without a network call, and the
+  Settings "Test" button answers "The key was accepted.", as a real check
+  that passes does. Text that a participant can see must read like the real
+  product: a fixture that says it is fake steers the participant away from
+  the path under test.
 
 Judge the outcome on mechanics (a result appeared, persisted, and can be found
 again), not on content quality. A participant that reports "fake" text, the

@@ -1,4 +1,4 @@
-import { installExpectedPackages, installPackage } from '../packageManager';
+import { installExpectedPackages, installPackage, listInstalledPackages, uninstallPackage } from '../packageManager';
 import { EventEmitter } from 'events';
 import * as config from '../config';
 import * as events from '../events';
@@ -185,5 +185,136 @@ describe('installPackage', () => {
     expect(saveTorchPlatform).not.toHaveBeenCalled();
     const [args] = installCalls();
     expect(args).toEqual(expect.arrayContaining(['--torch-backend', 'auto']));
+  });
+});
+
+describe('torch build upgrades', () => {
+  const detected = (backend: string) => ({
+    platform: backend,
+    backend,
+    indexUrl: `https://download.pytorch.org/whl/${backend}`,
+  });
+
+  test('reinstalls CPU torch when the detected backend is a GPU build', async () => {
+    fakeUv([
+      { name: 'nodetool-core', version: '0.8.1' },
+      { name: 'torch', version: '2.9.0+cpu' },
+      { name: 'torchvision', version: '0.24.0+cpu' },
+    ]);
+    fakePyPI('nodetool-huggingface', '0.8.1');
+    detectTorchPlatform.mockResolvedValue(detected('cu128'));
+
+    await installPackage('nodetool-ai/nodetool-huggingface');
+
+    const [args] = installCalls();
+    expect(args).toEqual(
+      expect.arrayContaining([
+        '--reinstall-package',
+        'torch',
+        '--reinstall-package',
+        'torchvision',
+        '--torch-backend',
+        'cu128',
+      ])
+    );
+  });
+
+  test('leaves torch alone when it already matches the detected backend', async () => {
+    fakeUv([
+      { name: 'nodetool-core', version: '0.8.1' },
+      { name: 'torch', version: '2.9.0+cu128' },
+    ]);
+    fakePyPI('nodetool-huggingface', '0.8.1');
+    detectTorchPlatform.mockResolvedValue(detected('cu128'));
+
+    await installPackage('nodetool-ai/nodetool-huggingface');
+
+    const [args] = installCalls();
+    expect(args).not.toContain('--reinstall-package');
+  });
+});
+
+describe('installPackage guards', () => {
+  test('refuses a repo id outside the pack catalog', async () => {
+    fakeUv([]);
+    fakePyPI('requests', '2.32.0');
+
+    const result = await installPackage('nodetool-ai/requests');
+
+    expect(result).toEqual({ success: false, message: 'nodetool-ai/requests is not a NodeTool package.' });
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  test('aborts instead of resolving without the installed packs when pip list fails', async () => {
+    spawn.mockImplementation((_command: string, args: readonly string[]) => {
+      const proc = new EventEmitter();
+      Object.assign(proc, {
+        stdout: new EventEmitter(),
+        stderr: new EventEmitter(),
+        stdin: { write: jest.fn(), end: jest.fn() },
+      });
+      process.nextTick(() => proc.emit('exit', args.includes('list') ? 2 : 0));
+      return proc;
+    });
+    fakePyPI('nodetool-huggingface', '0.8.1');
+
+    const result = await installPackage('nodetool-ai/nodetool-huggingface');
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Could not list the installed Python packages');
+    expect(installCalls()).toHaveLength(0);
+  });
+
+  test('installs the newest release, not a newer pre-release', async () => {
+    fakeUv([{ name: 'nodetool-core', version: '0.8.1' }]);
+    https.get.mockImplementation((_url: string, cb: (res: EventEmitter & { statusCode: number }) => void) => {
+      const res = Object.assign(new EventEmitter(), { statusCode: 200 });
+      process.nextTick(() => {
+        cb(res);
+        for (const version of ['0.8.1', '0.9.0rc1', '0.9.0', '0.9.1b2']) {
+          res.emit('data', `<a href="x">nodetool_huggingface-${version}-py3-none-any.whl</a>\n`);
+        }
+        res.emit('end');
+      });
+      return Object.assign(new EventEmitter(), { setTimeout: jest.fn() });
+    });
+    detectTorchPlatform.mockResolvedValue({ platform: 'cpu', backend: 'cpu', indexUrl: null });
+
+    await installPackage('nodetool-ai/nodetool-huggingface');
+
+    const [args] = installCalls();
+    expect(args).toContain('nodetool-huggingface==0.9.0');
+  });
+});
+
+describe('uninstallPackage guards', () => {
+  test('refuses to remove a distribution that is not a nodetool pack', async () => {
+    fakeUv([]);
+
+    const result = await uninstallPackage('pytorch/torch');
+
+    expect(result.success).toBe(false);
+    expect(spawn).not.toHaveBeenCalled();
+  });
+});
+
+describe('listInstalledPackages without a Python runtime', () => {
+  test('lists nothing and installs nothing when uv is absent', async () => {
+    const fileExists = jest.mocked(utils.fileExists);
+    fileExists.mockResolvedValue(false);
+    try {
+      fakeUv([]);
+      fakePyPI('nodetool-core', '0.8.1');
+
+      const result = await listInstalledPackages();
+
+      expect(result.packages.filter((pkg) => pkg.name.startsWith('nodetool-'))).toEqual([]);
+      expect(spawn).not.toHaveBeenCalled();
+      expect(events.emitBootMessage).not.toHaveBeenCalledWith(
+        expect.stringContaining('Setting up Python runtime')
+      );
+    } finally {
+      fileExists.mockResolvedValue(true);
+    }
   });
 });

@@ -44,6 +44,7 @@ import {
   getProviderGenerationSpec
 } from "./generations.specs.js";
 import { isNonEmptyString, isRecord, isString } from "../utils/type-guards.js";
+import { cancelGenerationForUser } from "../generation-cancel.js";
 
 const DEFAULT_AWAIT_SECONDS = 300;
 const MAX_AWAIT_SECONDS = 1800;
@@ -286,42 +287,27 @@ const awaitGeneration: CapabilityExport = {
 const cancelGeneration: CapabilityExport = {
   spec: cancelGenerationSpec,
   impl: async (run, params) => {
-    const { Prediction } = await import("@nodetool-ai/models");
     const userId = userIdOf(run.context);
     const id = String(params["generation_id"] ?? "");
-    // The abort is what stops a local provider call; the row is what the seam
-    // closes when that call unwinds. Durable work belongs to another worker,
-    // so only its cancellation intent is recorded here.
-    const existing = await Prediction.findForUser(userId, id);
-    if (existing?.lifecycle_owner === "durable") {
-      const requested = await Prediction.requestCancellation(id, userId);
-      if (!requested) {
-        return {
-          generation_id: id,
-          cancelled: false,
-          cancellation_requested: false,
-          error: `Generation ${id} is not running — it already settled, or it is not yours.`
-        };
-      }
+    const outcome = await cancelGenerationForUser(id, userId);
+    if (outcome.status === "cancellation_requested") {
       return {
         generation_id: id,
-        status: publicGenerationStatus(existing),
+        status: publicGenerationStatus(outcome.row),
         cancelled: false,
         cancellation_requested: true,
         note: "Cancellation was requested; the durable worker will close the record after the provider responds."
       };
     }
-    const aborted = generationRegistry.cancel(id, userId);
-    const flipped = aborted
-      ? false
-      : await Prediction.markCancelledIfRunning(id, userId);
-    if (!aborted && !flipped) {
+    if (outcome.status === "not_running") {
       return {
         generation_id: id,
         cancelled: false,
+        ...(outcome.durable && { cancellation_requested: false }),
         error: `Generation ${id} is not running — it already settled, or it is not yours.`
       };
     }
+    const aborted = outcome.status === "aborted";
     return {
       generation_id: id,
       status: "cancelled",

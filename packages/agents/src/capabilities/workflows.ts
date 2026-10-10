@@ -1158,6 +1158,29 @@ const setWorkflowSetup: CapabilityExport = {
 // ── plan_workflow ───────────────────────────────────────────────────────────
 
 /**
+ * The step ids a plan repeats. The id names the step for every later edit and
+ * is carried onto the node the build places, so two steps sharing one cannot
+ * be told apart.
+ */
+function repeatedStepIds(steps: readonly { id: string }[]): string[] {
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  for (const step of steps) {
+    if (seen.has(step.id)) repeated.add(step.id);
+    seen.add(step.id);
+  }
+  return [...repeated];
+}
+
+/** The first `step-N` id the plan does not use yet. */
+function freeStepId(steps: readonly { id: string }[]): string {
+  const taken = new Set(steps.map((step) => step.id));
+  let n = steps.length + 1;
+  while (taken.has(`step-${n}`)) n += 1;
+  return `step-${n}`;
+}
+
+/**
  * Candidate node types for the planner prompt: the general-purpose nodes
  * first, then the registry's ranking against the brief.
  */
@@ -1199,6 +1222,12 @@ const planWorkflow: CapabilityExport = {
       );
       if (!parsed.success) {
         return { error: "`plan` is not a plan ({inputs, steps, outputs})." };
+      }
+      const repeated = repeatedStepIds(parsed.data.steps);
+      if (repeated.length > 0) {
+        return {
+          error: `Every plan step needs its own id. Repeated: ${repeated.join(", ")}.`
+        };
       }
       plan = parsed.data;
     } else {
@@ -1333,8 +1362,13 @@ const updateWorkflowPlanStep: CapabilityExport = {
       const [moved] = steps.splice(at, 1);
       steps.splice(Math.max(0, Math.min(steps.length, params["index"])), 0, moved);
     } else if (op === "add") {
+      if (at !== -1) {
+        return {
+          error: `The plan already has a step "${stepId ?? ""}". Pick another id, or omit step_id to get a free one.`
+        };
+      }
       const added: WorkflowPlanStep = {
-        id: stepId ?? `step-${steps.length + 1}`,
+        id: stepId ?? freeStepId(steps),
         title: fields.title ?? "New step",
         summary: fields.summary ?? "",
         node_type: fields.node_type ?? null

@@ -556,3 +556,40 @@ describe("writeScript", () => {
     expect(result.current.error).toMatch(/brief/i);
   });
 });
+
+describe("one write per script", () => {
+  // The setup flow and the agent bridge each hold a `useWriteScript`. The
+  // agent's `ui_script_write` must lock the flow's steps and refuse a second
+  // paid write while the first runs.
+  it("shows another caller's write and refuses a second one", async () => {
+    let finish = (_answer: typeof writerAnswer): void => {};
+    rpcRequest.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const flow = renderHook(() => useWriteScript(SCRIPT));
+    const agent = renderHook(() => useWriteScript(SCRIPT));
+    let pending: Promise<boolean>;
+    act(() => {
+      pending = agent.result.current.write(SCRIPT);
+    });
+    expect(flow.result.current.writing).toBe(true);
+
+    let second = true;
+    await act(async () => {
+      second = await flow.result.current.write(SCRIPT);
+    });
+    expect(second).toBe(false);
+    expect(flow.result.current.error).toBe(
+      "This script is already being written."
+    );
+    expect(rpcRequest).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      finish(writerAnswer);
+      expect(await pending).toBe(true);
+    });
+    expect(flow.result.current.writing).toBe(false);
+  });
+});

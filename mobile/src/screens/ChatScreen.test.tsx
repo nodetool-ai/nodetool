@@ -2,7 +2,8 @@
  * Tests for ChatScreen
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
+import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ChatScreen from './ChatScreen';
 import { useChatStore } from '../stores/ChatStore';
@@ -78,7 +79,7 @@ describe('ChatScreen', () => {
     messageCache: { 'thread-1': [] },
     connect: jest.fn().mockResolvedValue(undefined),
     disconnect: jest.fn(),
-    sendMessage: jest.fn().mockResolvedValue(undefined),
+    sendMessage: jest.fn().mockResolvedValue(true),
     stopGeneration: jest.fn(),
     createNewThread: jest.fn().mockResolvedValue('new-thread-id'),
     getCurrentMessages: jest.fn().mockReturnValue([]),
@@ -178,6 +179,50 @@ describe('ChatScreen', () => {
       await waitFor(() => {
         expect(mockStore.connect).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('Connection lifecycle', () => {
+    it('does not reconnect when the thread on screen changes', async () => {
+      const { rerender } = renderChatScreen();
+      await waitFor(() => {
+        expect(mockStore.connect).toHaveBeenCalledTimes(1);
+      });
+
+      mockStoreState({ ...mockStore, currentThreadId: 'thread-2' });
+      rerender(
+        <ChatScreen
+          navigation={mockNavigation}
+          route={{} as ChatScreenProps['route']}
+        />
+      );
+
+      expect(mockStore.connect).toHaveBeenCalledTimes(1);
+    });
+
+    it('reconnects when the network comes back', async () => {
+      renderChatScreen();
+      await waitFor(() => {
+        expect(mockStore.connect).toHaveBeenCalledTimes(1);
+      });
+
+      const listener = jest.mocked(NetInfo.addEventListener).mock.calls[0][0];
+      const offline: Pick<NetInfoState, 'isConnected' | 'isInternetReachable'> = {
+        isConnected: false,
+        isInternetReachable: false,
+      };
+      const online: Pick<NetInfoState, 'isConnected' | 'isInternetReachable'> = {
+        isConnected: true,
+        isInternetReachable: true,
+      };
+      // SAFETY: the screen reads only the two reachability fields.
+      act(() => listener(online as NetInfoState));
+      expect(mockStore.connect).toHaveBeenCalledTimes(1);
+
+      act(() => listener(offline as NetInfoState));
+      act(() => listener(online as NetInfoState));
+
+      expect(mockStore.connect).toHaveBeenCalledTimes(2);
     });
   });
 

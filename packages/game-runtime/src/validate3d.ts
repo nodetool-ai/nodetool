@@ -1,12 +1,13 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import {
-  gameDocument3D, gameInputBindingIssues, gameParticleIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
+  gameDocument3D, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
 import { gameScriptParamValueOf } from "@nodetool-ai/protocol";
 import { scriptParamReferenceIssues } from "./script-params.js";
 import { GAME_ENGINE_4_UNAVAILABLE, validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
+import { validateAnimationGraph3D, validateAnimatorGraph3D } from "./validate-animation-graph3d.js";
 
 export interface GameValidationResult3D {
   readonly valid: boolean;
@@ -61,6 +62,9 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           add("ambiguous_selector", ["assets", slot], "Prepared node and clip IDs must be unique");
         }
       }
+    }
+    for (const [graphId, graph] of Object.entries(document.animationGraphs ?? {})) {
+      validateAnimationGraph3D(graph, ["animationGraphs", graphId], add);
     }
 
     function validateEntities(entities: readonly GameEntity3D[], path: (string | number)[], prefab?: GamePrefab3D): void {
@@ -122,9 +126,12 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
             }
           }
         }
+        if (entity.renderCulling?.layer !== undefined && !Object.hasOwn(document.performance?.cullLayers ?? {}, entity.renderCulling.layer)) {
+          add("missing_cull_layer", [...entityPath, "renderCulling", "layer"], `Cull layer ${entity.renderCulling.layer} is not declared in performance.cullLayers`);
+        }
         if (entity.primitive && entity.model) { add("competing_visual", [...entityPath, "model"], "Entity must choose either primitive or model rendering"); }
         if (entity.interactionActor && !entity.collider3d) { add("missing_interaction_collider", [...entityPath, "interactionActor"], "Interaction actors require a collider"); }
-        const checkAsset = (slot: string, kind: "model" | "collider" | "audio", componentPath: (string | number)[]): void => {
+        const checkAsset = (slot: string, kind: "model" | "collider" | "audio" | "image", componentPath: (string | number)[]): void => {
           const asset = document.assets[slot];
           if (!asset || asset.mediaKind !== kind) { add("missing_asset", componentPath, `Asset ${slot} must be a ${kind} binding`); }
           if (prefab && !prefab.externalAssets.includes(slot)) { add("undeclared_external_asset", componentPath, `Prefab must declare asset ${slot}`); }
@@ -143,8 +150,14 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
             add("collider_shape_mismatch", [...entityPath, "collider3d", "assetId"], "Prepared collider shape does not match the component");
           }
         }
-        if (entity.audioSource) { checkAsset(entity.audioSource.assetId, "audio", [...entityPath, "audioSource", "assetId"]); }
+        if (entity.audioSource) {
+          checkAsset(entity.audioSource.assetId, "audio", [...entityPath, "audioSource", "assetId"]);
+          for (const issue of gameAudioSourceIssues(entity.audioSource)) { add("invalid_audio_source", [...entityPath, "audioSource", ...issue.path], issue.message); }
+        }
         for (const issue of entity.particles ? gameParticleIssues(entity.particles) : []) { add("invalid_particles", [...entityPath, "particles", ...issue.path], issue.message); }
+        for (const [index, emitter] of (entity.particles?.emitters ?? []).entries()) {
+          if (emitter.sprite) { checkAsset(emitter.sprite.assetId, "image", [...entityPath, "particles", "emitters", index, "sprite", "assetId"]); }
+        }
         if (entity.animator3d) {
           const asset = entity.model && document.assets[entity.model.assetId];
           if (!asset || asset.mediaKind !== "model") { add("missing_animation_model", [...entityPath, "animator3d"], "Animator requires a model binding"); }
@@ -156,6 +169,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           if (entity.animator3d.initialClip && !(entity.animator3d.initialClip in entity.animator3d.clips)) {
             add("missing_animation_clip", [...entityPath, "animator3d", "initialClip"], "Initial clip alias does not exist");
           }
+          validateAnimatorGraph3D(document, entity, asset || undefined, [...entityPath, "animator3d"], add);
         }
         for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
           if (behavior.kind === "script") {

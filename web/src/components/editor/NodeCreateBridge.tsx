@@ -1,12 +1,17 @@
 import { memo, useEffect, useMemo } from "react";
 
 import { useCreateNode } from "../../hooks/useCreateNode";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 
 /**
  * Bridge that drains `PendingNodeCreateStore` and creates the requested node
- * at viewport center using `useCreateNode`. Mounted inside the workflow
- * editor's `ReactFlowProvider` so the React-Flow hooks resolve.
+ * using `useCreateNode`. Mounted inside the workflow editor's
+ * `ReactFlowProvider` so the React-Flow hooks resolve.
+ *
+ * A pick from the floating node menu lands where the menu was opened, the
+ * same spot Enter uses. Requests from outside the menu (sidebar tiles) land
+ * at the viewport center.
  *
  * Renders nothing.
  */
@@ -19,7 +24,8 @@ const NodeCreateBridge = memo(() => {
     () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }),
     []
   );
-  const handleCreate = useCreateNode(center);
+  const menuOpen = useNodeMenuStore((state) => state.isMenuOpen);
+  const handleCreate = useCreateNode(menuOpen ? undefined : center);
   const pending = usePendingNodeCreateStore((s) => s.pending);
   const consume = usePendingNodeCreateStore((s) => s.consume);
 

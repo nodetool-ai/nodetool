@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeEach } from "@jest/globals";
 import { act } from "@testing-library/react";
-import { useSubgraphTabsStore } from "../SubgraphTabsStore";
+import {
+  findActiveChildTab,
+  useSubgraphTabsStore,
+  type SubgraphGraph
+} from "../SubgraphTabsStore";
 
 const resetStore = () =>
   act(() => {
     useSubgraphTabsStore.setState({ tabs: [], activeKey: null });
   });
 
-const open = (workflowId: string, nodeId: string, label = "Subgraph") =>
+const open = (workflowId: string, nodeId: string, label = "Subgraph"): string =>
   useSubgraphTabsStore.getState().openTab({
     workflowId,
     nodeId,
@@ -86,6 +90,111 @@ describe("SubgraphTabsStore", () => {
       });
       // active should fall back to node-a
       expect(useSubgraphTabsStore.getState().activeKey).toBe(keyA);
+    });
+
+    it("never activates another workflow's subgraph", () => {
+      let keyA = "";
+      act(() => {
+        keyA = open("wf-1", "node-a");
+        open("wf-2", "node-b");
+      });
+      act(() => {
+        useSubgraphTabsStore.getState().setActive(keyA);
+      });
+      act(() => {
+        useSubgraphTabsStore.getState().closeTab(keyA);
+      });
+      expect(useSubgraphTabsStore.getState().activeKey).toBeNull();
+    });
+
+    it("closes subgraphs opened inside the tab and returns to its host", () => {
+      let outer = "";
+      let inner = "";
+      let deepest = "";
+      act(() => {
+        outer = open("wf-1", "outer");
+        inner = open(outer, "inner");
+        deepest = open(inner, "deepest");
+      });
+      let closed: string[] = [];
+      act(() => {
+        closed = useSubgraphTabsStore.getState().closeTab(inner);
+      });
+      expect(closed.sort()).toEqual([deepest, inner].sort());
+      expect(useSubgraphTabsStore.getState().tabs.map((t) => t.key)).toEqual([
+        outer
+      ]);
+      // The closed tabs held the active one; the outer subgraph shows again.
+      expect(useSubgraphTabsStore.getState().activeKey).toBe(outer);
+    });
+  });
+
+  describe("findActiveChildTab", () => {
+    it("finds the top-level tab holding an active nested subgraph", () => {
+      let outer = "";
+      let inner = "";
+      act(() => {
+        outer = open("wf-1", "outer");
+        inner = open(outer, "inner");
+      });
+      const { tabs, activeKey } = useSubgraphTabsStore.getState();
+      expect(activeKey).toBe(inner);
+      expect(findActiveChildTab(tabs, activeKey, "wf-1")?.key).toBe(outer);
+      expect(findActiveChildTab(tabs, activeKey, outer)?.key).toBe(inner);
+      expect(findActiveChildTab(tabs, activeKey, inner)).toBeUndefined();
+      expect(findActiveChildTab(tabs, activeKey, "wf-2")).toBeUndefined();
+    });
+  });
+
+  describe("reconcileTab", () => {
+    const graphWith = (id: string): SubgraphGraph => ({
+      nodes: [{ id, type: "nodetool.constant.String", data: {} }],
+      edges: []
+    });
+
+    it("keeps the tab when its node still holds what the tab last wrote", () => {
+      let key = "";
+      act(() => {
+        key = open("wf-1", "node-a");
+      });
+      const written = graphWith("x");
+      const store = useSubgraphTabsStore.getState().getTab(key)?.store;
+      act(() => {
+        useSubgraphTabsStore.getState().markSynced(key, written);
+        useSubgraphTabsStore.getState().reconcileTab(key, written);
+      });
+      expect(useSubgraphTabsStore.getState().getTab(key)?.store).toBe(store);
+    });
+
+    it("rebuilds a reopened tab from the node's changed graph", () => {
+      let key = "";
+      act(() => {
+        key = open("wf-1", "node-a");
+      });
+      const stale = useSubgraphTabsStore.getState().getTab(key)?.store;
+      act(() => {
+        useSubgraphTabsStore.getState().openTab({
+          workflowId: "wf-1",
+          nodeId: "node-a",
+          label: "Subgraph",
+          initialGraph: graphWith("restored")
+        });
+      });
+      const rebuilt = useSubgraphTabsStore.getState().getTab(key)?.store;
+      expect(rebuilt).not.toBe(stale);
+      expect(rebuilt?.getState().nodes.map((n) => n.id)).toEqual(["restored"]);
+    });
+
+    it("closes the tab when its node is gone", () => {
+      let key = "";
+      act(() => {
+        key = open("wf-1", "node-a");
+      });
+      act(() => {
+        useSubgraphTabsStore.getState().reconcileTab(key, undefined);
+      });
+      expect(useSubgraphTabsStore.getState().getTab(key)).toBeUndefined();
+      expect(useSubgraphTabsStore.getState().activeKey).toBeNull();
     });
   });
 

@@ -160,6 +160,12 @@ export function ensureObjectIds(json: GltfJson): void {
   });
 }
 
+/** A 32-hex id, the repository's resource id form. */
+const freshObjectId = (): string =>
+  Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+
 const idOf = (node: GltfNode, index: number): string => {
   const id = isRecord(node.extras) ? node.extras[ID_KEY] : undefined;
   return typeof id === "string" && id.length > 0 ? id : `node-${index}`;
@@ -179,24 +185,37 @@ function parentIndices(json: GltfJson): number[] {
   return parents;
 }
 
-function readTransform(node: GltfNode): {
+interface TransformFields {
   position: Vec3;
   rotation: Vec3;
   scale: Vec3;
-} {
+}
+
+/** A node's transform at full precision, rotation in Euler degrees. */
+function readRawTransform(node: GltfNode): TransformFields {
   if (Array.isArray(node.matrix) && node.matrix.length === 16) {
     const trs = decomposeMatrix(node.matrix);
     return {
-      position: trs.translation.map(round6) as Vec3,
-      rotation: quaternionToEulerDegrees(trs.rotation).map(round6) as Vec3,
-      scale: trs.scale.map(round6) as Vec3
+      position: trs.translation,
+      rotation: quaternionToEulerDegrees(trs.rotation),
+      scale: trs.scale
     };
   }
   const rotation = (node.rotation ?? [0, 0, 0, 1]) as Quat;
   return {
-    position: (node.translation ?? [0, 0, 0]).map(round6) as Vec3,
-    rotation: quaternionToEulerDegrees(rotation).map(round6) as Vec3,
-    scale: (node.scale ?? [1, 1, 1]).map(round6) as Vec3
+    position: [...(node.translation ?? [0, 0, 0])] as Vec3,
+    rotation: quaternionToEulerDegrees(rotation),
+    scale: [...(node.scale ?? [1, 1, 1])] as Vec3
+  };
+}
+
+/** {@link readRawTransform} rounded for display. */
+function readTransform(node: GltfNode): TransformFields {
+  const raw = readRawTransform(node);
+  return {
+    position: raw.position.map(round6) as Vec3,
+    rotation: raw.rotation.map(round6) as Vec3,
+    scale: raw.scale.map(round6) as Vec3
   };
 }
 
@@ -353,7 +372,7 @@ export function resolveTarget(json: GltfJson, target: string): number {
   }
   const lower = raw.toLowerCase();
   const byName = nodes.findIndex(
-    (node) => (node.name ?? "").toLowerCase() === lower
+    (node) => (node.name ?? "").trim().toLowerCase() === lower
   );
   if (byName >= 0) {
     return byName;
@@ -571,6 +590,10 @@ export function addObject(
     };
   }
 
+  // A new node needs an id no earlier object ever held. Left to
+  // `ensureObjectIds`, it would take `node-<index>`, which a deleted object
+  // may have answered to, so an agent holding that id would edit this one.
+  extrasOf(node)[ID_KEY] = freshObjectId();
   const nodes = nodesOf(json);
   nodes.push(node);
   const index = nodes.length - 1;
@@ -685,6 +708,10 @@ export function deleteObject(
     }
   }
 
+  const selected = selectedId(json);
+  const selectionDoomed = [...doomed].some(
+    (i) => idOf(nodes[i] as GltfNode, i) === selected
+  );
   const mapping: number[] = [];
   const kept: GltfNode[] = [];
   nodes.forEach((node, i) => {
@@ -697,7 +724,7 @@ export function deleteObject(
   });
   json.nodes = kept;
   remapNodeIndices(json, mapping);
-  if (selectedId(json) === removed.uuid) {
+  if (selectionDoomed) {
     setSelectedId(json, null);
   }
   return removed;
@@ -711,7 +738,9 @@ export function setTransform(
   ensureObjectIds(json);
   const index = resolveTarget(json, target);
   const node = nodesOf(json)[index];
-  const current = readTransform(node);
+  // Unpatched fields keep full precision: the rounded listing would turn a
+  // scale of 1e-7 into 0 and make the object vanish.
+  const current = readRawTransform(node);
   const next = {
     position: patch.position ?? current.position,
     rotation: patch.rotation ?? current.rotation,

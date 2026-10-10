@@ -79,7 +79,8 @@ import {
 import type {
   AnimatedProperty,
   DropMode,
-  QuantizeOptions
+  QuantizeOptions,
+  TransitionGrowthOptions
 } from "@nodetool-ai/timeline";
 import type {
   TimelineSequence,
@@ -118,6 +119,7 @@ import {
 } from "../../utils/timelineIsolateSubject";
 import { useNotificationStore } from "../NotificationStore";
 import { cloneClips, cloneClipsToTrack } from "./clipboardOps";
+import { getKnownSourceDurationMs } from "../../components/timeline/Tracks/useClipSourceDuration";
 import {
   migrateTranscriptToClips,
   reflowGenerated,
@@ -591,7 +593,10 @@ export interface TimelineStoreState {
     clipId: string,
     edge: "start" | "end",
     deltaMs: number,
-    /** Source length of `clipId`; its end cannot roll past it. */
+    /**
+     * Source length of the clip left of the cut, whose end grows when the
+     * cut rolls later: `clipId` for "end", its neighbour for "start".
+     */
     sourceDurationMs?: number
   ) => void;
 
@@ -1290,6 +1295,39 @@ export function lockedUserTargetIds(
     includeGroupDescendants: true
   });
   return new Set([...allIds].filter((id) => !editable.has(id)));
+}
+
+/** The clips a transition or fade shortcut may change: those not locked. */
+function editableTransitionTargets(
+  state: { clips: readonly TimelineClip[]; tracks: readonly TimelineTrack[] },
+  clipIds: ReadonlySet<string>
+): Set<string> {
+  return editableUserTargets(state.clips, state.tracks, clipIds, {
+    followLinks: false,
+    includeGroupDescendants: false
+  });
+}
+
+/**
+ * How a transition may grow the clip before the cut: only when that clip's
+ * edit unit is unlocked, and never past its probed source length. A source
+ * that has not been probed yet is not capped.
+ */
+function transitionGrowthOptions(state: {
+  clips: readonly TimelineClip[];
+  tracks: readonly TimelineTrack[];
+}): TransitionGrowthOptions {
+  return {
+    canExtend: (clip) =>
+      editableUserTargets(state.clips, state.tracks, new Set([clip.id]), {
+        followLinks: true,
+        includeGroupDescendants: false
+      }).has(clip.id),
+    sourceDurationMs: (clip) =>
+      clip.mediaType === "audio" || clip.mediaType === "video"
+        ? getKnownSourceDurationMs(clip.currentAssetId)
+        : undefined
+  };
 }
 
 /** Clamp a timeline-space end trim to the remaining source-space window. */
@@ -2806,13 +2844,11 @@ export const createTimelineStore = (
               if (!editable.has(clip.id) || !editable.has(neighbour.id)) {
                 return state;
               }
-              if (edge === "end") {
-                deltaMs = clampEndTrimDeltaToSource(
-                  clip,
-                  deltaMs,
-                  sourceDurationMs
-                );
-              }
+              deltaMs = clampEndTrimDeltaToSource(
+                edge === "end" ? clip : neighbour,
+                deltaMs,
+                sourceDurationMs
+              );
               return {
                 clips: rollEdit(state.clips, clipId, edge, deltaMs, {
                   followLinks: state.linkedSelection
@@ -2869,19 +2905,27 @@ export const createTimelineStore = (
 
         applyDefaultTransition: (clipIds, durationMs = DEFAULT_TRANSITION_MS) =>
           set((state) => {
+            const editable = editableTransitionTargets(state, clipIds);
             let clips: TimelineClip[] = state.clips;
-            for (const id of clipIds) {
+            for (const id of editable) {
               if (!clips.some((c) => c.id === id)) continue;
-              clips = applyTransitionAtCut(clips, id, durationMs);
+              clips = applyTransitionAtCut(
+                clips,
+                id,
+                durationMs,
+                undefined,
+                transitionGrowthOptions(state)
+              );
             }
             return clips === state.clips ? state : { clips };
           }),
 
         applyFades: (clipIds, durationMs = DEFAULT_CLIP_FADE_MS) =>
           set((state) => {
+            const editable = editableTransitionTargets(state, clipIds);
             let changed = false;
             const clips = state.clips.map((clip) => {
-              if (!clipIds.has(clip.id) || !canClipFade(clip.mediaType)) {
+              if (!editable.has(clip.id) || !canClipFade(clip.mediaType)) {
                 return clip;
               }
               // Half the clip is the most each end can take without the two
@@ -2901,16 +2945,30 @@ export const createTimelineStore = (
 
         setTransitionDuration: (clipId, durationMs) =>
           set((state) => {
-            if (!state.clips.some((c) => c.id === clipId)) return state;
+            if (
+              !state.clips.some((c) => c.id === clipId) ||
+              !editableTransitionTargets(state, new Set([clipId])).has(clipId)
+            ) {
+              return state;
+            }
             return {
-              clips: applyTransitionAtCut(state.clips, clipId, durationMs)
+              clips: applyTransitionAtCut(
+                state.clips,
+                clipId,
+                durationMs,
+                undefined,
+                transitionGrowthOptions(state)
+              )
             };
           }),
 
         removeTransition: (clipId) =>
-          set((state) => ({
-            clips: removeTransitionAtCut(state.clips, clipId)
-          })),
+          set((state) => {
+            if (!editableTransitionTargets(state, new Set([clipId])).has(clipId)) {
+              return state;
+            }
+            return { clips: removeTransitionAtCut(state.clips, clipId) };
+          }),
 
         setClipKeyframe: (clipId, property, atMs, value) =>
           set((state) => {

@@ -299,7 +299,14 @@ export type WorkflowManagerState = {
   reorderWorkflows: (sourceIndex: number, targetIndex: number) => void;
   updateWorkflow: (workflow: WorkflowAttributes) => void;
   isSavingWorkflow: (workflowId: string) => boolean;
-  saveWorkflow: (workflow: Workflow) => Promise<void>;
+  /**
+   * Saves the workflow. `snapshot: false` skips the version row, for a save
+   * that only records progress on a change an earlier save already captured.
+   */
+  saveWorkflow: (
+    workflow: Workflow,
+    options?: { snapshot?: boolean }
+  ) => Promise<void>;
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
   fetchWorkflow: (
@@ -467,7 +474,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @throws {Error} If the save operation fails
        */
       isSavingWorkflow: (workflowId) => savesInFlight.has(workflowId),
-      saveWorkflow: async (workflow: Workflow) => {
+      saveWorkflow: async (
+        workflow: Workflow,
+        options?: { snapshot?: boolean }
+      ) => {
         savesInFlight.set(workflow.id, []);
         // The etag the server assigns this save. Every notice held while the
         // save runs is judged against it: equal means our own write.
@@ -533,17 +543,19 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         }
 
         // Version snapshot is best-effort — the main save already succeeded.
-        try {
-          await trpcClient.workflows.versions.create.mutate({
-            id: workflow.id,
-            name: workflow.name,
-            description: `Manual save: ${new Date().toISOString()}`
-          });
-        } catch (err) {
-          console.warn(
-            "[saveWorkflow] Workflow saved but version snapshot failed:",
-            err
-          );
+        if (options?.snapshot !== false) {
+          try {
+            await trpcClient.workflows.versions.create.mutate({
+              id: workflow.id,
+              name: workflow.name,
+              description: `Manual save: ${new Date().toISOString()}`
+            });
+          } catch (err) {
+            console.warn(
+              "[saveWorkflow] Workflow saved but version snapshot failed:",
+              err
+            );
+          }
         }
 
         const persistedWorkflow: Workflow = {

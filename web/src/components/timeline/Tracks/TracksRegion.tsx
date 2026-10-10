@@ -63,8 +63,7 @@ import RedoIcon from "@mui/icons-material/Redo";
 
 import {
   useTimelineStore,
-  useTimelineStoreApi,
-  getTimelineTemporal
+  useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import {
   useTimelineUIStore,
@@ -131,7 +130,7 @@ import { useTimelineIsMobile } from "../../../hooks/timeline/useTimelineIsMobile
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
-import { getKnownSourceDurationMs } from "./useClipSourceDuration";
+import { getSourceCapMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
 import {
@@ -979,22 +978,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           } else {
             const delta = edgeTargetMs - (target.startMs + target.durationMs);
             // Same cap as the pointer trim. Without a known source length a
-            // finite-source clip may not grow past its current out-point.
-            const known = getKnownSourceDurationMs(target.currentAssetId);
-            const finiteSource =
-              target.mediaType === "audio" || target.mediaType === "video";
-            const sourceMs =
-              known ??
-              (finiteSource
-                ? (target.outPointMs ??
-                  (target.inPointMs ?? 0) + target.durationMs)
-                : undefined);
+            // finite-source clip may not grow past its furthest out-point.
+            const sourceMs = getSourceCapMs(target);
             if (ui.rippleMode) doc.rippleTrimClipEnd(target.id, delta, sourceMs);
             else doc.trimClipEnd(target.id, delta, sourceMs);
           }
           return true;
         };
-        const trimEditBy = (deltaMs: number): boolean => {
+        // The ms of the frame `frames` away from `ms`'s nearest frame, so
+        // repeated steps land on the frame grid instead of drifting by the
+        // rounding of a fractional frame length.
+        const frameStepMs = (ms: number, frames: number): number =>
+          Math.round(Math.round(ms / frameMs + frames) * frameMs);
+        const trimEditByFrames = (frames: number): boolean => {
           const edit = ui.selectedEdit;
           const target = edit
             ? doc.clips.find((c) => c.id === edit.clipId)
@@ -1004,7 +1000,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             edit.edge === "start"
               ? target.startMs
               : target.startMs + target.durationMs;
-          return batchHeldKeyEdit(() => trimEdit(edgeMs + deltaMs));
+          return batchHeldKeyEdit(() =>
+            trimEdit(frameStepMs(edgeMs, frames))
+          );
         };
         // Runs one keyboard edit inside the held-key undo batch.
         const batchHeldKeyEdit = <T,>(edit: () => T): T => {
@@ -1081,16 +1079,16 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             if (trimEdit(liveMs)) e.preventDefault();
             return;
           case "trimEditLeft":
-            if (trimEditBy(-Math.round(frameMs))) e.preventDefault();
+            if (trimEditByFrames(-1)) e.preventDefault();
             return;
           case "trimEditRight":
-            if (trimEditBy(Math.round(frameMs))) e.preventDefault();
+            if (trimEditByFrames(1)) e.preventDefault();
             return;
           case "trimEditLeftLarge":
-            if (trimEditBy(-Math.round(frameMs * 10))) e.preventDefault();
+            if (trimEditByFrames(-10)) e.preventDefault();
             return;
           case "trimEditRightLarge":
-            if (trimEditBy(Math.round(frameMs * 10))) e.preventDefault();
+            if (trimEditByFrames(10)) e.preventDefault();
             return;
 
           case "stepFrameBack":
@@ -1185,9 +1183,18 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           case "nudgeRightLarge": {
             if (selectedClipIds.size === 0) return;
             e.preventDefault();
-            const large = action.endsWith("Large");
-            const stepMs = large ? 1000 : Math.round(frameMs);
-            nudge(action.startsWith("nudgeLeft") ? -stepMs : stepMs);
+            const direction = action.startsWith("nudgeLeft") ? -1 : 1;
+            if (action.endsWith("Large")) {
+              nudge(direction * 1000);
+              return;
+            }
+            // A one-frame nudge moves the primary clip to the next frame on
+            // the grid; the rest of the selection follows by the same delta.
+            const primary = doc.clips.find(
+              (c) => c.id === selectedClipIds.values().next().value
+            );
+            if (!primary) return;
+            nudge(frameStepMs(primary.startMs, direction) - primary.startMs);
             return;
           }
 
@@ -1257,13 +1264,15 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             zoomToFit();
             return;
 
+          // This editor's history, as the toolbar buttons use: the active
+          // instance can be another mounted timeline.
           case "undo":
             e.preventDefault();
-            getTimelineTemporal().undo();
+            docStore.temporal.getState().undo();
             return;
           case "redo":
             e.preventDefault();
-            getTimelineTemporal().redo();
+            docStore.temporal.getState().redo();
             return;
 
           case "applyDefaultTransition":

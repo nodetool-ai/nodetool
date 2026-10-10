@@ -1,10 +1,12 @@
 import { createScriptedGameSession, validateGame } from "@nodetool-ai/game-runtime";
 import { gameSnapshot, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
-import { GameAudioPlayer } from "./audio.js";
+import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
 import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { browserGamepads, GameInput } from "./input-bindings.js";
 import { resolveGameInputBindings } from "@nodetool-ai/protocol";
+import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
+import { GameParticles2D } from "./particles/render2d.js";
 
 declare global {
   interface Window {
@@ -68,6 +70,8 @@ async function start(): Promise<void> {
     mixer: game.audio?.mixer
   });
   audio.preload();
+  const budget = new GameFrameBudgetMonitor();
+  const particles = new GameParticles2D(game.tickRate);
   function unlockAudio(): void { void audio.unlock(); }
   const renderer = await createGameRenderer({
     canvas,
@@ -143,8 +147,10 @@ async function start(): Promise<void> {
     if (rendering) {
       return;
     }
-    rendering = renderer.render(latest, interpolation)
-      .then(() => {
+    audio.updateSpatial(gameAudioSpatialView2D(latest, interpolation));
+    rendering = renderer.render(latest, interpolation, particles)
+      .then((stats) => {
+        budget.observe({ drawCalls: stats.drawCalls, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
         if (effects.some((effect) => !effect.required) && renderer.capabilities.fallbackReason) {
           showStatus("GPU effect omitted after WebGPU failure");
         }
@@ -158,6 +164,7 @@ async function start(): Promise<void> {
       input.pollGamepads(browserGamepads());
       const result = session.step(input.sample2D(game));
       latest = result.frame;
+      particles.tick(result.frame, session.takePresentationEvents());
       result.events.forEach((event) => audio.handle(event));
       audio.sync(session.snapshot());
       return true;
@@ -225,6 +232,7 @@ async function start(): Promise<void> {
       session = restored;
       audio.reset(session.snapshot());
       latest = session.frame();
+      particles.clear();
       releaseAll();
       accumulator = 0;
       showStatus("Game reset");
@@ -251,6 +259,7 @@ async function start(): Promise<void> {
         session = restored;
         audio.reset(session.snapshot());
         latest = session.frame();
+        particles.clear();
         accumulator = 0;
         showStatus("Game loaded");
         render(1);
@@ -272,18 +281,19 @@ async function start(): Promise<void> {
       paused = true;
       const replacement = await createScriptedGameSession(game, 1);
       session.dispose(); session = replacement;
-      audio.reset(session.snapshot()); latest = session.frame(); releaseAll(); accumulator = 0;
+      audio.reset(session.snapshot()); latest = session.frame(); particles.clear(); releaseAll(); accumulator = 0;
       await rendering;
-      await renderer.render(latest, 1);
+      await renderer.render(latest, 1, particles);
     },
     step: async (input: GameInputFrame) => {
       paused = true;
       const result = session.step(input);
       latest = result.frame;
+      particles.tick(result.frame, session.takePresentationEvents());
       result.events.forEach(event => audio.handle(event));
       audio.sync(session.snapshot());
       await rendering;
-      await renderer.render(latest, 1);
+      await renderer.render(latest, 1, particles);
     },
     snapshot: () => session.snapshot()
   });

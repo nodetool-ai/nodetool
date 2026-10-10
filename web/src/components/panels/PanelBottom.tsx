@@ -66,12 +66,26 @@ const workerLabel = (() => {
   }
 })();
 
-const useWsConnected = (): boolean => {
-  const [connected, setConnected] = useState(
-    () => globalWebSocketManager.isConnectionOpen()
-  );
+/**
+ * The live connection as the status bar names it. The app opens the socket
+ * the first time something needs it, so before that it is `idle`, not
+ * `offline`: a first-time user reading "offline" on a working app takes it
+ * as something to fix.
+ */
+export type WsStatus = "connected" | "connecting" | "offline" | "idle";
+
+const readWsStatus = (): WsStatus => {
+  if (globalWebSocketManager.isConnectionOpen()) return "connected";
+  if (!globalWebSocketManager.hasConnectionStarted()) return "idle";
+  return globalWebSocketManager.getConnectionState().isConnecting
+    ? "connecting"
+    : "offline";
+};
+
+export const useWsStatus = (): WsStatus => {
+  const [status, setStatus] = useState(readWsStatus);
   useEffect(() => {
-    const sync = () => setConnected(globalWebSocketManager.isConnectionOpen());
+    const sync = () => setStatus(readWsStatus());
     const offOpen = globalWebSocketManager.subscribeEvent("open", sync);
     const offClose = globalWebSocketManager.subscribeEvent("close", sync);
     const offState = globalWebSocketManager.subscribeEvent("stateChange", sync);
@@ -82,10 +96,10 @@ const useWsConnected = (): boolean => {
       offState();
     };
   }, []);
-  return connected;
+  return status;
 };
 
-const useGraphCounts = (
+export const useGraphCounts = (
   workflowId: string | null | undefined
 ): { nodes: number; edges: number } => {
   const nodeStore = useWorkflowManager((state) =>
@@ -102,8 +116,15 @@ const useGraphCounts = (
       setCounts({ nodes: 0, edges: 0 });
       return;
     }
+    // Keep the previous object when the counts are unchanged. `nodes` gets a
+    // new identity on every drag frame, and a fresh object would re-render
+    // the whole bottom panel each time.
     const sync = (s: NodeStoreState) =>
-      setCounts({ nodes: s.nodes.length, edges: s.edges.length });
+      setCounts((prev) =>
+        prev.nodes === s.nodes.length && prev.edges === s.edges.length
+          ? prev
+          : { nodes: s.nodes.length, edges: s.edges.length }
+      );
     sync(nodeStore.getState());
     return nodeStore.subscribe((state: NodeStoreState, prev: NodeStoreState) => {
       if (state.nodes !== prev.nodes || state.edges !== prev.edges) {
@@ -465,7 +486,8 @@ const PanelBottom: React.FC = () => {
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
 
-  const isConnected = useWsConnected();
+  const wsStatus = useWsStatus();
+  const isConnected = wsStatus === "connected";
 
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
@@ -554,13 +576,13 @@ const PanelBottom: React.FC = () => {
             <div
               className="status-cluster"
               role="status"
-              aria-label={`Worker ${isConnected ? "connected" : "disconnected"}`}
+              aria-label={`Worker ${wsStatus}`}
             >
               <span
                 className={`status-dot ${isConnected ? "" : "disconnected"}`}
                 aria-hidden
               />
-              <span>{isConnected ? "connected" : "offline"}</span>
+              <span>{wsStatus}</span>
               <span className="sep" aria-hidden>·</span>
               <span>{workerLabel}</span>
               <WorkerStatusIndicator />

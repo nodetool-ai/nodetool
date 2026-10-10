@@ -25,6 +25,7 @@ export interface EntityState3D {
   controller?: ControllerState3D;
   angularVelocity: GameVector3;
   animation?: import("@nodetool-ai/protocol").GameAnimationState3D;
+  animationGraph?: import("@nodetool-ai/protocol").GameAnimationGraphRuntime3D;
   opacity?: number;
 }
 

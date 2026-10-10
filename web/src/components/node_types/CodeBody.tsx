@@ -162,7 +162,7 @@ const styles = (theme: Theme) =>
     },
     ".editor-placeholder": {
       padding: theme.spacing(SPACING.xs),
-      fontFamily: "monospace",
+      fontFamily: "var(--fontFamily2)",
       whiteSpace: "pre-wrap",
       overflow: "hidden",
       alignItems: "flex-start",

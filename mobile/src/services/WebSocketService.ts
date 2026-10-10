@@ -38,7 +38,14 @@ const TERMINAL_JOB_STATUSES = new Set([
 class WebSocketService {
   private static instance: WebSocketService | null = null;
   private wsManager: WebSocketManager | null = null;
-  private currentPath: string | null = null;
+  /** Full socket URL (host + path) of the current transport. */
+  private currentUrl: string | null = null;
+  /**
+   * Headers handed to the current transport. The manager keeps this object by
+   * reference and reads it on every (re)connect attempt, so it is updated in
+   * place with the latest access token rather than baked in once.
+   */
+  private headers: Record<string, string> = {};
   private connectPromise: Promise<void> | null = null;
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
   /** job_id -> workflow_id for jobs believed to still be running. */
@@ -71,9 +78,10 @@ class WebSocketService {
    * the new socket; `handleOpen` re-attaches any running jobs.
    */
   private handleForeground(): void {
-    if (!this.currentPath || !this.wsManager) {
+    if (!this.currentUrl || !this.wsManager) {
       return;
     }
+    this.syncAuthHeader();
     this.wsManager.resumeFromBackground();
   }
 
@@ -89,13 +97,24 @@ class WebSocketService {
     return WebSocketService.instance;
   }
 
+  /** Write the session's current access token into the shared headers. */
+  private syncAuthHeader(): void {
+    const token = useAuthStore.getState().session?.access_token;
+    if (token) {
+      this.headers.Authorization = `Bearer ${token}`;
+    } else {
+      delete this.headers.Authorization;
+    }
+  }
+
   /**
-   * Ensure a connection to `path` is established, reusing an existing one and
-   * de-duplicating concurrent callers. Switching paths tears down the old
-   * connection first.
+   * Ensure a connection to `path` on the current API host is established,
+   * reusing an existing one and de-duplicating concurrent callers. A different
+   * path or host (changed in Settings) tears down the old connection first.
    */
   async ensureConnection(path: string): Promise<void> {
-    if (this.wsManager && this.currentPath === path) {
+    const url = apiService.getWebSocketUrl(path);
+    if (this.wsManager && this.currentUrl === url) {
       // Reuse a healthy socket, and also one the transport is already bringing
       // back up (e.g. a foreground-triggered reconnect) — replacing it here
       // would throw away an in-flight connection. Messages sent meanwhile are
@@ -110,15 +129,15 @@ class WebSocketService {
       }
     }
 
-    if (this.wsManager && this.currentPath !== path) {
+    if (this.wsManager && this.currentUrl !== url) {
       this.teardown();
     }
 
-    if (this.connectPromise && this.currentPath === path) {
+    if (this.connectPromise && this.currentUrl === url) {
       return this.connectPromise;
     }
 
-    this.connectPromise = this.establish(path);
+    this.connectPromise = this.establish(url);
     try {
       await this.connectPromise;
     } finally {
@@ -126,25 +145,22 @@ class WebSocketService {
     }
   }
 
-  private async establish(path: string): Promise<void> {
+  private async establish(url: string): Promise<void> {
     this.ensureLifecycleSubscription();
 
     // Drop any previous (failed/closed) manager before opening a new one.
     this.wsManager?.destroy();
-    this.currentPath = path;
+    this.currentUrl = url;
 
     // The auth token is sent as an Authorization header (see WebSocketManager)
     // rather than a `?api_key=` query param, keeping it out of URLs/logs.
-    const url = apiService.getWebSocketUrl(path);
-    const session = useAuthStore.getState().session;
-    const headers = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : undefined;
+    this.headers = {};
+    this.syncAuthHeader();
     console.log('WebSocketService: Connecting to', url);
 
     const manager = new WebSocketManager({
       url,
-      headers,
+      headers: this.headers,
       reconnect: true,
       reconnectInterval: 1000,
       reconnectDecay: 1.5,
@@ -160,8 +176,13 @@ class WebSocketService {
         this.routeMessage(data as unknown as Record<string, unknown>),
       onError: (error: Error) =>
         console.error('WebSocketService: Error', error.message),
-      onClose: (code: number, reason: string) =>
-        console.log(`WebSocketService: Disconnected (code=${code}, reason=${reason})`),
+      onClose: (code: number, reason: string) => {
+        console.log(`WebSocketService: Disconnected (code=${code}, reason=${reason})`);
+        // The transport schedules its reconnect right after this callback;
+        // hand it the token as it is now, which may have been refreshed
+        // since the socket opened.
+        this.syncAuthHeader();
+      },
     });
     this.wsManager = manager;
 
@@ -293,7 +314,7 @@ class WebSocketService {
   private teardown(): void {
     this.wsManager?.destroy();
     this.wsManager = null;
-    this.currentPath = null;
+    this.currentUrl = null;
     this.connectPromise = null;
     this.activeJobs.clear();
     this.hasOpened = false;

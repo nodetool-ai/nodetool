@@ -20,7 +20,7 @@ function errorMsg(error: unknown): string {
 }
 
 /** Shape of a single entry from `uv pip list --format=json`. */
-interface PipPackage {
+export interface PipPackage {
   name: string;
   version: string;
 }
@@ -212,6 +212,18 @@ function tokenizeVersion(version: string): string[] {
   return normalized.split(/[.\-_+]/).filter(Boolean);
 }
 
+// PEP 440 pre-release and dev tags. They sort below the release they precede,
+// unlike `.postN`, which sorts above it.
+const PRE_RELEASE_TAGS = new Set(["a", "alpha", "b", "beta", "c", "rc", "pre", "preview", "dev"]);
+
+function isPreReleaseTag(token: string): boolean {
+  return PRE_RELEASE_TAGS.has(token.toLowerCase());
+}
+
+function isPreReleaseVersion(version: string): boolean {
+  return tokenizeVersion(version).some(isPreReleaseTag);
+}
+
 function compareVersions(a: string, b: string): number {
   if (a === b) return 0;
   const tokensA = tokenizeVersion(a);
@@ -222,8 +234,8 @@ function compareVersions(a: string, b: string): number {
     const segA = tokensA[i];
     const segB = tokensB[i];
 
-    if (segA === undefined) return -1;
-    if (segB === undefined) return 1;
+    if (segA === undefined) return isPreReleaseTag(segB) ? 1 : -1;
+    if (segB === undefined) return isPreReleaseTag(segA) ? -1 : 1;
     if (segA === segB) continue;
 
     const numA = Number(segA);
@@ -287,10 +299,18 @@ export function coInstalledRequirements(
   return requirements;
 }
 
-/** The refusal for a catalog pack that does not run on this machine. */
+/**
+ * The refusal for a pack outside the catalog, or a catalog pack that does not
+ * run on this machine. The repo id comes from the renderer, and anything that
+ * passes here is handed to `uv pip install`, so an id outside the catalog
+ * would install an arbitrary PyPI package (and run its build scripts).
+ */
 function unsupportedPackMessage(repoId: string): string | null {
   const pack = findPythonNodePack(repoId);
-  if (!pack || isPythonPackSupported(pack, process.platform, process.arch)) {
+  if (!pack) {
+    return `${repoId} is not a NodeTool package.`;
+  }
+  if (isPythonPackSupported(pack, process.platform, process.arch)) {
     return null;
   }
   return (
@@ -344,8 +364,12 @@ async function fetchLatestVersionFromSimpleIndex(
       return null;
     }
 
-    candidates.sort(compareVersions);
-    return candidates[candidates.length - 1];
+    // Install the newest release. A pre-release is only taken when the
+    // package has never published anything else.
+    const releases = candidates.filter((version) => !isPreReleaseVersion(version));
+    const pool = releases.length > 0 ? releases : candidates;
+    pool.sort(compareVersions);
+    return pool[pool.length - 1];
   } catch (error: unknown) {
     logMessage(
       `Failed to fetch latest version for ${packageName}: ${errorMsg(error)}`,
@@ -788,30 +812,82 @@ async function runUvCommand(
 }
 
 /**
- * Internal function to list installed Python packages without version checking.
+ * Every distribution in the runtime Python, from `uv pip list`.
+ *
+ * Without uv nothing is installed, so this returns an empty list instead of
+ * going through `runUvCommand`, which would install the whole Python runtime
+ * just because the Package Manager was opened. Install and update pass
+ * `throwOnError`: resolving a new pack without the installed packs' pins is
+ * how one pack's torch replaces another's.
  */
-async function listPythonInstalledPackages(): Promise<PackageModel[]> {
+async function readPipPackages(throwOnError: boolean): Promise<PipPackage[]> {
+  if (!(await fileExists(getUVPath()))) {
+    return [];
+  }
   try {
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
     const parsed: unknown = JSON.parse(output);
-    const allPackages = isPipPackageArray(parsed) ? parsed : [];
-
-    return allPackages
-      .filter((pkg) => pkg.name.startsWith("nodetool-"))
-      .map((pkg) => ({
-        name: pkg.name,
-        description: "",
-        version: pkg.version,
-        authors: [],
-        repo_id: "nodetool-ai/" + pkg.name,
-        nodes: [],
-        examples: [],
-        assets: [],
-      }));
+    return isPipPackageArray(parsed) ? parsed : [];
   } catch (error: unknown) {
     logMessage(`Failed to list installed Python packages: ${errorMsg(error)}`, "error");
+    if (throwOnError) {
+      throw new Error(`Could not list the installed Python packages: ${errorMsg(error)}`);
+    }
     return [];
   }
+}
+
+function toNodetoolPackageModels(pipPackages: readonly PipPackage[]): PackageModel[] {
+  return pipPackages
+    .filter((pkg) => pkg.name.startsWith("nodetool-"))
+    .map((pkg) => ({
+      name: pkg.name,
+      description: "",
+      version: pkg.version,
+      authors: [],
+      repo_id: "nodetool-ai/" + pkg.name,
+      nodes: [],
+      examples: [],
+      assets: [],
+    }));
+}
+
+/**
+ * Internal function to list installed Python packages without version checking.
+ */
+async function listPythonInstalledPackages(): Promise<PackageModel[]> {
+  return toNodetoolPackageModels(await readPipPackages(false));
+}
+
+const TORCH_FAMILY = ["torch", "torchvision", "torchaudio"];
+
+/**
+ * `--reinstall-package` arguments for torch wheels built for another backend.
+ *
+ * An installed `torch 2.9.0+cpu` already satisfies a pack's `torch`
+ * requirement, so `--torch-backend cu128` alone leaves it in place: users who
+ * once got CPU torch would keep it through every install and update. The
+ * local version tag (`+cpu`, `+cu128`, `+rocm7.2`, `+xpu`) names the build.
+ */
+export function torchReinstallArgs(
+  pipPackages: readonly PipPackage[],
+  backend: TorchBackend | null
+): string[] {
+  // `auto` names no build, and CPU torch is never replaced by another build.
+  if (!backend || backend === "cpu" || backend === "auto") {
+    return [];
+  }
+  const args: string[] = [];
+  for (const pkg of pipPackages) {
+    if (!TORCH_FAMILY.includes(pkg.name.toLowerCase())) {
+      continue;
+    }
+    const localTag = pkg.version.split("+")[1];
+    if (localTag !== undefined && localTag !== backend) {
+      args.push("--reinstall-package", pkg.name);
+    }
+  }
+  return args;
 }
 
 /**
@@ -922,7 +998,8 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     logMessage(message);
     emitServerLog(message);
 
-    const installed = await listPythonInstalledPackages();
+    const pipPackages = await readPipPackages(true);
+    const installed = toNodetoolPackageModels(pipPackages);
     const coInstalled = coInstalledRequirements(installed, [packageName]);
     const backend = await detectTorchBackendForInstall([
       packageName,
@@ -934,6 +1011,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     const args = [
       "pip",
       "install",
+      ...torchReinstallArgs(pipPackages, backend),
       ...buildInstallIndexArgs(backend),
       "--system",
       installSpec,
@@ -974,9 +1052,14 @@ export async function uninstallPackage(
     }
   }
 
+  // Installed packs are listed as nodetool-ai/<dist name> for every
+  // nodetool-* distribution, so that is all the renderer may remove.
+  const [owner, projectName] = repoId.split("/");
+  if (owner !== "nodetool-ai" || !projectName?.startsWith("nodetool-")) {
+    return { success: false, message: `${repoId} is not a NodeTool package.` };
+  }
+
   try {
-    // Extract project name from repo_id (e.g., "owner/project" -> "project")
-    const projectName = repoId.split("/")[1];
 
     // Use uv pip uninstall
     await runUvCommand(["pip", "uninstall", projectName], { stdin: "y\n" });
@@ -1033,7 +1116,8 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     emitServerLog(message);
     emitBootMessage(message);
 
-    const installed = await listPythonInstalledPackages();
+    const pipPackages = await readPipPackages(true);
+    const installed = toNodetoolPackageModels(pipPackages);
     const coInstalled = coInstalledRequirements(installed, [packageName]);
     const backend = await detectTorchBackendForInstall([
       packageName,
@@ -1050,6 +1134,7 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       packageName,
       "--refresh-package",
       packageName,
+      ...torchReinstallArgs(pipPackages, backend),
       ...buildInstallIndexArgs(backend),
       "--system",
       installSpec,

@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { GAME_TOOL_LOOP_CASES } from "../src/evals/surfaces/game.js";
+import { GAME_3D_TOOL_LOOP_CASES, GAME_TOOL_LOOP_CASES } from "../src/evals/surfaces/game.js";
 
 it("scores native entity metadata authored through the public edit surface", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="entity-tags-properties");
@@ -11,6 +11,23 @@ it("scores native entity metadata authored through the public edit surface", asy
   const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
   if (!edit) { throw new Error("Native edit tool must exist"); }
   await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{tags:["hero"],props:{health:10,nested:{nullable:null}}}}]});
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
+it("scores a 3D animation graph authored through the public edit surface", async () => {
+  const candidate = GAME_3D_TOOL_LOOP_CASES.find(item=>item.id==="animation-graph-locomotion");
+  if (!candidate) { throw new Error("Animation graph eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Animation graph eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const graph = { parameters: { speed: { kind: "float", default: 0 } }, layers: [{ id: "base", initialState: "move", states: {
+    move: { motion: { kind: "blend1d", parameter: "speed", points: [{ value: 0, clip: "idle" }, { value: 2, clip: "walk" }, { value: 6, clip: "run" }] } } } }] };
+  const rejected = await edit.execute({ops:[{op:"update_entity",entity_id:"player-visual",set:{animator3d:{graph:"locomotion"}}}]});
+  expect(rejected).toMatchObject({ error: expect.stringContaining("Animation graph locomotion does not exist") });
+  await edit.execute({ops:[{op:"set_animation_graph",graph_id:"locomotion",graph},{op:"update_entity",entity_id:"player-visual",set:{animator3d:{graph:"locomotion"}}}]});
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
 
@@ -80,6 +97,26 @@ it("scores a particles component authored through the public edit surface", asyn
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
 
+it("scores render culling authored through the public 3D edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="render-culling");
+  if (!candidate) { throw new Error("Render culling eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Render culling eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  expect(await edit.execute({ops:[{op:"update_entity",entity_id:"crate",set:{renderCulling:{layer:"props"}}}]})).toHaveProperty("error");
+  const result = await edit.execute({ops:[
+    {op:"set_performance",performance:{cullLayers:{props:{maxDistance:40}},budgets:{drawCalls:300}}},
+    {op:"update_entity",entity_id:"crate",set:{renderCulling:{layer:"props"}}},
+    {op:"update_entity",entity_id:"pickup",set:{renderCulling:{layer:"props"}}},
+    {op:"update_entity",entity_id:"ramp",set:{renderCulling:{maxDistance:25}}}
+  ]});
+  expect(result).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
 it("scores an input map authored through set_game input_bindings", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="input-bindings");
   if (!candidate) { throw new Error("Input binding eval case must exist"); }
@@ -90,5 +127,50 @@ it("scores an input map authored through set_game input_bindings", async () => {
   const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
   if (!edit) { throw new Error("Native edit tool must exist"); }
   await edit.execute({ops:[{op:"set_game",input_bindings:{actions:{left:[{kind:"key",code:"KeyJ"},{kind:"gamepadButton",button:14}]},axes:{}}}]});
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
+it("scores a spatial audio source authored through update_entity", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="spatial-audio-source");
+  if (!candidate) { throw new Error("Spatial audio eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Spatial audio eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const result = await edit.execute({ops:[{op:"update_entity",entity_id:"gem",set:{audioSource:{spatial:true,minDistance:2,maxDistance:20,distanceModel:"linear"}}}]});
+  expect(result).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
+it("scores particle render settings authored through the public edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="particle-rendering");
+  if (!candidate) { throw new Error("Particle rendering eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Particle rendering eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const result = await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{particles:{emitters:[
+    {id:"embers",blend:"additive",unlit:true,layer:5,sprite:{assetId:"gem",columns:4,rows:2}}
+  ]}}}]});
+  expect(result).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
+it("scores a lifecycle timer script authored through the public edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="lifecycle-timer-script");
+  if (!candidate) { throw new Error("Lifecycle eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Lifecycle eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const behaviors = bridge.finalState().scenes[0].entities.find(entity=>entity.id==="player")?.behaviors ?? [];
+  const source = "({ onStart() { every(60, \"beat\"); }, beat() { return { commands: [{ kind: \"emit\", event: \"heartbeat\" }] }; } })";
+  await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors,{kind:"script",source}]}}]});
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
