@@ -313,6 +313,18 @@ export const SEED_CODE_BODIES: readonly { id: string; code: string }[] = [
   },
   { id: "empty-ish", code: "// nothing to see\n" },
   {
+    id: "wrapper-escape-call",
+    code: "}).call();\nawait output('n', 1);\n(async function(){"
+  },
+  {
+    id: "wrapper-escape",
+    code: "});\nawait output('n', 1);\n(async function(){"
+  },
+  {
+    id: "function-only-syntax",
+    code: "const total = (new.target ?? 0) + inputs.a;\nreturn { n: total, out: 2, doc: 3 };"
+  },
+  {
     id: "export-module",
     code: "export const x = 1;\nreturn { n: 1, out: 2, doc: 3 };"
   },
