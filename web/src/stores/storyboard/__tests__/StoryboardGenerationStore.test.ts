@@ -296,18 +296,19 @@ describe("production candidate responses", () => {
     expect(landed?.status).toBe("rendered");
   });
 
-  it("selects a later render's clip over the one already on the shot", () => {
+  it("keeps the newer render selected when an older batch's next take lands", () => {
     const shotId = "s-second-render";
     seedShot(shotId);
-    const land = (batchId: string, assetId: string): void => {
+    const land = (batchId: string, assetId: string, variation = 0): void => {
       const production = compileProductionCandidates({
         batchId,
         destinationId: shotId,
         destinationKind: "storyboard_shot",
         operation: "initial_generation",
         prompt: "one take",
+        requirement: { schema_version: 1, speech_mode: "none", requested_take_count: 2 },
         routeSupport: { referenceToVideo: true, audioDrivenPerformance: false }
-      })[0];
+      })[variation];
       if (!production) throw new Error("Expected a production candidate.");
       useStoryboardGenerationStore
         .getState()
@@ -334,6 +335,7 @@ describe("production candidate responses", () => {
 
     land("batch-first", "clip-1");
     land("batch-second", "clip-2");
+    land("batch-first", "clip-1-late", 1);
 
     const shot = useStoryboardStore
       .getState()
@@ -342,7 +344,8 @@ describe("production candidate responses", () => {
     expect(shot?.clip?.asset_id).toBe("clip-2");
     expect(shot?.clip_versions?.map((version) => version.asset_id)).toEqual([
       "clip-1",
-      "clip-2"
+      "clip-2",
+      "clip-1-late"
     ]);
   });
 

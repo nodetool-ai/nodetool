@@ -1143,6 +1143,12 @@ const settleShotAsset = (
     if (renderInputs) {
       candidate.render_inputs = renderInputs;
     }
+    const batchHasTake = storyboard
+      .getBoard(context.boardId)
+      ?.shots.find((item) => item.id === context.shotId)
+      ?.clip_versions?.some(
+        (version) => "batchId" in version && version.batchId === candidate.batchId
+      ) ?? false;
     storyboard.appendShotClipVersion(
       context.boardId,
       context.shotId,
@@ -1154,11 +1160,9 @@ const settleShotAsset = (
     if (!shot) return;
     // A new render's first finished take becomes the shot's clip. Further
     // variations from the same batch remain takes until the creator chooses.
-    const selectedBatch =
-      shot.clip && "batchId" in shot.clip ? shot.clip.batchId : undefined;
     if (
       candidate.asset_id &&
-      (!shot.clip || selectedBatch !== candidate.batchId)
+      (!shot.clip || !batchHasTake)
     ) {
       storyboard.setShotClip(context.boardId, context.shotId, candidate);
     }
