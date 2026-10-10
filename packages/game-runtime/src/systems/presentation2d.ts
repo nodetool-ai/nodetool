@@ -49,6 +49,7 @@ export function frameFor(
   const sprites: GameRenderFrame["sprites"] = [];
   const tiles: GameRenderFrame["tiles"] = [];
   const particles: NonNullable<GameRenderFrame["particles"]> = [];
+  const audioEmitters: NonNullable<GameRenderFrame["audioEmitters"]> = [];
   const cameraX = cameraState?.x ?? 0;
   const cameraY = cameraState?.y ?? 0;
   // Tiles and lights outside the view plus a margin never reach the renderer, so large levels stay cheap.
@@ -70,6 +71,9 @@ export function frameFor(
       continue;
     }
     const entity = state.definition;
+    if (entity.audioSource?.spatial) {
+      audioEmitters.push({ entityId: entity.id, x: state.x, y: state.y, previousX: state.previousX, previousY: state.previousY });
+    }
     if (entity.sprite) {
       const spriteDefinition = entity.sprite;
       const binding = document.assets[entity.sprite.assetId];
@@ -243,6 +247,9 @@ export function frameFor(
   };
   if (particles.length > 0) {
     frame.particles = particles;
+  }
+  if (audioEmitters.length > 0) {
+    frame.audioEmitters = audioEmitters;
   }
   if (scene.lighting) {
     // Entity lights follow their entities; the nearest ones fill the slots the scene's fixed lights leave.

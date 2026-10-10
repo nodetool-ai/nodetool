@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { OfflineAudioContext } from "node-web-audio-api";
-import type { GameAudioEmitter, GameRenderFrame, GameRenderFrame3D, GameTransform3D } from "@nodetool-ai/protocol";
+import { gameDocument, gameRenderFrame, type GameAudioEmitter, type GameRenderFrame, type GameRenderFrame3D, type GameTransform3D } from "@nodetool-ai/protocol";
+import { createScriptedGameSession } from "@nodetool-ai/game-runtime";
 import { GameAudioMixer } from "../src/audio/mixer.js";
 import {
   createGameAudioPanner, gameAudioDopplerRate, gameAudioSpatialView2D, gameAudioSpatialView3D, placeGameAudioListener, placeGameAudioPanner,
@@ -80,6 +81,24 @@ describe("spatial audio", () => {
   it("pans 2D emitters relative to the camera", async () => {
     const right = await render(gameAudioSpatialView2D(frame2D(5), 1), "low");
     expect(right.right).toBeGreaterThan(right.left * 1.3);
+  });
+
+  it("follows a moving audio source without a sprite or particle emitter", async () => {
+    const document = gameDocument.parse({ id: "audio", revision: "one", entrySceneId: "room", schemaVersion: 1,
+      engineVersion: "1", tickRate: 60, pixelsPerUnit: 32, inputActions: [],
+      assets: { sound: { assetId: "builtin:sfx.collect", digest: "builtin:sfx.collect-v1", mediaKind: "audio", width: 1, height: 1 } },
+      scenes: [{ id: "room", name: "Room", entities: [{ id: "radio", transform2d: { x: 5, y: 2 },
+        audioSource: { assetId: "sound", onEvent: "hum", spatial: true },
+        body2d: { type: "kinematic", velocity: { x: 240, y: 120 } } }] }] });
+    const session = await createScriptedGameSession(document, 1);
+    try {
+      const initial = gameRenderFrame.parse(session.frame());
+      expect(gameAudioSpatialView2D(initial, 1).emitter("radio")?.position).toEqual({ x: 5, y: 2, z: 0 });
+      const { frame } = session.step({ pressed: [], justPressed: [] });
+      expect(frame.sprites).toEqual([]);
+      const roundTrip = gameRenderFrame.parse(JSON.parse(JSON.stringify(frame)));
+      expect(gameAudioSpatialView2D(roundTrip, 0.5).emitter("radio")?.position).toEqual({ x: 7, y: 3, z: 0 });
+    } finally { session.dispose(); }
   });
 
   it("attenuates with distance by the authored model and rolloff", async () => {
