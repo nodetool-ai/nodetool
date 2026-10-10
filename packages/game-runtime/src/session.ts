@@ -12,6 +12,7 @@ import type {
   GameEvent,
   GameParticleEmission,
   GameHudLabel,
+  GameUiOverride,
   GameInputFrame,
   GameRenderFrame,
   GameScene,
@@ -177,6 +178,7 @@ function createGameSessionWithRunner(
   let activeContacts = new Map<string, ContactPair>();
   let scriptState: GameSnapshot["scriptState"] = {};
   let hud = new Map<string, GameHudLabel>();
+  let ui = new Map<string, GameUiOverride>();
   let disposed = false;
   let failed = false;
 
@@ -274,6 +276,7 @@ function createGameSessionWithRunner(
     );
     scriptState = structuredClone(parsed.scriptState);
     hud = new Map(parsed.hud.map((label) => [label.id, { ...label }]));
+    ui = new Map(Object.entries(structuredClone(parsed.ui ?? {})));
   }
 
   function snapshot(): GameSnapshot {
@@ -297,6 +300,8 @@ function createGameSessionWithRunner(
       activeContacts: [...activeContacts.values()].map(({ entityId, otherId, sensor }) => ({ entityId, otherId, sensor })),
       scriptState: structuredClone(scriptState),
       hud: [...hud.values()].map((label) => ({ ...label })),
+      // Left out until a script changes the HUD tree, so snapshots of games without one keep their bytes.
+      ...(ui.size > 0 ? { ui: structuredClone(Object.fromEntries(ui)) } : {}),
       entities: states.map((state) => {
         const entity: GameSnapshot["entities"][number] = {
           id: state.definition.id,
@@ -446,6 +451,12 @@ function createGameSessionWithRunner(
     set hud(value) {
       hud = value;
     },
+    get ui() {
+      return ui;
+    },
+    set ui(value) {
+      ui = value;
+    },
 
     get activeContacts() {
       return activeContacts;
@@ -552,7 +563,7 @@ function createGameSessionWithRunner(
       if (failed) {
         throw new Error("Game session stopped after a failed step");
       }
-      return frameFor(document, scene, states, tick, score, won, hud);
+      return frameFor(document, scene, states, tick, score, won, hud, ui);
     },
     inspect(query): GameInspection {
       const current = snapshot();

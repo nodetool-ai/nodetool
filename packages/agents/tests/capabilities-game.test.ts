@@ -162,6 +162,20 @@ describe("native game capabilities", () => {
     expect(audio?.spatial).toBe(true);
   });
 
+  it("stores and clears the HUD widget tree through edit_native_game", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "HUD" }) as GameReply;
+    const ui = { nodes: [{ kind: "panel", id: "scorePanel", anchor: { x: 1, y: 0 }, width: 120, height: 32 },
+      { kind: "text", id: "score", parent: "scorePanel", text: "Score 0" }] };
+    const edited = await agent.invoke("edit_native_game", { game_id: created.game.id, ops: [{ op: "set_ui", ui }] }) as GameReply;
+    expect(edited.document.ui).toEqual(ui);
+    expect(await agent.invoke("edit_native_game", { game_id: created.game.id,
+      ops: [{ op: "set_ui", ui: { nodes: [{ kind: "text", id: "orphan", parent: "missing", text: "x" }] } }] }))
+      .toMatchObject({ error: "Invalid game ops", issues: [{ op_index: 0 }] });
+    const cleared = await agent.invoke("edit_native_game", { game_id: created.game.id, ops: [{ op: "set_ui", ui: null }] }) as GameReply;
+    expect(cleared.document.ui).toBeUndefined();
+  });
+
   it("edits the draft atomically, reads an outline, and captures the edited frame", async () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Draft room" }) as GameReply;

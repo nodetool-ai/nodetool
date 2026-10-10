@@ -67,6 +67,8 @@ export class GameInput {
   private readonly previousPressed = new Map<string, number>();
   private readonly gamepadButtons = new Map<number, number>();
   private readonly touchSince = new Map<string, number>();
+  // Actions held by HUD buttons, with the press stamp and how many pointers or focus presses hold each.
+  private readonly uiHeld = new Map<string, { readonly since: number; holders: number }>();
   private gamepadAxes: number[] = [];
   private touch: TouchInputState = EMPTY_TOUCH;
   private stickSince: number | undefined;
@@ -131,6 +133,23 @@ export class GameInput {
     this.touch = state;
   }
 
+  /** A HUD button press. The action stays held until as many `releaseUiAction` calls as presses. */
+  pressUiAction(action: string): void {
+    if (!this.enabled) { return; }
+    const held = this.uiHeld.get(action);
+    if (held) { held.holders += 1; return; }
+    const since = ++this.clock;
+    this.uiHeld.set(action, { since, holders: 1 });
+    if (!this.newSources.has(`ui:${action}`)) { this.newSources.set(`ui:${action}`, since); }
+  }
+
+  releaseUiAction(action: string): void {
+    const held = this.uiHeld.get(action);
+    if (!held) { return; }
+    held.holders -= 1;
+    if (held.holders <= 0) { this.uiHeld.delete(action); }
+  }
+
   /** Reads every connected gamepad. Call once per tick with `navigator.getGamepads()`. */
   pollGamepads(pads: readonly (GamepadLike | null)[] | null | undefined): void {
     const buttons = new Set<number>();
@@ -163,6 +182,7 @@ export class GameInput {
     this.previousPressed.clear();
     this.gamepadButtons.clear();
     this.touchSince.clear();
+    this.uiHeld.clear();
     this.gamepadAxes = [];
     this.touch = EMPTY_TOUCH;
     this.stickSince = undefined;
@@ -223,6 +243,9 @@ export class GameInput {
         held = Math.min(held, since === "analog" ? previous.get(action) ?? sampledAt : since ?? Infinity);
         fresh = Math.min(fresh, this.pressedSince(binding, action, codes) ?? Infinity);
       }
+      // A HUD button holds its action whatever the bindings are.
+      held = Math.min(held, this.uiHeld.get(action)?.since ?? Infinity);
+      fresh = Math.min(fresh, this.newSources.get(`ui:${action}`) ?? Infinity);
       if (held !== Infinity) {
         pressed.push({ action, since: held });
         this.previousPressed.set(action, held);
