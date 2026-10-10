@@ -448,6 +448,7 @@ export class SelectTool implements ToolHandler {
             constrainSquare: this.marqueeConstrainSquareNow(ctx)
           }
         );
+        this.snapping.keepLinesThrough([start, end]);
         ctx.drawOverlaySelection(start, end);
       } else {
         ctx.drawOverlaySelection(this.selectStart, pt);

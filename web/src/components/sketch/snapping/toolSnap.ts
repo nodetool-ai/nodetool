@@ -92,6 +92,7 @@ export function showSnapLines(lines: SnapLines | null): void {
  */
 export class DragSnapSession {
   private targets: SnapTargets | null = null;
+  private lastLines: SnapLines | null = null;
 
   begin(ctx: ToolContext, excludeLayerIds: ReadonlySet<string> = new Set()): void {
     this.targets = isSnapEnabled() ? collectSnapTargets(ctx, excludeLayerIds) : null;
@@ -103,8 +104,25 @@ export class DragSnapSession {
       return point;
     }
     const snapped = snapPoint(point, this.targets, snapThreshold(ctx.zoom));
+    this.lastLines = snapped.lines;
     showSnapLines(snapped.lines);
     return { x: snapped.x, y: snapped.y };
+  }
+
+  /**
+   * Keep only the lines from the last `snap` that one of `points` still lies
+   * on. A constraint applied after snapping (Shift square, Shift angle) can
+   * move the drawn corner off the line it snapped to, and the guide must not
+   * show a line the shape does not end on.
+   */
+  keepLinesThrough(points: readonly Point[]): void {
+    const lines = this.lastLines;
+    if (!this.targets || !lines) {
+      return;
+    }
+    const onLine = (line: number | null, axis: "x" | "y"): number | null =>
+      line !== null && points.some((p) => Math.abs(p[axis] - line) < 1e-6) ? line : null;
+    showSnapLines({ x: onLine(lines.x, "x"), y: onLine(lines.y, "y") });
   }
 
   /** Snap the edges a handle moves. A `null` axis is left alone. */
@@ -145,5 +163,6 @@ export class DragSnapSession {
       showSnapLines(null);
     }
     this.targets = null;
+    this.lastLines = null;
   }
 }

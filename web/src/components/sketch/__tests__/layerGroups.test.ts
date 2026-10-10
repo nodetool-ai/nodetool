@@ -230,6 +230,32 @@ describe("Store: addGroup", () => {
     expect(group).toBeDefined();
     expect(group!.name).toMatch(/^Group \d+$/);
   });
+  it("adds a group above a grouped layer without splitting its group", () => {
+    let outerId: string;
+    act(() => {
+      outerId = useSketchStore.getState().addGroup("Outer");
+    });
+    let aId: string;
+    let bId: string;
+    act(() => {
+      aId = useSketchStore.getState().addLayer("A");
+      bId = useSketchStore.getState().addLayer("B");
+      useSketchStore.getState().setActiveLayer(aId!);
+    });
+    let newGroupId: string;
+    act(() => {
+      newGroupId = useSketchStore.getState().addGroup("New");
+    });
+    const layers = useSketchStore.getState().document.layers;
+    const newGroup = layers.find((l) => l.id === newGroupId!);
+    // The new group sits above A inside Outer, so B stays Outer's top child
+    // and the flat order still keeps each group's children contiguous.
+    expect(newGroup?.parentId).toBe(outerId!);
+    expect(layers.map((l) => l.id).indexOf(newGroupId!)).toBe(
+      layers.map((l) => l.id).indexOf(aId!) + 1
+    );
+    expect(layers[layers.length - 1].id).toBe(bId!);
+  });
 });
 
 describe("Store: addLayer placement relative to active layer", () => {
