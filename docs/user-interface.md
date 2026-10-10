@@ -15,7 +15,7 @@ A tour of the interface. Same views on desktop and in the browser.
 | View | What it is | Docs |
 |---|---|---|
 | **Workspace** `/workspace` | Where the app opens: your tabs, or the new-project surface when you have none | [Getting Started](getting-started.md) |
-| **Projects** — rail button | Documents grouped by the job they belong to, with their own agent | [Projects](#projects) |
+| **Projects** — rail button | Documents grouped by the job they belong to, with their own agent | [Projects](projects.md) |
 | **Workflow Editor** — workspace tab | The node canvas, with panels on every edge | [Workflow Editor](workflow-editor.md) · [Panels](editor-panels.md) |
 | **Chain Editor** `/chain/:workflowId?` | Linear card pipeline instead of a graph | [Chain Editor](chain-editor.md) |
 | **Chat** — Chats panel | Threads open as workspace tabs; the agent edits what you have open | [Chat](global-chat.md) |
@@ -47,29 +47,14 @@ install wizard, a system tray, and frameless mini-app windows.
 
 ## Projects
 
-A project is a name over the documents that belong to one job — a board, a
-script, a cut, the key art — plus the conversation that built them.
+A project is a name over the documents that belong to one job, such as a board,
+a script, a cut, or the key art. The **Project** selector at the left of the tab
+bar switches the active project, and new documents land in it.
 
 ![Projects list](assets/screenshots/project-list.png)
 
-The list is every project as a card: what it has rendered, when it last
-changed, and what it has cost at provider rates. Underneath sit the documents
-in no project. Drag one onto a card to file it there.
-
-![Start a project](assets/screenshots/project-new.png)
-
-**New project** asks what you want made. Pick a starter or type `/` in the
-prompt to choose one. A starter is a skill, either one NodeTool ships (for
-example `product-commercial` or `short-film`) or one you wrote, and you can also
-start with none. The agent plans the documents the work needs and builds them.
-Reference images and library entities go in with the prompt. The estimate is
-read off what your own past projects of the same kind cost, so it appears once
-you have two finished ones with fully priced spend.
-
-The **Project** selector at the left of the tab bar switches the active
-project, or returns to **Personal**. New documents you create land in the active
-project, and the **Documents** panel lists them by kind: Workflows, Apps,
-Creative documents, and Agents & code.
+See [Projects](projects.md) for the project list, starting a project, filing and
+copying documents, and archiving or deleting.
 
 ---
 
