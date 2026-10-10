@@ -31,6 +31,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 ## Workflow Editor
 
 - [User Interface]({{ site.url }}/user-interface): UI tour and shortcuts.
+- [Projects]({{ site.url }}/projects): Group the documents and conversation for one job, start from a skill, and file, copy, or delete documents.
 - [Workflow Editor]({{ site.url }}/workflow-editor): Canvas, ports, edges, execution.
 - [Editor Panels]({{ site.url }}/editor-panels): Inspector, assets, models, chat panels.
 - [Chain Editor]({{ site.url }}/chain-editor): Linear chain authoring mode.
@@ -47,6 +48,8 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Guided Creation Flows]({{ site.url }}/guided-flows): Start an image, workflow, entity, storyboard, video, script, or game from a guided sequence of steps.
 - [Entities]({{ site.url }}/entities): Save characters, locations, styles, and props with reference images and reuse them in generation.
 - [AI Video Production]({{ site.url }}/ai-video-production): Guided video, storyboard and script flows.
+- [Storyboard Editor]({{ site.url }}/storyboard-editor): Scenes and shots, still and clip renders, takes, and assembling a timeline.
+- [Script Editor]({{ site.url }}/script-editor): Dialogue and narration lines, voice casting, voiced takes, and sending a script to a timeline.
 - [Video Editor]({{ site.url }}/video-editor): Multi-track timeline editing and export.
 - [AI Timeline Editing]({{ site.url }}/ai-timeline-editing): Generate and revise clips on the timeline.
 - [Timeline Motion Design]({{ site.url }}/timeline-motion-design): Timeline document fields for easing, text animators, camera, layout, effects, and transitions.
