@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { gameEntityProps, gameEntityTags } from "../game-entity-metadata.js";
+import { gameEventPayload, gameEventTarget } from "../game-script-events.js";
 import { gameLightingComponent } from "./components/lighting.js";
 import { gameMusicComponent } from "./components/music.js";
 import { finite, positive, vec2, frame } from "./components/common.js";
@@ -104,7 +105,7 @@ export const gameEvent = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("collected"), entityId: z.string(), byId: z.string(), score: z.number() }),
   z.object({ kind: z.literal("win"), score: z.number() }),
   z.object({ kind: z.literal("audio"), assetId: z.string(), voiceId: z.string().optional(), emitter: gameAudioEmitter.optional(), action: z.enum(["start", "stop"]).default("start"), loop: z.boolean().default(false), volume: finite.min(0).max(1).default(1), fadeInTicks: z.number().int().min(0).max(600).default(0), fadeOutTicks: z.number().int().min(0).max(600).default(0) }),
-  z.object({ kind: z.literal("trigger"), event: z.string(), entityId: z.string() }),
+  z.object({ kind: z.literal("trigger"), event: z.string(), entityId: z.string(), payload: gameEventPayload.optional(), target: gameEventTarget.optional() }),
   z.object({ kind: z.literal("sceneTransition"), sceneId: z.string() })
 ]);
 

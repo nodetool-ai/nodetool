@@ -239,6 +239,27 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           && /\bbeat\s*(\(|:)/.test(source) && /heartbeat/.test(source);
       } }]
   }
+}, {
+  id: "typed-event-script",
+  description: "Author a targeted emit with a JSON payload and a receiving onEvent hook through public edit ops.",
+  objective: "Add a script behavior to the player written as a lifecycle object whose onStart hook emits the event bonus with the payload {points: 5} targeted at the entity gem. Add a lifecycle script to the gem whose onEvent hook stores the received payload's points in its state. Keep both entities' other behaviors.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("typed-event-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole behaviors array. A script behavior is {kind: \"script\", source}. The source may be an object of hooks such as onStart, onEvent and onUpdate, each returning {state?, commands?}. The emit command is {kind: \"emit\", event, payload?, target?} where target is {entityId} or {tag}. onEvent(input, event) receives events that reach its entity, with the JSON payload on event.payload.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "targetedBonus", detail: "The player does not emit bonus with payload points 5 targeted at gem, the gem has no onEvent hook reading the payload, or a behavior was lost.",
+      test: document => {
+        const entities = document.scenes[0].entities;
+        const behaviors = (id: string) => entities.find(entity => entity.id === id)?.behaviors ?? [];
+        const source = (id: string) => behaviors(id).find(behavior => behavior.kind === "script")?.source ?? "";
+        const sender = source("player");
+        const receiver = source("gem");
+        return behaviors("player").some(behavior => behavior.kind === "movement") && behaviors("gem").some(behavior => behavior.kind === "collectible")
+          && /onStart/.test(sender) && /kind\s*:\s*["'`]emit["'`]/.test(sender) && /["'`]bonus["'`]/.test(sender)
+          && /payload\s*:\s*\{\s*points\s*:\s*5\s*\}/.test(sender) && /target\s*:\s*\{\s*entityId\s*:\s*["'`]gem["'`]\s*\}/.test(sender)
+          && /^\s*\(?\s*\{/.test(receiver) && /onEvent\s*\(/.test(receiver) && /payload/.test(receiver) && /points/.test(receiver);
+      } }]
+  }
 }];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */

@@ -174,3 +174,22 @@ it("scores a lifecycle timer script authored through the public edit surface", a
   await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors,{kind:"script",source}]}}]});
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it("scores a typed event script authored through the public edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="typed-event-script");
+  if (!candidate) { throw new Error("Typed event eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Typed event eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const behaviors = (id: string) => bridge.finalState().scenes[0].entities.find(entity=>entity.id===id)?.behaviors ?? [];
+  const sender = "({ onStart() { return { commands: [{ kind: \"emit\", event: \"bonus\", payload: { points: 5 }, target: { entityId: \"gem\" } }] }; } })";
+  const receiver = "({ onEvent(input, event) { return { state: { points: event.payload.points } }; } })";
+  await edit.execute({ops:[
+    {op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors("player"),{kind:"script",source:sender}]}},
+    {op:"update_entity",entity_id:"gem",set:{behaviors:[...behaviors("gem"),{kind:"script",source:receiver}]}}
+  ]});
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});

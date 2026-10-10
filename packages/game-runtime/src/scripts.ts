@@ -102,6 +102,8 @@ export interface GameScriptRunner {
   run(calls: readonly GameScriptCall[], input: GameScriptInput, rngState: number, world?: readonly ScriptWorldEntity[]): GameScriptBatch;
   /** Source keys whose script is a lifecycle object rather than a function. */
   readonly hookSources?: ReadonlySet<string>;
+  /** Lifecycle source keys whose object defines `onEvent`. */
+  readonly eventSources?: ReadonlySet<string>;
   retain?(stateKeys: ReadonlySet<string>): void;
   dispose(): void;
 }
@@ -180,6 +182,8 @@ export interface IsolatedScriptRunner<Call extends IsolatedScriptCall, Input ext
   };
   /** Source keys whose script is a lifecycle object rather than a function. */
   readonly hookSources?: ReadonlySet<string>;
+  /** Lifecycle source keys whose object defines `onEvent`. */
+  readonly eventSources?: ReadonlySet<string>;
   retain?(stateKeys: ReadonlySet<string>): void;
   dispose(): void;
 }
@@ -282,6 +286,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   const paramsJson = new Map<string, string>();
   const persistentSources = new Set<string>();
   const hookSources = new Set<string>();
+  const eventSources = new Set<string>();
   const realms = new Map<string, ScriptRealm>();
   // Validated entry-scene realms, kept so the first tick does not compile every proven-safe script inside its budget.
   const prepared = new Map<string, ScriptRealm>();
@@ -355,10 +360,11 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
     }
   };
   /** Prepare-time evaluation: a function, or a lifecycle object whose hooks pass `scriptHookIssue`. */
-  const inspectSource = (sourceKey: string, source: string, persistent: boolean): { readonly realm: ScriptRealm; readonly hooks: boolean } => {
+  const inspectSource = (sourceKey: string, source: string, persistent: boolean): { readonly realm: ScriptRealm; readonly hooks: boolean; readonly onEvent: boolean } => {
     const shell = createRealmShell(0, persistent);
     try {
       const kind = evaluate(shell.context, `globalThis.__gameScript = (${source}); typeof __gameScript`);
+      let onEvent = false;
       if (kind !== "function") {
         const shape = kind === "object" && !persistent ? evaluate(shell.context, `(() => { const hooks = __gameScript;
           if (hooks === null || Array.isArray(hooks)) { return null; }
@@ -369,8 +375,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         }
         const issue = scriptHookIssue(shape[0] as string[], shape[1] as string[]);
         if (issue !== undefined) { throw new Error(`Game script ${sourceKey}: ${issue}`); }
+        onEvent = (shape[1] as string[]).includes("onEvent");
       }
-      return { realm: { ...shell, sourceKey }, hooks: kind !== "function" };
+      return { realm: { ...shell, sourceKey }, hooks: kind !== "function", onEvent };
     } catch (error) {
       disposeRealm(shell); throw error;
     }
@@ -387,11 +394,12 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             const deadline = performance.now() + 100;
             runtime.setInterruptHandler(() => performance.now() >= deadline);
             const persistent = canPersistGameScript(behavior.source);
-            const { realm, hooks } = inspectSource(key, behavior.source, persistent);
+            const { realm, hooks, onEvent } = inspectSource(key, behavior.source, persistent);
             if (persistent) {
               persistentSources.add(key);
             }
             if (hooks) { hookSources.add(key); }
+            if (onEvent) { eventSources.add(key); }
             // Inactive scenes and prefab definitions are validated without retaining their realms.
             if (persistent && scene.id === document.entrySceneId && prepared.size < PREPARED_REALM_LIMIT) { prepared.set(key, realm); }
             else { disposeRealm(realm); }
@@ -610,6 +618,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
     }
     return {
       hookSources,
+      eventSources,
       retain,
       run(calls: readonly Call[], input: Input, rngState: number, world?: readonly ScriptWorldEntity[]): Batch {
         try {
