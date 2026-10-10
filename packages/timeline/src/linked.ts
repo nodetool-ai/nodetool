@@ -200,7 +200,7 @@ export function buildLinkedTimeline(
         durationMs: cursorMs,
         mediaType: "audio",
         sourceType: "generated",
-        bindingKind: "text-to-audio",
+        bindingKind: "text-to-music",
         prompt: musicPrompt,
         status: "draft",
         versions: []

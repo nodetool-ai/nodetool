@@ -11,7 +11,7 @@ import { createTimelineToolBridge } from "../src/evals/surfaces/timeline.js";
  * directly.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   Asset,
@@ -1329,6 +1329,10 @@ describe("pure backend track batches", () => {
       offsetMs: 50,
       timeSignature: { beatsPerBar: 3, beatUnit: 4 }
     };
+    // Both sides mint one track id; pin it so the records can be compared.
+    const uuid = vi
+      .spyOn(globalThis.crypto, "randomUUID")
+      .mockReturnValue("0000aaaa-0000-0000-0000-000000000001");
     const bridge = createTimelineToolBridge({
       sequence: {
         ...original,
@@ -1373,5 +1377,9 @@ describe("pure backend track batches", () => {
     expect(actual.state).toEqual(bridge.finalState());
     expect(original.tracks).toHaveLength(1);
     expect(original.clips).toHaveLength(1);
+    expect(actual.records[0]?.result).toMatchObject({
+      track: { id: "0000aaaa000000000000000000000001" }
+    });
+    uuid.mockRestore();
   });
 });

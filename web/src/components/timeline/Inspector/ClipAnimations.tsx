@@ -7,6 +7,7 @@ import {
   ANIMATION_PRESETS,
   EASING_IDS,
   STAGGER_UNITS,
+  isKeyframeAnimation,
   isSourceAnchoredAnimation,
   type AnimationPreset,
   type AnimationRole,
@@ -602,7 +603,9 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
         />
       </InspectorRow>
 
-      {!preset?.fullClip && (
+      {/* Hand-set keyframes span the clip: a delay would detach them from the
+          Keyframes section, and the clip's length is their duration. */}
+      {!preset?.fullClip && !isKeyframeAnimation(animation) && (
         <>
           <InspectorRow
             label={animation.role === "loop" ? "Period" : "Duration"}

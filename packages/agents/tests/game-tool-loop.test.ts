@@ -216,6 +216,52 @@ it("scores cascaded shadows authored through the public 3D edit surface", async 
   expect(predicate.test(bridge.finalState())).toBe(false);
   await edit.execute({ ops: [{ op: "update_entity", entity_id: "sun", set: { light3d: { shadowNormalBias: 0.03 } } }] });
   expect(predicate.test(bridge.finalState())).toBe(true);
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
+it("scores a typed event script authored through the public edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="typed-event-script");
+  if (!candidate) { throw new Error("Typed event eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Typed event eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const behaviors = (id: string) => bridge.finalState().scenes[0].entities.find(entity=>entity.id===id)?.behaviors ?? [];
+  const sender = "({ onStart() { return { commands: [{ kind: \"emit\", event: \"bonus\", payload: { points: 5 }, target: { entityId: \"gem\" } }] }; } })";
+  const receiver = "({ onEvent(input, event) { return { state: { points: event.payload.points } }; } })";
+  await edit.execute({ops:[
+    {op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors("player"),{kind:"script",source:sender}]}},
+    {op:"update_entity",entity_id:"gem",set:{behaviors:[...behaviors("gem"),{kind:"script",source:receiver}]}}
+  ]});
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
+it("accepts equivalent typed event scripts and rejects incorrect ones", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="typed-event-script");
+  const predicate = candidate?.expect.finalState?.[0];
+  if (!candidate || !predicate) { throw new Error("Typed event eval case must inspect final state"); }
+  const score = async (sender: string, receiver: string): Promise<boolean> => {
+    const bridge = candidate.createBridge();
+    const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+    if (!edit) { throw new Error("Native edit tool must exist"); }
+    const behaviors = (id: string) => bridge.finalState().scenes[0].entities.find(entity=>entity.id===id)?.behaviors ?? [];
+    await edit.execute({ops:[
+      {op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors("player"),{kind:"script",source:sender}]}},
+      {op:"update_entity",entity_id:"gem",set:{behaviors:[...behaviors("gem"),{kind:"script",source:receiver}]}}
+    ]});
+    return predicate.test(bridge.finalState());
+  };
+  const receiver = "({ onEvent(input, event) { return { state: { points: event.payload.points } }; } })";
+  // Quoted keys, another key order, a function-valued hook and destructuring are equivalent answers.
+  expect(await score("({ \"onStart\": function (input) { const command = { \"target\": { \"entityId\": 'gem' }, payload: { 'points': 5 }, event: `bonus`, kind: \"emit\" }; return { commands: [command] }; } })",
+    "({ onEvent: (input, { payload: { points } }) => ({ state: points }) })")).toBe(true);
+  expect(await score("({ onStart() { return { commands: [{ kind: 'emit', event: 'bonus', payload: { points: 5 }, target: { entityId: 'gem', tag: 'loot' } }] }; } })", receiver)).toBe(false);
+  expect(await score("({ onStart() { return { commands: [{ kind: 'emit', event: 'bonus', payload: { points: 4 }, target: { entityId: 'gem' } }] }; } })", receiver)).toBe(false);
+  expect(await score("({ onUpdate() { return { commands: [{ kind: 'emit', event: 'bonus', payload: { points: 5 }, target: { entityId: 'gem' } }] }; } })", receiver)).toBe(false);
+  expect(await score("({ onStart() { return { commands: [{ kind: 'emit', event: 'bonus', payload: { points: 5 }, target: { entityId: 'gem' } }] }; } })",
+    "({ onUpdate(input) { return { state: input.events.length }; } })")).toBe(false);
 });
 
 it("scores a collision layer matrix authored through the public 3D edit surface", async () => {

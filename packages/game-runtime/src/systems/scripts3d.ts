@@ -2,7 +2,7 @@ import { gameParticleEmissionOf, type GameEntityProps } from "@nodetool-ai/proto
 import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { applyGameplayCommand, queueGameplayBehavior, type GameplayCommand } from "../gameplay/lifecycle.js";
-import { assertDestroyCommands, awaitsDestroy, removedDestroyCall, scriptContacts, scriptLifecycle } from "../script-lifecycle.js";
+import { assertDestroyCommands, awaitsDestroy, removedDestroyCall, scriptContacts, scriptEvents, scriptLifecycle } from "../script-lifecycle.js";
 import { planScriptProps } from "../script-props.js";
 import type { GameScriptCall3D } from "../scripts3d.js";
 import { scriptSourceKey } from "../scripts.js";
@@ -79,6 +79,7 @@ function destroyCalls3D(context: GameSystemContext3D, hookSources: ReadonlySet<s
 
 export function stepScripts3D(context: GameSystemContext3D): void {
   const hookSources = context.runner?.hookSources;
+  const eventSources = context.runner?.eventSources;
   const hasHooks = hookSources !== undefined && hookSources.size > 0;
   if (hasHooks) { context.calls.push(...destroyCalls3D(context, hookSources)); }
   const sceneEnter = context.tick === 0 || context.previousEvents.some((event) => event.kind === "sceneTransition");
@@ -89,7 +90,7 @@ export function stepScripts3D(context: GameSystemContext3D): void {
       continue;
     }
     state.definition.behaviors.forEach((behavior, index) => {
-      queueGameplayBehavior(behavior, state.definition.id, state.spawnTick, context.tick, context.previousEvents, context.queues);
+      queueGameplayBehavior(behavior, state.definition.id, state.spawnTick, context.tick, context.previousEvents, context.queues, state.definition.tags);
       if (behavior.kind === "script") {
         const sourceKey = scriptSourceKey(
           state.prefabId ? `prefab:${state.prefabId}` : context.currentScene().id,
@@ -98,7 +99,8 @@ export function stepScripts3D(context: GameSystemContext3D): void {
         );
         const stateKey = scriptSourceKey(context.currentScene().id, state.definition.id, index);
         const lifecycle = hasHooks && hookSources.has(sourceKey)
-          ? scriptLifecycle(sceneEnter, scriptContacts(state.definition.id, sceneContacts, (event) => event.sensor === true))
+          ? scriptLifecycle(sceneEnter, scriptContacts(state.definition.id, sceneContacts, (event) => event.sensor === true),
+            eventSources?.has(sourceKey) ? scriptEvents(state.definition.id, state.definition.tags, context.previousEvents) : [])
           : undefined;
         context.calls.push({
           sourceKey,

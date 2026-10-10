@@ -12,6 +12,7 @@
  */
 
 import type {
+  CaptionWord,
   ClipCrop,
   ClipEffect,
   ClipMask,
@@ -45,6 +46,7 @@ import {
 } from "../animation/index.js";
 import { resolveAnimatedStyleTracks, resolveAnimatedTextContent, resolveAnimationLinks } from "../animation/index.js";
 import { clipSourceMsAt } from "../timeRemap.js";
+import { effectiveAssetId } from "../clipAudio.js";
 import { resolveBeatAnimations } from "../animation/beat.js";
 import { textStyleSignature, type ResolvedCaption, type TextRenderStagger } from "./draw.js";
 import { countTextStaggerUnits, type MeasureTextWidth, type RenderCanvas } from "./textLayout.js";
@@ -224,18 +226,8 @@ function resolveDocumentTransitions(
   return transitions;
 }
 
-/** The asset id that should be drawn for a clip in its current status. */
-export function effectiveAssetId(clip: TimelineClip): string | undefined {
-  switch (clip.status) {
-    case "generated":
-    case "stale":
-    case "locked":
-    case "generating":
-      return clip.currentAssetId;
-    default:
-      return undefined;
-  }
-}
+/** The status rule lives beside the audio rules that share it. */
+export { effectiveAssetId };
 
 function resolveBlendMode(b: TimelineClip["blendMode"]): CompositorBlendMode {
   return b ?? "normal";
@@ -277,11 +269,45 @@ export function bakedClipSourceTimeSec(
   return Math.max(0, (currentTimeMs - clip.startMs) / 1000);
 }
 
+/** A pause at least this long between two words starts a new caption cue. */
+export const CAPTION_CUE_GAP_MS = 700;
+/** The most words one caption cue shows at a time. */
+export const CAPTION_CUE_MAX_WORDS = 10;
+
+/**
+ * Split a clip's words into cues, the runs shown on screen together: a cue
+ * ends at a pause of {@link CAPTION_CUE_GAP_MS} or after
+ * {@link CAPTION_CUE_MAX_WORDS} words. Words outside the clip's window
+ * (`0..durationMs`, clip-local) are left out.
+ */
+export function captionCues(
+  clip: Pick<TimelineClip, "caption" | "durationMs">
+): CaptionWord[][] {
+  const cues: CaptionWord[][] = [];
+  let current: CaptionWord[] = [];
+  for (const word of clip.caption?.words ?? []) {
+    if (word.endMs <= 0 || word.startMs >= clip.durationMs) continue;
+    const previous = current[current.length - 1];
+    if (
+      previous &&
+      (word.startMs - previous.endMs >= CAPTION_CUE_GAP_MS ||
+        current.length >= CAPTION_CUE_MAX_WORDS)
+    ) {
+      cues.push(current);
+      current = [];
+    }
+    current.push(word);
+  }
+  if (current.length > 0) cues.push(current);
+  return cues;
+}
+
 /**
  * Resolve a clip's caption to its on-screen word state at `currentTimeMs`.
  * Returns `undefined` for clips that carry no caption. Word timings are
  * clip-local (relative to `clip.startMs`), so moving or splitting the clip
- * needs no rewrite of the words.
+ * needs no rewrite of the words. Only the cue being spoken is shown, so a
+ * long transcript does not stack up the frame; between cues no words show.
  */
 export function resolveCaptionAtTime(
   clip: TimelineClip,
@@ -289,8 +315,12 @@ export function resolveCaptionAtTime(
 ): ResolvedCaption | undefined {
   if (!clip.caption) return undefined;
   const local = currentTimeMs - clip.startMs;
+  const cue = captionCues(clip).find(
+    (words) =>
+      local >= words[0]!.startMs && local < words[words.length - 1]!.endMs
+  );
   return {
-    words: clip.caption.words.map((w) => ({
+    words: (cue ?? []).map((w) => ({
       text: w.word,
       active: local >= w.startMs && local < w.endMs
     })),

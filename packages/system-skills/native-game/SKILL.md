@@ -783,8 +783,10 @@ one before it. Within a tick they run in this order:
    either collider is a sensor is a trigger. Triggers fire on `enter` and
    `exit`. `onContact` receives every phase of a solid contact. The second
    argument is `{otherId, phase, sensor}`.
-4. Due timers, in the order they were scheduled.
-5. `onFixedUpdate` or `onUpdate`. They are aliases. Define one of them.
+4. `onEvent`, once per trigger event of the previous tick that reaches the
+   entity, in event order. See typed events below.
+5. Due timers, in the order they were scheduled.
+6. `onFixedUpdate` or `onUpdate`. They are aliases. Define one of them.
 
 `onDestroy` runs alone in the tick after the entity despawns. It may return
 only `hud`, `emit`, `spawn`, `despawn` and `sceneTransition` commands. A scene
@@ -799,6 +801,34 @@ snapshot. Session preparation rejects an unknown `on*` key, a hook that is not
 a function, and an object that defines both `onUpdate` and `onFixedUpdate`.
 Lifecycle objects run in a fresh context each call, like any function the
 persistence check does not accept.
+
+#### Typed events
+
+`emit` takes an optional `payload` and `target` in 2D and 3D, with no schema
+change. The payload is any JSON value up to 1 KiB serialized and 16 levels
+deep. The target is `{entityId}` for one entity or `{tag}` for every entity
+with that tag. Omit `target` to broadcast.
+
+```js
+// Sender
+({ onTriggerEnter(input, contact) { return { commands: [{ kind: "emit", event: "alarm",
+  payload: { by: contact.otherId, level: 2 }, target: { tag: "guard" } }] }; } })
+// Receiver, on an entity tagged "guard"
+({ onEvent(input, event) { if (event.event === "alarm") { return { state: { level: event.payload.level } }; } } })
+```
+
+The event lands in the stream as `{kind: "trigger", event, entityId,
+payload?, target?}`, where `entityId` is the sender, and reaches scripts on
+the next tick. `onEvent(input, event)` receives that object for each trigger
+event that reaches its entity, broadcasts included, and the sender receives
+its own broadcasts. Built-in `trigger` behaviors emit untargeted events, so
+`onEvent` sees them too. The target also limits built-in listeners: a `spawn`
+or `sceneTransition` behavior with `onEvent` and an `audioSource` with
+`onEvent` react only to events that reach their entity. `input.events` still
+holds every event of the previous tick, targeted or not. Tags need 2D schema
+4. Earlier 2D schemas have no tags, so a tag target reaches nothing there.
+A plain `{kind: "emit", event}` produces the same event as before. Payloads
+count toward the 64 KiB script input limit once per tick.
 
 ### U: Input and game UI
 

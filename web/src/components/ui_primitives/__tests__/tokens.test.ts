@@ -261,6 +261,20 @@ describe("design token constants", () => {
       expect(blur(lg)).toBeLessThan(blur(xl));
     });
 
+    it("scales every opacity by the palette's shadow strength", () => {
+      const scaled = {
+        vars: {
+          palette: {
+            common: { blackChannel: "0 0 0" },
+            c_shadow_alpha: "var(--palette-c_shadow_alpha)"
+          }
+        }
+      } as unknown as Theme;
+      expect(SHADOW(scaled).lg).toBe(
+        "0 8px 32px rgba(0 0 0 / calc(0.4 * var(--palette-c_shadow_alpha)))"
+      );
+    });
+
     it("ambient has no directional offset", () => {
       expect(SHADOW(theme).ambient.startsWith("0 0 ")).toBe(true);
     });

@@ -6,15 +6,15 @@
  * exception in the editor, the CLI, or the server. So the assertions here are
  * about the *shape* of the failure, never about whether the document passed.
  *
- * This suite is also the test oracle Stryker runs against
+ * This suite is also the test oracle nodetool-mutator runs against
  * `graph-validation.ts`, `code-analysis.ts`, `code-node-validation.ts` and
- * `validation.ts` (see `stryker.crash.config.json`). A mutant of those files
+ * `validation.ts` (see `test:mutation:crash`). A mutant of those files
  * that survives is a branch no fuzzed input distinguishes — a blind spot in
  * the corpus, which is what the crash-fuzzer workflow reports on.
  *
  * Seed and size come from `FUZZ_SEED` / `FUZZ_COUNT` so the nightly run can
- * sweep fresh inputs. Both default to fixed values, because Stryker needs the
- * same corpus every run for the score to mean anything.
+ * sweep fresh inputs. Both default to fixed values, because the mutation run
+ * needs the same corpus every time for the score to mean anything.
  */
 
 import { readFileSync } from "node:fs";
@@ -34,7 +34,7 @@ import { validateCodeNodeBody } from "../../src/code-node-validation.js";
 import { codeCorpus, graphCorpus, seedRegistry } from "./corpus.js";
 import { SEED_CODE_BODIES, SEED_GRAPHS } from "./seeds.js";
 
-/** The corpus Stryker scores against, and the one the snapshots pin. */
+/** The corpus the mutation run scores against, and the one the snapshots pin. */
 const PINNED_SEED = 20260817;
 const PINNED_COUNT = 12;
 

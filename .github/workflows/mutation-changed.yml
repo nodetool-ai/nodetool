@@ -1,0 +1,81 @@
+name: Mutation Testing (changed functions)
+
+# Runs nodetool-mutator on the functions a pull request adds or rewrites in the
+# mutation-tested packages, and lists the mutants its tests fail to kill. Only
+# functions whose text differs from the merge-base are mutated (`--base`), so
+# the cost follows the size of the change. Advisory: a survivor is a question
+# for the author and reviewer, not a failed build.
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/agents/src/**"
+      - "packages/auth/src/**"
+      - "packages/config/src/**"
+      - "packages/kernel/src/**"
+      - "packages/mutator/src/**"
+      - "packages/node-sdk/src/**"
+      - "packages/runtime/src/**"
+      - "packages/security/src/**"
+      - "packages/storage/src/**"
+      - ".github/workflows/mutation-changed.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  mutate-changed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
+
+      # Coverage is skipped: generating it reruns each touched package's whole
+      # suite, and a changed function no test reaches is exactly what this
+      # check should flag. Its mutants run against no tests and survive.
+      - name: Mutate changed functions
+        id: mutate
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          set +e
+          node packages/mutator/dist/cli.js --base "$BASE" --no-coverage \
+            packages/agents/src packages/auth/src packages/config/src packages/kernel/src \
+            packages/mutator/src packages/node-sdk/src packages/runtime/src \
+            packages/security/src packages/storage/src | tee mutation.log
+          CODE=${PIPESTATUS[0]}
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Report
+        if: always()
+        env:
+          CODE: ${{ steps.mutate.outputs.code }}
+        run: |
+          {
+            echo "## 🧬 Mutants in changed functions"
+            echo ""
+            case "$CODE" in
+              0) echo "✅ Every mutant in the changed functions was killed." ;;
+              2) echo "⚠️ The baseline tests failed, so no mutant ran. See the job log." ;;
+              3) echo "Some mutants survived. Each one is a change to the code that no test noticed." ;;
+              *) echo "⚠️ nodetool-mutator exited $CODE. See the job log." ;;
+            esac
+            echo ""
+            node scripts/mutation-score.mjs --survivors --limit 60
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CODE" = "3" ]; then
+            echo "::warning::Mutants survived in changed functions. See the job summary."
+          fi

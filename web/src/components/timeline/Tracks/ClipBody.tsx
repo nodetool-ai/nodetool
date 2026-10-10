@@ -11,7 +11,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LoopOutlinedIcon from "@mui/icons-material/LoopOutlined";
@@ -229,6 +229,13 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
   widthPx
 }) => {
   const theme = useTheme();
+  // Canvas 2D ignores a `var(--…)` fillStyle, which is what
+  // `theme.vars.palette` holds, so read the active scheme's plain value.
+  const { mode, systemMode } = useColorScheme();
+  const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
+  const successColor =
+    theme.colorSchemes?.[activeMode]?.palette?.success?.main ??
+    theme.palette.success.main;
   const { peaks, durationMs } = useAudioPeaks(assetId, url);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -247,7 +254,7 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     inPointMs,
     outPointMs,
     widthPx,
-    successColor: theme.vars.palette.success.main
+    successColor
   });
   drawInputsRef.current = {
     peaks,
@@ -255,7 +262,7 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     inPointMs,
     outPointMs,
     widthPx,
-    successColor: theme.vars.palette.success.main
+    successColor
   };
 
   const draw = useCallback(() => {
@@ -315,7 +322,7 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     // Decide whether anything beyond a sub-pixel width change actually
     // happened. Width changes during a drag are gated to whole pixels (the
     // canvas can't show finer detail); other inputs force a redraw.
-    const inputsKey = `${durationMs}|${inPointMs}|${outPointMs}|${url || ""}`;
+    const inputsKey = `${durationMs}|${inPointMs}|${outPointMs}|${url || ""}|${successColor}`;
     const otherInputsChanged = inputsKey !== lastInputsKeyRef.current;
     const widthChanged =
       Math.abs(Math.floor(widthPx) - lastDrawnWidthRef.current) >= 1;
@@ -334,7 +341,7 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
         rafIdRef.current = null;
       }
     };
-  }, [peaks, durationMs, inPointMs, outPointMs, widthPx, url, draw]);
+  }, [peaks, durationMs, inPointMs, outPointMs, widthPx, url, successColor, draw]);
 
   return <canvas ref={canvasRef} css={waveformStyles} aria-hidden />;
 };

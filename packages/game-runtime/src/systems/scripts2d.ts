@@ -4,7 +4,7 @@ import { gravityScaleOf, touchingOf } from "./collision2d.js";
 import type { EntityState } from "./state2d.js";
 import type { GameSystemContext2D } from "./context2d.js";
 import { applyGameplayCommand, queueGameplayBehavior, type GameplayCommand } from "../gameplay/lifecycle.js";
-import { assertDestroyCommands, awaitsDestroy, removedDestroyCall, scriptContacts, scriptLifecycle } from "../script-lifecycle.js";
+import { assertDestroyCommands, awaitsDestroy, removedDestroyCall, scriptContacts, scriptEvents, scriptLifecycle } from "../script-lifecycle.js";
 import { planScriptProps } from "../script-props.js";
 import { scriptSourceKey, type GameScriptCall, type GameScriptInput } from "../scripts.js";
 
@@ -102,6 +102,7 @@ export function stepScripts2D(context: GameSystemContext2D): void {
     .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y,
       velocityX: state.velocityX, velocityY: state.velocityY, grounded: touchingOf(context, state).down, ...metadataOf(state) })) : [];
   const hookSources = context.scriptRunner?.hookSources;
+  const eventSources = context.scriptRunner?.eventSources;
   const hasHooks = hookSources !== undefined && hookSources.size > 0;
   if (hasHooks) { context.scriptCalls.push(...destroyCalls2D(context, hookSources)); }
   const sceneEnter = context.tick === 0 || context.previousEvents.some((event) => event.kind === "sceneTransition");
@@ -135,7 +136,8 @@ export function stepScripts2D(context: GameSystemContext2D): void {
         const sourceKey = scriptSourceKey(context.scene.id, state.sourceId ?? entity.id, index);
         const stateKey = scriptSourceKey(context.scene.id, entity.id, index);
         const lifecycle = hasHooks && hookSources.has(sourceKey)
-          ? scriptLifecycle(sceneEnter, scriptContacts(entity.id, context.previousEvents, (event) => sensorContact2D(context, event)))
+          ? scriptLifecycle(sceneEnter, scriptContacts(entity.id, context.previousEvents, (event) => sensorContact2D(context, event)),
+            eventSources?.has(sourceKey) ? scriptEvents(entity.id, entity.tags, context.previousEvents) : [])
           : undefined;
         context.scriptCalls.push({
           sourceKey,
@@ -154,7 +156,7 @@ export function stepScripts2D(context: GameSystemContext2D): void {
           ...(lifecycle === undefined ? undefined : { lifecycle })
         });
       } else {
-        queueGameplayBehavior(behavior, entity.id, state.spawnTick, context.tick, context.previousEvents, context.queues);
+        queueGameplayBehavior(behavior, entity.id, state.spawnTick, context.tick, context.previousEvents, context.queues, entity.tags);
       }
     }
   }

@@ -57,6 +57,25 @@ describe("barsBeatsAt", () => {
   it("formats bar.beat.tick", () => {
     expect(formatBarsBeats(4625, tempo())).toBe("3.2.240");
   });
+
+  it("reads every grid bar line as its own bar at a fractional tempo", () => {
+    // 70 BPM is an 857.142… ms beat, so `offset + i * bar` lands a hair
+    // under the exact boundary and a bare floor read bar 32 as bar 31.
+    for (const bpm of [70, 140, 133.7]) {
+      const t = tempo({ bpm });
+      const lines = tempoGridMs({
+        tempo: t,
+        division: "bar",
+        fromMs: 0,
+        toMs: barStartMs(500, t)
+      });
+      lines.forEach((ms, i) => {
+        expect(barsBeatsAt(ms, t)).toEqual({ bar: i + 1, beat: 1, tick: 0 });
+      });
+    }
+    const t70 = tempo({ bpm: 70 });
+    expect(formatBarsBeats(barStartMs(32, t70), t70)).toBe("32.1.0");
+  });
 });
 
 describe("barStartMs", () => {

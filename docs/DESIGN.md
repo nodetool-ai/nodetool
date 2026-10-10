@@ -292,20 +292,20 @@ Colors never appear as hardcoded hex or rgb values in component code. Every colo
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `theme.vars.palette.primary.main` | `#3d68a8` | `#2A8077` | Primary actions, links |
-| `theme.vars.palette.primary.light` | `#5b86c4` | `#4FA59C` | Hover on primary |
-| `theme.vars.palette.primary.dark` | `#2a4d80` | `#1E5F58` | Active / pressed primary |
-| `theme.vars.palette.secondary.main` | `#E879F9` | `#C97C5D` | Secondary actions |
-| `theme.vars.palette.error.main` | `#FF5555` | `#D8615B` | Errors, destructive |
-| `theme.vars.palette.warning.main` | `#FFB86C` | `#D99A3B` | Warnings |
-| `theme.vars.palette.info.main` | `#22D3EE` | `#3F7D8C` | Information |
-| `theme.vars.palette.success.main` | `#50FA7B` | `#6BAA75` | Success states |
-| `theme.vars.palette.text.primary` | `#F7F8F8` | `#1A1715` | Main text |
-| `theme.vars.palette.text.secondary` | `#8A8F98` | `#5A5550` | Secondary / muted text |
-| `theme.vars.palette.text.disabled` | `rgba(247,248,248,0.38)` | `#9A938A` | Disabled text |
-| `theme.vars.palette.background.default` | `#08090A` | `#FAF6EF` | Page background |
+| `theme.vars.palette.primary.main` | `#3d68a8` | `#2F62C4` | Primary actions, links |
+| `theme.vars.palette.primary.light` | `#5b86c4` | `#4F7FD8` | Hover on primary |
+| `theme.vars.palette.primary.dark` | `#2a4d80` | `#244E9E` | Active / pressed primary |
+| `theme.vars.palette.secondary.main` | `#E879F9` | `#B13BCF` | Secondary actions |
+| `theme.vars.palette.error.main` | `#FF5555` | `#D92D20` | Errors, destructive |
+| `theme.vars.palette.warning.main` | `#FFB86C` | `#DC6803` | Warnings |
+| `theme.vars.palette.info.main` | `#22D3EE` | `#0E7490` | Information |
+| `theme.vars.palette.success.main` | `#50FA7B` | `#16A34A` | Success states |
+| `theme.vars.palette.text.primary` | `#F7F8F8` | `#18181B` | Main text |
+| `theme.vars.palette.text.secondary` | `#8A8F98` | `#5B5B66` | Secondary / muted text |
+| `theme.vars.palette.text.disabled` | `rgba(247,248,248,0.38)` | `#A1A1AA` | Disabled text |
+| `theme.vars.palette.background.default` | `#08090A` | `#F5F5F6` | Page background |
 | `theme.vars.palette.background.paper` | `#101113` | `#FFFFFF` | Surface / card background |
-| `theme.vars.palette.divider` | `rgba(255,255,255,0.08)` | `#DCD3C5` | Borders, dividers |
+| `theme.vars.palette.divider` | `rgba(255,255,255,0.08)` | `#E4E4E7` | Borders, dividers |
 
 ### Custom Semantic Colors (`c_*`)
 
@@ -314,26 +314,26 @@ NodeTool-specific colors for editor and UI chrome. Reference via `theme.vars.pal
 | Token | Use | Dark | Light |
 |---|---|---|---|
 | `c_app_header` | App header background | `#0A0B0D` | `#FFFFFF` |
-| `c_tabs_header` | Tab bar background | `#101113` | `#F2EDE4` |
-| `c_node_menu` | Node context menu bg | `#17181B` | `#F7F5F0` |
+| `c_tabs_header` | Tab bar background | `#101113` | `#F5F5F6` |
+| `c_node_menu` | Node context menu bg | `#17181B` | `#FFFFFF` |
 | `c_node_bg` | Workflow node background | `#1B1D21` | `#FFFFFF` |
-| `c_node_header_bg` | Node header background | `#141518` | `#FAF8F5` |
-| `c_node_bg_group` | Group node background | `#22252A` | `#FAF8F5` |
-| `c_editor_bg_color` | Canvas background | `#08090A` | `#FAF6EF` |
-| `c_editor_grid_color` | Canvas grid lines | `#1F2126` | `#EDE6DA` |
-| `c_editor_axis_color` | Canvas axis lines | `#17181B` | `#E6E2DE` |
-| `c_selection` | Node selection ring | `#8EACA777` | `#5E9A8F33` |
-| `c_selection_rect` | Marquee selection box | `#cdcdcd33` | `rgba(94,154,143,0.12)` |
-| `c_input` | Input handle color | `#2e4a4e` | `#F9F7F5` |
-| `c_output` | Output handle color | `#3e3448` | `#F2F5F2` |
-| `c_attention` | Attention / highlight | `#E35BFF` | `#C96E51` |
-| `c_delete` | Destructive action | `#FF2222` | `#D8615B` |
-| `c_progress` | Progress indicator | `#556611` | `#6BAA75` |
-| `c_link` | Hyperlink | `#93C5FD` | `#3F7D75` |
-| `c_link_visited` | Visited link | `#A5B4FC` | `#6A8C88` |
+| `c_node_header_bg` | Node header background | `#141518` | `#FFFFFF` |
+| `c_node_bg_group` | Group node background | `#22252A` | `#FAFAFB` |
+| `c_editor_bg_color` | Canvas background | `#08090A` | `#F6F6F8` |
+| `c_editor_grid_color` | Canvas grid lines | `#1F2126` | `#D9D9DF` |
+| `c_editor_axis_color` | Canvas axis lines | `#17181B` | `#E4E4E7` |
+| `c_selection` | Node selection ring | `#8EACA777` | `#2F62C440` |
+| `c_selection_rect` | Marquee selection box | `#cdcdcd33` | `rgba(47,98,196,0.08)` |
+| `c_input` | Input handle color | `#2e4a4e` | `#EEF3FB` |
+| `c_output` | Output handle color | `#3e3448` | `#F4F0FA` |
+| `c_attention` | Attention / highlight | `#E35BFF` | `#B13BCF` |
+| `c_delete` | Destructive action | `#FF2222` | `#D92D20` |
+| `c_progress` | Progress indicator | `#556611` | `#16A34A` |
+| `c_link` | Hyperlink | `#93C5FD` | `#2F62C4` |
+| `c_link_visited` | Visited link | `#A5B4FC` | `#6B4FBB` |
 | `c_scroll_bg` | Scrollbar track | `transparent` | `transparent` |
-| `c_scroll_thumb` | Scrollbar thumb | `#27292E` | `#D1CCC6` |
-| `c_scroll_hover` | Scrollbar thumb hover | `#3A3D44` | `#E0DCD6` |
+| `c_scroll_thumb` | Scrollbar thumb | `#27292E` | `#D4D4D8` |
+| `c_scroll_hover` | Scrollbar thumb hover | `#3A3D44` | `#A1A1AA` |
 
 ### Greyscale
 
@@ -341,13 +341,13 @@ Indexed from 0 (brightest) to 1000 (darkest) in dark mode; reversed in light mod
 
 | Index | Dark | Light |
 |---|---|---|
-| `grey[0]` | `#fff` (white) | `#000` |
-| `grey[100]` | `#D4D6DB` | `#2C2A27` |
-| `grey[300]` | `#9CA0A8` | `#6A6660` |
-| `grey[500]` | `#5C606A` | `#A59F97` |
-| `grey[700]` | `#27292E` | `#DED8D0` |
-| `grey[900]` | `#0A0B0D` | `#F6F2EC` |
-| `grey[1000]` | `#000` (black) | `#FAF7F2` |
+| `grey[0]` | `#fff` (white) | `#09090B` |
+| `grey[100]` | `#D4D6DB` | `#27272A` |
+| `grey[300]` | `#9CA0A8` | `#52525B` |
+| `grey[500]` | `#5C606A` | `#A1A1AA` |
+| `grey[700]` | `#27292E` | `#E4E4E7` |
+| `grey[900]` | `#0A0B0D` | `#F5F5F6` |
+| `grey[1000]` | `#000` (black) | `#FFFFFF` |
 
 Semantic grey aliases (`c_gray0` … `c_gray6`) map to the same scale.
 
@@ -356,18 +356,18 @@ Semantic grey aliases (`c_gray0` … `c_gray6`) map to the same scale.
 | Token | Use | Dark | Light |
 |---|---|---|---|
 | `Paper.default` | Default paper | `#101113` | `#FFFFFF` |
-| `Paper.paper` | Nested paper | `#101113` | `#F4F0E9` |
-| `Paper.overlay` | Popover / overlay bg | `#17181B` | `#F0EDE6` |
-| `glass.blur` | Backdrop filter | `blur(16px) saturate(180%)` | `blur(50px)` |
-| `glass.backgroundDialog` | Dialog glass bg | `rgba(0,0,0,0.2)` | `rgba(255,248,240,0.27)` |
+| `Paper.paper` | Nested paper | `#101113` | `#FAFAFB` |
+| `Paper.overlay` | Popover / overlay bg | `#17181B` | `#F2F2F4` |
+| `glass.blur` | Backdrop filter | `blur(16px) saturate(180%)` | `blur(20px) saturate(180%)` |
+| `glass.backgroundDialog` | Dialog glass bg | `rgba(0,0,0,0.2)` | `rgba(255,255,255,0.72)` |
 
 ### Provider Badge Colors
 
 | Token | Use | Dark | Light |
 |---|---|---|---|
-| `c_provider_api` | API provider badge | `#93C5FD` | `#2C415A` |
-| `c_provider_local` | Local provider badge | `#86EFAC` | `#2E5B4E` |
-| `c_provider_hf` | HuggingFace badge | `#C4B5FD` | `#6D4B6F` |
+| `c_provider_api` | API provider badge | `#93C5FD` | `#2F62C4` |
+| `c_provider_local` | Local provider badge | `#86EFAC` | `#047857` |
+| `c_provider_hf` | HuggingFace badge | `#C4B5FD` | `#7C3AED` |
 
 ### Scrims & Surface Overlays
 
@@ -382,9 +382,10 @@ lighten on dark and darken on light.
 | `c_scrim_soft` | Light media/hover veil | `rgba(0,0,0,0.3)` | `rgba(0,0,0,0.3)` |
 | `c_scrim` | Standard scrim (media, dialogs) | `rgba(0,0,0,0.6)` | `rgba(0,0,0,0.6)` |
 | `c_scrim_strong` | Heavy scrim / letterbox | `rgba(0,0,0,0.85)` | `rgba(0,0,0,0.85)` |
-| `c_overlay_subtle` | Faint surface tint | `rgba(255,255,255,0.03)` | `rgba(0,0,0,0.03)` |
-| `c_overlay` | Raised-surface tint | `rgba(255,255,255,0.06)` | `rgba(0,0,0,0.05)` |
-| `c_overlay_strong` | Strong tint / hairline border | `rgba(255,255,255,0.15)` | `rgba(0,0,0,0.1)` |
+| `c_overlay_subtle` | Faint surface tint | `rgba(255,255,255,0.03)` | `rgba(24,24,27,0.025)` |
+| `c_overlay` | Raised-surface tint | `rgba(255,255,255,0.06)` | `rgba(24,24,27,0.045)` |
+| `c_overlay_strong` | Strong tint / hairline border | `rgba(255,255,255,0.15)` | `rgba(24,24,27,0.09)` |
+| `c_shadow_alpha` | Multiplier on every `SHADOW` / `--shadow-*` opacity | `1` | `0.45` |
 
 For a translucent **brand** tint (a primary/warning/info wash), don't add a
 token — use the channel form `rgba(var(--palette-<sem>-mainChannel) / <alpha>)`.

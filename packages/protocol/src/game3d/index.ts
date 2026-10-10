@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { gameEntityPropertyValue, gameEntityProps, gameEntityTags } from "../game-entity-metadata.js";
+import { gameEmitCommand } from "../game-script-events.js";
 import type { GameStepTimings } from "../game-step.js";
 import { gameInteractionActor3DComponent } from "./components/interaction-actor.js";
 import { finite, positive, id, tick, color, layerBits } from "./components/common.js";
@@ -169,7 +170,7 @@ export const gameNonSpatialScriptCommand = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("playAnimation"), clip: id }),
   z.strictObject({ kind: z.literal("hud"), id: id.max(64), text: z.string().max(256), x: finite, y: finite,
     size: positive.max(256).optional(), color: color.optional(), align: z.enum(["left", "center", "right"]).optional(), fontId: id.optional() }),
-  z.strictObject({ kind: z.literal("emit"), event: id.max(128) }),
+  gameEmitCommand,
   z.strictObject({ kind: z.literal("despawn"), entityId: id }),
   z.strictObject({ kind: z.literal("sceneTransition"), sceneId: id }),
   z.strictObject({ kind: z.literal("setProp"), key: z.string().min(1).max(128), value: gameEntityPropertyValue }).superRefine((command, context) => {

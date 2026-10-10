@@ -177,6 +177,19 @@ function hasAnimatedAncestorGroup(
   return false;
 }
 
+/**
+ * A live (unbaked) 3D layer's glTF animation clock is `sourceTimeSec`, which
+ * the scene model sets. Whether the glTF has animations is known only once it
+ * loads, so every live layer with an asset and a running clock counts.
+ */
+function isRunningModel3DLayer(layer: ActiveLayer): boolean {
+  return (
+    layer.kind === "model3d" &&
+    layer.assetId !== undefined &&
+    (layer.model3dStyle?.animation.speed ?? 0) !== 0
+  );
+}
+
 /** Scene properties that the shared model, rather than animation sampling, resolves. */
 export function sceneRequiresPerFrameResolution(
   layers: readonly ActiveLayer[],
@@ -188,6 +201,7 @@ export function sceneRequiresPerFrameResolution(
     (layer) =>
       layer.transition !== undefined || layer.clip.reframe !== undefined ||
       layer.camera2d?.keyframes !== undefined ||
+      isRunningModel3DLayer(layer) ||
       hasAnimatedAncestorGroup(layer, clips) ||
       (layer.matte !== undefined && hasAnimatedAncestorGroup(layer.matte.layer, clips))
   );
