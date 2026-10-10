@@ -103,7 +103,7 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
             color: "inherit",
             transition: MOTION.normal,
             fontWeight: 600,
-            fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
+            fontFamily: "var(--fontFamily2)",
           }}
         >
           {formattedKey}

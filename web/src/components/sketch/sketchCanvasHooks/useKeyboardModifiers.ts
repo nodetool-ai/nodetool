@@ -21,6 +21,8 @@ export function useKeyboardModifiers(params: {
   onSpaceHeldChange?: (held: boolean) => void;
   /** Fires when Alt becomes held / released (keyboard path). */
   onAltHeldChange?: (held: boolean) => void;
+  /** Fires when Shift is released or the window loses focus. */
+  onShiftReleased?: () => void;
   /**
    * Optional refs shared with overlay preview (e.g. `useOverlayRenderer`).
    * When omitted, internal refs are used. Tools update these on pointer
@@ -35,6 +37,7 @@ export function useKeyboardModifiers(params: {
     isSizeDraggingRef,
     onSpaceHeldChange,
     onAltHeldChange,
+    onShiftReleased,
     shiftHeldRef: shiftHeldRefOpt,
     altHeldRef: altHeldRefOpt
   } = params;
@@ -58,7 +61,8 @@ export function useKeyboardModifiers(params: {
           onSpaceHeldChange?.(true);
         }
       }
-      if (e.key === "s" || e.key === "S") {
+      // Ctrl/Cmd+S saves; it must not arm the S brush-size drag.
+      if ((e.key === "s" || e.key === "S") && !e.metaKey && !e.ctrlKey) {
         sKeyHeldRef.current = true;
       }
       if (e.key === "Alt") {
@@ -72,6 +76,7 @@ export function useKeyboardModifiers(params: {
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === "Shift") {
         shiftHeldRef.current = false;
+        onShiftReleased?.();
       }
       if (e.key === " ") {
         spaceHeldRef.current = false;
@@ -80,7 +85,8 @@ export function useKeyboardModifiers(params: {
           isSpacePanningRef.current = false;
         }
       }
-      if (e.key === "s" || e.key === "S") {
+      // macOS sends no keyup for other keys released while Cmd is down.
+      if (e.key === "s" || e.key === "S" || e.key === "Meta") {
         sKeyHeldRef.current = false;
         isSizeDraggingRef.current = false;
       }
@@ -89,19 +95,39 @@ export function useKeyboardModifiers(params: {
         onAltHeldChange?.(false);
       }
     };
+    // Keys released while the window is unfocused (Alt+Tab, Cmd+Tab, a
+    // dialog) never send keyup, so treat losing focus as releasing them.
+    const handleBlur = () => {
+      shiftHeldRef.current = false;
+      onShiftReleased?.();
+      sKeyHeldRef.current = false;
+      isSizeDraggingRef.current = false;
+      if (spaceHeldRef.current) {
+        spaceHeldRef.current = false;
+        isSpacePanningRef.current = false;
+        onSpaceHeldChange?.(false);
+      }
+      if (altHeldRef.current) {
+        altHeldRef.current = false;
+        onAltHeldChange?.(false);
+      }
+    };
     // Not on the dispatcher: modifier-hold state (Shift/Space/S/Alt) is
     // keydown+keyup edges, and the store only dispatches on keydown.
     window.addEventListener("keydown", handleKeyDown, true);
     window.addEventListener("keyup", handleKeyUp, true);
+    window.addEventListener("blur", handleBlur);
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("keyup", handleKeyUp, true);
+      window.removeEventListener("blur", handleBlur);
     };
   }, [
     isSpacePanningRef,
     isSizeDraggingRef,
     onSpaceHeldChange,
     onAltHeldChange,
+    onShiftReleased,
     shiftHeldRef,
     altHeldRef
   ]);

@@ -441,6 +441,45 @@ describe("FalProvider", () => {
     vi.unstubAllGlobals();
   });
 
+  it("imageToVideo sends a numeric duration to an endpoint whose enum is numeric", async () => {
+    // ltx-2.3/image-to-video/fast declares `duration: [6, 8, 10, ...]` as
+    // numbers. A string comparison dropped every duration, so fal fell back
+    // to its 6 s default whatever the caller asked for.
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { video: { url: "https://fal.ai/result.mp4" } }
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+      })
+    );
+
+    const p = createProvider();
+    (p as any)._client = {
+      subscribe: subscribeMock,
+      storage: {
+        upload: vi.fn().mockResolvedValue("https://fal.media/files/frame.png")
+      }
+    };
+
+    await p.imageToVideo(new Uint8Array([1, 2, 3, 4]), {
+      prompt: "spin",
+      durationSeconds: 10,
+      model: {
+        id: "fal-ai/ltx-2.3/image-to-video/fast",
+        name: "LTX 2.3 fast",
+        provider: "fal_ai"
+      }
+    } as any);
+
+    expect(subscribeMock.mock.calls[0][1].input.duration).toBe(10);
+
+    vi.unstubAllGlobals();
+  });
+
   // --- inpaint ---
 
   it("inpaint attaches the mask to the endpoint's declared mask field", async () => {

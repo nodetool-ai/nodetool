@@ -58,7 +58,7 @@ function createTimelineDragImage(name: string, theme: Theme): HTMLElement {
     box-sizing: border-box;
     box-shadow: ${SHADOW(theme).md};
     color: var(--palette-text-primary);
-    font-family: Inter, sans-serif;
+    font-family: var(--fontFamily1);
     pointer-events: none;
     z-index: ${DRAG_IMAGE_Z_INDEX};
   `;

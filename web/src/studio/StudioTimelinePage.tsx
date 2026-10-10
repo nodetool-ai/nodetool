@@ -31,9 +31,11 @@ const StudioTimelinePage = () => {
 
   // The flow's last step writes stage `done` to the store, and autosave carries
   // it to the server; this switches the page over without waiting for either.
-  const [finished, setFinished] = useState(false);
+  // Keyed by sequence, so a finished flow does not carry over to another one.
+  const [finishedId, setFinishedId] = useState<string | null>(null);
+  const finished = finishedId === sequenceId;
   const handleFinish = useCallback(() => {
-    setFinished(true);
+    setFinishedId(sequenceId);
     void utils.timeline.get.invalidate({ id: sequenceId });
   }, [sequenceId, utils]);
 
@@ -47,10 +49,16 @@ const StudioTimelinePage = () => {
       {query.isPending ? (
         <LoadingSpinner />
       ) : inSetup ? (
-        <VideoSetupHost sequenceId={sequenceId} onFinish={handleFinish} />
+        <VideoSetupHost
+          key={sequenceId}
+          sequenceId={sequenceId}
+          onFinish={handleFinish}
+        />
       ) : (
         <Suspense fallback={<LoadingSpinner />}>
-          <TimelineEditor sequenceId={sequenceId} active />
+          {/* Keyed by sequence: switching sequences unmounts the editor, and
+              its closing autosave flush writes the previous one's edits. */}
+          <TimelineEditor key={sequenceId} sequenceId={sequenceId} active />
         </Suspense>
       )}
     </StudioShell>

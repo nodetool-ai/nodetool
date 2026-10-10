@@ -7,7 +7,7 @@ import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { MessageContentRenderer } from "../chat/message/MessageContentRenderer";
 import isEqual from "../../utils/isEqual";
-import { BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
+import { BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING, SHADOW } from "../ui_primitives";
 import { formatToolName } from "../../utils/formatUtils";
 import { isString } from "../../utils/typePredicates";
 
@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
       border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`,
       borderRadius: BORDER_RADIUS.xl,
       padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`,
-      boxShadow: "0 8px 16px rgba(0 0 0 / 0.18)",
+      boxShadow: SHADOW(theme).md,
       position: "relative",
       overflow: "hidden"
     },

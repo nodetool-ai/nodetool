@@ -12,16 +12,19 @@ import { isElectron, isLocalhost } from "../../../lib/env";
 import {
   Caption,
   CollapsibleSection,
+  Divider,
   EditorButton,
   EmptyState,
   FlexColumn,
+  FlexRow,
+  Label,
   LoadingSpinner,
   SelectField,
   SPACING,
   TextInput,
   VideoPlayer
 } from "../../ui_primitives";
-import { InspectorSectionTitle } from "./InspectorPrimitives";
+import { INSPECTOR_FORM_SX, InspectorSectionTitle } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
 
 const TIMING_OPTIONS: ReadonlyArray<{ value: ExtensionTiming; label: string }> =
@@ -137,7 +140,7 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
       open={open}
       onToggle={setOpen}
     >
-      <FlexColumn gap={SPACING.md} sx={{ p: SPACING.md }}>
+      <FlexColumn sx={INSPECTOR_FORM_SX}>
         {!eligibility?.ok ? (
           <Caption color="secondary">{eligibility?.error}</Caption>
         ) : (
@@ -159,6 +162,7 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
               <>
                 <SelectField
                   label="Extension model"
+                  size="small"
                   value={`${model.provider}:${model.id}`}
                   options={modelsForTask.map((item) => ({
                     value: `${item.provider}:${item.id}`,
@@ -167,36 +171,48 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                   onChange={setModelKey}
                   disabled={pending}
                 />
-                <SelectField
-                  label="Extend from"
-                  value={selectedDirection}
-                  options={directionOptions}
-                  onChange={(value) =>
-                    setDirection(value === "start" ? "start" : "end")
-                  }
-                  disabled={pending}
-                />
-                <TextInput
-                  label="Added source seconds"
-                  type="number"
-                  value={duration}
-                  onChange={(event) => setDuration(event.target.value)}
-                  disabled={pending}
-                  inputProps={{ min: 0, step: 1 }}
-                  compact
-                  fullWidth
-                />
+                <FlexRow gap={SPACING.sm} align="flex-end" fullWidth>
+                  <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
+                    <SelectField
+                      label="Extend from"
+                      size="small"
+                      value={selectedDirection}
+                      options={directionOptions}
+                      onChange={(value) =>
+                        setDirection(value === "start" ? "start" : "end")
+                      }
+                      disabled={pending}
+                    />
+                  </FlexColumn>
+                  <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
+                    <TextInput
+                      label="Seconds to add"
+                      type="number"
+                      value={duration}
+                      onChange={(event) => setDuration(event.target.value)}
+                      disabled={pending}
+                      inputProps={{ min: 0, step: 1 }}
+                      compact
+                      fullWidth
+                    />
+                  </FlexColumn>
+                </FlexRow>
                 <TextInput
                   label="Extension intent"
                   value={intent}
                   onChange={(event) => setIntent(event.target.value)}
+                  placeholder="e.g. The camera keeps rising"
                   disabled={pending}
                   multiline
-                  minRows={2}
+                  minRows={3}
+                  maxRows={8}
                   compact
                   fullWidth
                 />
                 <EditorButton
+                  fullWidth
+                  variant="contained"
+                  startIcon={<MoreTimeOutlinedIcon />}
                   onClick={submit}
                   disabled={
                     pending ||
@@ -218,14 +234,21 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
           const accepted = take?.id === clip.activeTakeId;
           return (
             <FlexColumn key={job.request.requestId} gap={SPACING.sm}>
+              <Divider />
               {take ? (
                 <>
-                  <Caption>
-                    {job.request.direction === "start" ? "Start" : "End"}{" "}
-                    extension, {job.request.addedSourceDurationMs / 1000}s
-                    {accepted ? " · In use" : " · Candidate"}
-                  </Caption>
+                  <FlexRow justify="space-between" align="center" fullWidth>
+                    <Label>
+                      {job.request.direction === "start" ? "Start" : "End"}{" "}
+                      extension, {job.request.addedSourceDurationMs / 1000}s
+                    </Label>
+                    <Caption color={accepted ? "primary" : "secondary"}>
+                      {accepted ? "In use" : "Candidate"}
+                    </Caption>
+                  </FlexRow>
                   <EditorButton
+                    fullWidth
+                    variant="outlined"
                     onClick={() =>
                       setPreview(preview === take.assetId ? null : take.assetId)
                     }
@@ -240,9 +263,12 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                       label="Extension candidate"
                     />
                   )}
+                  <Caption color="secondary">Apply to the cut</Caption>
                   {TIMING_OPTIONS.map((option) => (
                     <EditorButton
                       key={option.value}
+                      fullWidth
+                      variant="outlined"
                       disabled={accepted}
                       onClick={() =>
                         handleApplyCandidate(job.request, option.value)
@@ -255,14 +281,20 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
               ) : job.status !== "running" ? (
                 <>
                   {job.error && <Caption color="error">{job.error}</Caption>}
-                  <EditorButton onClick={() => recover(job.request)}>
+                  <EditorButton
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => recover(job.request)}
+                  >
                     Recover extension
                   </EditorButton>
                 </>
               ) : (
-                <Caption color="secondary">
-                  Extension generation is running.
-                </Caption>
+                <LoadingSpinner
+                  variant="dots"
+                  size="small"
+                  text="Generating extension…"
+                />
               )}
             </FlexColumn>
           );

@@ -1,10 +1,13 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Component, type ComponentType, type ErrorInfo, type ReactElement, type ReactNode } from 'react';
 import { reportError } from '../services/errorReporting';
+import { ErrorState } from './ScreenState';
 
 interface Props {
   children: ReactNode;
+  /** Names the boundary in error reports, such as the screen it wraps. */
+  name?: string;
+  /** Offered beside "Try again", for when the same render would throw again. */
+  onGoBack?: () => void;
 }
 
 interface State {
@@ -12,6 +15,13 @@ interface State {
   error: Error | null;
 }
 
+/**
+ * Catches a render error below it and shows a recoverable fallback.
+ *
+ * The root one keeps a crash from blanking the app. Each screen also gets its
+ * own through `withScreenBoundary`, so one broken screen leaves the header and
+ * back button working instead of replacing the whole navigator.
+ */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -25,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     reportError(error, {
       source: 'ErrorBoundary',
-      extra: { componentStack: errorInfo.componentStack },
+      extra: { componentStack: errorInfo.componentStack, boundary: this.props.name ?? 'root' },
     });
   }
 
@@ -36,24 +46,11 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <View style={styles.container}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="warning-outline" size={48} color="#FF453A" />
-          </View>
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.subtitle}>
-            The app encountered an unexpected error. Please try again.
-          </Text>
-          {this.state.error && (
-            <ScrollView style={styles.errorContainer}>
-              <Text style={styles.errorText}>{this.state.error.message}</Text>
-            </ScrollView>
-          )}
-          <TouchableOpacity style={styles.button} onPress={this.handleReset}>
-            <Ionicons name="refresh-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorFallback
+          error={this.state.error}
+          onRetry={this.handleReset}
+          onGoBack={this.props.onGoBack}
+        />
       );
     }
 
@@ -61,60 +58,53 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-    backgroundColor: '#141414',
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 69, 58, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: '#B9B9B4',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  errorContainer: {
-    maxHeight: 100,
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 24,
-  },
-  errorText: {
-    fontSize: 12,
-    fontFamily: 'monospace',
-    color: '#FF5555',
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#60A5FA',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+function ErrorFallback({
+  error,
+  onRetry,
+  onGoBack,
+}: {
+  error: Error | null;
+  onRetry: () => void;
+  onGoBack?: () => void;
+}) {
+  return (
+    <ErrorState
+      title="Something went wrong"
+      message="This screen hit an unexpected error. Try again, or go back and reopen it."
+      details={error?.message}
+      onRetry={onRetry}
+      secondaryAction={onGoBack ? { label: 'Go back', onPress: onGoBack, icon: 'arrow-back' } : undefined}
+    />
+  );
+}
+
+interface ScreenNavigation {
+  canGoBack: () => boolean;
+  goBack: () => void;
+}
+
+/**
+ * Wraps a stack screen in its own error boundary. The fallback offers "Go
+ * back" when the stack has somewhere to go, so a screen that throws on every
+ * render is never a dead end.
+ */
+export function withScreenBoundary<P extends { navigation: ScreenNavigation }>(
+  Screen: ComponentType<P>,
+  name: string
+): (props: P) => ReactElement {
+  // A plain function type, not `ComponentType`: the navigator accepts a
+  // function screen that ignores `route`, but not a class that might.
+  function BoundedScreen(props: P): ReactElement {
+    const { navigation } = props;
+    return (
+      <ErrorBoundary
+        name={name}
+        onGoBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
+      >
+        <Screen {...props} />
+      </ErrorBoundary>
+    );
+  }
+  BoundedScreen.displayName = `withScreenBoundary(${name})`;
+  return BoundedScreen;
+}

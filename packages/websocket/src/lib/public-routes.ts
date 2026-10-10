@@ -195,3 +195,35 @@ export function isPublicAuthExemptRoute(
     isPublicMcpOauthAsRequest(pathname)
   );
 }
+
+/**
+ * The path the router will match for `url`. find-my-way runs `decodeURI` on
+ * the path before choosing a route, so `/%61pi/workflows` reaches the
+ * `/api/workflows` handler. Every auth decision must test this decoded form,
+ * never the raw `req.url`. Returns null for malformed escapes, which the
+ * router refuses anyway.
+ */
+export function routedPathname(url: string): string | null {
+  const raw = url.split("?")[0] ?? "/";
+  try {
+    return decodeURI(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * GETs the bundled frontend serves without auth: anything outside the API,
+ * WebSocket, OpenAI-compatible, tRPC and MCP prefixes. `GET /mcp` is the MCP
+ * SSE stream, so it stays behind auth to bind the session's user. A path that
+ * does not decode is never treated as a static asset.
+ */
+export function isStaticAppRequest(
+  pathname: string | null,
+  method: string
+): boolean {
+  if (pathname === null || method !== "GET") return false;
+  return !["/api", "/ws", "/v1", "/trpc", "/mcp"].some((prefix) =>
+    pathname.startsWith(prefix)
+  );
+}

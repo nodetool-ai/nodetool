@@ -81,6 +81,7 @@ const realPackageTests = [
   "tests/game-command.test.ts",
   "tests/game-command-eval.test.ts",
   "tests/game-command3d.test.ts",
+  "tests/game-command-capture-budget.test.ts",
   "tests/game-command-smoke.test.ts",
   "tests/game-command-benchmark.test.ts",
   "tests/gameBenchmarkTiming.test.ts",

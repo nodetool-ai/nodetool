@@ -148,6 +148,8 @@ export function buildCompositeLayer(
         strength: layer.matte.strength,
         featherPx: layer.matte.featherPx
       };
+    } else {
+      built.mattePending = true;
     }
   }
   return built;

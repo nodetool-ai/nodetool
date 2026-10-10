@@ -108,7 +108,7 @@ const AUDIO_CHUNK_ITEM_SX = {
 } as const;
 const LIST_WRAPPER_SX = { p: 1 } as const;
 const MONOSPACE_SX = {
-  fontFamily: "monospace",
+  fontFamily: "var(--fontFamily2)",
   fontSize: "var(--fontSizeNormal)"
 } as const;
 const PRE_WRAP_SX = { whiteSpace: "pre-wrap", color: "text.primary" } as const;

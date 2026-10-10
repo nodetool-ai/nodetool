@@ -7,6 +7,7 @@ import { browserGamepads } from "./input-bindings.js";
 import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { GameAudioPlayer } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
+import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 
 declare global {
   interface Window {
@@ -74,6 +75,7 @@ async function start(): Promise<void> {
     resolveAsset: async (binding) => manifest.assets[Object.entries(game.assets).find(([, entry]) => entry.assetId === binding.assetId && entry.digest === binding.digest)?.[0] ?? ""] ?? null,
     status, mixer: game.audio?.mixer });
   audio.preload(); audio.sync(session.snapshot());
+  const budget = new GameFrameBudgetMonitor(game.performance?.budgets);
   for (const event of ["pointerdown", "keydown"] as const) { window.addEventListener(event, () => { void audio.unlock(); }, { signal: controller.signal }); }
   const step = (nextInput: GameInputFrame3D): void => {
     const result = session.step(nextInput); frame = result.frame;
@@ -124,7 +126,10 @@ async function start(): Promise<void> {
   const render = async (interpolation: number): Promise<void> => {
     if (rendering || disposed) { return; }
     rendering = true;
-    try { await renderer.render(frame, interpolation); }
+    try {
+      const stats = await renderer.render(frame, interpolation);
+      budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, voices: gameAudioVoiceCount(audio.mixerState()) });
+    }
     catch (error) { if (renderer.capabilities.deviceStatus !== "lost") { paused = true; } status(error instanceof Error ? error.message : "Rendering failed"); }
     finally { rendering = false; }
   };

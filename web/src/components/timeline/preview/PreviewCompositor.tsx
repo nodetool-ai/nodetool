@@ -73,6 +73,7 @@ import {
   effectiveAssetId,
   hasActiveAnimation,
   isClipActive,
+  resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ,
   PREVIEW_OVERLAY_Z,
@@ -142,16 +143,53 @@ const PRELOAD_LOOKAHEAD_MS = 30_000;
 const IMAGE_CACHE_MAX = 64;
 const UNCROPPED = { left: 0, right: 0, top: 0, bottom: 0 } as const;
 
+/** Longest parent chain the animated-group check follows before giving up. */
+const MAX_PARENT_HOPS = 64;
+const clipIndexCache = new WeakMap<readonly TimelineClip[], Map<string, TimelineClip>>();
+
+/**
+ * Whether a layer sits inside a group that animates. A group's matrix and
+ * opacity are folded into its children when the scene is resolved, not when
+ * the layer's own animation is sampled, so a still child of a moving group
+ * needs the scene re-resolved on every frame.
+ */
+function hasAnimatedAncestorGroup(
+  layer: ActiveLayer,
+  clips: readonly TimelineClip[]
+): boolean {
+  if (!layer.clip.parentId || clips.length === 0) return false;
+  let byId = clipIndexCache.get(clips);
+  if (!byId) {
+    byId = new Map(clips.map((clip) => [clip.id, clip]));
+    clipIndexCache.set(clips, byId);
+  }
+  let cursor = byId.get(layer.clip.parentId);
+  // Bounded walk: the validator reports a parent cycle, the render ignores it.
+  for (let hops = 0; cursor && hops < MAX_PARENT_HOPS; hops++) {
+    if (
+      cursor.animationLinks?.length ||
+      cursor.animations?.some((animation) => animation.enabled !== false)
+    ) {
+      return true;
+    }
+    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+  }
+  return false;
+}
+
 /** Scene properties that the shared model, rather than animation sampling, resolves. */
 export function sceneRequiresPerFrameResolution(
   layers: readonly ActiveLayer[],
   animatedLayout = false,
-  precomposites: readonly CompositePrecomposite[] = []
+  precomposites: readonly CompositePrecomposite[] = [],
+  clips: readonly TimelineClip[] = []
 ): boolean {
   return animatedLayout || precomposites.some((group) => group.transition !== undefined) || layers.some(
     (layer) =>
       layer.transition !== undefined || layer.clip.reframe !== undefined ||
-      layer.camera2d?.keyframes !== undefined
+      layer.camera2d?.keyframes !== undefined ||
+      hasAnimatedAncestorGroup(layer, clips) ||
+      (layer.matte !== undefined && hasAnimatedAncestorGroup(layer.matte.layer, clips))
   );
 }
 
@@ -1154,11 +1192,20 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     // The box traces what is drawn: the picture layer's transform carries the
     // animation and group, and its crop shrinks the quad. Edits still go to
     // the stored `clip.transform`.
+    // The scene's layer holds the transform before animation, so the box is
+    // sampled at the playhead the way the frame is.
     const drawn = videoLayer ?? imageLayer;
+    const displayTransform = drawn
+      ? resolveAnimatedLayerProps(drawn, currentTimeMs, sceneCanvas, animCacheRef.current, {
+          mediaTracks,
+          clips: previewClips,
+          tempo
+        }).transform
+      : undefined;
     return {
       clipId: selectedClipId,
       transform: clip.transform,
-      displayTransform: drawn?.transform,
+      displayTransform,
       parentMatrix: drawn?.parentMatrix,
       crop: drawn?.crop,
       sourceWidth: w,
@@ -1170,7 +1217,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     sceneLayers,
     resolveUrl,
     urlCacheVersion,
-    videoMetaVersion
+    videoMetaVersion,
+    currentTimeMs,
+    sceneCanvas,
+    mediaTracks,
+    previewClips,
+    tempo
   ]);
 
   const selectedReframe = useMemo(() => {
@@ -1587,7 +1639,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       // active clip set stands still, and its record is resolved by the scene
       // model rather than sampled here — so while one is running the scene is
       // re-derived at the drawn time instead of reused from the last boundary.
-      const recomputed = sceneRequiresPerFrameResolution(sceneLayers, animatedLayout, precomposites) || sampleCount > 1
+      const recomputed = sceneRequiresPerFrameResolution(sceneLayers, animatedLayout, precomposites, previewClips) || sampleCount > 1
         ? computeActiveLayersWithHorizon(tracks, previewClips, atMs, {
             maxVideoLayers: HOT_POOL_SIZE,
             canvas: sceneCanvas,
@@ -2129,7 +2181,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         // necessarily has a decoding video, so still scenes must also redraw.
         if (
           !dirty &&
-          (sceneRequiresPerFrameResolution(lastLayersRef.current, animatedLayoutRef.current, precompositesRef.current) ||
+          (sceneRequiresPerFrameResolution(lastLayersRef.current, animatedLayoutRef.current, precompositesRef.current, latestClipsRef.current) ||
             (adjustmentsRef.current.length > 0 && hasAnimatedAdjustmentsRef.current) ||
             hasActiveAnimation(
               lastLayersRef.current,

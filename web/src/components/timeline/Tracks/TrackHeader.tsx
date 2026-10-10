@@ -318,6 +318,9 @@ const resizeHandleStyles = (theme: Theme) =>
     right: 0,
     height: RESIZE_HANDLE_HEIGHT_PX,
     cursor: "ns-resize",
+    // A vertical finger drag resizes the track; without this the browser
+    // scrolls the track list and cancels the pointer.
+    touchAction: "none",
     backgroundColor: "transparent",
     "&:hover": {
       backgroundColor: theme.vars.palette.primary.main,

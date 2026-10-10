@@ -588,6 +588,27 @@ export function verifyBackendBundle(bundleDir) {
     );
   }
 
+  // esbuild's JS API throws "cannot be bundled" unless it runs from its own
+  // lib/main.js, so an inlined copy leaves every npm sandbox module
+  // uncompiled. The sandbox compiler needs it staged with its platform binary.
+  if (serverSource.includes("The esbuild JavaScript API cannot be bundled")) {
+    errors.push(
+      "server.mjs inlines esbuild's JS API, which refuses to run outside " +
+        "esbuild/lib/main.js. Keep esbuild in COMMON_EXTERNAL_PACKAGES."
+    );
+  }
+  const esbuildPlatforms = listFiles(path.join(modulesDir, "@esbuild")) ?? [];
+  if (!readPackageVersion(path.join(modulesDir, "esbuild"))) {
+    errors.push("_modules/esbuild is missing or has no readable package.json");
+  } else if (esbuildPlatforms.length === 0) {
+    errors.push(
+      "no @esbuild/<platform> binary staged under _modules/@esbuild — the " +
+        "sandbox compiler could not start esbuild."
+    );
+  } else {
+    summary.push(`esbuild staged with binary: ${esbuildPlatforms.join(", ")}`);
+  }
+
   const sharpVersion = readPackageVersion(path.join(modulesDir, "sharp"));
   if (!sharpVersion) {
     errors.push("_modules/sharp is missing or has no readable package.json");

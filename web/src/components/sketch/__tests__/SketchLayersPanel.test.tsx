@@ -252,3 +252,44 @@ describe("SketchLayersPanel add-layer actions", () => {
     expect(props.onAddGroup).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("SketchLayersPanel layer context menu target", () => {
+  it("makes a right-clicked layer active so menu actions apply to it", () => {
+    const { layers, props } = renderPanel({ layerCount: 2, activeLayerIndex: 0 });
+
+    fireEvent.contextMenu(screen.getByText("Layer 2"));
+
+    expect(props.onSelectLayer).toHaveBeenCalledWith(layers[1].id);
+  });
+
+  it("keeps a multi-layer selection when right-clicking one of its layers", () => {
+    const { theme, layers, props } = buildPanelProps({ layerCount: 3 });
+    const selectedIds = layers.map((layer) => layer.id);
+
+    render(
+      <ThemeProvider theme={theme}>
+        <SketchLayersPanel
+          {...props}
+          activeLayerId={selectedIds[0]}
+          selectedLayerIds={selectedIds}
+        />
+      </ThemeProvider>
+    );
+
+    fireEvent.contextMenu(screen.getByText("Layer 2"));
+
+    expect(props.onSelectLayer).not.toHaveBeenCalled();
+  });
+});
+
+describe("SketchLayersPanel opacity slider", () => {
+  it("marks keyboard steps as committed so each one is a single history entry", () => {
+    const { layer, props } = renderPanel();
+    const slider = screen.getByRole("slider");
+
+    fireEvent.keyDown(slider, { key: "ArrowLeft" });
+
+    expect(props.onLayerOpacityChange).toHaveBeenCalledWith(layer.id, 0.99, false);
+    expect(props.onLayerOpacityChange).toHaveBeenLastCalledWith(layer.id, 0.99, true);
+  });
+});

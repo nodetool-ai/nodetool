@@ -144,6 +144,33 @@ describe("AudioGraph fades", () => {
     expect(fadeInStart + fadeInDuration).toBeCloseTo(fadeOutStart, 6);
   });
 
+  it("never starts a fade-out before a meeting fade-in has ended", async () => {
+    // Two fades that exactly fill the clip. Computed separately, the fade-out
+    // start can round one ulp below the fade-in end (0.4 + 1.0 - 0.5 <
+    // 0.4 + 0.5), which overlaps two value curves and makes WebAudio throw.
+    for (let startMs = 0; startMs <= 5000; startMs += 100) {
+      for (const shape of ["sCurve", "linear"] as const) {
+        const gain = await scheduleClip({
+          startMs,
+          durationMs: 1000,
+          fadeInMs: 500,
+          fadeOutMs: 500,
+          fadeInShape: shape,
+          fadeOutShape: shape
+        });
+        if (shape === "sCurve") {
+          const [, inStart, inDuration] = gain.setValueCurveAtTime.mock.calls[0];
+          const [, outStart] = gain.setValueCurveAtTime.mock.calls[1];
+          expect(outStart).toBeGreaterThanOrEqual(inStart + inDuration);
+        } else {
+          const [, inEnd] = gain.linearRampToValueAtTime.mock.calls[0];
+          const outStart = gain.setValueAtTime.mock.calls[1][1];
+          expect(outStart).toBeGreaterThanOrEqual(inEnd);
+        }
+      }
+    }
+  });
+
   it("holds full volume through a clip with no fade", async () => {
     const gain = await scheduleClip({});
     expect(gain.setValueCurveAtTime).not.toHaveBeenCalled();

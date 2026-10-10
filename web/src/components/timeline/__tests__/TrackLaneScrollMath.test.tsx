@@ -189,4 +189,36 @@ describe("TrackLane content-space coordinate math", () => {
     const selected = useTimelineUIStore.getState().selectedClipIds;
     expect([...selected]).toEqual(["c1"]);
   });
+
+  it("seeks on a touch tap's release, not on touch down", () => {
+    renderLane();
+    const lane = screen.getByTestId("track-lane-t1");
+    const touch = { pointerId: 3, pointerType: "touch", button: 0 };
+    fireEvent.pointerDown(lane, { ...touch, clientX: 120 });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(0);
+    fireEvent.pointerUp(lane, { ...touch, clientX: 122 });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(
+      122 * MS_PER_PX
+    );
+  });
+
+  it("does not seek when a touch swipes across the lane", () => {
+    renderLane();
+    const lane = screen.getByTestId("track-lane-t1");
+    const touch = { pointerId: 3, pointerType: "touch", button: 0 };
+    fireEvent.pointerDown(lane, { ...touch, clientX: 120 });
+    fireEvent.pointerMove(lane, { ...touch, clientX: 180 });
+    fireEvent.pointerUp(lane, { ...touch, clientX: 180 });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(0);
+  });
+
+  it("does not seek when the browser cancels the touch to scroll", () => {
+    renderLane();
+    const lane = screen.getByTestId("track-lane-t1");
+    const touch = { pointerId: 3, pointerType: "touch", button: 0 };
+    fireEvent.pointerDown(lane, { ...touch, clientX: 120 });
+    fireEvent.pointerCancel(lane, touch);
+    fireEvent.pointerUp(lane, { ...touch, clientX: 120 });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(0);
+  });
 });

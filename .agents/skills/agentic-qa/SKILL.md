@@ -185,6 +185,12 @@ Read the fixture list in
 before judging results. Placeholder text, the fixed chat reply, and the
 gradient image are the fakes, not defects.
 
+Review every screenshot yourself, not only the participant's account. A
+participant chasing its goal often passes over incidental defects in plain
+view: "[object Object]", "undefined" or "NaN" in a label or tooltip, a raw
+error, a control drawn over the result it should reveal. Record each one as a
+finding with its screenshot, even when the participant never mentioned it.
+
 Separate discoverability, comprehension, affordance, feedback, recovery,
 persistence, and visual hierarchy from technical breakage. A working control
 that the participant cannot find can still be a UX finding. A speculative cause

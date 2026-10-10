@@ -229,6 +229,28 @@ it("round-trips removal of optional collision layers through JSON operations", (
   roundTrip(before, after);
 });
 
+it("round-trips document animation graphs and the animator reference to them", () => {
+  const before = createNative3DGame("diff3d-animation-graph");
+  before.assets.hero = { mediaKind: "model", assetId: "hero", digest: "hero-digest", required: true, format: "glb", preparationVersion: "1",
+    bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }, nodeIds: ["node:0"], clipIds: ["clip:0", "clip:1"],
+    geometryBytes: 1, textureBytes: 0, triangles: 1, supportedExtensions: [] };
+  const visual = before.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (!visual) { throw new Error("Fixture visual missing"); }
+  delete visual.primitive;
+  visual.model = { assetId: "hero", castShadow: true, receiveShadow: true };
+  visual.animator3d = { clips: { idle: "clip:0", run: "clip:1" }, playbackRate: 1, loop: true, transitionTicks: 6 };
+  const after = structuredClone(before);
+  after.animationGraphs = { locomotion: { parameters: { running: { kind: "bool", default: false } }, layers: [{ id: "base", mode: "override", weight: 1, initialState: "idle",
+    states: { idle: { motion: { kind: "clip", clip: "idle" }, speed: 1, loop: true }, run: { motion: { kind: "clip", clip: "run" }, speed: 1, loop: true } },
+    transitions: [{ from: "idle", to: "run", conditions: [{ parameter: "running", op: "true" }], durationTicks: 6 }] }] } };
+  const nextVisual = after.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (!nextVisual?.animator3d) { throw new Error("Fixture animator missing"); }
+  nextVisual.animator3d.graph = "locomotion";
+  roundTrip(before, after);
+  expect(diffAnyGameDocuments(before, after).map((op) => op.op)).toContain("set_animation_graph");
+  expect(diffAnyGameDocuments(after, before).map((op) => op.op)).toContain("remove_animation_graph");
+});
+
 it("round-trips adding and removing the audio mixer through JSON operations", () => {
   const before = createNative3DGame("diff3d-audio-mixer");
   const after = structuredClone(before);
@@ -250,4 +272,14 @@ it("round-trips adding, editing and removing a particles component", () => {
   editedPlayer.particles.emitters = [editedPlayer.particles.emitters[0]];
   editedPlayer.particles.emitters[0].onDeath = [];
   roundTrip(withParticles, edited);
+});
+
+it("round-trips adding and removing cull layers, frame budgets and entity culling together", () => {
+  const before = createNative3DGame("diff3d-render-culling");
+  const after = structuredClone(before);
+  after.performance = { cullLayers: { props: { maxDistance: 40 } }, budgets: { drawCalls: 200, voices: 8 } };
+  const visual = after.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (!visual) { throw new Error("Fixture entity missing"); }
+  visual.renderCulling = { layer: "props" };
+  roundTrip(before, after);
 });

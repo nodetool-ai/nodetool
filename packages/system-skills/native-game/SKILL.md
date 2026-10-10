@@ -567,6 +567,45 @@ Players can scale and mute a bus at runtime through `GameAudioPlayer`
 
 ### N: Animation
 
+A 3D animation graph lives in the document's `animationGraphs` map. An
+entity's `animator3d.graph` names one, and its `animator3d.clips` maps the
+graph's clip aliases to prepared clip IDs, so one graph can drive several rigs.
+Store a graph with `set_animation_graph {graph_id, graph}` and delete it with
+`remove_animation_graph {graph_id}`. An animator with a graph cannot also set
+`initialClip`.
+
+A graph declares `parameters` (`float` with a default, `bool` with a default,
+or `trigger`) and one to eight `layers`. Each layer has an `initialState`,
+`states` and `transitions`. A state plays a `motion`: one `clip`, a `blend1d`
+over a float parameter with points in increasing `value` order, or a `blend2d`
+over two float parameters. `speed` scales the animator's `playbackRate`, and
+`loop` defaults to true. The first layer is the unmasked override base. Later
+layers can be `additive` and can set `weight` and a `mask` of prepared model
+node IDs. A mask covers each listed node and its descendants.
+
+A transition names `from` (a state ID, or `*` for any state), `to`,
+`conditions`, optional `exitTicks` and `durationTicks` for the crossfade. Every
+condition must hold. Float conditions use `gt`, `gte`, `lt`, `lte`, `eq` or
+`neq` with a `value`. Bool conditions use `true` or `false`. A trigger uses
+`set` and resets once a transition consumes it. `exitTicks` is how long the
+source state must run before the transition may fire. Each transition needs a
+condition or `exitTicks`. A crossfading layer does not start another
+transition. Transitions are checked in document order.
+
+Scripts set parameters with `setAnimParam {name, value}`. Pass `true` to fire
+a trigger. `playAnimation {clip}` on a graph entity switches the base layer
+directly to the state with that ID, or else to the first state that plays that
+clip alias, using `animator3d.transitionTicks`. Example locomotion: a `speed`
+float, a `move` state with `blend1d` points idle at 0, walk at 2 and run at 6,
+and a script that sends `setAnimParam` with the character's planar speed.
+
+Graph state (current state, entry tick, crossfade source and parameter values)
+is simulation state. It is saved in snapshots and replays exactly with
+`nodetool game simulate --verify-replay`. Render frames carry the resolved
+`animationPose` (clip weights per layer), and the renderer samples it at the
+interpolated tick. Blended clips share one normalized phase. The pose sampler
+blends node translation, rotation and scale. It does not blend morph targets.
+
 ### S: Scripting and gameplay
 
 #### Script parameters
@@ -701,5 +740,28 @@ at `<source_root>/candidates/<digest>.json`. Files staged by
 `generate_game_asset` itself have none and list as unrecorded.
 
 ### D: Performance and delivery
+
+#### Distance culling and frame budgets (3D)
+
+Both are presentation only. They never change simulation, snapshots or replay.
+
+- `set_performance {performance}` replaces document `performance`. `null`
+  removes it. `cullLayers` maps a layer name to `{maxDistance}` (at most 32
+  layers). `budgets` sets `drawCalls`, `triangles`, `particles` and `voices`.
+- `update_entity` with `set: {renderCulling: {layer?, maxDistance?}}` hides
+  that entity and its children when the game camera is farther than the
+  distance from the entity's origin. The nearest setting in the parent chain
+  wins, and an entity's own `maxDistance` wins over its layer's. A layer must
+  be declared, or validation reports `missing_cull_layer`.
+- Distance is measured to the entity origin, not to its nearest surface. Cull
+  props and small decoration. Do not cull large scenery such as terrain or
+  buildings, because they disappear while the camera is still close to their
+  edges. Never cull the player or anything the player must see to win. The
+  editor camera shows every entity.
+- Budgets left out use the player defaults: 1000 draw calls, 1,000,000
+  triangles, 4096 particles and 24 voices. The standalone player warns in the
+  browser console once each time the draw call, triangle or voice budget is
+  exceeded. No player counts particles yet, so the particles budget does not
+  warn. `nodetool game capture` reports `budget.overruns` for a 3D frame.
 
 ### M: Milestone games

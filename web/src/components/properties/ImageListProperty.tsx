@@ -10,6 +10,8 @@ import { listDropzoneStyles } from "./shared/listDropzoneStyles";
 import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { settleUploads } from "./shared/settleUploads";
 import ImageDimensions from "../node/ImageDimensions";
 import { isElectron } from "../../utils/browser";
 import {
@@ -88,8 +90,8 @@ const styles = (theme: Theme) =>
     },
     ".remove-button": {
       position: "absolute",
-      top: "2px",
-      right: "2px",
+      top: getSpacingPx(SPACING.micro),
+      right: getSpacingPx(SPACING.micro),
       opacity: 0,
       transition: `opacity ${MOTION.normal}`,
       backgroundColor: theme.vars.palette.c_scrim,
@@ -178,6 +180,10 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
     () => flattenImageItems(props.value),
     [props.value]
   );
+  // Read at upload completion: the list may have changed while files uploaded.
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   const [isDragOver, setIsDragOver] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<Record<string, { width: number; height: number }>>({});
@@ -186,15 +192,17 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
 
   const handleAddImages = useCallback(
     (newImages: ImageItem[]) => {
-      const updatedImages = [...images, ...newImages];
+      const updatedImages = [...imagesRef.current, ...newImages];
+      imagesRef.current = updatedImages;
       props.onChange(updatedImages);
     },
-    [images, props]
+    [props]
   );
 
   const handleRemoveImage = useCallback(
     (index: number) => {
       const updatedImages = images.filter((_, i) => i !== index);
+      imagesRef.current = updatedImages;
       // Clean up dimensions and refs for removed image
       const removedImageUri = images[index]?.uri;
       if (removedImageUri) {
@@ -316,13 +324,13 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
       );
 
       try {
-        const newImages = await Promise.all(uploadPromises);
+        const newImages = await settleUploads(uploadPromises, "images", addNotification);
         handleAddImages(newImages);
       } catch (error) {
         console.error("Failed to upload images:", error);
       }
     },
-    [uploadAsset, handleAddImages, filteredAssets, globalSearchResults, selectedAssets]
+    [uploadAsset, addNotification, handleAddImages, filteredAssets, globalSearchResults, selectedAssets]
   );
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -378,13 +386,13 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
           });
         });
 
-        const newImages = await Promise.all(uploadPromises);
+        const newImages = await settleUploads(uploadPromises, "images", addNotification);
         handleAddImages(newImages);
       }
     } catch (error) {
       console.error("Error opening file picker:", error);
     }
-  }, [uploadAsset, handleAddImages]);
+  }, [uploadAsset, addNotification, handleAddImages]);
 
   // Handle files from browser file input
   const handleBrowserFilePicker = useCallback(() => {
@@ -420,7 +428,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
     );
 
     try {
-      const newImages = await Promise.all(uploadPromises);
+      const newImages = await settleUploads(uploadPromises, "images", addNotification);
       handleAddImages(newImages);
     } catch (error) {
       console.error("Failed to upload images:", error);
@@ -430,7 +438,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, [uploadAsset, handleAddImages]);
+  }, [uploadAsset, addNotification, handleAddImages]);
 
   // Handle dropzone click - use native dialog in Electron, file input in browser
   const handleDropzoneClick = useCallback(() => {

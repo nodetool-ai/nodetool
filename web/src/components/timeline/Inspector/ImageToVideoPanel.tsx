@@ -69,6 +69,17 @@ const toVideoModelValue = (model: {
   supported_tasks: model.supported_tasks
 });
 
+/**
+ * The model's own option list, or the catalog's when it listed none. An empty
+ * list is what a failed or empty options lookup returns, not a model that
+ * accepts nothing.
+ */
+const listedOr = <T,>(
+  listed: readonly T[] | null | undefined,
+  catalog: readonly T[] | null | undefined
+): readonly T[] | null | undefined =>
+  listed && listed.length > 0 ? listed : catalog;
+
 const formatSeconds = (ms: number): string =>
   `${Number((ms / 1000).toFixed(2))} s`;
 
@@ -118,13 +129,18 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
 
   const assetId = clip?.currentAssetId;
   const imageUrl = useResolvedMediaUri(assetId ? `asset://${assetId}` : null);
-  const measuredSize = useImageNaturalSize(
+  const measured = useImageNaturalSize(
     clip?.width && clip?.height ? undefined : imageUrl
   );
-  const imageSize =
-    clip?.width && clip?.height
-      ? { width: clip.width, height: clip.height }
-      : measuredSize;
+  const clipWidth = clip?.width;
+  const clipHeight = clip?.height;
+  const imageSize = useMemo(
+    () =>
+      clipWidth && clipHeight
+        ? { width: clipWidth, height: clipHeight }
+        : measured.size,
+    [clipHeight, clipWidth, measured.size]
+  );
 
   const mediaOptions = useMediaOptions({
     provider: selectedModel?.provider,
@@ -150,12 +166,18 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
               height: imageSize?.height
             },
             {
-              durations:
-                mediaOptions.data?.durations ?? catalogModel?.durations,
-              aspectRatios:
-                mediaOptions.data?.aspectRatios ?? catalogModel?.aspect_ratios,
-              resolutions:
-                mediaOptions.data?.resolutions ?? catalogModel?.resolutions
+              durations: listedOr(
+                mediaOptions.data?.durations,
+                catalogModel?.durations
+              ),
+              aspectRatios: listedOr(
+                mediaOptions.data?.aspectRatios,
+                catalogModel?.aspect_ratios
+              ),
+              resolutions: listedOr(
+                mediaOptions.data?.resolutions,
+                catalogModel?.resolutions
+              )
             }
           )
         : null,
@@ -182,7 +204,7 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
 
   const handleGenerate = useCallback(async () => {
     const image = timeline.getState().clips.find((item) => item.id === clipId);
-    if (!image || !settings || !selectedModel || !prompt.trim()) {
+    if (!image || !settings || !imageSize || !selectedModel || !prompt.trim()) {
       return;
     }
     setErrorMessage(null);
@@ -221,8 +243,10 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
       } finally {
         history.end();
       }
-      selectClip(videoClipId);
+      // Selecting the new clip replaces this panel, so it waits for the start:
+      // an error thrown by the start must still have a panel to show it.
       await start(videoClipId);
+      selectClip(videoClipId);
     } catch (failure) {
       setErrorMessage(
         failure instanceof Error ? failure.message : String(failure)
@@ -233,6 +257,7 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
   }, [
     clipId,
     history,
+    imageSize,
     prompt,
     selectClip,
     selectedModel,
@@ -354,13 +379,20 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
               fullWidth
               variant="contained"
               startIcon={<MovieFilterOutlinedIcon />}
-              disabled={submitting || !prompt.trim() || !selectedModel}
+              disabled={
+                submitting || !prompt.trim() || !selectedModel || !imageSize
+              }
               onClick={() => void handleGenerate()}
               data-testid="image-to-video-submit"
             >
               {submitting ? "Starting…" : "Generate video"}
             </EditorButton>
 
+            {!imageSize && measured.failed && (
+              <Caption color="error" sx={{ textAlign: "center" }}>
+                The image could not be loaded, so its size is unknown.
+              </Caption>
+            )}
             {errorMessage && (
               <Caption color="error" sx={{ textAlign: "center" }}>
                 {errorMessage}

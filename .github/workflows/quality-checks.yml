@@ -118,6 +118,9 @@ jobs:
   #        --warnings-as-errors (set in the script) so a warning-level
   #        drift fails the gate too. File targets need no DB, only the
   #        built node registry from the `build` job's dist.
+  #        Then `npm run build:example-apps:check` fails when a shipped
+  #        app bundle no longer matches what its spec and template graphs
+  #        build, so a template fix reaches the app that binds it.
   #     4. `npm run codegen:dsl:check` — the same rot detector for the
   #        generated TypeScript DSL (packages/dsl/src/generated). It is
   #        the graph-authoring surface agents write against, so a node
@@ -276,7 +279,7 @@ jobs:
           [
             {
               "check": "typecheck",
-              "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check",
+              "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run build:example-apps:check && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check",
               "mobile-deps": "true",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "false",
