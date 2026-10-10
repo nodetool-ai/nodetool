@@ -31,7 +31,8 @@ const LONG_EDGE = 1080;
 /** Round to an even number — codecs and the compositor dislike odd sizes. */
 const even = (n: number): number => Math.max(2, Math.round(n / 2) * 2);
 
-const previewClip = (shot: Shot) => shot.clip ?? shot.clip_versions?.at(-1);
+const previewClip = (shot: Shot) =>
+  shot.clip ?? (shot.covered_by ? undefined : shot.clip_versions?.at(-1));
 
 /**
  * Frame size for an aspect ratio written "W:H". Landscape and square boards
