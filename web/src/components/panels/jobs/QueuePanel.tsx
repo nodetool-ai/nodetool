@@ -56,7 +56,7 @@ const JobColumn = memo(function JobColumn({
           borderColor: "divider"
         }}
       >
-        <Text size="smaller" weight={600}
+        <Text size="smaller"
         sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</Text>
         <Text size="smaller" color="secondary" family="secondary">{jobs.length}</Text>
       </FlexRow>

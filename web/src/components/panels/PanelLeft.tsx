@@ -19,7 +19,8 @@ import {
   Z_INDEX,
   getSpacingPx,
   reducedMotion,
-  thinScrollbarStyles
+  thinScrollbarStyles,
+  PanelHeader
 } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import isEqual from "../../utils/isEqual";
@@ -91,7 +92,6 @@ import {
   LEFT_PANEL_MIN_DRAWER_WIDTH
 } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
-import PanelHeadline from "../ui/PanelHeadline";
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 
@@ -255,12 +255,22 @@ const styles = (
       flex: 1,
       height: "100%",
       overflow: "hidden",
-      padding: isMobile ? 0 : "0 0.75em"
+      padding: isMobile ? 0 : `0 ${getSpacingPx(SPACING.lg)}`
+    },
+    // Panel headers run edge to edge so their divider meets the drawer borders,
+    // while the title stays aligned with the padded content below.
+    ".panel-inner-content .panel-header": {
+      marginInline: isMobile ? 0 : `calc(-1 * ${getSpacingPx(SPACING.lg)})`,
+      width: isMobile ? "100%" : `calc(100% + 2 * ${getSpacingPx(SPACING.lg)})`
     },
     // The node library manages its own internal spacing and its info strip
     // bleeds to the panel borders, so it forgoes the shared horizontal padding.
     "&.is-nodes .panel-inner-content": {
       padding: 0
+    },
+    "&.is-nodes .panel-inner-content .panel-header": {
+      marginInline: 0,
+      width: "100%"
     }
   });
 };
@@ -402,7 +412,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Recent Nodes"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -421,7 +431,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Favorite Nodes"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -442,7 +452,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Library"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -486,7 +496,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Workflows"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -508,7 +518,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Chats"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -527,7 +537,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Sketches"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -547,7 +557,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Timelines"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -567,7 +577,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Storyboards"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -587,7 +597,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Entities"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -619,7 +629,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Scripts"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -639,7 +649,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="JS Scripts"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -659,7 +669,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Skills"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -678,7 +688,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Apps"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
@@ -703,7 +713,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline
+            <PanelHeader
               title="Workflow Settings"
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
