@@ -12,6 +12,7 @@ const CLOUD = [
   "openrouter",
   "requesty",
   "opper",
+  "api_route",
   "fal_ai",
   "kie",
   "replicate",

@@ -61,6 +61,7 @@ The generic `nodetool.agents.Agent` and chat nodes route to whichever provider o
 | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | MiniMax M2.7, M2.5, M2.1, M2 (plus high-speed variants) |
 | OpenRouter | 300+ models proxied through one key (Claude, GPT, Gemini, Llama, Qwen, DeepSeek, …) |
 | Requesty | Claude, GPT, Gemini, DeepSeek, Grok and more through one OpenAI-compatible router |
+| API Route | Hosted Claude, GPT, Gemini and DeepSeek chat models through an OpenAI-compatible API |
 | Opper | Claude, GPT, Gemini, DeepSeek, Kimi and more through one EU-hosted OpenAI-compatible gateway |
 | Together AI | Llama, Qwen, DeepSeek, Mixtral, GLM, Kimi, and more open models |
 | Evolink | GPT, Claude, Gemini, DeepSeek through one gateway key |

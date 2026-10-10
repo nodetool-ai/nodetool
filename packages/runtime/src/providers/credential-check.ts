@@ -87,6 +87,11 @@ const PROBES: Record<string, CredentialProbe> = {
     url: () => "https://api.opper.ai/v3/compat/models",
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
+  API_ROUTE_API_KEY: {
+    label: "API Route",
+    url: () => "https://global.api-route.com/v1/models",
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
   DEEPSEEK_API_KEY: {
     label: "DeepSeek",
     url: () => "https://api.deepseek.com/v1/models",
