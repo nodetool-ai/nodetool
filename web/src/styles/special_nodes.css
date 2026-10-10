@@ -47,6 +47,13 @@
   background-color: var(--palette-grey-900);
 }
 
+/* Light scheme: a white note with a hairline edge reads cleaner on the
+   pale canvas than a filled grey block. */
+.light .react-flow__node-nodetool\.workflows\.base_node\.Comment {
+  background-color: var(--palette-background-paper);
+  box-shadow: 0 0 0 1px var(--palette-divider), var(--shadow-sm);
+}
+
 .react-flow__node-nodetool\.workflows\.base_node\.Comment.selected {
   border: 0;
   outline: 1px solid var(--palette-grey-300) !important;
