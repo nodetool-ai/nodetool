@@ -25,6 +25,7 @@
 
 import React, {
   memo,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -35,7 +36,11 @@ import {
   shotRenderMode,
   requiredVideoTasksForShots
 } from "@nodetool-ai/protocol";
-import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
+import type {
+  SceneClipDirection,
+  Shot,
+  ShotModelRef
+} from "@nodetool-ai/protocol";
 import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -125,6 +130,12 @@ import BoardStaleBanner from "./BoardStaleBanner";
 import BoardStyleDialog from "./BoardStyleDialog";
 import EntityStillModelWarning from "./EntityStillModelWarning";
 import SceneHeader from "./SceneHeader";
+import SceneClipControls from "./SceneClipControls";
+import {
+  newSceneClipShotIds,
+  sceneClipParts,
+  sceneClipsInGroup
+} from "./sceneClips";
 import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
 import { shotWorkflowMedia } from "./shotWorkflowMedia";
@@ -134,6 +145,7 @@ import StoryboardSlideshow from "./StoryboardSlideshow";
 import { useStoryboardViewStore } from "../../stores/storyboard/StoryboardViewStore";
 import ShotEditPanel from "./ShotEditPanel";
 import OneTakePanel from "./OneTakePanel";
+const SceneClipDialog = React.lazy(() => import("./SceneClipDialog"));
 import ShotInsertPoint, { SHOT_INSERT_POINT_CLASS } from "./ShotInsertPoint";
 import ShotInspector from "./ShotInspector";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
@@ -221,6 +233,8 @@ const editOverlaySx = {
  * One card's cell. It hosts the trailing insert point, which is revealed by
  * hover or by a keyboard focus landing anywhere inside the cell.
  */
+const NO_SCENE_CLIPS: readonly SceneClipDirection[] = [];
+
 const shotSlotSx = {
   position: "relative",
   [`&:hover .${SHOT_INSERT_POINT_CLASS}`]: { opacity: 1 },
@@ -493,6 +507,57 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const scenes = screenplay?.scenes;
   const sceneGroups = useMemo(() => sceneOrder(shots, scenes), [shots, scenes]);
   const captions = useMemo(() => captionsByShotId(sceneGroups), [sceneGroups]);
+  const sceneClips =
+    useStoryboardStore((state) => state.boards[boardId]?.sceneClips) ??
+    NO_SCENE_CLIPS;
+  const sceneClipTags = useMemo(() => {
+    const tags = new Map<string, string>();
+    for (const [shotId, part] of sceneClipParts(shots, sceneClips)) {
+      tags.set(shotId, `Clip ${part.position}/${part.count} \u00B7 ${part.window}`);
+    }
+    return tags;
+  }, [shots, sceneClips]);
+  const sceneClipsByGroup = useMemo(
+    () =>
+      new Map(
+        sceneGroups.map((group) => [
+          group.sceneId,
+          sceneClipsInGroup(group.shots, sceneClips)
+        ])
+      ),
+    [sceneGroups, sceneClips]
+  );
+  const [sceneClipDialog, setSceneClipDialog] = useState<{
+    sceneShots: Shot[];
+    clip: SceneClipDirection;
+    saved: boolean;
+  } | null>(null);
+  const openSceneClip = useCallback(
+    (sceneId: string | null, clip: SceneClipDirection | null) => {
+      const group = sceneGroups.find((g) => g.sceneId === sceneId);
+      if (!group) {
+        return;
+      }
+      setSceneClipDialog(
+        clip
+          ? { sceneShots: group.shots, clip, saved: true }
+          : {
+              sceneShots: group.shots,
+              clip: {
+                id: crypto.randomUUID(),
+                prompt: "",
+                shot_ids: newSceneClipShotIds(
+                  group.shots,
+                  sceneClipsByGroup.get(sceneId) ?? NO_SCENE_CLIPS
+                )
+              },
+              saved: false
+            }
+      );
+    },
+    [sceneGroups, sceneClipsByGroup]
+  );
+  const closeSceneClip = useCallback(() => setSceneClipDialog(null), []);
 
   const hasShots = shots.length > 0;
   const boardWorkflowMedia = useMemo(
@@ -1591,6 +1656,20 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   <SceneHeader
                     number={sceneIndex + 1}
                     slugline={group.scene?.slugline || undefined}
+                    actions={
+                      readOnly || directing ? undefined : (
+                        <SceneClipControls
+                          sceneId={group.sceneId}
+                          sceneShots={group.shots}
+                          boardShots={shots}
+                          clips={
+                            sceneClipsByGroup.get(group.sceneId) ??
+                            NO_SCENE_CLIPS
+                          }
+                          onOpen={openSceneClip}
+                        />
+                      )
+                    }
                   />
                   {group.shots.map((shot) => (
                     <Box key={shot.id} sx={shotSlotSx}>
@@ -1598,6 +1677,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                         boardId={boardId}
                         shot={shot}
                         caption={captions.get(shot.id)}
+                        sceneClipTag={sceneClipTags.get(shot.id)}
                         renderContext={renderContext}
                         selected={shot.id === activeShotId}
                         onSelect={handleSelectShot}
@@ -1682,6 +1762,18 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             open={styleOpen}
             onClose={closeStyle}
           />
+
+          {sceneClipDialog && (
+            <Suspense fallback={null}>
+              <SceneClipDialog
+                boardId={boardId}
+                sceneShots={sceneClipDialog.sceneShots}
+                clip={sceneClipDialog.clip}
+                saved={sceneClipDialog.saved}
+                onClose={closeSceneClip}
+              />
+            </Suspense>
+          )}
 
           {activeShot && (
             <Box>
