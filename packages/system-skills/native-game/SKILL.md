@@ -562,6 +562,19 @@ sessions refuse such a document with the `engine_unavailable` diagnostic. Do not
 author schema 5. Keep 2D games on schema 4 with engine 3, or on schemas 1 and 2
 with engine 1. A schema must use its own engine version.
 
+3D collision layers replace hand-written bits. `collisionLayers` names up to 16
+layers, and the layer at index `i` owns bit `i`. `collisionMatrix` lists the
+layer pairs that do not collide, in either order. A layer paired with itself
+stops its colliders from touching each other. Every unlisted pair collides.
+Set both with `set_game {collision_layers, collision_matrix}`, and put a
+collider on a layer with `update_entity set collider3d {layer}`. A layered
+collider derives `category` from its bit and `mask` from the matrix, so leave
+its raw bits at `1` and `65535`. Validation reports `unknown_collision_layer`,
+`duplicate_collision_pair` and `collision_layer_bits_conflict`. Raw `category`
+and `mask` remain an override for colliders without a layer, which keeps
+existing documents on their current bits. 2D colliders keep raw bits only. The
+scene inspector shows the layer matrix as a grid of checkboxes.
+
 ### A: Audio
 
 Set the document mix with `set_audio {mixer}` in 2D and 3D. `set_audio

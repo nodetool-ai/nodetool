@@ -4,7 +4,10 @@ import { gameVector3, gameQuaternion3D } from "./transform.js";
 
 const colliderSettings = {
   offset: gameVector3.default({ x: 0, y: 0, z: 0 }), rotation: gameQuaternion3D.default([0, 0, 0, 1]),
-  sensor: z.boolean().default(false), category: layerBits.default(1), mask: layerBits.default(0xffff),
+  sensor: z.boolean().default(false),
+  layer: id.optional().describe("Name from the document's collisionLayers. When set, category and mask are derived from the layer's bit and collisionMatrix, so leave them at their defaults."),
+  category: layerBits.default(1).describe("Raw membership bits. An advanced override used only when layer is unset."),
+  mask: layerBits.default(0xffff).describe("Raw filter bits. An advanced override used only when layer is unset."),
   friction: finite.min(0).max(4).default(0.5), restitution: finite.min(0).max(1).default(0)
 };
 

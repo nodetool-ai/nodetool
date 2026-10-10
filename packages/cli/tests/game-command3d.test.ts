@@ -97,6 +97,22 @@ describe("native 3D game CLI commands", () => {
     expect(snapshot.entities.find((entity) => entity.id === "player-visual")?.animationGraph).toMatchObject({ graphId: "locomotion", parameters: { speed: 5.9, jump: false } });
   });
 
+  it("simulates named collision layers whose matrix lets debris fall through the floor", async () => {
+    const document = createNative3DGame("a".repeat(32));
+    document.collisionLayers = ["world", "debris"];
+    document.collisionMatrix = [["world", "debris"]];
+    for (const entity of document.scenes[0].entities) {
+      if (entity.id === "floor" && entity.collider3d) { entity.collider3d.layer = "world"; }
+      if (entity.id === "crate" && entity.collider3d) { entity.collider3d.layer = "debris"; }
+    }
+    await writeFile(gamePath, JSON.stringify(document));
+    expect(await run("validate")).toMatchObject({ valid: true });
+    const report = await run("simulate", "--ticks", "60", "--verify-replay");
+    expect(report).toMatchObject({ ok: true, replay: { verified: true } });
+    const crate = gameSnapshot3D.parse(report.snapshot).entities.find((entity) => entity.id === "crate");
+    expect(crate?.transform.position.y).toBeLessThan(-1);
+  });
+
   it("reports failed z/grounded assertions and rejects misspelled 3D event fields", async () => {
     const assertions = join(directory, "assertions.json");
     await writeFile(assertions, JSON.stringify({ ticks: [{ tick: 0, entities: [{ id: "player", z: 99, grounded: true }] }] }));

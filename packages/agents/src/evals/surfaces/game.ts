@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { gameDocument, gameDocument3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
-import { applyGameOps, applyGameOps3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
+import { applyGameOps, applyGameOps3D, collisionLayerBits3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
 const SCRIPT_PARAMS_EVAL_SOURCE = "(input) => ({ state: input.params, commands: [] })";
@@ -237,6 +237,27 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         return behaviors.some(behavior => behavior.kind === "movement") && behaviors.some(behavior => behavior.kind === "winWhenCollected")
           && /^\s*\(?\s*\{/.test(source) && /onStart/.test(source) && /every\(\s*60\s*,\s*["'`]beat["'`]\s*\)/.test(source)
           && /\bbeat\s*(\(|:)/.test(source) && /heartbeat/.test(source);
+      } }]
+  }
+}, {
+  id: "collision-layer-matrix",
+  description: "Author named 3D collision layers, a layer matrix and per-collider layers so derived bits filter contacts.",
+  objective: "Declare collision layers world, player and debris. Put the player on player and the crate on debris. The player must pass through debris, while debris still collides with the world.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("collision-layers-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game {collision_layers: [name], collision_matrix: [[a, b]]} names the 3D collision layers and lists the layer pairs that do not collide. update_entity sets collider3d.layer to a declared name.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "collisionLayers", detail: "The layers, collider layers or matrix do not let the player pass through debris while debris meets the world.",
+      test: document => {
+        if (document.schemaVersion !== 3) { return false; }
+        const layer = (id: string) => document.scenes[0].entities.find(entity => entity.id === id)?.collider3d?.layer;
+        const collide = (a: string, b: string) => {
+          const left = collisionLayerBits3D(document, a);
+          const right = collisionLayerBits3D(document, b);
+          return (left.category & right.mask) !== 0 && (right.category & left.mask) !== 0;
+        };
+        return ["world", "player", "debris"].every(name => document.collisionLayers?.includes(name)) &&
+          layer("player") === "player" && layer("crate") === "debris" && !collide("player", "debris") && collide("debris", "world");
       } }]
   }
 }];

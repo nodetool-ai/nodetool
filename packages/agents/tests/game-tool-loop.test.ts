@@ -174,3 +174,24 @@ it("scores a lifecycle timer script authored through the public edit surface", a
   await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors,{kind:"script",source}]}}]});
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it("scores a collision layer matrix authored through the public 3D edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="collision-layer-matrix");
+  if (!candidate) { throw new Error("Collision layer eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Collision layer eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  expect(await edit.execute({ops:[{op:"update_entity",entity_id:"crate",set:{collider3d:{layer:"debris"}}}]})).toHaveProperty("error");
+  const layered = [
+    {op:"set_game",collision_layers:["world","player","debris"]},
+    {op:"update_entity",entity_id:"player",set:{collider3d:{layer:"player"}}},
+    {op:"update_entity",entity_id:"crate",set:{collider3d:{layer:"debris"}}}
+  ];
+  expect(await edit.execute({ops:layered})).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  expect(await edit.execute({ops:[{op:"set_game",collision_matrix:[["debris","player"]]}]})).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
