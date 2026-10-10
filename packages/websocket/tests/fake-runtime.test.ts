@@ -317,6 +317,19 @@ describe("FakeProvider as a stand-in provider", () => {
     expect(png.toString("base64")).toBe(FAKE_IMAGE_PNG_BASE64);
   });
 
+  it("edits an uploaded photo, so the image-to-image picker has a model", async () => {
+    const openai = new FakeProvider({}, "openai");
+    expect(openai.getCapabilities()).toContain("image_to_image");
+    expect(await openai.getAvailableImageModels()).toMatchObject([
+      { supportedTasks: expect.arrayContaining(["image_to_image"]) }
+    ]);
+    const bytes = await openai.imageToImage([new Uint8Array([1, 2, 3])], {
+      prompt: "Add a sunset",
+      model: { id: "test-image-model", name: "Test Image Model", provider: "openai" }
+    } as Parameters<FakeProvider["imageToImage"]>[1]);
+    expect(Buffer.from(bytes).toString("base64")).toBe(FAKE_IMAGE_PNG_BASE64);
+  });
+
   it("keeps credential keys only when asked to", async () => {
     registerProvider("qa-test-provider", FakeProvider, { api_key: "" }, {}, {
       access: "remote_api",

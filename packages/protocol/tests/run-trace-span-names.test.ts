@@ -53,7 +53,8 @@ describe("trace span names", () => {
     }
     const undeclared = [...names].filter(([name]) => !isMetadataTraceSpanName(name)).map(([name, file]) => `${name} (${file})`);
     expect(undeclared).toEqual([]);
-  });
+    // Reading every source file outlasts the 5 s default on a loaded CI runner.
+  }, 30_000);
 
   it("declares the computed provider and model span names", () => {
     for (const name of ["provider.textToImage", "provider.generateEmbedding", "agent.execute", "llm.stream openai/gpt-5"]) {

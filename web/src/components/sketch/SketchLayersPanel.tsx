@@ -90,6 +90,7 @@ import { useSketchStore } from "./state/useSketchStore";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
 import { CreateGeneratedLayerDialog } from "./Inspector/CreateGeneratedLayerDialog";
+import { directGenSourceLayers } from "./Inspector/directGenSources";
 import {
   GenerateSvgLayerDialog,
   SvgLayerImport
@@ -587,7 +588,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         .pop();
       const sourceLayerId =
         kind === "image-to-image"
-          ? (layers.find((l) => l.id !== layerId)?.id ?? null)
+          ? (directGenSourceLayers(layers, layerId)[0]?.id ?? null)
           : null;
       // Fall back to the cross-session remembered image model so the first
       // generated layer in a fresh document still preselects a model.
