@@ -67,6 +67,32 @@ describe("importWorkflowGraph", () => {
     expect(saved.graph.nodes.map((node) => node.id)).toEqual(["n1", "n2"]);
   });
 
+  it("takes the graph back off when its save is refused", async () => {
+    const nodeStore = createNodeStore(workflow);
+    let current: Workflow = workflow;
+    const saveWorkflow = jest.fn(async () => {
+      throw new Error("Failed to save workflow");
+    });
+    await expect(
+      importWorkflowGraph(
+        {
+          getWorkflow: () => current,
+          updateWorkflow: (next) => {
+            current = next as Workflow;
+          },
+          getNodeStore: () => nodeStore,
+          saveWorkflow
+        },
+        workflow.id,
+        imported
+      )
+    ).rejects.toThrow("Failed to save workflow");
+
+    // The next stage save must not carry the refused import.
+    expect(current.graph.nodes).toEqual([]);
+    expect(nodeStore.getState().getWorkflow().graph.nodes).toEqual([]);
+  });
+
   // A typed brief's save can still be on the wire when the file lands. Both
   // carry the same `expected_updated_at`, so the import waits its turn.
   it("saves after a setup save already on the wire", async () => {

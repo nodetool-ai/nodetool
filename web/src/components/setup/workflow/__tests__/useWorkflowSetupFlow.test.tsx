@@ -405,6 +405,7 @@ describe("useWorkflowSetupFlow", () => {
       );
       await userEvent.click(await screen.findByText("Summarize a PDF"));
       expect(await screen.findByText("example is missing")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
       expect(onFinish).not.toHaveBeenCalled();
       expect(readWorkflowSetup(settings)?.stage).toBe("idea");
     });
@@ -459,6 +460,19 @@ describe("useWorkflowSetupFlow", () => {
       await waitFor(() =>
         expect(screen.getByRole("button", { name: "Change flow" })).toBeEnabled()
       );
+    });
+
+    it("moves keyboard focus into the browser and back to the brief", async () => {
+      settings = writeWorkflowSetup({}, { stage: "idea", brief: "b" });
+      renderFlow();
+      await userEvent.click(
+        screen.getByRole("button", { name: /Start from an example/ })
+      );
+      expect(screen.getByPlaceholderText("Search examples")).toHaveFocus();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Back to your idea" })
+      );
+      expect(screen.getByRole("textbox", { name: "The task" })).toHaveFocus();
     });
 
     it("goes back to the idea with the brief intact", async () => {
@@ -996,6 +1010,56 @@ describe("useWorkflowSetupFlow", () => {
     land();
     await waitFor(() => expect(onFinish).toHaveBeenCalled());
     expect(readWorkflowSetup(settings)?.stage).toBe("done");
+  });
+
+  it("offers Report beside a refused import", async () => {
+    const onImport = jest.fn(async () => {
+      throw new Error("Not a workflow file");
+    });
+    settings = writeWorkflowSetup({}, { stage: "idea", brief: "b" });
+    renderFlow({ onImport });
+    await userEvent.upload(
+      screen.getByLabelText("Import a workflow"),
+      new File(["{}"], "w.json", { type: "application/json" })
+    );
+    expect(await screen.findByText("Not a workflow file")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
+  });
+
+  it("offers Report beside a refused re-plan on the review", () => {
+    planError = "Rate limited";
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "review", brief: "b", category: "content-pipeline", plan: PLAN }
+    );
+    renderFlow();
+    const banner = screen
+      .getAllByRole("alert")
+      .find((alert) => alert.textContent?.includes("Rate limited"));
+    expect(banner).toBeDefined();
+    expect(
+      within(banner as HTMLElement).getByRole("button", { name: "Report" })
+    ).toBeInTheDocument();
+  });
+
+  it("offers Report beside a model list that could not be read", () => {
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "setup", brief: "b", plan: PLAN_WITH_ROLE }
+    );
+    renderFlow({
+      modelChoices: (role) => ({
+        role,
+        tiles: [],
+        status: "error",
+        errorMessage: "provider timed out",
+        onRetry: jest.fn()
+      })
+    });
+    expect(
+      screen.getByText("Could not read the language models: provider timed out")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
   });
 
   it("does not finish an import that lands after the creator moved on", async () => {

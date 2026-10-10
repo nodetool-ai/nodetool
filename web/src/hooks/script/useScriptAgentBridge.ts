@@ -63,7 +63,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
   const { derive } = useDeriveStoryboard();
   // `errorRef` holds a refused write's reason by the time `write` resolves.
   // The `error` state reaches this closure only a render later.
-  const { write, errorRef: writeErrorRef } = useWriteScript();
+  const { write, errorRef: writeErrorRef } = useWriteScript(scriptId);
 
   const handler = useMemo<ScriptAgentHandler>(() => {
     const store = () => useScriptStore.getState();

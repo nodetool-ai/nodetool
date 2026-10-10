@@ -3,8 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { trpcClient } from "../../trpc/client";
-import { useSketchStore } from "../../components/sketch/state/useSketchStore";
-import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
+import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 
 interface CreateGeneratedLayerOptions {
   workflowId: string;
@@ -26,6 +25,9 @@ interface UseCreateGeneratedLayerResult {
 }
 
 export function useCreateGeneratedLayer(): UseCreateGeneratedLayerResult {
+  // The layer is created on the server after a round trip, so the answer
+  // lands in this editor even if another tab is focused by then.
+  const { editor, session } = useSketchInstance();
   const [isBusy, setIsBusy] = useState(false);
   const busyRef = useRef(false);
 
@@ -36,7 +38,7 @@ export function useCreateGeneratedLayer(): UseCreateGeneratedLayerResult {
       if (busyRef.current) {
         return { ok: false, reason: "busy" };
       }
-      const documentId = useSketchSessionStore.getState().documentId;
+      const documentId = session.getState().documentId;
       if (!documentId) {
         return { ok: false, reason: "no-document" };
       }
@@ -44,9 +46,7 @@ export function useCreateGeneratedLayer(): UseCreateGeneratedLayerResult {
       busyRef.current = true;
       setIsBusy(true);
       const layerName = options.layerName ?? "Generated Layer";
-      const newLayerId = useSketchStore
-        .getState()
-        .addLayer(layerName, "raster");
+      const newLayerId = editor.getState().addLayer(layerName, "raster");
 
       try {
         const binding = await trpcClient.sketch.layers.create.mutate({
@@ -55,11 +55,11 @@ export function useCreateGeneratedLayer(): UseCreateGeneratedLayerResult {
           sourceWorkflowId: options.workflowId,
           selectedOutputNodeId: options.selectedOutputNodeId
         });
-        useSketchSessionStore.getState().upsertBinding(binding);
-        useSketchStore.getState().setActiveLayer(newLayerId);
+        session.getState().upsertBinding(binding);
+        editor.getState().setActiveLayer(newLayerId);
         return { ok: true, layerId: newLayerId };
       } catch (err) {
-        useSketchStore.getState().removeLayer(newLayerId);
+        editor.getState().removeLayer(newLayerId);
         return {
           ok: false,
           reason: "error",
@@ -71,7 +71,7 @@ export function useCreateGeneratedLayer(): UseCreateGeneratedLayerResult {
         setIsBusy(false);
       }
     },
-    []
+    [editor, session]
   );
 
   return { createGeneratedLayer, isBusy };

@@ -34,7 +34,6 @@ import React, {
   useState
 } from "react";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
-import { alpha } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
 
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -321,12 +320,12 @@ const expandButtonSx: SxProps<Theme> = (theme) => ({
   zIndex: Z_INDEX.raised,
   borderRadius: BORDER_RADIUS.circle,
   color: theme.vars.palette.common.white,
-  backgroundColor: alpha(theme.palette.common.black, 0.55),
+  backgroundColor: theme.vars.palette.c_scrim,
   opacity: 0,
   transition: MOTION.opacity,
   ...reducedMotion({ transition: "none" }),
   "&:hover": {
-    backgroundColor: alpha(theme.palette.common.black, 0.75)
+    backgroundColor: theme.vars.palette.c_scrim_strong
   },
   [`.${MEDIA_GALLERY_HOST_CLASS}:hover &, .${MEDIA_GALLERY_HOST_CLASS}:focus-within &, &:focus-visible`]:
     { opacity: 1 },

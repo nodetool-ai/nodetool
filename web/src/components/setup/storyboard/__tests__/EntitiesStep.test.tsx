@@ -39,6 +39,7 @@ const searchAssets = jest.fn();
 const getAsset = jest.fn();
 const updateAsset = jest.fn();
 const rpcRequest = jest.fn();
+const getModelUnitPrice = jest.fn();
 
 jest.mock("../../../../trpc/client", () => ({
   trpcClient: {
@@ -54,6 +55,9 @@ jest.mock("../../../../trpc/client", () => ({
 }));
 jest.mock("../../../../lib/websocket/rpcRequest", () => ({
   rpcRequest: (...args: unknown[]) => rpcRequest(...args)
+}));
+jest.mock("../../../../utils/modelUnitPricing", () => ({
+  getModelUnitPrice: (...args: unknown[]) => getModelUnitPrice(...args)
 }));
 jest.mock("../../../../hooks/storyboard/useDefaultStillModel", () => ({
   useDefaultStillModel: jest.fn()
@@ -124,6 +128,7 @@ const renderStep = () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  getModelUnitPrice.mockReturnValue(null);
   imageModels.length = 0;
   languageModels.length = 0;
   clearSetupReports(BOARD_ID);
@@ -279,7 +284,9 @@ it("opens a reference image fullscreen without selecting the entity", async () =
   expect(
     within(gallery).getByText("Mara: Mara wears a red raincoat")
   ).toBeInTheDocument();
-  await user.click(within(gallery).getByRole("button", { name: "Close gallery" }));
+  await user.click(
+    within(gallery).getByRole("button", { name: "Close gallery" })
+  );
   expect(
     screen.queryByRole("dialog", { name: "Gallery" })
   ).not.toBeInTheDocument();
@@ -590,7 +597,12 @@ it("reports a creation to the flow and drops it once aborted", async () => {
       }
     })
     .mockImplementationOnce(
-      (_command: string, _data: unknown, _timeout: unknown, signal?: AbortSignal) =>
+      (
+        _command: string,
+        _data: unknown,
+        _timeout: unknown,
+        signal?: AbortSignal
+      ) =>
         new Promise((_resolve, reject) => {
           signal?.addEventListener("abort", () =>
             reject(new DOMException("The request was aborted.", "AbortError"))
@@ -665,7 +677,9 @@ it("keeps an entity off the board when it is canceled during the save", async ()
   const user = userEvent.setup();
   render(
     <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
     >
       <ThemeProvider theme={mockTheme}>
         <MediaGalleryProvider>
@@ -717,7 +731,9 @@ it("names a failed find as a find", async () => {
 
   await user.click(screen.getByRole("button", { name: "Find entities" }));
 
-  expect(await screen.findByText("Could not find entities")).toBeInTheDocument();
+  expect(
+    await screen.findByText("Could not find entities")
+  ).toBeInTheDocument();
   expect(screen.queryByText("Could not create entities")).toBeNull();
 });
 
@@ -726,7 +742,9 @@ it("holds every pick and paid action in view mode", async () => {
   const user = userEvent.setup();
   render(
     <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
     >
       <ThemeProvider theme={mockTheme}>
         <MediaGalleryProvider>
@@ -761,7 +779,11 @@ it("holds every pick and paid action in view mode", async () => {
 // without it the step could only say "Director model first" with no picker.
 it("fills in the screenplay model a shotlist import skipped", async () => {
   useStoryboardStore.getState().setDirectorModel(BOARD_ID, null);
-  languageModels.push({ id: "catalog-model", provider: "openai", name: "Catalog" });
+  languageModels.push({
+    id: "catalog-model",
+    provider: "openai",
+    name: "Catalog"
+  });
   renderStep();
 
   await waitFor(() =>
@@ -780,6 +802,7 @@ it("says the library failed to load rather than that it is empty", async () => {
     await screen.findByText("Could not load your entities")
   ).toBeInTheDocument();
   expect(screen.queryByText("No entities yet")).toBeNull();
+  expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Try again" }));
   expect(
@@ -819,4 +842,105 @@ it("keeps found suggestions when the step remounts", async () => {
     screen.getByRole("button", { name: "Refresh suggestions" })
   ).toBeInTheDocument();
   expect(rpcRequest).toHaveBeenCalledTimes(1);
+});
+
+// Both buttons spend money, so each says what before it is pressed.
+it("prices Find entities and each Create before they are pressed", async () => {
+  getModelUnitPrice.mockReturnValue({ unit_price: 0.04, breakdown: "" });
+  useStoryboardStore.getState().setDirectorModel(BOARD_ID, {
+    type: "language_model",
+    id: "gpt-4o-mini",
+    provider: "openai",
+    name: "GPT-4o mini"
+  });
+  rpcRequest.mockResolvedValueOnce({
+    data: {
+      entities: [
+        {
+          name: "The Lantern",
+          kind: "prop",
+          descriptor: "A dented brass railway lantern with amber glass",
+          reference_prompt: "A dented brass railway lantern"
+        }
+      ]
+    }
+  });
+  const user = userEvent.setup();
+  renderStep();
+
+  expect(
+    await screen.findByRole("group", { name: "Before you generate" })
+  ).toHaveTextContent(/GPT-4o mini · ~\$/);
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  const create = await screen.findByRole("button", {
+    name: "Create The Lantern"
+  });
+  expect(create).toHaveAccessibleDescription("About $0.04");
+  expect(getModelUnitPrice).toHaveBeenCalledWith(
+    { id: "image-1", provider: "openai" },
+    expect.objectContaining({ resolution: "1K" })
+  );
+});
+
+it("cancels Find entities and returns focus to its button", async () => {
+  let findSignal: AbortSignal | undefined;
+  rpcRequest.mockImplementationOnce(
+    (
+      _method: string,
+      _input: unknown,
+      _options: unknown,
+      signal: AbortSignal
+    ) => {
+      findSignal = signal;
+      return new Promise(() => undefined);
+    }
+  );
+  const user = userEvent.setup();
+  renderStep();
+
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  expect(
+    screen.getByRole("button", { name: "Finding entities" })
+  ).toBeDisabled();
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(findSignal?.aborted).toBe(true);
+  const find = screen.getByRole("button", { name: "Find entities" });
+  expect(find).toBeEnabled();
+  await waitFor(() => expect(find).toHaveFocus());
+  expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+  expect(screen.queryByText("Could not find entities")).toBeNull();
+});
+
+// Continue and Back unmount the step while Find is still running. The answer
+// is paid for either way, so it waits for the creator's return.
+it("keeps suggestions that land after the step is left", async () => {
+  let finishFind: (value: unknown) => void = () => undefined;
+  rpcRequest.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finishFind = resolve;
+    })
+  );
+  const user = userEvent.setup();
+  const { unmount } = renderStep();
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  unmount();
+  finishFind({
+    data: {
+      entities: [
+        {
+          name: "The Lantern",
+          kind: "prop",
+          descriptor: "A dented brass railway lantern with amber glass",
+          reference_prompt: "A dented brass railway lantern"
+        }
+      ]
+    }
+  });
+
+  renderStep();
+
+  expect(
+    await screen.findByText("A dented brass railway lantern with amber glass")
+  ).toBeInTheDocument();
 });

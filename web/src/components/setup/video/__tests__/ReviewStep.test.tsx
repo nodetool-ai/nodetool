@@ -3,7 +3,7 @@
  * and edits round-trip to `setup.beats`.
  */
 
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -232,6 +232,32 @@ describe("video ReviewStep (criterion 4)", () => {
     expect(useTimelineStore.getState().setup?.beats?.[0].duration_ms).toBe(
       3500
     );
+  });
+
+  it("shows the agent's new length over an earlier typed one (V5)", async () => {
+    seed(beats());
+    renderStep();
+    const field = screen.getAllByLabelText("Seconds")[0];
+    await userEvent.clear(field);
+    await userEvent.type(field, "4");
+    await userEvent.tab();
+    expect(field).toHaveValue("4");
+    // `ui_timeline_update_beat` writes the plan from outside the step.
+    act(() => useTimelineStore.getState().updateBeat("b1", { duration_ms: 6000 }));
+    expect(screen.getAllByLabelText("Seconds")[0]).toHaveValue("6");
+  });
+
+  it("drops an unusable typed length once the beat's length changes elsewhere (V5)", async () => {
+    seed(beats());
+    renderStep();
+    const field = screen.getAllByLabelText("Seconds")[0];
+    await userEvent.clear(field);
+    await userEvent.type(field, "abc");
+    await userEvent.tab();
+    expect(screen.getByText(/outside/)).toBeInTheDocument();
+    act(() => useTimelineStore.getState().updateBeat("b1", { duration_ms: 6000 }));
+    expect(screen.getAllByLabelText("Seconds")[0]).toHaveValue("6");
+    expect(screen.queryByText(/outside/)).toBeNull();
   });
 
   it("shows the length the plan will actually render", () => {

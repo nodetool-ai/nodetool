@@ -98,8 +98,13 @@ export const useImageSetupFlow = ({
   const upload = useUploadFirstLayer(onFinish);
   const look = useLookStep();
 
+  // A failed Re-refine belongs to the visit that asked for it. Coming back to
+  // the review later must not show it, with a paid "Try again", again.
   const onStageChange = useCallback(
-    (next: SketchSetupStage) => setSetup({ stage: next }),
+    (next: SketchSetupStage) => {
+      setReviewError(null);
+      setSetup({ stage: next });
+    },
     [setSetup]
   );
 
