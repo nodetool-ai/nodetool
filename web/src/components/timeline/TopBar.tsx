@@ -19,6 +19,8 @@ import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import AspectRatioOutlinedIcon from "@mui/icons-material/AspectRatioOutlined";
 import VideoLibraryOutlinedIcon from "@mui/icons-material/VideoLibraryOutlined";
+import SubjectIcon from "@mui/icons-material/Subject";
+import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 
 interface TopBarProps {
@@ -39,6 +41,12 @@ interface TopBarProps {
   /** The open sequence. Its autosave state (DocumentDraftStore) drives the
    *  Saved / Saving… / Unsaved changes caption beside Save. */
   sequenceId?: string;
+  /** Shows or hides the transcript. Omit when the timeline has no script. */
+  onToggleTranscript?: () => void;
+  transcriptVisible?: boolean;
+  /** Shows or hides the right panel. Omit where there is none (phones). */
+  onToggleSidePanel?: () => void;
+  sidePanelVisible?: boolean;
 }
 
 /** Autosave state of one sequence, as the caption beside Save reads it. */
@@ -72,7 +80,11 @@ export const TopBar: React.FC<TopBarProps> = memo(
     activitySlot,
     onOpenCode,
     hasCode = false,
-    sequenceId
+    sequenceId,
+    onToggleTranscript,
+    transcriptVisible = true,
+    onToggleSidePanel,
+    sidePanelVisible = true
   }) => {
     const saveStateLabel = useSaveStateLabel(sequenceId, isSaving);
     const overflowButtonRef = useRef<HTMLButtonElement>(null);
@@ -96,6 +108,28 @@ export const TopBar: React.FC<TopBarProps> = memo(
     return (
       <FlexRow align="center" gap={SPACING.micro}>
         {activitySlot}
+        {onToggleTranscript && (
+          <ToolbarIconButton
+            onClick={onToggleTranscript}
+            tooltip={transcriptVisible ? "Hide transcript" : "Show transcript"}
+            aria-label={transcriptVisible ? "Hide transcript" : "Show transcript"}
+            aria-pressed={transcriptVisible}
+            sx={{ color: transcriptVisible ? "primary.main" : undefined }}
+          >
+            <SubjectIcon fontSize="small" />
+          </ToolbarIconButton>
+        )}
+        {onToggleSidePanel && (
+          <ToolbarIconButton
+            onClick={onToggleSidePanel}
+            tooltip={sidePanelVisible ? "Hide side panel" : "Show side panel"}
+            aria-label={sidePanelVisible ? "Hide side panel" : "Show side panel"}
+            aria-pressed={sidePanelVisible}
+            sx={{ color: sidePanelVisible ? "primary.main" : undefined }}
+          >
+            <ViewSidebarOutlinedIcon fontSize="small" />
+          </ToolbarIconButton>
+        )}
         {hasCode && onOpenCode && (
           <ToolbarIconButton
             onClick={onOpenCode}

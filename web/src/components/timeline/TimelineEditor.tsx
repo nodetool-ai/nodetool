@@ -99,6 +99,7 @@ import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
+import { useTimelineLayoutStore } from "../../stores/timeline/TimelineLayoutStore";
 import { CodePanel } from "./CodePanel";
 import { useTimelineHasCode } from "../../serverState/useTimelineCode";
 import CodeIcon from "@mui/icons-material/Code";
@@ -636,9 +637,16 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // TopBar's Code button — shown only when this timeline embeds authoring
   // code, opens the Code tab (side panel on desktop, sheet on phone).
   const hasCode = useTimelineHasCode(sequenceId);
+  const hasScript = useHasScript();
+  const transcriptVisible = useTimelineLayoutStore((s) => s.transcriptVisible);
+  const sidePanelVisible = useTimelineLayoutStore((s) => s.sidePanelVisible);
+  const toggleTranscript = useTimelineLayoutStore((s) => s.toggleTranscript);
+  const toggleSidePanel = useTimelineLayoutStore((s) => s.toggleSidePanel);
   const handleOpenCode = useCallback(() => {
     setPanelTab("code");
     if (isMobile) setPanelSheetOpen(true);
+    // The Code tab lives in the side panel, so open it if it is hidden.
+    else useTimelineLayoutStore.getState().showSidePanel();
   }, [isMobile, setPanelTab]);
 
   // Register the ui_timeline_* agent tools against this instance, addressable
@@ -973,9 +981,21 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         hasCode={!sequenceUnavailable && hasCode}
         onOpenCode={handleOpenCode}
         sequenceId={sequenceUnavailable ? undefined : sequenceId}
+        onToggleTranscript={
+          !isMobile && hasScript ? toggleTranscript : undefined
+        }
+        transcriptVisible={transcriptVisible}
+        onToggleSidePanel={isMobile ? undefined : toggleSidePanel}
+        sidePanelVisible={sidePanelVisible}
       />
     ),
     [
+      hasScript,
+      isMobile,
+      sidePanelVisible,
+      toggleSidePanel,
+      toggleTranscript,
+      transcriptVisible,
       activitySlot,
       handleExportBundle,
       handleExportVideo,
@@ -1072,7 +1092,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         css={middleAreaStyles(theme)}
         sx={{ flex: "1 1 0", minHeight: 0, overflow: "hidden" }}
       >
-        {!isMobile && <TranscriptRegion />}
+        {!isMobile && transcriptVisible && <TranscriptRegion />}
         <PreviewRegion
           isLoading={isLoading}
           sequenceUnavailable={sequenceUnavailable}
@@ -1126,7 +1146,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       {/* ── Clip editor (piano roll) ──────────────────────────────── */}
       <PianoRollPanel fullHeight={pianoRollFullScreen} />
       </FlexColumn>
-      {!isMobile && (
+      {!isMobile && sidePanelVisible && (
         <InspectorRegion
           sequenceId={sequenceId}
           panelTab={panelTab}
