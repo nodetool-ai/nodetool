@@ -22,8 +22,8 @@ export interface GamePostProcessingPlan3D {
   /** Null when the scene renders straight to the canvas, as it does without post-processing. */
   readonly composer: {
     readonly samples: number;
-    readonly bloom?: NonNullable<GamePostProcessing3D["bloom"]>;
-    readonly vignette?: NonNullable<GamePostProcessing3D["vignette"]>;
+    readonly bloom: NonNullable<GamePostProcessing3D["bloom"]> | null;
+    readonly vignette: NonNullable<GamePostProcessing3D["vignette"]> | null;
     readonly antialias: "fxaa" | "smaa" | null;
   } | null;
 }
@@ -40,8 +40,8 @@ export function resolveGamePostProcessing3D(settings: GamePostProcessing3D | und
   if (!settings.bloom && !settings.vignette && settings.antialias === "msaa") { return { ...base, composer: null }; }
   return { ...base, composer: {
     samples: settings.antialias === "msaa" ? Math.max(0, Math.min(GAME_POST_MSAA_SAMPLES_3D, maxSamples)) : 0,
-    ...(settings.bloom ? { bloom: settings.bloom } : {}),
-    ...(settings.vignette ? { vignette: settings.vignette } : {}),
+    bloom: settings.bloom ?? null,
+    vignette: settings.vignette ?? null,
     antialias: settings.antialias === "fxaa" || settings.antialias === "smaa" ? settings.antialias : null
   } };
 }
@@ -72,8 +72,8 @@ interface ComposerState {
   readonly composer: EffectComposer;
   readonly scenePass: RenderPass;
   readonly passes: readonly Pass[];
-  readonly bloom?: UnrealBloomPass;
-  readonly vignette?: ShaderPass;
+  readonly bloom: UnrealBloomPass | null;
+  readonly vignette: ShaderPass | null;
   width: number;
   height: number;
 }
@@ -145,8 +145,8 @@ export class GamePostProcessor3D {
     composer.setSize(size.x, size.y);
     const scenePass = new RenderPass(new THREE.Scene(), new THREE.Camera());
     const passes: Pass[] = [scenePass];
-    let bloom: UnrealBloomPass | undefined;
-    let vignette: ShaderPass | undefined;
+    let bloom: UnrealBloomPass | null = null;
+    let vignette: ShaderPass | null = null;
     if (plan.bloom) {
       bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), plan.bloom.intensity, plan.bloom.radius, plan.bloom.threshold);
       passes.push(bloom);
@@ -159,6 +159,6 @@ export class GamePostProcessor3D {
     if (plan.antialias === "fxaa") { passes.push(new FXAAPass()); }
     if (plan.antialias === "smaa") { passes.push(new SMAAPass()); }
     for (const pass of passes) { composer.addPass(pass); }
-    return { key, composer, scenePass, passes, ...(bloom ? { bloom } : {}), ...(vignette ? { vignette } : {}), width: size.x, height: size.y };
+    return { key, composer, scenePass, passes, bloom, vignette, width: size.x, height: size.y };
   }
 }

@@ -37,7 +37,7 @@ describe("post-processing plan", () => {
     expect(bloom.composer).toMatchObject({ samples: GAME_POST_MSAA_SAMPLES_3D, bloom: { intensity: 2 }, antialias: null });
     expect(resolveGamePostProcessing3D(settings({ vignette: {} }), 2).composer?.samples).toBe(2);
     expect(gamePostProcessingPassNames3D(resolveGamePostProcessing3D(settings({ antialias: "fxaa" }), 4))).toEqual(["scene", "output", "fxaa"]);
-    expect(resolveGamePostProcessing3D(settings({ antialias: "none" }), 4).composer).toEqual({ samples: 0, antialias: null });
+    expect(resolveGamePostProcessing3D(settings({ antialias: "none" }), 4).composer).toEqual({ samples: 0, bloom: null, vignette: null, antialias: null });
   });
 
   it("benchmarks a baseline and each effect on its own", () => {
