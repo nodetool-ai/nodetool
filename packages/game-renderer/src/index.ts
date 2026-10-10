@@ -1,4 +1,5 @@
 import type { GameRenderEffect, GameRenderFrame } from "@nodetool-ai/protocol";
+import type { GameParticleField } from "./particles/render2d.js";
 export { gameKeyAction } from "./input.js";
 export { projectedCamera } from "./frame.js";
 export * from "./particles/index.js";
@@ -38,7 +39,8 @@ export interface GameRenderer {
   readonly backend: GameRendererBackend;
   readonly canvas: HTMLCanvasElement;
   readonly capabilities: GameRendererCapabilities;
-  render(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats>;
+  /** Draws the frame, with `particles` interleaved into the sprite layers when given. */
+  render(frame: GameRenderFrame, interpolation: number, particles?: GameParticleField): Promise<GameRendererStats>;
   setEffects(effects: readonly GameRendererEffect[], hudOrder?: GameHudEffectOrder): void;
   resize(width: number, height: number): void;
   invalidateAsset(assetId: string): void;

@@ -193,6 +193,21 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         || z.object({ actions: z.strictObject({ left: z.tuple([z.object({ kind: z.literal("gamepadButton"), button: z.literal(14) }), z.object({ kind: z.literal("key"), code: z.literal("KeyJ") })]) }) })
           .safeParse(document.inputBindings).success }]
   }
+}, {
+  id: "particle-rendering",
+  description: "Author particle render settings: additive blend, a sprite sheet, a lighting opt-out and a draw layer.",
+  objective: "Give player a particles component with one emitter named embers that blends additively, ignores scene lighting, draws on layer 5 and uses the gem image as a sheet of 4 columns and 2 rows.",
+  createBridge: () => createGameToolBridge({ ...createTopDownRoomGame("particle-render-eval"), schemaVersion: 2 }),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole particles component as { emitters: [...] }. An emitter takes blend (normal or additive), unlit, layer and sprite { assetId, columns, rows, frameCount?, cycles?, sampling? }.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerEmbers", detail: "Player has no embers emitter with additive blend, unlit, layer 5 and a 4 by 2 gem sheet.",
+      test: document => {
+        const embers = document.scenes[0].entities.find(entity => entity.id === "player")?.particles?.emitters.find(emitter => emitter.id === "embers");
+        return embers?.blend === "additive" && embers.unlit === true && embers.layer === 5 &&
+          embers.sprite?.assetId === "gem" && embers.sprite.columns === 4 && embers.sprite.rows === 2;
+      } }]
+  }
 }];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */

@@ -1,5 +1,6 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { gameFontFamily } from "./fonts.js";
+import { PARTICLE_DOT_ASSET, particleCell, type GameParticleField, type ParticleCell } from "./particles/render2d.js";
 
 export type RenderItem = GameRenderFrame["sprites"][number] | GameRenderFrame["tiles"][number];
 
@@ -21,6 +22,31 @@ export interface VisibleItem {
   readonly unlit: boolean;
   /** Tiles and background tiles snap to whole pixels so neighbors meet without antialiased seams. */
   readonly snap: boolean;
+  /** Set on particles, which change colour every frame and so skip per-tint caches. */
+  readonly particle?: true;
+  /** A particle's sprite sheet cell, resolved against the image size by the backend. */
+  readonly cell?: ParticleCell;
+}
+
+/** Particles to draw with the sprites, and how many visible particles the backend accepts. */
+export interface VisibleParticles {
+  readonly field: GameParticleField;
+  readonly limit?: number;
+}
+
+/** Source rectangle in an image of the given size, from a sheet cell, an explicit frame or the whole image. */
+export function sourceRect(item: VisibleItem, width: number, height: number): { x: number; y: number; width: number; height: number } {
+  if (item.cell) {
+    const cellWidth = Math.floor(width / item.cell.columns);
+    const cellHeight = Math.floor(height / item.cell.rows);
+    return { x: (item.cell.index % item.cell.columns) * cellWidth, y: Math.floor(item.cell.index / item.cell.columns) * cellHeight,
+      width: cellWidth, height: cellHeight };
+  }
+  return item.frame ?? { x: 0, y: 0, width, height };
+}
+
+function channelHex(value: number): string {
+  return Math.round(Math.max(0, Math.min(1, value)) * 255).toString(16).padStart(2, "0");
 }
 
 /** A drawing rectangle by pixel center and size, snapped to whole pixels when the item asks for it. */
@@ -47,7 +73,7 @@ export function interpolateTint(previous: string | undefined, current: string | 
     Number.parseInt(current.slice(index, index + 2), 16) * alpha).toString(16).padStart(2, "0")).join("")}`;
 }
 
-export function visibleItems(frame: GameRenderFrame, interpolation: number, overscanWorld = 0): VisibleItem[] {
+export function visibleItems(frame: GameRenderFrame, interpolation: number, overscanWorld = 0, particles?: VisibleParticles): VisibleItem[] {
   const alpha = Math.max(0, Math.min(1, interpolation));
   const camera = projectedCamera(frame, alpha);
   const scale = camera.zoom;
@@ -121,6 +147,50 @@ export function visibleItems(frame: GameRenderFrame, interpolation: number, over
       (item.previousRotation ?? item.rotation) * (1 - alpha) + item.rotation * alpha,
       (item.previousOpacity ?? item.opacity ?? 1) * (1 - alpha) + (item.opacity ?? 1) * alpha,
       interpolateTint(item.previousTint, item.tint, alpha), item.flipX === true);
+  }
+  if (particles) {
+    const spriteLayers = new Map(frame.sprites.map((sprite) => [sprite.entityId, sprite.layer]));
+    const limit = particles.limit ?? Number.POSITIVE_INFINITY;
+    let added = 0;
+    let owner: RenderItem | undefined;
+    particles.field.forEachParticle((particle) => {
+      if (added >= limit || particle.size <= 0 || particle.opacity <= 0) {
+        return;
+      }
+      const emitter = particle.emitter;
+      const assetId = emitter.sprite?.assetId ?? PARTICLE_DOT_ASSET;
+      const layer = emitter.layer ?? spriteLayers.get(particle.entityId) ?? 0;
+      // One shared render item per emitter keeps per-particle allocation to the visible item itself.
+      if (owner?.entityId !== particle.entityId || owner.assetId !== assetId || owner.layer !== layer) {
+        owner = { entityId: particle.entityId, assetId, x: 0, y: 0, previousX: 0, previousY: 0, rotation: 0, scaleX: 1, scaleY: 1, width: 1, height: 1, layer };
+      }
+      const radius = particle.size * Math.SQRT1_2;
+      if (particle.x + radius < camera.x - halfWidth || particle.x - radius > camera.x + halfWidth ||
+          particle.y + radius < camera.y - halfHeight || particle.y - radius > camera.y + halfHeight) {
+        return;
+      }
+      added += 1;
+      items.push({
+        item: owner,
+        x: particle.x,
+        y: particle.y,
+        width: particle.size,
+        height: particle.size,
+        rotation: particle.rotation,
+        assetId: owner.assetId,
+        frame: undefined,
+        tint: `#${channelHex(particle.r)}${channelHex(particle.g)}${channelHex(particle.b)}`,
+        opacity: Math.max(0, Math.min(1, particle.opacity)),
+        blend: emitter.blend ?? "normal",
+        sampling: emitter.sprite ? emitter.sprite.sampling ?? "nearest" : "linear",
+        flipX: false,
+        flipY: false,
+        unlit: emitter.unlit === true,
+        snap: false,
+        particle: true,
+        cell: emitter.sprite ? particleCell(emitter.sprite, particle.life) : undefined,
+      });
+    });
   }
   items.sort((a, b) => a.item.layer - b.item.layer);
   return items;

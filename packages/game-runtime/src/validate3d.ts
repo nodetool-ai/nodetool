@@ -131,7 +131,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
         }
         if (entity.primitive && entity.model) { add("competing_visual", [...entityPath, "model"], "Entity must choose either primitive or model rendering"); }
         if (entity.interactionActor && !entity.collider3d) { add("missing_interaction_collider", [...entityPath, "interactionActor"], "Interaction actors require a collider"); }
-        const checkAsset = (slot: string, kind: "model" | "collider" | "audio", componentPath: (string | number)[]): void => {
+        const checkAsset = (slot: string, kind: "model" | "collider" | "audio" | "image", componentPath: (string | number)[]): void => {
           const asset = document.assets[slot];
           if (!asset || asset.mediaKind !== kind) { add("missing_asset", componentPath, `Asset ${slot} must be a ${kind} binding`); }
           if (prefab && !prefab.externalAssets.includes(slot)) { add("undeclared_external_asset", componentPath, `Prefab must declare asset ${slot}`); }
@@ -152,6 +152,9 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
         }
         if (entity.audioSource) { checkAsset(entity.audioSource.assetId, "audio", [...entityPath, "audioSource", "assetId"]); }
         for (const issue of entity.particles ? gameParticleIssues(entity.particles) : []) { add("invalid_particles", [...entityPath, "particles", ...issue.path], issue.message); }
+        for (const [index, emitter] of (entity.particles?.emitters ?? []).entries()) {
+          if (emitter.sprite) { checkAsset(emitter.sprite.assetId, "image", [...entityPath, "particles", "emitters", index, "sprite", "assetId"]); }
+        }
         if (entity.animator3d) {
           const asset = entity.model && document.assets[entity.model.assetId];
           if (!asset || asset.mediaKind !== "model") { add("missing_animation_model", [...entityPath, "animator3d"], "Animator requires a model binding"); }

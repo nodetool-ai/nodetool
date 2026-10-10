@@ -189,7 +189,8 @@ async function captureFrames(run: CapabilityRun, user: string, document: LegacyG
     wallTimeLimited = Date.now() >= deadlineAt;
     return cancelled || wallTimeLimited;
   };
-  const { captureGameFrame } = await import("@nodetool-ai/game-renderer/node");
+  const { captureGameFrame, GameParticles2D } = await import("@nodetool-ai/game-renderer/node");
+  const particles = new GameParticles2D(document.tickRate);
   const diagnostics: string[] = [];
   const storage = run.context.assetStorage;
   const assetCache = new Map<string, Uint8Array | null>();
@@ -224,7 +225,9 @@ async function captureFrames(run: CapabilityRun, user: string, document: LegacyG
         if (budgetReached()) {
           break;
         }
-        simulatedTicks = session.step(inputs[simulatedTicks] ?? { pressed: [], justPressed: [] }).tick;
+        const step = session.step(inputs[simulatedTicks] ?? { pressed: [], justPressed: [] });
+        particles.tick(step.frame, session.takePresentationEvents());
+        simulatedTicks = step.tick;
       }
       if (budgetReached()) {
         break;
@@ -241,10 +244,10 @@ async function captureFrames(run: CapabilityRun, user: string, document: LegacyG
       const start = diagnostics.length;
       let png: Uint8Array;
       try {
-        png = await captureGameFrame(frame, { resolveAsset, scale, effects: document.renderEffects, hudEffectOrder: document.hudEffectOrder, backend: document.renderEffects?.length ? "webgpu" : "canvas2d", onDiagnostic: (message: string) => diagnostics.push(message) });
+        png = await captureGameFrame(frame, { resolveAsset, scale, particles, effects: document.renderEffects, hudEffectOrder: document.hudEffectOrder, backend: document.renderEffects?.length ? "webgpu" : "canvas2d", onDiagnostic: (message: string) => diagnostics.push(message) });
       } catch (error) {
         diagnostics.push(`WebGPU capture failed: ${error instanceof Error ? error.message : String(error)}`);
-        png = await captureGameFrame(frame, { resolveAsset, scale, backend: "canvas2d", onDiagnostic: (message: string) => diagnostics.push(message) });
+        png = await captureGameFrame(frame, { resolveAsset, scale, particles, backend: "canvas2d", onDiagnostic: (message: string) => diagnostics.push(message) });
       }
       if (budgetReached()) {
         break;

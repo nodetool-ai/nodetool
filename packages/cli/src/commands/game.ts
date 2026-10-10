@@ -410,15 +410,18 @@ export function registerGameCommands(program: Command): void {
         const inputs = await readInputs(options.inputs, gameInputFrame);
         const session = await createScriptedGameSession(validated.document, seed);
         try {
+          const { captureGameFrame, GameParticles2D } = await import("@nodetool-ai/game-renderer/node");
+          const particles = new GameParticles2D(validated.document.tickRate);
           let frame;
           for (let tick = 0; tick < ticks; tick += 1) {
             frame = session.step(inputs[tick] ?? EMPTY_INPUT).frame;
+            particles.tick(frame, session.takePresentationEvents());
           }
           if (!frame) throw new Error("Game produced no render frame");
-          const { captureGameFrame } = await import("@nodetool-ai/game-renderer/node");
           const diagnostics: string[] = [];
           const png = await captureGameFrame(frame, {
             scale,
+            particles,
             backend: options.backend,
             effects: validated.document.renderEffects,
             hudEffectOrder: validated.document.hudEffectOrder,

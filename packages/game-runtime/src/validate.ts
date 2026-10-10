@@ -265,6 +265,12 @@ export function validateGame(value: unknown): GameValidationResult {
       }
       if (entity.light2d && !scene.lighting) errors.push(`${path}.light2d: requires scene lighting`);
       for (const issue of entity.particles ? gameParticleIssues(entity.particles) : []) errors.push(`${path}.particles.${issue.path.join(".")}: ${issue.message}`);
+      for (const [index, emitter] of (entity.particles?.emitters ?? []).entries()) {
+        const assetId = emitter.sprite?.assetId;
+        if (assetId !== undefined && document.assets[assetId]?.mediaKind !== "image") {
+          errors.push(`${path}.particles.emitters.${index}.sprite.assetId: Particle sprite ${assetId} must be an image asset`);
+        }
+      }
       const tracked = new Set<string>();
       for (const track of entity.visualAnimation?.tracks ?? []) {
         if (tracked.has(track.property)) errors.push(`${path}.visualAnimation: duplicate ${track.property} track`);
