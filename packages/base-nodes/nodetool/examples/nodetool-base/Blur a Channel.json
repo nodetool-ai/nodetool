@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Blur a Channel\n\nExtracts one colour channel from an image and blurs it. It checks that a single-channel image stays valid input for the next node.\n\n**How it works:** \"1 Image\" takes the picture. \"2 Green channel\" keeps only the G channel as a grayscale image. \"3 Blur\" applies a gaussian blur of size 8, and \"4 Result\" shows the output. It runs locally with no model or key.\n\n**Try this:** Set channel on \"2 Green channel\" to R or B and compare which one holds the most detail in your image."
+          "comment": "# Blur a Channel\n\nExtracts one colour channel from an image and blurs it. It checks that a single-channel image stays valid input for the next node.\n\n**How it works:** \"1 Image\" takes the picture. \"2 Green channel\" keeps only the green channel as a grayscale image. \"3 Blur\" applies a gaussian blur of size 8, and \"4 Result\" shows the output. It runs locally with no model or key.\n\n**Try this:** Set channel on \"2 Green channel\" to red or blue and compare which one holds the most detail in your image."
         },
         "ui_properties": {
           "position": {
@@ -62,7 +62,7 @@
         "id": "ch",
         "type": "nodetool.image.Channels",
         "data": {
-          "channel": "G"
+          "channel": "green"
         },
         "ui_properties": {
           "position": {

@@ -18,7 +18,7 @@ Transcribe audio to text using automatic speech recognition models.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| model | `asr_model` |  | `{"type":"asr_model","provider":"fal_ai","id":"o...` |
+| model | `asr_model` |  | `{"type":"asr_model","provider":"openai","id":"g...` |
 | audio | `audio` | The audio to transcribe | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | language | `str` | Language of the audio (ISO 639-1 code, empty for auto-detect) | `` |
 | prompt | `str` | Optional prompt to guide the transcription | `` |
