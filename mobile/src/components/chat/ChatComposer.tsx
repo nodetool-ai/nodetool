@@ -3,7 +3,7 @@
  * and a mode selector for chat / image / video generation.
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useContext, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { MessageContent, ChatStatus } from '../../types';
@@ -77,6 +78,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const sendingRef = useRef(false);
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
+  // Inside the tab navigator the tab bar already clears the home indicator,
+  // so the composer only pads it when the chat fills the screen.
+  const tabBarHeight = useContext(BottomTabBarHeightContext);
+  const bottomInset = tabBarHeight === undefined ? insets.bottom : 0;
   const { droppedFiles, addDroppedFiles, removeFile, clearFiles, getFileContents } = useFileHandling();
 
   const mode = useMediaGenerationStore((s) => s.mode);
@@ -244,7 +249,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     setShowAttachmentMenu(false);
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Camera access is needed to take photos.');
+      Alert.alert('Permission required', 'Camera access is needed to take photos.');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -272,7 +277,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       status = result.status;
     }
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Photo library access is needed to select photos.');
+      Alert.alert('Permission required', 'Photo library access is needed to select photos.');
       return;
     }
     try {
@@ -407,13 +412,15 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         styles.container,
         {
           backgroundColor: colors.surfaceHeader,
-          borderTopColor: colors.borderLight,
-          paddingBottom: insets.bottom + 8,
+          paddingBottom: bottomInset + 8,
         },
       ]}
     >
-      {/* Mode selector tabs */}
-      <View style={styles.modeRow}>
+      {/* Mode selector: one segmented track, the selected mode tinted. */}
+      <View
+        style={[styles.modeRow, { backgroundColor: colors.inputBg }]}
+        accessibilityRole="tablist"
+      >
         {MODE_CONFIG.map(({ mode: m, icon, label }) => {
           const isActive = mode === m;
           return (
@@ -421,8 +428,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               key={m}
               style={[
                 styles.modeTab,
-                isActive && { backgroundColor: colors.primaryLight, borderColor: colors.primary },
-                !isActive && { borderColor: 'transparent' },
+                isActive && { backgroundColor: colors.primaryMuted },
               ]}
               onPress={() => setMode(m)}
               activeOpacity={0.7}
@@ -432,12 +438,12 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             >
               <Ionicons
                 name={icon}
-                size={16}
+                size={14}
                 color={isActive ? colors.primary : colors.textTertiary}
               />
               <Text style={[
                 styles.modeTabText,
-                { color: isActive ? colors.primary : colors.textTertiary },
+                { color: isActive ? colors.primary : colors.textSecondary },
                 isActive && { fontWeight: '600' },
               ]}>
                 {label}
@@ -532,7 +538,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         </Text>
       )}
 
-      <View style={[styles.inputContainer, { backgroundColor: colors.inputBg }]}>
+      <View style={[styles.inputContainer, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
         <TouchableOpacity
           style={styles.attachButton}
           onPress={handleAttachmentPress}
@@ -640,7 +646,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       {/* Parameter picker modals */}
       {renderParamPicker(
         'imageAspect',
-        'Aspect Ratio',
+        'Aspect ratio',
         IMAGE_ASPECT_RATIOS.map((a) => ({ label: a.label, value: a.id })),
         imageParams.aspectRatio,
         (v) => setImageParams({ aspectRatio: v as string }),
@@ -661,7 +667,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       )}
       {renderParamPicker(
         'videoAspect',
-        'Aspect Ratio',
+        'Aspect ratio',
         VIDEO_ASPECT_RATIOS.map((a) => ({ label: a.label, value: a.id })),
         videoParams.aspectRatio,
         (v) => setVideoParams({ aspectRatio: v as string }),
@@ -712,13 +718,13 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               onPress={handleTakePhoto}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Take Photo"
+              accessibilityLabel="Take photo"
             >
               <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name="camera" size={22} color={colors.primary} />
               </View>
               <Text style={[styles.attachmentMenuText, { color: colors.text }]}>
-                Take Photo
+                Take photo
               </Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
@@ -728,13 +734,13 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               onPress={handlePickImage}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Photo Library"
+              accessibilityLabel="Photo library"
             >
               <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name="images" size={22} color={colors.primary} />
               </View>
               <Text style={[styles.attachmentMenuText, { color: colors.text }]}>
-                Photo Library
+                Photo library
               </Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
@@ -744,13 +750,13 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               onPress={handlePickDocument}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Choose File"
+              accessibilityLabel="Choose file"
             >
               <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name="document" size={22} color={colors.primary} />
               </View>
               <Text style={[styles.attachmentMenuText, { color: colors.text }]}>
-                Choose File
+                Choose file
               </Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
@@ -776,22 +782,23 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
   modeRow: {
     flexDirection: 'row',
-    gap: 6,
+    alignSelf: 'flex-start',
+    padding: 3,
+    borderRadius: 10,
     marginBottom: 8,
   },
   modeTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   modeTabText: {
     fontSize: 13,
@@ -870,6 +877,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingLeft: 6,
     paddingRight: 4,
     paddingVertical: 4,

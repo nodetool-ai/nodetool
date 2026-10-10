@@ -138,7 +138,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
     }
   }, [clips, selectedClipId]);
 
-  const openChat = useCallback(() => navigation.navigate('Chat'), [navigation]);
+  const openChat = useCallback(() => navigation.navigate('Main', { screen: 'Chat' }), [navigation]);
 
   // The header lays the title out at its natural width and never shrinks it, so
   // cap it, leaving room for the chat action and the back button.
