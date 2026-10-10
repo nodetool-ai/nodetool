@@ -4,7 +4,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createTopDownRoomGame, createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession } from "../useGamePlaySession";
-import { gameAuthoring, gameAssetBinding, type GameDocument } from "@nodetool-ai/protocol";
+import { gameAuthoring, gameAssetBinding, gameDocument, type GameDocument } from "@nodetool-ai/protocol";
 import { loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
 import { FixedTickClock } from "@nodetool-ai/game-renderer";
@@ -371,4 +371,52 @@ it("publishes Play updates only at crossed HUD tick boundaries", async () => {
   } finally {
     view.unmount(); request.mockRestore(); cancel.mockRestore();
   }
+});
+
+const particleBase = createTopDownRoomGame("play-particles");
+const particleDocument = gameDocument.parse({ ...particleBase, schemaVersion: 2, scenes: particleBase.scenes.map((scene, index) => index === 0 ? { ...scene, entities: [...scene.entities, {
+  id: "torch", transform2d: { x: 1, y: 2 },
+  particles: { emitters: [{ id: "burst", loop: false, rate: 0, bursts: [{ count: 6 }], lifetime: 10, speed: 0 }] }
+}] } : scene) });
+
+function ParticleHarness() {
+  const session = useGamePlaySession({ refId: "play-particles", active: true, document: particleDocument });
+  return <><canvas ref={session.canvasRef} />
+    <button onClick={session.beginPlay}>{session.playing ? "Pause" : "Play"}</button><button onClick={session.stop}>Stop</button>
+    <button onClick={() => session.step()}>Step</button><button onClick={session.save}>Save</button>
+    <button onClick={() => void session.load()}>Restore</button><output aria-label="Session error">{session.error}</output>
+    <output data-testid="backend">{session.backend}</output><output data-testid="tick">{session.playState.tick}</output></>;
+}
+
+it("draws 2D particles in the play view and clears them when the session is replaced", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  mockRenderers.length = 0;
+  const view = render(<ParticleHarness />);
+  const renderedParticles = () => {
+    const calls = mockRenderers[0].render.mock.calls as unknown[][];
+    const field = calls[calls.length - 1][2] as { count: number } | undefined;
+    return field?.count;
+  };
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("Canvas 2D"));
+    expect(screen.getByLabelText("Session error")).toBeEmptyDOMElement();
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await waitFor(() => expect(renderedParticles()).toBe(0));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(renderedParticles()).toBe(6);
+
+    await user.click(screen.getByRole("button", { name: "Restore" }));
+    await waitFor(() => expect(screen.getByTestId("tick")).toHaveTextContent("0"));
+    expect(renderedParticles()).toBe(0);
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(renderedParticles()).toBe(6);
+
+    const rendersBeforeReset = mockRenderers[0].render.mock.calls.length;
+    await user.click(screen.getByRole("button", { name: "Stop" }));
+    await waitFor(() => expect(mockRenderers[0].render.mock.calls.length).toBeGreaterThan(rendersBeforeReset));
+    expect(renderedParticles()).toBe(0);
+  } finally { view.unmount(); animation.mockRestore(); localStorage.removeItem("nodetool.game.save.play-particles"); }
 });
