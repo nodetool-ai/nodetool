@@ -66,7 +66,7 @@ const rootStyles = (theme: Theme) =>
     },
     ".editor-placeholder": {
       padding: `0 ${getSpacingPx(SPACING.md)}`,
-      fontFamily: "monospace",
+      fontFamily: "var(--fontFamily2)",
       whiteSpace: "pre-wrap",
       overflow: "hidden",
       alignItems: "flex-start",

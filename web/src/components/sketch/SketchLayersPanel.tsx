@@ -1436,7 +1436,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   color: SKETCH_COLORS.textFaint,
                   lineHeight: 1.35,
                   wordBreak: "break-all",
-                  fontFamily: "monospace"
+                  fontFamily: "var(--fontFamily2)"
                 }}
               >
                 {summarizeLayerImageReference(activeLayer.imageReference)}

@@ -25,7 +25,8 @@ import {
   reducedMotion,
   BORDER_RADIUS,
   SPACING,
-  Z_INDEX, getSpacingPx
+  Z_INDEX, getSpacingPx,
+  SHADOW
 } from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
@@ -198,7 +199,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       borderRadius: BORDER_RADIUS.lg,
       border: `2px solid ${theme.vars.palette.primary.main}`,
-      boxShadow: `0 0 0 4px rgb(${theme.vars.palette.primary.mainChannel} / 0.18), 0 12px 32px rgb(0 0 0 / 0.5)`,
+      boxShadow: `0 0 0 4px rgb(${theme.vars.palette.primary.mainChannel} / 0.18), ${SHADOW(theme).lg}`,
       // Re-keyed by asset id on navigation, so this replays each time the
       // centered frame changes — a quick confident pop, no bounce.
       animation: `${activePop} ${MOTION.slow}`
@@ -219,7 +220,7 @@ const styles = (theme: Theme) =>
     },
     ".prev-next-items .item:hover": {
       transform: "translateY(-6px) scale(1.06)",
-      boxShadow: "0 12px 26px rgb(0 0 0 / 0.45)",
+      boxShadow: SHADOW(theme).lg,
       zIndex: Z_INDEX.raised
     },
     // Press feedback: quick dip on click before the frame slides to center.
@@ -313,7 +314,7 @@ const styles = (theme: Theme) =>
       overflowY: "auto",
       zIndex: Z_INDEX.modal,
       backgroundColor: theme.vars.palette.grey[900],
-      boxShadow: "-8px 0 24px rgb(0 0 0 / 0.5)"
+      boxShadow: SHADOW(theme).lg
     }
   });
 

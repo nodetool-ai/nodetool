@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo } from "react";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx, SHADOW } from "../ui_primitives";
 import type { Tutorial } from "./tutorialsData";
 
 const styles = (
@@ -36,7 +36,7 @@ const styles = (
       "&:hover": {
         borderColor: accent,
         transform: "translateY(-2px)",
-        boxShadow: "0 10px 24px rgba(0,0,0,0.28)"
+        boxShadow: SHADOW(theme).md
       },
       "&:hover .thumb img": { transform: "scale(1.03)", opacity: 1 },
       "&:hover .play-dot": { transform: "scale(1.08)" }
@@ -77,7 +77,7 @@ const styles = (
       borderRadius: BORDER_RADIUS.circle,
       color: theme.vars.palette.common.white,
       background: `${accent}e6`,
-      boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+      boxShadow: SHADOW(theme).md,
       transition: `transform ${MOTION.fast}`,
       "& svg": { fontSize: compact ? 18 : 28 }
     },
