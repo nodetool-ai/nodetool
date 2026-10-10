@@ -193,6 +193,25 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         || z.object({ actions: z.strictObject({ left: z.tuple([z.object({ kind: z.literal("gamepadButton"), button: z.literal(14) }), z.object({ kind: z.literal("key"), code: z.literal("KeyJ") })]) }) })
           .safeParse(document.inputBindings).success }]
   }
+}, {
+  id: "post-processing",
+  description: "Author a 3D post-processing stack with AgX tone mapping, bloom and SMAA through public 3D edit ops.",
+  objective: "Give the 3D scene post-processing with AgX tone mapping, exposure 1.2, bloom at intensity 1.5 and SMAA antialiasing, while keeping its background, ambient and shadow settings.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("post-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene replaces the whole environment object, so send its existing fields with the new postProcessing {exposure, toneMapping, bloom?, vignette?, antialias}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "postProcessing", detail: "The scene post-processing differs from the request, or the scene lost its other environment settings.",
+      test: document => {
+        const initial = createNative3DGame("post-eval").scenes[0].environment;
+        const scene = document.scenes[0];
+        if (document.schemaVersion !== 3 || !scene || !("environment" in scene)) { return false; }
+        const { postProcessing, ...rest } = scene.environment;
+        const { postProcessing: _initialPost, ...initialRest } = initial;
+        return postProcessing?.enabled === true && postProcessing.toneMapping === "agx" && postProcessing.exposure === 1.2 &&
+          postProcessing.bloom?.intensity === 1.5 && postProcessing.antialias === "smaa" && JSON.stringify(rest) === JSON.stringify(initialRest);
+      } }]
+  }
 }];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */
