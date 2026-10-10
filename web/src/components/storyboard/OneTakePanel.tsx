@@ -45,6 +45,7 @@ import {
   TYPOGRAPHY
 } from "../ui_primitives";
 import {
+  ONE_TAKE_FALLBACK_DURATIONS,
   ONE_TAKE_FALLBACK_RESOLUTIONS,
   ONE_TAKE_MAX_IMAGES,
   ONE_TAKE_TASK,
@@ -78,9 +79,6 @@ const thumbSx = {
 } as const;
 
 const settingSx = { flex: "1 1 8rem", minWidth: 0 } as const;
-
-/** Durations offered when the model declares none. */
-const FALLBACK_DURATIONS = [4, 5, 6, 8, 10, 12, 15, 20, 25, 30];
 
 const seconds = (value: number): string => `${Math.round(value * 10) / 10}s`;
 
@@ -153,7 +151,9 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
   const durationOptions = useMemo(() => {
     const declared = catalogModel?.durations;
     const values: number[] =
-      declared && declared.length > 0 ? [...declared] : FALLBACK_DURATIONS;
+      declared && declared.length > 0
+        ? [...declared]
+        : [...ONE_TAKE_FALLBACK_DURATIONS];
     const stored = oneTake?.duration_seconds;
     if (stored && !values.includes(stored)) {
       values.push(stored);

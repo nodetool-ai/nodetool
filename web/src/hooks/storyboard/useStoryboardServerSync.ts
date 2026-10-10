@@ -65,6 +65,9 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument => {
   if (board.oneTake) {
     document.one_take = board.oneTake;
   }
+  if (board.sceneClips) {
+    document.scene_clips = board.sceneClips;
+  }
   return document;
 };
 
@@ -96,6 +99,9 @@ const responseToBoard = (
   }
   if (doc.one_take) {
     board.oneTake = doc.one_take;
+  }
+  if (doc.scene_clips) {
+    board.sceneClips = doc.scene_clips;
   }
   return board;
 };
@@ -279,6 +285,12 @@ export const useStoryboardServerSync = (
           if (value) {
             s.setOneTake(boardId, value as NonNullable<StoryboardBoard["oneTake"]>);
           }
+          break;
+        case "sceneClips":
+          s.setSceneClips(
+            boardId,
+            (value as StoryboardBoard["sceneClips"]) ?? []
+          );
           break;
         case "entityIds":
           s.setEntityIds(boardId, value as string[]);

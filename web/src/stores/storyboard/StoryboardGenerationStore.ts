@@ -1078,22 +1078,29 @@ export const __resetStoryboardSubscriptionsForTests = (): void => {
 };
 
 /**
- * Split a landed one-take clip back onto the board. The owning shot keeps the
- * clip and drops any coverage of its own. Every other shot names the owner
- * with its window and gives up its selected clip, because a shot with a clip
- * of its own never plays its coverage. Its takes stay in `clip_versions`.
+ * The shot patches that split a landed one-take or scene clip back onto the
+ * board. The owning shot keeps the clip and drops any coverage of its own.
+ * Every other shot in `steps` names the owner with its window and gives up
+ * its selected clip, because a shot with a clip of its own never plays its
+ * coverage. Its takes stay in `clip_versions`.
+ *
+ * A shot outside `steps` that was covered by one of the run's shots loses
+ * that coverage: the owner's old clip was replaced, and any other shot in
+ * the run no longer has a clip to cut from. Without this, rendering shots
+ * 3-4 as a scene clip would leave shot 5 playing a window of a clip that no
+ * longer contains it.
  */
-const coverBoardWithOneTake = (
-  boardId: string,
+export const oneTakeCoveragePatches = (
+  shots: readonly Shot[],
   ownerShotId: string,
-  oneTake: OneTakeCompletion
-): void => {
-  const storyboard = useStoryboardStore.getState();
-  const shots = storyboard.getBoard(boardId)?.shots ?? [];
+  steps: readonly OneTakeStep[]
+): Array<{ shotId: string; patch: Partial<Shot> }> => {
+  const runIds = new Set([ownerShotId, ...steps.map((step) => step.shot_id)]);
+  const patches: Array<{ shotId: string; patch: Partial<Shot> }> = [];
   if (shots.find((shot) => shot.id === ownerShotId)?.covered_by) {
-    storyboard.updateShot(boardId, ownerShotId, { covered_by: null });
+    patches.push({ shotId: ownerShotId, patch: { covered_by: null } });
   }
-  for (const step of oneTake.steps) {
+  for (const step of steps) {
     const shot = shots.find((candidate) => candidate.id === step.shot_id);
     if (!shot || shot.id === ownerShotId) {
       continue;
@@ -1109,7 +1116,30 @@ const coverBoardWithOneTake = (
       patch.clip = null;
       patch.clip_versions = shot.clip_versions ?? [shot.clip];
     }
-    storyboard.updateShot(boardId, shot.id, patch);
+    patches.push({ shotId: shot.id, patch });
+  }
+  for (const shot of shots) {
+    const coveringId = shot.covered_by?.shot_id;
+    if (coveringId && !runIds.has(shot.id) && runIds.has(coveringId)) {
+      patches.push({ shotId: shot.id, patch: { covered_by: null } });
+    }
+  }
+  return patches;
+};
+
+const coverBoardWithOneTake = (
+  boardId: string,
+  ownerShotId: string,
+  oneTake: OneTakeCompletion
+): void => {
+  const storyboard = useStoryboardStore.getState();
+  const shots = storyboard.getBoard(boardId)?.shots ?? [];
+  for (const { shotId, patch } of oneTakeCoveragePatches(
+    shots,
+    ownerShotId,
+    oneTake.steps
+  )) {
+    storyboard.updateShot(boardId, shotId, patch);
   }
 };
 
