@@ -109,9 +109,16 @@ export function validateProducedTimeline(
       if (element.protected_input_id && !protection) {
         issue("protected_source", `Unknown protected input ${element.protected_input_id}.`);
       }
-      if (protection && ["product", "logo", "source_asset"].includes(protection.kind) && (element.kind !== "asset" || clip.mediaType !== "image" || clip.currentAssetId !== protection.asset_id)) issue("protected_source", `${protection.id} requires its original separately editable image.`);
-      if (protection?.kind === "exact_text" && (element.kind !== "text" || clip.mediaType !== "text" || clip.textStyle?.text !== protection.value)) issue("protected_value", `${protection.id} requires its exact editable text.`);
-      if (protection && track?.effects?.length) issue("forbidden_transform", `Track effects on ${protection.id} cannot be proven faithful.`);
+      if (protection) {
+        const isImageSource = ["product", "logo", "source_asset"].includes(protection.kind);
+        if (isImageSource && !(element.kind === "asset" && clip.mediaType === "image" && clip.currentAssetId === protection.asset_id)) {
+          issue("protected_source", `${protection.id} requires its original separately editable image.`);
+        }
+        if (protection.kind === "exact_text" && !(element.kind === "text" && clip.mediaType === "text" && clip.textStyle?.text === protection.value)) {
+          issue("protected_value", `${protection.id} requires its exact editable text.`);
+        }
+        if (track?.effects?.length) issue("forbidden_transform", `Track effects on ${protection.id} cannot be proven faithful.`);
+      }
       if (element.kind === "asset") {
         const assetId = protection?.asset_id ?? element.asset_id;
         if (!assetId || clip.mediaType !== "image" || clip.currentAssetId !== assetId) {
