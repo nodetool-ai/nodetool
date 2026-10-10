@@ -129,3 +129,17 @@ it("scores an input map authored through set_game input_bindings", async () => {
   await edit.execute({ops:[{op:"set_game",input_bindings:{actions:{left:[{kind:"key",code:"KeyJ"},{kind:"gamepadButton",button:14}]},axes:{}}}]});
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it("scores a spatial audio source authored through update_entity", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="spatial-audio-source");
+  if (!candidate) { throw new Error("Spatial audio eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Spatial audio eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  const result = await edit.execute({ops:[{op:"update_entity",entity_id:"gem",set:{audioSource:{spatial:true,minDistance:2,maxDistance:20,distanceModel:"linear"}}}]});
+  expect(result).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});

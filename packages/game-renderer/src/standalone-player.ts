@@ -1,7 +1,7 @@
 import { createScriptedGameSession, validateGame } from "@nodetool-ai/game-runtime";
 import { gameSnapshot, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
-import { GameAudioPlayer } from "./audio.js";
+import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
 import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { browserGamepads, GameInput } from "./input-bindings.js";
 import { resolveGameInputBindings } from "@nodetool-ai/protocol";
@@ -145,6 +145,7 @@ async function start(): Promise<void> {
     if (rendering) {
       return;
     }
+    audio.updateSpatial(gameAudioSpatialView2D(latest, interpolation));
     rendering = renderer.render(latest, interpolation)
       .then((stats) => {
         budget.observe({ drawCalls: stats.drawCalls, voices: gameAudioVoiceCount(audio.mixerState()) });

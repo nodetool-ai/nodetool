@@ -283,3 +283,17 @@ it("round-trips adding and removing cull layers, frame budgets and entity cullin
   visual.renderCulling = { layer: "props" };
   roundTrip(before, after);
 });
+
+it("round-trips adding, changing and removing spatial audio settings through JSON operations", () => {
+  const before = createNative3DGame("diff3d-spatial-audio");
+  before.assets.hum = { mediaKind: "audio", assetId: "0123456789abcdef0123456789abcdef", digest: "hum", required: true };
+  const radio = before.scenes[0].entities[0];
+  radio.audioSource = { assetId: "hum", onEvent: "hum", volume: 1 };
+  const spatial = structuredClone(before);
+  spatial.scenes[0].entities[0].audioSource = { assetId: "hum", onEvent: "hum", volume: 1, spatial: true, maxDistance: 25,
+    cone: { innerAngle: 45, outerAngle: 90, outerGain: 0.3 }, doppler: 0.5 };
+  const changed = structuredClone(spatial);
+  changed.scenes[0].entities[0].audioSource = { assetId: "hum", onEvent: "hum", volume: 1, spatial: true, maxDistance: 10 };
+  roundTrip(before, spatial);
+  roundTrip(spatial, changed);
+});
