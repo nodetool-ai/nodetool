@@ -27,8 +27,11 @@ import { protectedProcedure } from "../middleware.js";
  * operator's provider keys and re-points every user's Python bridge. A
  * multi-user production server must not hand that to each signed-in user.
  */
+const isProductionServer = (): boolean =>
+  process.env["NODETOOL_ENV"] === "production";
+
 const localProcedure = protectedProcedure.use(({ next }) => {
-  if (process.env["NODETOOL_ENV"] === "production") {
+  if (isProductionServer()) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Remote workers are disabled in production"
@@ -36,6 +39,11 @@ const localProcedure = protectedProcedure.use(({ next }) => {
   }
   return next();
 });
+
+// The reads the web app makes on every page load answer "no workers" in
+// production instead of refusing, so the UI shows an empty state rather than
+// logging a FORBIDDEN error per query. They never reach the manager there.
+const NO_API_KEYS = { runpod: false, vast: false, verda: false };
 
 const targetSchema = z.enum(["runpod", "vast", "verda"]);
 
@@ -153,9 +161,13 @@ function requireProbe(probe: ProbeWorkerHealth | undefined): ProbeWorkerHealth {
 }
 
 const profilesRouter = router({
-  list: localProcedure
+  list: protectedProcedure
     .output(z.array(workerProfileOutput))
-    .query(({ ctx }) => requireManager(ctx.workerManager).listProfiles()),
+    .query(({ ctx }) =>
+      isProductionServer()
+        ? []
+        : requireManager(ctx.workerManager).listProfiles()
+    ),
 
   create: localProcedure
     .input(profileCreateInput)
@@ -182,9 +194,11 @@ const profilesRouter = router({
 });
 
 const instancesRouter = router({
-  list: localProcedure
+  list: protectedProcedure
     .output(z.array(workerInstanceOutput))
-    .query(({ ctx }) => requireManager(ctx.workerManager).list())
+    .query(({ ctx }) =>
+      isProductionServer() ? [] : requireManager(ctx.workerManager).list()
+    )
 });
 
 export const workerRouter = router({
@@ -194,9 +208,13 @@ export const workerRouter = router({
   // Whether each provider's API key is available (secret store OR env) — the
   // same resolution provisioning uses, so the UI doesn't false-warn on an
   // env-provided key.
-  apiKeyStatus: localProcedure
+  apiKeyStatus: protectedProcedure
     .output(apiKeyStatusOutput)
-    .query(({ ctx }) => requireManager(ctx.workerManager).apiKeyStatus()),
+    .query(({ ctx }) =>
+      isProductionServer()
+        ? NO_API_KEYS
+        : requireManager(ctx.workerManager).apiKeyStatus()
+    ),
 
   provision: localProcedure
     .input(provisionInput)
