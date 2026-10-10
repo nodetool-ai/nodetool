@@ -1,7 +1,8 @@
 import { gameParticleEmissionOf, type GameEntityProps } from "@nodetool-ai/protocol";
 import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
-import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecycle.js";
+import { applyGameplayCommand, queueGameplayBehavior, type GameplayCommand } from "../gameplay/lifecycle.js";
+import { assertDestroyCommands, awaitsDestroy, scriptContacts, scriptLifecycle, type GameScriptLifecycleRecord } from "../script-lifecycle.js";
 import { planScriptProps } from "../script-props.js";
 import type { GameScriptCall3D } from "../scripts3d.js";
 import { scriptSourceKey } from "../scripts.js";
@@ -13,7 +14,63 @@ function scriptMetadata(state: EntityState3D): Pick<GameScriptCall3D, "tags" | "
   return { tags: state.definition.tags ?? NO_TAGS, active: state.active, rotation: [...state.transform.rotation] };
 }
 
+/** A script call without its state, built from the entity at the current point of the tick. */
+export function scriptCall3D(context: GameSystemContext3D, state: EntityState3D, index: number): Omit<GameScriptCall3D, "state"> {
+  const behavior = state.definition.behaviors[index];
+  if (behavior?.kind !== "script") {
+    throw new Error(`Behavior ${index} of ${state.definition.id} is not a script`);
+  }
+  return {
+    sourceKey: scriptSourceKey(
+      state.prefabId ? `prefab:${state.prefabId}` : context.currentScene().id,
+      state.sourceId ?? state.definition.id,
+      index
+    ),
+    stateKey: scriptSourceKey(context.currentScene().id, state.definition.id, index),
+    entityId: state.definition.id,
+    source: state.sourceId ?? state.definition.id,
+    position: { ...state.transform.position },
+    velocity: { ...state.velocity },
+    grounded: state.controller?.grounded ?? false,
+    ...scriptMetadata(state),
+    maxCommands: behavior.maxCommands,
+    maxTickMs: behavior.maxTickMs
+  };
+}
+
+/** `onDestroy` calls for lifecycle behaviors whose entity despawned in the previous tick, in a fixed order. */
+function destroyCalls3D(context: GameSystemContext3D, hookSources: ReadonlySet<string>): GameScriptCall3D[] {
+  const calls: GameScriptCall3D[] = [];
+  for (const state of context.states) {
+    if (state.active) {
+      continue;
+    }
+    state.definition.behaviors.forEach((behavior, index) => {
+      if (behavior.kind !== "script") {
+        return;
+      }
+      const call = scriptCall3D(context, state, index);
+      const record = context.scriptState[call.stateKey];
+      if (hookSources.has(call.sourceKey) && awaitsDestroy(record)) {
+        calls.push({ ...call, state: record as GameScriptCall3D["state"], lifecycle: { destroy: true } });
+      }
+    });
+  }
+  for (const stateKey of Object.keys(context.scriptState).sort()) {
+    const record = context.scriptState[stateKey];
+    if (awaitsDestroy(record) && (record as GameScriptLifecycleRecord).removed !== undefined) {
+      const { removed, ...rest } = record as GameScriptLifecycleRecord;
+      calls.push({ ...(removed as unknown as Omit<GameScriptCall3D, "state">), stateKey, state: rest as unknown as GameScriptCall3D["state"], lifecycle: { destroy: true } });
+    }
+  }
+  return calls;
+}
+
 export function stepScripts3D(context: GameSystemContext3D): void {
+  const hookSources = context.runner?.hookSources;
+  const hasHooks = hookSources !== undefined && hookSources.size > 0;
+  if (hasHooks) { context.calls.push(...destroyCalls3D(context, hookSources)); }
+  const sceneEnter = context.tick === 0 || context.previousEvents.some((event) => event.kind === "sceneTransition");
   for (const state of context.states) {
     if (!state.active) {
       continue;
@@ -27,6 +84,9 @@ export function stepScripts3D(context: GameSystemContext3D): void {
           index
         );
         const stateKey = scriptSourceKey(context.currentScene().id, state.definition.id, index);
+        const lifecycle = hasHooks && hookSources.has(sourceKey)
+          ? scriptLifecycle(sceneEnter, scriptContacts(state.definition.id, context.previousEvents, (event) => event.sensor === true))
+          : undefined;
         context.calls.push({
           sourceKey,
           stateKey,
@@ -38,7 +98,8 @@ export function stepScripts3D(context: GameSystemContext3D): void {
           grounded: state.controller?.grounded ?? false,
           ...scriptMetadata(state),
           maxCommands: behavior.maxCommands,
-          maxTickMs: behavior.maxTickMs
+          maxTickMs: behavior.maxTickMs,
+          ...(lifecycle === undefined ? undefined : { lifecycle })
         });
       }
     });
@@ -73,10 +134,23 @@ export function stepScripts3D(context: GameSystemContext3D): void {
       context.rngState
     );
     const byId = new Map(context.states.map((state) => [state.definition.id, state]));
+    for (const [index, result] of batch.results.entries()) {
+      if (context.calls[index].lifecycle?.destroy) { assertDestroyCommands(result.commands, result.entityId, context.tick); }
+    }
     const plannedProps = planScriptProps(batch.results, (entityId) => byId.get(entityId)?.props, context.tick, true);
     for (let index = 0; index < batch.results.length; index += 1) {
       const result = batch.results[index];
-      context.scriptState[context.calls[index].stateKey] = result.state;
+      const call = context.calls[index];
+      if (call.lifecycle?.destroy) {
+        // A removed instance's record ends with its onDestroy call. An authored entity keeps its record, marked destroyed.
+        if (!byId.has(result.entityId)) { delete context.scriptState[call.stateKey]; }
+        else { context.scriptState[call.stateKey] = result.state; }
+        for (const command of result.commands) {
+          applyGameplayCommand(command as GameplayCommand, result.entityId, context.queues, context.hud, context.emit);
+        }
+        continue;
+      }
+      context.scriptState[call.stateKey] = result.state;
       const state = byId.get(result.entityId);
       if (!state) {
         throw new Error(`Script target missing: ${result.entityId}`);

@@ -2,7 +2,8 @@ import { updateVisualHierarchy3D } from "./hierarchy3d.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { type GameQueryResult3D } from "@nodetool-ai/protocol";
 import { advanceGameplayRandom, finalizeGameplayEntities, MAX_GAME_SPAWNED_INSTANCES } from "../gameplay/lifecycle.js";
-import { scriptSourceKey } from "../scripts.js";
+import { awaitsDestroy, type GameScriptLifecycleRecord } from "../script-lifecycle.js";
+import { scriptCall3D } from "./scripts3d.js";
 import { initialCamera3D } from "../spatial3d/camera.js";
 import { type EntityState3D } from "../spatial3d/state.js";
 import { SpatialWorld3D } from "../spatial3d/world.js";
@@ -63,8 +64,16 @@ export function stepGameplay3D(context: GameSystemContext3D): void {
       return true;
     }
     state.definition.behaviors.forEach((behavior, index) => {
-      if (behavior.kind === "script") {
-        delete context.scriptState[scriptSourceKey(context.currentScene().id, state.definition.id, index)];
+      if (behavior.kind !== "script") {
+        return;
+      }
+      const call = scriptCall3D(context, state, index);
+      const record = context.scriptState[call.stateKey];
+      // A lifecycle behavior keeps its record until its onDestroy call runs in the next tick.
+      if (awaitsDestroy(record) && context.runner?.hookSources?.has(call.sourceKey)) {
+        context.scriptState[call.stateKey] = { ...(record as GameScriptLifecycleRecord), removed: call } as unknown as typeof record;
+      } else {
+        delete context.scriptState[call.stateKey];
       }
     });
     return false;

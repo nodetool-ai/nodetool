@@ -88,3 +88,26 @@ it("declares optional input.params in both dimension editor contracts", async ()
     }
   } finally { await rm(directory,{recursive:true,force:true}); }
 });
+
+it("types lifecycle-object scripts and timers in both dimension editor contracts", async () => {
+  const {GAME_SCRIPT_TYPES_3D,GAME_SCRIPT_LIFECYCLE_TYPES_3D} = await import("../src/script-types3d.js");
+  const {GAME_SCRIPT_LIFECYCLE_TYPES} = await import("../src/script-types.js");
+  const directory = await mkdtemp(join(tmpdir(),"game-hooks-editor-types-"));
+  try {
+    for (const [index,types,contract] of [[0,GAME_SCRIPT_TYPES+GAME_SCRIPT_LIFECYCLE_TYPES,"GameScriptHooks"],[1,GAME_SCRIPT_TYPES_3D+GAME_SCRIPT_LIFECYCLE_TYPES_3D,"GameScriptHooks3D"]] as const) {
+      const declaration = join(directory,`types${index}.d.ts`);
+      const valid = join(directory,`valid${index}.js`);
+      const invalidCommand = join(directory,`invalid-command${index}.js`);
+      const invalidDestroy = join(directory,`invalid-destroy${index}.js`);
+      await writeFile(declaration,types);
+      await writeFile(valid,`/** @type {${contract}} */\n({ onStart(input) { after(5, "pulse"); every(10, "pulse"); return { state: input.tick }; }, pulse() { return { commands: [{ kind: "emit", event: "pulse" }] }; },\n  onContact(input, contact) { return { state: [contact.otherId, contact.phase, contact.sensor] }; }, onUpdate() {}, onDestroy() { return { commands: [{ kind: "despawn", entityId: "a" }] }; } })`);
+      await writeFile(invalidCommand,`/** @type {${contract}} */\n({ onUpdate() { return { commands: [{ kind: "notACommand" }] }; } })`);
+      await writeFile(invalidDestroy,`/** @type {${contract}} */\n({ onDestroy() { return { commands: [{ kind: "playAnimation", clip: "run" }] }; } })`);
+      const program = ts.createProgram([declaration,valid,invalidCommand,invalidDestroy],{allowJs:true,checkJs:true,noEmit:true,strict:true,skipLibCheck:true,target:ts.ScriptTarget.ES2020});
+      const diagnostics = ts.getPreEmitDiagnostics(program);
+      expect(diagnostics.filter(diagnostic=>diagnostic.file?.fileName===valid).map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))).toEqual([]);
+      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalidCommand)).toBe(true);
+      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalidDestroy)).toBe(true);
+    }
+  } finally { await rm(directory,{recursive:true,force:true}); }
+});

@@ -1,5 +1,5 @@
 import { gameScriptCommand } from "./scripts.js";
-import { gameScriptSchemaDeclaration, gameScriptWorldDeclaration } from "./script-declarations.js";
+import { gameScriptLifecycleDeclaration, gameScriptSchemaDeclaration, gameScriptWorldDeclaration } from "./script-declarations.js";
 
 /** Monaco declarations for the native game function-expression contract. */
 export const GAME_SCRIPT_TYPES = `
@@ -30,3 +30,6 @@ type GameScript = (input: GameScriptInput) => GameScriptResult;
 export const GAME_SCRIPT_WORLD_TYPES = gameScriptWorldDeclaration(
   "{ id: string; source: string; x: number; y: number; velocityX: number; velocityY: number; grounded: boolean }"
 );
+
+/** Lifecycle-object scripts and timers, composed after the compatibility-pinned input types. */
+export const GAME_SCRIPT_LIFECYCLE_TYPES = gameScriptLifecycleDeclaration("GameScriptHooks", "GameScriptInput", "GameScriptCommand");

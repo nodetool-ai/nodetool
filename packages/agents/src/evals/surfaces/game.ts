@@ -193,6 +193,23 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         || z.object({ actions: z.strictObject({ left: z.tuple([z.object({ kind: z.literal("gamepadButton"), button: z.literal(14) }), z.object({ kind: z.literal("key"), code: z.literal("KeyJ") })]) }) })
           .safeParse(document.inputBindings).success }]
   }
+}, {
+  id: "lifecycle-timer-script",
+  description: "Author a lifecycle-object script whose onStart hook schedules a repeating timer through public edit ops.",
+  objective: "Add a script behavior to the player written as a lifecycle object. Its onStart hook calls every(60, \"beat\") and its beat method emits the event heartbeat. Keep the player's other behaviors.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("lifecycle-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole behaviors array. A script behavior is {kind: \"script\", source}. The source may be an object of hooks such as onStart and onUpdate. every(ticks, name) calls the object's method name every ticks ticks, and a method returns {state?, commands?}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerHeartbeat", detail: "The player has no lifecycle script that schedules every(60, \"beat\") and emits heartbeat, or lost a behavior.",
+      test: document => {
+        const behaviors = document.scenes[0].entities.find(entity => entity.id === "player")?.behaviors ?? [];
+        const source = behaviors.find(behavior => behavior.kind === "script")?.source ?? "";
+        return behaviors.some(behavior => behavior.kind === "movement") && behaviors.some(behavior => behavior.kind === "winWhenCollected")
+          && /^\s*\(?\s*\{/.test(source) && /onStart/.test(source) && /every\(\s*60\s*,\s*["'`]beat["'`]\s*\)/.test(source)
+          && /\bbeat\s*(\(|:)/.test(source) && /heartbeat/.test(source);
+      } }]
+  }
 }];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */

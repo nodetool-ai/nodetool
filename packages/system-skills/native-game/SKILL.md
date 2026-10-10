@@ -204,7 +204,8 @@ not change runtime state.
 
 ## 2D scripts and visuals
 
-A `script` behavior is a function expression. It receives `{tick, pressed,
+A `script` behavior is a function expression, or an object of lifecycle
+hooks (see "Lifecycle hooks and timers"). A function receives `{tick, pressed,
 justPressed, events, entity, world, state, random}` and returns `{state,
 commands}`. `events` are the previous tick's events. `world` lists every active
 entity with a collider or camera as `{id, source, x, y}`. `entity` holds the
@@ -635,6 +636,49 @@ asset slot, an asset of the wrong `kind`, and in 3D an entity reference inside
 a prefab or an undeclared prefab asset. A behavior without `params` has no
 `input.params` key. Params count once per behavior definition toward the
 64 KiB script input limit.
+
+#### Lifecycle hooks and timers
+
+A script source may be an object of hooks instead of a function. It works in
+2D and 3D with no schema change.
+
+```js
+({
+  onStart(input) { every(30, "fire"); return { state: { shots: 0 } }; },
+  fire(input) { return { state: { shots: input.state.shots + 1 },
+    commands: [{ kind: "spawn", prefabId: "bolt" }] }; },
+  onTriggerEnter(input, contact) { return { commands: [{ kind: "emit", event: "hit:" + contact.otherId }] }; },
+  onDestroy(input) { return { commands: [{ kind: "emit", event: "gone" }] }; }
+})
+```
+
+Hooks receive the same `input` as a function script and return
+`{state?, commands?}` or nothing. Each hook sees the state returned by the
+one before it. Within a tick they run in this order:
+
+1. `onStart`, on the behavior's first call.
+2. `onSceneEnter`, on the first tick of the scene.
+3. `onTriggerEnter`, `onTriggerExit` and `onContact`, once per contact of
+   the entity in the previous tick's events, in event order. A contact where
+   either collider is a sensor is a trigger. Triggers fire on `enter` and
+   `exit`. `onContact` receives every phase of a solid contact. The second
+   argument is `{otherId, phase, sensor}`.
+4. Due timers, in the order they were scheduled.
+5. `onFixedUpdate` or `onUpdate`. They are aliases. Define one of them.
+
+`onDestroy` runs alone in the tick after the entity despawns. It may return
+only `hud`, `emit`, `spawn`, `despawn` and `sceneTransition` commands. A scene
+transition discards behavior state without calling `onDestroy`.
+
+`after(ticks, name)` calls the object's method `name` once, `ticks` ticks
+later. `every(ticks, name)` calls it every `ticks` ticks. `ticks` is an
+integer from 1 to 1000000, `name` must be a method that is not a hook, and a
+behavior holds at most 32 timers. Scheduling an existing name replaces that
+timer. Timers live in the behavior's snapshot state, so they replay from any
+snapshot. Session preparation rejects an unknown `on*` key, a hook that is not
+a function, and an object that defines both `onUpdate` and `onFixedUpdate`.
+Lifecycle objects run in a fresh context each call, like any function the
+persistence check does not accept.
 
 ### U: Input and game UI
 
