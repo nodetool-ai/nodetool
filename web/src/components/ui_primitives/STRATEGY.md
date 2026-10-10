@@ -87,6 +87,9 @@ Media that is being generated shows `MagicGenerationFill` over its host: the ske
 ### Media (the media-locator rendering boundary)
 `ResponsiveImage` | `VideoPlayer` | `AudioPlayback`
 
+### Keyframe editors
+`CurveEditor` (piecewise-linear `{ t, value }` keys) | `GradientEditor` (`{ t, color }` stops). Both edit the particle `*OverLifetime` shapes, keep keys sorted, and are keyboard operable.
+
 ### Misc
 `Dialog` | `DialogActionButtons` | `ColorSwatch` | `ShortcutHint` | `Chip` | `Divider` | `SkipLinks` | `ZoomControls` | `HoverActionGroup` | `SelectableListItem`
 

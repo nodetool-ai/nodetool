@@ -327,6 +327,12 @@ export type { SectionHeaderProps } from "./SectionHeader";
 export { ColorSwatch } from "./ColorSwatch";
 export type { ColorSwatchProps } from "./ColorSwatch";
 
+export { CurveEditor } from "./CurveEditor";
+export type { CurveEditorProps, CurveKey } from "./CurveEditor";
+
+export { GradientEditor } from "./GradientEditor";
+export type { GradientEditorProps, GradientStop } from "./GradientEditor";
+
 export { Overlay } from "./Overlay";
 export type { OverlayProps } from "./Overlay";
 
