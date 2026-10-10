@@ -174,3 +174,24 @@ it("scores a lifecycle timer script authored through the public edit surface", a
   await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors,{kind:"script",source}]}}]});
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it("scores cascaded shadows authored through the public 3D edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="cascaded-shadows");
+  if (!candidate) { throw new Error("Shadow eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Shadow eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const read = bridge.tools.find(tool=>tool.name==="get_native_game");
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!read || !edit) { throw new Error("Native game tools must exist"); }
+  const { outline } = await read.execute({ view: "outline" }) as { outline: { scenes: { id: string; environment: { shadows: Record<string, unknown> } & Record<string, unknown> }[] } };
+  const scene = outline.scenes[0];
+  if (!scene) { throw new Error("Outline must list the scene"); }
+  const cascaded = { ...scene.environment, shadows: { ...scene.environment.shadows, cascades: { count: 4, maxDistance: 150 } } };
+  await expect(edit.execute({ ops: [{ op: "update_scene", scene_id: scene.id, set: { environment: { ...cascaded, shadows: { ...cascaded.shadows, cascades: { count: 5 } } } } }] })).rejects.toThrow(/Too big/);
+  await edit.execute({ ops: [{ op: "update_scene", scene_id: scene.id, set: { environment: cascaded } }] });
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  await edit.execute({ ops: [{ op: "update_entity", entity_id: "sun", set: { light3d: { shadowNormalBias: 0.03 } } }] });
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});

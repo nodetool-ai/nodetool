@@ -9,6 +9,7 @@ import { configureGameEnvironment } from "./environment/index.js";
 import { GameSkyRenderer3D, type GameSkySources3D } from "./environment/sky.js";
 import { paintGameHud } from "./hud/paint.js";
 import { applyDistanceCulling3D } from "./culling.js";
+import { GameShadows3D } from "./shadows/index.js";
 export { interpolateGameTransform3D } from "./scene-sync.js";
 export { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
 import * as THREE from "three";
@@ -94,6 +95,7 @@ class ThreeGameRenderer implements GameRenderer3D {
   private readonly fonts: GameFonts3D;
   private readonly diagnostics: string[] = [];
   private readonly lights = new Map<string, THREE.Light>();
+  private readonly shadows = new GameShadows3D(this.diagnostics, (message) => this.options.onDiagnostic?.(message));
   private readonly controller = new AbortController();
   private readonly sky: GameSkyRenderer3D;
   private readonly hudCanvas = document.createElement("canvas");
@@ -270,7 +272,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     const activeCamera = this.editorCamera ?? this.camera;
     activeCamera.updateMatrixWorld(true);
     const culledEntities = applyDistanceCulling3D(this.instances, frame, this.editorCamera ? null : this.camera);
-    syncGameLights(this.scene, this.lights, frame);
+    syncGameLights(this.scene, this.lights, frame, this.shadows, activeCamera);
     configureGameEnvironment(this.scene, this.ambient, this.renderer, frame.environment);
     await this.sky.apply(this.scene, frame);
     this.controller.signal.throwIfAborted();
@@ -316,6 +318,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.sky.dispose();
     this.lights.forEach((light) => removeGameLight(light));
     this.lights.clear();
+    this.shadows.dispose();
     this.hudTexture.dispose();
     this.hudGeometry.dispose();
     this.hudMaterial.dispose();

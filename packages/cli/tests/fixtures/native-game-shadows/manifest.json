@@ -1,0 +1,11 @@
+{
+  "tick": 60,
+  "seed": 1,
+  "channelTolerance": 16,
+  "changedFractionTolerance": 0.005,
+  "fixtures": [
+    "shadows-cascaded",
+    "shadows-local"
+  ],
+  "backend": "webgl2"
+}
