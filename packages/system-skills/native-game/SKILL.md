@@ -521,6 +521,33 @@ sky with `update_scene`. It replaces the whole `environment`, so send the
 existing `background`, `ambient`, `fog` and `shadows` with the new `sky`.
 Capture the scene to review the result.
 
+A 3D scene's `environment.postProcessing` grades the rendered image. It is
+presentation only and never changes simulation or snapshots. Omit it to render
+as before. `enabled: false` keeps the settings and renders as if they were
+absent. The fields are:
+
+- `exposure` (1/32 to 16, default 1) multiplies scene light before tone mapping.
+- `toneMapping` is `aces` (default), `agx`, `neutral` or `linear`. AgX keeps
+  saturated highlights from turning white. Neutral keeps base colors closest to
+  their authored values. Linear scales by exposure and clips.
+- `bloom` `{ threshold, softness, radius, intensity }` adds glow around light
+  above `threshold` (0 to 8, default 0.85). Emissive materials and bright
+  highlights bloom. `softness` (0 to 0.5) widens the threshold transition.
+  `radius` (0 to 1) spreads the glow, and `intensity` (0 to 4) sets its strength.
+- `vignette` `{ intensity, radius, softness }` darkens the corners. `intensity`
+  (0 to 1) of 1 reaches black. Darkening starts at `radius` (0 at the center,
+  1 at the corner) and reaches full strength over `softness`.
+- `antialias` is `msaa` (default), `fxaa`, `smaa` or `none`. `smaa` gives the
+  cleanest edges after the other effects. `fxaa` is cheaper and softer.
+
+The passes always run in this order: bloom, exposure and tone mapping,
+vignette, antialiasing. Exposure and tone mapping alone cost nothing extra.
+Bloom, vignette, or an `antialias` other than `msaa` renders through extra
+full-screen passes, and the background color then passes through tone mapping
+too. Set post-processing with `update_scene` and the whole existing
+`environment`. Capture the scene to compare settings. SSAO, depth of field,
+color grading with a LUT and chromatic aberration are not available yet.
+
 ### V: 2D rendering and visual effects
 
 Add particle effects with the `particles` component on any 2D (schema 2 or 4)

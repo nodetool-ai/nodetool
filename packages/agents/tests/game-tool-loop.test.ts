@@ -175,6 +175,28 @@ it("scores a lifecycle timer script authored through the public edit surface", a
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
 
+it("scores 3D post-processing authored through the public 3D edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="post-processing");
+  if (!candidate) { throw new Error("Post-processing eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("Post-processing eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const read = bridge.tools.find(tool=>tool.name==="get_native_game");
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!read || !edit) { throw new Error("Native game tools must exist"); }
+  const { outline } = await read.execute({ view: "outline" }) as { outline: { scenes: { id: string; environment: Record<string, unknown> }[] } };
+  const scene = outline.scenes[0];
+  if (!scene) { throw new Error("Outline must list the scene"); }
+  const postProcessing = { toneMapping: "agx", exposure: 1.2, bloom: { intensity: 1.5 }, antialias: "smaa" };
+  await expect(edit.execute({ ops: [{ op: "update_scene", scene_id: scene.id, set: { environment: { ...scene.environment, postProcessing: { ...postProcessing, exposure: 99 } } } }] })).rejects.toThrow();
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  await edit.execute({ ops: [{ op: "update_scene", scene_id: scene.id, set: { environment: { postProcessing } } }] });
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  await edit.execute({ ops: [{ op: "update_scene", scene_id: scene.id, set: { environment: { ...scene.environment, postProcessing } } }] });
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});
+
 it("scores cascaded shadows authored through the public 3D edit surface", async () => {
   const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="cascaded-shadows");
   if (!candidate) { throw new Error("Shadow eval case must exist"); }
