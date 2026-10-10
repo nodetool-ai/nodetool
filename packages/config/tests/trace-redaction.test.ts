@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { describe, expect, it } from "vitest";
-import { redactTraceText } from "../src/trace-redaction.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createTraceTextRedactor, redactTraceText } from "../src/trace-redaction.js";
 
 describe("redactTraceText", () => {
   it.each(["", "RSA ", "EC ", "ENCRYPTED "])("masks a %sprivate key and preserves surrounding text", (label) => {
@@ -33,4 +33,21 @@ describe("redactTraceText", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toBe("[REDACTED:private-key]");
   }, 10_000);
+});
+
+describe("createTraceTextRedactor", () => {
+  afterEach(() => { vi.unstubAllEnvs(); });
+
+  it("redacts every string like redactTraceText while reading the environment once", () => {
+    vi.stubEnv("TRACE_TEST_API_KEY", "env-secret-value-123");
+    const texts = ["uses env-secret-value-123 here", "call resolved-oauth-secret-value", "Bearer abcdefghijklmnop", "plain text"];
+    const secrets = new Set(["resolved-oauth-secret-value"]);
+    const redact = createTraceTextRedactor(secrets);
+    const entries = vi.spyOn(Object, "entries");
+    const redacted = texts.map(redact);
+    expect(entries).not.toHaveBeenCalled();
+    entries.mockRestore();
+    expect(redacted).toEqual(texts.map((text) => redactTraceText(text, secrets)));
+    expect(redacted).toEqual(["uses [REDACTED:secret] here", "call [REDACTED:secret]", "[REDACTED:authorization]", "plain text"]);
+  });
 });
