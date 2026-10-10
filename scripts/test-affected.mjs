@@ -51,9 +51,12 @@ export const APPS = {
  */
 export const MOBILE_DEPS = ["@nodetool-ai/protocol", "@nodetool-ai/app-runtime"];
 
-/** Changed files that cannot change the outcome of a test run. */
+/**
+ * Changed files that cannot change the outcome of a test run. A shipped
+ * skill's SKILL.md is product content that the agents suites read, not prose.
+ */
 export const DOC_ONLY =
-  /(^|\/)[^/]+\.mdx?$|^docs\/|^\.github\/|^\.claude\/|^\.vscode\/|^LICENSE$|^\.gitignore$/;
+  /^(?!packages\/system-skills\/)(?:(?:.*\/)?[^/]+\.mdx?$|docs\/|\.github\/|\.claude\/|\.vscode\/|LICENSE$|\.gitignore$)/;
 
 const VALIDATE_EXAMPLES = {
   label: "validate-examples",

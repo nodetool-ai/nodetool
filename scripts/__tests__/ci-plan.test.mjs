@@ -39,7 +39,8 @@ const PACKAGES = [
   {
     name: "@nodetool-ai/agents",
     dir: "packages/agents",
-    internalDeps: ["@nodetool-ai/protocol"]
+    internalDeps: ["@nodetool-ai/protocol"],
+    ownedPaths: ["packages/system-skills"]
   },
   {
     name: "nodetool",
@@ -72,7 +73,8 @@ describe("buildCiPlan", () => {
       workflow_runner_e2e: false,
       tsc6: false,
       docker: false,
-      blender: false
+      blender: false,
+      turbo_affected: true
     });
   });
 
@@ -171,9 +173,27 @@ describe("buildCiPlan", () => {
     }
   });
 
+  it("runs a full plan without --affected, which would select no task", () => {
+    expect(plan(["scripts/run-vitest.mjs"])).toEqual({ ...fullCiPlan(), docker: false });
+    expect(fullCiPlan().turbo_affected).toBe(false);
+  });
+
+  it("runs the owner's shards without --affected for a path outside its directory", () => {
+    const p = plan(["packages/system-skills/api-agents/SKILL.md"]);
+    expect(p.full).toBe(false);
+    expect(p.packages_agents).toBe(true);
+    expect(p.packages_core).toBe(false);
+    expect(p.turbo_affected).toBe(false);
+  });
+
+  it("keeps --affected when every changed file sits in a workspace directory", () => {
+    expect(plan(["packages/agents/src/index.ts"]).turbo_affected).toBe(true);
+    expect(plan(["packages/agents/src/index.ts", "docs/index.md"]).turbo_affected).toBe(true);
+  });
+
   it("selects nothing for documentation outside every workspace", () => {
-    const p = plan(["docs/index.md", "AGENTS.md"]);
-    expect(Object.values(p).filter((v) => v === true || v === "full" || v === "related")).toEqual([]);
+    const { turbo_affected: _, ...legs } = plan(["docs/index.md", "AGENTS.md"]);
+    expect(Object.values(legs).filter((v) => v === true || v === "full" || v === "related")).toEqual([]);
   });
 });
 

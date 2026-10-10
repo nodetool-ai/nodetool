@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      // The shipped skills this package loads and its suites assert on. They
+      // sit outside the package, so without this entry an edit to a SKILL.md
+      // leaves the task hash unchanged and turbo replays a cached pass.
+      "inputs": ["$TURBO_EXTENDS$", "$TURBO_ROOT$/packages/system-skills/**"]
+    }
+  }
+}
