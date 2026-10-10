@@ -1937,6 +1937,37 @@ survives. Manifest:
 `packages/runtime/src/providers/contract/probe-manifest.ts`. Details:
 [docs/provider-contract-probes.md](provider-contract-probes.md).
 
+### npm run crap (CRAP Scores for TypeScript)
+
+Scores each TypeScript function with `CRAP = CC² × (1 − coverage)³ + CC`, a
+port of [crapper](https://github.com/unclebob/crapper)'s TypeScript rules.
+1–5 is low risk, 5–30 is worth a look, and above 30 the function is complex
+and under-tested. Use it to find which function to split or test first.
+
+```bash
+npm run crap -- --no-coverage --top 20 packages/kernel  # complexity only
+npm run crap -- --changed --run-coverage                # working-tree changes, with tests
+npm run crap -- --base origin/main --run-coverage --threshold 30   # CI: exit 2 above 30
+npm run crap -- --lcov packages/kernel/coverage/lcov.info --json packages/kernel
+```
+
+- **Complexity** is 1 plus each `if`, loop, `catch`, `?:`, `case`/`default`,
+  `&&`, `||`, `??`, logical assignment, and `?.` token.
+- **Entries** are functions not nested in another entry: top-level functions,
+  arrow functions, values a call wraps (`const Card = memo(() => …)` is
+  `Card`), top-level object-literal members, and every class member. A route
+  callback (`app.get("/users", handler)`) is its own entry, `GET /users`.
+  Other nested callbacks count toward their enclosing function, so a store
+  built inside `create((set) => …)` is one entry.
+- **Coverage** is LCOV. A function with `BRDA` branch records is scored by
+  branches, otherwise by line hits. A function the report leaves out scores
+  0%. By default the tool reads `coverage/lcov.info` in each workspace that
+  owns an analyzed file. `--run-coverage` first runs that workspace's related
+  tests (`vitest related` or `jest --findRelatedTests`) with LCOV output.
+- Test files, declaration files, and `tests/`, `__tests__/`, `dist/`, and
+  `node_modules/` are skipped. Rules are pinned by
+  `scripts/__tests__/crap-score.test.mjs`.
+
 ### nodetool harness (Registry, Coverage Audit, and the Gate)
 
 The machine-readable inventory behind harness-first engineering
