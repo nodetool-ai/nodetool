@@ -127,6 +127,36 @@ describe("particles component authoring", () => {
     expect(validateGame3D(invalid3D).diagnostics.filter((issue) => issue.code === "invalid_particles")).toHaveLength(4);
   });
 
+  it("checks particle sprite assets and sheet frame counts", () => {
+    const sheet = (assetId: string, extra: object = {}) => ({ emitters: [{ id: "puff", sprite: { assetId, columns: 2, rows: 2, ...extra }, blend: "additive", unlit: true, layer: 3 }] });
+    const withEmitter = (component: object): GameDocument => {
+      const base = document2D(false);
+      return { ...base, scenes: [{ ...base.scenes[0], entities: [...base.scenes[0].entities.slice(0, -1), { id: "torch", transform2d: { x: 0, y: 0 }, particles: component }] }, ...base.scenes.slice(1)] } as GameDocument;
+    };
+    expect(validateGame(withEmitter(sheet("gem"))).errors).toEqual([]);
+    expect(validateGame(withEmitter(sheet("missing"))).errors).toEqual(expect.arrayContaining([
+      expect.stringContaining("particles.emitters.0.sprite.assetId: Particle sprite missing must be an image asset")
+    ]));
+    expect(validateGame(withEmitter(sheet("sfx.collect"))).errors).toEqual(expect.arrayContaining([
+      expect.stringContaining("particles.emitters.0.sprite.assetId: Particle sprite sfx.collect must be an image asset")
+    ]));
+    expect(validateGame(withEmitter(sheet("gem", { frameCount: 5 }))).errors).toEqual(expect.arrayContaining([
+      expect.stringContaining("particles.emitters.0.sprite.frameCount: frameCount must not exceed columns × rows (4)")
+    ]));
+    const base3D = document3D(false);
+    const missing3D = { ...base3D, scenes: [{ ...base3D.scenes[0], entities: [...base3D.scenes[0].entities.slice(0, -1), { id: "torch", transform3d: {}, particles: sheet("missing") }] }] };
+    expect(validateGame3D(missing3D).diagnostics.filter((issue) => issue.code === "missing_asset").map((issue) => issue.path.join("."))).toEqual(
+      [expect.stringMatching(/particles\.emitters\.0\.sprite\.assetId$/)]
+    );
+  });
+
+  it("sets render fields through document ops", () => {
+    const component = { emitters: [{ id: "puff", sprite: { assetId: "gem", columns: 2 }, blend: "additive", unlit: true, layer: 3 }] };
+    const updated = applyGameOps(document2D(false), [{ op: "update_entity", entity_id: "torch", set: { particles: component } }]);
+    expect(updated.scenes[0].entities.at(-1)?.particles?.emitters[0]).toMatchObject({ sprite: { assetId: "gem", columns: 2, rows: 1, cycles: 1 }, blend: "additive", unlit: true, layer: 3 });
+    expect(validateGame(updated).errors).toEqual([]);
+  });
+
   it("requires 2D schema version 2", () => {
     expect(validateGame({ ...document2D(true), schemaVersion: 1 }).errors).toEqual(expect.arrayContaining([expect.stringContaining("particles: requires schema version 2")]));
   });
