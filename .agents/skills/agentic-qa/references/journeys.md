@@ -33,6 +33,13 @@ Choose one per campaign. Rotate between campaigns.
 | `chat` | Ask the app's assistant a question and get an answer. Then find that conversation again after you leave the page and come back. | A visible reply. The thread is reachable after reload. |
 | `automation` | Set up something that takes a sentence you type and gives back a changed version of it, then try it with your own sentence. | A run with the participant's input and a visible output. |
 | `app` | Find a small ready-made tool in this app, use it with your own input, and see its result. | A visible result for the participant's own input. |
+| `photo` | You have a photo of your own. Use this app to make a changed version of that photo, and look at the result. Then make sure you can find the changed photo again after you leave the page and come back. | Needs an image asset in the packet. A changed image visible after reload, reached through visible navigation. Record which route the participant took (a generated edit or manual painting). |
+| `automation-keep` | Set up something that takes a sentence you type and gives back a changed version of it, and try it with your own sentence. Then leave the page, come back, and run it again with a different sentence. | Two runs with different input, the second after a reload, on the same saved document. |
+| `key-change` | Connect this app to your OpenAI account with your old key. Then you learn the old key has been revoked: switch the app over to your new key, and check that the app still works. | Needs two `credentials` entries. The stored key is replaced, not added beside the old one, and a later request succeeds. |
+
+Two goals per campaign fit the 10-minute limit when one of them is short
+(`key-change` took 15 actions). Prefer goals no earlier campaign ran, and say
+which goals were repeated.
 
 With fake providers every goal can complete, with placeholder content (see
 [runtime.md](runtime.md#what-the-fake-runtime-shows-a-participant)). Judge

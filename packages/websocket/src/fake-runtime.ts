@@ -38,6 +38,7 @@ import {
   type ImageModel,
   type LanguageModel,
   type ProviderCapability,
+  type ImageToImageParams,
   type ProviderStreamItem,
   type TextToImageParams
 } from "@nodetool-ai/runtime";
@@ -230,7 +231,7 @@ export class FakeProvider extends ScriptedProvider {
         id: modelId(name),
         name,
         provider: this.fakeProviderId,
-        supportedTasks: ["text_to_image"]
+        supportedTasks: ["text_to_image", "image_to_image"]
       })
     );
   }
@@ -238,11 +239,19 @@ export class FakeProvider extends ScriptedProvider {
   /** Image pickers and the image step read this, not the model list. */
   protected override declaredCapabilities(): readonly ProviderCapability[] {
     return (FAKE_MODEL_CATALOG[this.fakeProviderId]?.image.length ?? 0) > 0
-      ? ["text_to_image"]
+      ? ["text_to_image", "image_to_image"]
       : [];
   }
 
   override async textToImage(_params: TextToImageParams): Promise<Uint8Array> {
+    return new Uint8Array(Buffer.from(FAKE_IMAGE_PNG_BASE64, "base64"));
+  }
+
+  /** An edit of an uploaded photo returns the same gradient as a generation. */
+  override async imageToImage(
+    _images: Uint8Array[],
+    _params: ImageToImageParams
+  ): Promise<Uint8Array> {
     return new Uint8Array(Buffer.from(FAKE_IMAGE_PNG_BASE64, "base64"));
   }
 
@@ -319,14 +328,15 @@ export function fakeAllProviders({
   }
 }
 
-/** A credential check that accepts every key without a network request. */
+/**
+ * A credential check that accepts every key without a network request. The
+ * message reads like a real check that passed: a test copy that says it never
+ * contacts the provider reads to a first-time user as one where AI is off.
+ */
 export async function acceptCredential(
-  secretKey: string
+  _secretKey: string
 ): Promise<CredentialCheckResult> {
-  return {
-    status: "valid",
-    message: `${secretKey} accepted. This test copy does not contact the provider.`
-  };
+  return { status: "valid", message: "The key was accepted." };
 }
 
 /** A `resolveProvider` implementation that always hands back a fake. */
