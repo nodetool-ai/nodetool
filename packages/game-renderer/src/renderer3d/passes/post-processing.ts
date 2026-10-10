@@ -73,15 +73,28 @@ class GameSMAAPass extends SMAAPass {
   declare readonly _searchTexture: THREE.Texture;
 
   /**
-   * Waits until the area and search lookup images have decoded and marks their textures for upload.
-   * SMAAPass decodes them from data URLs and flags the textures only in a later onload task, so a
-   * composer that renders in the same task would run SMAA with unbound lookups and pass the image through.
+   * Loads the area and search lookup images and marks their textures for upload.
+   * SMAAPass points them at data URLs and flags the textures only in a later onload task, so a
+   * composer that renders in the same task would run SMAA with unbound lookups and pass the image
+   * through. The capture page and the standalone build only allow blob: images, so the lookups are
+   * reloaded from blob URLs made from the same bytes. `fetch` is not used because connect-src blocks data: URLs there too.
    */
   async lookupsReady(): Promise<void> {
     await Promise.all([this._areaTexture, this._searchTexture].map(async (texture) => {
       if (!(texture instanceof THREE.Texture) || !(texture.image instanceof HTMLImageElement)) { throw new Error("SMAA lookup textures are missing"); }
-      await texture.image.decode();
-      texture.needsUpdate = true;
+      const match = /^data:([^;,]+);base64,(.*)$/.exec(texture.image.src);
+      if (!match) { throw new Error("SMAA lookup textures are not data URLs"); }
+      const bytes = Uint8Array.from(atob(match[2]!), (character) => character.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: match[1] }));
+      try {
+        const image = new Image();
+        image.src = url;
+        await image.decode();
+        texture.image = image;
+        texture.needsUpdate = true;
+      } finally {
+        URL.revokeObjectURL(url);
+      }
     }));
   }
 }
