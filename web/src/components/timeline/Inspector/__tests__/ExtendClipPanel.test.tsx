@@ -85,7 +85,7 @@ describe("Extend inspector", () => {
     fireEvent.change(screen.getByLabelText("Extension intent"), {
       target: { value: "Continue the camera pan" }
     });
-    fireEvent.change(screen.getByLabelText("Added source seconds"), {
+    fireEvent.change(screen.getByLabelText("Seconds to add"), {
       target: { value: "4" }
     });
     fireEvent.click(screen.getByRole("button", { name: "Generate extension" }));
