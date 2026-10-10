@@ -21,5 +21,12 @@ export const STYLE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   "stick-figure":
     "Simple black marker figures on white, without shading or perspective.",
   "graphic-novel":
-    "Expressive brush lines, heavy black shadows and muted colour washes."
+    "Expressive brush lines, heavy black shadows and muted colour washes.",
+  // The Game flow's look step.
+  "pixel-16bit": "Console pixel art with warm four-shade ramps and black outlines.",
+  "pixel-8bit": "Chunky three-colour sprites on black, like an early console.",
+  "pixel-handheld": "A four-tone pastel green screen with soft outlines.",
+  "pixel-1bit": "Two colours only, shaded with dither patterns.",
+  "pixel-modern": "Saturated modern pixel art with coloured outlines and rim light.",
+  "painted-2d": "Hand-painted gouache with visible brush texture and no outlines."
 };

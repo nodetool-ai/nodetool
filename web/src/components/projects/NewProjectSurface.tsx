@@ -22,6 +22,7 @@ import {
   useState
 } from "react";
 import {
+  DEFAULT_NATIVE_GAME_TEMPLATE,
   isModelSelected,
   type CreativeContext,
   type Entity,
@@ -121,6 +122,9 @@ import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
 import ScriptSetupHost from "../setup/script/ScriptSetupHost";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
+import GameSetupHost from "../setup/game/GameSetupHost";
+import type { GameStartAlternative } from "../setup/game/IdeaStep";
+import type { BuildGameResult } from "../../hooks/game/useBuildGame";
 import EntitySetupHost from "../setup/entity/EntitySetupHost";
 import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
@@ -134,7 +138,10 @@ import {
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
-import { writeWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  writeGameSetup,
+  writeWorkflowSetup
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { newDocumentId } from "../../lib/newDocumentId";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { stageChatTurn } from "../chat/pendingChatTurn";
@@ -404,6 +411,31 @@ const buildFailures = (result: BuildFromPlanResult): string[] => {
   return lines;
 };
 
+/** What a game build could not draw, one line. Empty when every slot drew. */
+const gameBuildFailures = (game: BuildGameResult): string[] =>
+  game.failures.length === 0
+    ? []
+    : [
+        `${game.failures.length} piece${
+          game.failures.length === 1 ? "" : "s"
+        } of art kept the placeholder (${game.failures
+          .map((failure) => failure.slot)
+          .join(", ")}): ${game.failures[0]?.reason ?? ""}`
+      ];
+
+/**
+ * Remove the workflow row that carried a finished Game flow. The game is the
+ * document from here on, and the row would otherwise sit in the workflow list
+ * as an empty "game" workflow. Best effort: the game is already open.
+ */
+const discardGameSetupWorkflow = async (workflowId: string): Promise<void> => {
+  try {
+    await trpcClient.workflows.delete.mutate({ id: workflowId });
+  } catch {
+    // The game opened; an orphaned setup row is harmless.
+  }
+};
+
 interface NewProjectSurfaceProps {
   flowRef?: string;
   initialSetupTarget?: SetupTarget | null;
@@ -454,6 +486,7 @@ const NewProjectSurface = ({
   // after its project failed to open.
   const [heldFinish, setHeldFinish] = useState<{
     result?: BuildFromPlanResult | null;
+    game?: BuildGameResult;
   } | null>(null);
   const [finishError, setFinishError] = useState<string | null>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
@@ -1209,11 +1242,38 @@ const NewProjectSurface = ({
         text.length > 0 ? projectNameFromPrompt(text, null) : "New game";
       setStarting(true);
       try {
+        // A 2D game is designed first: the flow's document is a workflow row
+        // carrying `settings.game`, the record the headless game tools share.
+        if (gameDimension === "2d") {
+          const setup = await createWorkflow({
+            name,
+            description: "",
+            tags: [],
+            access: "private",
+            project_id: projectId,
+            settings: writeGameSetup(
+              {},
+              { stage: "idea", brief: text, template: DEFAULT_NATIVE_GAME_TEMPLATE }
+            )
+          });
+          noteUncarriedContext("game", {
+            entities: false,
+            references: false
+          });
+          applySetupTarget({
+            kind: "game",
+            id: setup.id,
+            projectId,
+            name,
+            ownsProject: false
+          });
+          return;
+        }
         const created = await trpcClient.games.create.mutate({
           projectId,
           name,
-          dimension: gameDimension,
-          document: gameDimension === "3d" ? createNative3DGame(newDocumentId()) : createTopDownRoomGame(newDocumentId())
+          dimension: "3d",
+          document: createNative3DGame(newDocumentId())
         });
         noteUncarriedContext("game", {
           entities: false,
@@ -1236,7 +1296,9 @@ const NewProjectSurface = ({
       }
     },
     [
+      applySetupTarget,
       closeTab,
+      createWorkflow,
       flowRef,
       gameDimension,
       noteUncarriedContext,
@@ -1390,9 +1452,14 @@ const NewProjectSurface = ({
    * here, because this tab is the last place that holds them.
    */
   const handleSetupFinished = useCallback(
-    async (result?: BuildFromPlanResult | null) => {
+    async (result?: BuildFromPlanResult | null, game?: BuildGameResult) => {
       const target = setupTargetRef.current;
       if (!target || target.kind === "entity") {
+        return;
+      }
+      // The Game flow's document is the workflow that carried the setup; the
+      // tab it opens is the game the build made.
+      if (target.kind === "game" && !game) {
         return;
       }
       // Every tab stays mounted, so a flow can finish (or load as finished)
@@ -1400,34 +1467,41 @@ const NewProjectSurface = ({
       // project then would pull them away, so the hand-off waits until this
       // tab is in view again.
       if (!guidedTabActiveRef.current) {
-        setHeldFinish({ result });
+        setHeldFinish({ result, game });
         return;
       }
       if (!(await showDocumentProject(target.projectId, target.name))) {
         // The document is done, so the flow has no step left to show. The
         // hand-off is kept with a way to try it again.
-        setHeldFinish({ result });
+        setHeldFinish({ result, game });
         setFinishError(
           `Your ${SETUP_KIND_NOUN[target.kind]} is ready, but its project did not open.`
         );
         return;
       }
       setFinishError(null);
-      const failures = result ? buildFailures(result) : [];
+      const failures = game
+        ? gameBuildFailures(game)
+        : result
+          ? buildFailures(result)
+          : [];
       if (failures.length > 0) {
         addNotification({
           type: "warning",
           alert: true,
-          content: `Opened your workflow, but ${failures.join(" ")}`
+          content: `Opened your ${SETUP_KIND_NOUN[target.kind]}, but ${failures.join(" ")}`
         });
       }
       openTab({
         type: SETUP_TAB_TYPE[target.kind],
-        ref: target.id,
+        ref: game ? game.gameId : target.id,
         mode: "edit",
-        title: target.name,
+        title: game ? game.name : target.name,
         projectId: target.projectId
       });
+      if (game) {
+        await discardGameSetupWorkflow(target.id);
+      }
       if (failures.length === 0) {
         useOnboardingStore.getState().markStep("start-guided-flow");
       }
@@ -1440,7 +1514,7 @@ const NewProjectSurface = ({
   useEffect(() => {
     if (heldFinish && guidedTabActive && finishError === null) {
       setHeldFinish(null);
-      void handleSetupFinished(heldFinish.result);
+      void handleSetupFinished(heldFinish.result, heldFinish.game);
     }
   }, [finishError, guidedTabActive, handleSetupFinished, heldFinish]);
 
@@ -1448,8 +1522,45 @@ const NewProjectSurface = ({
     const held = heldFinish;
     setHeldFinish(null);
     setFinishError(null);
-    void handleSetupFinished(held?.result);
+    void handleSetupFinished(held?.result, held?.game);
   }, [handleSetupFinished, heldFinish]);
+
+  const handleGameFinished = useCallback(
+    (game: BuildGameResult) => {
+      void handleSetupFinished(null, game);
+    },
+    [handleSetupFinished]
+  );
+
+  /**
+   * A blank game from the Game flow's first step: the flow's workflow row is
+   * dropped, and the game opens in the project the flow was filed under.
+   */
+  const startBlankGame = useCallback(
+    async (kind: GameStartAlternative) => {
+      const target = setupTargetRef.current;
+      if (!target || target.kind !== "game") {
+        return;
+      }
+      const dimension = kind === "blank-3d" ? "3d" : "2d";
+      const created = await trpcClient.games.create.mutate({
+        projectId: target.projectId,
+        name: target.name,
+        dimension,
+        document:
+          dimension === "3d"
+            ? createNative3DGame(newDocumentId())
+            : createTopDownRoomGame(newDocumentId())
+      });
+      await handleSetupFinished(null, {
+        gameId: created.game.id,
+        name: created.game.name || target.name,
+        projectId: target.projectId,
+        failures: []
+      });
+    },
+    [handleSetupFinished]
+  );
 
   const handleEntityFinished = useCallback(() => {
     useOnboardingStore.getState().markStep("start-guided-flow");
@@ -1799,15 +1910,13 @@ const NewProjectSurface = ({
     }
     if (setupTarget.kind === "game") {
       return (
-        <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl }}>
-          <Text size="big">Legacy game setup</Text>
-          <Caption>
-            This setup used the removed Godot workflow. Its source files and generated assets remain available. Create a native game to rebuild its gameplay.
-          </Caption>
-          <EditorButton onClick={() => void startGameFlow(setupTarget.projectId)}>
-            Create native game
-          </EditorButton>
-        </FlexColumn>
+        <GameSetupHost
+          workflowId={setupTarget.id}
+          projectId={setupTarget.projectId}
+          onStartAlternative={startBlankGame}
+          onFinish={handleGameFinished}
+          onChangeFlow={handleChangeFlow}
+        />
       );
     }
     if (setupTarget.kind === "workflow") {

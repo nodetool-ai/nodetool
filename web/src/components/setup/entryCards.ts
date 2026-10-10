@@ -60,7 +60,7 @@ export const ENTRY_CARDS: readonly EntryCard[] = [
   {
     id: "game",
     title: "Game",
-    description: "Start with a playable top-down room in the built-in engine."
+    description: "From an idea to a playable game, with the design reviewed first."
   }
 ];
 

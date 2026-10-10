@@ -157,13 +157,20 @@ describe("game asset browser routes", () => {
     ] });
     const workspace = await projectWorkspace();
     const image = await png(player.width, player.height, 40);
-    scripted.generate = async () => {
+    const requests: Record<string, unknown>[] = [];
+    scripted.generate = async (_run, args) => {
+      requests.push(args);
       const digest = sha(image);
       await workspace.write(`games/${created.game.id}/assets/${digest}.png`, image, "image/png");
       return { installed: false, binding: { ...player, assetId: `generated:${digest}`, digest } };
     };
 
-    const generated = await caller.games.generateAsset({ id: created.game.id, slot: "player", kind: "image", prompt: "a fox" });
+    // The guided Game flow pins the image model the creator picked.
+    const generated = await caller.games.generateAsset({ id: created.game.id, slot: "player", kind: "image", prompt: "a fox",
+      provider: "fal_ai", model: "fal-ai/flux/schnell" });
+    expect(requests).toEqual([expect.objectContaining({ provider: "fal_ai", model: "fal-ai/flux/schnell" })]);
+    await expect(caller.games.generateAsset({ id: created.game.id, slot: "player", kind: "image", prompt: "a fox", provider: "fal_ai" }))
+      .rejects.toMatchObject({ code: "BAD_REQUEST" });
     if (generated.document.schemaVersion === 3) { throw new Error("Expected a 2D game"); }
     expect(generated.document.assets.player?.digest).toBe(sha(image));
     expect(generated.document.assets["player.frame.0"]).toEqual({ ...generated.document.assets.player, frame: { x: 0, y: 0, width: 1, height: 1 } });

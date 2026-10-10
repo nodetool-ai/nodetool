@@ -132,10 +132,10 @@ const GAME_FLOW_SUITES =
   "npm run test --workspace=packages/game-nodes && " +
   "npm run test --workspace=packages/game-runtime && " +
   "npm run test --workspace=packages/game-renderer && " +
-  "npm run test --workspace=packages/websocket -- trpc-games gameDraftHistory && " +
+  "npm run test --workspace=packages/websocket -- trpc-games trpc-game-asset-browser gameDraftHistory style-presets && " +
   "npm run test --workspace=packages/agents -- game && " +
   "npm run test --workspace=packages/cli -- game-command && " +
-  "npm run test --workspace=web -- src/stores/game src/components/game";
+  "npm run test --workspace=web -- src/stores/game src/components/game src/components/setup/game src/hooks/game";
 
 /**
  * Durable generation recovery without a provider call. These suites exercise
@@ -1272,6 +1272,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/protocol/src/game-design.ts",
       "packages/protocol/src/game-graph.ts",
       "packages/protocol/src/game-flow-prompt.ts",
+      "packages/protocol/src/native-game-templates.ts",
       "packages/protocol/src/style-presets.ts",
       "packages/game-nodes/",
       "packages/game-runtime/",
@@ -1283,6 +1284,8 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/websocket/src/trpc/routers/gameDraftHistory.ts",
       "packages/websocket/src/lib/style-presets.ts",
       "web/src/components/game/",
+      "web/src/components/setup/game/",
+      "web/src/hooks/game/",
       "web/src/stores/game/",
       "web/tests/journeys/native-game3d-editor.spec.ts",
       "web/src/components/workspace/GameSurface.tsx",

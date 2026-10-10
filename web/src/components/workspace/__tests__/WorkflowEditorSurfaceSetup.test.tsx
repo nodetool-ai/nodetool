@@ -225,8 +225,18 @@ jest.mock("../../../stores/NotificationStore", () => ({
     selector({ addNotification: mockAddNotification })
 }));
 
+// The game flow's host draws its own steps; this suite asks only whether a
+// workflow carrying `settings.game` mounts it instead of the canvas.
+jest.mock("../../setup/game/GameSetupHost", () => ({
+  __esModule: true,
+  default: ({ workflowId }: { workflowId: string }) => (
+    <div data-testid="game-setup-flow">{workflowId}</div>
+  )
+}));
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  writeGameSetup,
   writeWorkflowSetup,
   type WorkflowSetupStage
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
@@ -331,6 +341,22 @@ describe("WorkflowEditorSurface workflow setup resume", () => {
     renderSurface();
 
     expect(screen.getByTestId("node-editor")).toBeInTheDocument();
+  });
+
+  it("renders the game flow for a workflow still designing a game", () => {
+    settings = writeGameSetup({}, { stage: "review", brief: "a fox" });
+    renderSurface();
+
+    expect(screen.getByTestId("game-setup-flow")).toHaveTextContent("w1");
+    expect(screen.queryByTestId("node-editor")).not.toBeInTheDocument();
+  });
+
+  it("renders the canvas once the game flow is done", () => {
+    settings = writeGameSetup({}, { stage: "done", game_id: "g1" });
+    renderSurface();
+
+    expect(screen.getByTestId("node-editor")).toBeInTheDocument();
+    expect(screen.queryByTestId("game-setup-flow")).not.toBeInTheDocument();
   });
 
   it("creates and opens an app for a reopened app-mode build", async () => {

@@ -81,6 +81,7 @@ export * from "./token-providers.js";
 export * from "./predicates.js";
 export * from "./workflow-plan.js";
 export * from "./game-design.js";
+export * from "./native-game-templates.js";
 export * from "./game-flow-prompt.js";
 export * from "./game-graph.js";
 export * from "./mcp-server-config.js";
