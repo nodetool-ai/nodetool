@@ -82,6 +82,16 @@ describe("SceneOutliner editing", () => {
     expect(screen.getByRole("treeitem", { name: "Pillar (Mesh)" })).toHaveAttribute("tabindex", "-1");
   });
 
+  it("keeps the eye buttons out of the tab order and exposes the tree depth", () => {
+    const crate = node("Crate", [], 1);
+    renderOutliner([node("Props", [crate]), node("Pillar")]);
+    for (const button of screen.getAllByRole("button", { name: "Hide object" })) {
+      expect(button).toHaveAttribute("tabindex", "-1");
+    }
+    expect(screen.getByRole("treeitem", { name: "Props (Mesh)" })).toHaveAttribute("aria-level", "1");
+    expect(screen.getByRole("treeitem", { name: "Crate (Mesh)" })).toHaveAttribute("aria-level", "2");
+  });
+
   it("collapses a parent with the left arrow key", async () => {
     const crate = node("Crate", [], 1);
     const props = node("Props", [crate]);

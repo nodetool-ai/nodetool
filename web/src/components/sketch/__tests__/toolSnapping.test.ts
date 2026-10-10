@@ -11,19 +11,20 @@ import { DragSnapSession } from "../snapping/toolSnap";
 import { useSketchStore } from "../state/useSketchStore";
 import type { ToolPointerEvent } from "../tools";
 import { CropTool } from "../tools/CropTool";
+import { SelectTool } from "../tools/SelectTool";
 import { ShapeTool } from "../tools/ShapeTool";
 import { makeToolContext } from "./_toolContextFixture";
 
 // The fixture canvas is 64x64, so its snap lines are 0, 32 and 64 per axis.
 const CANVAS = { width: 64, height: 64 };
 
-function pointer(x: number, y: number): ToolPointerEvent {
+function pointer(x: number, y: number, shiftKey = false): ToolPointerEvent {
   return {
     point: { x, y },
     pressure: 0.5,
     nativeEvent: stub<React.PointerEvent>({
       altKey: false,
-      shiftKey: false,
+      shiftKey,
       button: 0,
       clientX: x,
       clientY: y,
@@ -161,6 +162,48 @@ describe("ShapeTool snapping", () => {
       { x: 60, y: 61 }
     );
     tool.onUp(ctx, pointer(60, 61));
+  });
+});
+
+describe("Shift-constrained snapping", () => {
+  it("hides the snap line a Shift square shape moves past", () => {
+    const ctx = makeToolContext({ activeTool: "shape" });
+    const tool = new ShapeTool();
+    tool.onDown(ctx, pointer(12, 20));
+    // The pointer snaps to y=32, but the square's side follows the wider x
+    // drag, so the corner ends at (50, 58).
+    tool.onMove(ctx, pointer(50, 33, true));
+    expect(useSketchStore.getState().activeSnapLines).toBeNull();
+    // Without Shift the corner ends on the line again.
+    tool.onMove(ctx, pointer(50, 33));
+    expect(useSketchStore.getState().activeSnapLines).toEqual({ x: null, y: 32 });
+    tool.onUp(ctx, pointer(50, 33));
+  });
+
+  it("keeps the snap line a Shift square shape still ends on", () => {
+    const ctx = makeToolContext({ activeTool: "shape" });
+    const tool = new ShapeTool();
+    tool.onDown(ctx, pointer(12, 20));
+    tool.onMove(ctx, pointer(14, 33, true));
+    expect(useSketchStore.getState().activeSnapLines).toEqual({ x: null, y: 32 });
+    tool.onUp(ctx, pointer(14, 33, true));
+  });
+
+  it("hides the snap line a Shift square marquee moves past", () => {
+    const ctx = makeToolContext({ activeTool: "select" });
+    ctx.doc.toolSettings.select.mode = "rectangle";
+    const tool = new SelectTool();
+    tool.onDown(ctx, pointer(12, 20));
+    ctx.shiftHeldRef.current = true;
+    tool.onMove(ctx, pointer(50, 33));
+    expect(ctx.drawOverlaySelection).toHaveBeenLastCalledWith(
+      { x: 12, y: 20 },
+      { x: 50, y: 58 }
+    );
+    expect(useSketchStore.getState().activeSnapLines).toBeNull();
+    ctx.shiftHeldRef.current = false;
+    tool.onMove(ctx, pointer(50, 33));
+    expect(useSketchStore.getState().activeSnapLines).toEqual({ x: null, y: 32 });
   });
 });
 

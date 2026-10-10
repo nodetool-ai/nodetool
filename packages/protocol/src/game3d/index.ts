@@ -267,6 +267,8 @@ export { gameCameraProjection3D, gameCamera3D, type GameCamera3D } from "./compo
 
 export { gameLight3D, type GameLight3D } from "./components/light.js";
 
+export { GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D, gameShadowCascades3D, type GameShadowCascades3D, gameShadowSettings3D, type GameShadowSettings3D } from "./components/shadows.js";
+
 export { gameAnimator3D } from "./components/animator.js";
 
 export {

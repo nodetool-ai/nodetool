@@ -9,6 +9,7 @@ import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { BlendMode, PushHistoryOptions, SketchDocument } from "../types";
 import { findLayerMoveTargetIndex, findMergeDownTargetIndex } from "../types";
+import { useSketchStore } from "../state";
 import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import { getMergeSelectedLayersPlan } from "../layerMergeSelection";
 
@@ -107,8 +108,13 @@ export function useLayerActions({
   // an asset drop can settle after a tab switch, so the focused editor that
   // `useSketchStore.getState()` resolves to may be another document.
   const { editor } = useSketchInstance();
+  // Layer edits here are recorded after they run. Record a stroke or
+  // transform still pending on its pre-edit checkpoint first, so one undo
+  // never reverts both.
+  const commitPendingEdit = useSketchStore((s) => s.commitPendingEdit);
   const handleAddLayer = useCallback(
     (options?: HandleAddLayerOptions) => {
+      commitPendingEdit();
       const fillColor = options?.fillColor;
       const newLayerId = addLayer(options?.name, options?.type);
       if (fillColor && canvasRef.current) {
@@ -127,19 +133,21 @@ export function useLayerActions({
       }
       return newLayerId;
     },
-    [pushHistory, addLayer, updateLayerData, canvasRef]
+    [commitPendingEdit, pushHistory, addLayer, updateLayerData, canvasRef]
   );
 
   const handleRemoveLayer = useCallback(
     (layerId: string) => {
+      commitPendingEdit();
       removeLayer(layerId);
       pushHistory("remove layer");
     },
-    [pushHistory, removeLayer]
+    [commitPendingEdit, pushHistory, removeLayer]
   );
 
   const handleDuplicateLayer = useCallback(
     (layerId: string) => {
+      commitPendingEdit();
       // When the target is part of an explicit multi-layer selection,
       // duplicate every selected layer in document order. The store's
       // duplicateLayer inserts each clone directly above its source and
@@ -184,7 +192,7 @@ export function useLayerActions({
       }
       pushHistory("duplicate layers");
     },
-    [editor, pushHistory, duplicateLayer]
+    [commitPendingEdit, editor, pushHistory, duplicateLayer]
   );
 
   const scheduleDisplayRedraw = useCallback(() => {
@@ -195,11 +203,12 @@ export function useLayerActions({
 
   const handleReorderLayers = useCallback(
     (fromIndex: number, toIndex: number) => {
+      commitPendingEdit();
       reorderLayers(fromIndex, toIndex);
       pushHistory("reorder layers");
       scheduleDisplayRedraw();
     },
-    [pushHistory, reorderLayers, scheduleDisplayRedraw]
+    [commitPendingEdit, pushHistory, reorderLayers, scheduleDisplayRedraw]
   );
 
   /**
@@ -209,6 +218,7 @@ export function useLayerActions({
    */
   const handleMoveActiveLayer = useCallback(
     (direction: "up" | "down") => {
+      commitPendingEdit();
       const { document: doc } = editor.getState();
       const activeId = doc.activeLayerId;
       if (!activeId) {
@@ -223,7 +233,7 @@ export function useLayerActions({
       pushHistory(direction === "up" ? "move layer up" : "move layer down");
       scheduleDisplayRedraw();
     },
-    [editor, pushHistory, reorderLayers, scheduleDisplayRedraw]
+    [commitPendingEdit, editor, pushHistory, reorderLayers, scheduleDisplayRedraw]
   );
 
   const syncLayerDataFromCanvas = useCallback(
@@ -237,72 +247,80 @@ export function useLayerActions({
 
   const handleToggleVisibility = useCallback(
     (layerId: string) => {
+      commitPendingEdit();
       toggleLayerVisibility(layerId);
       pushHistory("toggle visibility");
       scheduleDisplayRedraw();
     },
-    [pushHistory, toggleLayerVisibility, scheduleDisplayRedraw]
+    [commitPendingEdit, pushHistory, toggleLayerVisibility, scheduleDisplayRedraw]
   );
 
   const handleSetLayerOpacity = useCallback(
     (layerId: string, opacity: number, commit = true) => {
+      commitPendingEdit();
       setLayerOpacity(layerId, opacity);
       if (commit) {
         pushHistory("change opacity");
       }
       scheduleDisplayRedraw();
     },
-    [pushHistory, setLayerOpacity, scheduleDisplayRedraw]
+    [commitPendingEdit, pushHistory, setLayerOpacity, scheduleDisplayRedraw]
   );
 
   const handleSetLayerBlendMode = useCallback(
     (layerId: string, blendMode: BlendMode) => {
+      commitPendingEdit();
       setLayerBlendMode(layerId, blendMode);
       pushHistory("change blend mode");
       scheduleDisplayRedraw();
     },
-    [pushHistory, setLayerBlendMode, scheduleDisplayRedraw]
+    [commitPendingEdit, pushHistory, setLayerBlendMode, scheduleDisplayRedraw]
   );
 
   const handleRenameLayer = useCallback(
     (layerId: string, name: string) => {
+      commitPendingEdit();
       renameLayer(layerId, name);
       pushHistory("rename layer");
     },
-    [pushHistory, renameLayer]
+    [commitPendingEdit, pushHistory, renameLayer]
   );
 
   const handleSetMaskLayer = useCallback(
     (layerId: string | null) => {
+      commitPendingEdit();
       setMaskLayer(layerId);
       pushHistory("set mask layer");
       scheduleDisplayRedraw();
     },
-    [pushHistory, setMaskLayer, scheduleDisplayRedraw]
+    [commitPendingEdit, pushHistory, setMaskLayer, scheduleDisplayRedraw]
   );
 
   const handleToggleAlphaLock = useCallback(
     (layerId: string) => {
+      commitPendingEdit();
       toggleAlphaLock(layerId);
       pushHistory("toggle alpha lock");
     },
-    [pushHistory, toggleAlphaLock]
+    [commitPendingEdit, pushHistory, toggleAlphaLock]
   );
 
   const handleToggleExposedInput = useCallback(
     (layerId: string) => {
+      commitPendingEdit();
       toggleLayerExposedInput(layerId);
       pushHistory("toggle exposed input");
     },
-    [pushHistory, toggleLayerExposedInput]
+    [commitPendingEdit, pushHistory, toggleLayerExposedInput]
   );
 
   const handleToggleExposedOutput = useCallback(
     (layerId: string) => {
+      commitPendingEdit();
       toggleLayerExposedOutput(layerId);
       pushHistory("toggle exposed output");
     },
-    [pushHistory, toggleLayerExposedOutput]
+    [commitPendingEdit, pushHistory, toggleLayerExposedOutput]
   );
 
   const handleFlipLayer = useCallback((
@@ -428,46 +446,52 @@ export function useLayerActions({
 
   const handleAddGroup = useCallback(
     (name?: string) => {
+      commitPendingEdit();
       addGroup(name);
       pushHistory("add group");
     },
-    [pushHistory, addGroup]
+    [commitPendingEdit, pushHistory, addGroup]
   );
 
   const handleToggleGroupCollapsed = useCallback(
     (groupId: string) => {
+      commitPendingEdit();
       toggleGroupCollapsed(groupId);
       pushHistory("toggle group collapse");
     },
-    [pushHistory, toggleGroupCollapsed]
+    [commitPendingEdit, pushHistory, toggleGroupCollapsed]
   );
 
   const handleMoveLayerToGroup = useCallback(
     (layerId: string, groupId: string | null) => {
+      commitPendingEdit();
       moveLayerToGroup(layerId, groupId);
       pushHistory("move layer to group");
     },
-    [pushHistory, moveLayerToGroup]
+    [commitPendingEdit, pushHistory, moveLayerToGroup]
   );
 
   const handleUngroupLayer = useCallback(
     (groupId: string) => {
+      commitPendingEdit();
       ungroupLayer(groupId);
       pushHistory("ungroup");
     },
-    [pushHistory, ungroupLayer]
+    [commitPendingEdit, pushHistory, ungroupLayer]
   );
 
   const handleGroupSelectedLayers = useCallback(() => {
+    commitPendingEdit();
     const ids = editor.getState().selectedLayerIds;
     if (ids.length < 2) {
       return;
     }
     groupLayers(ids);
     pushHistory("group layers");
-  }, [editor, pushHistory, groupLayers]);
+  }, [commitPendingEdit, editor, pushHistory, groupLayers]);
 
   const handleDeleteSelectedLayers = useCallback(() => {
+    commitPendingEdit();
     const ids = [...editor.getState().selectedLayerIds];
     if (ids.length < 2) {
       return;
@@ -502,7 +526,7 @@ export function useLayerActions({
       removeLayer(id);
     }
     pushHistory("remove layers");
-  }, [editor, document.layers, pushHistory, removeLayer]);
+  }, [commitPendingEdit, editor, document.layers, pushHistory, removeLayer]);
 
   const handleMergeSelectedLayers = useCallback(() => {
     if (!canvasRef.current) {

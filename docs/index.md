@@ -84,7 +84,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
       <div class="surface-body">
         <h3>Storyboard</h3>
         <p>Board the film shot by shot. Generate cheap stills to lock the look, then animate only the shots you approved.</p>
-        <a href="{{ '/ai-video-production' | relative_url }}#storyboard-direct-each-shot-before-animation">Storyboards →</a>
+        <a href="{{ '/storyboard-editor' | relative_url }}">Storyboard Editor →</a>
       </div>
     </article>
     <article class="surface-card wide">
@@ -112,7 +112,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
       <div class="surface-body">
         <h3>Script &amp; voice</h3>
         <p>Draft the dialogue and cast a voice per character. Change the words and the take flags itself stale.</p>
-        <a href="{{ '/ai-video-production' | relative_url }}#script-write-and-cast-the-words-first">Scripts →</a>
+        <a href="{{ '/script-editor' | relative_url }}">Script Editor →</a>
       </div>
     </article>
     <article class="surface-card wide">

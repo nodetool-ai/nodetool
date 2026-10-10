@@ -26,6 +26,11 @@ export const assetResponse = z.object({
   metadata: z.record(z.string(), z.unknown()).nullable(),
   sketch_document_id: z.string().nullable(),
   created_at: z.string(),
+  /**
+   * When the row last changed, a content overwrite included. An open editor
+   * compares it with the value it loaded to notice a write from elsewhere.
+   */
+  updated_at: z.string().optional(),
   get_url: z.string().nullable(),
   thumb_url: z.string().nullable(),
   duration: z.number().nullable(),

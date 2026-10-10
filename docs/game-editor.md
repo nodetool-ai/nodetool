@@ -224,7 +224,7 @@ queries include every active entity. Its mutable copy remains private to the
 call. This API is additive. The 3D input retains `contractVersion: 3`, and
 documents need no schema version change or migration.
 
-The pane footer shows the source length against the 16,384 character limit, the **maxCommands** limit, and the **maxTickMs** limit. In 2D you can change both limits from the script behavior in the inspector. The defaults are 16 commands and 8 ms. The limits are 1 to 64 commands and 1 to 50 ms.
+The pane footer shows the source length against the 16,384 character limit, the **maxCommands** limit, and the **maxTickMs** limit. In 2D you can change both limits from the script behavior in the inspector. The defaults are 16 commands and 8 ms. The limits are 1 to 64 commands and 1 to 50 ms. On the server and in the CLI, **maxTickMs** counts the CPU time the script uses, so a busy machine does not end a fast script. In the browser it counts wall time.
 
 When a script throws during play, the 2D pane shows the tick and the message. **Replay to tick N** reruns the game to the tick before the failure so you can inspect it. **Ask the assistant** drafts a message with the scene, entity, behavior index, tick, and error. 2D also has **Run 10 s**, which runs the game headlessly for ten seconds of ticks and reports script calls, total script time, and a per-entity breakdown. The 3D editor shows **Replay before error** in the error line.
 

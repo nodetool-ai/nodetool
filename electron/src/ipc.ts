@@ -8,7 +8,6 @@ import {
 } from "electron";
 import fs from "fs/promises";
 import path from "path";
-import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import {
@@ -78,7 +77,7 @@ import {
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
-import { isBoolean, isNonEmptyString, isString } from "./typePredicates";
+import { isBoolean, isNonEmptyString } from "./typePredicates";
 
 const nodePackInstallRequestSchema = z.object({ spec: z.string() }).strict();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();

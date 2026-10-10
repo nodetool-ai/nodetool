@@ -561,20 +561,58 @@ describe("DockerDeployer", () => {
       );
       expect(mockStateManager.writeState).toHaveBeenCalled();
 
-      const created = vi
-        .mocked(fs.mkdirSync)
-        .mock.calls.map(([dir]) => String(dir).replace(/^.*nodetool_data/, ""));
-      expect(created).toEqual(
-        expect.arrayContaining([
-          "/workspace",
-          "/workspace/data",
-          "/workspace/assets",
-          "/workspace/temp",
-          "/workspace/proxy",
-          "/workspace/acme",
-          "/hf-cache"
-        ])
+      const commands = vi.mocked(execSync).mock.calls.map(([c]) => String(c));
+      // Directories are created by the target's shell, so `~` expands there.
+      const mkdir = commands.find((c) => c.startsWith("mkdir -p "));
+      expect(mkdir).toBeDefined();
+      for (const dir of ["", "/data", "/assets", "/temp"]) {
+        expect(mkdir).toContain(`~/'nodetool_data/workspace${dir}'`);
+      }
+      expect(mkdir).toContain("~/'nodetool_data/hf-cache'");
+
+      // The workspace is handed to the image's node user before the app starts.
+      const chownIndex = commands.findIndex((c) =>
+        c.includes("run --rm --user 0 --entrypoint chown")
       );
+      const runIndex = commands.findIndex((c) => c.includes("run -d"));
+      expect(chownIndex).toBeGreaterThan(-1);
+      expect(commands[chownIndex]).toContain("1000:1000 /workspace");
+      expect(commands[chownIndex]).toContain(
+        "-v ~/'nodetool_data/workspace:/workspace'"
+      );
+      expect(chownIndex).toBeLessThan(runIndex);
+    });
+
+    it("keeps environment values out of a failed start's error", async () => {
+      const base = makeDockerDeployment();
+      const secretDeployer = new DockerDeployer(
+        "test-deploy",
+        {
+          ...base,
+          container: {
+            ...base.container,
+            environment: { OPENAI_API_KEY: "sk-secret-value" }
+          }
+        } as any,
+        mockStateManager as any
+      );
+      vi.mocked(execSync).mockImplementation((cmd: string) => {
+        const cmdStr = String(cmd);
+        if (cmdStr.includes("images -q")) return "abc123\n";
+        if (cmdStr.includes("run -d")) {
+          const err = new Error(`Command failed: ${cmdStr}`) as any;
+          err.status = 125;
+          err.stdout = "";
+          err.stderr = "port is already allocated";
+          throw err;
+        }
+        return "";
+      });
+      vi.mocked(execFileSync).mockReturnValue("docker\n");
+
+      const error = await secretDeployer.apply().catch((e: unknown) => e);
+      expect(String(error)).toContain("port is already allocated");
+      expect(String(error)).not.toContain("sk-secret-value");
     });
 
     it("should set status to error on failure", async () => {

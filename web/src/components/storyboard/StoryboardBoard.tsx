@@ -500,7 +500,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     []
   );
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const openSettings = useCallback(() => setSettingsOpen(true), []);
   const settingsPanelId = `storyboard-board-settings-${boardId}`;
 
   const gridRef = useRef<HTMLDivElement>(null);

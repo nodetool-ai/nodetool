@@ -19,11 +19,12 @@ the only supported direct mode.
 
 A participant tool response may contain only:
 
-- A viewport PNG at 1440 × 900 CSS pixels, device scale 1.
+- A viewport PNG at the packet's viewport size (1440 × 900 CSS pixels by
+  default), device scale 1.
 - A screenshot ID, the address bar URL, and the tab title.
 - A neutral receipt: the action performed, the action count, and browser
   events that a person would see (a new tab, a dismissed dialog, a file picker,
-  a blocked navigation outside the permitted origins).
+  a blocked navigation outside the permitted origins, the number of open tabs).
 
 It must never contain DOM, page text extraction, element locators, an
 accessibility tree, console output, network data, storage, or full-page captures.
@@ -38,7 +39,7 @@ The runner starts one Claude Agent SDK session and one fresh Chromium context.
 | Memory and repository | `cwd` is a new empty temporary directory. Auto memory is off. The session is not persisted. |
 | Account | The CLI adds the logged-in account's email address to every session. With `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY` set, or in a Claude Code cloud session (`CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST=1`, which authenticates through the host), the session uses an empty `CLAUDE_CONFIG_DIR`, which removes it. Otherwise `summary.json` records `accountContext: "account-email-visible"`. |
 | Tools | Built-in tools are off (`tools: []` plus `disallowedTools`). The only MCP server is the in-process `browser` server. `strictMcpConfig` and `ENABLE_CLAUDEAI_MCP_SERVERS=false` drop user and account connectors. `skills: []` hides every skill. |
-| Browser | Viewport screenshots only. Coordinate click, hover, drag, scroll, type, key press, bounded wait, Back, Forward, Reload, and file choice from packet assets. No URL navigation tool. The tool guide names the host platform, so the participant uses Control rather than Meta for editing shortcuts on Linux. |
+| Browser | Viewport screenshots only. Coordinate click, hover, drag, scroll, type (one key every 15 ms), key press, bounded wait, Back, Forward, Reload, close tab, and file choice from packet assets. No URL navigation tool. Each receipt states the number of open tabs, as a tab strip shows it. The tool guide names the host platform, so the participant uses Control rather than Meta for editing shortcuts on Linux. |
 | Origins | Top-level navigations outside `allowedOrigins` are aborted and reported as a visible event. |
 | Limits | Actions past `maxActions` are refused. At `maxMinutes` every action is refused so the participant writes its account. The session is aborted three minutes later. |
 
@@ -81,9 +82,14 @@ including a link that opens another origin in a new tab.
   "allowedOrigins": ["http://127.0.0.1:3010"],
   "permittedActions": "This is a disposable test copy. You may create, edit, and run things inside it, and paste the test key listed below if the app asks for one. Do not enter real personal data, sign in to other sites, or pay.",
   "assets": [{ "name": "holiday-photo.jpg", "path": "/abs/path/holiday-photo.jpg" }],
-  "credentials": [{ "label": "OpenAI API key (test)", "value": "sk-test-4f9a2c7e1b" }]
+  "credentials": [{ "label": "OpenAI API key (test)", "value": "sk-test-4f9a2c7e1b" }],
+  "viewport": { "width": 1280, "height": 720 }
 }
 ```
+
+`viewport` is optional and defaults to 1440 × 900 CSS pixels. The tool guide
+and the coordinate bounds follow it, so the system prompt hash differs between
+viewport sizes.
 
 `kind` is `discovery`, `task`, or `continuation`. `assets` is optional. The
 participant sees asset names only. `credentials` is optional: keys the persona
@@ -98,8 +104,8 @@ terms, feature names, routes, or expected steps.
 ```bash
 cd web
 npx tsx tests/agentic-qa/runParticipant.ts \
-  --packet test-results/agentic-qa/<run>/packets/<session>.json \
-  --out test-results/agentic-qa/<run>/<session> \
+  --packet agentic-qa-runs/<run>/packets/<session>.json \
+  --out agentic-qa-runs/<run>/<session> \
   [--model sonnet] [--headed]
 ```
 
@@ -112,6 +118,11 @@ build), set `PLAYWRIGHT_CHROMIUM_PATH`, for example
 to `private/runner-error.txt`.
 
 ### Output
+
+Keep run directories under `web/agentic-qa-runs/`, which git ignores. Never
+put them under `web/test-results/`: every Playwright run, including a
+journey test you write while diagnosing, deletes that directory and with it
+the blind record. Round 4 lost its first four sessions' screenshots that way.
 
 | File | Content | Share with participants |
 |---|---|---|
@@ -169,7 +180,7 @@ between them:
 
 ```bash
 cd web
-R=test-results/agentic-qa/<run>
+R=agentic-qa-runs/<run>
 for s in app-first-use task-automation; do
   curl -s -X POST http://127.0.0.1:7790/api/test/reset >/dev/null
   npx tsx tests/agentic-qa/runParticipant.ts --packet $R/packets/$s.json --out $R/$s

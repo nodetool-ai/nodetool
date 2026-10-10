@@ -82,7 +82,6 @@ interface UseCanvasActionsParams {
     layerId: string,
     contentBounds: LayerContentBounds
   ) => void;
-  setDocument: (doc: SketchDocument) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   resizeCanvas: (width: number, height: number) => void;
@@ -131,7 +130,6 @@ export function useCanvasActions({
   commitLayerTransform,
   setLayerTransform,
   setLayerContentBounds,
-  setDocument,
   setZoom,
   setPan,
   resizeCanvas,
@@ -179,8 +177,7 @@ export function useCanvasActions({
     document,
     pushHistory,
     updateLayerData,
-    setDocument,
-    setZoom,
+      setZoom,
     setPan,
     resizeCanvas,
     offsetAllPaintLayersTransform,

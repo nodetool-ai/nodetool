@@ -76,4 +76,15 @@ describe("3D game validation", () => {
     delete game.scenes[0].environment.sky.sunEntityId;
     expect(validateGame3D(game).valid).toBe(true);
   });
+  it("limits shadowed point and spot lights to the scene budget", () => {
+    const game = blockout();
+    const lamp = (id: string, kind: "point" | "spot", castShadow: boolean, templateOnly = false) => gameEntity3D.parse({ id, templateOnly, transform3d: {},
+      light3d: kind === "point" ? { kind, color: "#ffffff", intensity: 1, range: 5, castShadow } : { kind, color: "#ffffff", intensity: 1, range: 5, angle: 0.5, castShadow } });
+    game.scenes[0].entities.push(lamp("a", "point", true), lamp("b", "spot", true), lamp("c", "point", true), lamp("d", "spot", true),
+      lamp("unshadowed", "point", false), lamp("template", "spot", true, true));
+    expect(validateGame3D(game).valid).toBe(true);
+    game.scenes[0].entities.push(lamp("e", "point", true));
+    expect(validateGame3D(game).diagnostics).toEqual([expect.objectContaining({ code: "shadow_budget", path: ["scenes", 0, "entities"],
+      message: "At most 4 point and spot lights may cast shadows" })]);
+  });
 });
