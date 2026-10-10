@@ -62,7 +62,7 @@
         "id": "op",
         "type": "nodetool.image.CanvasResize",
         "data": {
-          "mode": "pad",
+          "mode": "fixed",
           "anchor": "center",
           "width": 1280,
           "height": 1280,

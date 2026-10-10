@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Re-delimit a List\n\nSplits text on one delimiter and joins it again with another. Use it to turn a comma list into a pipe list or into one item per line.\n\n**How it works:** \"Raw text\" holds \"alpha, beta, gamma, delta\". \"Split\" breaks it on commas into a list, and \"Join\" combines the items with a new separator. \"Result\" shows the reformatted text. It runs locally with no model or key.\n\n**Try this:** Set the separator on \"Join\" to \" | \" and the delimiter on \"Split\" to \", \" so the output has no stray spaces."
+          "comment": "# Re-delimit a List\n\nSplits text on one delimiter and joins it again with another. Use it to turn a comma list into a pipe list or into one item per line.\n\n**How it works:** \"Raw text\" holds \"alpha, beta, gamma, delta\". \"Split\" breaks it on commas into a list, and \"Join\" combines the items with a new separator. \"Result\" shows the reformatted text. It runs locally with no model or key.\n\n**Try this:** Set the separator on \"Join\" to a line break to get one item per line."
         },
         "ui_properties": {
           "position": {

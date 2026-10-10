@@ -2615,7 +2615,7 @@
             "id": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
             "type": "nodetool.text.Prompt",
             "data": {
-              "prompt": "You are pitching poster concepts for the film \"{{ title }}\" ({{ genre }}).\n\nPositioning: {{ positioning }}\nAudience insight: {{ audience_insight }}\n\nGenerate distinct theatrical poster concepts. Each concept is ONE self-contained line describing a single striking image: the hero subject, the setting, the framing, and the mood. Vary the ideas across the set — different angles, symbols, and emotional beats — while staying true to the genre and positioning. One concept per line, no numbering and no commentary."
+              "prompt": "You are pitching poster concepts for the film \"{{ title }}\" ({{ genre }}).\n\nPositioning: {{ positioning }}\nAudience insight: {{ audience_insight }}\n\nGenerate exactly 4 distinct theatrical poster concepts. Each concept is ONE self-contained line describing a single striking image: the hero subject, the setting, the framing, and the mood. Vary the ideas across the set — different angles, symbols, and emotional beats — while staying true to the genre and positioning. One concept per line, no numbering and no commentary."
             },
             "ui_properties": {
               "selected": false,
