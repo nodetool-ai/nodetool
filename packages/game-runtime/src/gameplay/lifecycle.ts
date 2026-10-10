@@ -92,12 +92,14 @@ export function claimGameplayContact(actor: GameplayEntityState, target: Gamepla
 function audioEmitter(definition: GameplayDefinition, audio: NonNullable<GameplayDefinition["audioSource"]>,
   position: GameAudioEmitter["position"]): GameAudioEmitter {
   const defaults = GAME_AUDIO_SPATIAL_DEFAULTS;
-  return {
+  const emitter: GameAudioEmitter = {
     entityId: definition.id, position: { x: position.x, y: position.y, z: position.z },
     minDistance: audio.minDistance ?? defaults.minDistance, maxDistance: audio.maxDistance ?? defaults.maxDistance,
     rolloff: audio.rolloff ?? defaults.rolloff, distanceModel: audio.distanceModel ?? defaults.distanceModel,
-    ...(audio.cone ? { cone: audio.cone } : {}), doppler: audio.doppler ?? defaults.doppler
+    doppler: audio.doppler ?? defaults.doppler
   };
+  if (audio.cone) { emitter.cone = { ...audio.cone }; }
+  return emitter;
 }
 
 /** `positionOf` gives an entity's world position for spatial audio sources. 2D positions use z = 0. */
