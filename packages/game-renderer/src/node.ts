@@ -196,5 +196,4 @@ function particleDotImage(): Promise<Awaited<ReturnType<typeof loadImage>>> {
 }
 
 export { compareGameCaptures } from "./imageDiff.js";
-export { GameParticles2D } from "./particles/render2d.js";
 export type { GameCaptureDifference } from "./imageDiff.js";

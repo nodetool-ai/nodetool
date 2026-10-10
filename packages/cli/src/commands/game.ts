@@ -410,7 +410,8 @@ export function registerGameCommands(program: Command): void {
         const inputs = await readInputs(options.inputs, gameInputFrame);
         const session = await createScriptedGameSession(validated.document, seed);
         try {
-          const { captureGameFrame, GameParticles2D } = await import("@nodetool-ai/game-renderer/node");
+          const { captureGameFrame } = await import("@nodetool-ai/game-renderer/node");
+          const { GameParticles2D } = await import("@nodetool-ai/game-renderer");
           const particles = new GameParticles2D(validated.document.tickRate);
           let frame;
           for (let tick = 0; tick < ticks; tick += 1) {

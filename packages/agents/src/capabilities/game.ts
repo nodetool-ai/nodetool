@@ -189,7 +189,8 @@ async function captureFrames(run: CapabilityRun, user: string, document: LegacyG
     wallTimeLimited = Date.now() >= deadlineAt;
     return cancelled || wallTimeLimited;
   };
-  const { captureGameFrame, GameParticles2D } = await import("@nodetool-ai/game-renderer/node");
+  const { captureGameFrame } = await import("@nodetool-ai/game-renderer/node");
+  const { GameParticles2D } = await import("@nodetool-ai/game-renderer");
   const particles = new GameParticles2D(document.tickRate);
   const diagnostics: string[] = [];
   const storage = run.context.assetStorage;
