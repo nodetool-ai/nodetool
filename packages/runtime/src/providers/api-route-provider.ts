@@ -9,7 +9,11 @@ import { classifyListedModel } from "./custom-model-kinds.js";
 const log = createLogger("nodetool.runtime.providers.api-route");
 const API_ROUTE_BASE_URL = "https://global.api-route.com/v1";
 
-/** API Route chat models use the shared OpenAI-compatible transport. */
+/**
+ * API Route chat models use the shared OpenAI-compatible transport. Its
+ * `/models` rows carry no tool-calling flag, so the base default (native
+ * tools on) applies to every model.
+ */
 export class APIRouteProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["API_ROUTE_API_KEY"];
@@ -31,11 +35,12 @@ export class APIRouteProvider extends OpenAICompatProvider {
     return { API_ROUTE_API_KEY: this.apiKey };
   }
 
-  override async hasToolSupport(_model: string): Promise<boolean> {
-    return true;
-  }
-
-  /** Keep chat routes, using the shared classifier to exclude image/video IDs. */
+  /**
+   * Keep chat routes, using the shared classifier to exclude image/video IDs.
+   * A row whose `supported_endpoint_types` lacks `"openai"` is skipped because
+   * this adapter only calls `/chat/completions`. A row without the field is
+   * kept.
+   */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     try {
       const rows = await this.fetchCompatModelRows();
@@ -50,8 +55,10 @@ export class APIRouteProvider extends OpenAICompatProvider {
         models.push({ id: row.id, name: row.id, provider: this.provider });
       }
       return models;
-    } catch {
-      log.warn("API Route model discovery failed");
+    } catch (error) {
+      log.warn("API Route model discovery failed", {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return [];
     }
   }

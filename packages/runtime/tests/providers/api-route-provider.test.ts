@@ -31,7 +31,7 @@ describe("APIRouteProvider", () => {
           { id: "gpt-5.5", supported_endpoint_types: ["openai"] },
           {
             id: "gpt-image-2.5",
-          supported_endpoint_types: ["image-generation", "openai"]
+            supported_endpoint_types: ["image-generation", "openai"]
           },
           { id: "audio-only", supported_endpoint_types: ["audio"] },
           { id: "messages-only", supported_endpoint_types: ["anthropic"] },
