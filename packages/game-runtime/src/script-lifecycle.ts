@@ -57,6 +57,62 @@ export function awaitsDestroy(value: unknown): value is GameScriptLifecycleRecor
   return isScriptLifecycleRecord(value) && value.destroyed !== true;
 }
 
+export interface GameScriptLimits {
+  readonly maxCommands: number;
+  readonly maxTickMs: number;
+}
+
+function parseKey(key: unknown): readonly [string, string, number] | undefined {
+  if (typeof key !== "string") { return undefined; }
+  try {
+    const parsed: unknown = JSON.parse(key);
+    return Array.isArray(parsed) && parsed.length === 3 && typeof parsed[0] === "string" && typeof parsed[1] === "string"
+      && Number.isInteger(parsed[2]) ? parsed as [string, string, number] : undefined;
+  } catch {
+    // Not a script key, so not a record the despawn path wrote.
+    return undefined;
+  }
+}
+
+/**
+ * The `onDestroy` call for a removed instance's record, or undefined when the record is not one the despawn path
+ * could have written. `scriptState` is guest-written and snapshot-restored, so the record supplies only the entity's
+ * last observable fields. The key, the source, and every limit come from the host: the record's key must name an
+ * entity of the current scene that no longer exists, its source must be a lifecycle source for the same behavior
+ * index, and `limitsOf` reads `maxCommands` and `maxTickMs` from the document's behavior definition.
+ */
+export function removedDestroyCall(
+  stateKey: string,
+  record: unknown,
+  context: {
+    readonly sceneId: string;
+    readonly hookSources: ReadonlySet<string>;
+    readonly limitsOf: (sourceKey: string) => GameScriptLimits | undefined;
+    readonly exists: (entityId: string) => boolean;
+    /** The call fields a destroy hook may read from the record, such as position and velocity. */
+    readonly fields: readonly string[];
+  }
+): Record<string, unknown> | undefined {
+  if (!awaitsDestroy(record)) { return undefined; }
+  const { removed, ...rest } = record;
+  if (typeof removed !== "object" || removed === null || Array.isArray(removed)) { return undefined; }
+  const key = parseKey(stateKey);
+  const sourceKey = (removed as { readonly sourceKey?: unknown }).sourceKey;
+  const source = parseKey(sourceKey);
+  if (!key || !source || typeof sourceKey !== "string" || key[0] !== context.sceneId || context.exists(key[1])
+    || source[2] !== key[2] || !context.hookSources.has(sourceKey)) {
+    return undefined;
+  }
+  const limits = context.limitsOf(sourceKey);
+  if (!limits) { return undefined; }
+  const fields: Record<string, unknown> = {};
+  for (const field of context.fields) {
+    if (Object.hasOwn(removed, field)) { fields[field] = (removed as Record<string, unknown>)[field]; }
+  }
+  return { ...fields, active: false, sourceKey, stateKey, entityId: key[1], source: source[1],
+    maxCommands: limits.maxCommands, maxTickMs: limits.maxTickMs, state: rest, lifecycle: { destroy: true } };
+}
+
 /** Commands an `onDestroy` call may return. The entity is gone, so commands that act on it are rejected. */
 const DESTROY_COMMANDS = new Set(["hud", "emit", "spawn", "despawn", "sceneTransition"]);
 
@@ -135,6 +191,11 @@ export function planScriptHooks(record: unknown, lifecycle: GameScriptLifecycle 
   if (!first && !isScriptLifecycleRecord(record)) {
     throw new Error("lifecycle script state is not a lifecycle record");
   }
+  if (!first && (!Array.isArray(record.timers) || record.timers.length > MAX_GAME_SCRIPT_TIMERS || !record.timers.every((timer) =>
+    typeof timer === "object" && timer !== null && validTimerName(timer.name) && Number.isInteger(timer.at)
+      && (timer.every === undefined || validTimerTicks(timer.every))))) {
+    throw new Error("lifecycle script state has invalid timers");
+  }
   const state = first ? null : record.state;
   if (lifecycle?.destroy) {
     return { state, steps: [["onDestroy"]], timers: [], destroy: true };
@@ -157,6 +218,15 @@ export function planScriptHooks(record: unknown, lifecycle: GameScriptLifecycle 
   return { state, steps, timers, destroy: false };
 }
 
+function validTimerTicks(ticks: unknown): ticks is number {
+  return Number.isInteger(ticks) && (ticks as number) >= 1 && (ticks as number) <= MAX_GAME_SCRIPT_TIMER_TICKS;
+}
+
+function validTimerName(name: unknown): name is string {
+  return typeof name === "string" && name.length > 0 && name.length <= 128 && !(GAME_SCRIPT_HOOKS as readonly string[]).includes(name)
+    && !["__proto__", "constructor", "prototype"].includes(name);
+}
+
 /** Builds the next record from the dispatcher's `[state, scheduled]` result. Scheduling a name replaces its timer. */
 export function commitScriptHooks(value: unknown, plan: GameScriptHookPlan, tick: number): GameScriptLifecycleRecord {
   if (!Array.isArray(value) || value.length !== 2 || !Array.isArray(value[1])) {
@@ -168,7 +238,8 @@ export function commitScriptHooks(value: unknown, plan: GameScriptHookPlan, tick
   }
   const timers = [...plan.timers];
   for (const entry of scheduled) {
-    if (!Array.isArray(entry) || typeof entry[0] !== "string" || !Number.isInteger(entry[1])) {
+    // The dispatcher runs in the guest, which can replace the built-ins it uses, so every timer is checked again here.
+    if (!Array.isArray(entry) || entry.length !== 3 || !validTimerName(entry[0]) || !validTimerTicks(entry[1]) || typeof entry[2] !== "boolean") {
       throw new Error("lifecycle dispatcher returned an invalid timer");
     }
     const [name, ticks, repeat] = entry as [string, number, boolean];

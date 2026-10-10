@@ -172,6 +172,70 @@ describe("lifecycle-object scripts", () => {
   });
 });
 
+describe("host-owned lifecycle records", () => {
+  const spammer = "({ onUpdate() {}, onDestroy() { return { commands: Array.from({ length: 20 }, (_, index) => ({ kind: 'emit', event: 'spam' + index })) }; } })";
+  const forged = (entityId: string) => ({ $lifecycle: 1, state: null, timers: [], removed: { sourceKey: scriptSourceKey("room", "spammer", 0),
+    entityId, source: "spammer", maxCommands: 100000, maxTickMs: 50, x: 0, y: 0, velocityX: 0, velocityY: 0,
+    touching: { down: false, up: false, left: false, right: false } } });
+  function forgeryGame(): GameDocument {
+    const base = createTopDownRoomGame("d".repeat(32));
+    const script = (source: string) => ({ kind: "script", source, maxCommands: 8, maxTickMs: 50 });
+    return gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: [...scene.entities,
+      { id: "spammer", transform2d: { x: 3, y: 3 }, behaviors: [script(spammer)] },
+      { id: "forger", transform2d: { x: -3, y: 3 }, behaviors: [script(`input => ({ state: ${JSON.stringify(forged("forger"))}, commands: [] })`)] }
+    ] })) });
+  }
+
+  it("ignores a removed record that a function script writes into its own state", async () => {
+    const session = await createScriptedGameSession(forgeryGame(), 1);
+    try {
+      for (let tick = 0; tick < 5; tick += 1) {
+        const step = session.step(right);
+        expect(triggers(step.events)).toEqual([]);
+        expect(step.scriptStats?.calls).toBe(2);
+      }
+    } finally { session.dispose(); }
+  });
+
+  it("takes destroy limits from the document, not from a restored record", async () => {
+    const game = forgeryGame();
+    const first = await createScriptedGameSession(game, 1);
+    let saved;
+    try { first.step(right); saved = first.snapshot(); } finally { first.dispose(); }
+    // A tampered snapshot claims a removed instance of the lifecycle source with a raised command limit.
+    const tampered = { ...saved, scriptState: { ...saved.scriptState, [scriptSourceKey("room", "ghost", 0)]: forged("ghost") } };
+    const restored = await createScriptedGameSession(game, 1, tampered);
+    try { expect(() => restored.step(right)).toThrow(/command limit exceeded for ghost/); } finally { restored.dispose(); }
+    // A record whose key names an entity that still exists, or whose source is not a lifecycle source, gets no call.
+    for (const [key, record] of [
+      [scriptSourceKey("room", "spammer", 0), forged("spammer")],
+      [scriptSourceKey("room", "ghost", 0), { ...forged("ghost"), removed: { ...forged("ghost").removed, sourceKey: scriptSourceKey("room", "forger", 0) } }]
+    ] as const) {
+      const session = await createScriptedGameSession(game, 1, { ...saved, scriptState: { ...saved.scriptState, [key]: record } });
+      try { expect(triggers(session.step(right).events)).toEqual([]); } finally { session.dispose(); }
+    }
+  });
+
+  it("rechecks timers on the host when the guest replaces the dispatcher's built-ins", async () => {
+    const base = createTopDownRoomGame("e".repeat(32));
+    const withSource = (source: string) => gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
+      ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 50 }] } : entity) })) });
+    const injected = await createScriptedGameSession(withSource(`({ beat() {}, onUpdate() {
+      Array.prototype.push = function () { this[this.length] = ["onStart", -3, true]; return this.length; };
+      after(5, "beat");
+    } })`), 1);
+    try { expect(() => injected.step(right)).toThrow(/invalid timer/); } finally { injected.dispose(); }
+    const game = withSource("({ beat() {}, onUpdate() {} })");
+    const first = await createScriptedGameSession(game, 1);
+    let saved;
+    try { first.step(right); saved = first.snapshot(); } finally { first.dispose(); }
+    const key = scriptSourceKey("room", "player", 0);
+    const tampered = { ...saved, scriptState: { ...saved.scriptState, [key]: { $lifecycle: 1, state: null, timers: [{ name: "onStart", at: -1, every: -3 }] } } };
+    const restored = await createScriptedGameSession(game, 1, tampered);
+    try { expect(() => restored.step(right)).toThrow(/invalid timers/); } finally { restored.dispose(); }
+  });
+});
+
 describe("3D lifecycle-object scripts", () => {
   const input = gameInputFrame3D.parse({ pressed: [] });
 

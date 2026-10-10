@@ -2,13 +2,15 @@ import { gameParticleEmissionOf, type GameEntityProps } from "@nodetool-ai/proto
 import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { applyGameplayCommand, queueGameplayBehavior, type GameplayCommand } from "../gameplay/lifecycle.js";
-import { assertDestroyCommands, awaitsDestroy, scriptContacts, scriptLifecycle, type GameScriptLifecycleRecord } from "../script-lifecycle.js";
+import { assertDestroyCommands, awaitsDestroy, removedDestroyCall, scriptContacts, scriptLifecycle } from "../script-lifecycle.js";
 import { planScriptProps } from "../script-props.js";
 import type { GameScriptCall3D } from "../scripts3d.js";
 import { scriptSourceKey } from "../scripts.js";
 import { playAnimationGraphState3D, setAnimationParameter3D } from "./animation-graph3d.js";
 
 const NO_TAGS: readonly string[] = Object.freeze([]);
+/** Fields of a removed instance's last call that its onDestroy hook reads. */
+const REMOVED_FIELDS_3D = ["position", "velocity", "grounded", "tags", "rotation"] as const;
 
 function scriptMetadata(state: EntityState3D): Pick<GameScriptCall3D, "tags" | "active" | "rotation"> {
   return { tags: state.definition.tags ?? NO_TAGS, active: state.active, rotation: [...state.transform.rotation] };
@@ -41,6 +43,7 @@ export function scriptCall3D(context: GameSystemContext3D, state: EntityState3D,
 /** `onDestroy` calls for lifecycle behaviors whose entity despawned in the previous tick, in a fixed order. */
 function destroyCalls3D(context: GameSystemContext3D, hookSources: ReadonlySet<string>): GameScriptCall3D[] {
   const calls: GameScriptCall3D[] = [];
+  const sceneId = context.currentScene().id;
   for (const state of context.states) {
     if (state.active) {
       continue;
@@ -49,19 +52,27 @@ function destroyCalls3D(context: GameSystemContext3D, hookSources: ReadonlySet<s
       if (behavior.kind !== "script") {
         return;
       }
-      const call = scriptCall3D(context, state, index);
-      const record = context.scriptState[call.stateKey];
-      if (hookSources.has(call.sourceKey) && awaitsDestroy(record)) {
-        calls.push({ ...call, state: record as GameScriptCall3D["state"], lifecycle: { destroy: true } });
+      const record = context.scriptState[scriptSourceKey(sceneId, state.definition.id, index)];
+      if (!awaitsDestroy(record) || !hookSources.has(scriptSourceKey(state.prefabId ? `prefab:${state.prefabId}` : sceneId, state.sourceId ?? state.definition.id, index))) {
+        return;
       }
+      calls.push({ ...scriptCall3D(context, state, index), state: record as GameScriptCall3D["state"], lifecycle: { destroy: true } });
     });
   }
-  for (const stateKey of Object.keys(context.scriptState).sort()) {
-    const record = context.scriptState[stateKey];
-    if (awaitsDestroy(record) && (record as GameScriptLifecycleRecord).removed !== undefined) {
-      const { removed, ...rest } = record as GameScriptLifecycleRecord;
-      calls.push({ ...(removed as unknown as Omit<GameScriptCall3D, "state">), stateKey, state: rest as unknown as GameScriptCall3D["state"], lifecycle: { destroy: true } });
+  const ids = new Set(context.states.map((state) => state.definition.id));
+  const destroyContext = {
+    sceneId, hookSources, exists: (id: string) => ids.has(id), fields: REMOVED_FIELDS_3D,
+    limitsOf: (sourceKey: string) => {
+      const [scope, sourceId, index] = JSON.parse(sourceKey) as [string, string, number];
+      const entities = scope.startsWith("prefab:") ? context.document.prefabs[scope.slice("prefab:".length)]?.entities
+        : scope === sceneId ? context.currentScene().entities : undefined;
+      const behavior = entities?.find((entity) => entity.id === sourceId)?.behaviors[index];
+      return behavior?.kind === "script" ? behavior : undefined;
     }
+  };
+  for (const stateKey of Object.keys(context.scriptState).sort()) {
+    const call = removedDestroyCall(stateKey, context.scriptState[stateKey], destroyContext);
+    if (call) { calls.push(call as unknown as GameScriptCall3D); }
   }
   return calls;
 }
@@ -71,6 +82,8 @@ export function stepScripts3D(context: GameSystemContext3D): void {
   const hasHooks = hookSources !== undefined && hookSources.size > 0;
   if (hasHooks) { context.calls.push(...destroyCalls3D(context, hookSources)); }
   const sceneEnter = context.tick === 0 || context.previousEvents.some((event) => event.kind === "sceneTransition");
+  // Contacts from the scene that was left before a transition never reach hooks in the new scene.
+  const sceneContacts = hasHooks ? context.previousEvents.filter((event) => event.kind !== "contact" || ("sceneId" in event && event.sceneId === context.currentScene().id)) : [];
   for (const state of context.states) {
     if (!state.active) {
       continue;
@@ -85,7 +98,7 @@ export function stepScripts3D(context: GameSystemContext3D): void {
         );
         const stateKey = scriptSourceKey(context.currentScene().id, state.definition.id, index);
         const lifecycle = hasHooks && hookSources.has(sourceKey)
-          ? scriptLifecycle(sceneEnter, scriptContacts(state.definition.id, context.previousEvents, (event) => event.sensor === true))
+          ? scriptLifecycle(sceneEnter, scriptContacts(state.definition.id, sceneContacts, (event) => event.sensor === true))
           : undefined;
         context.calls.push({
           sourceKey,

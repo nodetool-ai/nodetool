@@ -4,11 +4,13 @@ import { gravityScaleOf, touchingOf } from "./collision2d.js";
 import type { EntityState } from "./state2d.js";
 import type { GameSystemContext2D } from "./context2d.js";
 import { applyGameplayCommand, queueGameplayBehavior, type GameplayCommand } from "../gameplay/lifecycle.js";
-import { assertDestroyCommands, awaitsDestroy, scriptContacts, scriptLifecycle, type GameScriptLifecycleRecord } from "../script-lifecycle.js";
+import { assertDestroyCommands, awaitsDestroy, removedDestroyCall, scriptContacts, scriptLifecycle } from "../script-lifecycle.js";
 import { planScriptProps } from "../script-props.js";
 import { scriptSourceKey, type GameScriptCall, type GameScriptInput } from "../scripts.js";
 
 const NO_TAGS: readonly string[] = Object.freeze([]);
+/** Fields of a removed instance's last call that its onDestroy hook reads. */
+const REMOVED_FIELDS_2D = ["x", "y", "velocityX", "velocityY", "touching", "tags", "rotation"] as const;
 
 interface ScriptMetadata2D { readonly tags: readonly string[]; readonly rotation: number; readonly active: boolean }
 
@@ -61,19 +63,25 @@ function destroyCalls2D(context: GameSystemContext2D, hookSources: ReadonlySet<s
       if (behavior.kind !== "script") {
         return;
       }
-      const call = scriptCall2D(context, state, index);
-      const record = context.scriptState[call.stateKey];
-      if (hookSources.has(call.sourceKey) && awaitsDestroy(record)) {
-        calls.push({ ...call, state: record as GameScriptCall["state"], lifecycle: { destroy: true } });
+      const record = context.scriptState[scriptSourceKey(context.scene.id, state.definition.id, index)];
+      if (!awaitsDestroy(record) || !hookSources.has(scriptSourceKey(context.scene.id, state.sourceId ?? state.definition.id, index))) {
+        return;
       }
+      calls.push({ ...scriptCall2D(context, state, index), state: record as GameScriptCall["state"], lifecycle: { destroy: true } });
     });
   }
-  for (const stateKey of Object.keys(context.scriptState).sort()) {
-    const record = context.scriptState[stateKey];
-    if (awaitsDestroy(record) && (record as GameScriptLifecycleRecord).removed !== undefined) {
-      const { removed, ...rest } = record as GameScriptLifecycleRecord;
-      calls.push({ ...(removed as unknown as Omit<GameScriptCall, "state">), stateKey, state: rest as unknown as GameScriptCall["state"], lifecycle: { destroy: true } });
+  const ids = new Set(context.states.map((state) => state.definition.id));
+  const destroyContext = {
+    sceneId: context.scene.id, hookSources, exists: (id: string) => ids.has(id), fields: REMOVED_FIELDS_2D,
+    limitsOf: (sourceKey: string) => {
+      const [, sourceId, index] = JSON.parse(sourceKey) as [string, string, number];
+      const behavior = context.scene.entities.find((entity) => entity.id === sourceId)?.behaviors[index];
+      return behavior?.kind === "script" ? behavior : undefined;
     }
+  };
+  for (const stateKey of Object.keys(context.scriptState).sort()) {
+    const call = removedDestroyCall(stateKey, context.scriptState[stateKey], destroyContext);
+    if (call) { calls.push(call as unknown as GameScriptCall); }
   }
   return calls;
 }
