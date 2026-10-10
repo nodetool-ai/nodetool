@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { listObjectIds, type GltfNode } from "@nodetool-ai/model3d";
 
 /**
  * glTF has no visibility flag, so a hidden object is saved with this key in its
@@ -157,11 +158,145 @@ export const restoreHiddenFlags = (root: THREE.Object3D): void => {
   });
 };
 
+/**
+ * Extra holding the Inspector settings glTF cannot express: material
+ * wireframe, flat shading, back-face side, depth flags, vertex colors turned
+ * off, and per-object shadows, culling and render order. Only values that
+ * differ from what a plain load gives are written.
+ */
+export const EDITOR_SETTINGS_EXTRA = "nodetool_editor";
+
+type Settings = Record<string, boolean | number>;
+
+export const materialsOf = (node: THREE.Object3D): THREE.Material[] => {
+  if (!(node instanceof THREE.Mesh)) {
+    return [];
+  }
+  return Array.isArray(node.material) ? node.material : [node.material];
+};
+
+/**
+ * The settings of `material` the exporter would lose. `hasVertexColors` says
+ * whether a mesh using it has a color attribute: the loader turns vertex
+ * colors on for those, so only then is an "off" worth writing.
+ */
+export const materialEditorSettings = (
+  material: THREE.Material,
+  hasVertexColors: boolean
+): Settings => {
+  const settings: Settings = {};
+  if ("wireframe" in material && material.wireframe === true) {
+    settings.wireframe = true;
+  }
+  if ("flatShading" in material && material.flatShading === true) {
+    settings.flatShading = true;
+  }
+  if (material.side === THREE.BackSide) {
+    settings.backSide = true;
+  }
+  if (!material.depthTest) {
+    settings.depthTest = false;
+  }
+  if (!material.depthWrite) {
+    settings.depthWrite = false;
+  }
+  if (hasVertexColors && !material.vertexColors) {
+    settings.vertexColors = false;
+  }
+  return settings;
+};
+
+/** The settings of `node` the exporter would lose. */
+export const objectEditorSettings = (node: THREE.Object3D): Settings => {
+  const settings: Settings = {};
+  if (node.castShadow) {
+    settings.castShadow = true;
+  }
+  if (node.receiveShadow) {
+    settings.receiveShadow = true;
+  }
+  if (!node.frustumCulled) {
+    settings.frustumCulled = false;
+  }
+  if (node.renderOrder !== 0) {
+    settings.renderOrder = node.renderOrder;
+  }
+  return settings;
+};
+
+const readSettings = (userData: Record<string, unknown>): Settings | null => {
+  const value = userData[EDITOR_SETTINGS_EXTRA];
+  delete userData[EDITOR_SETTINGS_EXTRA];
+  return value !== null && typeof value === "object" ? (value as Settings) : null;
+};
+
+const applyObjectSettings = (node: THREE.Object3D, settings: Settings): void => {
+  if (settings.castShadow === true) {
+    node.castShadow = true;
+  }
+  if (settings.receiveShadow === true) {
+    node.receiveShadow = true;
+  }
+  if (settings.frustumCulled === false) {
+    node.frustumCulled = false;
+  }
+  if (typeof settings.renderOrder === "number") {
+    node.renderOrder = settings.renderOrder;
+  }
+};
+
+/**
+ * Put back the settings saved under {@link EDITOR_SETTINGS_EXTRA}, then drop
+ * the extras. A multi-material mesh loads as a group of meshes, so a group's
+ * object settings also go to its mesh children.
+ */
+export const restoreEditorSettings = (root: THREE.Object3D): void => {
+  root.traverse((node) => {
+    const objectSettings = readSettings(node.userData);
+    if (objectSettings) {
+      applyObjectSettings(node, objectSettings);
+      if (!(node instanceof THREE.Mesh)) {
+        for (const child of node.children) {
+          if (child instanceof THREE.Mesh) {
+            applyObjectSettings(child, objectSettings);
+          }
+        }
+      }
+    }
+    for (const material of materialsOf(node)) {
+      const settings = readSettings(material.userData);
+      if (!settings) {
+        continue;
+      }
+      const bag = material as THREE.Material & { wireframe?: boolean; flatShading?: boolean };
+      if (settings.wireframe === true && "wireframe" in bag) {
+        bag.wireframe = true;
+      }
+      if (settings.flatShading === true && "flatShading" in bag) {
+        bag.flatShading = true;
+      }
+      if (settings.backSide === true) {
+        material.side = THREE.BackSide;
+      }
+      if (settings.depthTest === false) {
+        material.depthTest = false;
+      }
+      if (settings.depthWrite === false) {
+        material.depthWrite = false;
+      }
+      if (settings.vertexColors === false) {
+        material.vertexColors = false;
+      }
+      material.needsUpdate = true;
+    }
+  });
+};
+
 /** The part of a loaded glTF that {@link restoreNodeNames} reads. */
 export interface LoadedGltfNames {
   scene: THREE.Object3D;
   parser: {
-    json: { nodes?: { name?: string }[] };
+    json: { nodes?: GltfNode[] };
     associations: Map<THREE.Object3D | THREE.Material | THREE.Texture, { nodes?: number }>;
   };
 }
@@ -183,6 +318,32 @@ export const restoreNodeNames = (gltf: LoadedGltfNames): void => {
     if (name && name.trim()) {
       object.name = name;
     }
+  });
+};
+
+/**
+ * Give every loaded object the id the agent's scene tools list it under.
+ * Without one stored, that id is `node-<index>`, and the editor saves nodes
+ * in its own order, so after a save the same id would name another object.
+ * Run before anything adds or removes objects.
+ */
+export const stampObjectIds = (gltf: LoadedGltfNames): void => {
+  const ids = listObjectIds(gltf.parser.json.nodes ?? []);
+  gltf.scene.traverse((object) => {
+    const index = gltf.parser.associations.get(object)?.nodes;
+    if (index !== undefined && ids[index] !== undefined) {
+      object.userData[OBJECT_ID_EXTRA] = ids[index];
+    }
+  });
+};
+
+/**
+ * Drop stored object ids from a model imported from another file. Its ids
+ * belong to that file's objects, and could equal ids in this scene.
+ */
+export const clearObjectIds = (root: THREE.Object3D): void => {
+  root.traverse((object) => {
+    delete object.userData[OBJECT_ID_EXTRA];
   });
 };
 
@@ -215,18 +376,21 @@ export const removeStrayLightChildren = (root: THREE.Object3D): void => {
 
 /**
  * A name not in `taken`: `base` itself, or `base` with its trailing number
- * raised ("Crate 2" → "Crate 3"), or `base 2` when it has no number.
+ * raised ("Crate 2" → "Crate 3"), or `base 2` when it has no number. Names
+ * compare trimmed and case-insensitively, as the agent tools look them up.
  */
 export const nextAvailableName = (base: string, taken: ReadonlySet<string>): string => {
+  const used = new Set(Array.from(taken, (name) => name.trim().toLowerCase()));
+  const isTaken = (name: string): boolean => used.has(name.toLowerCase());
   const trimmed = base.trim() || "Object";
-  if (!taken.has(trimmed)) {
+  if (!isTaken(trimmed)) {
     return trimmed;
   }
   const match = /^(.*?)([ _.-]?)(\d+)$/.exec(trimmed);
   const stem = match ? match[1] : trimmed;
   const separator = match ? match[2] : " ";
   let counter = match ? Number(match[3]) + 1 : 2;
-  while (taken.has(`${stem}${separator}${counter}`)) {
+  while (isTaken(`${stem}${separator}${counter}`)) {
     counter += 1;
   }
   return `${stem}${separator}${counter}`;

@@ -87,6 +87,11 @@ FrontendToolRegistry.register({
     scale: vec3.optional()
   }),
   async execute({ target, position, rotation, scale }) {
+    // An empty patch would record an undo step and mark the file unsaved
+    // without changing anything.
+    if (!position && !rotation && !scale) {
+      throw new Error("ui_3d_set_transform needs at least one of position, rotation or scale.");
+    }
     const node = getModel3DToolHandler().setTransform(target, {
       position,
       rotation,

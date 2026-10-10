@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {
   GEOMETRY_PARAM_SPECS,
+  MAX_SEGMENTS,
   buildGeometry,
   isEditableGeometryType,
   readGeometryParams,
@@ -69,6 +70,17 @@ describe("buildGeometry", () => {
     });
     const positions = geo.getAttribute("position").array;
     expect(Array.from(positions).every(Number.isFinite)).toBe(true);
+  });
+
+  it("caps segment counts so a large value cannot freeze the tab", () => {
+    const geo = buildGeometry("PlaneGeometry", {
+      widthSegments: 2000,
+      heightSegments: 3
+    }) as THREE.PlaneGeometry;
+    expect(geo.parameters).toMatchObject({
+      widthSegments: MAX_SEGMENTS,
+      heightSegments: 3
+    });
   });
 
   it("preserves cylinder openEnded across a rebuild", () => {

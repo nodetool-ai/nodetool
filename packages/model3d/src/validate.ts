@@ -51,8 +51,27 @@ const COMPONENT_BYTES: Record<number, number> = {
   5126: 4
 };
 
-/** Extensions this build understands well enough to keep a document working. */
-const SUPPORTED_EXTENSIONS = new Set([LIGHTS_EXTENSION]);
+/**
+ * Required extensions a document may list and still open: the ones this
+ * package writes, and the ones the editor's GLTFLoader decodes without an
+ * extra decoder (Draco, meshopt and KTX2 need one the editor does not set).
+ */
+const SUPPORTED_EXTENSIONS = new Set([
+  LIGHTS_EXTENSION,
+  "KHR_mesh_quantization",
+  "KHR_texture_transform",
+  "KHR_materials_unlit",
+  "KHR_materials_emissive_strength",
+  "KHR_materials_clearcoat",
+  "KHR_materials_ior",
+  "KHR_materials_specular",
+  "KHR_materials_transmission",
+  "KHR_materials_volume",
+  "KHR_materials_sheen",
+  "KHR_materials_iridescence",
+  "KHR_materials_anisotropy",
+  "KHR_materials_dispersion"
+]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);

@@ -404,6 +404,8 @@ export interface Asset {
   /** The user starred this asset. */
   favorite?: boolean;
   created_at: string;
+  /** When the row last changed, a content overwrite included. */
+  updated_at?: string;
   /** URL to download/access the asset (computed by API) */
   get_url: string | null;
   /** URL for thumbnail image (computed by API) */
