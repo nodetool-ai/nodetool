@@ -39,7 +39,7 @@ const formatDuration = (ms: number): string => {
 };
 
 const DURATION_SPAN_SX = {
-  fontFamily: "monospace",
+  fontFamily: "var(--fontFamily2)",
   fontWeight: 600,
   marginLeft: getSpacingPx(SPACING.xs)
 };

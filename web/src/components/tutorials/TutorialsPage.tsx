@@ -15,7 +15,8 @@ import {
   getSpacingPx,
   MOTION,
   SPACING,
-  VideoPlayer
+  VideoPlayer,
+  SHADOW
 } from "../ui_primitives";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { creationProjectId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -145,7 +146,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
       background: theme.vars.palette.common.black,
-      boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
+      boxShadow: SHADOW(theme).xl,
       [theme.breakpoints.down("md")]: { boxShadow: "none" }
     },
     ".tut-play": {

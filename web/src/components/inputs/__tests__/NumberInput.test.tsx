@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NumberInput from "../NumberInput";
 
@@ -59,5 +59,76 @@ describe("NumberInput", () => {
 
     expect(screen.queryByRole("button", { name: "Increase Ratio" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Decrease Ratio" })).toBeNull();
+  });
+
+  describe("committing typed values", () => {
+    const commit = (
+      inputType: "int" | "float",
+      value: number,
+      typed: string
+    ): jest.Mock => {
+      const onChange = jest.fn();
+      render(
+        <NumberInput
+          id="commit-input"
+          nodeId="node-1"
+          name="Limit"
+          value={value}
+          inputType={inputType}
+          onChange={onChange}
+        />
+      );
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: typed } });
+      fireEvent.blur(input);
+      return onChange;
+    };
+
+    it("keeps the previous integer when the field is cleared", () => {
+      expect(commit("int", 7, "")).toHaveBeenLastCalledWith(null, 7);
+    });
+
+    it("rounds a pasted decimal into an integer field", () => {
+      expect(commit("int", 7, "2.5")).toHaveBeenLastCalledWith(null, 3);
+    });
+
+    it("parses exponent notation in a float field", () => {
+      expect(commit("float", 0.5, "1e-5")).toHaveBeenLastCalledWith(
+        null,
+        0.00001
+      );
+    });
+
+    it("keeps a negative value when no bounds are declared", () => {
+      expect(commit("int", 0, "-1")).toHaveBeenLastCalledWith(null, -1);
+    });
+  });
+
+  it("does not commit when an idle field is right-clicked", () => {
+    const onChange = jest.fn();
+    const onChangeComplete = jest.fn();
+    const { container } = render(
+      <NumberInput
+        id="ctx-input"
+        nodeId="node-1"
+        name="Limit"
+        value={-1}
+        min={0}
+        max={10}
+        inputType="int"
+        onChange={onChange}
+        onChangeComplete={onChangeComplete}
+      />
+    );
+
+    const root = container.querySelector(".number-input");
+    if (!root) {
+      throw new Error("number input root not rendered");
+    }
+    fireEvent.contextMenu(root);
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onChangeComplete).not.toHaveBeenCalled();
   });
 });

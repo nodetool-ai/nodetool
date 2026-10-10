@@ -26,6 +26,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useFileHandling } from '../../hooks/useFileHandling';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { FilePreview } from './FilePreview';
+import { HIT_SLOP } from '../../utils/tokens';
 import {
   useMediaGenerationStore,
   resolveImageSize,
@@ -43,7 +44,8 @@ import type {
 
 interface ChatComposerProps {
   status: ChatStatus;
-  onSendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => void;
+  /** Resolves `true` when the message went out. The draft is kept otherwise. */
+  onSendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => Promise<boolean>;
   onStop?: () => void;
   disabled?: boolean;
   onAttachmentPress?: () => void;
@@ -69,6 +71,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const [text, setText] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showParamMenu, setShowParamMenu] = useState<string | null>(null);
+  // A send in flight. The ref blocks a second tap in the same frame, before
+  // the state update has re-rendered the button as disabled.
+  const [isSending, setIsSending] = useState(false);
+  const sendingRef = useRef(false);
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
   const { droppedFiles, addDroppedFiles, removeFile, clearFiles, getFileContents } = useFileHandling();
@@ -128,7 +134,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
   const isGenerating = status === 'loading' || status === 'streaming';
   const isMediaMode = mode === 'image' || mode === 'video';
-  const canSend = !disabled && (text.trim().length > 0 || hasFiles);
+  const isBusy = isSending || isGenerating || status === 'stopping';
+  const canSend = !disabled && !isBusy && (text.trim().length > 0 || hasFiles);
 
   const placeholder = useMemo(() => {
     if (mode === 'image') {return 'Describe the image you want to generate...';}
@@ -160,8 +167,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     return undefined;
   }, [mode, imageParams, videoParams]);
 
-  const handleSend = useCallback(() => {
-    if (!canSend) {return;}
+  const handleSend = useCallback(async () => {
+    if (!canSend || sendingRef.current) {return;}
 
     stopVoice();
 
@@ -177,8 +184,23 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       content.push({ type: 'text', text: trimmedText } as MessageContent);
     }
 
-    onSendMessage(content, trimmedText, buildMediaGeneration());
-    setText('');
+    sendingRef.current = true;
+    setIsSending(true);
+    let sent = false;
+    try {
+      sent = await onSendMessage(content, trimmedText, buildMediaGeneration());
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    } finally {
+      sendingRef.current = false;
+      setIsSending(false);
+    }
+
+    // A failed send keeps the draft so the user can retry it.
+    if (!sent) {return;}
+
+    // Text typed while the send was in flight is a new draft; keep it.
+    setText((current) => (current.trim() === trimmedText ? '' : current));
 
     if (externalFiles && onExternalFilesChange) {
       onExternalFilesChange([]);
@@ -295,10 +317,6 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   }, [addFilesToState]);
 
-  const inputContainerBg = (colors.background === '#F8F6F3' || colors.background === '#FFFFFF')
-    ? 'rgba(0,0,0,0.04)'
-    : 'rgba(255, 255, 255, 0.06)';
-
   const renderParamChip = (
     label: string,
     value: string,
@@ -312,6 +330,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       ]}
       onPress={() => setShowParamMenu(paramKey)}
       activeOpacity={0.7}
+      hitSlop={HIT_SLOP}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}`}
+      accessibilityHint="Opens the options for this setting"
     >
       <Text style={[styles.paramChipLabel, { color: colors.textSecondary }]}>{label}</Text>
       <Text style={[styles.paramChipValue, { color: colors.text }]}>{value}</Text>
@@ -355,6 +377,9 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
                     setShowParamMenu(null);
                   }}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={opt.label}
+                  accessibilityState={{ selected: isSelected }}
                 >
                   <Text style={[
                     styles.paramModalOptionText,
@@ -507,11 +532,12 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         </Text>
       )}
 
-      <View style={[styles.inputContainer, { backgroundColor: inputContainerBg }]}>
+      <View style={[styles.inputContainer, { backgroundColor: colors.inputBg }]}>
         <TouchableOpacity
           style={styles.attachButton}
           onPress={handleAttachmentPress}
           disabled={disabled}
+          hitSlop={HIT_SLOP}
           accessibilityLabel="Attach file"
           accessibilityRole="button"
         >
@@ -529,6 +555,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           ]}
           onPress={handleMicPress}
           disabled={disabled || !voiceAvailable}
+          hitSlop={HIT_SLOP}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={
@@ -573,9 +600,12 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
         {isGenerating && onStop ? (
           <TouchableOpacity
-            style={[styles.button, styles.stopButton]}
+            style={[styles.button, { backgroundColor: colors.error }]}
             onPress={handleStop}
+            hitSlop={HIT_SLOP}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Stop generating"
             testID="stop-button"
           >
             <Ionicons name="square" size={14} color="#FFFFFF" />
@@ -584,18 +614,24 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           <TouchableOpacity
             style={[
               styles.button,
-              { backgroundColor: isMediaMode ? '#8B5CF6' : colors.primary },
-              !canSend && styles.buttonDisabled,
+              { backgroundColor: isMediaMode ? colors.accent : colors.primary },
+              !canSend && [styles.buttonDisabled, { backgroundColor: colors.border }],
             ]}
-            onPress={handleSend}
+            onPress={() => {
+              void handleSend();
+            }}
             disabled={!canSend}
+            hitSlop={HIT_SLOP}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={isMediaMode ? `Generate ${mode}` : 'Send message'}
+            accessibilityState={{ disabled: !canSend, busy: isSending }}
             testID="send-button"
           >
             {isMediaMode ? (
-              <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+              <Ionicons name="sparkles" size={18} color={colors.textOnPrimary} />
             ) : (
-              <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-up" size={20} color={colors.textOnPrimary} />
             )}
           </TouchableOpacity>
         )}
@@ -675,6 +711,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               style={[styles.attachmentMenuItem, { backgroundColor: colors.primaryLight }]}
               onPress={handleTakePhoto}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Take Photo"
             >
               <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name="camera" size={22} color={colors.primary} />
@@ -689,6 +727,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               style={[styles.attachmentMenuItem, { backgroundColor: colors.primaryLight }]}
               onPress={handlePickImage}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Photo Library"
             >
               <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name="images" size={22} color={colors.primary} />
@@ -703,6 +743,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               style={[styles.attachmentMenuItem, { backgroundColor: colors.primaryLight }]}
               onPress={handlePickDocument}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Choose File"
             >
               <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name="document" size={22} color={colors.primary} />
@@ -717,6 +759,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               style={[styles.attachmentMenuCancel, { backgroundColor: colors.background }]}
               onPress={() => setShowAttachmentMenu(false)}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
             >
               <Text style={[styles.attachmentMenuCancelText, { color: colors.textSecondary }]}>
                 Cancel
@@ -889,11 +933,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  stopButton: {
-    backgroundColor: '#FF453A',
-  },
   buttonDisabled: {
-    backgroundColor: 'rgba(128, 128, 128, 0.15)',
     opacity: 0.5,
   },
   modalContainer: {

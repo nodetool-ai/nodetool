@@ -5,7 +5,9 @@
  * `generationState` consumed by `clipStatusReducer`.
  *
  * Responsibilities:
- *  - Map clipId → active job state (queued / running / failed / completed).
+ *  - Map (sequenceId, clipId) → active job state (queued / running / failed /
+ *    completed). A format adaptation keeps its source's clip ids, so a clip id
+ *    alone names two clips.
  *  - Mirror status transitions into TimelineStore so `clip.status` stays
  *    consistent for persistence and version history.
  *  - On successful completion: append a ClipVersion, set currentAssetId and
@@ -36,6 +38,14 @@ export type ClipGenerationStatus =
 
 interface ClipJobState {
   clipId: string;
+  /**
+   * The sequence the clip belongs to, captured when the job started. A job
+   * restored after a reload has no store handle, and its result must land on
+   * this sequence or nowhere.
+   */
+  sequenceId?: string | null;
+  /** The output node the clip read its result from when the job started. */
+  selectedOutputNodeId?: string;
   jobId: string;
   /** The workflowId associated with the clip at job submission time. */
   workflowId: string;
@@ -58,6 +68,8 @@ type TimelineStoreHandle = Pick<TimelineStoreApi, "getState">;
 interface RegisterJobOptions {
   /** The starting timeline instance's store. Every write for the job goes here. */
   timeline?: TimelineStoreHandle;
+  /** The output node the result is read from. */
+  selectedOutputNodeId?: string;
   /** What the run was submitted with, snapshotted before the first await. */
   submitted?: {
     paramOverrides?: Record<string, unknown>;
@@ -77,10 +89,44 @@ const jobTimelines = new Map<string, TimelineStoreHandle>();
 export const getJobTimeline = (jobId: string): TimelineStoreHandle =>
   jobTimelines.get(jobId) ?? useTimelineStore;
 
+/**
+ * Give a job restored after a reload the store of the editor showing its
+ * sequence, so its writes go there rather than to whichever timeline is
+ * active when it completes.
+ */
+export const attachJobTimeline = (
+  jobId: string,
+  timeline: TimelineStoreHandle
+): void => {
+  jobTimelines.set(jobId, timeline);
+};
+
+/**
+ * The `clipJobs` key for one clip. A job started without a sequence is keyed
+ * by its clip id alone.
+ */
+export const clipJobKey = (
+  sequenceId: string | null | undefined,
+  clipId: string
+): string => (sequenceId ? `${sequenceId}:${clipId}` : clipId);
+
+/**
+ * The store a job's writes go to, or null when that store now shows another
+ * sequence. After a reload the job has no handle and falls back to the active
+ * timeline, which may be a different one.
+ */
+const jobTimelineFor = (job: ClipJobState): TimelineStoreHandle | null => {
+  const timeline = getJobTimeline(job.jobId);
+  if (job.sequenceId && timeline.getState().sequenceId !== job.sequenceId) {
+    return null;
+  }
+  return timeline;
+};
+
 interface TimelineGenerationStoreState {
-  /** clipId → active job state */
+  /** {@link clipJobKey} → active job state */
   clipJobs: Record<string, ClipJobState>;
-  /** jobId → clipId (reverse lookup for incoming job-update events) */
+  /** jobId → {@link clipJobKey} (reverse lookup for incoming job-update events) */
   jobToClip: Record<string, string>;
 
   /**
@@ -122,10 +168,13 @@ interface TimelineGenerationStoreState {
   updateJobProgress: (jobId: string, progress: number) => void;
 
   /** Remove the job entry for a clip (e.g. after user dismisses a failed job). */
-  clearJob: (clipId: string) => void;
+  clearJob: (clipId: string, sequenceId?: string | null) => void;
 
   /** Look up the current job state for a clip, or undefined if none. */
-  getClipJobState: (clipId: string) => ClipJobState | undefined;
+  getClipJobState: (
+    clipId: string,
+    sequenceId?: string | null
+  ) => ClipJobState | undefined;
 
   /**
    * Resolve the output asset ID for a completed job.
@@ -211,13 +260,13 @@ function deriveIds(
   clipJobs: Record<string, ClipJobState>,
   predicate: (job: ClipJobState) => boolean
 ): string[] {
-  const ids: string[] = [];
-  for (const id of Object.keys(clipJobs)) {
-    if (predicate(clipJobs[id])) {
-      ids.push(id);
+  const ids = new Set<string>();
+  for (const job of Object.values(clipJobs)) {
+    if (predicate(job)) {
+      ids.add(job.clipId);
     }
   }
-  return ids;
+  return [...ids];
 }
 
 /** Same-membership check (order-insensitive) so a stable reference is reused. */
@@ -259,7 +308,7 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
   (set, get) => {
     const persistedClipJobs = loadPersistedClipJobs();
     const persistedJobToClip = Object.fromEntries(
-      Object.values(persistedClipJobs).map((job) => [job.jobId, job.clipId])
+      Object.entries(persistedClipJobs).map(([key, job]) => [job.jobId, key])
     );
 
     return {
@@ -269,8 +318,16 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
       failedClipIds: deriveIds(persistedClipJobs, isFailed),
 
       registerJob: (clipId, jobId, workflowId, options) => {
+        // The store the job writes to: the caller's, else the active one.
+        const sequenceId =
+          (options?.timeline ?? useTimelineStore).getState().sequenceId ?? null;
+        const key = clipJobKey(sequenceId, clipId);
         const jobState: ClipJobState = {
           clipId,
+          ...(sequenceId && { sequenceId }),
+          ...(options?.selectedOutputNodeId !== undefined && {
+            selectedOutputNodeId: options.selectedOutputNodeId
+          }),
           jobId,
           workflowId,
           status: "queued",
@@ -285,12 +342,12 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
         if (options?.timeline) jobTimelines.set(jobId, options.timeline);
 
         set((state) => {
-          const nextClipJobs = { ...state.clipJobs, [clipId]: jobState };
+          const nextClipJobs = { ...state.clipJobs, [key]: jobState };
           persistClipJobs(nextClipJobs);
-          const nextJobToClip = { ...state.jobToClip, [jobId]: clipId };
+          const nextJobToClip = { ...state.jobToClip, [jobId]: key };
           // Drop the previous job's reverse mapping: a replayed event for the
           // superseded job must not mutate the new job's state.
-          const previous = state.clipJobs[clipId];
+          const previous = state.clipJobs[key];
           if (previous && previous.jobId !== jobId) {
             delete nextJobToClip[previous.jobId];
             jobTimelines.delete(previous.jobId);
@@ -308,15 +365,16 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
 
       updateJobStatus: (jobId, status, extra) => {
         const { jobToClip, clipJobs } = get();
-        const clipId = jobToClip[jobId];
-        if (!clipId) {
+        const key = jobToClip[jobId];
+        if (!key) {
           return;
         }
 
-        const existing = clipJobs[clipId];
+        const existing = clipJobs[key];
         if (!existing) {
           return;
         }
+        const clipId = existing.clipId;
 
         // The documented "completed" contract requires an output asset;
         // a job that completes without one is surfaced as a failure
@@ -337,7 +395,7 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
         }
 
         set((state) => {
-          const nextClipJobs = { ...state.clipJobs, [clipId]: updated };
+          const nextClipJobs = { ...state.clipJobs, [key]: updated };
           persistClipJobs(nextClipJobs);
           return {
             clipJobs: nextClipJobs,
@@ -347,7 +405,12 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
 
         // ── Mirror status into TimelineStore ──────────────────────────────
 
-        const jobTimeline = getJobTimeline(jobId);
+        const jobTimeline = jobTimelineFor(existing);
+        if (!jobTimeline) {
+          // The job's sequence is not the one on screen. Writing here would
+          // fail or overwrite a clip of the same id in another timeline.
+          return;
+        }
         if (effectiveStatus === "running") {
           jobTimeline.getState().patchClip(clipId, { status: "generating" });
           return;
@@ -407,12 +470,12 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
 
       updateJobProgress: (jobId, progress) => {
         const { jobToClip, clipJobs } = get();
-        const clipId = jobToClip[jobId];
-        if (!clipId) {
+        const key = jobToClip[jobId];
+        if (!key) {
           return;
         }
 
-        const existing = clipJobs[clipId];
+        const existing = clipJobs[key];
         if (!existing) {
           return;
         }
@@ -421,13 +484,14 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
         const updated: ClipJobState = { ...existing, progress: safeProgress };
 
         set((state) => ({
-          clipJobs: { ...state.clipJobs, [clipId]: updated }
+          clipJobs: { ...state.clipJobs, [key]: updated }
         }));
       },
 
-      clearJob: (clipId) => {
+      clearJob: (clipId, sequenceId) => {
         const { clipJobs, jobToClip } = get();
-        const jobState = clipJobs[clipId];
+        const key = clipJobKey(sequenceId, clipId);
+        const jobState = clipJobs[key];
         if (!jobState) {
           return;
         }
@@ -436,7 +500,7 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
         delete newJobToClip[jobState.jobId];
 
         const newClipJobs = { ...clipJobs };
-        delete newClipJobs[clipId];
+        delete newClipJobs[key];
 
         jobTimelines.delete(jobState.jobId);
         persistClipJobs(newClipJobs);
@@ -447,7 +511,8 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
         }));
       },
 
-      getClipJobState: (clipId) => get().clipJobs[clipId],
+      getClipJobState: (clipId, sequenceId) =>
+        get().clipJobs[clipJobKey(sequenceId, clipId)],
 
       resolveOutputAssetId: (workflowId, jobId, selectedOutputNodeId) =>
         extractAssetId(

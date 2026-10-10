@@ -42,7 +42,10 @@ import NodeCreateBridge from "../editor/NodeCreateBridge";
 import WorkflowChainSurface from "./WorkflowChainSurface";
 import SubgraphTabStrip from "./SubgraphTabStrip";
 import SubgraphTabContent from "./SubgraphTabContent";
-import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import {
+  findActiveChildTab,
+  useSubgraphTabsStore
+} from "../../stores/SubgraphTabsStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   BORDER_RADIUS,
@@ -332,11 +335,10 @@ const WorkflowEditorSurface = ({
     ]
   );
   // Only this workflow's subgraph tabs may take over its canvas — another
-  // workflow tab's open subgraph must not hijack this one.
+  // workflow tab's open subgraph must not hijack this one. A nested subgraph
+  // is reached through the top-level subgraph that contains it.
   const activeSubgraph = useSubgraphTabsStore((state) =>
-    state.tabs.find(
-      (tab) => tab.key === state.activeKey && tab.workflowId === workflowId
-    )
+    findActiveChildTab(state.tabs, state.activeKey, workflowId)
   );
 
   useEffect(() => {
@@ -503,7 +505,7 @@ const WorkflowEditorSurface = ({
                     mounted underneath so returning to it keeps its viewport. */}
                 {activeSubgraph && !showChain && (
                   <div style={{ position: "absolute", inset: 0 }}>
-                    <SubgraphTabContent tab={activeSubgraph} />
+                    <SubgraphTabContent tab={activeSubgraph} active={active} />
                   </div>
                 )}
                 {showChain && (
@@ -524,7 +526,9 @@ const WorkflowEditorSurface = ({
               </div>
               {active && <FloatingToolBar />}
               {active && <QueueOverlay />}
-              {active && <NodeCreateBridge />}
+              {active && !(activeSubgraph && !showChain) && (
+                <NodeCreateBridge />
+              )}
             </KeyboardProvider>
           </ConnectableNodesProvider>
         </ContextMenuProvider>

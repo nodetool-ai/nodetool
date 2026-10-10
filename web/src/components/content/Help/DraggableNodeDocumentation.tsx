@@ -7,7 +7,8 @@ import {
   EditorButton,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  SHADOW
 } from "../../ui_primitives";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
@@ -27,7 +28,7 @@ const styles = (theme: Theme) => css`
   background-color: ${theme.vars.palette.background.paper};
   border: 1px solid ${theme.vars.palette.divider};
   border-radius: ${BORDER_RADIUS.sm};
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: ${SHADOW(theme).lg};
   padding: 0;
   max-width: 400px;
   min-width: 300px;

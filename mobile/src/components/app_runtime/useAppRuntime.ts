@@ -441,17 +441,29 @@ export const useAppRuntime = (
         }
         clearTimer(startsByInvocationRef.current.get(id));
         startsByInvocationRef.current.delete(id);
-        await runnerStore.getState().cancel(id);
+        // The cancel request fails when the socket is down (offline). The
+        // invocation still has to settle, or the app shows a run that never
+        // ends and the caller gets an unhandled rejection; say the server
+        // may still be running it.
+        let reason = error;
+        try {
+          await runnerStore.getState().cancel(id);
+        } catch (cancelError) {
+          const detail =
+            cancelError instanceof Error ? cancelError.message : "unknown error";
+          reason = `Could not reach the server to cancel the run (${detail}). It may still finish there.`;
+        }
+        const status = reason ? "failed" : "cancelled";
         if (invocation) {
-          invocation.status = error ? "failed" : "cancelled";
+          invocation.status = status;
         }
         const event: Extract<AppStateEvent, { type: "invocationStatus" }> = {
           type: "invocationStatus",
           invocationId: id,
-          status: error ? "failed" : "cancelled"
+          status
         };
-        if (error) {
-          event.error = error;
+        if (reason) {
+          event.error = reason;
         }
         store.getState().dispatchEvent(event);
       }

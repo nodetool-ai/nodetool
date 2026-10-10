@@ -11,7 +11,6 @@
 
 import { useCallback, useLayoutEffect } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -27,6 +26,9 @@ import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { useApplications } from '../hooks/useApplications';
 import type { ApplicationListItem } from '../services/api';
+import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState';
+import LoadErrorBanner from '../components/LoadErrorBanner';
+import { FONT_SIZE, FONT_WEIGHT, MIN_TOUCH_TARGET, RADIUS, SPACING } from '../utils/tokens';
 import { formatRelativeTime } from './DocumentsScreen';
 
 type AppsScreenProps = {
@@ -59,7 +61,6 @@ export default function AppsScreen({ navigation }: AppsScreenProps) {
               onPress={() => navigation.navigate(action.route)}
               accessibilityRole="button"
               accessibilityLabel={action.label}
-              hitSlop={6}
               style={styles.headerButton}
             >
               <Ionicons name={action.icon} size={22} color={colors.primary} />
@@ -112,31 +113,30 @@ export default function AppsScreen({ navigation }: AppsScreenProps) {
   );
 
   if (isLoading) {
+    return <LoadingState label="Loading apps" />;
+  }
+
+  if (error && apps.length === 0) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.centerText, { color: colors.textSecondary }]}>
-          Loading apps...
-        </Text>
-      </View>
+      <ErrorState
+        title="Couldn't load apps"
+        message={error.message || 'Check your connection and the server address in Settings.'}
+        onRetry={() => { void refetch(); }}
+        secondaryAction={{
+          label: 'Open settings',
+          icon: 'settings-outline',
+          onPress: () => navigation.navigate('Settings'),
+        }}
+      />
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {error ? (
-        <View
-          style={[
-            styles.errorBanner,
-            { backgroundColor: colors.primaryMuted, borderColor: colors.border },
-          ]}
-        >
-          <Ionicons name="alert-circle-outline" size={16} color={colors.error} />
-          <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={2}>
-            {error.message || 'Could not load apps'}
-          </Text>
-        </View>
-      ) : null}
+      <LoadErrorBanner
+        error={error ? error.message || 'Could not refresh apps' : null}
+        onRetry={() => { void refetch(); }}
+      />
       <FlatList
         data={apps}
         keyExtractor={(item) => item.id}
@@ -154,12 +154,17 @@ export default function AppsScreen({ navigation }: AppsScreenProps) {
           />
         }
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Ionicons name="apps-outline" size={40} color={colors.textSecondary} />
-            <Text style={[styles.centerText, { color: colors.textSecondary }]}>
-              No apps yet. Build one in the desktop app builder.
-            </Text>
-          </View>
+          <EmptyState
+            inline
+            icon="apps-outline"
+            title="No apps yet"
+            message="Build a mini app in the desktop or web app and it shows up here, ready to run."
+            action={{
+              label: 'Ask the assistant',
+              icon: 'chatbubble-ellipses-outline',
+              onPress: () => navigation.navigate('Chat'),
+            }}
+          />
         }
       />
     </View>
@@ -173,70 +178,47 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
   },
   headerButton: {
-    padding: 4,
+    width: 38,
+    height: MIN_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listContent: {
-    padding: 16,
-    gap: 10,
+    padding: SPACING.lg,
+    gap: SPACING.sm + 2,
   },
-  // A content container only grows to its content, so the empty block's
-  // `flex: 1` has nothing to fill. Let it take the list's height instead.
+  // A content container only grows to its content, so the empty block has
+  // nothing to centre in. Let it take the list's height instead.
   listContentEmpty: {
     flexGrow: 1,
     justifyContent: 'center',
   },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 32,
-  },
-  centerText: {
-    fontSize: 15,
-    textAlign: 'center',
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 14,
+    gap: SPACING.md,
+    padding: SPACING.md + 2,
+    borderRadius: RADIUS.lg,
     borderWidth: StyleSheet.hairlineWidth,
   },
   rowIcon: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowText: {
     flex: 1,
-    gap: 2,
+    gap: SPACING.xxs,
   },
   rowName: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: FONT_SIZE.body,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   rowMeta: {
-    fontSize: 12,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    margin: 16,
-    marginBottom: 0,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 13,
+    fontSize: FONT_SIZE.caption,
   },
 });

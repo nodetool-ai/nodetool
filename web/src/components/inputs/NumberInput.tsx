@@ -128,7 +128,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const input = e.target.value;
       const normalizedInput = input.replace(/,/g, ".");
-      const regex = props.inputType === "float" ? /[^0-9.-]/g : /[^0-9-]/g;
+      // Keep "." for ints (a pasted "2.5" rounds instead of becoming "25")
+      // and exponents for floats ("1e-5").
+      const regex =
+        props.inputType === "float" ? /[^0-9.eE+-]/g : /[^0-9.-]/g;
       const cleanedInput = normalizedInput.replace(regex, "");
       setState((prevState) => ({ ...prevState, localValue: cleanedInput }));
     },
@@ -147,11 +150,10 @@ const NumberInput: React.FC<InputProps> = (props) => {
     (shouldSave: boolean) => {
       let finalValue: number;
       if (shouldSave) {
-        if (props.inputType === "float") {
-          finalValue = parseFloat(state.localValue);
-        } else {
-          finalValue = Math.round(Number(state.localValue));
-        }
+        // An empty field parses to NaN and keeps the previous value below.
+        const parsed = parseFloat(state.localValue);
+        finalValue =
+          props.inputType === "float" ? parsed : Math.round(parsed);
 
         if (isNaN(finalValue)) {
           finalValue =
@@ -254,10 +256,14 @@ const NumberInput: React.FC<InputProps> = (props) => {
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      handleBlur(true);
+      // Commit only an edit in progress. A right-click on an idle field must
+      // not re-parse and write the value.
+      if (inputIsFocused) {
+        handleBlur(true);
+      }
       setInputIsFocused(false);
     },
-    [handleBlur]
+    [handleBlur, inputIsFocused]
   );
 
   const handleStepMouseDown = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {

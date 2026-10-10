@@ -84,6 +84,8 @@ const resolutionLines = (value: string): number | null => {
 /**
  * The largest listed resolution tier the image fills without upscaling,
  * measured on its short side, or the smallest tier for a smaller image.
+ * Nothing for an image whose size is unknown: the lowest tier is not a
+ * neutral default.
  */
 export function nearestResolution(
   width: number,
@@ -101,7 +103,7 @@ export function nearestResolution(
   }
   const shortSide = Math.min(width, height);
   if (!(shortSide > 0)) {
-    return tiers[0].option;
+    return undefined;
   }
   const fitting = tiers.filter((tier) => tier.lines <= shortSide);
   return (fitting[fitting.length - 1] ?? tiers[0]).option;
@@ -153,12 +155,15 @@ export type ImageToVideoPlacement =
 
 /**
  * Where the video goes: the video track drawn directly above the image's
- * track when nothing there overlaps the span, otherwise a new video track
- * inserted directly above. Index 0 draws on top, so "above" is the lower
- * index.
+ * track when it is visible, unlocked and free over the span, otherwise a new
+ * video track inserted directly above. Index 0 draws on top, so "above" is
+ * the lower index.
  */
 export function placeImageToVideoClip(
-  tracks: readonly Pick<TimelineTrack, "id" | "type" | "index" | "locked">[],
+  tracks: readonly Pick<
+    TimelineTrack,
+    "id" | "type" | "index" | "locked" | "visible"
+  >[],
   clips: readonly Pick<TimelineClip, "trackId" | "startMs" | "durationMs">[],
   image: Pick<TimelineClip, "trackId" | "startMs">,
   durationMs: number
@@ -174,6 +179,7 @@ export function placeImageToVideoClip(
     above &&
     above.type === "video" &&
     !above.locked &&
+    above.visible &&
     !clips.some(
       (clip) =>
         clip.trackId === above.id &&

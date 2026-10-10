@@ -15,7 +15,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  Z_INDEX
+  Z_INDEX,
+  SHADOW
 } from "../ui_primitives";
 import NavigateBefore from "@mui/icons-material/NavigateBefore";
 import NavigateNext from "@mui/icons-material/NavigateNext";
@@ -93,7 +94,7 @@ const styles = (theme: Theme) =>
       "& .react-pdf__Page__canvas": {
         width: "auto !important",
         height: "auto !important",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+        boxShadow: SHADOW(theme).sm
       }
     },
     ".content-type": {

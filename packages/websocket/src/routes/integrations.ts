@@ -25,6 +25,7 @@ import {
   integrationLinkCompleteBodySchema
 } from "../http-body-schemas.js";
 import { LinkCodeStore, sharedLinkCodes } from "../lib/link-codes.js";
+import { parseJsonBodies } from "../lib/json-body.js";
 
 /** Platforms the identity layer accepts. `provider` is data, not a route. */
 const ALLOWED_PROVIDERS = ["telegram", "discord"] as const;
@@ -117,6 +118,7 @@ export function createIntegrationRoutes(
       // every path answers 404 rather than 401.
       return;
     }
+    parseJsonBodies(app);
 
     /** Common preamble: service token, then provider. */
     const authorize = (

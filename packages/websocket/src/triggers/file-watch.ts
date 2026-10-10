@@ -255,14 +255,21 @@ function attachWatcher(
     eventCounter.count += 1;
     const nowMs = (opts.now ?? Date.now)();
     const inputId = `${registration.id}:${nowMs}:${eventCounter.count}`;
-    void deliverFileWatchEvent(
+    // Fire-and-forget from an fs.watch listener: a rejection here (a failed
+    // registration save) would otherwise be unhandled and end the process.
+    deliverFileWatchEvent(
       registration,
       eventType,
       filePath,
       isDirectory,
       opts,
       inputId
-    );
+    ).catch((err: unknown) => {
+      log.warn(
+        `File-watch registration ${registration.id} failed to record an event`,
+        err instanceof Error ? err : new Error(String(err))
+      );
+    });
   };
 
   const watch = opts.watch ?? fs.watch;
@@ -272,8 +279,11 @@ function attachWatcher(
     (eventType, filename) => {
       if (!filename) return;
       const fullPath = path.join(watchPath, filename.toString());
-      const exists = fs.existsSync(fullPath);
-      const isDirectory = exists && fs.statSync(fullPath).isDirectory();
+      // One stat, not existsSync then statSync: a file removed between the
+      // two made statSync throw inside the watcher and crash the server.
+      const stats = fs.statSync(fullPath, { throwIfNoEntry: false });
+      const exists = stats !== undefined;
+      const isDirectory = stats?.isDirectory() ?? false;
 
       if (eventType === "rename") {
         if (exists) {

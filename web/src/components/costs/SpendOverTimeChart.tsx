@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS, Z_INDEX, SHADOW } from "../ui_primitives";
 import {
   providerColor,
   providerLabel,
@@ -302,7 +302,7 @@ const BarTooltip: React.FC<{
         borderRadius: BORDER_RADIUS.lg,
         backgroundColor: theme.vars.palette.background.default,
         border: `1px solid ${theme.vars.palette.divider}`,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
+        boxShadow: SHADOW(theme).lg,
         pointerEvents: "none"
       }}
     >

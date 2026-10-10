@@ -80,6 +80,30 @@ describe("useAlignNodes", () => {
     expect(mockSetNodes).not.toHaveBeenCalled();
   });
 
+  it("aligns a group child in canvas coordinates", () => {
+    const group = createMockNode("group", 1000, 1000);
+    const child = {
+      ...createMockNode("child", 20, 40),
+      parentId: "group",
+      selected: true
+    };
+    const other = { ...createMockNode("other", 500, 0), selected: true };
+    mockNodes = [group, child, other];
+    mockSelectedNodes = [child, other];
+
+    const { result } = renderHook(() => useAlignNodes());
+    act(() => {
+      result.current({ arrangeSpacing: false });
+    });
+
+    // Canvas x 1020 vs 500, y 1040 vs 0: the y range is larger, so both move
+    // to the leftmost canvas x (500), which is -500 inside the group.
+    const updated: Node<NodeData>[] = mockSetNodes.mock.calls[0][0];
+    const byId = new Map(updated.map((n) => [n.id, n.position]));
+    expect(byId.get("other")).toEqual({ x: 500, y: 0 });
+    expect(byId.get("child")).toEqual({ x: -500, y: 40 });
+  });
+
   it("aligns nodes vertically when xRange < yRange", () => {
     const selectedNodes = [
       createMockNode("node1", 100, 0),

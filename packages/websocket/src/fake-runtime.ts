@@ -43,7 +43,12 @@ import {
 } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
-import { chunkSchema, type NodeDescriptor } from "@nodetool-ai/protocol";
+import {
+  PLAN_CODE_NODE_TYPE,
+  WORKFLOW_PLAN_TOOL_NAME,
+  chunkSchema,
+  type NodeDescriptor
+} from "@nodetool-ai/protocol";
 
 /** Valid 1x1 transparent PNG — bytes for faked image/media outputs, so
  *  downstream nodes that decode them don't choke. */
@@ -162,6 +167,26 @@ const FAKE_MODEL_CATALOG: Record<
   anthropic: { language: ["Test Assistant Model"], image: [] }
 };
 
+/**
+ * The Workflow planner's answer. Schema-shaped "fake" strings make a plan the
+ * review step rejects ("This plan would fail when it runs"), so the guided
+ * workflow path could never be finished on the fakes. This plan builds and
+ * runs: one text input, a Code step that changes it, one text output.
+ */
+const FAKE_WORKFLOW_PLAN = {
+  inputs: [{ name: "text", type: "str", sample: "a sentence to change" }],
+  steps: [
+    {
+      id: "step-1",
+      title: "Change the text",
+      summary: "Returns the input text in capital letters.",
+      node_type: PLAN_CODE_NODE_TYPE,
+      code: 'await output("output", String(inputs.input).toUpperCase());'
+    }
+  ],
+  outputs: [{ name: "result", type: "str" }]
+};
+
 const modelId = (name: string): string =>
   name.toLowerCase().replace(/\s+/g, "-");
 
@@ -242,7 +267,10 @@ export class FakeProvider extends ScriptedProvider {
       yield {
         id: `fake-${forced.name}`,
         name: forced.name,
-        args: sampleForSchema(forced.inputSchema) as Record<string, unknown>
+        args:
+          forced.name === WORKFLOW_PLAN_TOOL_NAME
+            ? structuredClone(FAKE_WORKFLOW_PLAN)
+            : (sampleForSchema(forced.inputSchema) as Record<string, unknown>)
       };
       return;
     }
@@ -367,6 +395,12 @@ const outputsMedia = (meta: FakeMeta | undefined): boolean =>
 const inputsMedia = (meta: FakeMeta | undefined): boolean =>
   (meta?.properties ?? []).some((p) => MEDIA_TYPES.has(baseType(p)));
 
+/** Nodes that talk to a chat model through the host provider. They run for
+ *  real against the fake provider, so their optional media inputs and outputs
+ *  (an Agent's image, audio) do not turn a text answer into placeholder media. */
+const usesLanguageModel = (meta: FakeMeta | undefined): boolean =>
+  (meta?.properties ?? []).some((p) => baseType(p) === "language_model");
+
 const needsSecret = (meta: FakeMeta | undefined): boolean =>
   Array.isArray(meta?.required_settings) && meta.required_settings.length > 0;
 
@@ -468,14 +502,16 @@ export function shouldFakeNode(
   meta: FakeMeta | undefined
 ): boolean {
   if (isStructural(nodeType)) return false;
-  return (
+  if (
     needsSecret(meta) ||
     needsRuntime(meta) ||
-    outputsMedia(meta) ||
-    inputsMedia(meta) ||
     isExternal(nodeType) ||
     isFakeByClass(nodeType)
-  );
+  ) {
+    return true;
+  }
+  if (usesLanguageModel(meta)) return false;
+  return outputsMedia(meta) || inputsMedia(meta);
 }
 
 /**

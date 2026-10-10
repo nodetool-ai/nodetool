@@ -5,7 +5,7 @@ import { createGameRenderer3D } from "./browser3d.js";
 import { GameInput3D } from "./input3d.js";
 import { browserGamepads } from "./input-bindings.js";
 import { mountTouchControls, touchLayout } from "./touch-controls.js";
-import { GameAudioPlayer } from "./audio.js";
+import { GameAudioPlayer, gameAudioSpatialView3D } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 
@@ -127,6 +127,7 @@ async function start(): Promise<void> {
     if (rendering || disposed) { return; }
     rendering = true;
     try {
+      audio.updateSpatial(gameAudioSpatialView3D(frame, interpolation));
       const stats = await renderer.render(frame, interpolation);
       budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, voices: gameAudioVoiceCount(audio.mixerState()) });
     }

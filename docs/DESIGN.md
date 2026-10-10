@@ -58,6 +58,11 @@ tools, 3D/canvas/terminal color config, provider brand colors) are listed in
 | `var(--fontFamily1)` | `'Inter', Arial, sans-serif` | All UI text |
 | `var(--fontFamily2)` | `'JetBrains Mono', 'Inter', Arial, sans-serif` | Code, values, node output |
 
+Write `fontFamily: "var(--fontFamily2)"` for code and values. A literal stack
+such as `"monospace"` renders the browser's default monospace font, not
+JetBrains Mono. `inherit` is allowed. `design-tokens/font-family-tokens` flags
+any other literal `fontFamily` or `font-family` in TSX at **`error`**.
+
 ### Size Scale
 
 Four pixel sizes, exposed as CSS custom properties on `:root`. Change them in `ThemeNodetool.tsx` and they propagate everywhere.
@@ -133,6 +138,7 @@ Heading **hierarchy** is expressed through margin, letter-spacing, color, and te
 
 - Any raw `fontSize` px/rem literal: `"14px"`, `"0.85rem"`, `"20px"`, even `"13px"` — reference `var(--fontSize*)` instead
 - `fontWeight: 700`, `fontWeight: "bold"`, `fontWeight: 300` — only `400 / 500 / 600`
+- A literal font stack: `"monospace"`, `"JetBrains Mono, monospace"`, `"Inter, sans-serif"` — use `var(--fontFamily1)` or `var(--fontFamily2)`
 - Mixing a size with a non-sanctioned weight for that role (e.g. 15px / 600)
 - A fifth font size anywhere in the app
 
@@ -656,16 +662,21 @@ boxShadow: SHADOW(theme).lg
 | `SHADOW(theme).panelLeft` | `4px 0 8px` @ 5% | Left panel's right edge |
 | `SHADOW(theme).panelRight` | `-4px 0 8px` @ 5% | Right panel's left edge |
 
-Plain CSS uses `var(--shadow-sm)`, defined in [vars.css](../web/src/styles/vars.css)
-to mirror `SHADOW(theme).sm`. Node handle geometry variables in the same file retain the
-existing tooltip widths, offsets and handle hit regions.
+Plain CSS, and code without a theme in scope, uses `var(--shadow-sm)`,
+`var(--shadow-md)`, `var(--shadow-lg)` and `var(--shadow-xl)`, defined in
+[vars.css](../web/src/styles/vars.css) to mirror the matching `SHADOW(theme)`
+tiers. Node handle geometry variables in the same file retain the existing
+tooltip widths, offsets and handle hit regions.
 
 ### Forbidden
 
 Literal drop shadows — `boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"` — which
 hardcode both a depth and a color. Focus and selection rings (`0 0 0 2px
 ${theme.vars.palette.primary.main}`) and `inset` shadows are borders, not
-elevation, and stay outside this scale.
+elevation, and stay outside this scale. `design-tokens/shadow-tokens` enforces
+this at **`error`** in TSX: it checks each comma-separated layer of a
+`boxShadow` or `box-shadow` value and reports a layer with a raw hex or rgb
+color unless that layer is `inset` or a `0 0 0 Npx` ring.
 
 ---
 
