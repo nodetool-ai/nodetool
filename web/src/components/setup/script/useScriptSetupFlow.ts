@@ -101,12 +101,16 @@ export const newScriptSetupDocument = (
  */
 const FLOW_LABELS = { title: "Script" } as const;
 
+const TRANSCRIPTION_EXTRA = "Word timing transcription is extra.";
+
 const linesLabel = (count: number): string =>
   `${count} ${count === 1 ? "line" : "lines"}`;
 
 /**
  * The Voices step's cost line. A figure covers only the lines that priced, so
  * a partly priced script says how many of its lines the figure leaves out.
+ * Every take is also transcribed for its word timings, which the catalog does
+ * not price, so a figure says that call is extra.
  */
 export const formatCost = (
   cost: number,
@@ -120,9 +124,9 @@ export const formatCost = (
     return `${linesLabel(lineCount)} to voice`;
   }
   if (pricedLineCount < lineCount) {
-    return `About $${cost.toFixed(2)} for ${pricedLineCount} of ${linesLabel(lineCount)}, the rest unpriced`;
+    return `About $${cost.toFixed(2)} for ${pricedLineCount} of ${linesLabel(lineCount)}, the rest unpriced. ${TRANSCRIPTION_EXTRA}`;
   }
-  return `About $${cost.toFixed(2)} to voice ${linesLabel(lineCount)}`;
+  return `About $${cost.toFixed(2)} to voice ${linesLabel(lineCount)}. ${TRANSCRIPTION_EXTRA}`;
 };
 
 export interface ScriptSetupFlowOptions {
@@ -207,7 +211,7 @@ export const useScriptSetupFlow = ({
     error: writeError,
     errorRef: writeErrorRef,
     clearError: clearWriteError
-  } = useWriteScript();
+  } = useWriteScript(scriptId);
 
   const cost = useVoiceCostEstimate(scriptId);
   const writerModel = setup?.writer_model ?? chatModel ?? null;

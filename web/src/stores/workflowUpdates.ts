@@ -18,7 +18,7 @@ import {
   Message,
   Chunk
 } from "./ApiTypes";
-import useWorkflowRunsStore, { RunState } from "./WorkflowRunsStore";
+import useWorkflowRunsStore, { RunState, type RunMeta } from "./WorkflowRunsStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore, { type StatusValue } from "./StatusStore";
 import useLogsStore, { type Log } from "./LogStore";
@@ -788,16 +788,26 @@ const handleJobUpdate = (
   const runState = mapJobStatusToRunState(job.status);
   if (job.job_id && runState) {
     const runsStore = useWorkflowRunsStore.getState();
+    // Kept with the run, so a reader that waits on it (the guided build's
+    // sample run) can say why it failed after the toast is gone.
+    const jobError =
+      typeof job.error === "string" && job.error.trim().length > 0
+        ? job.error
+        : undefined;
     if (runsStore.hasRun(workflow.id, job.job_id)) {
-      runsStore.updateRunState(workflow.id, job.job_id, runState);
+      runsStore.updateRunState(workflow.id, job.job_id, runState, jobError);
     } else {
-      runsStore.recordRun({
+      const run: RunMeta = {
         jobId: job.job_id,
         workflowId: workflow.id,
         state: runState,
         startedAt: Date.now(),
         label: job.job_id
-      });
+      };
+      if (jobError !== undefined) {
+        run.error = jobError;
+      }
+      runsStore.recordRun(run);
     }
   }
 

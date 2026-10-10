@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
+import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import {
   startLayerGeneration,
   type LayerGenerationOutcome
@@ -26,6 +26,9 @@ interface UseRegenerateStaleLayersResult {
 type Settled = LayerGenerationOutcome | { status: "aborted" };
 
 export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
+  // The drain outlives a tab switch, so it reads and writes this editor's
+  // stores rather than whichever one is focused when a job settles.
+  const instance = useSketchInstance();
   const [isBusy, setIsBusy] = useState(false);
   const busyRef = useRef(false);
   // Aborted on unmount so the drainer stops waiting on the job in flight.
@@ -38,9 +41,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
   }, []);
 
   const preflight = useCallback((): RegenerateStalePreflight => {
-    const bindings = Object.values(
-      useSketchSessionStore.getState().bindings
-    );
+    const bindings = Object.values(instance.session.getState().bindings);
     const staleLayerIds: string[] = [];
     const lockedLayerIds: string[] = [];
     for (const b of bindings) {
@@ -51,13 +52,13 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
       }
     }
     return { staleLayerIds, lockedLayerIds };
-  }, []);
+  }, [instance]);
 
   const regenerateStaleLayers = useCallback(async () => {
     if (busyRef.current) {
       return { started: 0, skipped: 0, failed: 0 };
     }
-    const documentId = useSketchSessionStore.getState().documentId;
+    const documentId = instance.session.getState().documentId;
     if (!documentId) {
       return { started: 0, skipped: 0, failed: 0 };
     }
@@ -72,8 +73,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
       const { staleLayerIds } = preflight();
       for (const layerId of staleLayerIds) {
         if (controller.signal.aborted) break;
-        const binding =
-          useSketchSessionStore.getState().bindings[layerId];
+        const binding = instance.session.getState().bindings[layerId];
         if (!binding || binding.status !== "stale" || !binding.workflowId) {
           skipped++;
           continue;
@@ -100,7 +100,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
               paramOverrides: binding.paramOverrides,
               dependencyHash: binding.dependencyHash
             },
-            { onSettled: settle }
+            { target: instance, onSettled: settle }
           );
           if (!jobId) {
             skipped++;
@@ -133,7 +133,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
       }
     }
     return { started, skipped, failed };
-  }, [preflight]);
+  }, [instance, preflight]);
 
   return { preflight, regenerateStaleLayers, isBusy };
 }

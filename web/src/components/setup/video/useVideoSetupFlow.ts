@@ -9,7 +9,14 @@
  * before this flow existed (D3, criterion 2).
  */
 
-import { createElement, useCallback, useMemo, useState } from "react";
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { clampShotCount } from "@nodetool-ai/protocol";
 import type { TimelineSetupStage } from "@nodetool-ai/timeline";
 
@@ -29,7 +36,7 @@ import type {
   SetupStep
 } from "../types";
 import type { VideoSetupContext, VideoSetupReference } from "./setupContext";
-import { useVideoSetupContext } from "./setupContext";
+import { readVideoSetupContext, useVideoSetupContext } from "./setupContext";
 
 export type { VideoSetupContext, VideoSetupReference } from "./setupContext";
 import { FormatStep } from "./FormatStep";
@@ -153,7 +160,10 @@ export interface VideoSetupFlowOptions {
    * A host that cannot open a script passes nothing, and the card is offered
    * disabled rather than enabled with nothing behind it (F5).
    */
-  onStartFromScript?: (brief: string) => void;
+  onStartFromScript?: (
+    brief: string,
+    creativeContext?: VideoSetupContext["creativeContext"]
+  ) => void;
 }
 
 export const useVideoSetupFlow = ({
@@ -303,14 +313,47 @@ export const useVideoSetupFlow = ({
     }
   }, [onFinish]);
 
+  // Whether a step of this flow wrote `done` and owns the hand-off.
+  const handingOverRef = useRef(false);
+  // Whether this flow showed a step. An empty store reads `done` before the
+  // document loads, and a document loaded as `done` is the host's to finish.
+  const sawStepRef = useRef(false);
+  // The agent can write `done` while the flow is up (`ui_timeline_set_setup`,
+  // `ui_timeline_generate_from_beats`). No step answers for it, so the host
+  // would wait forever. Once any clips are away, this hands over instead.
+  const clipsAway = useTimelineStore((state) => {
+    const prepared = state.setup?.prepared_generation;
+    return prepared === undefined || prepared.status === "submitted";
+  });
+  useEffect(() => {
+    if (stage !== "done") {
+      sawStepRef.current = true;
+      handingOverRef.current = false;
+      return;
+    }
+    if (!sawStepRef.current || handingOverRef.current || !clipsAway) {
+      return;
+    }
+    handingOverRef.current = true;
+    void handOver();
+  }, [clipsAway, handOver, stage]);
+
   const finish = useCallback(async () => {
+    handingOverRef.current = true;
     setSetup({ stage: "done" });
     await handOver();
   }, [handOver, setSetup]);
 
+  // The creative context typed on step 1 goes too: the host discards this
+  // draft, and the script carries the same fields. Read at click time, so a
+  // field committed by the blur the click caused is included.
   const startFromScript = useCallback(
-    () => onStartFromScript?.(brief),
-    [brief, onStartFromScript]
+    () =>
+      onStartFromScript?.(
+        brief,
+        readVideoSetupContext(store.getState().setup).creativeContext
+      ),
+    [brief, onStartFromScript, store]
   );
 
   const runPlan = useCallback(
@@ -327,12 +370,24 @@ export const useVideoSetupFlow = ({
     [hasPlan, plan]
   );
 
+  // The planner keeps one error for every run. The review shows it only for
+  // its own Re-plan, and only until the creator leaves the review: a failed
+  // format-step plan, or a Re-plan that failed before Back, is not this
+  // visit's news.
+  const [replanErrorStage, setReplanErrorStage] =
+    useState<TimelineSetupStage | null>(null);
+  if (replanErrorStage !== null && replanErrorStage !== stage) {
+    setReplanErrorStage(null);
+  }
+
   const replan = useCallback(() => {
     // The review's own `Re-plan` runs outside the shell's primary button, so a
     // refusal has no button to land on. The step keeps the plan it had and
     // the review shows the hook's error.
+    setReplanErrorStage("review");
     void runPlan().catch(() => undefined);
   }, [runPlan]);
+  const reviewPlanError = replanErrorStage === "review" ? planError : null;
 
   // Nothing generated is worth carrying into the paid step: an empty beat
   // renders an empty prompt, and a beat with no length renders nothing at all
@@ -465,7 +520,7 @@ export const useVideoSetupFlow = ({
           createElement(ReviewStep, {
             onReplan: replan,
             replanPending: planning,
-            error: planError,
+            error: reviewPlanError,
             onValidationChange: setReviewError
           }),
         onAdvance: () => {
@@ -498,6 +553,7 @@ export const useVideoSetupFlow = ({
             throw new Error(productionBlocker);
           }
           setGenerateError(undefined);
+          handingOverRef.current = true;
           // `generate` writes `done` before its last save, and the host then
           // replaces the shell with its wait. A failure after that returns
           // to Look in a shell that never saw it, so the step shows it.
@@ -510,6 +566,7 @@ export const useVideoSetupFlow = ({
           try {
             await look.generate(operation?.signal);
           } catch (cause) {
+            handingOverRef.current = false;
             if (leftShell) {
               setGenerateError(
                 cause instanceof Error ? cause.message : String(cause)
@@ -547,11 +604,11 @@ export const useVideoSetupFlow = ({
       planIsCurrent,
       plannedBrief,
       planning,
-      planError,
       productionBlocker,
       reviewBlocker,
       reviewKey,
       reviewError,
+      reviewPlanError,
       setSetup,
       replan,
       runPlan,
