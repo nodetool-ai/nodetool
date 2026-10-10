@@ -141,7 +141,7 @@ it("writes a host script failure to the console, links its entity and drafts it 
   mockHostError = `Game script ${JSON.stringify([mockDocument.entrySceneId, "player", 0])} threw: boom`;
   render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
   act(() => { getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().dispatch({ type: "reveal", panelId: "console" }); });
-  const line = within(await screen.findByRole("log", { name: "Console lines" })).getByText(mockHostError).closest("li");
+  const line = within(await screen.findByRole("list", { name: "Console lines" })).getByText(mockHostError).closest("li");
   if (!line) { throw new Error("Console line missing"); }
   expect(line).toHaveTextContent("Tick 31");
   await user.click(within(line).getByRole("button", { name: /^Select / }));

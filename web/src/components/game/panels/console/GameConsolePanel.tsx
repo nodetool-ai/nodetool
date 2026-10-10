@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactElement } from "react";
+import { useId, useMemo, useState, type ReactElement } from "react";
 import TerminalOutlinedIcon from "@mui/icons-material/TerminalOutlined";
 import { useStore } from "zustand";
 
@@ -18,7 +18,7 @@ interface ConsoleDocument {
 interface GameConsolePanelProps {
   readonly gameId: string;
   readonly document: ConsoleDocument;
-  /** Lines that describe the current draft, such as validation warnings. They are shown first and are not stored. */
+  /** Lines that describe the current draft, such as validation errors. They are shown first and are not stored. */
   readonly liveEntries?: readonly GameConsoleEntry[];
   readonly onSelectEntity: (sceneId: string, entityId: string) => void;
   /** Writes a prompt into the editor's assistant panel without sending it. */
@@ -40,6 +40,7 @@ function tickLabel(group: GameConsoleGroup): string | null {
 /** Errors, warnings and script log lines from the play session, with filters, entity links and an assistant hand-off per line. */
 export default function GameConsolePanel({ gameId, document, liveEntries = NO_ENTRIES, onSelectEntity, onAskAssistant }: GameConsolePanelProps): ReactElement {
   const store = getGameConsoleStore(gameId);
+  const lineId = useId();
   const stored = useStore(store, (state) => state.groups);
   const [levels, setLevels] = useState<ReadonlySet<GameConsoleLevel>>(() => new Set(GAME_CONSOLE_LEVELS));
   const [query, setQuery] = useState("");
@@ -68,11 +69,11 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
         label={`${LEVEL_LABEL[level].many} ${counts[level]}`} onClick={() => toggle(level)} />)}
       <SearchInput value={query} onChange={setQuery} placeholder="Filter messages and entities" ariaLabel="Filter console" size="small" sx={{ flex: 1, minWidth: 0 }} />
     </FlexRow>
-    <ScrollArea sx={{ flex: 1, minHeight: 0 }}>
+    <ScrollArea role="log" aria-label="Console" sx={{ flex: 1, minHeight: 0 }}>
       {visible.length === 0
         ? <EmptyState title={groups.length === 0 ? "No console output" : "No lines match the filters"}
           description={groups.length === 0 ? "Script errors, warnings and log lines appear here while the game plays." : undefined} />
-        : <Box component="ul" role="log" aria-label="Console lines" sx={{ listStyle: "none", m: 0, p: 0 }}>
+        : <Box component="ul" aria-label="Console lines" sx={{ listStyle: "none", m: 0, p: 0 }}>
           {visible.map((group) => {
             const name = group.entityId ? entityNames.get(group.entityId) : undefined;
             const sceneId = group.entityId ? gameConsoleEntityScene(document, group.entityId, group.sceneId) : undefined;
@@ -81,13 +82,13 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
               sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
               <Caption color={LEVEL_LABEL[group.level].color} sx={{ flexShrink: 0 }}>{LEVEL_LABEL[group.level].one}</Caption>
               {ticks && <Caption color="muted" sx={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{ticks}</Caption>}
-              <Caption sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{group.message}</Caption>
+              <Caption id={`${lineId}-${group.id}`} sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{group.message}</Caption>
               {group.count > 1 && <Chip compact label={`×${group.count}`} aria-label={`Repeated ${group.count} times`} />}
               {group.entityId && (sceneId
                 ? <TextLink asButton onClick={() => onSelectEntity(sceneId, group.entityId ?? "")} aria-label={`Select ${name || group.entityId}`}>
                   <Caption component="span" color="inherit">{name || group.entityId}</Caption></TextLink>
                 : <Caption color="muted">{group.entityId}</Caption>)}
-              <EditorButton onClick={() => onAskAssistant(gameConsolePrompt(group, name))}>Ask the assistant</EditorButton>
+              <EditorButton aria-describedby={`${lineId}-${group.id}`} onClick={() => onAskAssistant(gameConsolePrompt(group, name))}>Ask the assistant</EditorButton>
             </FlexRow>;
           })}
         </Box>}

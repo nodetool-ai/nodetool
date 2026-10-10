@@ -695,7 +695,7 @@ diagnostic session. Use **Ask the assistant** to pass the script context to
 the game assistant.
 
 The **Console** panel in the bottom dock lists play-session errors, script
-errors with their tick, failures from **Run 10 s**, and validation warnings
+errors with their tick, failures from **Run 10 s**, and validation errors
 for the current draft. Identical consecutive lines collapse into one line with
 a repeat count and a tick range. Filter by level or by text, which also
 matches entity names. Select an entity link to select that entity in its

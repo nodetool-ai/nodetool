@@ -29,7 +29,7 @@ function renderPanel(gameId: string, overrides: Partial<Parameters<typeof GameCo
 }
 
 function lines(): HTMLElement[] {
-  return within(screen.getByRole("log", { name: "Console lines" })).getAllByRole("listitem");
+  return within(screen.getByRole("list", { name: "Console lines" })).getAllByRole("listitem");
 }
 
 it("collapses repeated lines and shows the tick range and repeat count", () => {
@@ -51,7 +51,7 @@ it("filters by level and by text, including the entity's name", async () => {
   const store = getGameConsoleStore(gameId);
   store.getState().append({ level: "error", source: "script", message: "Game script failed", entityId: "player", tick: 2 });
   store.getState().append({ level: "log", source: "script", message: "opened", entityId: "door", tick: 3 });
-  renderPanel(gameId, { liveEntries: [{ level: "warning", source: "validation", message: "Missing camera", sceneId: "intro" }] });
+  renderPanel(gameId, { liveEntries: [{ level: "warning", source: "runtime", message: "Missing camera", sceneId: "intro" }] });
   expect(lines()).toHaveLength(3);
 
   await user.click(screen.getByRole("button", { name: "Logs 1" }));
@@ -75,6 +75,16 @@ it("filters by level and by text, including the entity's name", async () => {
   expect(screen.getByText("No lines match the filters")).toBeInTheDocument();
 });
 
+it("keeps the console live region mounted while empty so the first line is announced", () => {
+  const gameId = nextGameId();
+  renderPanel(gameId);
+  const region = screen.getByRole("log", { name: "Console" });
+  expect(region).toHaveTextContent("No console output");
+  act(() => { getGameConsoleStore(gameId).getState().append({ level: "error", source: "runtime", message: "first", tick: 1 }); });
+  expect(screen.getByRole("log", { name: "Console" })).toBe(region);
+  expect(within(region).getByRole("list", { name: "Console lines" })).toHaveTextContent("first");
+});
+
 it("selects the linked entity in the scene that holds it and leaves deleted entities unlinked", async () => {
   const user = userEvent.setup();
   const gameId = nextGameId();
@@ -93,7 +103,9 @@ it("hands a line to the assistant draft", async () => {
   const gameId = nextGameId();
   getGameConsoleStore(gameId).getState().append({ level: "error", source: "script", message: "boom", entityId: "player", tick: 12 });
   const { onAskAssistant } = renderPanel(gameId);
-  await user.click(within(lines()[0]).getByRole("button", { name: "Ask the assistant" }));
+  const ask = within(lines()[0]).getByRole("button", { name: "Ask the assistant" });
+  expect(ask).toHaveAccessibleDescription("boom");
+  await user.click(ask);
   expect(onAskAssistant).toHaveBeenCalledWith("Help with this game console error. Entity: Hero (player). Tick: 12. Message: boom");
 });
 
@@ -101,7 +113,7 @@ it("clears stored lines but keeps live validation lines", async () => {
   const user = userEvent.setup();
   const gameId = nextGameId();
   getGameConsoleStore(gameId).getState().append({ level: "log", source: "script", message: "old", tick: 1 });
-  renderPanel(gameId, { liveEntries: [{ level: "warning", source: "validation", message: "Missing camera" }] });
+  renderPanel(gameId, { liveEntries: [{ level: "error", source: "validation", message: "Missing camera" }] });
   await user.click(screen.getByRole("button", { name: "Clear" }));
   expect(lines()).toHaveLength(1);
   expect(lines()[0]).toHaveTextContent("Missing camera");
@@ -123,6 +135,17 @@ describe("useGameConsoleFeed", () => {
     expect(getGameConsoleStore(gameId).getState().groups).toMatchObject([{ count: 2, firstTick: 5, tick: 9 }]);
     rerender({ runtimeError: "WebGPU device lost", scriptError: null, diagnosticError: null, tick: 30 });
     expect(getGameConsoleStore(gameId).getState().groups.at(-1)).toMatchObject({ source: "runtime", message: "WebGPU device lost", tick: 30 });
+  });
+
+  it("does not repeat a script failure as a runtime line after Stop or Load clears only the script failure", () => {
+    const gameId = nextGameId();
+    const failure = { message: "Game script [\"intro\",\"player\",0] threw", tick: 5, entityId: "player" };
+    const initialProps: Parameters<typeof useGameConsoleFeed>[1] = { runtimeError: failure.message, scriptError: failure, diagnosticError: null, tick: 4 };
+    const { rerender } = renderHook((props: Parameters<typeof useGameConsoleFeed>[1]) => useGameConsoleFeed(gameId, props), { initialProps });
+    rerender({ runtimeError: failure.message, scriptError: null, diagnosticError: null, tick: 4 });
+    expect(getGameConsoleStore(gameId).getState().groups).toEqual([
+      { id: 1, level: "error", source: "script", message: failure.message, entityId: "player", tick: 5, firstTick: 5, count: 1 }
+    ]);
   });
 
   it("keeps console lines out of the draft document and its undo history", () => {

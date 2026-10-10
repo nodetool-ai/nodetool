@@ -32,7 +32,10 @@ function useConsoleLine(gameId: string, source: GameConsoleSource, message: stri
 /** Writes the editor's play-session and diagnostic errors to the game's console as they appear. */
 export function useGameConsoleFeed(gameId: string, { runtimeError, scriptError, diagnosticError, tick }: GameConsoleFeedSources): void {
   const scriptMessage = scriptError?.message ?? null;
-  useConsoleLine(gameId, "runtime", runtimeError && runtimeError !== scriptMessage ? runtimeError : null, tick, null);
+  // Both editors classify a play-session error as a script failure by this marker. Stop and Load clear the
+  // script failure but keep the error text, so the marker, not the failure's presence, decides the line.
+  const runtimeMessage = runtimeError && !runtimeError.includes("Game script") ? runtimeError : null;
+  useConsoleLine(gameId, "runtime", runtimeMessage, tick, null);
   useConsoleLine(gameId, "script", scriptMessage, scriptError?.tick, scriptError?.entityId);
   useConsoleLine(gameId, "diagnostic", diagnosticError?.message ?? null, diagnosticError?.tick, diagnosticError?.entityId);
 }

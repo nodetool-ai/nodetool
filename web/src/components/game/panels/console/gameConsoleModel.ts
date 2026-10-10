@@ -67,7 +67,7 @@ interface ConsoleDocument {
   readonly scenes: readonly { readonly id: string; readonly entities: readonly { readonly id: string }[] }[];
 }
 
-/** Turns document validation issues into warning lines, linking each to the entity its path points at. */
+/** Turns document validation issues into error lines, linking each to the entity its path points at. Every issue makes the document invalid. */
 export function gameValidationConsoleEntries(issues: readonly { readonly path: readonly (string | number)[]; readonly message: string }[],
   document: ConsoleDocument): readonly GameConsoleEntry[] {
   return issues.map((issue) => {
@@ -75,7 +75,7 @@ export function gameValidationConsoleEntries(issues: readonly { readonly path: r
     const scene = root === "scenes" && typeof sceneIndex === "number" ? document.scenes[sceneIndex] : undefined;
     const entity = scene && child === "entities" && typeof entityIndex === "number" ? scene.entities[entityIndex] : undefined;
     const where = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
-    const entry: { -readonly [Key in keyof GameConsoleEntry]: GameConsoleEntry[Key] } = { level: "warning", source: "validation", message: `${where}${issue.message}` };
+    const entry: { -readonly [Key in keyof GameConsoleEntry]: GameConsoleEntry[Key] } = { level: "error", source: "validation", message: `${where}${issue.message}` };
     if (scene) { entry.sceneId = scene.id; }
     if (entity) { entry.entityId = entity.id; }
     return entry;

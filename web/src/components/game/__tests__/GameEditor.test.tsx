@@ -90,8 +90,13 @@ jest.mock("../panels/scripts/GameScriptPane", () => ({
   </>
 }));
 
+const saveServerDraft = async (_request: { id: string; baseUpdatedAt: string; ops: readonly unknown[] }) => mockServer;
+
 beforeEach(() => {
   jest.clearAllMocks();
+  // One test holds a save open with mockImplementationOnce. Reset so an unused one-off cannot reach the next test.
+  mockSave.mockReset();
+  mockSave.mockImplementation(saveServerDraft);
   // The editor shares one persisted layout store per user, so each case starts from the same docking layout.
   getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().selectLayout("Default");
   mockViewportProps = undefined;
@@ -276,7 +281,7 @@ it.each(["active play", "independent diagnostic"])("offers host replay only for 
   await user.click(screen.getByRole("button", { name: "Edit player script" }));
   const shown = screen.getAllByText(mockFailure.message);
   expect(shown.filter((element) => !element.closest("[role='log']")).length).toBeGreaterThan(0);
-  expect(within(screen.getByRole("log", { hidden: true })).getAllByRole("listitem", { hidden: true }).at(-1)).toHaveTextContent(mockFailure.message);
+  expect(within(screen.getByRole("list", { name: "Console lines", hidden: true })).getAllByRole("listitem", { hidden: true }).at(-1)).toHaveTextContent(mockFailure.message);
   if (provenance === "independent diagnostic") {
     expect(screen.queryByRole("button", { name: "Replay displayed error" })).not.toBeInTheDocument();
     expect(mockReplay).not.toHaveBeenCalled();

@@ -78,15 +78,15 @@ describe("entity links", () => {
     { id: "level-1", entities: [{ id: "player" }, { id: "door" }] }
   ] };
 
-  it("links validation issues to the entity at their path", () => {
+  it("logs validation issues as errors linked to the entity at their path", () => {
     expect(gameValidationConsoleEntries([
       { path: ["scenes", 1, "entities", 1, "collider2d"], message: "Collider is empty" },
       { path: ["scenes", 0, "camera"], message: "Missing camera" },
       { path: [], message: "Document is invalid" }
     ], document)).toEqual([
-      { level: "warning", source: "validation", message: "scenes.1.entities.1.collider2d: Collider is empty", sceneId: "level-1", entityId: "door" },
-      { level: "warning", source: "validation", message: "scenes.0.camera: Missing camera", sceneId: "intro" },
-      { level: "warning", source: "validation", message: "Document is invalid" }
+      { level: "error", source: "validation", message: "scenes.1.entities.1.collider2d: Collider is empty", sceneId: "level-1", entityId: "door" },
+      { level: "error", source: "validation", message: "scenes.0.camera: Missing camera", sceneId: "intro" },
+      { level: "error", source: "validation", message: "Document is invalid" }
     ]);
   });
 
