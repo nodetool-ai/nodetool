@@ -186,3 +186,34 @@ describe("useLayerActions history ordering", () => {
     expect(collapseStates).toEqual([true]);
   });
 });
+
+describe("useLayerActions opacity history", () => {
+  beforeEach(() => {
+    useSketchStore.getState().setDocument(useSketchStore.getState().document);
+  });
+
+  it("records one history entry for a slider drag and keeps earlier history", () => {
+    const store = useSketchStore.getState();
+    const layerId = store.document.activeLayerId;
+    store.pushHistory("earlier edit");
+    const params = makeBaseParams({
+      pushHistory: useSketchStore.getState().pushHistory,
+      setLayerOpacity: useSketchStore.getState().setLayerOpacity
+    });
+    const { result } = renderHook(() => useLayerActions(params as never));
+
+    act(() => {
+      for (let step = 99; step >= 50; step -= 1) {
+        result.current.handleSetLayerOpacity(layerId, step / 100, false);
+      }
+      result.current.handleSetLayerOpacity(layerId, 0.5, true);
+    });
+
+    const actions = useSketchStore.getState().history.map((entry) => entry.action);
+    expect(actions).toEqual(["earlier edit", "change opacity"]);
+    const layer = useSketchStore
+      .getState()
+      .document.layers.find((l) => l.id === layerId);
+    expect(layer?.opacity).toBe(0.5);
+  });
+});

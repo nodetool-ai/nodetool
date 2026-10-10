@@ -415,8 +415,8 @@ export function magicWandFromRgba(
   const h = imageData.height;
   const d = imageData.data;
   const out = new Uint8ClampedArray(w * h);
-  const sx = Math.round(seedX);
-  const sy = Math.round(seedY);
+  const sx = Math.floor(seedX);
+  const sy = Math.floor(seedY);
   if (sx < 0 || sy < 0 || sx >= w || sy >= h) {
     return out;
   }
@@ -515,8 +515,8 @@ export function magicWandNonContiguousFromRgba(
   const h = imageData.height;
   const d = imageData.data;
   const out = new Uint8ClampedArray(w * h);
-  const sx = Math.round(seedX);
-  const sy = Math.round(seedY);
+  const sx = Math.floor(seedX);
+  const sy = Math.floor(seedY);
   if (sx < 0 || sy < 0 || sx >= w || sy >= h) {
     return out;
   }

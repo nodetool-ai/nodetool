@@ -130,6 +130,8 @@ export function useTransformActions({
 }: UseTransformActionsParams): UseTransformActionsReturn {
   /** Original transform saved when the transform tool activates. */
   const transformOriginalRef = useRef<LayerTransform | null>(null);
+  /** The layer `transformOriginalRef` belongs to; cancel restores it there. */
+  const transformOriginalLayerIdRef = useRef<string | null>(null);
   const multiTransformOriginalRef = useRef<Record<
     string,
     LayerTransform
@@ -198,6 +200,7 @@ export function useTransformActions({
       : undefined;
     if (layer) {
       transformOriginalRef.current = cloneTransform(layer.transform);
+      transformOriginalLayerIdRef.current = layer.id;
     }
   }, [document]);
 
@@ -567,12 +570,16 @@ export function useTransformActions({
       transformOriginalRef.current = null;
       return;
     }
-    const activeLayerId = document.activeLayerId;
+    // The active layer may have changed since the baseline was saved, so
+    // restore the layer the baseline came from.
+    const originalLayerId =
+      transformOriginalLayerIdRef.current ?? document.activeLayerId;
     const original = transformOriginalRef.current;
     if (original) {
-      setLayerTransform(activeLayerId, original);
+      setLayerTransform(originalLayerId, original);
     }
     transformOriginalRef.current = null;
+    transformOriginalLayerIdRef.current = null;
   }, [document.activeLayerId, setLayerTransform, restoreSelectionFreeTransformState]);
 
   /** Reset: set transform to identity. */
