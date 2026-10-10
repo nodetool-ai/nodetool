@@ -14,8 +14,6 @@
  * (`@nodetool-ai/execution/js-script-debug`), the sandbox runner and the bridge
  * factory (`@nodetool-ai/agents`). Tests supply their own and load neither.
  */
-import { mkdir, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
 import type {
   JsScriptDebugReport,
   JsScriptInteractionRecord,
@@ -25,6 +23,7 @@ import type { JsScriptBridgeFinalState } from "@nodetool-ai/agents";
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { JsScriptInteractionStep } from "./interactions.js";
 import { runInteractionSteps } from "../interaction-script.js";
+import { writeDebugBundle } from "../debug-bundle.js";
 import {
   resolveJsScriptTarget,
   type ResolvedJsScriptTarget,
@@ -272,16 +271,6 @@ async function loadBridgeFactory(): Promise<CreateJsScriptBridge> {
     ) as JsScriptBridge;
 }
 
-function defaultOutDir(ref: string): string {
-  const slug =
-    ref
-      .replace(/[^a-zA-Z0-9_-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "jsscript";
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return resolve(`nodetool-debug/jsscript-${slug}-${stamp}`);
-}
-
 /**
  * The document a target carries, parsed against the schema so the executor
  * gets defaults for anything the file left out. A document that does not parse
@@ -429,25 +418,14 @@ export async function runJsScriptDebug(
   }
   const report = await core.buildJsScriptDebugReport(reportInput);
 
-  const bundleDir = options.outDir
-    ? resolve(options.outDir)
-    : defaultOutDir(ref);
-  await mkdir(bundleDir, { recursive: true });
-  await writeFile(
-    join(bundleDir, "jsscript.json"),
-    JSON.stringify(resolved.raw, null, 2),
-    "utf8"
-  );
-  await writeFile(
-    join(bundleDir, "report.json"),
-    JSON.stringify(report, null, 2),
-    "utf8"
-  );
-  await writeFile(
-    join(bundleDir, "report.md"),
-    core.renderJsScriptReportMarkdown(report),
-    "utf8"
-  );
+  const bundleDir = await writeDebugBundle({
+    kind: "jsscript",
+    ref,
+    outDir: options.outDir,
+    raw: resolved.raw,
+    report,
+    reportMarkdown: core.renderJsScriptReportMarkdown(report),
+  });
 
   return { report, bundleDir };
 }
