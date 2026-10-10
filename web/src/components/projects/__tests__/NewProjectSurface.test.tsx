@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
+import { useBugReportStore } from "../../../stores/BugReportStore";
 
 jest.mock("../CurrentProjectDocuments", () => ({
   __esModule: true,
@@ -222,18 +223,34 @@ jest.mock("../../setup/video/VideoSetupHost", () => ({
   __esModule: true,
   default: ({
     sequenceId,
+    active = true,
     onStartFromScript
   }: {
     sequenceId: string;
-    onStartFromScript?: (brief: string) => void;
+    active?: boolean;
+    onStartFromScript?: (
+      brief: string,
+      creativeContext?: { schema_version: 1; tone?: string }
+    ) => void;
   }) => (
-    <div data-testid="setup-flow">
+    <div data-testid="setup-flow" data-active={String(active)}>
       {sequenceId}
       <button
         type="button"
         onClick={() => onStartFromScript?.("A spot for our desk lamp")}
       >
         Start from a script
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onStartFromScript?.("A spot for our desk lamp", {
+            schema_version: 1,
+            tone: "Warm, minimal, night-time mood"
+          })
+        }
+      >
+        Start from a script with context
       </button>
     </div>
   )
@@ -323,11 +340,14 @@ const openTab = jest.fn();
 const setActiveTab = jest.fn();
 const setActiveProjectId = jest.fn();
 const setGuidedFlowTarget = jest.fn();
+// The tab on screen. Opening a guided tab makes it the active one, as the
+// real store does; a test moves it elsewhere to put the flow in the background.
+let mockActiveTabId: string | null = null;
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   ...jest.requireActual("../../../stores/WorkspaceTabsStore"),
   useWorkspaceTabsStore: <T,>(
-    selector: (s: { closeTab: jest.Mock; openTab: jest.Mock; tabs: []; personalProjectId: null; setActiveTab: jest.Mock; setActiveProjectId: jest.Mock; setGuidedFlowTarget: jest.Mock }) => T
-  ) => selector({ closeTab, openTab, tabs: [], personalProjectId: null, setActiveTab, setActiveProjectId, setGuidedFlowTarget })
+    selector: (s: { closeTab: jest.Mock; openTab: jest.Mock; tabs: []; personalProjectId: null; activeTabId: string | null; setActiveTab: jest.Mock; setActiveProjectId: jest.Mock; setGuidedFlowTarget: jest.Mock }) => T
+  ) => selector({ closeTab, openTab, tabs: [], personalProjectId: null, activeTabId: mockActiveTabId, setActiveTab, setActiveProjectId, setGuidedFlowTarget })
 }));
 
 const addNotification = jest.fn();
@@ -447,6 +467,7 @@ type FlowTab = { ref: string; setupTarget: NonNullable<import("../../../stores/W
 const renderSurface = (initialFlowTab: FlowTab | null = null, expandFormats = true) => {
   const client = new QueryClient();
   let activateFlowTab: (tab: FlowTab) => void = () => {};
+  mockActiveTabId = initialFlowTab ? `guided-flow:${initialFlowTab.ref}` : null;
   const Surface = () => {
     const [flowTab, setFlowTab] = useState(initialFlowTab);
     activateFlowTab = setFlowTab;
@@ -456,6 +477,7 @@ const renderSurface = (initialFlowTab: FlowTab | null = null, expandFormats = tr
   };
   openTab.mockImplementation((input: { type: string; ref: string; setupTarget?: FlowTab["setupTarget"] }) => {
     if (input.type === "guided-flow" && input.setupTarget) {
+      mockActiveTabId = `guided-flow:${input.ref}`;
       activateFlowTab({ ref: input.ref, setupTarget: input.setupTarget });
     }
     return `${input.type}:${input.ref}`;
@@ -981,10 +1003,30 @@ describe("NewProjectSurface", () => {
     expect(peekChatTurn("chat-1")).toBeNull();
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "error",
-        content: expect.stringContaining("Pick a language model here")
+        type: "info",
+        content: "Pick a language model and the chat starts."
       })
     );
+  });
+
+  // A first-time user who sends before picking a model got an error and had
+  // to send again after picking one. The start now resumes on the pick.
+  it("starts the parked chat once a model is picked", async () => {
+    selectedModel = { provider: "empty", id: "gpt-4o" };
+    const { refresh } = renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
+    expect(createNewThread).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Pick Claude" })
+    );
+    selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
+    refresh();
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
   });
 
   // BUG F1: the refusal was a dead end — no picker on this screen, and a
@@ -1161,6 +1203,31 @@ describe("NewProjectSurface", () => {
     // The tab is the flow now, and the project agent was never started.
     expect(await screen.findByTestId("setup-flow")).toHaveTextContent("b7");
     expect(openProject).not.toHaveBeenCalled();
+  });
+
+  it("mounts a hidden video flow tab as an inactive timeline", async () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <QueryClientProvider client={new QueryClient()}>
+          <NewProjectSurface
+            flowRef="flow-v"
+            active={false}
+            initialSetupTarget={{
+              kind: "video",
+              id: "seq-v",
+              projectId: "p1",
+              name: "Video",
+              ownsProject: false
+            }}
+          />
+        </QueryClientProvider>
+      </ThemeProvider>
+    );
+
+    expect(await screen.findByTestId("setup-flow")).toHaveAttribute(
+      "data-active",
+      "false"
+    );
   });
 
   it("restores a guided tab from its saved target after remounting", async () => {
@@ -1399,6 +1466,35 @@ describe("NewProjectSurface", () => {
     );
   });
 
+  // The creative context typed on the video flow's step 1 was dropped when
+  // the draft was discarded for a script.
+  it("carries the video flow's creative context into the script it starts", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+
+    await screen.findByTestId("setup-flow");
+    await user.click(
+      screen.getByRole("button", { name: "Start from a script with context" })
+    );
+
+    await waitFor(() =>
+      expect(createScript).toHaveBeenCalledWith(
+        expect.objectContaining({
+          document: expect.objectContaining({
+            creative_context: {
+              schema_version: 1,
+              tone: "Warm, minimal, night-time mood"
+            }
+          })
+        })
+      )
+    );
+  });
+
   // The video card took the picked entity, so the script it hands off to
   // carries it too, the way the Script card would have.
   it("carries the video card's entities into the script it starts", async () => {
@@ -1561,6 +1657,94 @@ describe("NewProjectSurface", () => {
     expect(documentCall).toBeGreaterThan(-1);
     expect(closeTab).toHaveBeenCalled();
     expect(useOnboardingStore.getState().completedSteps).toContain("start-guided-flow");
+  });
+
+  // Every tab stays mounted, so a flow can finish while the creator is in
+  // another tab. Its hand-off waits, rather than pulling them away.
+  it("holds a finish that lands while the guided tab is in the background", async () => {
+    const user = userEvent.setup();
+    const view = renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await screen.findByTestId("setup-flow");
+    const guidedTab = mockActiveTabId;
+    mockActiveTabId = "chat:elsewhere";
+    view.refresh();
+
+    managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
+    await user.click(screen.getByRole("button", { name: "Copy the example" }));
+    await waitFor(() => expect(exampleCopyId).toHaveBeenCalled());
+    expect(
+      openTab.mock.calls.some(([input]) => input.type === "workflow")
+    ).toBe(false);
+    expect(openProject).not.toHaveBeenCalled();
+
+    mockActiveTabId = guidedTab;
+    view.refresh();
+    await waitFor(() =>
+      expect(
+        openTab.mock.calls.some(([input]) => input.type === "workflow")
+      ).toBe(true)
+    );
+  });
+
+  // The document is done, so the flow has no step left: a failed project
+  // open keeps a way to try the hand-off again instead of a blank tab.
+  it("offers to open the document again when its project did not open", async () => {
+    const user = userEvent.setup();
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "other-project" });
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await screen.findByTestId("setup-flow");
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
+
+    openProject.mockResolvedValueOnce(false);
+    managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
+    await user.click(screen.getByRole("button", { name: "Copy the example" }));
+
+    const retry = await screen.findByRole("button", {
+      name: "Open your workflow"
+    });
+    expect(
+      openTab.mock.calls.some(([input]) => input.type === "workflow")
+    ).toBe(false);
+    await user.click(retry);
+    await waitFor(() =>
+      expect(
+        openTab.mock.calls.some(([input]) => input.type === "workflow")
+      ).toBe(true)
+    );
+  });
+
+  // Every error surface carries a Report control (components/AGENTS.md).
+  it("lets the creator report a hand-off whose project did not open", async () => {
+    const user = userEvent.setup();
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "other-project" });
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await screen.findByTestId("setup-flow");
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
+
+    openProject.mockResolvedValueOnce(false);
+    managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
+    await user.click(screen.getByRole("button", { name: "Copy the example" }));
+    await screen.findByRole("button", { name: "Open your workflow" });
+
+    await user.click(
+      screen.getByRole("button", { name: "Report this failure" })
+    );
+    expect(useBugReportStore.getState().context).toMatchObject({
+      source: "manual",
+      errorText: "Your workflow is ready, but its project did not open."
+    });
   });
 
   it("opens the image flow's sketch tab in the selected project", async () => {

@@ -66,7 +66,81 @@ interface DirectGenRpcResponse extends WebSocketMessage {
   error?: { code?: string; message?: string };
 }
 
-type TimelineStoreHandle = Pick<TimelineStoreApi, "getState">;
+/** The document store, with its undo history when the caller has one. */
+type TimelineStoreHandle = Pick<TimelineStoreApi, "getState"> &
+  Partial<Pick<TimelineStoreApi, "temporal">>;
+
+/** The clip fields a generation owns: its status and what it produced. */
+type GenerationPatch = Partial<
+  Pick<
+    TimelineClip,
+    | "status"
+    | "versions"
+    | "currentAssetId"
+    | "activeTakeId"
+    | "inPointMs"
+    | "outPointMs"
+  >
+>;
+
+/** Apply a generation patch to one saved snapshot of a clip. */
+const carryGenerationPatch = (
+  clip: TimelineClip,
+  patch: GenerationPatch
+): TimelineClip => {
+  const next = { ...clip, ...patch };
+  if (patch.versions) {
+    // A snapshot keeps its own takes: an undone take deletion still restores
+    // the take. Only versions the snapshot has never seen are added.
+    const known = new Set((clip.versions ?? []).map((version) => version.id));
+    next.versions = [
+      ...(clip.versions ?? []),
+      ...patch.versions.filter((version) => !known.has(version.id))
+    ];
+  }
+  return next;
+};
+
+/**
+ * Write a generation's status or result outside the undo history.
+ *
+ * A render is not an edit. Recorded as one, Undo removed a paid take or put
+ * the clip back to "generating" with nothing in flight, so it spun forever.
+ * The patch is also carried into every saved snapshot that has the clip, so
+ * undoing an earlier edit does not drop the take either.
+ */
+function writeGenerationState(
+  timeline: TimelineStoreHandle,
+  clipId: string,
+  patch: GenerationPatch
+): void {
+  const history = timeline.temporal;
+  if (!history) {
+    timeline.getState().patchClip(clipId, patch);
+    return;
+  }
+  const tracking = history.getState().isTracking;
+  if (tracking) history.getState().pause();
+  try {
+    timeline.getState().patchClip(clipId, patch);
+  } finally {
+    if (tracking) history.getState().resume();
+  }
+  const carry = <S extends { clips: TimelineClip[] }>(snapshot: S): S =>
+    snapshot.clips.some((clip) => clip.id === clipId)
+      ? {
+          ...snapshot,
+          clips: snapshot.clips.map((clip) =>
+            clip.id === clipId ? carryGenerationPatch(clip, patch) : clip
+          )
+        }
+      : snapshot;
+  const { pastStates, futureStates } = history.getState();
+  history.setState({
+    pastStates: pastStates.map(carry),
+    futureStates: futureStates.map(carry)
+  });
+}
 
 interface UseTimelineDirectGenJobApi {
   /** Returns the requestId once the RPC has been dispatched (or null on validation failure). */
@@ -150,7 +224,7 @@ const clearInFlight = (
 };
 
 function fail(timeline: TimelineStoreHandle, clipId: string): void {
-  timeline.getState().patchClip(clipId, { status: "failed" });
+  writeGenerationState(timeline, clipId, { status: "failed" });
 }
 
 /**
@@ -343,7 +417,7 @@ export function landDirectGen(
       !keepAcceptedTake &&
       (sequenceId === null || store.sequenceId === sequenceId)
     ) {
-      store.patchClip(clipId, { status: "failed" });
+      writeGenerationState(timeline, clipId, { status: "failed" });
     }
     return;
   }
@@ -426,7 +500,7 @@ export function landDirectGen(
   const newVersion = makeClipVersion(versionOverrides);
   // Locked clips don't get their currentAssetId replaced — but the version
   // is still recorded so the user can restore it later.
-  const patch: Partial<TimelineClip> = {
+  const patch: GenerationPatch = {
     status: "generated",
     versions: [...(current.versions ?? []), newVersion]
   };
@@ -439,7 +513,7 @@ export function landDirectGen(
     patch.inPointMs = undefined;
     patch.outPointMs = undefined;
   }
-  store.patchClip(clipId, patch);
+  writeGenerationState(timeline, clipId, patch);
   if (
     (current.bindingKind === "text-to-audio" ||
       current.bindingKind === "text-to-music") &&
@@ -504,7 +578,7 @@ const applyProductionCandidate = (
     }
   });
   if (landed !== current) {
-    timeline.getState().patchClip(clipId, { versions: landed.versions });
+    writeGenerationState(timeline, clipId, { versions: landed.versions });
   }
   return true;
 };
@@ -579,7 +653,7 @@ const applyMediaEditCandidate = (
     mediaEdit: request
   });
   if (next !== current) {
-    timeline.getState().patchClip(clipId, { versions: next.versions });
+    writeGenerationState(timeline, clipId, { versions: next.versions });
   }
   return true;
 };
@@ -966,6 +1040,7 @@ function failOrphanedGenerating(
 ): void {
   const state = timeline.getState();
   if (state.sequenceId !== sequenceId) return;
+  failOrphanedImports(timeline, sequenceId);
   const orphaned = state.clips.filter(
     (clip) =>
       (clip.status === "generating" || clip.status === "queued") &&
@@ -976,7 +1051,7 @@ function failOrphanedGenerating(
   );
   if (orphaned.length === 0) return;
   for (const clip of orphaned) {
-    state.patchClip(clip.id, { status: "failed" });
+    writeGenerationState(timeline, clip.id, { status: "failed" });
   }
   useNotificationStore.getState().addNotification({
     type: "warning",
@@ -985,6 +1060,56 @@ function failOrphanedGenerating(
         ? `"${orphaned[0].name}" was generating when this timeline closed and its request could not be found. Retry to generate it again.`
         : `${orphaned.length} clips were generating when this timeline closed and their requests could not be found. Retry to generate them again.`,
     dedupeKey: `timeline-direct-gen-orphaned-${sequenceId}`,
+    replaceExisting: true
+  });
+}
+
+/**
+ * Ask the server to stop these requests. Clearing the clip alone left the
+ * provider call running, so Cancel then Generate paid for two renders.
+ * Nothing waits on the reply: the clip is already settled locally.
+ */
+function sendCancelGeneration(requestIds: readonly string[]): void {
+  if (requestIds.length === 0) return;
+  globalWebSocketManager
+    .send({
+      command: "cancel_generation",
+      request_id: crypto.randomUUID(),
+      data: { request_ids: [...requestIds] }
+    })
+    .catch((error: unknown) => {
+      console.error("Failed to cancel generation on the server:", error);
+    });
+}
+
+/**
+ * An imported clip saved while its media was still being produced, such as
+ * the audio extracted from a dropped video. The request that fills it lives
+ * only in the tab that dropped the video, so on load nothing will.
+ */
+function failOrphanedImports(
+  timeline: TimelineStoreHandle,
+  sequenceId: string
+): void {
+  const orphaned = timeline
+    .getState()
+    .clips.filter(
+      (clip) =>
+        clip.sourceType === "imported" &&
+        clip.status === "generating" &&
+        !clip.currentAssetId
+    );
+  if (orphaned.length === 0) return;
+  for (const clip of orphaned) {
+    writeGenerationState(timeline, clip.id, { status: "failed" });
+  }
+  useNotificationStore.getState().addNotification({
+    type: "warning",
+    content:
+      orphaned.length === 1
+        ? `"${orphaned[0].name}" was still being extracted when this timeline closed. Import the video again to extract its audio.`
+        : `${orphaned.length} clips were still being extracted when this timeline closed. Import their videos again to extract the audio.`,
+    dedupeKey: `timeline-import-orphaned-${sequenceId}`,
     replaceExisting: true
   });
 }
@@ -1097,7 +1222,7 @@ async function reattachRestoredJobs(
     // is left of this entry's own window, after which the clip fails and
     // offers Retry rather than rendering forever.
     if (!job.mediaEdit && !job.production && !job.candidateOnly) {
-      timeline.getState().patchClip(job.clipId, { status: "generating" });
+      writeGenerationState(timeline, job.clipId, { status: "generating" });
     }
     subscribeDirectGen(
       timeline,
@@ -1271,7 +1396,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
           ? undefined
           : snapshotSubmittedParams(clip);
       if (!production) {
-        timeline.getState().patchClip(clipId, { status: "generating" });
+        writeGenerationState(timeline, clipId, { status: "generating" });
       }
       // Watched from the send, not only from a reattach. A socket that drops
       // and reconnects without a reload — a network blip — leaves the reply
@@ -1667,6 +1792,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
             .settle(sequenceId, clipId, undefined, job.requestId);
         }
       }
+      sendCancelGeneration(chosen.map((job) => job.requestId));
       if (scope === "edit" || (edits.length > 0 && generations.length === 0)) {
         return;
       }
@@ -1677,9 +1803,9 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       // when the clip has no rendered asset.
       const clip = timeline.getState().clips.find((c) => c.id === clipId);
       if (!clip) return;
-      timeline
-        .getState()
-        .patchClip(clipId, { status: deriveIdleClipStatus(clip) });
+      writeGenerationState(timeline, clipId, {
+        status: deriveIdleClipStatus(clip)
+      });
     },
     [timeline]
   );

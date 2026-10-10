@@ -10,7 +10,10 @@
  *
  *   - a changed file outside every workspace that is not documentation, or a
  *     change to the gate's own workflow files, selects everything;
- *   - a backend shard runs when the diff affects a package in its slice;
+ *   - a backend shard runs when the diff affects a package in its slice, with
+ *     turbo's `--affected` only when every changed file sits in a workspace
+ *     directory (`turbo_affected`), since turbo cannot attribute any other
+ *     file to a package;
  *   - web runs `--findRelatedTests` when only files under `web/src` changed,
  *     and its whole suite (sharded by the caller) when a package it depends on
  *     changed;
@@ -29,7 +32,7 @@ import { appendFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { APPS, buildPlan, fullPlan, readPackages } from "./test-affected.mjs";
+import { APPS, DOC_ONLY, buildPlan, fullPlan, readPackages } from "./test-affected.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -48,6 +51,13 @@ export const DOCKER_FILES =
 
 /** Inputs of `npm run build:tsc6` beyond source code. */
 export const TSC6_FILES = /(^|\/)(package\.json|tsconfig[^/]*\.json)$|^package-lock\.json$|^\.nvmrc$/;
+
+/**
+ * The Blender integration suites render real scenes and take most of the
+ * nodes leg. They run when blender-nodes itself changes and in the full
+ * nightly run; elsewhere the leg skips installing Blender and they skip.
+ */
+export const BLENDER_FILES = /^packages\/blender-nodes\//;
 
 /** Web files whose change can alter any test, not just the ones importing them. */
 const WEB_GLOBAL = /^web\/src\/(setupTests\.ts$|__mocks__\/)/;
@@ -86,7 +96,9 @@ export function fullCiPlan() {
     integration: true,
     workflow_runner_e2e: true,
     tsc6: true,
-    docker: true
+    docker: true,
+    blender: true,
+    turbo_affected: false
   };
 }
 
@@ -100,6 +112,16 @@ export function buildCiPlan(files, packages, computeAffected) {
 
   const plan = buildPlan(files, packages, computeAffected);
   if (plan.globalFiles.length > 0) return { ...fullCiPlan(), docker };
+
+  // Turbo's `--affected` maps a changed file to the workspace whose directory
+  // holds it, and a file in no workspace directory to the root, which no
+  // package depends on. A file another workspace owns through
+  // EXTRA_WORKSPACE_PATHS (shipped skills, sandbox packs, journeys) therefore
+  // selects no test task under `--affected`, so the shards run without it and
+  // the task hashes decide what reruns.
+  const outsideWorkspaces = files.some(
+    (f) => !DOC_ONLY.test(f) && !packages.some((p) => f === p.dir || f.startsWith(`${p.dir}/`))
+  );
 
   const { affected } = computeAffected(files, packages);
   const byName = new Map(packages.map((p) => [p.name, p]));
@@ -126,7 +148,9 @@ export function buildCiPlan(files, packages, computeAffected) {
     integration: affected.includes("@nodetool-ai/base-nodes"),
     workflow_runner_e2e: affected.includes("@nodetool-ai/workflow-runner"),
     tsc6: files.some((f) => TSC6_FILES.test(f)),
-    docker
+    docker,
+    blender: files.some((f) => BLENDER_FILES.test(f)),
+    turbo_affected: !outsideWorkspaces
   };
 }
 

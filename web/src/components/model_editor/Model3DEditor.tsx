@@ -10,6 +10,8 @@ import {
   type MutableRefObject
 } from "react";
 import { registerComboCallback, useKeyPressedStore } from "../../stores/KeyPressedStore";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
+import { useContextCommands } from "../../hooks/useContextCommands";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import * as THREE from "three";
@@ -128,6 +130,7 @@ import {
   StudioEnvironment,
   WireframeOverlay,
   captureModelOnly,
+  isVisibleInTree,
   type CameraRequest,
   type CameraRequestInput,
   type CaptureHandles,
@@ -372,6 +375,8 @@ interface Model3DEditorProps {
    * mount a single editor.
    */
   active?: boolean;
+  /** Told whenever the scene gains or loses unsaved edits. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const Model3DEditor = ({
@@ -381,7 +386,8 @@ const Model3DEditor = ({
   onClose,
   cameraPose,
   offlineLighting = false,
-  active = true
+  active = true,
+  onDirtyChange
 }: Model3DEditorProps) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -480,8 +486,12 @@ const Model3DEditor = ({
     [history, bump]
   );
 
+  // Every edit first ends the animation preview. Stopping it puts back the
+  // rest pose it recorded, so a transform set during playback would otherwise
+  // be undone by the next stop or save while history still lists it.
   const record: RecordEdit = useCallback(
     (edit) => {
+      stopPreview();
       const before = edit.get();
       const same = edit.equals ? edit.equals(before, edit.value) : Object.is(before, edit.value);
       if (same) {
@@ -493,24 +503,32 @@ const Model3DEditor = ({
         setValueCommand(edit.label, edit.set, before, edit.value, edit.mergeKey, edit.release)
       );
     },
-    [pushCommand]
+    [pushCommand, stopPreview]
   );
 
   const undo = useCallback(() => {
+    stopPreview();
     if (history.undo()) {
       bump();
     }
-  }, [history, bump]);
+  }, [history, bump, stopPreview]);
 
   const redo = useCallback(() => {
+    stopPreview();
     if (history.redo()) {
       bump();
     }
-  }, [history, bump]);
+  }, [history, bump, stopPreview]);
 
   const revision = history.revision();
   const isDirty = revision !== savedRevision;
   void tick;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+  // Closing the editor discards its edits, so nothing is unsaved any more.
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   // Mirror of selectedUuid for the tool-bridge handler, which is registered once
   // with stable callbacks and must read the latest selection without re-registering.
@@ -659,6 +677,8 @@ const Model3DEditor = ({
       if (!parent || obj === root) {
         return null;
       }
+      // Copy the rest pose, not the animated frame on screen.
+      stopPreview();
       const copy = cloneObjectDeep(obj);
       copy.name = nextAvailableName(obj.name || obj.type, takenNames());
       parent.add(copy);
@@ -670,7 +690,7 @@ const Model3DEditor = ({
       setSelectedUuid(copy.uuid);
       return copy;
     },
-    [root, takenNames, pushCommand]
+    [root, takenNames, pushCommand, stopPreview]
   );
 
   // --- Import ----------------------------------------------------------------
@@ -802,6 +822,7 @@ const Model3DEditor = ({
       if (!obj || !parent || obj.parent === parent) {
         return;
       }
+      stopPreview();
       const command = reparentObject(
         `Parent ${obj.name || obj.type}`,
         obj,
@@ -812,7 +833,7 @@ const Model3DEditor = ({
         pushCommand(command);
       }
     },
-    [root, pushCommand]
+    [root, pushCommand, stopPreview]
   );
 
   // --- Selection actions -------------------------------------------------------
@@ -949,6 +970,11 @@ const Model3DEditor = ({
   }, [gizmoMode, pushCommand]);
 
   const handleSceneClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    // The raycaster hits hidden meshes too. Leave the event to the next hit,
+    // so a hidden object is not selected and does not block the one behind it.
+    if (!isVisibleInTree(e.object)) {
+      return;
+    }
     e.stopPropagation();
     // A drag that orbited the camera is not a click.
     if (e.delta > 4) {
@@ -967,8 +993,11 @@ const Model3DEditor = ({
   // --- Save / close ------------------------------------------------------------
 
   const savingRef = useRef(false);
+  // While the model loads, or after it failed to load, the scene is empty.
+  // Saving then would overwrite the file with nothing.
+  const canSave = !isLoading && !loadError;
   const handleSave = useCallback(async () => {
-    if (savingRef.current) {
+    if (savingRef.current || !canSave) {
       return;
     }
     savingRef.current = true;
@@ -990,7 +1019,7 @@ const Model3DEditor = ({
       savingRef.current = false;
       setIsSaving(false);
     }
-  }, [root, onSave, history, stopPreview, animationClips]);
+  }, [root, onSave, history, stopPreview, animationClips, canSave]);
 
   const requestClose = useCallback(() => {
     if (isDirty) {
@@ -1009,6 +1038,7 @@ const Model3DEditor = ({
     selectedUuidRef,
     setSelectedUuid,
     pushCommand,
+    beforeEdit: stopPreview,
     refresh: bump,
     addPrimitive: addPrimitiveObject,
     deleteObject,
@@ -1076,12 +1106,31 @@ const Model3DEditor = ({
           callback: () => actionsRef.current[shortcut.action](),
           // Tool keys must not swallow typing elsewhere; Ctrl combos do.
           preventDefault: combo.includes("+"),
+          // Ctrl+S saves from inside an Inspector field too, instead of
+          // falling through to the browser's "Save page" dialog.
+          allowInInputs: shortcut.action === "save",
           target: getContainer
         })
       )
     );
     return () => releases.forEach((release) => release());
   }, [getContainer]);
+
+  // The same actions, listed in the Cmd+K menu while this tab is on screen.
+  const menuCommands = useMemo<ContextCommand[]>(
+    () =>
+      EDITOR_SHORTCUTS.filter((shortcut) => shortcut.action !== "deselect").map(
+        (shortcut) => ({
+          id: shortcut.action,
+          label: shortcut.label,
+          keywords: [shortcut.group],
+          shortcut: shortcut.keys.join("+"),
+          run: () => actionsRef.current[shortcut.action]()
+        })
+      ),
+    []
+  );
+  useContextCommands("3D Model", menuCommands, active && !cameraPose);
 
   // --- Render ------------------------------------------------------------------------
 
@@ -1309,7 +1358,7 @@ const Model3DEditor = ({
                 variant={isDirty ? "contained" : "outlined"}
                 startIcon={<SaveIcon />}
                 onClick={() => void handleSave()}
-                disabled={isSaving}
+                disabled={isSaving || !canSave}
               >
                 {isSaving ? "Saving…" : "Save"}
               </EditorButton>

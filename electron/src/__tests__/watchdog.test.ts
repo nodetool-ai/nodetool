@@ -390,3 +390,62 @@ describe("Watchdog: output handler delegation", () => {
     expect(lines).toEqual(["hello world", "warn: x"]);
   });
 });
+
+describe("Watchdog: supervision", () => {
+  const { probeHttpOk } = jest.requireMock("../httpProbe") as {
+    probeHttpOk: jest.Mock;
+  };
+
+  interface MonitorInternals {
+    monitorTick(): Promise<void>;
+    isPidAlive(): Promise<boolean>;
+  }
+
+  test("a 503 from /health with a live /ready never restarts the backend", async () => {
+    probeHttpOk.mockImplementation(async (url: string) => !url.endsWith("/health"));
+    const wd = new Watchdog({
+      name: "x",
+      command: "/mock/x",
+      args: [],
+      env: {},
+      pidFilePath: "/tmp/x.pid",
+      healthUrl: "http://127.0.0.1:9000/health",
+    });
+    // SAFETY: monitorTick and isPidAlive are Watchdog's own private methods.
+    const monitor = wd as unknown as MonitorInternals;
+    jest.spyOn(monitor, "isPidAlive").mockResolvedValue(true);
+    const restart = jest.spyOn(wd, "restart").mockResolvedValue(undefined);
+
+    for (let i = 0; i < 5; i++) {
+      await monitor.monitorTick();
+    }
+
+    expect(restart).not.toHaveBeenCalled();
+    expect(probeHttpOk).toHaveBeenCalledWith(
+      "http://127.0.0.1:9000/ready",
+      expect.anything()
+    );
+  });
+
+  test("an unresponsive process is restarted after three failed checks", async () => {
+    probeHttpOk.mockResolvedValue(false);
+    const wd = new Watchdog({
+      name: "x",
+      command: "/mock/x",
+      args: [],
+      env: {},
+      pidFilePath: "/tmp/x.pid",
+      healthUrl: "http://127.0.0.1:9000/health",
+    });
+    // SAFETY: monitorTick and isPidAlive are Watchdog's own private methods.
+    const monitor = wd as unknown as MonitorInternals;
+    jest.spyOn(monitor, "isPidAlive").mockResolvedValue(true);
+    const restart = jest.spyOn(wd, "restart").mockResolvedValue(undefined);
+
+    await monitor.monitorTick();
+    await monitor.monitorTick();
+    expect(restart).not.toHaveBeenCalled();
+    await monitor.monitorTick();
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+});

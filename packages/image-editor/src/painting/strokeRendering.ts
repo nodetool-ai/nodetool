@@ -457,7 +457,8 @@ export function drawBrushStroke(
         ctx.fill();
       }
       ctx.restore();
-      markDirtyRect(x, y, radius);
+      // A dot centred on the spray radius still spills out by its own size.
+      markDirtyRect(x, y, radius + Math.max(1, effectiveSize * 0.06));
       return;
     }
 

@@ -77,6 +77,8 @@ function writeValidBundle(dir: string): void {
     path.join(dir, "_modules", "webgpu", "dist", "linux-x86-64.dawn.node"),
     "x"
   );
+  writeStagedPackage(dir, "esbuild", { version: "0.28.1" });
+  writeStagedPackage(dir, "@esbuild/linux-x64", { version: "0.28.1" });
   writeStagedPackage(dir, "sharp", { version: "0.35.3" });
   writeStagedPackage(dir, "@img/sharp-linux-x64", {
     version: "0.35.3",
@@ -250,6 +252,19 @@ function writeSandboxPack(dir: string, { helper }: { helper: boolean }): void {
   }
 }
 
+/** Stage a guest pack that compiles an npm library, as sandbox-dates does. */
+function writeNpmSandboxPack(dir: string): void {
+  const packDir = path.join(dir, "_sandbox", "@acme", "dates");
+  fs.mkdirSync(packDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(packDir, "package.json"),
+    JSON.stringify({
+      name: "@acme/dates",
+      nodetool: { sandboxModules: [{ name: ".", kind: "js", npm: "date-fns" }] },
+    })
+  );
+}
+
 function runVerify(dir: string) {
   const result = spawnSync(process.execPath, [SCRIPT, dir], {
     encoding: "utf8",
@@ -399,6 +414,28 @@ describe("verify-backend-bundle", () => {
     expect(output).toContain("@img/sharp-linux-x64 is 0.34.5");
   });
 
+  it("fails when server.mjs inlines esbuild's JS API", () => {
+    fs.appendFileSync(
+      path.join(tempDir, "server.mjs"),
+      '\nthrow new Error("The esbuild JavaScript API cannot be bundled.");\n'
+    );
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("inlines esbuild's JS API");
+  });
+
+  it("fails when esbuild or its platform binary is not staged", () => {
+    fs.rmSync(path.join(tempDir, "_modules", "@esbuild"), { recursive: true });
+    let result = runVerify(tempDir);
+    expect(result.status).toBe(1);
+    expect(result.output).toContain("@esbuild/<platform> binary");
+
+    fs.rmSync(path.join(tempDir, "_modules", "esbuild"), { recursive: true });
+    result = runVerify(tempDir);
+    expect(result.status).toBe(1);
+    expect(result.output).toContain("_modules/esbuild is missing");
+  });
+
   it("fails when no @img prebuild is staged at all", () => {
     fs.rmSync(path.join(tempDir, "_modules", "@img"), { recursive: true });
     const { status, output } = runVerify(tempDir);
@@ -457,6 +494,24 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(status).toBe(1);
     expect(output).toContain("nodetool.sandboxModules");
+  });
+
+  it("fails when a guest pack's npm module is not staged", () => {
+    // The compiler resolves the library from _sandbox/<pack> upward, so a
+    // pack whose module is absent from _modules/ cannot be imported at all.
+    writeNpmSandboxPack(tempDir);
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain(
+      "_sandbox/@acme/dates compiles npm module(s) not staged under _modules/: date-fns"
+    );
+  });
+
+  it("accepts a guest pack whose npm module is staged", () => {
+    writeNpmSandboxPack(tempDir);
+    writeStagedPackage(tempDir, "date-fns", { version: "4.4.0" });
+    const { status } = runVerify(tempDir);
+    expect(status).toBe(0);
   });
 
   it("fails when a shipped system skill is not staged", () => {

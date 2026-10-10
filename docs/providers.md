@@ -184,7 +184,7 @@ HuggingFace routes chat, image, text-to-video, TTS, ASR, and embeddings to Huggi
 
 ## Ollama
 
-Ollama runs chat and embedding models locally, with no API key and no per-token cost. Pull a model with `ollama pull <model>` and it appears in NodeTool automatically. The server URL comes from `OLLAMA_API_URL` (default `http://127.0.0.1:11434`). See the [Ollama provider guide](developer/providers/ollama.md).
+Ollama runs chat and embedding models locally, with no API key and no per-token cost. It is a separate program: install it from [ollama.com](https://ollama.com) and keep it running, because NodeTool does not ship or start it. Pull a model with `ollama pull <model>` and it appears in NodeTool. The server URL comes from `OLLAMA_API_URL` (default `http://127.0.0.1:11434`), set in **Settings → Integrations → Local Model Servers** or the environment. `OLLAMA_CONTEXT_LENGTH` and `OLLAMA_KEEP_ALIVE` are in [Configuration](configuration.md#environment-variables-index). See the [Ollama provider guide](developer/providers/ollama.md).
 
 ## vLLM
 
@@ -220,7 +220,7 @@ Transformers.js (provider id `transformers_js`) runs small ONNX models in-proces
 
 ## Local Python providers
 
-When the Python worker is installed, it registers its own providers over the stdio bridge, such as MLX on Apple Silicon and local Hugging Face execution. The worker's `huggingface` provider appears as `huggingface-local` because the TypeScript runtime already owns the `huggingface` id for the hosted API. These providers offer image, video, TTS, music, ASR, and embedding models from the worker's pack.
+When the Python worker runs with the matching pack installed, it registers its own providers over the stdio bridge, such as MLX on Apple Silicon and local Hugging Face execution. Install the packs from **Package Manager → Python packs**, or see [Python nodes without the desktop app](installation.md#python-nodes-without-the-desktop-app). With `NODETOOL_PYTHON_ON_DEMAND=true`, these providers appear only after a workflow has started the worker. The worker's `huggingface` provider appears as `huggingface-local` because the TypeScript runtime already owns the `huggingface` id for the hosted API. These providers offer image, video, TTS, music, ASR, and embedding models from the worker's pack.
 
 ## NodeTool managed models
 

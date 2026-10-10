@@ -8,7 +8,7 @@ import { getNodePath, getProcessEnv, getPythonPath, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
-import { getTorchIndexUrl } from "./torchPlatformCache";
+import { getTorchBackend, torchBackendArgs } from "./torchPlatformCache";
 // The bridge-protocol constants live in @nodetool-ai/protocol — a tiny
 // zod-only package — specifically so the Electron main bundle can read them
 // without dragging the @nodetool-ai/runtime barrel (and every provider's
@@ -218,7 +218,7 @@ async function getInstalledPythonPackageVersion(
       stdoutChunks.push(chunk);
     });
 
-    proc.on("exit", (code) => {
+    proc.on("close", (code) => {
       if (code === 0) {
         const version = Buffer.concat(stdoutChunks).toString().trim();
         resolve(version || null);
@@ -322,23 +322,19 @@ async function installRequiredPythonPackages(
     new Set([...corePackageSpecs, ...additionalSpecs]),
   );
 
+  // No pre-releases: allowing them resolved httpx 1.0 dev releases, which
+  // lack AsyncClient. Torch packages, when any are pulled in, come from the
+  // detected PyTorch index (see torchruntime.ts).
   const installCommand: string[] = [
     uvExecutable,
     "pip",
     "install",
-    "--prerelease=allow",
     "--index-url",
     PYPI_SIMPLE_INDEX_URL,
-    "--index-strategy",
-    "unsafe-best-match",
+    ...torchBackendArgs(getTorchBackend()),
     "--system",
     ...packageSpecs,
   ];
-
-  const torchIndexUrl = getTorchIndexUrl();
-  if (torchIndexUrl) {
-    installCommand.push("--extra-index-url", torchIndexUrl);
-  }
 
   logMessage(
     `Installing required Python packages: ${packageSpecs.join(", ")}`,

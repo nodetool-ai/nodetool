@@ -27,6 +27,7 @@ import { readEntityMarker, type EntityMarker } from "@nodetool-ai/protocol";
 import { Application } from "./application.js";
 import { Game } from "./game.js";
 import { Asset } from "./asset.js";
+import { listProjectWorkflows } from "./document-index.js";
 import { ImageDocument } from "./image-document.js";
 import { JsScript } from "./js-script.js";
 import { Prediction } from "./prediction.js";
@@ -147,8 +148,17 @@ export interface TimelinePreview {
  */
 export type ProjectDocumentPreview = ScriptPreview | TimelinePreview;
 
+/**
+ * The kinds a project overview lists. A workflow is one of the project's
+ * documents to whoever saved it there, so the overview counts it. It is not a
+ * {@link ProjectDocumentType}: copying a document into another project does
+ * not cover workflows.
+ */
+export type ProjectSummaryDocumentType = ProjectDocumentType | "workflow";
+
 /** A document card: the tab-open ref, what it shows, and what it cost. */
-export interface ProjectDocumentSummary extends ProjectDocumentRef {
+export interface ProjectDocumentSummary extends Omit<ProjectDocumentRef, "type"> {
+  type: ProjectSummaryDocumentType;
   status: ProjectDocumentStatus | null;
   /** Priced spend attributed to this document, in USD. */
   spendUsd: number;
@@ -483,6 +493,7 @@ interface ProjectDocumentRows {
   applications: Application[];
   jsScripts: JsScript[];
   games: Game[];
+  workflows: Array<{ id: string; name: string; updated_at: string }>;
   /** True when any table filled its cap, so documents are missing from these. */
   partial: boolean;
 }
@@ -520,15 +531,24 @@ async function loadProjectDocuments(
   documentsPerType = DOCUMENTS_PER_TYPE
 ): Promise<ProjectDocumentRows> {
   const cap = documentsPerType + 1;
-  const [storyboards, scripts, timelines, sketches, applications, jsScripts, games] =
-    await Promise.all([
+  const [
+    storyboards,
+    scripts,
+    timelines,
+    sketches,
+    applications,
+    jsScripts,
+    games,
+    workflows
+  ] = await Promise.all([
       Storyboard.listByProject(projectId, userId, cap),
       Script.listByProject(projectId, userId, cap),
       TimelineSequence.listByProject(projectId, userId, cap),
       ImageDocument.listByProject(projectId, userId, cap),
       Application.listByProject(projectId, userId, cap),
       JsScript.listByProject(projectId, userId, cap),
-      Game.listByProject(userId, projectId)
+      Game.listByProject(userId, projectId),
+      listProjectWorkflows(userId, projectId, cap)
     ]);
   const overflowed =
     storyboards.length > documentsPerType ||
@@ -537,7 +557,8 @@ async function loadProjectDocuments(
     sketches.length > documentsPerType ||
     applications.length > documentsPerType ||
     jsScripts.length > documentsPerType ||
-    games.length > documentsPerType;
+    games.length > documentsPerType ||
+    workflows.length > documentsPerType;
   const keep = <T>(rows: T[]): T[] => rows.slice(0, documentsPerType);
   return {
     storyboards: keep(storyboards),
@@ -547,21 +568,22 @@ async function loadProjectDocuments(
     applications: keep(applications),
     jsScripts: keep(jsScripts),
     games: keep(games),
+    workflows: keep(workflows),
     partial: overflowed
   };
 }
 
-const toRef = (
-  type: ProjectDocumentType,
+const toRef = <T extends ProjectSummaryDocumentType = ProjectDocumentType>(
+  type: T,
   row: { id: string; name: string; updated_at: string }
-): ProjectDocumentRef => ({
+): Omit<ProjectDocumentRef, "type"> & { type: T } => ({
   type,
   ref: row.id,
   name: row.name,
   updatedAt: row.updated_at
 });
 
-const newestFirst = <T extends ProjectDocumentRef>(refs: T[]): T[] =>
+const newestFirst = <T extends { updatedAt: string }>(refs: T[]): T[] =>
   refs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
 /** Every document naming this project, newest first. */
@@ -625,7 +647,7 @@ export async function summarizeProject(
   const perDocument = spendByDocument(ledger);
 
   const summarize = (
-    ref: ProjectDocumentRef,
+    ref: Omit<ProjectDocumentRef, "type"> & { type: ProjectSummaryDocumentType },
     status: ProjectDocumentStatus | null,
     thumbnails: ProjectThumbnail[] = [],
     preview: ProjectDocumentPreview | null = null
@@ -678,7 +700,8 @@ export async function summarizeProject(
     ),
     ...rows.applications.map((row) => summarize(toRef("application", row), null)),
     ...rows.jsScripts.map((row) => summarize(toRef("jsscript", row), null)),
-    ...rows.games.map((row) => summarize(toRef("game", row), null))
+    ...rows.games.map((row) => summarize(toRef("game", row), null)),
+    ...rows.workflows.map((row) => summarize(toRef("workflow", row), null))
   ]);
 
   return {

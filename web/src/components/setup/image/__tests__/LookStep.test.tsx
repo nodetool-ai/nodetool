@@ -5,7 +5,8 @@
  * presets filed under project "default", so a step that looked the choice up
  * in the active project's entities alone sent every batch without its style.
  */
-import { act, renderHook } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
 
 import type { StylePresetEntity } from "../../../../serverState/useStylePresets";
 
@@ -48,7 +49,9 @@ jest.mock("../../../../hooks/sketch/useGenerateVariations", () => ({
   })
 }));
 
-import { useLookStep } from "../LookStep";
+import { LookStep, useLookStep, type LookStepControls } from "../LookStep";
+import mockTheme from "../../../../__mocks__/themeMock";
+import { useProviderOnboardingStore } from "../../../../stores/ProviderOnboardingStore";
 import { useSketchStore } from "../../../sketch/state/useSketchStore";
 import { createDefaultDocument } from "../../../sketch/types";
 
@@ -84,5 +87,30 @@ describe("useLookStep style", () => {
     const { result } = renderHook(() => useLookStep());
     expect(result.current.canAdvance).toBe(false);
     expect(result.current.blockedReason).toBe("Loading the chosen style");
+  });
+});
+
+describe("LookStep with no image provider", () => {
+  it("opens the provider dialog for image providers from the warning", () => {
+    mockPresets = { data: [], isLoading: false };
+    const look = {
+      availability: "no-provider",
+      modelMissing: false,
+      sizePresets: [],
+      styleChoice: null,
+      setStyleChoice: jest.fn(),
+      refetchModels: jest.fn()
+    } as unknown as LookStepControls;
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <LookStep look={look} />
+      </ThemeProvider>
+    );
+    expect(screen.getByText(/No image provider is connected/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Connect a provider" }));
+    expect(useProviderOnboardingStore.getState()).toMatchObject({
+      open: true,
+      capability: "text_to_image"
+    });
   });
 });

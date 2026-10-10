@@ -73,11 +73,15 @@ export interface AppRuntimeContextValue {
   /**
    * Current value of a graph node's property (saved data, else metadata
    * default) — the display fallback for node-property bindings the user hasn't
-   * touched yet.
+   * touched yet. `operationId` scopes the lookup to that operation's graph.
    */
-  getNodeProperty: (nodeId: string, property: string) => unknown;
+  getNodeProperty: (
+    nodeId: string,
+    property: string,
+    operationId?: string
+  ) => unknown;
   /** Type of a graph node, so a widget bound to its property can match it. */
-  getNodeType: (nodeId: string) => string | undefined;
+  getNodeType: (nodeId: string, operationId?: string) => string | undefined;
 }
 
 export const AppRuntimeContext = createContext<AppRuntimeContextValue | null>(

@@ -1,4 +1,4 @@
-import { makeClip } from "@nodetool-ai/timeline";
+import { makeClip, splitClip } from "@nodetool-ai/timeline";
 import type {
   CaptionWord,
   CaptionWordKind,
@@ -23,7 +23,8 @@ import {
   relabelWord,
   removeFillers,
   resolveSelectionRange,
-  rippleDeleteRange
+  rippleDeleteRange,
+  snapshotSeededTranscript
 } from "../transcriptOps";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -703,4 +704,139 @@ describe("transcript ripple edit fidelity (F9, F42, F43)", () => {
       ["o", 1500, 500]
     ]);
   });
+});
+
+describe("editor blur after clips changed while focused (F25)", () => {
+  const voiced = () =>
+    beat("v", {
+      durationMs: 600,
+      words: words(["a", 0, 300], ["b", 300, 600])
+    });
+  const texts = (clips: TimelineClip[]): string[] =>
+    buildTranscriptDoc(clips)
+      .segments.flatMap((s) => s.tokens)
+      .map((t) => t.text);
+
+  it("keeps the words of a clip split while the editor was focused", () => {
+    const seeded = snapshotSeededTranscript([voiced()]);
+    // The cut tool splits the clip: both halves get new ids.
+    const split = splitClip(voiced(), 300);
+    const edits = {
+      survivors: [
+        { clipId: "v", wordIndex: 0, text: "a" },
+        { clipId: "v", wordIndex: 1, text: "b" }
+      ],
+      draftUpdates: [],
+      newDraftTexts: []
+    };
+    const out = applyEditorEdits(split, edits, "audio", {}, seeded);
+    expect(texts(out.clips)).toEqual(["a", "b"]);
+    expect(out.durationMs).toBe(600);
+  });
+
+  it("still cuts a seeded word the user deleted", () => {
+    const v = voiced();
+    const out = applyEditorEdits(
+      [v],
+      {
+        survivors: [{ clipId: "v", wordIndex: 0, text: "a" }],
+        draftUpdates: [],
+        newDraftTexts: []
+      },
+      "audio",
+      {},
+      snapshotSeededTranscript([v])
+    );
+    expect(texts(out.clips)).toEqual(["a"]);
+  });
+
+  it("keeps words rewritten by a transcription that landed while focused", () => {
+    const seeded = snapshotSeededTranscript([voiced()]);
+    const retimed = beat("v", {
+      durationMs: 600,
+      words: words(["x", 0, 200], ["y", 200, 400], ["z", 400, 600])
+    });
+    const out = applyEditorEdits(
+      [retimed],
+      {
+        survivors: [
+          { clipId: "v", wordIndex: 0, text: "a" },
+          { clipId: "v", wordIndex: 1, text: "b" }
+        ],
+        draftUpdates: [],
+        newDraftTexts: []
+      },
+      "audio",
+      {},
+      seeded
+    );
+    expect(texts(out.clips)).toEqual(["x", "y", "z"]);
+  });
+
+  it("keeps a draft added while focused and removes a seeded draft the user deleted", () => {
+    const d1 = beat("d1", { prompt: "one" });
+    const seeded = snapshotSeededTranscript([d1]);
+    const d2 = beat("d2", { prompt: "two" });
+    const out = applyEditorEdits(
+      [d1, d2],
+      { survivors: [], draftUpdates: [], newDraftTexts: [] },
+      "audio",
+      {},
+      seeded
+    );
+    expect(out.clips.map((c) => c.id)).toEqual(["d2"]);
+  });
+});
+
+describe("transcript deletes over locked words (F26)", () => {
+  const locked = () =>
+    beat("l", {
+      durationMs: 600,
+      words: words(["a", 0, 300], ["b", 300, 600])
+    });
+  const broll = (): TimelineClip =>
+    makeClip({
+      id: "broll",
+      trackId: "video",
+      mediaType: "video",
+      startMs: 900,
+      durationMs: 1000
+    });
+  const locks = { lockedClipIds: new Set(["l"]) };
+
+  it("rippleDeleteRange leaves every track in place", () => {
+    const clips = [locked(), broll()];
+    const out = rippleDeleteRange(clips, 300, 600, locks);
+    expect(out.clips).toBe(clips);
+  });
+
+  it("reconcileTranscript does not ripple other tracks for a locked word", () => {
+    const out = reconcileTranscript(
+      [locked(), broll()],
+      [{ clipId: "l", wordIndex: 0, text: "a" }],
+      locks
+    );
+    expect(out.clips.find((c) => c.id === "broll")?.startMs).toBe(900);
+    expect(texts(out.clips)).toEqual(["a", "b"]);
+  });
+
+  it("removeFillers skips fillers inside a locked clip", () => {
+    const l = beat("l", {
+      durationMs: 600,
+      words: words(["um", 0, 300], ["b", 300, 600])
+    });
+    const out = removeFillers([l, broll()], locks);
+    expect(out.clips.find((c) => c.id === "broll")?.startMs).toBe(900);
+  });
+
+  it("cutWordRange extracts and moves nothing over a locked word", () => {
+    const out = cutWordRange([locked(), broll()], 0, 300, locks);
+    expect(out.extracted).toEqual([]);
+    expect(out.clips.find((c) => c.id === "broll")?.startMs).toBe(900);
+  });
+
+  const texts = (clips: TimelineClip[]): string[] =>
+    buildTranscriptDoc(clips)
+      .segments.flatMap((s) => s.tokens)
+      .map((t) => t.text);
 });

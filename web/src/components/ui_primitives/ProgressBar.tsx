@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
     ".progress-value": {
       fontSize: 12,
       color: theme.vars.palette.text.secondary,
-      fontFamily: "monospace",
+      fontFamily: "var(--fontFamily2)",
       minWidth: 40,
       textAlign: "right"
     },

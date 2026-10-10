@@ -6,9 +6,10 @@
  * brief keeps the creator here with what landed named (F10, F30).
  */
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { makeClip } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
@@ -144,6 +145,24 @@ describe("video IdeaStep", () => {
     ).toHaveAttribute("aria-disabled", "true");
   });
 
+  it("holds Start from a script once media is placed, since the hand-off discards it (V3)", async () => {
+    const start = jest.fn();
+    act(() =>
+      useTimelineStore.getState().addClips([
+        makeClip({ id: "c1", trackId: "t1", startMs: 0, durationMs: 3000 })
+      ])
+    );
+    renderStep(start);
+    const script = screen.getByRole("button", { name: /Start from a script/ });
+    expect(script).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(script);
+    expect(start).not.toHaveBeenCalled();
+    await userEvent.hover(script);
+    expect(
+      await screen.findByText(/would be left behind/)
+    ).toBeInTheDocument();
+  });
+
   it("holds both ways out of the step while media is uploading", async () => {
     importing = true;
     renderStep(jest.fn());
@@ -208,6 +227,18 @@ describe("video IdeaStep", () => {
     fireEvent.drop(surface, {
       dataTransfer: { types: ["Files"], files } as unknown as DataTransfer
     });
+
+  it("takes no drop while the step is locked, as during Change flow (V10)", async () => {
+    const { container } = render(
+      <ThemeProvider theme={mockTheme}>
+        <IdeaStep onStartBlank={jest.fn()} readOnly />
+      </ThemeProvider>
+    );
+    const surface = container.firstElementChild as HTMLElement;
+    drop(surface, [new File(["x"], "hull.mp4", { type: "video/mp4" })]);
+    await act(async () => undefined);
+    expect(importFiles).not.toHaveBeenCalled();
+  });
 
   it("names dropped files that are not media instead of dropping them silently", async () => {
     importFiles.mockResolvedValue({

@@ -1,4 +1,4 @@
-import type { GameEvent, GameHudLabel } from "@nodetool-ai/protocol";
+import { GAME_AUDIO_SPATIAL_DEFAULTS, type GameAudioCone, type GameAudioEmitter, type GameEvent, type GameHudLabel, type GameParticleEmission } from "@nodetool-ai/protocol";
 
 export const MAX_GAME_EVENTS_PER_TICK = 512;
 export const MAX_GAME_SPAWNED_INSTANCES = 1024;
@@ -19,7 +19,11 @@ export interface GameplayDefinition {
   readonly id: string;
   readonly behaviors: readonly GameplayBehavior[];
   readonly templateOnly?: boolean;
-  readonly audioSource?: { readonly assetId: string; readonly onEvent: string; readonly volume: number };
+  readonly audioSource?: {
+    readonly assetId: string; readonly onEvent: string; readonly volume: number;
+    readonly spatial?: boolean; readonly minDistance?: number; readonly maxDistance?: number; readonly rolloff?: number;
+    readonly distanceModel?: GameAudioEmitter["distanceModel"]; readonly cone?: GameAudioCone; readonly doppler?: number;
+  };
 }
 
 export interface GameplayEntityState {
@@ -37,6 +41,8 @@ export interface GameplayQueues<S extends GameplaySpawn = GameplaySpawn> {
   readonly despawns: Set<string>;
   readonly spawns: S[];
   transitionTo?: string;
+  /** Presentation-only particle requests from this tick's scripts. Never snapshotted. */
+  particles?: GameParticleEmission[];
 }
 
 export interface GameplayScore {
@@ -82,8 +88,24 @@ export function claimGameplayContact(actor: GameplayEntityState, target: Gamepla
   return score;
 }
 
-export function finalizeGameplayEntities(states: readonly GameplayEntityState[], queues: GameplayQueues,
-  score: number, won: boolean, sceneId: string, tick: number, events: readonly GameEvent[], emit: GameplayEmit): boolean {
+/** The emitter an audio event carries for a spatial audio source: its settings with defaults applied, and where it played. */
+function audioEmitter(definition: GameplayDefinition, audio: NonNullable<GameplayDefinition["audioSource"]>,
+  position: GameAudioEmitter["position"]): GameAudioEmitter {
+  const defaults = GAME_AUDIO_SPATIAL_DEFAULTS;
+  const emitter: GameAudioEmitter = {
+    entityId: definition.id, position: { x: position.x, y: position.y, z: position.z },
+    minDistance: audio.minDistance ?? defaults.minDistance, maxDistance: audio.maxDistance ?? defaults.maxDistance,
+    rolloff: audio.rolloff ?? defaults.rolloff, distanceModel: audio.distanceModel ?? defaults.distanceModel,
+    doppler: audio.doppler ?? defaults.doppler
+  };
+  if (audio.cone) { emitter.cone = { ...audio.cone }; }
+  return emitter;
+}
+
+/** `positionOf` gives an entity's world position for spatial audio sources. 2D positions use z = 0. */
+export function finalizeGameplayEntities<S extends GameplayEntityState>(states: readonly S[], queues: GameplayQueues,
+  score: number, won: boolean, sceneId: string, tick: number, events: readonly GameEvent[], emit: GameplayEmit,
+  positionOf: (state: S) => GameAudioEmitter["position"]): boolean {
   for (const state of states) {
     if (queues.despawns.has(state.definition.id)) {
       state.active = false;
@@ -97,9 +119,10 @@ export function finalizeGameplayEntities(states: readonly GameplayEntityState[],
     const audio = state.definition.audioSource;
     if (audio && events.some((event) => (event.kind === audio.onEvent && (event.kind !== "collected" || event.entityId === state.definition.id)) ||
         (event.kind === "trigger" && event.event === audio.onEvent))) {
-      emit({ kind: "audio", action: "start", assetId: audio.assetId,
+      const event: GameEvent = { kind: "audio", action: "start", assetId: audio.assetId,
         voiceId: `effect:${sceneId}:${state.definition.id}:${tick + 1}:${events.length}`,
-        loop: false, volume: audio.volume, fadeInTicks: 0, fadeOutTicks: 0 });
+        loop: false, volume: audio.volume, fadeInTicks: 0, fadeOutTicks: 0 };
+      emit(audio.spatial ? { ...event, emitter: audioEmitter(state.definition, audio, positionOf(state)) } : event);
     }
   }
   return won;

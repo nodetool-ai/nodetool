@@ -214,6 +214,8 @@ export interface DocumentSlice {
   setCanvasBackgroundColor: (color: string) => void;
   resizeCanvas: (width: number, height: number) => void;
   offsetAllPaintLayersTransform: (dx: number, dy: number) => void;
+  /** Shift every guide with the content when the canvas origin moves. Records no history. */
+  offsetGuides: (dx: number, dy: number) => void;
 }
 
 // ─── Slice creator ──────────────────────────────────────────────────────────
@@ -300,47 +302,49 @@ export const createDocumentSlice: StateCreator<
         ]
       }
     }));
+    get().pushHistory("new guide", undefined, { selectionOnly: true });
     return id;
   },
 
-  moveGuide: (guideId, position) =>
-    set((state) => {
-      const guides = state.document.guides ?? [];
-      const rounded = Math.round(position);
-      const target = guides.find((g) => g.id === guideId);
-      if (!target || target.position === rounded) {
-        return state;
+  moveGuide: (guideId, position) => {
+    const guides = get().document.guides ?? [];
+    const rounded = Math.round(position);
+    const target = guides.find((g) => g.id === guideId);
+    if (!target || target.position === rounded) {
+      return;
+    }
+    set((state) => ({
+      document: {
+        ...state.document,
+        guides: guides.map((g) =>
+          g.id === guideId ? { ...g, position: rounded } : g
+        )
       }
-      return {
-        document: {
-          ...state.document,
-          guides: guides.map((g) =>
-            g.id === guideId ? { ...g, position: rounded } : g
-          )
-        }
-      };
-    }),
+    }));
+    get().pushHistory("move guide", undefined, { selectionOnly: true });
+  },
 
-  removeGuide: (guideId) =>
-    set((state) => {
-      const guides = state.document.guides ?? [];
-      if (!guides.some((g) => g.id === guideId)) {
-        return state;
+  removeGuide: (guideId) => {
+    const guides = get().document.guides ?? [];
+    if (!guides.some((g) => g.id === guideId)) {
+      return;
+    }
+    set((state) => ({
+      document: {
+        ...state.document,
+        guides: guides.filter((g) => g.id !== guideId)
       }
-      return {
-        document: {
-          ...state.document,
-          guides: guides.filter((g) => g.id !== guideId)
-        }
-      };
-    }),
+    }));
+    get().pushHistory("delete guide", undefined, { selectionOnly: true });
+  },
 
-  clearGuides: () =>
-    set((state) =>
-      (state.document.guides?.length ?? 0) === 0
-        ? state
-        : { document: { ...state.document, guides: [] } }
-    ),
+  clearGuides: () => {
+    if ((get().document.guides?.length ?? 0) === 0) {
+      return;
+    }
+    set((state) => ({ document: { ...state.document, guides: [] } }));
+    get().pushHistory("clear guides", undefined, { selectionOnly: true });
+  },
 
   setSetup: (patch: Partial<SketchSetup>) =>
     set((state) => ({
@@ -720,6 +724,8 @@ export const createDocumentSlice: StateCreator<
                 // the lower layer happened to be invisible going in) makes
                 // the operation look destructive even though the data is fine.
                 visible: true,
+                // Enabled effects are baked into the merged pixels.
+                effects: l.effects.filter((effect) => !effect.enabled),
                 transform: { ...IDENTITY_AFFINE },
                 contentBounds: {
                   x: 0,
@@ -991,6 +997,22 @@ export const createDocumentSlice: StateCreator<
             : layer
         )
       })
+    }));
+  },
+
+  offsetGuides: (dx: number, dy: number) => {
+    const guides = get().document.guides;
+    if ((!dx && !dy) || !guides || guides.length === 0) {
+      return;
+    }
+    set((state) => ({
+      document: {
+        ...state.document,
+        guides: guides.map((guide) => ({
+          ...guide,
+          position: guide.position + (guide.orientation === "horizontal" ? dy : dx)
+        }))
+      }
     }));
   }
 });

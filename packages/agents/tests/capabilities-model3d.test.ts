@@ -248,6 +248,18 @@ describe("model3d capabilities against the database", () => {
     expect(scene.objects).toEqual([]);
   });
 
+  it("writes binary glTF when the requested name ends in .glb", async () => {
+    const { context, bytesOf } = makeContext();
+    const run = runWith(context);
+    const created = (await run.invoke("create_model3d", { name: "Robot.glb" })) as {
+      model_id: string;
+    };
+    const magic = new TextDecoder().decode(bytesOf(created.model_id)!.slice(0, 4));
+    expect(magic).toBe("glTF");
+    const asset = (await Asset.find(USER, created.model_id)) as Asset;
+    expect(asset.content_type).toBe("model/gltf-binary");
+  });
+
   it("lists a .glb stored with a generic content type", async () => {
     const { context } = makeContext();
     const run = runWith(context);

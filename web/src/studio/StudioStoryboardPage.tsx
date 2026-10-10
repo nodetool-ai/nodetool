@@ -110,7 +110,8 @@ const StudioStoryboardPage = () => {
   // Director's first draft (PRD D9, criterion 6).
   const { extract } = useExtractScriptFromBoard();
   const extractReviewed = useCallback(async () => {
-    await extract(boardId, { open: false });
+    // A second pass through review re-projects the script it already made.
+    await extract(boardId, { open: false, relink: true });
   }, [boardId, extract]);
   const setupConfig = useStoryboardSetupFlow({
     boardId,

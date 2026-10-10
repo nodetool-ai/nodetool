@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 
 import { makeClip } from "../src/defaults.js";
+import { splitClip } from "../src/splitClip.js";
 import { clipSourceMsAt } from "../src/timeRemap.js";
 import {
   activeTakeIdOf,
@@ -120,6 +121,40 @@ describe("selectTake", () => {
     const next = selectTake(clip, "bake_1");
     expect(next).toBe(clip);
     expect(next.currentAssetId).toBe("gltf_1");
+  });
+});
+
+describe("baseline take after a split", () => {
+  it("keeps each half's source window when the baseline is selected again", () => {
+    const imported = makeClip({
+      id: "clip_b",
+      trackId: "track_1",
+      name: "Imported",
+      startMs: 0,
+      durationMs: 10000,
+      mediaType: "video",
+      sourceType: "imported",
+      currentAssetId: "asset_original",
+      inPointMs: 0,
+      outPointMs: 10000
+    });
+    const withBaseline = ensureBaselineTake(imported);
+    const [, right] = splitClip(withBaseline, 6000);
+    const withCandidate: TimelineClip = {
+      ...right,
+      versions: [
+        ...right.versions,
+        version({ id: "take_edit", assetId: "asset_edit" })
+      ]
+    };
+    const baselineId = withBaseline.activeTakeId!;
+
+    const switched = selectTake(selectTake(withCandidate, "take_edit"), baselineId);
+
+    expect(switched.currentAssetId).toBe("asset_original");
+    expect(switched.inPointMs).toBe(6000);
+    expect(switched.outPointMs).toBe(10000);
+    expect(previewTake(withCandidate, baselineId)?.inPointMs).toBe(6000);
   });
 });
 

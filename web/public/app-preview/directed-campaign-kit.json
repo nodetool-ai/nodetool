@@ -230,8 +230,7 @@
                     {
                       "trigger": "change",
                       "kind": "run",
-                      "operationId": "autofill",
-                      "pace": "release"
+                      "operationId": "autofill"
                     },
                     {
                       "trigger": "change",
@@ -2974,7 +2973,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 578
               },
               "width": 280,
               "title": "Captured plan"
@@ -2993,7 +2992,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 300
+                "y": 803
               },
               "width": 280,
               "title": "Direction choice"
@@ -3009,8 +3008,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 100
+                "x": 1820,
+                "y": 503
               },
               "width": 250,
               "title": "Candidate hero"
@@ -3026,8 +3025,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 240
+                "x": 1820,
+                "y": 703
               },
               "width": 250,
               "title": "Creative contract"
@@ -3043,8 +3042,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 380
+                "x": 1820,
+                "y": 903
               },
               "width": 250,
               "title": "Ready phase"
@@ -3075,7 +3074,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 80
+                "y": 899
               },
               "width": 280,
               "title": "Accepted hero"
@@ -3095,7 +3094,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 240
+                "y": 1115
               },
               "width": 280,
               "title": "Creative contract"
@@ -3114,7 +3113,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 400
+                "y": 1340
               },
               "width": 280,
               "title": "Version"
@@ -3136,7 +3135,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 560
+                "y": 1565
               },
               "width": 280,
               "title": "Original record file"
@@ -3152,8 +3151,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 0
+                "x": 2400,
+                "y": 483
               },
               "width": 240,
               "title": "Accepted hero"
@@ -3169,8 +3168,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 120
+                "x": 2400,
+                "y": 883
               },
               "width": 240,
               "title": "4:5 PNG"
@@ -3186,8 +3185,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 240
+                "x": 2400,
+                "y": 1283
               },
               "width": 240,
               "title": "9:16 PNG"
@@ -3203,8 +3202,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 360
+                "x": 2400,
+                "y": 1683
               },
               "width": 240,
               "title": "4:5 SVG"
@@ -3220,8 +3219,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1900,
-                "y": 480
+                "x": 2400,
+                "y": 2083
               },
               "width": 240,
               "title": "9:16 SVG"
@@ -3237,8 +3236,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2200,
-                "y": 0
+                "x": 2400,
+                "y": 683
               },
               "width": 240,
               "title": "Accepted contract"
@@ -3254,8 +3253,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2200,
-                "y": 120
+                "x": 2400,
+                "y": 1083
               },
               "width": 240,
               "title": "Campaign snapshot"
@@ -3271,8 +3270,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2200,
-                "y": 240
+                "x": 2400,
+                "y": 1483
               },
               "width": 240,
               "title": "Campaign record file"
@@ -3288,8 +3287,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2200,
-                "y": 360
+                "x": 2400,
+                "y": 1883
               },
               "width": 240,
               "title": "Accepted phase"
@@ -3320,7 +3319,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 80
+                "y": 503
               },
               "width": 280,
               "title": "Accepted hero"
@@ -3340,7 +3339,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 230
+                "y": 759
               },
               "width": 280,
               "title": "Accepted contract"
@@ -3361,7 +3360,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 380
+                "y": 984
               },
               "width": 280,
               "title": "Change"
@@ -3382,7 +3381,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 530
+                "y": 1209
               },
               "width": 280,
               "title": "Preserve"
@@ -3403,7 +3402,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 680
+                "y": 1434
               },
               "width": 280,
               "title": "Allow to respond"
@@ -3419,8 +3418,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 220
+                "x": 2240,
+                "y": 834
               },
               "width": 250,
               "title": "Revision candidate"
@@ -3436,8 +3435,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 360
+                "x": 2240,
+                "y": 1034
               },
               "width": 250,
               "title": "Revision contract"
@@ -3453,8 +3452,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1720,
-                "y": 500
+                "x": 2240,
+                "y": 1234
               },
               "width": 250,
               "title": "Review phase"
@@ -3485,7 +3484,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 200
+                "y": 990
               },
               "width": 300,
               "title": "Campaign record"
@@ -3501,8 +3500,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 0
+                "x": 6720,
+                "y": 1197
               },
               "width": 240,
               "title": "Accepted hero"
@@ -3518,8 +3517,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 120
+                "x": 11920,
+                "y": 503
               },
               "width": 240,
               "title": "Accepted contract"
@@ -3535,8 +3534,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 240
+                "x": 7240,
+                "y": 1080
               },
               "width": 240,
               "title": "Original 4:5"
@@ -3552,8 +3551,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 360
+                "x": 7760,
+                "y": 724
               },
               "width": 240,
               "title": "Original 9:16"
@@ -3569,8 +3568,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 480
+                "x": 8280,
+                "y": 1188
               },
               "width": 240,
               "title": "Original 4:5 SVG"
@@ -3586,8 +3585,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 600
+                "x": 8800,
+                "y": 1064
               },
               "width": 240,
               "title": "Original 9:16 SVG"
@@ -3603,8 +3602,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 720
+                "x": 11920,
+                "y": 903
               },
               "width": 240,
               "title": "Original record"
@@ -3620,8 +3619,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 0
+                "x": 9320,
+                "y": 701
               },
               "width": 240,
               "title": "Revised hero"
@@ -3637,8 +3636,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 120
+                "x": 11920,
+                "y": 703
               },
               "width": 240,
               "title": "Revised contract"
@@ -3654,8 +3653,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 240
+                "x": 9840,
+                "y": 1171
               },
               "width": 240,
               "title": "Revised 4:5"
@@ -3671,8 +3670,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 360
+                "x": 10360,
+                "y": 1050
               },
               "width": 240,
               "title": "Revised 9:16"
@@ -3688,8 +3687,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 480
+                "x": 10880,
+                "y": 687
               },
               "width": 240,
               "title": "Revised 4:5 SVG"
@@ -3705,8 +3704,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 600
+                "x": 11400,
+                "y": 1152
               },
               "width": 240,
               "title": "Revised 9:16 SVG"
@@ -3722,8 +3721,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 720
+                "x": 12300,
+                "y": 1320
               },
               "width": 240,
               "title": "Campaign record"
@@ -3739,8 +3738,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1380,
-                "y": 840
+                "x": 11920,
+                "y": 1103
               },
               "width": 240,
               "title": "Restored phase"

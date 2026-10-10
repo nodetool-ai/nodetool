@@ -33,10 +33,31 @@ Choose one per campaign. Rotate between campaigns.
 | `chat` | Ask the app's assistant a question and get an answer. Then find that conversation again after you leave the page and come back. | A visible reply. The thread is reachable after reload. |
 | `automation` | Set up something that takes a sentence you type and gives back a changed version of it, then try it with your own sentence. | A run with the participant's input and a visible output. |
 | `app` | Find a small ready-made tool in this app, use it with your own input, and see its result. | A visible result for the participant's own input. |
+| `photo` | You have a photo of your own. Use this app to make a changed version of that photo, and look at the result. Then make sure you can find the changed photo again after you leave the page and come back. | Needs an image asset in the packet. A changed image visible after reload, reached through visible navigation. Record which route the participant took (a generated edit or manual painting). |
+| `automation-keep` | Set up something that takes a sentence you type and gives back a changed version of it, and try it with your own sentence. Then leave the page, come back, and run it again with a different sentence. | Two runs with different input, the second after a reload, on the same saved document. |
+| `key-change` | Connect this app to your OpenAI account with your old key. Then you learn the old key has been revoked: switch the app over to your new key, and check that the app still works. | Needs two `credentials` entries. The stored key is replaced, not added beside the old one, and a later request succeeds. |
 
-With fake providers, `image` and `chat` cannot complete because no model is
-listed (see [runtime.md](runtime.md#disposable-app)). Use `automation` or `app`
-on the disposable app until the fake runtime lists models.
+| `name-find` | Make something in this app, anything you like. Give it a name you will recognise. Then leave the page, come back, and find it again by that name. | The item is reachable by its name after reload. Record which surfaces list it and which say they are empty. |
+| `undo-delete` | Make something in this app, anything you like. Then delete it. Then change your mind and try to get it back. | Whether deletion warns, whether anything restores it, and what the surfaces that showed the item say afterwards. |
+| `appearance` | Change how this app looks so it is more comfortable for you to read, for example a different colour scheme or bigger text. Then leave the page, come back, and check that your change is still there. | The change persists. Every screenshot in the new theme is legible (see [ux-review.md](ux-review.md)). |
+
+Two goals per campaign fit the 10-minute limit when one of them is short
+(`key-change` took 15 actions). Prefer goals no earlier campaign ran, and say
+which goals were repeated.
+
+With fake providers every goal can complete, with placeholder content (see
+[runtime.md](runtime.md#what-the-fake-runtime-shows-a-participant)). Judge
+`automation` on whether the participant's sentence reached a run and a visible
+output appeared. Only the guided planner's plan changes the sentence (it
+capitalizes it). A model step answers with the fixed reply whatever the input.
+
+## UX campaign
+
+When the user asks for UX issues rather than task success, run
+`app-first-use` with `"viewport": { "width": 1280, "height": 720 }` and two or
+three of `name-find`, `undo-delete`, and `appearance`. These goals pass through
+the surfaces where state shows up in several places at once: tabs, panels,
+toasts, and themes. Then run every check in [ux-review.md](ux-review.md).
 
 ## Persistence and recovery
 

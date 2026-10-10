@@ -48,13 +48,14 @@ on:
     - cron: "17 2 * * *"
   workflow_dispatch:
 
-# Cancel superseded runs of the same PR; the latest push is what matters.
-# Every other run gets a group of its own and is never cancelled: a push to
-# main tests only the diff since the previous push, so a cancelled run would
-# leave that commit's changes untested on main.
+# Cancel superseded runs of the same PR or of main; the latest push is what
+# matters. A push to main diffs against the last main commit whose Test run
+# passed (see the `changes` job), not the previous push, so a cancelled run
+# leaves nothing untested: the next run's diff covers its changes. Merge queue,
+# scheduled and manual runs get a group of their own and are never cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ (github.event_name == 'pull_request' || github.event_name == 'push') && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 jobs:
   # Does this push touch anything but prose? A documentation-only change has
@@ -93,6 +94,10 @@ jobs:
     name: changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      # Reads the last passing Test run on main, the base of a push run.
+      actions: read
     outputs:
       code: ${{ steps.filter.outputs.code || 'true' }}
       shared: ${{ steps.filter.outputs.shared || 'true' }}
@@ -111,23 +116,33 @@ jobs:
 
       # Which legs the diff needs: `scripts/ci-plan.mjs` applies the same
       # workspace mapping as `npm run test:affected`. The base is the PR base,
-      # the merge group base, or the commit before a push; a scheduled or
-      # manual run has none and runs everything. Fails open: if the planner
-      # errors, the plan is every leg.
+      # the merge group base, or for a push the last main commit whose Test
+      # push run passed, so the diff also covers commits whose runs were
+      # cancelled or failed. A scheduled or manual run has none and runs
+      # everything. Fails open: if the base lookup or the planner errors, the
+      # plan is every leg.
       - name: Plan the legs this diff needs
         id: plan
         env:
           BASE: >-
             ${{ github.event.pull_request.base.sha
             || github.event.merge_group.base_sha
-            || (github.event_name == 'push' && github.event.before)
             || '' }}
+          IS_PUSH: ${{ github.event_name == 'push' }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
+          if [[ "$IS_PUSH" == true ]]; then
+            BASE="$(gh api "repos/$REPO/actions/workflows/test.yml/runs?branch=main&event=push&status=success&per_page=1" \
+              --jq '.workflow_runs[0].head_sha // ""')" || BASE=""
+            [[ -z "$BASE" ]] && echo "::warning::No passing Test run on main found; running every leg."
+          fi
+          [[ "$BASE" =~ ^[0-9a-f]{40}$ ]] || BASE=""
           [[ "$BASE" =~ ^0+$ ]] && BASE=""
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           if ! node scripts/ci-plan.mjs plan ${BASE:+--base "$BASE"}; then
             echo "::warning::ci-plan failed; running every leg."
-            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true}' >> "$GITHUB_OUTPUT"
+            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Detect non-documentation changes
@@ -174,90 +189,3 @@ jobs:
       # Empty values (a `changes` job that never reported) run everything.
       plan: ${{ needs.changes.outputs.plan }}
       base-sha: ${{ needs.changes.outputs.base }}
-
-  # Heavy jobs run concurrently with the quality gate (both wait only on the
-  # seconds-long `changes` job) rather than after it, so
-  # the critical path is max(quality, integration, e2e) instead of
-  # quality + max(integration, e2e). Trade-off: a PR that fails a static check
-  # still spends these runner minutes. They build packages themselves (they are
-  # in this workflow, not the reusable quality-checks one, so they can't consume
-  # its build artifact without depending on the whole gate — which would undo
-  # the decoupling).
-  integration:
-    name: Workflow Integration Tests
-    needs: changes
-    # Same fail-safe reading as the gate above: skip only on an explicit
-    # "prose", or an explicit "this diff never leaves marketing/" — it runs
-    # shipped-workflow execution out of packages/base-nodes, which marketing
-    # cannot reach.
-    # Runs when the diff reaches base-nodes, whose shipped workflows it executes.
-    if: >-
-      ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false'
-      && (needs.changes.outputs.plan == '' || fromJSON(needs.changes.outputs.plan).integration) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Node, install deps, build packages
-        uses: ./.github/actions/setup-build
-        with:
-          extra-apt: mesa-vulkan-drivers ffmpeg
-
-      - name: Run shipped-workflow execution tests
-        run: npm run test:integration
-
-  workflow-runner-e2e:
-    name: Workflow Runner Browser E2E
-    needs: changes
-    # Runs when the diff reaches the workflow-runner package it drives.
-    if: >-
-      ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false'
-      && (needs.changes.outputs.plan == '' || fromJSON(needs.changes.outputs.plan).workflow_runner_e2e) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Node, install deps, build packages
-        # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
-        # Chromium can acquire a WebGPU adapter on GPU-less CI runners. The
-        # workflow-runner browser harness uses it to drive shader-pool tests
-        # (color.brightnessContrast, etc.) against the same module catalog
-        # the server uses on Node/Dawn.
-        uses: ./.github/actions/setup-build
-        with:
-          extra-apt: mesa-vulkan-drivers
-
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright Chromium browser
-        run: npx playwright install --with-deps chromium
-        working-directory: packages/workflow-runner
-
-      - name: Type-check workflow-runner browser suite
-        run: npm run typecheck:e2e --workspace=@nodetool-ai/workflow-runner
-
-      - name: Run workflow-runner browser E2E tests
-        run: npm run test:e2e --workspace=@nodetool-ai/workflow-runner
-
-      - name: Upload Playwright diagnostics
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: workflow-runner-playwright-report
-          path: |
-            packages/workflow-runner/playwright-report/
-            packages/workflow-runner/test-results/
-          retention-days: 7

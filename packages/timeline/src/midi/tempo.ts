@@ -67,6 +67,14 @@ export function rescaleClipsForTempo(
     if (clip.outPointMs !== undefined) {
       next.outPointMs = clip.outPointMs * scale;
     }
+    // A clip before beat one moves earlier when the tempo slows; the part that
+    // would land before zero is trimmed off its head rather than saved there.
+    if (next.startMs < 0) {
+      const overhangMs = -next.startMs;
+      next.startMs = 0;
+      next.durationMs = Math.max(1, next.durationMs - overhangMs);
+      next.inPointMs = (next.inPointMs ?? 0) + overhangMs;
+    }
     return next;
   });
 }

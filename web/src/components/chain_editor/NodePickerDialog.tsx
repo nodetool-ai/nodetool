@@ -20,7 +20,8 @@ import {
   FlexColumn,
   Text,
   TextInput,
-  HighlightText
+  HighlightText,
+  SHADOW
 } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -62,7 +63,7 @@ const quickTileStyles = (theme: Theme) =>
         borderColor: theme.vars.palette.divider,
         background: theme.vars.palette.action.selected,
         transform: "translateY(-1px)",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+        boxShadow: SHADOW(theme).md,
       },
     },
     ".tile-icon": {

@@ -10,6 +10,7 @@ import { GraphVisualDiff } from "./GraphVisualDiff";
 import { WorkflowGraphPreview } from "./WorkflowGraphPreview";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
@@ -32,9 +33,18 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 
+/** The workflow row's concurrency tokens after a restore. */
+export interface RestoredWorkflowTokens {
+  updated_at?: string | null;
+  etag?: string | null;
+}
+
 interface VersionHistoryPanelProps {
   workflowId: string;
-  onRestore: (version: WorkflowVersion) => void;
+  onRestore: (
+    version: WorkflowVersion,
+    restored: RestoredWorkflowTokens
+  ) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -101,6 +111,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     isRestoringVersion,
     deleteVersion
   } = useWorkflowVersions(workflowId);
+  const queueWorkflowSave = useWorkflowManager(
+    (state) => state.queueWorkflowSave
+  );
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -198,14 +211,26 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
       try {
-        await restoreVersion(version.version);
-        onRestore(version);
+        // The restore rewrites the workflow row, so it waits for any save in
+        // flight and holds external-change notices until the editor adopts
+        // the restored row's tokens: its own echo is not a conflict.
+        await queueWorkflowSave(workflowId, async () => {
+          const restored = await restoreVersion(version.version);
+          await onRestore(version, restored);
+          return restored.etag ?? undefined;
+        });
         setHistoryPanelOpen(false);
       } catch (error) {
         console.error("Failed to restore version:", error);
       }
     },
-    [restoreVersion, onRestore, setHistoryPanelOpen]
+    [
+      queueWorkflowSave,
+      workflowId,
+      restoreVersion,
+      onRestore,
+      setHistoryPanelOpen
+    ]
   );
 
   const handleFilterChange = useCallback(

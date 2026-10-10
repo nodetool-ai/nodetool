@@ -6,7 +6,10 @@ import {
 } from "@nodetool-ai/runtime";
 import type { ModelDownloadUpdate, PythonBridge } from "@nodetool-ai/runtime";
 import type { WorkerManager } from "@nodetool-ai/compute";
-import { resolveWorkerHfToken } from "@nodetool-ai/huggingface";
+import {
+  ALWAYS_IGNORE_PATTERNS,
+  resolveWorkerHfToken
+} from "@nodetool-ai/huggingface";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 import {
   modelRankings,
@@ -285,7 +288,11 @@ export async function relayWorkerDownload(
           repo_id: repoId,
           path: msg.path ?? null,
           allow_patterns: msg.allow_patterns ?? null,
-          ignore_patterns: msg.ignore_patterns ?? null,
+          // A whole-repo worker download skips the framework exports a
+          // server-side download skips, so both fetch the same files.
+          ignore_patterns: msg.path
+            ? (msg.ignore_patterns ?? null)
+            : [...(msg.ignore_patterns ?? []), ...ALWAYS_IGNORE_PATTERNS],
           model_type: msg.model_type ?? null,
           token
         },

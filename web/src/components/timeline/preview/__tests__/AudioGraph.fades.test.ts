@@ -108,6 +108,13 @@ describe("AudioGraph fades", () => {
     expect(curve[curve.length - 1]).toBeCloseTo(0, 5);
   });
 
+  it("starts playback inside a fade-out at the level the fade has reached", async () => {
+    // The clip ends at 3s and fades out over its last 400ms; 2.8s is halfway.
+    const gain = await scheduleClip({ fadeOutMs: 400 }, 2800);
+    expect(gain.setValueAtTime).toHaveBeenCalledWith(0.5, 0);
+    expect(gain.linearRampToValueAtTime).toHaveBeenCalledWith(0, 0.2);
+  });
+
   it("scales the ramp by the clip's volume", async () => {
     const gain = await scheduleClip({
       fadeInMs: 500,
@@ -142,6 +149,33 @@ describe("AudioGraph fades", () => {
     const [, fadeOutStart] = gain.setValueCurveAtTime.mock.calls[1];
     expect(fadeInDuration).toBeCloseTo(1, 6);
     expect(fadeInStart + fadeInDuration).toBeCloseTo(fadeOutStart, 6);
+  });
+
+  it("never starts a fade-out before a meeting fade-in has ended", async () => {
+    // Two fades that exactly fill the clip. Computed separately, the fade-out
+    // start can round one ulp below the fade-in end (0.4 + 1.0 - 0.5 <
+    // 0.4 + 0.5), which overlaps two value curves and makes WebAudio throw.
+    for (let startMs = 0; startMs <= 5000; startMs += 100) {
+      for (const shape of ["sCurve", "linear"] as const) {
+        const gain = await scheduleClip({
+          startMs,
+          durationMs: 1000,
+          fadeInMs: 500,
+          fadeOutMs: 500,
+          fadeInShape: shape,
+          fadeOutShape: shape
+        });
+        if (shape === "sCurve") {
+          const [, inStart, inDuration] = gain.setValueCurveAtTime.mock.calls[0];
+          const [, outStart] = gain.setValueCurveAtTime.mock.calls[1];
+          expect(outStart).toBeGreaterThanOrEqual(inStart + inDuration);
+        } else {
+          const [, inEnd] = gain.linearRampToValueAtTime.mock.calls[0];
+          const outStart = gain.setValueAtTime.mock.calls[1][1];
+          expect(outStart).toBeGreaterThanOrEqual(inEnd);
+        }
+      }
+    }
   });
 
   it("holds full volume through a clip with no fade", async () => {

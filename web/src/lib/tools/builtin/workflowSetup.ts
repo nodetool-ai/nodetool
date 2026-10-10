@@ -18,6 +18,11 @@ import type { FrontendToolState } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { docUrl } from "./resourceLinks";
 import { resolveSnippetSteps } from "../../../utils/planSnippetSteps";
+import { queueWorkflowSave } from "../../../hooks/workflow/useWorkflowSetup";
+import {
+  PLAN_SOURCE_KEY,
+  planSourceOf
+} from "../../../components/setup/workflow/setupExtras";
 
 /**
  * The four tools that drive the Workflow creation flow from an agent
@@ -56,18 +61,25 @@ function requireSetup(state: FrontendToolState, workflowId: string) {
   return { workflow, setup: readWorkflowSetup(workflow.settings) };
 }
 
-/** Write a setup patch and persist it, failing the call if the save is refused. */
+/**
+ * Write a setup patch and persist it, failing the call if the save is refused.
+ * Setup answers change no graph, so the save adds a version row only when
+ * `snapshot` says it carries one, as the build's does.
+ */
 async function persistSetup(
   state: FrontendToolState,
   workflowId: string,
-  patch: Parameters<typeof writeWorkflowSetup>[1]
+  patch: Parameters<typeof writeWorkflowSetup>[1],
+  snapshot = false
 ) {
   const { workflow } = requireSetup(state, workflowId);
   const settings = writeWorkflowSetup(workflow.settings, patch);
   const live = state.getNodeStore(workflowId)?.getState().getWorkflow();
   const next = { ...(live ?? workflow), settings };
   state.updateWorkflow(next);
-  await state.saveWorkflow(next);
+  // Through the flow's save queue: a save the open flow has on the wire
+  // carries the same `expected_updated_at`, and the second one is refused.
+  await queueWorkflowSave(state, workflowId, { snapshot });
   return readWorkflowSetup(settings);
 }
 
@@ -83,6 +95,37 @@ function requirePlan(
     );
   }
   return setup.plan;
+}
+
+/**
+ * Refuse a plan whose step ids repeat. The id names the step for every later
+ * edit, the review keys its rows by it, and the build tags each placed node
+ * with it, so two steps sharing one cannot be told apart.
+ */
+function requireUniqueStepIds(steps: readonly { id: string }[]): void {
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  for (const step of steps) {
+    if (seen.has(step.id)) {
+      repeated.add(step.id);
+    }
+    seen.add(step.id);
+  }
+  if (repeated.size > 0) {
+    throw new Error(
+      `Every plan step needs its own id. Repeated: ${[...repeated].join(", ")}.`
+    );
+  }
+}
+
+/** The first `step-N` id the plan does not use yet. */
+function freeStepId(steps: readonly { id: string }[]): string {
+  const taken = new Set(steps.map((step) => step.id));
+  let n = steps.length + 1;
+  while (taken.has(`step-${n}`)) {
+    n += 1;
+  }
+  return `step-${n}`;
 }
 
 /** Grade a plan against the live registry and model catalog (D23). */
@@ -211,9 +254,15 @@ FrontendToolRegistry.register({
         id: step.id ?? `step-${index + 1}`
       }))
     });
+    requireUniqueStepIds(parsed.steps);
+    // What the plan answers, as the flow's own planner records it: a creator
+    // who steps back to the category is offered this plan, not a paid
+    // re-plan of it.
+    const current = requireSetup(state, workflowId).setup;
     const setup = await persistSetup(state, workflowId, {
       plan: parsed,
-      stage: "review"
+      stage: "review",
+      [PLAN_SOURCE_KEY]: planSourceOf(current?.brief ?? "", current?.category)
     });
     return {
       ok: true,
@@ -288,8 +337,13 @@ FrontendToolRegistry.register({
       const [moved] = steps.splice(at, 1);
       steps.splice(clamp(index), 0, moved);
     } else if (op === "add") {
+      if (at !== -1) {
+        throw new Error(
+          `The plan already has a step "${step_id ?? ""}". Pick another id, or omit step_id to get a free one.`
+        );
+      }
       const added: WorkflowSetupPlan["steps"][number] = {
-        id: step_id ?? `step-${steps.length + 1}`,
+        id: step_id ?? freeStepId(steps),
         title: fields.title ?? "New step",
         summary: fields.summary ?? "",
         node_type: fields.node_type ?? null
@@ -401,7 +455,7 @@ FrontendToolRegistry.register({
       });
     }
 
-    const setup = await persistSetup(state, workflowId, { stage: "done" });
+    const setup = await persistSetup(state, workflowId, { stage: "done" }, true);
     return {
       ok: true,
       workflow_id: workflowId,

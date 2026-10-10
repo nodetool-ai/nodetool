@@ -13,7 +13,10 @@ const COMPONENT_CONTROLS = [
     clips: { idle: { frames: [{ x: 0, y: 0, width: 1, height: 1 }], ticksPerFrame: 1 } } } },
   { component: "visualAnimation", remove: "rotationRate", value: { tracks: [], rotationRate: 1 } },
   { component: "audioSource", remove: null, value: { assetId: "control-audio", onEvent: "jump" } },
-  { component: "light2d", remove: "offset", value: { color: "#ffffff", intensity: 1, radius: 2, offset: { x: 1, y: 2 } } }
+  { component: "audioSource", remove: "cone", value: { assetId: "control-audio", onEvent: "jump", spatial: true, maxDistance: 20,
+    cone: { innerAngle: 60, outerAngle: 120, outerGain: 0.2 } } },
+  { component: "light2d", remove: "offset", value: { color: "#ffffff", intensity: 1, radius: 2, offset: { x: 1, y: 2 } } },
+  { component: "particles", remove: null, value: { emitters: [{ id: "spark", rate: 4 }] } }
 ];
 
 function fixture(component: string, value: unknown): GameDocument {
@@ -94,4 +97,19 @@ it("round-trips adding, changing and removing the audio mixer through public JSO
     transitions: [{ on: { kind: "win" }, snapshot: "base" }] } } });
   roundTrip(before, mixed);
   roundTrip(mixed, changed);
+});
+
+it("round-trips spatial audio settings on an audio source through public JSON operations", () => {
+  const before = fixture("audioSource", { assetId: "control-audio", onEvent: "jump" });
+  const spatial = structuredClone(before);
+  const control = spatial.scenes[0].entities.find((entity) => entity.id === "component-control");
+  if (!control?.audioSource) { throw new Error("Fixture audio source missing"); }
+  control.audioSource = { ...control.audioSource, spatial: true, minDistance: 2, maxDistance: 30, rolloff: 0.5, distanceModel: "exponential", doppler: 1 };
+  const changed = structuredClone(spatial);
+  const changedControl = changed.scenes[0].entities.find((entity) => entity.id === "component-control");
+  if (!changedControl?.audioSource) { throw new Error("Fixture audio source missing"); }
+  delete changedControl.audioSource.doppler;
+  changedControl.audioSource.maxDistance = 12;
+  roundTrip(before, spatial);
+  roundTrip(spatial, changed);
 });

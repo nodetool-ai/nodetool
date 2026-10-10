@@ -40,6 +40,7 @@ import {
   clipSourceTimeSec,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
+  expandTemporalClips,
   motionBlurSampleTimes,
   layerShutterTime,
   resolveAnimatedLayerProps,
@@ -50,15 +51,23 @@ import {
 import type {
   ActiveLayer,
   AnimatedLayerProps,
-  MotionBlurOptions
+  FrameSourceWindow,
+  MotionBlurOptions,
+  RasterWindow
 } from "@nodetool-ai/timeline/render";
 import {
   buildCompositeLayer,
   buildCompositeAdjustments,
   buildCompositePrecomposites,
+  rasterWindowMargin,
   type ResolvedCompositeSource
 } from "../preview/compositeLayers";
 import { Model3DLayerSource } from "../preview/Model3DLayerSource";
+import {
+  logPreviewFailure,
+  previewFailureText,
+  type PreviewFailure
+} from "../preview/previewFailure";
 import {
   alphaBakesToProbe,
   guardBakeHash,
@@ -349,12 +358,32 @@ export async function renderTimeline(
   const frameCanvas = blurCanvas ?? canvas;
   const blurGeometry = { canvasWidth: width, canvasHeight: height };
 
-  const { compositor, init } = await createCompositor(canvas);
+  // A WebGPU device loss or validation error leaves the canvas frozen or
+  // blank, so the frame loop fails the export on the first one rather than
+  // encoding the remaining frames from a dead device.
+  let gpuFailure: PreviewFailure | null = null;
+  const { compositor, backend, init } = await createCompositor(canvas, (failure) => {
+    logPreviewFailure(failure);
+    gpuFailure ??= failure;
+  });
+  const throwIfGpuFailed = (): void => {
+    if (gpuFailure) {
+      throw new Error(`Export renderer failed: ${previewFailureText(gpuFailure)}`, {
+        cause: gpuFailure.error
+      });
+    }
+  };
   const videoPool = new OffscreenVideoPool();
   // The export's own session pool: an export can run while the editor previews,
   // and two pools of two contexts is what the cap is sized for. Disposed with
   // everything else in the `finally` below.
   const model3dSource = new Model3DLayerSource({ resolveUrl: resolveCached });
+  // Text and shapes rasterize only where they draw, placed through
+  // `sourceWindow`, as the preview does. The WebGPU compositor reads windows;
+  // Canvas 2D does not.
+  const windowedRasters = backend === "webgpu";
+  const frameWindow = (window: RasterWindow | undefined): FrameSourceWindow | undefined =>
+    window && { x: window.x, y: window.y, frameWidth: width, frameHeight: height };
   const captionRasterizer = new CaptionRasterizer();
   const textRasterizer = new TextRasterizer();
   const shapeRasterizer = new ShapeRasterizer();
@@ -435,9 +464,16 @@ export async function renderTimeline(
     // their fixed time range has fully passed. Each clip is a single
     // contiguous span, so a released clip can never be seeked again — this
     // caps live media elements at the overlap width instead of the whole
-    // export's clip count.
-    const videoClipsByEnd = clips
-      .filter((c) => c.mediaType === "video" || c.mediaType === "overlay")
+    // export's clip count. The scene decodes repeater and echo copies under
+    // their own ids, and a baked 3D clip plays its bake as a video, so both
+    // are released the same way.
+    const videoClipsByEnd = expandTemporalClips(clips)
+      .filter(
+        (c) =>
+          c.mediaType === "video" ||
+          c.mediaType === "overlay" ||
+          (c.mediaType === "model3d" && c.model3dStyle?.bake !== undefined)
+      )
       .sort((a, b) => a.startMs + a.durationMs - (b.startMs + b.durationMs));
     let releasePastIndex = 0;
 
@@ -536,17 +572,28 @@ export async function renderTimeline(
               width,
               height,
               stagger,
-              bitmapFrame
+              bitmapFrame,
+              windowedRasters ? rasterWindowMargin(layer, anim) : undefined
             );
-            return bitmap ? { source: bitmap } : null;
+            return bitmap
+              ? { source: bitmap, window: frameWindow(textRasterizer.windowOf(bitmap)) }
+              : null;
           }
           if (layer.kind === "shape") {
             // The animated style carries a driven trim range; without it a trim
             // animation would rasterize its first frame and hold.
             const shapeStyle = anim.shapeStyle ?? layer.shapeStyle;
             if (!shapeStyle) return null;
-            const bitmap = shapeRasterizer.rasterize(shapeStyle, width, height, bitmapFrame);
-            return bitmap ? { source: bitmap } : null;
+            const bitmap = shapeRasterizer.rasterize(
+              shapeStyle,
+              width,
+              height,
+              bitmapFrame,
+              windowedRasters ? rasterWindowMargin(layer, anim) : undefined
+            );
+            return bitmap
+              ? { source: bitmap, window: frameWindow(shapeRasterizer.windowOf(bitmap)) }
+              : null;
           }
 
           if (layer.kind === "model3d") {
@@ -672,6 +719,7 @@ export async function renderTimeline(
           accumulateBlurSample(blurCtx, canvas, blur.weight, blurGeometry);
         }
       }
+      throwIfGpuFailed();
 
       if (videoSource) {
         await videoSource.add(frame * frameDurationSec, frameDurationSec);

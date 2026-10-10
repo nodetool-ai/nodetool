@@ -2,7 +2,6 @@ import {
   ipcMain,
   BrowserWindow,
   clipboard,
-  globalShortcut,
   shell,
   dialog,
   app,
@@ -10,6 +9,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { randomUUID } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import {
   getServerState,
@@ -17,7 +17,7 @@ import {
   showItemInFolder,
   runApp,
   initializeBackendServer,
-  stopServer,
+  restartServer,
 } from "./server";
 import { assertSafeOpenablePath, assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
@@ -45,8 +45,11 @@ import { applyVaultSwitch } from "./vaultSwitch";
 import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { IpcRequest } from "./types.d";
-import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
-import { workflowShortcut } from "./workflowSettings";
+import {
+  registerWorkflowShortcut,
+  setupWorkflowShortcuts,
+  unregisterWorkflowShortcut,
+} from "./shortcuts";
 import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
 import {
   fetchAvailablePackages,
@@ -159,6 +162,19 @@ const SAFE_EXTERNAL_PROTOCOLS = new Set([
   "https:",
   "mailto:",
 ]);
+
+/**
+ * Converts a clipboard `file://` URL to a local path. `URL.pathname` keeps a
+ * leading slash before a Windows drive letter (`/C:/x`) and drops UNC hosts;
+ * `fileURLToPath` applies the platform's rules.
+ */
+export function fileUrlToLocalPath(uri: string): string | null {
+  try {
+    return fileURLToPath(uri.trim());
+  } catch {
+    return null;
+  }
+}
 
 function isSafeExternalUrl(urlValue: unknown): boolean {
   if (!isNonEmptyString(urlValue)) {
@@ -344,13 +360,7 @@ export function initializeIpcHandlers(): void {
           const paths = uriText
             .split("\n")
             .filter((line: string) => line.trim().startsWith("file://"))
-            .map((uri: string) => {
-              try {
-                return decodeURIComponent(new URL(uri.trim()).pathname);
-              } catch {
-                return null;
-              }
-            })
+            .map((uri: string) => fileUrlToLocalPath(uri))
             .filter((p: string | null): p is string => p !== null);
           if (paths.length > 0) {
             logMessage(`Read ${paths.length} file paths from text/uri-list`);
@@ -390,7 +400,7 @@ export function initializeIpcHandlers(): void {
               try {
                 // Handle both file:// URLs and plain paths
                 if (uri.startsWith("file://")) {
-                  return decodeURIComponent(new URL(uri.trim()).pathname);
+                  return fileUrlToLocalPath(uri);
                 }
                 return uri.trim();
               } catch {
@@ -427,11 +437,7 @@ export function initializeIpcHandlers(): void {
           // All lines look like paths
           const paths = possiblePaths.map((p: string) => {
             if (p.startsWith("file://")) {
-              try {
-                return decodeURIComponent(new URL(p).pathname);
-              } catch {
-                return p;
-              }
+              return fileUrlToLocalPath(p) ?? p;
             }
             return p;
           });
@@ -614,14 +620,7 @@ export function initializeIpcHandlers(): void {
   // Restart server handler
   createIpcMainHandler(IpcChannels.RESTART_SERVER, async () => {
     logMessage("Restarting backend server by user request");
-    try {
-      await stopServer();
-    } catch (e) {
-      logMessage(`Error while stopping server for restart: ${e}`, "warn");
-    }
-    // Small delay to ensure ports and resources are released before restart
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await initializeBackendServer();
+    await restartServer();
     await setupWorkflowShortcuts();
   });
 
@@ -637,10 +636,11 @@ export function initializeIpcHandlers(): void {
     autoUpdater.quitAndInstall();
   });
 
-  // Window control handlers
-  ipcMain.on(IpcChannels.WINDOW_CLOSE, (_event) => {
+  // Window control handlers. Act on the window that sent the request: the
+  // frameless workflow window can send these without holding focus.
+  ipcMain.on(IpcChannels.WINDOW_CLOSE, (event) => {
     try {
-      const window = BrowserWindow.getFocusedWindow();
+      const window = BrowserWindow.fromWebContents(event.sender);
       if (window) {
         window.close();
       }
@@ -649,9 +649,9 @@ export function initializeIpcHandlers(): void {
     }
   });
 
-  ipcMain.on(IpcChannels.WINDOW_MINIMIZE, (_event) => {
+  ipcMain.on(IpcChannels.WINDOW_MINIMIZE, (event) => {
     try {
-      const window = BrowserWindow.getFocusedWindow();
+      const window = BrowserWindow.fromWebContents(event.sender);
       if (window) {
         window.minimize();
       }
@@ -660,9 +660,9 @@ export function initializeIpcHandlers(): void {
     }
   });
 
-  ipcMain.on(IpcChannels.WINDOW_MAXIMIZE, (_event) => {
+  ipcMain.on(IpcChannels.WINDOW_MAXIMIZE, (event) => {
     try {
-      const window = BrowserWindow.getFocusedWindow();
+      const window = BrowserWindow.fromWebContents(event.sender);
       if (window) {
         if (window.isMaximized()) {
           window.unmaximize();
@@ -708,10 +708,7 @@ export function initializeIpcHandlers(): void {
     IpcChannels.ON_DELETE_WORKFLOW,
     async (_event, workflow) => {
       logMessage(`Deleting workflow: ${workflow.name}`);
-      const shortcut = workflowShortcut(workflow);
-      if (shortcut) {
-        globalShortcut.unregister(shortcut);
-      }
+      unregisterWorkflowShortcut(workflow.id);
       emitWorkflowsChanged();
     },
   );

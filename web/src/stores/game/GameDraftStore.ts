@@ -38,7 +38,8 @@ interface GameDraftState {
   canUndo: boolean;
   canRedo: boolean;
   load: (document: GameDocument, baseUpdatedAt: string) => void;
-  applyMerged: (document: GameDocument, server: GameDocument, baseUpdatedAt: string) => void;
+  /** Adopt `server` as the saved draft and `document` as the local one. `keepHistory` keeps undo and redo across the rebase. */
+  applyMerged: (document: GameDocument, server: GameDocument, baseUpdatedAt: string, options?: { readonly keepHistory?: boolean }) => void;
   acceptConflict: (server: GameDocument, kind: string, unitId: string) => void;
   apply: (ops: GameDocumentOp[], options?: GameCommandOptions) => void;
   beginGesture: () => number;
@@ -81,6 +82,7 @@ function fallbackLabel(ops: readonly GameDocumentOp[]): string {
   const op = ops[0];
   if (ops.length !== 1 || !op) { return "Edit Game"; }
   if (op.op === "set_script") { return "Edit Script"; }
+  if (op.op === "set_script_params") { return "Change Script Parameters"; }
   if (op.op === "update_entity") { return "Change Entity"; }
   if (op.op === "update_scene") { return "Change Scene"; }
   if (op.op === "add_entity") { return "Add Entity"; }
@@ -127,7 +129,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       set({ document, savedDocument: document, baseUpdatedAt, pendingOps: [], savingCount: 0, documentSaveRequired: false,
         saveStatus: "saved", error: null, ...historyState([], []) });
     },
-    applyMerged: (document, server, baseUpdatedAt) => {
+    applyMerged: (document, server, baseUpdatedAt, options) => {
       const validation = validateAnyGame(document);
       if (!validation.valid) {
         get().load(server, baseUpdatedAt);
@@ -137,8 +139,9 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       validateReplay(server, pendingOps, validation.document);
       retryPrefixCount = 0;
       closeCoalescing();
+      const { past, future } = options?.keepHistory ? get().commandHistory : { past: [], future: [] };
       set({ document: validation.document, savedDocument: server, baseUpdatedAt, pendingOps, savingCount: 0, documentSaveRequired: false,
-        saveStatus: pendingOps.length ? "unsaved" : "saved", error: null, ...historyState([], []) });
+        saveStatus: pendingOps.length ? "unsaved" : "saved", error: null, ...historyState(past, future) });
     },
     acceptConflict: (server, kind, unitId) => {
       const current = get();

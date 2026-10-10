@@ -15,8 +15,6 @@ interface PreparedSelectionFreeTransform {
   selectionBounds: LayerContentBounds;
 }
 
-const SELECTION_ALPHA_THRESHOLD = 128;
-
 function cloneCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
   const clone = window.document.createElement("canvas");
   clone.width = source.width;
@@ -33,6 +31,11 @@ function cloneCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
   return clone;
 }
 
+/**
+ * Remove the selected pixels from the layer, scaled by the mask so that it
+ * matches the soft-edged copy the transform lifts out. A hard cut here would
+ * leave the partly selected edge both in the lifted copy and on the layer.
+ */
 function clearSelectedPixelsFromCanvas(
   canvas: HTMLCanvasElement,
   offsetX: number,
@@ -45,40 +48,30 @@ function clearSelectedPixelsFromCanvas(
   }
   const maskOriginX = selection.originX ?? 0;
   const maskOriginY = selection.originY ?? 0;
-  for (let localY = 0; localY < canvas.height; localY++) {
-    const docY = localY + offsetY;
-    const maskY = docY - maskOriginY;
-    if (maskY < 0 || maskY >= selection.height) {
-      continue;
-    }
-    let localX = 0;
-    while (localX < canvas.width) {
-      const docX = localX + offsetX;
-      const maskX = docX - maskOriginX;
-      if (maskX < 0 || maskX >= selection.width) {
-        localX++;
+  // The part of the canvas the mask covers, in canvas-local pixels.
+  const left = Math.max(0, maskOriginX - offsetX);
+  const top = Math.max(0, maskOriginY - offsetY);
+  const right = Math.min(canvas.width, maskOriginX + selection.width - offsetX);
+  const bottom = Math.min(canvas.height, maskOriginY + selection.height - offsetY);
+  if (right <= left || bottom <= top) {
+    return;
+  }
+  const width = right - left;
+  const image = ctx.getImageData(left, top, width, bottom - top);
+  const pixels = image.data;
+  for (let y = top; y < bottom; y++) {
+    const maskRow = (y + offsetY - maskOriginY) * selection.width;
+    const pixelRow = (y - top) * width;
+    for (let x = left; x < right; x++) {
+      const m = selection.data[maskRow + x + offsetX - maskOriginX];
+      if (m === 0) {
         continue;
       }
-      if (selection.data[maskY * selection.width + maskX] < SELECTION_ALPHA_THRESHOLD) {
-        localX++;
-        continue;
-      }
-      let endX = localX + 1;
-      while (endX < canvas.width) {
-        const nextMaskX = endX + offsetX - maskOriginX;
-        if (
-          nextMaskX < 0 ||
-          nextMaskX >= selection.width ||
-          selection.data[maskY * selection.width + nextMaskX] < SELECTION_ALPHA_THRESHOLD
-        ) {
-          break;
-        }
-        endX++;
-      }
-      ctx.clearRect(localX, localY, endX - localX, 1);
-      localX = endX;
+      const alpha = ((pixelRow + x - left) << 2) + 3;
+      pixels[alpha] = Math.round((pixels[alpha] * (255 - m)) / 255);
     }
   }
+  ctx.putImageData(image, left, top);
 }
 
 export function prepareSelectionFreeTransformCanvases(params: {

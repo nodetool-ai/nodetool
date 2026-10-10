@@ -11,7 +11,7 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
-import { makeClip } from "@nodetool-ai/timeline";
+import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TracksRegion } from "../TracksRegion";
@@ -220,7 +220,7 @@ describe("TracksRegion keyboard shortcuts", () => {
       useTimelineStore.setState({ clips });
       useTimelinePlaybackStore.getState().seek(1000);
       useTimelinePlaybackStore.getState().setTimeMs(5000);
-      fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+      fireEvent.keyDown(window, { key: "K", ctrlKey: true, shiftKey: true });
     });
 
     expect(
@@ -242,6 +242,53 @@ describe("TracksRegion keyboard shortcuts", () => {
     expect(
       useTimelineStore.getState().clips.some((candidate) => candidate.startMs === 5000)
     ).toBe(true);
+  });
+
+  it("resolves a paste against the drop mode in one undo entry", () => {
+    setup();
+    const track = makeTrack({ id: "t1", type: "video", name: "V" });
+    const clip = makeClip({ trackId: "t1", name: "a", startMs: 0, durationMs: 1000 });
+    const under = makeClip({ trackId: "t1", name: "under", startMs: 5000, durationMs: 2000 });
+    act(() => {
+      useTimelineStore.setState({ tracks: [track], clips: [clip, under] });
+      useTimelineUIStore.getState().setDropMode("overwrite");
+      useTimelineUIStore.getState().setSelection([clip.id]);
+      fireEvent.keyDown(window, { key: "c", ctrlKey: true });
+      useTimelinePlaybackStore.getState().seek(5000);
+      getTimelineTemporal().clear();
+      fireEvent.keyDown(window, { key: "v", ctrlKey: true });
+    });
+
+    const covered = useTimelineStore
+      .getState()
+      .clips.find((candidate) => candidate.name === "under");
+    expect(covered?.startMs).toBe(6000);
+    expect(covered?.durationMs).toBe(1000);
+    act(() => getTimelineTemporal().undo());
+    expect(useTimelineStore.getState().clips).toEqual([clip, under]);
+  });
+
+  it("cuts only the clips it can delete", () => {
+    setup();
+    const track = makeTrack({ id: "t1", type: "video", name: "V" });
+    const free = makeClip({ trackId: "t1", name: "free", startMs: 0, durationMs: 1000 });
+    const pinned = makeClip({
+      trackId: "t1",
+      name: "pinned",
+      startMs: 2000,
+      durationMs: 1000,
+      locked: true
+    });
+    act(() => {
+      useTimelineStore.setState({ tracks: [track], clips: [free, pinned] });
+      useTimelineUIStore.getState().setSelection([free.id, pinned.id]);
+      fireEvent.keyDown(window, { key: "x", ctrlKey: true });
+      useTimelinePlaybackStore.getState().seek(8000);
+      fireEvent.keyDown(window, { key: "v", ctrlKey: true });
+    });
+
+    const names = useTimelineStore.getState().clips.map((c) => c.name).sort();
+    expect(names).toEqual(["free", "pinned"]);
   });
 
   it("passes the transient playback time to source edits", () => {
@@ -320,6 +367,35 @@ it("routes editing shortcuts only to the active timeline", () => {
   rerender(tree(true));
   act(() => fireEvent.keyDown(window, { key: "Delete" }));
   expect(hidden.doc.getState().clips).toHaveLength(0);
+});
+
+it("Ctrl+Z undoes this editor's history when another instance is on top (F30)", () => {
+  const editor = createTimelineInstance();
+  const other = createTimelineInstance();
+  for (const instance of [editor, other]) {
+    instance.doc
+      .getState()
+      .addClips([
+        makeClip({ trackId: "t1", name: "clip", startMs: 0, durationMs: 1000 })
+      ]);
+    instance.doc.temporal.getState().clear();
+    const id = instance.doc.getState().clips[0].id;
+    instance.doc.getState().patchClip(id, { opacity: 0.5 });
+  }
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <TimelineProvider instance={editor}>
+        <TracksRegion heightPx={400} />
+      </TimelineProvider>
+      {/* Mounted later, so it sits on top of the activation stack. */}
+      <TimelineProvider instance={other}>
+        <div />
+      </TimelineProvider>
+    </ThemeProvider>
+  );
+  act(() => fireEvent.keyDown(window, { key: "z", ctrlKey: true }));
+  expect(editor.doc.getState().clips[0].opacity).not.toBe(0.5);
+  expect(other.doc.getState().clips[0].opacity).toBe(0.5);
 });
 
 describe("TracksRegion held-key undo batching (F55)", () => {

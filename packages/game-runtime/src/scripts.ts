@@ -1,7 +1,9 @@
 import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
-import { gameNonSpatialScriptCommand, type GameDocument, type GameEntityProps, type GameSnapshot } from "@nodetool-ai/protocol";
+import { gameNonSpatialScriptCommand, resolveGameScriptParams, type GameDocument, type GameEntityProps, type GameScriptParam, type GameScriptParamValue, type GameSnapshot } from "@nodetool-ai/protocol";
 
+import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
+import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
 import { canPersistGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
 import { ScriptWorldSnapshot, type ScriptWorldEntity } from "./script-world.js";
@@ -22,7 +24,8 @@ export const gameScriptCommand = z.discriminatedUnion("kind", [
   gameNonSpatialScriptCommand.options[3],
   gameNonSpatialScriptCommand.options[4],
   gameNonSpatialScriptCommand.options[5],
-  gameNonSpatialScriptCommand.options[6]
+  gameNonSpatialScriptCommand.options[6],
+  gameNonSpatialScriptCommand.options[7]
 ]);
 
 export type GameScriptCommand = z.infer<typeof gameScriptCommand>;
@@ -44,6 +47,8 @@ export interface GameScriptCall {
   readonly active?: boolean;
   readonly maxCommands: number;
   readonly maxTickMs: number;
+  /** Lifecycle facts, present only on calls of lifecycle-object scripts. */
+  readonly lifecycle?: GameScriptLifecycle;
 }
 
 /** Which sides of an entity's collider rest against a solid at the start of the tick. */
@@ -96,6 +101,8 @@ export interface GameScriptInput {
 
 export interface GameScriptRunner {
   run(calls: readonly GameScriptCall[], input: GameScriptInput, rngState: number, world?: readonly ScriptWorldEntity[]): GameScriptBatch;
+  /** Source keys whose script is a lifecycle object rather than a function. */
+  readonly hookSources?: ReadonlySet<string>;
   retain?(stateKeys: ReadonlySet<string>): void;
   dispose(): void;
 }
@@ -132,10 +139,20 @@ function initializeContext(context: QuickJSContext, seed: number, helpers: strin
   `, "game-transport.js", { type: "global" }));
 }
 
+function interrupted(budget: string): Error {
+  return new Error(`Game script interrupted: ${budget} budget exceeded`);
+}
+
 function assertBeforeDeadline(deadline: number, budget: string): void {
-  if (performance.now() >= deadline) {
-    throw new Error(`Game script interrupted: ${budget} budget exceeded`);
-  }
+  if (performance.now() >= deadline) { throw interrupted(budget); }
+}
+
+export interface GameScriptOptions {
+  /**
+   * Measures each call against its `maxTickMs`. The default is the thread's CPU time where the host
+   * reports it (Node), otherwise wall time. The batch budget and preparation limits use wall time.
+   */
+  readonly callClock?: ScriptCallClock;
 }
 
 /** Only proven input-only functions may retain their context between calls. */
@@ -147,6 +164,7 @@ export interface IsolatedScriptCall {
   readonly state: GameSnapshot["scriptState"][string];
   readonly maxCommands: number;
   readonly maxTickMs: number;
+  readonly lifecycle?: GameScriptLifecycle;
 }
 
 export interface IsolatedScriptInput {
@@ -171,6 +189,8 @@ export interface IsolatedScriptRunner<Call extends IsolatedScriptCall, Input ext
     readonly rngState: number;
     readonly stats: GameScriptStats;
   };
+  /** Source keys whose script is a lifecycle object rather than a function. */
+  readonly hookSources?: ReadonlySet<string>;
   retain?(stateKeys: ReadonlySet<string>): void;
   dispose(): void;
 }
@@ -185,7 +205,10 @@ interface ScriptRealm {
   setWorldReader(reader: (() => QuickJSHandle) | undefined): void;
 }
 
-function disposeRealm(realm: ScriptRealm): void {
+/** A context with the transport helpers installed and no user source evaluated yet. */
+type RealmShell = Omit<ScriptRealm, "sourceKey">;
+
+function disposeRealm(realm: RealmShell): void {
   realm.setWorldReader(undefined);
   realm.worldGetter.dispose();
   realm.queryJson.dispose();
@@ -197,20 +220,67 @@ function disposeRealm(realm: ScriptRealm): void {
 interface ScriptDefinitions {
   readonly entrySceneId?: string;
   readonly scenes: readonly { readonly id: string; readonly entities: readonly {
-    readonly id: string; readonly behaviors: readonly { readonly kind: string; readonly source?: string }[]
+    readonly id: string; readonly behaviors: readonly {
+      readonly kind: string; readonly source?: string;
+      readonly params?: Readonly<Record<string, GameScriptParam>>; readonly values?: Readonly<Record<string, GameScriptParamValue>>
+    }[]
   }[] }[];
 }
 
 /** Bounds the validated entry-scene realms held until the first batch, about 30 KiB each. */
 const PREPARED_REALM_LIMIT = 64;
+const SCRIPT_BATCH_MS = 50;
+/** Prepare-time allowance for the warm-up batch, which runs before any tick budget starts. */
+const WARMUP_BATCH_MS = 1000;
+const WARMUP_SOURCES = [
+  ["warmup:fresh", "(input) => { const world = input.world; return { state: { tick: input.tick, entities: world.length, ids: world.map((entity) => entity.id) }, commands: [] }; }"],
+  ["warmup:persistent", "(input) => ({ state: [input.state, input.world], commands: [] })"]
+] as const;
+/** Warms the lifecycle-object path, only for documents that use it. */
+const HOOK_WARMUP_SOURCE = ["warmup:hooks", "({ onStart(input) { after(1, \"tick\"); }, tick() {}, onUpdate(input) { return { state: [input.state, input.world] }; } })"] as const;
+
+type EnvelopeSchema = z.ZodType<{ readonly value: { readonly state: z.core.util.JSONType; readonly commands: readonly unknown[] }; readonly rngState: number }>;
+// One envelope per command schema, so its parser is compiled once per process instead of once per runner.
+const envelopeSchemas = new WeakMap<z.ZodType, EnvelopeSchema>();
+const warmedCommandSchemas = new WeakSet<z.ZodType>();
+const warmedHookSchemas = new WeakSet<z.ZodType>();
+const compiledSchemas = new WeakSet<z.core.$ZodType>();
+
+/**
+ * Zod compiles each object schema's parser the first time it sees an object. Doing that here keeps the
+ * compilation out of the first batch that emits a given command kind, where it would count against the tick budget.
+ */
+function compileObjectParsers(schema: z.core.$ZodType): void {
+  if (compiledSchemas.has(schema)) { return; }
+  compiledSchemas.add(schema);
+  const def = schema._zod.def as unknown as Readonly<Record<string, unknown>>;
+  const children: unknown[] = [];
+  if (def["type"] === "object") {
+    z.safeParse(schema, {});
+    children.push(...Object.values(def["shape"] as Record<string, unknown>), def["catchall"]);
+  }
+  for (const key of ["innerType", "element", "in", "out", "keyType", "valueType", "left", "right", "rest"]) { children.push(def[key]); }
+  for (const key of ["options", "items"]) {
+    if (Array.isArray(def[key])) { children.push(...def[key]); }
+  }
+  for (const child of children) {
+    if (child instanceof z.core.$ZodType) { compileObjectParsers(child); }
+  }
+}
 
 export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall, Input extends IsolatedScriptInput, Command>(
   document: ScriptDefinitions,
   commandSchema: z.ZodType<Command>,
-  payloadExpression: string
+  payloadExpression: string,
+  options: GameScriptOptions = {}
 ): Promise<IsolatedScriptRunner<Call, Input, Command>> {
-  const resultSchema = z.strictObject({ state: z.json(), commands: z.array(commandSchema) });
-  const envelopeSchema = z.object({ value: resultSchema, rngState: z.number().int().nonnegative() });
+  const callClock = options.callClock ?? defaultScriptCallClock;
+  let envelope = envelopeSchemas.get(commandSchema);
+  if (envelope === undefined) {
+    envelope = z.object({ value: z.strictObject({ state: z.json(), commands: z.array(commandSchema) }), rngState: z.number().int().nonnegative() });
+    envelopeSchemas.set(commandSchema, envelope);
+  }
+  const envelopeSchema = envelope as z.ZodType<{ readonly value: { readonly state: z.core.util.JSONType; readonly commands: Command[] }; readonly rngState: number }>;
   const [{ newQuickJSWASMModuleFromVariant }, quickJsVariantModule] = await Promise.all([
     import("quickjs-emscripten-core"),
     import("@jitl/quickjs-ng-wasmfile-release-sync")
@@ -221,7 +291,10 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   runtime.setMemoryLimit(16 * 1024 * 1024);
   runtime.setMaxStackSize(256 * 1024);
   const sources = new Map<string, string>();
+  // Resolved `input.params` JSON per behavior definition. Values are document data, so this is serialized once per session.
+  const paramsJson = new Map<string, string>();
   const persistentSources = new Set<string>();
+  const hookSources = new Set<string>();
   const realms = new Map<string, ScriptRealm>();
   // Validated entry-scene realms, kept so the first tick does not compile every proven-safe script inside its budget.
   const prepared = new Map<string, ScriptRealm>();
@@ -239,7 +312,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       if (!keys.has(key)) { disposeRealm(realm); realms.delete(key); }
     }
   };
-  const createRealm = (sourceKey: string, source: string, seed: number, persistent: boolean): ScriptRealm => {
+  // Host-only setup. Creating a context can run a QuickJS cycle collection of earlier disposed contexts.
+  // Only lifecycle-object realms install the hook dispatcher, so function realms evaluate the same helpers as before.
+  const createRealmShell = (seed: number, persistent: boolean, hooks = false): RealmShell => {
     const context = runtime.newContext();
     let invoke: QuickJSHandle | undefined;
     let defineData: QuickJSHandle | undefined;
@@ -261,27 +336,56 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         if (typeof json !== "string" || json.length > 4096) { throw new Error("world query arguments exceed 4096 characters or are not JSON"); }
         return json;
       })(JSON.stringify),
-      ((defineProperty) => (data, getWorld, rngState) => {
+      ((defineProperty${hooks ? ", dispatch" : ""}) => (data, getWorld, rngState) => {
         ${persistent ? "" : "data = JSON.parse(data);"}
         const payload = ${payloadExpression};
         ${persistent ? `defineProperty(payload, "world", {
           enumerable: true, configurable: true, get: getWorld,
           set(value) { defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); }
         });` : ""}
-        const value = __gameScript(payload);
+        const value = ${hooks ? "dispatch(__gameScript, payload, data.call.steps)" : "__gameScript(payload)"};
         return JSON.stringify({ value, rngState: ${persistent ? "rngState" : "__gameRandom.state"} });
-      })(Object.defineProperty)]`);
+      })(Object.defineProperty${hooks ? `, ${SCRIPT_LIFECYCLE_DISPATCH}` : ""})]`);
       try {
         defineData = context.getProp(helpers, 0);
         queryJson = context.getProp(helpers, 1);
         invoke = context.getProp(helpers, 2);
       } finally { helpers.dispose(); }
-      if (evaluate(context, `globalThis.__gameScript = (${source}); typeof __gameScript`) !== "function") {
-        throw new Error(`Game script ${sourceKey} must be a function expression`);
-      }
-      return { sourceKey, context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; } };
+      return { context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; } };
     } catch (error) {
       worldGetter?.dispose(); queryJson?.dispose(); defineData?.dispose(); invoke?.dispose(); context.dispose(); throw error;
+    }
+  };
+  /** Evaluates user source in the shell, which this takes ownership of. */
+  const loadSource = (shell: RealmShell, sourceKey: string, source: string, hooks: boolean): ScriptRealm => {
+    try {
+      if (evaluate(shell.context, `globalThis.__gameScript = (${source}); typeof __gameScript`) !== (hooks ? "object" : "function")) {
+        throw new Error(`Game script ${sourceKey} must be a ${hooks ? "lifecycle object" : "function expression"}`);
+      }
+      return { ...shell, sourceKey };
+    } catch (error) {
+      disposeRealm(shell); throw error;
+    }
+  };
+  /** Prepare-time evaluation: a function, or a lifecycle object whose hooks pass `scriptHookIssue`. */
+  const inspectSource = (sourceKey: string, source: string, persistent: boolean): { readonly realm: ScriptRealm; readonly hooks: boolean } => {
+    const shell = createRealmShell(0, persistent);
+    try {
+      const kind = evaluate(shell.context, `globalThis.__gameScript = (${source}); typeof __gameScript`);
+      if (kind !== "function") {
+        const shape = kind === "object" && !persistent ? evaluate(shell.context, `(() => { const hooks = __gameScript;
+          if (hooks === null || Array.isArray(hooks)) { return null; }
+          const keys = Object.keys(hooks);
+          return [keys, keys.filter((key) => typeof hooks[key] === "function")]; })()`) : null;
+        if (!Array.isArray(shape)) {
+          throw new Error(`Game script ${sourceKey} must be a function expression or a lifecycle object`);
+        }
+        const issue = scriptHookIssue(shape[0] as string[], shape[1] as string[]);
+        if (issue !== undefined) { throw new Error(`Game script ${sourceKey}: ${issue}`); }
+      }
+      return { realm: { ...shell, sourceKey }, hooks: kind !== "function" };
+    } catch (error) {
+      disposeRealm(shell); throw error;
     }
   };
   try {
@@ -296,10 +400,11 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             const deadline = performance.now() + 100;
             runtime.setInterruptHandler(() => performance.now() >= deadline);
             const persistent = canPersistGameScript(behavior.source);
-            const realm = createRealm(key, behavior.source, 0, persistent);
+            const { realm, hooks } = inspectSource(key, behavior.source, persistent);
             if (persistent) {
               persistentSources.add(key);
             }
+            if (hooks) { hookSources.add(key); }
             // Inactive scenes and prefab definitions are validated without retaining their realms.
             if (persistent && scene.id === document.entrySceneId && prepared.size < PREPARED_REALM_LIMIT) { prepared.set(key, realm); }
             else { disposeRealm(realm); }
@@ -307,161 +412,225 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             throw new Error(`Game script ${key} could not be prepared: ${error instanceof Error ? error.message : String(error)}`);
           }
           sources.set(key, behavior.source);
+          if (behavior.params !== undefined) { paramsJson.set(key, JSON.stringify(resolveGameScriptParams(behavior.params, behavior.values))); }
         });
       }
     }
+    type Batch = ReturnType<IsolatedScriptRunner<Call, Input, Command>["run"]>;
+    const execute = (calls: readonly Call[], input: Input, rngState: number, world: readonly ScriptWorldEntity[] | undefined, batchMs: number): Batch => {
+      const started = performance.now();
+      const batchDeadline = started + batchMs;
+      // This limits the logical tick payload, which carries each entity's props once.
+      // Each isolated call gets its own JSON copy with props attached to the entries scripts read.
+      // Params belong to a behavior definition, so calls that share one count its params once, as a table keyed by source.
+      let paramsTable = "";
+      const counted = new Set<string>();
+      for (const call of paramsJson.size === 0 ? [] : calls) {
+        const params = paramsJson.get(call.sourceKey);
+        if (params === undefined || counted.has(call.sourceKey)) { continue; }
+        paramsTable += `${counted.size > 0 ? "," : ""}${JSON.stringify(call.sourceKey)}:${params}`;
+        counted.add(call.sourceKey);
+      }
+      const logical = JSON.stringify({ calls, input, rngState });
+      const serialized = counted.size === 0 ? logical : `${logical.slice(0, -1)},"params":{${paramsTable}}}`;
+      const inputBytes = encoder.encode(serialized).byteLength;
+      if (inputBytes > 64 * 1024) {
+        throw new Error(`Game script input exceeds 64 KiB (${inputBytes} bytes, ${calls.length} calls, tick ${input.tick})`);
+      }
+      const batchBudget = `batch ${batchMs} ms at tick ${input.tick}`;
+      assertBeforeDeadline(batchDeadline, batchBudget);
+      const { props: propsTable, ...scriptInput } = input;
+      // Scripts read props on each world entry. The copies exist only in this guest-facing JSON.
+      let worldJson: string | undefined;
+      const scriptWorldJson = (): string => worldJson ??= JSON.stringify(propsTable === undefined ? scriptInput.world
+        : scriptInput.world.map((entity) => ({ ...entity, props: propsOf(propsTable, entity.id) })));
+      let fullInputJson: string | undefined;
+      const inputJson = (): string => {
+        if (fullInputJson === undefined) {
+          const { world: _world, ...withoutWorld } = scriptInput;
+          const rest = JSON.stringify(withoutWorld);
+          fullInputJson = `${rest.slice(0, -1)}${rest.length > 2 ? "," : ""}"world":${scriptWorldJson()}}`;
+        }
+        return fullInputJson;
+      };
+      let persistentInputJson: string | undefined;
+      const inputJsonWithoutWorld = (): string => {
+        if (persistentInputJson === undefined) {
+          const { world: _world, ...withoutWorld } = scriptInput;
+          persistentInputJson = JSON.stringify(withoutWorld);
+        }
+        return persistentInputJson;
+      };
+      const callJson = (call: Call, plan: GameScriptHookPlan | undefined): string => {
+        // A lifecycle call shows its hooks the record's inner state and receives its hook steps instead of host facts.
+        const guest = plan === undefined ? call : { ...call, state: plan.state, lifecycle: undefined, steps: plan.steps };
+        return JSON.stringify(propsTable === undefined ? guest : { ...guest, props: propsOf(propsTable, call.entityId) });
+      };
+      let hostWorld: ScriptWorldSnapshot | undefined;
+      const getHostWorld = (): ScriptWorldSnapshot => hostWorld ??= new ScriptWorldSnapshot(world ?? input.world, propsTable);
+      let legacyWorld: unknown;
+      let legacyWorldReady = false;
+      const readLegacyWorld = (): unknown => {
+        if (!legacyWorldReady) {
+          // Parse the tick-start world only when a persistent script reads it.
+          legacyWorld = JSON.parse(scriptWorldJson());
+          legacyWorldReady = true;
+        }
+        return legacyWorld;
+      };
+      let nextRngState = rngState;
+      let serializedResultsBytes = 0;
+      let commandCount = 0;
+      const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
+      const results: { entityId: string; state: GameSnapshot["scriptState"][string]; commands: Command[] }[] = [];
+      for (const call of calls) {
+        assertBeforeDeadline(batchDeadline, batchBudget);
+        const source = sources.get(call.sourceKey);
+        if (source === undefined) {
+          throw new Error(`Game script source ${call.sourceKey} is missing for ${call.entityId} at tick ${input.tick}`);
+        }
+        let callStarted = performance.now();
+        let callExceeded = (): boolean => false;
+        const checkCallDeadline = (): void => {
+          assertBeforeDeadline(batchDeadline, batchBudget);
+          if (callExceeded()) { throw interrupted(`call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`); }
+        };
+        runtime.setInterruptHandler(() => performance.now() >= batchDeadline);
+        const persistent = persistentSources.has(call.sourceKey);
+        let realm = realms.get(call.stateKey);
+        let shell: RealmShell | undefined;
+        let worldHandle: QuickJSHandle | undefined;
+        let worldCall: ReturnType<ScriptWorldSnapshot["install"]> | undefined;
+        try {
+          if (realm && realm.sourceKey !== call.sourceKey) {
+            disposeRealm(realm); realms.delete(call.stateKey); realm = undefined;
+          }
+          if (!realm && persistent) {
+            realm = prepared.get(call.sourceKey);
+            prepared.delete(call.sourceKey);
+          }
+          // Context setup is host work, so it counts against the batch budget only. The call budget starts
+          // before any user source is evaluated, so the script's own execution limit is unchanged.
+          const hooks = hookSources.has(call.sourceKey);
+          if (!realm) { shell = createRealmShell(nextRngState, persistent, hooks); }
+          assertBeforeDeadline(batchDeadline, batchBudget);
+          callStarted = performance.now();
+          callExceeded = startScriptCallTimer(callClock, call.maxTickMs);
+          runtime.setInterruptHandler(() => performance.now() >= batchDeadline || callExceeded());
+          if (shell) {
+            const loading = shell;
+            shell = undefined;
+            realm = loadSource(loading, call.sourceKey, source, hooks);
+          }
+          if (!realm) { throw new Error("Game script realm was not created"); }
+          if (persistent) { realms.set(call.stateKey, realm); }
+          const { context, invoke, defineData, worldGetter } = realm;
+          if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
+          checkCallDeadline();
+          // The shared input is serialized once per tick; only the call is serialized per call.
+          const params = paramsJson.get(call.sourceKey);
+          const plan = hooks ? planScriptHooks(call.state, call.lifecycle, input.tick) : undefined;
+          const data = `{"call":${callJson(call, plan)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}${params === undefined ? "" : `,"params":${params}`}}`;
+          checkCallDeadline();
+          const normalized: unknown = persistent ? JSON.parse(data) : data;
+          let argument: QuickJSHandle | undefined;
+          let seed: QuickJSHandle | undefined;
+          let output: unknown;
+          try {
+            argument = gameScriptValue(context, normalized, defineData, persistent);
+            seed = context.newNumber(nextRngState);
+            realm.setWorldReader(() => {
+              checkCallDeadline();
+              worldHandle ??= gameScriptValue(context, readLegacyWorld(), defineData, true);
+              checkCallDeadline();
+              return worldHandle.dup();
+            });
+            const value = scriptHandleResult(context, context.callFunction(invoke, context.undefined, argument, worldGetter, seed));
+            try { output = context.dump(value); } finally { value.dispose(); }
+            worldCall?.assertWithinLimit();
+          } finally {
+            realm.setWorldReader(undefined);
+            argument?.dispose(); seed?.dispose();
+          }
+          if (typeof output !== "string") {
+            throw new Error("Output is not JSON");
+          }
+          checkCallDeadline();
+          const rawOutputBytes = encoder.encode(output).byteLength;
+          if (rawOutputBytes > 64 * 1024) {
+            throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
+          }
+          const parsed: unknown = JSON.parse(output);
+          const envelope = envelopeSchema.parse(parsed);
+          const value = plan === undefined ? envelope.value
+            : { state: commitScriptHooks(envelope.value.state, plan, input.tick) as unknown as z.core.util.JSONType, commands: envelope.value.commands };
+          if (value.commands.length > call.maxCommands) {
+            throw new Error(`Game script command limit exceeded for ${call.entityId}`);
+          }
+          const itemBytes = encoder.encode(JSON.stringify({ entityId: call.entityId, value })).byteLength;
+          serializedResultsBytes += itemBytes + (results.length > 0 ? 1 : 0);
+          const outputBytes = encoder.encode(JSON.stringify({ results: [], rngState: envelope.rngState })).byteLength + serializedResultsBytes;
+          if (outputBytes > 64 * 1024) {
+            throw new Error(`Output exceeds 64 KiB (${outputBytes} bytes across ${results.length + 1} calls)`);
+          }
+          checkCallDeadline();
+          commandCount += value.commands.length;
+          nextRngState = envelope.rngState;
+          results.push({ entityId: call.entityId, state: value.state, commands: value.commands });
+        } catch (error) {
+          // A failed batch cannot retain partially evaluated realms.
+          worldHandle?.dispose(); worldHandle = undefined;
+          if (shell) { disposeRealm(shell); shell = undefined; }
+          if (!persistent && realm) { disposeRealm(realm); realm = undefined; }
+          disposeRealms();
+          throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+          worldCall?.end();
+          worldHandle?.dispose();
+          if (!persistent && realm) { disposeRealm(realm); }
+        }
+        checkCallDeadline();
+        const previous = byEntity[call.entityId] ?? { durationMs: 0, calls: 0 };
+        byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
+      }
+      assertBeforeDeadline(batchDeadline, batchBudget);
+      return { results, rngState: nextRngState, stats: { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity } };
+    };
+    const warmCalls = !warmedCommandSchemas.has(commandSchema);
+    const warmHooks = hookSources.size > 0 && !warmedHookSchemas.has(commandSchema);
+    const warmups = [...(warmCalls ? WARMUP_SOURCES : []), ...(warmHooks ? [HOOK_WARMUP_SOURCE] : [])];
+    if (warmups.length > 0) {
+      // Run the per-call path once before any tick budget starts, so first-use costs in this process
+      // (host and zod parser compilation, QuickJS warm-up) are paid here instead of by the first batch.
+      compileObjectParsers(commandSchema);
+      const warmupCalls = warmups.map(([key, source]) => {
+        sources.set(key, source);
+        if (canPersistGameScript(source)) { persistentSources.add(key); }
+        if (key === HOOK_WARMUP_SOURCE[0]) { hookSources.add(key); }
+        return { sourceKey: key, stateKey: key, entityId: key, source: key, state: null, maxCommands: 0, maxTickMs: WARMUP_BATCH_MS } as unknown as Call;
+      });
+      try {
+        execute(warmupCalls, { tick: 0, world: [] } as unknown as Input, 0, [], WARMUP_BATCH_MS);
+        if (warmCalls) { warmedCommandSchemas.add(commandSchema); }
+        if (warmHooks) { warmedHookSchemas.add(commandSchema); }
+      } catch {
+        // The warm-up is only an optimization. Its error path already disposed every realm, including the
+        // prepared ones, so batches create realms on demand as they do past PREPARED_REALM_LIMIT. The next runner warms again.
+      } finally {
+        retain(new Set());
+        for (const [key] of warmups) { sources.delete(key); persistentSources.delete(key); hookSources.delete(key); }
+      }
+    }
     return {
+      hookSources,
       retain,
-      run(calls: readonly Call[], input: Input, rngState: number, world?: readonly ScriptWorldEntity[]): ReturnType<IsolatedScriptRunner<Call, Input, Command>["run"]> {
+      run(calls: readonly Call[], input: Input, rngState: number, world?: readonly ScriptWorldEntity[]): Batch {
         try {
           retain(new Set(calls.map((call) => call.stateKey)));
           if (calls.length === 0) {
             return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0, byEntity: {} } };
           }
-          const started = performance.now();
-          const batchDeadline = started + 50;
-          // This limits the logical tick payload, which carries each entity's props once.
-          // Each isolated call gets its own JSON copy with props attached to the entries scripts read.
-          const serialized = JSON.stringify({ calls, input, rngState });
-          const inputBytes = encoder.encode(serialized).byteLength;
-          if (inputBytes > 64 * 1024) {
-            throw new Error(`Game script input exceeds 64 KiB (${inputBytes} bytes, ${calls.length} calls, tick ${input.tick})`);
-          }
-          const batchBudget = `batch 50 ms at tick ${input.tick}`;
-          assertBeforeDeadline(batchDeadline, batchBudget);
-          const { props: propsTable, ...scriptInput } = input;
-          // Scripts read props on each world entry. The copies exist only in this guest-facing JSON.
-          let worldJson: string | undefined;
-          const scriptWorldJson = (): string => worldJson ??= JSON.stringify(propsTable === undefined ? scriptInput.world
-            : scriptInput.world.map((entity) => ({ ...entity, props: propsOf(propsTable, entity.id) })));
-          let fullInputJson: string | undefined;
-          const inputJson = (): string => {
-            if (fullInputJson === undefined) {
-              const { world: _world, ...withoutWorld } = scriptInput;
-              const rest = JSON.stringify(withoutWorld);
-              fullInputJson = `${rest.slice(0, -1)}${rest.length > 2 ? "," : ""}"world":${scriptWorldJson()}}`;
-            }
-            return fullInputJson;
-          };
-          let persistentInputJson: string | undefined;
-          const inputJsonWithoutWorld = (): string => {
-            if (persistentInputJson === undefined) {
-              const { world: _world, ...withoutWorld } = scriptInput;
-              persistentInputJson = JSON.stringify(withoutWorld);
-            }
-            return persistentInputJson;
-          };
-          const callJson = (call: Call): string => JSON.stringify(propsTable === undefined ? call : { ...call, props: propsOf(propsTable, call.entityId) });
-          let hostWorld: ScriptWorldSnapshot | undefined;
-          const getHostWorld = (): ScriptWorldSnapshot => hostWorld ??= new ScriptWorldSnapshot(world ?? input.world, propsTable);
-          let legacyWorld: unknown;
-          let legacyWorldReady = false;
-          const readLegacyWorld = (): unknown => {
-            if (!legacyWorldReady) {
-              // Parse the tick-start world only when a persistent script reads it.
-              legacyWorld = JSON.parse(scriptWorldJson());
-              legacyWorldReady = true;
-            }
-            return legacyWorld;
-          };
-          let nextRngState = rngState;
-          let serializedResultsBytes = 0;
-          let commandCount = 0;
-          const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
-          const results: { entityId: string; state: GameSnapshot["scriptState"][string]; commands: Command[] }[] = [];
-          for (const call of calls) {
-            assertBeforeDeadline(batchDeadline, batchBudget);
-            const source = sources.get(call.sourceKey);
-            if (source === undefined) {
-              throw new Error(`Game script source ${call.sourceKey} is missing for ${call.entityId} at tick ${input.tick}`);
-            }
-            const callStarted = performance.now();
-            const deadline = Math.min(batchDeadline, callStarted + call.maxTickMs);
-            const checkCallDeadline = (): void => {
-              assertBeforeDeadline(batchDeadline, batchBudget);
-              assertBeforeDeadline(deadline, `call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`);
-            };
-            runtime.setInterruptHandler(() => performance.now() >= deadline);
-            const persistent = persistentSources.has(call.sourceKey);
-            let realm = realms.get(call.stateKey);
-            let worldHandle: QuickJSHandle | undefined;
-            let worldCall: ReturnType<ScriptWorldSnapshot["install"]> | undefined;
-            try {
-              if (realm && realm.sourceKey !== call.sourceKey) {
-                disposeRealm(realm); realms.delete(call.stateKey); realm = undefined;
-              }
-              if (!realm && persistent) {
-                realm = prepared.get(call.sourceKey);
-                prepared.delete(call.sourceKey);
-              }
-              realm ??= createRealm(call.sourceKey, source, nextRngState, persistent);
-              if (persistent) { realms.set(call.stateKey, realm); }
-              const { context, invoke, defineData, worldGetter } = realm;
-              if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
-              checkCallDeadline();
-              // The shared input is serialized once per tick; only the call is serialized per call.
-              const data = `{"call":${callJson(call)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}}`;
-              checkCallDeadline();
-              const normalized: unknown = persistent ? JSON.parse(data) : data;
-              let argument: QuickJSHandle | undefined;
-              let seed: QuickJSHandle | undefined;
-              let output: unknown;
-              try {
-                argument = gameScriptValue(context, normalized, defineData, persistent);
-                seed = context.newNumber(nextRngState);
-                realm.setWorldReader(() => {
-                  checkCallDeadline();
-                  worldHandle ??= gameScriptValue(context, readLegacyWorld(), defineData, true);
-                  checkCallDeadline();
-                  return worldHandle.dup();
-                });
-                const value = scriptHandleResult(context, context.callFunction(invoke, context.undefined, argument, worldGetter, seed));
-                try { output = context.dump(value); } finally { value.dispose(); }
-                worldCall?.assertWithinLimit();
-              } finally {
-                realm.setWorldReader(undefined);
-                argument?.dispose(); seed?.dispose();
-              }
-              if (typeof output !== "string") {
-                throw new Error("Output is not JSON");
-              }
-              checkCallDeadline();
-              const rawOutputBytes = encoder.encode(output).byteLength;
-              if (rawOutputBytes > 64 * 1024) {
-                throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
-              }
-              const parsed: unknown = JSON.parse(output);
-              const envelope = envelopeSchema.parse(parsed);
-              if (envelope.value.commands.length > call.maxCommands) {
-                throw new Error(`Game script command limit exceeded for ${call.entityId}`);
-              }
-              const itemBytes = encoder.encode(JSON.stringify({ entityId: call.entityId, value: envelope.value })).byteLength;
-              serializedResultsBytes += itemBytes + (results.length > 0 ? 1 : 0);
-              const outputBytes = encoder.encode(JSON.stringify({ results: [], rngState: envelope.rngState })).byteLength + serializedResultsBytes;
-              if (outputBytes > 64 * 1024) {
-                throw new Error(`Output exceeds 64 KiB (${outputBytes} bytes across ${results.length + 1} calls)`);
-              }
-              checkCallDeadline();
-              commandCount += envelope.value.commands.length;
-              nextRngState = envelope.rngState;
-              results.push({ entityId: call.entityId, state: envelope.value.state, commands: envelope.value.commands });
-            } catch (error) {
-              // A failed batch cannot retain partially evaluated realms.
-              worldHandle?.dispose(); worldHandle = undefined;
-              if (!persistent && realm) { disposeRealm(realm); realm = undefined; }
-              disposeRealms();
-              throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
-            } finally {
-              worldCall?.end();
-              worldHandle?.dispose();
-              if (!persistent && realm) { disposeRealm(realm); }
-            }
-            checkCallDeadline();
-            const previous = byEntity[call.entityId] ?? { durationMs: 0, calls: 0 };
-            byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
-          }
-          assertBeforeDeadline(batchDeadline, batchBudget);
-          return { results, rngState: nextRngState, stats: { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity } };
+          return execute(calls, input, rngState, world, SCRIPT_BATCH_MS);
         } catch (error) {
           disposeRealms();
           throw error;
@@ -482,7 +651,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   }
 }
 
-export function prepareGameScripts(document: GameDocument): Promise<GameScriptRunner> {
+export function prepareGameScripts(document: GameDocument, options?: GameScriptOptions): Promise<GameScriptRunner> {
   return prepareIsolatedGameScripts<GameScriptCall, GameScriptInput, GameScriptCommand>(document, gameScriptCommand, `{
     tick: data.input.tick, pressed: data.input.pressed, justPressed: data.input.justPressed,
     events: data.input.events, entity: {
@@ -490,6 +659,7 @@ export function prepareGameScripts(document: GameDocument): Promise<GameScriptRu
       velocityX: data.call.velocityX, velocityY: data.call.velocityY, touching: data.call.touching,
       ...(data.call.props === undefined ? undefined
         : { tags: data.call.tags, props: data.call.props, rotation: data.call.rotation, active: data.call.active })
-    }, world: data.input.world, state: data.call.state, random: __gameRandom
-  }`);
+    }, world: data.input.world, state: data.call.state, random: __gameRandom,
+    ...(data.params === undefined ? undefined : { params: data.params })
+  }`, options);
 }

@@ -2,7 +2,7 @@ import type { GameDocument, GameEntity } from "@nodetool-ai/protocol/game.js";
 import { applyGameOps, gameDocumentOp, type GameDocumentOp } from "@nodetool-ai/game-runtime";
 import { diffGameOwnership, sameGameAuthoringDefinitions } from "./diffGameOwnership";
 
-const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "parentId"] as const;
+const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "parentId", "particles"] as const;
 
 function changed(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
@@ -154,8 +154,10 @@ export function diffGameDocuments(from: GameDocument, to: GameDocument): GameDoc
     ops.push({ op: "set_effects", effects: to.renderEffects ?? null, hud_effect_order: to.hudEffectOrder ?? null });
   }
   if (changed(from.pixelsPerUnit, to.pixelsPerUnit) || changed(from.inputActions, to.inputActions) ||
+      changed(from.inputBindings, to.inputBindings) ||
       changed(from.entrySceneId, to.entrySceneId) || changed(from.collisionLayers, to.collisionLayers)) {
     ops.push({ op: "set_game", pixels_per_unit: to.pixelsPerUnit, input_actions: to.inputActions,
+      input_bindings: to.inputBindings ?? null,
       entry_scene_id: to.entrySceneId, collision_layers: to.collisionLayers ?? null });
   }
   if (changed(from.audio?.mixer, to.audio?.mixer)) { ops.push({ op: "set_audio", mixer: to.audio?.mixer ?? null }); }

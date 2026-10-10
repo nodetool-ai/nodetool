@@ -18,7 +18,14 @@
  * anything; the one model call it can make is `Re-plan`.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -41,6 +48,7 @@ import {
   FlexColumn,
   FlexRow,
   GAP,
+  LoadingSpinner,
   MOTION,
   Text,
   TextInput,
@@ -52,6 +60,7 @@ import {
 import type { AutocompleteOption } from "../../ui_primitives";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
+import ReportBugButton from "../../support/ReportBugButton";
 import { PlanReview } from "../PlanReview";
 import {
   EDITABLE_FIELD,
@@ -75,6 +84,11 @@ export interface WorkflowReviewStepProps {
   onCancelReplan?: () => void;
   /** True when a configured provider covers this model role. */
   providerConfigured: (role: string) => boolean;
+  /**
+   * True while the providers' model list for this role is still being read.
+   * A role reads as uncovered meanwhile, which is not a reason to connect one.
+   */
+  roleLoading?: (role: string) => boolean;
   /** The reason the last plan run was refused, if it was. */
   error?: string | null;
 }
@@ -86,6 +100,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
   replanPending = false,
   onCancelReplan,
   providerConfigured,
+  roleLoading = () => false,
   error = null
 }) => {
   const metadata = useMetadataStore((state) => state.metadata);
@@ -135,8 +150,32 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
     [onPlanChange, plan]
   );
 
+  // The removed row takes its button with it, so the keyboard moves to the
+  // row that took its place, or to "Add a step" when none is left.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const addStepRef = useRef<HTMLButtonElement>(null);
+  const focusAfterRemoveRef = useRef<number | null>(null);
+  useEffect(() => {
+    const removedAt = focusAfterRemoveRef.current;
+    if (removedAt === null) {
+      return;
+    }
+    focusAfterRemoveRef.current = null;
+    const target = Math.min(removedAt, plan.steps.length - 1);
+    const next =
+      target >= 0
+        ? rootRef.current?.querySelector<HTMLElement>(
+            `button[aria-label="Remove step ${target + 1}"]`
+          )
+        : null;
+    (next ?? addStepRef.current)?.focus();
+  }, [plan.steps.length]);
+
   const removeStep = useCallback(
     (id: string) => {
+      focusAfterRemoveRef.current = plan.steps.findIndex(
+        (step) => step.id === id
+      );
       onPlanChange({
         ...plan,
         steps: plan.steps.filter((step) => step.id !== id)
@@ -154,9 +193,12 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
     () => ({
       unknownNodeTypes: resolved.steps.filter((entry) => entry.unknownNodeType)
         .length,
-      missingProviders: resolved.missingRoles
+      missingProviders: resolved.missingRoles.filter(
+        (role) => !roleLoading(role)
+      ),
+      loadingRoles: resolved.missingRoles.filter(roleLoading)
     }),
-    [resolved.missingRoles, resolved.steps]
+    [resolved.missingRoles, resolved.steps, roleLoading]
   );
 
   // A step with no real node already carries its own marker; the run-time
@@ -240,6 +282,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
 
   return (
     <FlexColumn
+      ref={rootRef}
       gap={GAP.spacious}
       sx={{ width: "100%", maxWidth: REVIEW_CONTENT_WIDTH }}
     >
@@ -264,7 +307,19 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
       ) : null}
 
       {error ? (
-        <AlertBanner severity="error" role="alert">
+        <AlertBanner
+          severity="error"
+          role="alert"
+          action={
+            <ReportBugButton
+              context={{
+                source: "provider-call",
+                summary: "Workflow re-plan failed",
+                errorText: error
+              }}
+            />
+          }
+        >
           {error}
         </AlertBanner>
       ) : null}
@@ -307,6 +362,15 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
         </Caption>
       ) : null}
 
+      {blocked.loadingRoles.length > 0 ? (
+        <FlexRow gap={GAP.normal} align="center">
+          <LoadingSpinner size="small" />
+          <Caption color="secondary" component="span">
+            {`Reading the ${blocked.loadingRoles.join(" and ")} models your providers offer…`}
+          </Caption>
+        </FlexRow>
+      ) : null}
+
       {plan.inputs.length > 0 ? <PlanReview sections={inputSections} /> : null}
 
       {/* The blocks need air between them: the left rule says where a step
@@ -327,6 +391,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
               onMove={moveStep}
               onRemove={removeStep}
               readOnly={replanPending}
+              roleLoading={roleLoading}
             />
           </Box>
         ))}
@@ -334,6 +399,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
 
       <FlexRow gap={GAP.normal}>
         <EditorButton
+          ref={addStepRef}
           variant="outlined"
           onClick={addStep}
           disabled={replanPending}
@@ -368,6 +434,7 @@ interface StepRowProps {
    * made meanwhile would be written and then silently overwritten.
    */
   readOnly: boolean;
+  roleLoading: (role: string) => boolean;
 }
 
 const StepRow: React.FC<StepRowProps> = ({
@@ -378,10 +445,15 @@ const StepRow: React.FC<StepRowProps> = ({
   onChange,
   onMove,
   onRemove,
-  readOnly
+  readOnly,
+  roleLoading
 }) => {
   const { step } = entry;
-  const missingRole = entry.missingProvider;
+  // A role whose models are still being read has its own line above.
+  const missingRole =
+    entry.missingProvider !== null && !roleLoading(entry.missingProvider)
+      ? entry.missingProvider
+      : null;
   const [picking, setPicking] = useState(false);
   const pickNodeType = (value: unknown): void => {
     onChange(step.id, {

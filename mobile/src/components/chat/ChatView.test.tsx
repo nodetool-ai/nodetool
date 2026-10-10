@@ -4,6 +4,7 @@
 
 import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
+import { HeaderHeightContext } from '@react-navigation/elements';
 import { ChatView } from './ChatView';
 import { Message, ChatStatus } from '../../types';
 
@@ -57,7 +58,7 @@ jest.mock('./ChatComposer', () => ({
 }));
 
 describe('ChatView', () => {
-  const mockOnSendMessage = jest.fn().mockResolvedValue(undefined);
+  const mockOnSendMessage = jest.fn().mockResolvedValue(true);
   const mockOnStop = jest.fn();
 
   const defaultProps = {
@@ -75,8 +76,8 @@ describe('ChatView', () => {
     it('renders welcome message when no messages', () => {
       render(<ChatView {...defaultProps} />);
       
-      expect(screen.getByText('Start a Conversation')).toBeTruthy();
-      expect(screen.getByText('Ask questions, get help with tasks, or explore ideas with AI.')).toBeTruthy();
+      expect(screen.getByText('What can I help with?')).toBeTruthy();
+      expect(screen.getByText('Ask a question or start a draft. Switch to Image or Video below to generate media.')).toBeTruthy();
     });
 
     it('does not render message list when empty', () => {
@@ -127,7 +128,7 @@ describe('ChatView', () => {
       
       render(<ChatView {...defaultProps} messages={messages} />);
       
-      expect(screen.queryByText('Start a Conversation')).toBeNull();
+      expect(screen.queryByText('What can I help with?')).toBeNull();
     });
   });
 
@@ -169,6 +170,39 @@ describe('ChatView', () => {
       render(<ChatView {...defaultProps} status="reconnecting" statusMessage="Reconnecting... (2/5)" />);
       
       expect(screen.getByText('Reconnecting... (2/5)')).toBeTruthy();
+    });
+
+    it('offers a reconnect when the socket gave up', () => {
+      const onReconnect = jest.fn();
+      render(<ChatView {...defaultProps} status="failed" onReconnect={onReconnect} />);
+
+      expect(screen.getByText('Could not connect to chat')).toBeTruthy();
+      fireEvent.press(screen.getByRole('button', { name: 'Reconnect to chat' }));
+
+      expect(onReconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('offers a reconnect when disconnected', () => {
+      const onReconnect = jest.fn().mockResolvedValue(undefined);
+      render(<ChatView {...defaultProps} status="disconnected" onReconnect={onReconnect} />);
+
+      fireEvent.press(screen.getByRole('button', { name: 'Reconnect to chat' }));
+
+      expect(onReconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the error and the connection state together', () => {
+      render(
+        <ChatView
+          {...defaultProps}
+          status="disconnected"
+          error="Connection lost while the reply was streaming"
+          onReconnect={jest.fn()}
+        />
+      );
+
+      expect(screen.getByText('Connection lost while the reply was streaming')).toBeTruthy();
+      expect(screen.getByText('Disconnected')).toBeTruthy();
     });
 
     it('does not show banner when connected', () => {
@@ -230,12 +264,16 @@ describe('ChatView', () => {
   });
 
   describe('KeyboardAvoidingView', () => {
-    it('pads for the keyboard on iOS and clears the header', () => {
-      const { UNSAFE_root } = render(<ChatView {...defaultProps} />);
+    it('pads for the keyboard on iOS and clears the measured header', () => {
+      const { UNSAFE_root } = render(
+        <HeaderHeightContext.Provider value={64}>
+          <ChatView {...defaultProps} />
+        </HeaderHeightContext.Provider>
+      );
       const { props } = UNSAFE_root.findByType(KeyboardAvoidingView);
       const ios = Platform.OS === 'ios';
       expect(props.behavior).toBe(ios ? 'padding' : undefined);
-      expect(props.keyboardVerticalOffset).toBe(ios ? 90 : 0);
+      expect(props.keyboardVerticalOffset).toBe(ios ? 64 : 0);
     });
   });
 });

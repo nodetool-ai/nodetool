@@ -230,6 +230,17 @@ describe("GenreStep", () => {
     ).toBeInTheDocument();
   });
 
+  // A script kept as written holds its words and has no shot count to pick,
+  // so the hint does not send the creator to either.
+  it("names only the genre as the way to direct a kept script again", () => {
+    renderStep({ upToDate: true, cameraPass: true });
+
+    expect(
+      screen.getByText(/Change the genre to direct it again/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/the brief or the shot count/)).toBeNull();
+  });
+
   it("shows the shot count and reports a change", async () => {
     const user = userEvent.setup();
     renderStep();
@@ -238,6 +249,40 @@ describe("GenreStep", () => {
     await user.click(screen.getByRole("option", { name: "10 shots" }));
 
     expect(onShotCountChange).toHaveBeenCalledWith(10);
+  });
+
+  // F15: a rewrite keeps the screenplay's own length, which the picker's
+  // list may not hold. The select still shows it.
+  it("shows a shot count the list does not offer", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <GenreFooterControls
+          boardId={BOARD}
+          shotCount={5}
+          onShotCountChange={onShotCountChange}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("combobox", { name: "Shots" })).toHaveTextContent(
+      "5 shots"
+    );
+  });
+
+  // F13: a script kept as written has its own length.
+  it("hides the shot count when asked to", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <GenreFooterControls
+          boardId={BOARD}
+          shotCount={6}
+          onShotCountChange={onShotCountChange}
+          hideShotCount
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.queryByRole("combobox", { name: "Shots" })).toBeNull();
   });
 
   // Studio pins its own director; the beginner shell shows no LLM picker.

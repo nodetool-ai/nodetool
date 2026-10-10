@@ -82,6 +82,11 @@ export interface IdeaStepProps {
    * moved and the plan is drafted without it.
    */
   onImportingChange?: (importing: boolean) => void;
+  /**
+   * The step cannot change the draft: a run is pending or Change flow is
+   * discarding it. The fieldset disables the controls, not a drop.
+   */
+  readOnly?: boolean;
 }
 
 /** Why the ways out of the step wait for an upload. */
@@ -91,11 +96,14 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onStartBlank,
   onStartFromScript,
   onValidationChange,
-  onImportingChange
+  onImportingChange,
+  readOnly = false
 }) => {
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
   const setSetup = useTimelineStore((state) => state.setSetup);
   const { importFiles, importing } = useSetupMediaImport();
+  // Placed media lives on this draft, which the script hand-off discards.
+  const hasPlacedMedia = useTimelineStore((state) => state.clips.length > 0);
   const [error, setError] = useState<string | null>(null);
   const [imported, setImported] = useState<SetupMediaImportResult | null>(null);
   // Dropped files that are not media, by name. The picker cannot offer them,
@@ -163,13 +171,19 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     [runImport]
   );
 
-  const handleDragOver = useCallback((event: React.DragEvent) => {
-    if (!Array.from(event.dataTransfer.types).includes("Files")) {
-      return;
-    }
-    event.preventDefault();
-    setDragging(true);
-  }, []);
+  const handleDragOver = useCallback(
+    (event: React.DragEvent) => {
+      if (
+        readOnly ||
+        !Array.from(event.dataTransfer.types).includes("Files")
+      ) {
+        return;
+      }
+      event.preventDefault();
+      setDragging(true);
+    },
+    [readOnly]
+  );
 
   const handleDragLeave = useCallback(() => setDragging(false), []);
 
@@ -181,6 +195,9 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       }
       event.preventDefault();
       setDragging(false);
+      if (readOnly) {
+        return;
+      }
       if (importing || importingRef.current) {
         setError("Wait for the current upload to finish, then drop again.");
         return;
@@ -197,7 +214,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       }
       await runImport(media, notMedia);
     },
-    [importing, runImport]
+    [importing, readOnly, runImport]
   );
 
   const skippedNames = useMemo(
@@ -234,13 +251,16 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         title: "Start from a script",
         description: "Write the words first, then send them to the timeline",
         onSelect: onStartFromScript ?? (() => undefined),
-        // Leaving the flow mid-upload would drop the media still arriving.
-        disabled: !onStartFromScript || importing,
+        // Leaving the flow mid-upload would drop the media still arriving,
+        // and leaving after it would drop the clips it placed.
+        disabled: !onStartFromScript || importing || hasPlacedMedia,
         disabledReason: !onStartFromScript
           ? "Not available here. Start a script from the project screen."
           : importing
             ? UPLOAD_PENDING_REASON
-            : undefined
+            : hasPlacedMedia
+              ? "Your media is on this timeline and would be left behind. Plan the beats here instead."
+              : undefined
       },
       {
         id: "blank",
@@ -251,7 +271,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         disabledReason: importing ? UPLOAD_PENDING_REASON : undefined
       }
     ],
-    [importing, onStartBlank, onStartFromScript]
+    [hasPlacedMedia, importing, onStartBlank, onStartFromScript]
   );
 
   return (

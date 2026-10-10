@@ -178,8 +178,17 @@ over stdio. The server picks the interpreter in this order:
 
 1. `NODETOOL_PYTHON`, if set — an absolute path to the executable. Nothing else
    is tried, so a wrong path is a hard failure rather than a silent fallback.
-2. An active `CONDA_PREFIX`, when the environment name looks like a NodeTool one.
-3. NodeTool's own managed environment.
+2. An active `CONDA_PREFIX` whose environment is named `nodetool` or
+   `conda_env`, or whose path contains `nodetool/conda_env`.
+3. The first of these that exists:
+   - Windows: the desktop app's `nodetool\conda_env` under `%ALLUSERSPROFILE%`
+     (or `%APPDATA%` when that is unset), then `envs\nodetool` under
+     `Miniconda3`, `miniconda3`, `Anaconda3`, or `anaconda3` in your home
+     folder, then `C:\ProgramData\nodetool\conda_env`.
+   - macOS: `~/nodetool_env`, then `~/miniconda3/envs/nodetool` and
+     `~/anaconda3/envs/nodetool`.
+   - Linux: `~/.local/share/nodetool/conda_env`, `/opt/nodetool/conda_env`,
+     then `~/miniconda3/envs/nodetool` and `~/anaconda3/envs/nodetool`.
 
 With none of them available the server logs `Python not found — Python nodes
 will not be available` at startup and runs everything else normally.
@@ -187,6 +196,27 @@ will not be available` at startup and runs everything else normally.
 ```bash
 NODETOOL_PYTHON=/opt/conda/envs/nodetool/bin/python nodetool serve
 ```
+
+The interpreter needs `nodetool-core` and the packs installed from PyPI. Setup
+steps are in
+[Python nodes without the desktop app](installation.md#python-nodes-without-the-desktop-app).
+
+The worker starts with the server. With `NODETOOL_PYTHON_ON_DEMAND=true` it
+starts when a workflow first needs a Python node instead, and Python-only
+providers such as `huggingface-local` and MLX appear in model menus only after
+that. Settings shows no field for it. Set it in the environment, or store it
+under the same name with the agent's `set_setting` tool. The server reads it at
+startup, so restart after changing it.
+
+```bash
+NODETOOL_PYTHON_ON_DEMAND=true nodetool serve
+```
+
+Python nodes run on the device PyTorch finds: Apple Metal (MPS), then CUDA,
+then the CPU. `NODETOOL_TORCH_DEVICE` overrides that with `cuda`, `cuda:<N>`
+for the Nth card counting from 0, `mps`, or `cpu`. The worker reads it at
+start, so restart after changing it. Hardware limits are in
+[GPU requirements](installation.md#gpu-requirements).
 
 The bridge is a local-only feature: when `NODETOOL_ENV=production` it refuses to
 connect, and a workflow reaching a Python node fails with "Python bridge is
@@ -196,17 +226,6 @@ enough on the published Docker image: it ships no Python worker, so derive an
 image that installs `nodetool-core` and point `NODETOOL_PYTHON` at that
 interpreter. See
 [Self-hosted deployment](self-hosted-deployment.md#mcp-over-http-and-python-nodes).
-
-By default the server starts the worker at launch when a Python interpreter is
-available. Set `NODETOOL_PYTHON_ON_DEMAND=true` to start it the first time a
-run needs a Python node instead. Python-only providers such as
-`huggingface-local` appear once the worker has started. It is also a setting in
-the Execution group, and the value is read at startup, so restart the backend
-after changing it.
-
-```bash
-NODETOOL_PYTHON_ON_DEMAND=true nodetool serve
-```
 
 The three `NODETOOL_PYTHON_*_TIMEOUT_MS` variables bound how long the server
 waits on the worker. Raise `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` past its
@@ -489,7 +508,7 @@ missing binary.
 | Variable | Purpose | Secret | Notes |
 |----------|---------|--------|-------|
 | `NODE_ENV` | Environment name (`development`, `test`, `production`) | no | Defaults to `development`; selects which `.env.<NODE_ENV>` files load. It does not switch production behavior. See `NODETOOL_ENV` |
-| `NODETOOL_ENV` | Production mode switch | no | `production` turns off local-only features: the file browser and local-file previews, the Python bridge, the `/mcp` mount, the `fake` provider, Transformers.js, and unmanaged workspaces. Public app deployment routes are available only in production. It also makes the default bind address `0.0.0.0`, makes `cloud` the default workspace storage, and tightens the node-pack allowlist default. The Docker image and desktop app set it. Separate from `NODE_ENV` |
+| `NODETOOL_ENV` | Production mode switch | no | `production` turns off local-only features: the file browser and local-file previews, the Python bridge, the `/mcp` mount, the `fake` provider, Transformers.js, and unmanaged workspaces. Public app deployment routes are available only in production. It also makes the default bind address `0.0.0.0`, makes `cloud` the default workspace storage, and tightens the node-pack allowlist default. The Docker image sets it. The desktop app does not, because it needs the Python bridge and Transformers.js, and sets `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1` instead. Separate from `NODE_ENV` |
 | `PORT` / `HOST` | Port and address the server binds | no | Default `7777`. `HOST` defaults to `127.0.0.1`, or `0.0.0.0` when `NODETOOL_ENV=production`. `nodetool serve --port` and `--host` set both variables, and `--host` defaults to `127.0.0.1` |
 | `STATIC_FOLDER` | Directory the server serves the built web app from | no | Unset, or naming a directory that is not there, no static handler is registered and anything outside the API routes answers `404`. Set, the directory is served at `/`, `/` and `/apps/index.html` send `index.html`, and other extension-less `GET`s fall back to it so client-side routing survives a reload. See [Serving the Web UI and TLS](#serving-the-web-ui-and-tls) |
 | `TLS_CERT` / `TLS_KEY` | PEM certificate and private key that put the server on HTTPS/WSS | no | Both are paths, and both must resolve or TLS stays off. A path that does not exist is ignored — the server then walks up to five directories from its working directory looking for `cert.pem` and `key.pem`, so a stray pair beside the process turns TLS on with neither variable set |
@@ -512,10 +531,12 @@ missing binary.
 | `HF_API_TOKEN` / `HUGGING_FACE_HUB_TOKEN` | Alternate spellings of `HF_TOKEN` for Hub requests | yes | The Hub client takes the first non-empty of `HF_TOKEN`, `HF_API_TOKEN`, `HUGGING_FACE_HUB_TOKEN`, trimmed. They exist so an environment already configured for `huggingface_hub` or the older `huggingface-cli` works unchanged — set `HF_TOKEN` on a fresh install. The resolved token is cached in-process after the first read, so changing it needs a restart |
 | `HF_TOKEN_PATH` | Token file read when none of the three variables is set | yes | A leading `~` expands. Default `<HF_HOME>/token`, and with `HF_HOME` unset that is `$XDG_CACHE_HOME/huggingface/token`, falling back to `~/.cache/huggingface/token` — the file `huggingface-cli login` writes. A path that is missing or unreadable reads as no token rather than an error, so an anonymous Hub request is what a typo produces |
 | `HUGGINGFACE_API_KEY` | Key the `huggingface` **inference** nodes send | yes | Resolution order is stored secret `HF_TOKEN`, stored secret `HUGGINGFACE_API_KEY`, then the same two names from the environment. The token needs the *Inference Providers* permission, which a Hub read token does not carry; without any of the four the node throws `HF_TOKEN is not configured`. Separate from the Hub client above, which never reads this name |
-| `HF_HUB_CACHE` | Directory holding the `models--*` folders of the HuggingFace cache | no | Used verbatim — it names the hub directory itself, not its parent. A leading `~` expands. Unset, the cache is `$HF_HOME/hub`, falling back to `~/.cache/huggingface/hub`. This is what `nodetool models hf-cache` and `download-hf` read and write. `HUGGINGFACE_HUB_CACHE` is accepted as a legacy alias, but the two readers disagree about it — the REST models API uses it verbatim while the tRPC router appends `/hub` — so set `HF_HUB_CACHE` and leave the alias unset |
-| `OLLAMA_API_URL` | Local Ollama base URL | no | Default `http://127.0.0.1:11434` |
+| `HF_HUB_CACHE` | Directory holding the `models--*` folders of the HuggingFace cache | no | Used verbatim — it names the hub directory itself, not its parent. A leading `~` expands. Unset, NodeTool uses the legacy alias `HUGGINGFACE_HUB_CACHE` (also verbatim), then `$HF_HOME/hub`, then `$XDG_CACHE_HOME/huggingface/hub`, then `~/.cache/huggingface/hub`, the same order as the Python `huggingface_hub` library. The server resolves it once for Model Manager downloads, the installed list and downloaded badges, `nodetool models hf-cache` and `download-hf`, node-llama-cpp, and whisper.cpp. The Python worker takes the location from `huggingface_hub` itself, which applies the same order to the same variables, so both see one cache. The desktop app sets `HF_HOME` for the server and the worker: your own `HF_HOME`, else `$XDG_CACHE_HOME/huggingface`, else `~/.cache/huggingface`. When `XDG_CACHE_HOME` is set (Flatpak sets it per app) but `~/.cache/huggingface/hub` already holds models, the app keeps using `~/.cache/huggingface`, so an update does not hide models downloaded earlier |
+| `OLLAMA_API_URL` | Ollama base URL | no | Default `http://127.0.0.1:11434`. Set it in **Settings → Integrations → Local Model Servers** or the environment. A stored value wins over the environment. Ollama is a separate program that must be running; NodeTool does not start it |
+| `OLLAMA_CONTEXT_LENGTH` | Context window, in tokens, sent to Ollama as `num_ctx` with every chat request | no | Unset, NodeTool uses the model's Modelfile `num_ctx`, else the model's trained length capped at `32768`. Ollama's own default is a few thousand tokens and drops the oldest part of a long prompt |
 | `OLLAMA_KEEP_ALIVE` | How long Ollama keeps a model loaded after a request | no | Default `10m`, so large models are not evicted between turns. Accepts Ollama's duration syntax: `30m`, `-1` to keep forever, `0` to unload immediately. See [Models & Providers](models-and-providers.md) |
-| `LMSTUDIO_API_URL` | Base URL of the local server LM Studio's desktop app exposes | no | Default `http://127.0.0.1:1234`; trailing slashes are stripped. A value stored under the same name in **Settings → API Keys** wins over the environment variable. See [Providers › LM Studio](providers.md) |
+| `LMSTUDIO_API_URL` | Base URL of the local server LM Studio's desktop app exposes | no | Default `http://127.0.0.1:1234`; trailing slashes are stripped. A value stored under the same name in **Settings → Integrations → Local Model Servers** wins over the environment variable. See [Providers › LM Studio](providers.md) |
+| `LMSTUDIO_API_KEY` | Bearer key sent to the LM Studio server | yes | Default `lm-studio`. Set it only when LM Studio's server requires authentication |
 | `VLLM_BASE_URL` | Base URL of a self-hosted, OpenAI-compatible vLLM server | no | **Required** to use the provider — there is no default, and constructing it without one throws `VLLM_BASE_URL is required (options.baseURL, secret, or env)`. Same secret-over-environment precedence; trailing slashes are stripped. Models appear from the server's `/v1/models` endpoint. See [Providers › vLLM](providers.md) |
 | `DASHSCOPE_BASE_URL` | Region endpoint for Alibaba Cloud Model Studio (the Qwen models) | no | Default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` — the international (Singapore) region. Model Studio keys are region-scoped, so set this to your region's `/compatible-mode/v1` endpoint when the key was created elsewhere. A stored setting of the same name wins over the environment variable, and key verification probes whichever endpoint this resolves to. See [Providers › Alibaba Cloud](providers.md) |
 | `DATA_FOR_SEO_LOGIN` / `DATA_FOR_SEO_PASSWORD` | DataForSEO credentials behind the `web_search` capability | `DATA_FOR_SEO_PASSWORD` | Both required — one alone leaves the backend unconfigured. Read from the stored secret first, then the environment. `web_search` runs the first *configured* backend of `serpapi`, `dataforseo`, `openai`, `gemini` unless the call pins one with `provider`, so these take effect when `SERPAPI_API_KEY` is unset. DataForSEO serves all three search types (web, news, images) against `https://api.dataforseo.com`, defaulting to location code `2840` (United States) and language `en`. Once a backend runs, its failure is the call's failure — nothing falls through to the next one |
@@ -523,13 +544,16 @@ missing binary.
 | `KIE_WEBHOOK_URL` | Public base URL kie.ai calls back when a task finishes | no | Unset, kie tasks are polled. Set, a submission carries `callBackUrl: <value>/api/kie/webhook` and the run waits for that request instead of polling — so it has to be an address kie.ai can reach from the internet, e.g. `https://nodetool.example.com`. Trailing slashes are stripped |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | OAuth App credentials for the GitHub sign-in flow at `/api/oauth/github/*` | `GITHUB_CLIENT_SECRET` | Without the id, `/api/oauth/github/start` answers `500` naming it. The flow builds its redirect URI from the request's own `Host` — `http://<host>/api/oauth/github/callback` for a `localhost` host, `https://…` otherwise — so register exactly that on the OAuth App. Read from the process environment, not the encrypted secret store: a value entered only in **Settings** never reaches this code path |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth client the server refreshes an expired Google access token with | `GOOGLE_CLIENT_SECRET` | The same pair configured for the Google provider in the Supabase dashboard. Supabase does not refresh provider tokens, so without them a Google credential stops working an hour after sign-in and the server logs `Google token expired but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are unset`. Set them wherever the Google Workspace capability is on — see `NODETOOL_GOOGLE_WORKSPACE` below |
-| `NODE_LLAMA_CPP_MODELS_DIR` | Directory the `node_llama_cpp` provider loads GGUF models from | no | Unset, node-llama-cpp uses its own default. A secret stored under the same name wins over the environment variable |
+| `NODE_LLAMA_CPP_MODELS_DIR` | Directory the `node_llama_cpp` provider loads GGUF models from | no | Unset, the llama.cpp cache (see `LLAMA_CACHE`). A secret stored under the same name wins over the environment variable |
+| `LLAMA_CPP_CONTEXT_LENGTH` | Context size, in tokens, `llama-server` was started with (`-c`) | no | The server does not report it, so the `llama_cpp` provider budgets prompts with this value. Unset, the model's published context window is used |
+| `WAN2GP_MCP_URL` | MCP endpoint of a Wan2GP server for the Wan2GP pack's nodes | no | Default `http://127.0.0.1:7866/mcp`. A node's non-blank `server_url` wins. The Python worker receives it when it starts, so restart after changing it. See [Wan2GP](wan2gp.md) |
+| `NODETOOL_TORCH_DEVICE` | Device Python nodes run PyTorch on | no | `cuda`, `cuda:<N>`, `mps`, or `cpu`. Unset, MPS, then CUDA, then CPU. See [Python Nodes](#python-nodes) |
 | `WHISPER_CPP_MODELS_DIR` | Extra directory for whisper.cpp GGML and VAD models | no | The Hugging Face hub cache is always scanned |
-| `WHISPER_CPP_GPU_BACKEND` | whisper.cpp backend: `auto`, `metal`, `cuda`, `vulkan`, or `cpu` | no | `auto` uses the default build. Restart after changing |
+| `WHISPER_CPP_GPU_BACKEND` | whisper.cpp backend: `auto`, `metal`, `cuda`, `vulkan`, or `cpu` | no | `auto` uses Metal on macOS. On Windows and Linux it tries the CUDA build, then the Vulkan build, then the default CPU build. Restart after changing |
 | `WHISPER_CPP_SERVER_URL` | Base URL of a user-run whisper-server | no | Required for `whisper_cpp_server` |
 | `NODE_LLAMA_CPP_GPU_BACKEND` | GPU backend node-llama-cpp runs against | no | `auto`, `metal`, `cuda`, `vulkan`, or `cpu`, matched case-insensitively. Any other value is ignored and the library chooses for itself. Same secret-over-environment precedence |
-| `LLAMA_CPP_CACHE_DIR` | Cache root checked for GGUF files a separate `llama.cpp` already downloaded | no | Default `~/Library/Caches/llama.cpp/hf` on every platform, so set it explicitly off macOS. Consulted only when the file is not already in the HuggingFace cache; a repo is looked for at `<dir>/<repo cache dir>/snapshots` |
-| `TRANSFORMERS_JS_CACHE_DIR` | Cache directory for the Transformers.js runtime | no | Default `<data dir>/transformers-js-cache`. Deliberately outside `~/.cache/huggingface`: Transformers.js uses a flat `{cacheDir}/{repo_id}/{file_path}` layout the Python `huggingface_hub` cache cannot share |
+| `LLAMA_CACHE` | Cache root checked for GGUF files a separate `llama.cpp` already downloaded | no | Same variable `llama.cpp` reads. Default `~/Library/Caches/llama.cpp` on macOS, `%LOCALAPPDATA%\llama.cpp` on Windows, `$XDG_CACHE_HOME/llama.cpp` (or `~/.cache/llama.cpp`) on Linux. Consulted only when the file is not already in the HuggingFace cache. On Linux with `XDG_CACHE_HOME` set and `LLAMA_CACHE` unset, the desktop app sets `LLAMA_CACHE` to `~/.cache/llama.cpp` while only that directory holds files, so models downloaded before a Flatpak update stay visible. Replaces `LLAMA_CPP_CACHE_DIR`, which is no longer read: rename the variable if you set it |
+| `TRANSFORMERS_JS_CACHE_DIR` | Cache directory for the Transformers.js runtime | no | Default `<data dir>/transformers-js-cache`. Set it in **Settings → Integrations → Local Model Servers** or the environment. Deliberately outside `~/.cache/huggingface`: Transformers.js uses a flat `{cacheDir}/{repo_id}/{file_path}` layout the Python `huggingface_hub` cache cannot share |
 | `NODETOOL_INTEGRATION_TOKEN` | Service token for messaging-bridge integrations (Telegram bot) | yes | ≥16 chars. Enables `/api/integrations/:provider/*` (account linking + delegated tokens); unset, those routes do not exist. Set the same value on the bridge process. See [telegram-bot-design.md](telegram-bot-design.md) §5 |
 | `NODETOOL_PUBLIC_URL` | HTTPS base URL reachable by browsers and hosted provider callbacks | no | Trailing slashes are stripped. Used for integration link URLs, for FAL callback URLs at `/api/providers/fal/webhook/:token`, and for AtlasCloud callback URLs at `/api/providers/atlascloud/webhook`. Both providers' callbacks are included only when this is a valid `https` URL on a public host that the provider can reach. An http, loopback, or private address is ignored rather than sent. Unset, local FAL requests use queue polling. AtlasCloud predictions are polled either way: a callback only shortens the wait, and the prediction endpoint is still read every 15s while one is outstanding. Integration links still fall back to the request's `Host` header, which may be useful when a bridge reaches the server at an address the user's browser cannot, such as `http://nodetool:7777` inside a compose network. See [telegram-bot-design.md](telegram-bot-design.md) §5 |
 | `TELEGRAM_BOT_USERNAME` | Bot username for the Telegram link deep link | no | Without the `@`. When set, Settings → Integrations renders `t.me/<username>?start=<code>` links; unset, the UI shows the bare code for manual `/start` entry |
@@ -620,10 +644,10 @@ missing binary.
 | `NODETOOL_EXAMPLE_GAMES_DIR` | Directory the shipped example games (`*.game.json`) are read from | no | Like `NODETOOL_EXAMPLE_COMPOSITIONS_DIR`, a path that does not exist is **not** ignored: it yields no example games rather than falling back to detection. Unset, the loader walks up to eight directories from the module looking for `examples/games`, then `packages/base-nodes/nodetool/examples/games` (a checkout). Set it only for a host that stages the games somewhere else |
 | `NODETOOL_EXAMPLE_TIMELINES_DIR` | Directory the shipped example timelines (`*.timeline.json`) are read from | no | Same resolution as `NODETOOL_EXAMPLE_GAMES_DIR`: a path that does not exist yields no example timelines, and unset the loader searches `examples/timelines` and then `packages/base-nodes/nodetool/examples/timelines` upward from the module. Set it only for a host that stages the timelines somewhere else |
 | `NODETOOL_DISABLE_DURABLE_GENERATIONS` | `1` turns off durable queue tracking for fal.ai media generations started in a chat session | no | Any other value, or unset, keeps it on. By default a fal.ai generation is recorded in the database as it is accepted, so a restart can recover it. With `1` the call runs without that record. Other providers never use it. The code reserves this for an ephemeral test or local host. See [Media generation tracking](media-generation-tracking-design.md) |
-| `NODETOOL_PYTHON` | Python interpreter the Python bridge spawns | no | An absolute path to the executable. When unset, an active `CONDA_PREFIX` that looks like a NodeTool env is tried, then NodeTool's own managed env. See [Python Nodes](#python-nodes) |
+| `NODETOOL_PYTHON` | Python interpreter the Python bridge spawns | no | An absolute path to the executable. When unset, an active `CONDA_PREFIX` that looks like a NodeTool env is tried, then the desktop app's env and `nodetool` conda envs in the usual places. See [Python Nodes](#python-nodes) |
+| `NODETOOL_PYTHON_ON_DEMAND` | Start the Python worker on first use instead of at server start | no | `true` or `false`, default `false`. With `true`, `huggingface-local` and MLX models appear only after a workflow has started the worker. A stored value wins over the environment. Read at startup. See [Python Nodes](#python-nodes) |
 | `NODETOOL_ALLOW_PRIVATE_MEDIA_FETCH` | Let a media ref be fetched from a private address or over plain http | no | Off unless set to exactly `1`. Media refs are otherwise fetched under NodeTool's default egress policy — https, to a public host, every redirect hop re-checked. Turn it on for a self-hosted install that serves media off its own LAN. It applies to media-ref fetches only; every other screened surface is unaffected. See [URL egress inventory](url-egress-inventory.md) |
 | `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION` | Let the Python bridge connect when `NODETOOL_ENV=production` | no | Off unless set to exactly `1`. Otherwise a production server refuses to spawn the worker: Python nodes are a local-only feature |
-| `NODETOOL_PYTHON_ON_DEMAND` | Start the Python worker on first use instead of at server launch | no | `true` or `false`, default `false`. Read at startup. See [Python Nodes](#python-nodes) |
 | `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` | How long one Python node invocation may run | no | Default `720000` (12 minutes) |
 | `NODETOOL_PYTHON_STATUS_TIMEOUT_MS` | How long a worker status request waits | no | Default `30000` |
 | `NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS` | Silence from a worker-side model download before it is abandoned | no | Default `300000` (5 minutes). Idle time, not total — a slow download that keeps reporting progress is not cut off |

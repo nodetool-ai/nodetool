@@ -44,7 +44,7 @@ jest.mock('../server', () => ({
   runApp: jest.fn(),
   showItemInFolder: jest.fn(),
   initializeBackendServer: jest.fn(),
-  stopServer: jest.fn(),
+  restartServer: jest.fn(),
 }));
 
 jest.mock('../logger', () => ({
@@ -53,6 +53,7 @@ jest.mock('../logger', () => ({
 
 jest.mock('../shortcuts', () => ({
   registerWorkflowShortcut: jest.fn(),
+  unregisterWorkflowShortcut: jest.fn(),
   setupWorkflowShortcuts: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -92,7 +93,7 @@ jest.mock('electron', () => {
       removeHandler: jest.fn(),
     },
     BrowserWindow: {
-      getFocusedWindow: jest.fn(),
+      fromWebContents: jest.fn(),
     },
     clipboard: {
       writeText: jest.fn(),
@@ -114,10 +115,10 @@ jest.mock('electron', () => {
 });
 
 import path from 'path';
-import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell, dialog } from 'electron';
-import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer } from '../server';
+import { ipcMain, BrowserWindow, clipboard, shell, dialog } from 'electron';
+import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, restartServer } from '../server';
 import { logMessage } from '../logger';
-import { registerWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
+import { registerWorkflowShortcut, unregisterWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
 import { emitWorkflowsChanged } from '../tray';
 import {
   fetchAvailablePackages,
@@ -132,6 +133,7 @@ import {
 import {
   createIpcMainHandler,
   initializeIpcHandlers,
+  fileUrlToLocalPath,
 } from '../ipc';
 import type {
   ClipboardContentInfo,
@@ -177,7 +179,6 @@ const ipcMainMock = jest.mocked(ipcMain);
 const browserWindowMock = jest.mocked(BrowserWindow);
 const dialogMock = jest.mocked(dialog);
 const clipboardMock = jest.mocked(clipboard);
-const globalShortcutMock = jest.mocked(globalShortcut);
 
 const serverMock = {
   getServerState: jest.mocked(getServerState),
@@ -185,7 +186,7 @@ const serverMock = {
   runApp: jest.mocked(runApp),
   showItemInFolder: jest.mocked(showItemInFolder),
   initializeBackendServer: jest.mocked(initializeBackendServer),
-  stopServer: jest.mocked(stopServer),
+  restartServer: jest.mocked(restartServer),
 };
 
 const packageManagerMock = {
@@ -316,8 +317,8 @@ describe('initializeIpcHandlers', () => {
     expect(registerWorkflowShortcutMock).toHaveBeenCalledTimes(2);
 
     const deleteHandler = invokeHandlerFor(Channels.ON_DELETE_WORKFLOW);
-    await deleteHandler({}, { name: 'wf3', settings: { shortcut: 's' } });
-    expect(globalShortcutMock.unregister).toHaveBeenCalledWith('s');
+    await deleteHandler({}, { id: 'wf3-id', name: 'wf3', settings: { shortcut: 's' } });
+    expect(unregisterWorkflowShortcut).toHaveBeenCalledWith('wf3-id');
     expect(emitWorkflowsChangedMock).toHaveBeenCalledTimes(3);
   });
 
@@ -335,12 +336,15 @@ describe('initializeIpcHandlers', () => {
       unmaximize: jest.fn(),
       isMaximized: jest.fn().mockReturnValue(false),
     };
-    // SAFETY: `getFocusedWindow` is a `jest.fn()` in this file's electron
+    // SAFETY: `fromWebContents` is a `jest.fn()` in this file's electron
     // mock; the window handlers only call close/minimize/maximize/unmaximize/
     // isMaximized, all of which this stub provides.
-    jest.mocked(BrowserWindow.getFocusedWindow).mockReturnValue(mockWindow);
+    jest.mocked(BrowserWindow.fromWebContents).mockReturnValue(mockWindow);
+    const sender = { id: 7 };
 
-    closeHandler({});
+    // The window that sent the request, not whichever window has focus.
+    closeHandler({ sender });
+    expect(BrowserWindow.fromWebContents).toHaveBeenCalledWith(sender);
     expect(mockWindow.close).toHaveBeenCalled();
 
     minimizeHandler({});
@@ -399,21 +403,8 @@ describe('initializeIpcHandlers', () => {
       const restartServerHandler = invokeHandlerFor(Channels.RESTART_SERVER);
 
       await restartServerHandler({});
-      expect(serverMock.stopServer).toHaveBeenCalled();
-      expect(serverMock.initializeBackendServer).toHaveBeenCalled();
+      expect(serverMock.restartServer).toHaveBeenCalled();
       expect(setupWorkflowShortcutsMock).toHaveBeenCalled();
-    });
-
-    it('should handle RESTART_SERVER with stop server error', async () => {
-      serverMock.stopServer.mockRejectedValue(new Error('Stop error'));
-      
-      const restartServerHandler = invokeHandlerFor(Channels.RESTART_SERVER);
-
-      await restartServerHandler({});
-      expect(loggerMock).toHaveBeenCalledWith(
-        expect.stringContaining('Error while stopping server for restart'),
-        'warn'
-      );
     });
 
     it('should handle PACKAGE_LIST_AVAILABLE', async () => {
@@ -540,7 +531,7 @@ describe('initializeIpcHandlers', () => {
     });
 
     it('should handle errors in window close', () => {
-      browserWindowMock.getFocusedWindow.mockImplementation(() => {
+      browserWindowMock.fromWebContents.mockImplementation(() => {
         throw new Error('Window error');
       });
 
@@ -554,7 +545,7 @@ describe('initializeIpcHandlers', () => {
     });
 
     it('should handle errors in window minimize', () => {
-      browserWindowMock.getFocusedWindow.mockImplementation(() => {
+      browserWindowMock.fromWebContents.mockImplementation(() => {
         throw new Error('Minimize error');
       });
 
@@ -568,7 +559,7 @@ describe('initializeIpcHandlers', () => {
     });
 
     it('should handle errors in window maximize', () => {
-      browserWindowMock.getFocusedWindow.mockImplementation(() => {
+      browserWindowMock.fromWebContents.mockImplementation(() => {
         throw new Error('Maximize error');
       });
 
@@ -582,7 +573,7 @@ describe('initializeIpcHandlers', () => {
     });
 
     it('should handle null window in close', () => {
-      browserWindowMock.getFocusedWindow.mockReturnValue(null);
+      browserWindowMock.fromWebContents.mockReturnValue(null);
 
       const closeHandler = listenerFor(Channels.WINDOW_CLOSE);
 
@@ -772,5 +763,15 @@ describe('initializeIpcHandlers', () => {
       const result = await handler({}, 'text/plain');
       expect(result).toBeNull();
     });
+  });
+});
+
+describe('fileUrlToLocalPath', () => {
+  it('decodes a file URL to a local path', () => {
+    expect(fileUrlToLocalPath('file:///tmp/a%20b.txt\r')).toBe('/tmp/a b.txt');
+  });
+
+  it('rejects what is not a local file URL', () => {
+    expect(fileUrlToLocalPath('https://example.com/a.txt')).toBeNull();
   });
 });

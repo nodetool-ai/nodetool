@@ -139,7 +139,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "run_workflow",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "759c359135dc",
+    contract: "7b1bf01fe074",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/nodetool-api-workflows.test.ts",
@@ -156,7 +156,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "debug_workflow",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "8a74fbe490d0",
+    contract: "3f7fa54dfdc5",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/mcp-tools.test.ts",
@@ -199,7 +199,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "start_background_job",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "ca27ce2245d7",
+    contract: "3ab70a6e5607",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/mcp-tools.test.ts",
@@ -2657,8 +2657,8 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-asset-browser.test.ts",
       "packages/agents/tests/capabilities-game-authoring.test.ts",
-      "packages/agents/tests/capabilities-game-autoplay.test.ts",
     ],
     evals: [
       {
@@ -2707,6 +2707,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
       "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-asset-browser.test.ts",
     ],
   },
   {
@@ -2736,7 +2737,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "a82f42491eb1",
+    contract: "1842395da245",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2767,7 +2768,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_game_asset",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "5fad7b94c76d",
+    contract: "2e7bc4c2b6b8",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -2833,6 +2834,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game-authoring.test.ts",
+    ],
+  },
+  {
+    name: "browse_native_game_assets",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "813a7cac1c81",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-asset-browser.test.ts",
     ],
   },
   {

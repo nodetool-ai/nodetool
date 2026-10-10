@@ -607,11 +607,19 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // refuses it and opens the picker instead.
   const needsModel = !!modelGate && !isModelSelected(modelGate.model);
 
-  const canGenerate = prompt.trim().length > 0 || droppedFiles.length > 0;
+  // A file still uploading is not in `droppedFiles` yet, so sending now would
+  // leave it out of this message and attach it to the next one.
+  const canGenerate =
+    !isUploading && (prompt.trim().length > 0 || droppedFiles.length > 0);
 
+  // `draft` is the composer text the send replaces. It differs from `text`
+  // when dictation appends a transcript to what was typed.
   const submitPrompt = useCallback(
-    async (text: string) => {
-      if (text.trim().length === 0 && droppedFiles.length === 0) {
+    async (text: string, draft: string = text) => {
+      if (
+        isUploading ||
+        (text.trim().length === 0 && droppedFiles.length === 0)
+      ) {
         return;
       }
       // No configured provider can serve this mode — sending would only fail on
@@ -636,11 +644,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       // dropped message (one already queued) keeps its text and attachments.
       if (await sendMessage(fullContent, text)) {
         recordHistory(text);
-        setPrompt((current) => current === text ? "" : current);
+        setPrompt((current) => current === draft ? "" : current);
         droppedFiles.forEach((file) => removeFile(file.id));
       }
     },
     [
+      isUploading,
       droppedFiles,
       getFileContents,
       sendMessage,
@@ -662,14 +671,15 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       const text = typed.length > 0 ? `${typed} ${transcript}` : transcript;
       // A chat turn sends straight away. A media mode bills for the run it
       // would start, so a dictated prompt lands in the box for review instead.
-      if (isMediaMode) {
+      // So does one dictated while a file is still uploading.
+      if (isMediaMode || isUploading) {
         setPrompt(text);
         textareaRef.current?.focus();
         return;
       }
-      submitPrompt(text);
+      submitPrompt(text, prompt);
     },
-    [prompt, submitPrompt, isMediaMode]
+    [prompt, submitPrompt, isMediaMode, isUploading]
   );
 
   const handlePaste = useCallback(

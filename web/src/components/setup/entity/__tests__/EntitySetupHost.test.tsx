@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../../__mocks__/themeMock";
 import EntitySetupHost from "../EntitySetupHost";
 import { writeEntitySetupDraft } from "../entitySetupDraft";
+import { useWorkspaceTabsStore } from "../../../../stores/WorkspaceTabsStore";
 
 const searchAssets = jest.fn();
 const getAsset = jest.fn();
@@ -238,7 +239,14 @@ describe("EntitySetupHost", () => {
     expect(
       screen.getByRole("heading", { name: /Generate a reference image/ })
     ).toBeInTheDocument();
+    // A dead button says why it is off.
+    expect(
+      screen.getByText("Pick an image model to generate the reference.")
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Select image model" }));
+    expect(
+      screen.queryByText("Pick an image model to generate the reference.")
+    ).toBeNull();
     await user.click(
       screen.getByRole("button", { name: "Generate reference" })
     );
@@ -557,5 +565,81 @@ describe("EntitySetupHost", () => {
       await screen.findByText("No reference image yet")
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create entity" })).toBeDisabled();
+  });
+
+  describe("a draft keyed by a guided tab", () => {
+    const KEY = "nodetool-entity-setup-draft:flow-1";
+    const guidedTab = {
+      id: "guided-flow:flow-1",
+      type: "guided-flow",
+      ref: "flow-1",
+      mode: "edit",
+      title: "Entity"
+    };
+
+    const renderInTab = () => {
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false } }
+      });
+      return render(
+        <QueryClientProvider client={client}>
+          <ThemeProvider theme={mockTheme}>
+            <EntitySetupHost
+              projectId="project-1"
+              draftKey="flow-1"
+              onFinish={jest.fn()}
+            />
+          </ThemeProvider>
+        </QueryClientProvider>
+      );
+    };
+
+    it("is kept while its tab stays open", async () => {
+      useWorkspaceTabsStore.setState({ tabs: [guidedTab] } as never);
+      const user = userEvent.setup();
+      const { unmount } = renderInTab();
+      await user.type(screen.getByRole("textbox", { name: "Name" }), "Nova");
+
+      unmount();
+
+      expect(localStorage.getItem(KEY)).toContain("Nova");
+    });
+
+    it("sweeps drafts of guided tabs that closed earlier", () => {
+      const open = "11111111-2222-4333-8444-555555555555";
+      const closed = "66666666-7777-4888-8999-aaaaaaaaaaaa";
+      const draft = JSON.stringify({ version: 1 });
+      localStorage.setItem(`nodetool-entity-setup-draft:${open}`, draft);
+      localStorage.setItem(`nodetool-entity-setup-draft:${closed}`, draft);
+      localStorage.setItem("nodetool-entity-setup-draft:project-2", draft);
+      useWorkspaceTabsStore.setState({
+        tabs: [guidedTab, { ...guidedTab, id: `guided-flow:${open}`, ref: open }]
+      } as never);
+
+      renderInTab();
+
+      expect(
+        localStorage.getItem(`nodetool-entity-setup-draft:${closed}`)
+      ).toBeNull();
+      expect(
+        localStorage.getItem(`nodetool-entity-setup-draft:${open}`)
+      ).not.toBeNull();
+      expect(
+        localStorage.getItem("nodetool-entity-setup-draft:project-2")
+      ).not.toBeNull();
+    });
+
+    it("is removed when its tab closes", async () => {
+      useWorkspaceTabsStore.setState({ tabs: [guidedTab] } as never);
+      const user = userEvent.setup();
+      const { unmount } = renderInTab();
+      await user.type(screen.getByRole("textbox", { name: "Name" }), "Nova");
+      expect(localStorage.getItem(KEY)).toContain("Nova");
+
+      useWorkspaceTabsStore.setState({ tabs: [] } as never);
+      unmount();
+
+      expect(localStorage.getItem(KEY)).toBeNull();
+    });
   });
 });

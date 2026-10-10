@@ -162,6 +162,7 @@
     "test:coverage:mobile": "npm --prefix mobile run test:coverage",
     "test:integration": "npm test --workspace=@nodetool-ai/base-nodes -- example-workflows-execute",
     "validate:examples": "node scripts/validate-examples.mjs",
+    "build:example-apps:check": "node scripts/build-example-apps.mjs --check",
     "codegen:dsl": "npm run codegen --workspace=packages/dsl",
     "codegen:dsl:check": "npm run codegen:check --workspace=packages/dsl",
     "gen:example-thumbnails": "node scripts/generate-example-thumbnails.mjs",

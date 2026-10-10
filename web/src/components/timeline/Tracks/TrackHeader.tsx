@@ -42,6 +42,7 @@ import {
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import {
   DEFAULT_TRACK_HEADER_WIDTH_PX,
   useTimelineUIStore,
@@ -318,6 +319,9 @@ const resizeHandleStyles = (theme: Theme) =>
     right: 0,
     height: RESIZE_HANDLE_HEIGHT_PX,
     cursor: "ns-resize",
+    // A vertical finger drag resizes the track; without this the browser
+    // scrolls the track list and cancels the pointer.
+    touchAction: "none",
     backgroundColor: "transparent",
     "&:hover": {
       backgroundColor: theme.vars.palette.primary.main,
@@ -1020,7 +1024,15 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
         <ConfirmDialog
           open={confirmRemoveOpen}
           onClose={() => setConfirmRemoveOpen(false)}
-          onConfirm={() => removeTrack(track.id)}
+          onConfirm={() => {
+            if (!removeTrack(track.id)) {
+              useNotificationStore.getState().addNotification({
+                type: "warning",
+                alert: true,
+                content: `Unlock track "${track.name}" and its clips to remove it`
+              });
+            }
+          }}
           title="Remove track"
           content={`Remove track "${track.name}" and all its clips?`}
           confirmText="Remove"

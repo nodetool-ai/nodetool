@@ -30,7 +30,9 @@ Use the user's target, scope, and permissions. Otherwise use these defaults:
   understanding, app first use, and one outcome-led task, each independently cold.
   Include persistence and recovery inside the task session. Report omissions.
 - Use desktop at 1440 × 900 CSS pixels, device scale 1, a fresh browser context,
-  and ordinary browser proficiency but no assumed product knowledge.
+  and ordinary browser proficiency but no assumed product knowledge. For a UX
+  campaign, run at least one session at a small laptop size (`viewport` in the
+  packet, for example 1280 × 720).
 - Limit a discovery session to 20 actions and a task session to 50 actions. Limit
   each to 10 minutes elapsed, including tool/model overhead. Record this overhead
   separately where possible. Permit at most two reasonable recovery attempts per
@@ -50,15 +52,19 @@ not run. An unavailable dependency is not a UX finding by itself.
 ## 2. Prepare the environment privately
 
 Read [runtime.md](references/runtime.md). Start the disposable app with
-`web/tests/agentic-qa/serveApp.ts`. It reuses the journey suite's seeded backend,
+`web/tests/agentic-qa/serveApp.ts`. It reuses the journey suite's backend,
 fake providers, and reset endpoint on separate ports. Reuse infrastructure,
-**not selectors, scripted routes, or returning-user state**.
+**not selectors, scripted routes, or returning-user state**. Use
+`--state empty` for first-time-user sessions and give the participant a test
+key in the packet's `credentials`, so provider onboarding is part of the
+journey. Run the context probe first and record its result.
 
 In particular, do not import the journey `test` fixture unchanged: it calls
 `seedReturningUser` and seeds a selected chat model. Do not dismiss onboarding,
 accept a tour, configure a model, pre-open a document, or write preference storage
 for a cold session. A reset seeded workspace is not an empty new account: label
-it `seeded-demo`. Claim `empty-new-account` only after verifying that state.
+it `seeded-demo`. Claim `empty-new-account` only for `--state empty`, after
+verifying that the first viewport shows no documents.
 
 Use separate browser contexts and separate disposable accounts/backends per
 concurrent participant. Otherwise serialize sessions. A shared reset must never
@@ -176,6 +182,27 @@ artifact. For persistence, leave/reopen or reload through ordinary browser use
 and inspect the result. Do not assume autosave. A backend-only success does not
 repair an unusable or invisible result.
 
+Read the fixture list in
+[runtime.md](references/runtime.md#what-the-fake-runtime-shows-a-participant)
+before judging results. Placeholder text, the fixed chat reply, and the
+gradient image are the fakes, not defects.
+
+Review every screenshot yourself, not only the participant's account. A
+participant chasing its goal often passes over incidental defects in plain
+view: "[object Object]", "undefined" or "NaN" in a label or tooltip, a raw
+error, a control drawn over the result it should reveal. Record each one as a
+finding with its screenshot, even when the participant never mentioned it.
+Run the checks in [ux-review.md](references/ux-review.md) on every session:
+typed text against the screen, legibility in both themes, names across a
+reload, leftovers after a delete, duplicate messages, and empty states that
+contradict a save. A participant that works around a defect, such as
+retyping garbled text, often reports it as its own mistake.
+
+To review a session quickly, tile its screenshots with ImageMagick
+(`montage screenshots/S0*.png -tile 4x -geometry 720x450+3+3 -set label '%t'
+sheet.png`) and crop at full size (`convert S012.png -crop 260x80+780+290`)
+to read small text. A tile is too small to quote from.
+
 Separate discoverability, comprehension, affordance, feedback, recovery,
 persistence, and visual hierarchy from technical breakage. A working control
 that the participant cannot find can still be a UX finding. A speculative cause
@@ -191,6 +218,12 @@ Correlate each issue with the recorded user-visible failure. Distinguish observe
 behavior, an independently reproduced defect, a proposed explanation, a fixture
 artifact, and an untested recommendation. Add relevant source locations only when
 verified. Preserve all failed reproductions and environment differences.
+
+When a result was saved but the participant could not find it again,
+reproduce the path with a scripted browser and compare what each surface
+reads: a navigator and an overview can list a project's documents from
+different queries, so one can show the result while the other says the
+project is empty.
 
 Propose the smallest useful regression for confirmed issues using the existing
 journey suite. Diagnostic tests may use normal robust selectors and assertions.

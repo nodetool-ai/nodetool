@@ -1017,14 +1017,17 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             ? merged.projectSessions
             : sessionFromTabs(merged.tabs ?? [], merged.activeTabId ?? null);
         // An explicitly selected project remains selected after its last tab
-        // is closed, so a new document still belongs to that project.
+        // is closed, so a new document still belongs to that project. The
+        // personal project always exists, so it survives a reload even before
+        // it has a tab; dropping it renamed its home tab to "Home".
         const persistedProjectId = merged.activeProjectId ?? null;
         const activeProjectId =
           persistedProjectId &&
-          Object.prototype.hasOwnProperty.call(
-            projectSessions,
-            persistedProjectId
-          )
+          (persistedProjectId === merged.personalProjectId ||
+            Object.prototype.hasOwnProperty.call(
+              projectSessions,
+              persistedProjectId
+            ))
             ? persistedProjectId
             : stillOpen(merged.tabs ?? [], persistedProjectId);
         return {

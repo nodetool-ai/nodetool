@@ -303,7 +303,8 @@ exposure/ops concerns that the deploy iteration must satisfy.
 
 ### 8.4 GPU / host selection, persistence, cost
 
-- **CUDA host filter ≥ 12.x** for torch 2.9 (RunPod `allowedCudaVersions` / UI filter;
+- **CUDA host filter ≥ 13.0** for torch 2.14, whose PyPI Linux build uses CUDA 13.0 and needs
+  NVIDIA driver 580+ (RunPod `allowedCudaVersions` / UI filter;
   Vast `cuda_vers>=… driver_version>=…`), else the container can land on an old-driver
   host and fail to use the GPU.
 - **Product/mode:** RunPod = **Pod** (not Serverless — serverless can't hold a

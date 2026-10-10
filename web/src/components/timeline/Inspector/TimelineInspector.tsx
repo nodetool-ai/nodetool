@@ -8,7 +8,7 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 
-import { DEFAULT_MODEL3D_STYLE, makeClip } from "@nodetool-ai/timeline";
+import { DEFAULT_MODEL3D_STYLE } from "@nodetool-ai/timeline";
 import { useShallow } from "zustand/react/shallow";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -159,7 +159,8 @@ const TimelineInspectorContent: React.FC = memo(() => {
   const patchClip = useTimelineStore((s) => s.patchClip);
   const moveSelectedClips = useTimelineStore((s) => s.moveSelectedClips);
   const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
-  const addClip = useTimelineStore((s) => s.addClip);
+  const groupClips = useTimelineStore((s) => s.groupClips);
+  const setClipSpeed = useTimelineStore((s) => s.setClipSpeed);
   const storeApi = useTimelineStoreApi();
   const history = useTimelineHistoryBatch();
   const sourceDurationMs = useClipSourceDuration(clip ?? undefined);
@@ -170,62 +171,10 @@ const TimelineInspectorContent: React.FC = memo(() => {
       ? "Unlock the track to edit timing"
       : undefined;
 
-  /**
-   * Wrap the selection in a group clip (D4): one clip with
-   * `mediaType: "group"` spanning the selection, and a `parentId` on each
-   * member. Children keep their own tracks, so layer order is untouched (I9);
-   * the group takes the track of the topmost selected clip so its bracket
-   * renders above what it holds. The whole thing is one undo entry.
-   */
+  /** Wrap the editable part of the selection in a group clip (D4). */
   const groupSelection = useCallback(() => {
-    const state = storeApi.getState();
-    const members = state.clips.filter((candidate) =>
-      selectedClipIds.has(candidate.id)
-    );
-    if (members.length < 2) return;
-    const startMs = Math.min(...members.map((member) => member.startMs));
-    const endMs = Math.max(
-      ...members.map((member) => member.startMs + member.durationMs)
-    );
-    const trackIndexOf = (trackId: string) => {
-      const index = state.tracks.findIndex((track) => track.id === trackId);
-      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
-    };
-    const topTrackId = members.reduce((top, member) =>
-      trackIndexOf(member.trackId) < trackIndexOf(top.trackId) ? member : top
-    ).trackId;
-
-    const group = makeClip({
-      trackId: topTrackId,
-      name: "Group",
-      mediaType: "group",
-      sourceType: "imported",
-      status: "generated",
-      startMs,
-      durationMs: Math.max(1, endMs - startMs)
-    });
-
-    history.begin();
-    addClip(group);
-    history.mark();
-    for (const member of members) {
-      patchClip(member.id, { parentId: group.id });
-      history.mark();
-    }
-    history.end();
-  }, [addClip, history, patchClip, selectedClipIds, storeApi]);
-
-  const onPatchNumber = useCallback(
-    (field: string, raw: string, min?: number, max?: number) => {
-      if (!clipId) return;
-      const parsed = parseFiniteNumber(raw);
-      if (parsed === null) return;
-      const value =
-        min != null && max != null ? clamp(parsed, min, max) : parsed;
-      patchClip(clipId, { [field]: value });
-    },
-    [clipId, patchClip]
-  );
+    groupClips(selectedClipIds);
+  }, [groupClips, selectedClipIds]);
 
   // The timing rows feed memoized pills, so these handlers need a stable
   // identity — otherwise editing one re-renders the other two.
@@ -259,8 +208,13 @@ const TimelineInspectorContent: React.FC = memo(() => {
   );
 
   const handleSpeedCommit = useCallback(
-    (raw: string) => onPatchNumber("speedMultiplier", raw, 0.1, 8),
-    [onPatchNumber]
+    (raw: string) => {
+      if (!clipId || timingLocked) return;
+      const parsed = parseFiniteNumber(raw);
+      if (parsed === null) return;
+      setClipSpeed(clipId, clamp(parsed, 0.1, 8));
+    },
+    [clipId, setClipSpeed, timingLocked]
   );
 
   const handleHiddenChange = useCallback(
@@ -351,7 +305,9 @@ const TimelineInspectorContent: React.FC = memo(() => {
 
   const identityMeta = useMemo<string[]>(() => {
     if (!clip) return [];
-    const parts: string[] = [clip.mediaType];
+    const parts: string[] = [
+      clip.mediaType.charAt(0).toUpperCase() + clip.mediaType.slice(1)
+    ];
     const secs = clip.durationMs / 1000;
     parts.push(secs < 10 ? `${secs.toFixed(2)}s` : `${secs.toFixed(1)}s`);
     if (clip.width && clip.height) {
@@ -606,7 +562,11 @@ const TimelineInspectorContent: React.FC = memo(() => {
         name={clip.name}
         metadata={identityMeta}
         accentColor={accentColor}
-      />
+      >
+        {/* Shot clips are assembled as imported media, so this branch is the
+            only one a board link can reach. */}
+        <ClipStoryboardLink clip={clip} />
+      </ClipIdentityCard>
 
       {aiEditSection}
 
@@ -615,10 +575,6 @@ const TimelineInspectorContent: React.FC = memo(() => {
       {(clip.mediaType === "video" || clip.mediaType === "audio") && (
         <ClipVersionHistory clipId={clip.id} />
       )}
-
-      {/* Shot clips are assembled as imported media, so this branch is the
-          only one a board link can reach. */}
-      <ClipStoryboardLink clip={clip} />
 
       {textStyle && <ClipTextStyleSection clip={clip} textStyle={textStyle} />}
 
@@ -744,6 +700,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
                   unit="×"
                   scrub={SCRUB_SPEED}
                   onCommit={handleSpeedCommit}
+                  disabled={timingLocked}
                   ariaLabel="Playback speed"
                 />
               </InspectorRow>

@@ -85,6 +85,13 @@ export interface CompositeLayer {
    * matte source never draws itself.
    */
   matte?: CompositeMatte;
+  /**
+   * Set when the layer has a matte whose source has no pixels yet (a video
+   * still loading its metadata). The WebGPU path draws nothing for it, as the
+   * shared compositor does for a matte source it cannot upload, rather than
+   * showing everything the matte is there to hide.
+   */
+  mattePending?: true;
   /** Per-clip GPU effects applied as a pre-pass before this layer's draw. */
   effects?: ClipEffect[];
   /**

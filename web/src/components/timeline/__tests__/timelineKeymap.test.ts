@@ -20,7 +20,9 @@ const ev = (key: string, mods: Partial<KeyEventLike> = {}): KeyEventLike => ({
 describe("resolveTimelineAction", () => {
   it("resolves the NodeTool layout", () => {
     expect(resolveTimelineAction(ev("s"), "nodetool")).toBe("splitAtPlayhead");
-    expect(resolveTimelineAction(ev("k", { ctrlKey: true }), "nodetool")).toBe("cutAllTracks");
+    expect(
+      resolveTimelineAction(ev("K", { ctrlKey: true, shiftKey: true }), "nodetool")
+    ).toBe("cutAllTracks");
     expect(resolveTimelineAction(ev("Delete", { shiftKey: true }), "nodetool")).toBe(
       "rippleDeleteSelected"
     );
@@ -32,9 +34,9 @@ describe("resolveTimelineAction", () => {
 
   it("resolves the Premiere layout", () => {
     expect(resolveTimelineAction(ev("s"), "premiere")).toBe("toggleSnap");
-    expect(resolveTimelineAction(ev("k", { metaKey: true }), "premiere")).toBe(
-      "splitAtPlayhead"
-    );
+    expect(
+      resolveTimelineAction(ev("k", { metaKey: true, altKey: true }), "premiere")
+    ).toBe("splitAtPlayhead");
     expect(resolveTimelineAction(ev("\\"), "premiere")).toBe("zoomFit");
     expect(resolveTimelineAction(ev("d", { ctrlKey: true }), "premiere")).toBe(
       "applyDefaultTransition"
@@ -66,6 +68,13 @@ describe("resolveTimelineAction", () => {
 
   it("returns null for an unbound key", () => {
     expect(resolveTimelineAction(ev("q"), "nodetool")).toBeNull();
+  });
+
+  it("leaves Ctrl/Cmd+K to the command menu in every preset", () => {
+    for (const preset of TIMELINE_KEYBOARD_PRESETS) {
+      expect(resolveTimelineAction(ev("k", { ctrlKey: true }), preset)).toBeNull();
+      expect(resolveTimelineAction(ev("k", { metaKey: true }), preset)).toBeNull();
+    }
   });
 
   it("binds every action in every preset", () => {

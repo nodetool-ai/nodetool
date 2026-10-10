@@ -90,7 +90,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const selectedNodeCount = useNodes((state) => state.getSelectedNodeCount());
   const store = useNodeStoreRef();
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const editorRoot = useCallback(() => reactFlowWrapperRef.current, []);
   useNodeEditorShortcuts(
@@ -127,21 +126,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
       revealInspectorForSelection();
     }
   }, [active, selectedNodeCount, revealInspectorForSelection]);
-
-  // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux).
-  // Global scope: must work even when an input/editor is focused.
-  const commandMenuCombo = isMac() ? ["meta", "k"] : ["control", "k"];
-  useCombo(
-    commandMenuCombo,
-    () => {
-      if (active) {
-        setCommandMenuOpen(true);
-      }
-    },
-    true,
-    active,
-    { scope: "global" }
-  );
 
   // Keyboard shortcut for Node Info Panel (Ctrl+I / Meta+I)
   const nodeInfoCombo = isMac() ? ["meta", "i"] : ["control", "i"];
@@ -203,13 +187,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               />
               <NodeInfoPanel />
               <NodeMenu focusSearchInput={true} />
-              <CommandMenu
-                open={commandMenuOpen}
-                setOpen={setCommandMenuOpen}
-                undo={undo}
-                redo={redo}
-                reactFlowWrapper={reactFlowWrapperRef}
-              />
+              <CommandMenu undo={undo} redo={redo} />
               <FindInWorkflowDialog workflowId={workflowId} />
               <WorkflowShareDialogHost />
               <Modal

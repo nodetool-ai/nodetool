@@ -13,21 +13,23 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import { RouteProp, StackActions } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { apiService, Asset } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useAuthStore } from '../stores/AuthStore';
-import { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList, TabScreenNavigationProp, TabScreenRouteProp } from '../navigation/types';
+import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState';
 import { useTheme } from '../hooks/useTheme';
 import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type AssetsScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Assets'>;
-  route: RouteProp<RootStackParamList, 'Assets'>;
+  // The same screen is the Assets tab (the root folder) and, pushed on the
+  // root stack, any folder below it.
+  navigation: TabScreenNavigationProp<'Assets'>;
+  route: TabScreenRouteProp<'Assets'> | RouteProp<RootStackParamList, 'AssetFolder'>;
 };
 
 const GRID_COLUMNS = 3;
@@ -143,7 +145,7 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
   const isLoading = activeQuery.isLoading;
   const isRefreshing = activeQuery.isRefetching;
   const loadError = activeQuery.error
-    ? activeQuery.error.message || 'Network Error'
+    ? activeQuery.error.message || 'Network error'
     : null;
 
   const deleteAsset = trpc.assets.delete.useMutation({
@@ -195,10 +197,14 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
 
   const handleAssetPress = useCallback((asset: Asset) => {
     if (asset.content_type === 'folder') {
-      navigation.push('Assets', {
-        parentId: asset.id,
-        folderName: asset.name,
-      });
+      // A tab can't push, so the folder goes on the root stack above the
+      // tab bar, with a back button to the level it came from.
+      navigation.dispatch(
+        StackActions.push('AssetFolder', {
+          parentId: asset.id,
+          folderName: asset.name,
+        })
+      );
     } else {
       navigation.navigate('AssetViewer', { assetId: asset.id });
     }
@@ -257,7 +263,7 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
       utils.assets.search.invalidate();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Upload failed';
-      Alert.alert('Upload Error', msg);
+      Alert.alert('Upload failed', msg);
     } finally {
       setIsUploading(false);
     }
@@ -310,50 +316,43 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
   const renderEmpty = () => {
     if (isLoading) {return null;}
     const searchActive = debouncedQuery.trim().length >= 2;
+    if (loadError) {
+      return (
+        <ErrorState
+          inline
+          title="Couldn't load assets"
+          message={loadError}
+          onRetry={() => { void activeQuery.refetch(); }}
+        />
+      );
+    }
+    if (searchActive) {
+      return (
+        <EmptyState
+          inline
+          icon="search-outline"
+          title="No results"
+          message={`Nothing matches "${searchQuery.trim()}". Try a different search term.`}
+        />
+      );
+    }
     return (
-      <View style={styles.emptyContainer}>
-        <View style={[styles.emptyIconWrap, { backgroundColor: colors.primaryMuted }]}>
-          <Ionicons
-            name={loadError ? 'cloud-offline-outline' : searchActive ? 'search-outline' : 'folder-open-outline'}
-            size={36}
-            color={colors.primary}
-          />
-        </View>
-        <Text style={[styles.emptyText, { color: colors.text }]}>
-          {loadError
-            ? 'Could not load assets'
-            : searchActive
-              ? `No results for "${searchQuery}"`
-              : 'No assets yet'}
-        </Text>
-        {loadError ? (
-          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-            {loadError}
-          </Text>
-        ) : (
-          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-            {searchActive
-              ? 'Try a different search term.'
-              : isRootFolder
-                ? 'Upload assets from the desktop app or a workflow to see them here.'
-                : 'This folder is empty.'}
-          </Text>
-        )}
-      </View>
+      <EmptyState
+        inline
+        icon="folder-open-outline"
+        title={isRootFolder ? 'No assets yet' : 'This folder is empty'}
+        message={
+          isRootFolder
+            ? 'Upload a photo or video from your phone, or run an app to generate one.'
+            : 'Upload a file here, or add one from the desktop app.'
+        }
+        action={{ label: 'Upload', icon: 'cloud-upload-outline', onPress: () => { void handleUpload(); } }}
+      />
     );
   };
 
   if (isLoading && assets.length === 0) {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.loadingIconWrap, { backgroundColor: colors.primaryMuted }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          Loading assets...
-        </Text>
-      </View>
-    );
+    return <LoadingState label="Loading assets" />;
   }
 
   return (
@@ -400,9 +399,9 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
             accessibilityLabel="Upload asset"
           >
             {isUploading ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={colors.textOnPrimary} />
             ) : (
-              <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
+              <Ionicons name="cloud-upload-outline" size={20} color={colors.textOnPrimary} />
             )}
           </TouchableOpacity>
         </View>
@@ -446,23 +445,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  loadingIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  loadingText: {
-    fontSize: 15,
-  },
   searchContainer: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -474,8 +456,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   uploadButton: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -486,7 +468,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 14,
-    height: 42,
+    minHeight: 44,
   },
   searchIcon: {
     marginRight: 10,
@@ -545,30 +527,5 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: 12,
     fontWeight: '500',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 40,
-  },
-  emptyIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });

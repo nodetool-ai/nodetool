@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
-import { FixedTickClock, GameInput3D } from "@nodetool-ai/game-renderer";
-import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
+import { browserGamepads, FixedTickClock, GameInput3D } from "@nodetool-ai/game-renderer";
+import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { GameReplayHistory } from "./gameReplayHistory";
 import type { ScriptFailure } from "./useGamePlaySession";
@@ -79,6 +79,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const display = useCallback((current: GameRenderFrame3D, alpha: number): void => {
     const renderer = rendererRef.current;
     if (!renderer) { return; }
+    audioRef.current?.updateSpatial(gameAudioSpatialView3D(current, alpha));
     if (displayQueueRef.current?.renderer !== renderer) { displayQueueRef.current = { renderer, busy: false, latest: null }; }
     const queue = displayQueueRef.current;
     queue.latest = { frame: current, alpha };
@@ -251,7 +252,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
 
   useEffect(() => {
     if (!playing || !active) {
-      inputRef.current.release();
+      // Paused input is dropped, not queued for the next tick (F23).
+      inputRef.current.setEnabled(false);
       audioRef.current?.pause();
       if (playDocument) {
         setInspection(committedRef.current);
@@ -260,11 +262,15 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       }
       return;
     }
+    inputRef.current.setEnabled(true);
     audioRef.current?.resume();
     const clock = new FixedTickClock(sessionDocument.tickRate);
     let request = 0;
     const animate = (now: number): void => {
-      const alpha = clock.advance(now, () => step(inputRef.current.sample(sessionDocument)));
+      const alpha = clock.advance(now, () => {
+        inputRef.current.pollGamepads(browserGamepads());
+        step(inputRef.current.sample(sessionDocument));
+      });
       const current = sessionRef.current;
       if (current && !sessionFailedRef.current) {
         try { display(current.frame(), alpha); } catch { setPlaying(false); }

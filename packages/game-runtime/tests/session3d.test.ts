@@ -22,6 +22,36 @@ function stepTicks(session: Awaited<ReturnType<typeof createGameSession3D>>, cou
 }
 
 describe("3D fixed-step session", () => {
+  it("projects the scene sky as presentation without changing simulation", async () => {
+    const plain = await createGameSession3D(fixture(), 1);
+    const document = fixture([{ id: "sun", transform3d: {}, light3d: { kind: "directional", color: "#ffffff", intensity: 2 } }]);
+    document.scenes[0].environment.sky = { kind: "procedural", sunEntityId: "sun", turbidity: 4, rayleigh: 1, groundColor: "#202020", intensity: 0.5 };
+    const sky = await createGameSession3D(document, 1);
+    try {
+      expect(sky.frame().environment.sky).toEqual(document.scenes[0].environment.sky);
+      stepTicks(plain, 30, input({ moveZ: -1 }));
+      stepTicks(sky, 30, input({ moveZ: -1 }));
+      const plainState = plain.inspect({ entityId: "player" });
+      expect(sky.inspect({ entityId: "player" })).toEqual(plainState);
+    } finally { plain.dispose(); sky.dispose(); }
+  });
+  it("projects post-processing as presentation that stays out of snapshots and simulation", async () => {
+    const plain = await createGameSession3D(fixture(), 1);
+    const document = fixture();
+    document.scenes[0].environment.postProcessing = { enabled: true, exposure: 1.5, toneMapping: "agx", antialias: "smaa",
+      bloom: { threshold: 0.8, softness: 0.1, radius: 0.4, intensity: 2 }, vignette: { intensity: 0.5, radius: 0.5, softness: 0.5 } };
+    const post = await createGameSession3D(document, 1);
+    try {
+      expect(post.frame().environment.postProcessing).toEqual(document.scenes[0].environment.postProcessing);
+      for (let index = 0; index < 30; index += 1) {
+        expect(post.step(input({ moveZ: -1 })).events).toEqual(plain.step(input({ moveZ: -1 })).events);
+      }
+      const { contentDigest: _plainDigest, ...plainSnapshot } = plain.snapshot();
+      const { contentDigest: _postDigest, ...postSnapshot } = post.snapshot();
+      expect(postSnapshot).toEqual(plainSnapshot);
+      expect(JSON.stringify(post.snapshot())).not.toContain("postProcessing");
+    } finally { plain.dispose(); post.dispose(); }
+  });
   it("projects physics roots, cameras, lights, hierarchy and HUD font bindings", async () => {
     const document = fixture([
       { id: "light", transform3d: { position: { x: 0, y: 4, z: 0 } }, light3d: { kind: "point", color: "#ffffff", intensity: 1, range: 10 } },

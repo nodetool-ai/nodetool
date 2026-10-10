@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { parseFdx } from "../parseFdx";
+import { importedFromFdx } from "../../script/importedScript";
 
 const fixture = (name: string): string =>
   readFileSync(join(__dirname, "..", "__fixtures__", name), "utf8");
@@ -94,5 +95,65 @@ describe("parseFdx", () => {
 
   it("refuses a file that is not a screenplay", () => {
     expect(() => parseFdx("this is not xml at all")).toThrow(Error);
+  });
+});
+
+describe("Final Draft dialogue as script lines", () => {
+  const screenplay = (paragraphs: string): string =>
+    `<FinalDraft><Content>${paragraphs}</Content></FinalDraft>`;
+  const para = (type: string, text: string): string =>
+    `<Paragraph Type="${type}"><Text>${text}</Text></Paragraph>`;
+
+  it("never speaks a character cue that has no dialogue", () => {
+    const parsed = parseFdx(
+      screenplay(
+        para("Character", "MARA") +
+          para("Action", "She leaves.") +
+          para("Character", "RUIZ") +
+          para("Parenthetical", "(nods)") +
+          para("Character", "SAM") +
+          para("Dialogue", "Wait.")
+      )
+    );
+    expect(parsed.shots.map((shot) => shot.dialogue ?? null)).toEqual([
+      null,
+      null,
+      "SAM\nWait."
+    ]);
+    expect(parsed.shots[1].action).toBe("RUIZ (nods)");
+    expect(importedFromFdx(parsed).lines).toEqual([
+      { text: "Wait.", speakerName: "SAM" }
+    ]);
+  });
+
+  it("does not read a speakerless block's first line as a character", () => {
+    const parsed = parseFdx(
+      screenplay(
+        para("Action", "A radio crackles.") +
+          para("Dialogue", "Unit four, respond.") +
+          para("Dialogue", "Unit four?")
+      )
+    );
+    expect(importedFromFdx(parsed).lines).toEqual([
+      { text: "Unit four, respond. Unit four?", speakerName: "" }
+    ]);
+  });
+
+  it("keeps words that open with a bracket, and casts V.O. as the same speaker", () => {
+    const parsed = parseFdx(
+      screenplay(
+        para("Character", "MARA") +
+          para("Dialogue", "(laughs) Fine.") +
+          para("Character", "MARA (V.O.)") +
+          para("Parenthetical", "(quietly)") +
+          para("Dialogue", "It was not fine.")
+      )
+    );
+    const imported = importedFromFdx(parsed);
+    expect(imported.lines).toEqual([
+      { text: "(laughs) Fine.", speakerName: "MARA" },
+      { text: "It was not fine.", speakerName: "MARA", direction: "quietly" }
+    ]);
+    expect(imported.speakers).toEqual(["MARA"]);
   });
 });

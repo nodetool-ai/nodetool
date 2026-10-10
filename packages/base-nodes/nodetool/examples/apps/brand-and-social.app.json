@@ -840,7 +840,7 @@
     {
       "key": "research",
       "name": "Research a Brand from Its Website",
-      "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. Uses Claude Sonnet 5 with browser and web search tools, and GPT-5 mini for extraction.",
+      "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses Claude Sonnet 5 with browser and web search tools. Pick any language model for the extractor.",
       "sourceId": "nodetool-base/Research a Brand from Its Website",
       "graph": {
         "nodes": [
@@ -848,17 +848,18 @@
             "id": "comment",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🔎 Research a Brand from Its Website\n\nPaste a website. An agent opens it, searches for what the site leaves out, and writes research notes with sources. An extractor then turns the notes into the five fields a brand kit needs: name, audience, voice, one-line description and tagline.\n\n**Agentic step:** the agent decides which pages to open and what to search for. It reports what it could not confirm instead of inventing it.\n\n**Try this:** point it at your own site, then edit any field before you generate assets from it."
+              "comment": "# 🔎 Research a Brand from Its Website\n\nPaste a website and get research notes plus the five fields a brand kit needs: name, audience, voice, one-line description and tagline. Use it to start a brand kit from a site you do not know well.\n\n**How it works:** \"Website\" fills the \"Research brief\" prompt. \"Research agent (browser + web search)\" runs Claude Sonnet 5 with the browser and web_search tools, capped at 12 turns and $1.00. It opens the site, searches for what the site leaves out, and writes notes with sources that go to \"Research notes\". \"Brand profile fields\", an Extractor, reads the notes and fills \"Brand name\", \"Audience\", \"Voice\", \"Brand description\" and \"Tagline\", leaving a field empty when the notes mark it unconfirmed. The agent needs an Anthropic key, and you pick a model on the extractor.\n\n**Try this:** Point \"Website\" at your own site, then edit any field before you generate assets from it."
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": -300
+                "x": 0,
+                "y": 0
               },
               "zIndex": 0,
               "width": 560,
               "selectable": true,
-              "bypassed": false
+              "bypassed": false,
+              "height": 403
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -873,8 +874,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 60
+                "x": 0,
+                "y": 1014
               },
               "zIndex": 0,
               "width": 300,
@@ -893,8 +894,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 430,
-                "y": 60
+                "x": 400,
+                "y": 898
               },
               "zIndex": 0,
               "width": 320,
@@ -954,8 +955,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 830,
-                "y": 60
+                "x": 820,
+                "y": 870
               },
               "zIndex": 0,
               "width": 340,
@@ -999,8 +1000,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1250,
-                "y": 60
+                "x": 1260,
+                "y": 802
               },
               "zIndex": 0,
               "width": 320,
@@ -1045,8 +1046,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1250,
-                "y": 460
+                "x": 1260,
+                "y": 1091
               },
               "zIndex": 0,
               "width": 300,
@@ -1065,8 +1066,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1650,
-                "y": 60
+                "x": 1680,
+                "y": 483
               },
               "zIndex": 0,
               "width": 280,
@@ -1085,8 +1086,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1650,
-                "y": 200
+                "x": 1680,
+                "y": 683
               },
               "zIndex": 0,
               "width": 280,
@@ -1105,8 +1106,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1650,
-                "y": 340
+                "x": 1680,
+                "y": 883
               },
               "zIndex": 0,
               "width": 280,
@@ -1125,8 +1126,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1650,
-                "y": 480
+                "x": 1680,
+                "y": 1083
               },
               "zIndex": 0,
               "width": 280,
@@ -1145,8 +1146,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1650,
-                "y": 620
+                "x": 1680,
+                "y": 1283
               },
               "zIndex": 0,
               "width": 280,
@@ -1388,17 +1389,17 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🏷️ Brand Asset Generator\n\nFrom a brand name + vibe, produce a full social kit in one run.\n\n**Two branches fan out from the same inputs:**\n- **Images** → an art director writes 4 prompts, each rendered, stamped with the brand name (in your color) and tagline, then collected into a gallery.\n- **Brief** → a strategist writes a one-page brand guideline (voice, palette, taglines).\n\n**Try this:** change the brand color or edit the two prompt templates to shift the whole kit."
+              "comment": "# 🏷️ Brand Asset Generator\n\nFrom a brand name and vibe, produces a social kit in one run: four on-brand images with text overlays and a one-page brand brief. Use it to rough out a launch kit before design work.\n\n**How it works:** The four inputs feed two branches. In the image branch, \"5 Write image prompts\" asks for four prompts (Instagram, LinkedIn, X, product launch), and \"6 Split into 4 prompts\" emits them one at a time. \"7 Render each image\" renders each at 1:1 with FLUX.1 Schnell on fal. \"8 Stamp brand name\" writes \"1 Brand name\" in \"4 Brand color\" at size 72, \"9 Overlay tagline\" adds \"3 Tagline\" in white at size 40, and \"10 Collect gallery\" gathers the four images. In the brief branch, \"5 Write brief prompt\" feeds \"6 Draft brand brief\", which writes voice, palette and tagline options. Pick a language model on \"6 Split into 4 prompts\" and \"6 Draft brand brief\". Images need a fal key.\n\n**Try this:** Change \"4 Brand color\" to a deep red such as #B3261E and see the brand name on all four images change color."
             },
             "ui_properties": {
               "selected": false,
               "position": {
                 "x": 0,
-                "y": -260
+                "y": 0
               },
               "zIndex": 0,
-              "width": 520,
-              "height": 210,
+              "width": 560,
+              "height": 423,
               "selectable": true,
               "bypassed": false
             },
@@ -1416,7 +1417,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 40
+                "y": 1302
               },
               "zIndex": 0,
               "width": 280,
@@ -1438,7 +1439,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 200
+                "y": 1077
               },
               "zIndex": 0,
               "width": 280,
@@ -1460,7 +1461,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 360
+                "y": 1707
               },
               "zIndex": 0,
               "width": 280,
@@ -1485,7 +1486,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 520
+                "y": 1527
               },
               "zIndex": 0,
               "width": 280,
@@ -1504,8 +1505,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 360,
-                "y": 60
+                "x": 380,
+                "y": 503
               },
               "zIndex": 0,
               "width": 300,
@@ -1536,8 +1537,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 720,
-                "y": 60
+                "x": 780,
+                "y": 930
               },
               "zIndex": 0,
               "width": 280,
@@ -1566,8 +1567,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1040,
-                "y": 20
+                "x": 1180,
+                "y": 1067
               },
               "zIndex": 0,
               "width": 360,
@@ -1601,8 +1602,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1440,
-                "y": 40
+                "x": 1640,
+                "y": 1355
               },
               "zIndex": 0,
               "width": 280,
@@ -1635,8 +1636,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1780,
-                "y": 60
+                "x": 2020,
+                "y": 1492
               },
               "zIndex": 0,
               "width": 280,
@@ -1655,8 +1656,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2120,
-                "y": 80
+                "x": 2400,
+                "y": 1495
               },
               "zIndex": 0,
               "width": 240,
@@ -1675,8 +1676,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2420,
-                "y": 100
+                "x": 2740,
+                "y": 1456
               },
               "selectable": true
             }
@@ -1689,8 +1690,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 360,
-                "y": 560
+                "x": 380,
+                "y": 1452
               },
               "zIndex": 0,
               "width": 300,
@@ -1738,8 +1739,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 720,
-                "y": 560
+                "x": 780,
+                "y": 1651
               },
               "zIndex": 0,
               "width": 300,
@@ -1759,8 +1760,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1080,
-                "y": 600
+                "x": 1180,
+                "y": 1763
               },
               "selectable": true
             }
@@ -1915,17 +1916,17 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for **each** hook, generates a matching thumbnail — color-graded for punch and collected into a gallery. A whole thumbnail pack from one run.\n\n**Why a graph, not a chat box:** the hook stream fans out. `List Generator` emits one hook at a time; each hook flows through its own prompt → image → color-grade branch, so N hooks become N finished thumbnails in parallel. A chat box can list hooks; it can't hand you the images.\n\n**Pipeline:** Topic + audience + count → hook brief → List Generator (streams hooks) → per-hook thumbnail prompt → Text-to-Image → color grade → collect gallery\n\n**Try this:** change the topic, audience, or number of hooks; tweak the thumbnail style in the prompt. Pick a text model on the List Generator and an image model on Text-to-Image first."
+              "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for each hook, a matching color-graded thumbnail, all from one run.\n\n**How it works:** \"Video topic\", \"Target audience\" and \"How many hooks\" (4 by default) fill \"Build hook brief\". \"Stream hooks\" is a List Generator that emits one hook at a time, and \"Hook ideas\" previews each one. For every hook, \"Build thumbnail prompt\" combines it with the topic, \"Generate thumbnail\" renders a 16:9 image with FLUX schnell, and \"Color grade for punch\" raises contrast to 1.18 and brightness by 0.03. \"Latest thumbnail\" previews each image and \"Collect gallery\" gathers them into \"Thumbnail gallery\". Pick a text model on \"Stream hooks\". Each thumbnail is one paid image.\n\n**Try this:** Set \"How many hooks\" to 2 for a cheaper test run, then raise \"contrast\" on \"Color grade for punch\" to 1.35 and compare how much the thumbnails pop."
             },
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": -560,
-                "y": 40
+                "x": 0,
+                "y": 0
               },
               "zIndex": 0,
-              "width": 500,
-              "height": 320,
+              "width": 560,
+              "height": 403,
               "selectable": true,
               "bypassed": false
             },
@@ -1943,8 +1944,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 40,
-                "y": 60
+                "x": 0,
+                "y": 655
               },
               "zIndex": 0,
               "width": 280,
@@ -1966,8 +1967,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 40,
-                "y": 300
+                "x": 0,
+                "y": 880
               },
               "zIndex": 0,
               "width": 280,
@@ -1991,8 +1992,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 40,
-                "y": 540
+                "x": 0,
+                "y": 1105
               },
               "zIndex": 0,
               "width": 280,
@@ -2012,8 +2013,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 420,
-                "y": 120
+                "x": 380,
+                "y": 753
               },
               "zIndex": 0,
               "width": 340,
@@ -2046,8 +2047,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 800,
-                "y": 120
+                "x": 820,
+                "y": 761
               },
               "zIndex": 0,
               "width": 360,
@@ -2068,8 +2069,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1200,
-                "y": 120
+                "x": 1280,
+                "y": 483
               },
               "zIndex": 0,
               "width": 340,
@@ -2103,8 +2104,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1580,
-                "y": 120
+                "x": 1740,
+                "y": 634
               },
               "zIndex": 0,
               "width": 320,
@@ -2126,8 +2127,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1940,
-                "y": 160
+                "x": 2160,
+                "y": 776
               },
               "zIndex": 0,
               "width": 280,
@@ -2147,8 +2148,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 2260,
-                "y": 160
+                "x": 2540,
+                "y": 1002
               },
               "zIndex": 0,
               "width": 280,
@@ -2168,8 +2169,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 2580,
-                "y": 160
+                "x": 3000,
+                "y": 964
               },
               "zIndex": 0,
               "width": 280,
@@ -2189,8 +2190,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 800,
-                "y": 600
+                "x": 1280,
+                "y": 1039
               },
               "zIndex": 0,
               "width": 360,
@@ -2211,8 +2212,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1940,
-                "y": 540
+                "x": 2540,
+                "y": 632
               },
               "zIndex": 0,
               "width": 360,

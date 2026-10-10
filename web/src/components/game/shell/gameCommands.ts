@@ -48,7 +48,8 @@ function nudge(direction: "Left" | "Right" | "Up" | "Down", far: boolean): GameC
 
 /** Every game editor command, in palette order. Both editors read their default shortcuts from this list. */
 export const GAME_COMMANDS: readonly GameCommandDefinition[] = [
-  command("editor.commandPalette", "Open command palette", "Editor", BOTH, "shell", [{ code: "KeyK", mod: true }], true),
+  // Mod+K opens the app's command menu, so the game's own palette adds Shift.
+  command("editor.commandPalette", "Open command palette", "Editor", BOTH, "shell", [{ code: "KeyK", mod: true, shift: true }], true),
   command("editor.keyboardShortcuts", "Edit keyboard shortcuts", "Editor", BOTH, "shell", [], true),
   command("editor.publish", "Publish game", "Editor", BOTH, "shell", []),
   command("edit.undo", "Undo", "Edit", BOTH, "panel", [{ code: "KeyZ", mod: true }]),

@@ -9,16 +9,17 @@ import { ThemeProvider } from "@mui/material/styles";
 import type { AppInstanceState } from "@nodetool-ai/app-runtime";
 
 import mockTheme from "../../../../__mocks__/themeMock";
-import { makeTestRuntime } from "../../__tests__/testRuntime";
+import { makeTestRuntime, TEST_SCOPE } from "../../__tests__/testRuntime";
 import { ProgressWidget, resolveImageSrc, TableWidget } from "../widgets";
 
 const OUTPUT_KEY = "main:out1";
 
 const renderWidget = (
   element: React.ReactElement,
-  initial: Partial<AppInstanceState> = {}
+  initial: Partial<AppInstanceState> = {},
+  overrides: Parameters<typeof makeTestRuntime>[1] = {}
 ) => {
-  const { wrapper: Wrapper } = makeTestRuntime(initial);
+  const { wrapper: Wrapper } = makeTestRuntime(initial, overrides);
   return render(
     <ThemeProvider theme={mockTheme}>
       <Wrapper>{element}</Wrapper>
@@ -86,6 +87,69 @@ describe("ProgressWidget", () => {
   it("falls back to the configured label when the run reports nothing", () => {
     renderWidget(<ProgressWidget id="p1" label="Working" />, RUNNING);
     expect(screen.getByText("Working")).toBeInTheDocument();
+  });
+
+  describe("bound to a second operation's progress", () => {
+    const TWO_OPS = {
+      scope: {
+        ...TEST_SCOPE,
+        operations: [
+          ...TEST_SCOPE.operations,
+          {
+            operationId: "translate",
+            inputs: [],
+            outputs: [],
+            nodeIds: [],
+            variableNames: []
+          }
+        ]
+      }
+    };
+    const running = (
+      operationId: string,
+      progress: number
+    ): Partial<AppInstanceState> => ({
+      invocations: {
+        j1: {
+          id: "j1",
+          operationId,
+          status: "running",
+          startedAt: 1,
+          progress
+        }
+      },
+      activeInvocation: { [operationId]: "j1" }
+    });
+
+    it("shows while that operation runs, as a percentage", () => {
+      renderWidget(
+        <ProgressWidget
+          id="p1"
+          binding="op:translate/exec#progress"
+          label="Translating"
+        />,
+        running("translate", 0.6),
+        TWO_OPS
+      );
+      expect(screen.getByText("Translating")).toBeInTheDocument();
+      expect(screen.getAllByRole("progressbar")[0]).toHaveAttribute(
+        "aria-valuenow",
+        "60"
+      );
+    });
+
+    it("stays hidden while only the first operation runs", () => {
+      renderWidget(
+        <ProgressWidget
+          id="p1"
+          binding="op:translate/exec#progress"
+          label="Translating"
+        />,
+        running("main", 0.6),
+        TWO_OPS
+      );
+      expect(screen.queryByText("Translating")).not.toBeInTheDocument();
+    });
   });
 });
 

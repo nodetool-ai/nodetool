@@ -14,12 +14,14 @@ import {
   isObjectLike,
   isString
 } from "../lib/wire-values.js";
+import { parseJsonBodies } from "../lib/json-body.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
 }
 
 const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
+  parseJsonBodies(app);
   const { apiOptions } = opts;
 
   /**

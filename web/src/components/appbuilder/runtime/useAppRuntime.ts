@@ -794,9 +794,38 @@ export const useAppRuntime = (
     [store]
   );
 
-  /** Reserve a logical run before any asynchronous runner work begins. */
+  /**
+   * Hand an invocation the operation's slots: its outputs go pending and the
+   * instance-scoped variables it writes are cleared for its result.
+   */
+  const startInvocationRun = useCallback(
+    (invocation: InvocationState, clearOutputs: boolean, queued: boolean) => {
+      const entry = operationRuntimesRef.current.get(invocation.operationId);
+      persistenceRef.current.serverFold(() =>
+        store.getState().dispatchEvent({
+          type: "runStarted",
+          invocation,
+          outputKeys:
+            clearOutputs && entry
+              ? entry.io.outputs.map((output) =>
+                  outputKey(invocation.operationId, output.nodeId)
+                )
+              : [],
+          variableKeys: invocation.variableKeys,
+          queued
+        })
+      );
+    },
+    [outputKey, store]
+  );
+
+  /**
+   * Reserve a logical run before any asynchronous runner work begins. A run
+   * queued behind a live one is registered without its slots, so the run in
+   * flight still delivers its result; it claims them once it is admitted.
+   */
   const reserveInvocation = useCallback(
-    (operationId: string, clearOutputs: boolean): string => {
+    (operationId: string, clearOutputs: boolean, queued = false): string => {
       const id = `pending-${crypto.randomUUID()}`;
       const entry = operationRuntimesRef.current.get(operationId);
       const variableKeys =
@@ -822,22 +851,10 @@ export const useAppRuntime = (
       };
       ownedRef.current.set(id, invocation);
       runOutputsRef.current.set(id, { variables: {}, outputs: {} });
-      persistenceRef.current.serverFold(() =>
-        store.getState().dispatchEvent({
-          type: "runStarted",
-          invocation,
-          outputKeys:
-            clearOutputs && entry
-              ? entry.io.outputs.map((output) =>
-                  outputKey(operationId, output.nodeId)
-                )
-              : [],
-          variableKeys
-        })
-      );
+      startInvocationRun(invocation, clearOutputs, queued);
       return id;
     },
-    [document, outputKey, store]
+    [document, startInvocationRun]
   );
 
   /** Register a run this app started and flush anything buffered for it. */
@@ -1120,7 +1137,11 @@ export const useAppRuntime = (
       const persistenceHandle = persistenceRef.current;
       const selectedInstance = persistenceHandle.instance;
       const selectedResources = new Map(resourceRefsRef.current);
-      const reservationId = reserveInvocation(operationId, true);
+      const reservationId = reserveInvocation(
+        operationId,
+        true,
+        decision.kind === "queue"
+      );
       let appRunId: string | undefined;
       try {
         await persistenceHandle.flush();
@@ -1211,9 +1232,14 @@ export const useAppRuntime = (
         );
         return;
       }
-      const missingMedia = entry.io.inputs.find((input) =>
-        isMissingRequiredMediaValue(input.nodeType, params[input.name])
-      );
+      // A script checks its own media ports (an optional reference image is
+      // legal), so only graph inputs get the required-media check.
+      const missingMedia =
+        binding.kind === "script"
+          ? undefined
+          : entry.io.inputs.find((input) =>
+              isMissingRequiredMediaValue(input.nodeType, params[input.name])
+            );
       if (missingMedia) {
         failInvocation(
           operationId,
@@ -1250,6 +1276,10 @@ export const useAppRuntime = (
           await updateAppRun(appRunId, { status: "cancelled" });
         }
         return;
+      }
+      if (decision.kind === "queue") {
+        // Admitted: the predecessor has settled, so this run takes the slots.
+        startInvocationRun(reservation, true, false);
       }
 
       // A script has no graph to submit and no job to subscribe to: it runs
@@ -1671,28 +1701,42 @@ export const useAppRuntime = (
     ]
   );
 
-  const getNodeProperty = useCallback(
-    (nodeId: string, property: string): unknown => {
-      for (const entry of operationRuntimesRef.current.values()) {
+  // Two operations' graphs can share a node id (a `bg` node in both a cutout
+  // and a backdrop graph), so a binding's own operation is searched first.
+  const findNode = useCallback(
+    (nodeId: string, operationId?: string) => {
+      const scoped = operationId
+        ? operationRuntimesRef.current.get(operationId)
+        : undefined;
+      const entries = scoped
+        ? [scoped]
+        : operationRuntimesRef.current.values();
+      for (const entry of entries) {
         const node = entry.workflow?.graph?.nodes?.find((n) => n.id === nodeId);
-        if (!node) continue;
-        const data = (node.data ?? {}) as Record<string, unknown>;
-        if (data[property] !== undefined) return data[property];
-        const meta = useMetadataStore.getState().getMetadata(node.type);
-        return meta?.properties.find((p) => p.name === property)?.default;
+        if (node) return node;
       }
       return undefined;
     },
     []
   );
 
-  const getNodeType = useCallback((nodeId: string): string | undefined => {
-    for (const entry of operationRuntimesRef.current.values()) {
-      const node = entry.workflow?.graph?.nodes?.find((n) => n.id === nodeId);
-      if (node) return node.type;
-    }
-    return undefined;
-  }, []);
+  const getNodeProperty = useCallback(
+    (nodeId: string, property: string, operationId?: string): unknown => {
+      const node = findNode(nodeId, operationId);
+      if (!node) return undefined;
+      const data = (node.data ?? {}) as Record<string, unknown>;
+      if (data[property] !== undefined) return data[property];
+      const meta = useMetadataStore.getState().getMetadata(node.type);
+      return meta?.properties.find((p) => p.name === property)?.default;
+    },
+    [findNode]
+  );
+
+  const getNodeType = useCallback(
+    (nodeId: string, operationId?: string): string | undefined =>
+      findNode(nodeId, operationId)?.type,
+    [findNode]
+  );
 
   const selectResource = useCallback(
     (resourceBindingId: string, ref: ResourceRef | null) => {

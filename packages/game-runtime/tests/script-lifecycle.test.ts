@@ -5,6 +5,7 @@ import { createTopDownRoomGame } from "../src/sample.js";
 import { createScriptedGameSession } from "../src/session.js";
 import { createGameSession3D } from "../src/session3d.js";
 import { prepareGameScripts, scriptSourceKey, type GameScriptCall } from "../src/scripts.js";
+import { prepareGameScripts3D } from "../src/scripts3d.js";
 import * as collision from "../src/systems/collision2d.js";
 import { blockout } from "./fixtures-game3d.js";
 
@@ -149,6 +150,8 @@ describe("script realm ownership", () => {
     const source = "input => ({ state: 1, commands: [{ kind: 'spawn', prefabId: 'missing' }] })";
     const document3D = blockout();
     document3D.scenes[0].entities[1].behaviors = [{ kind: "script", source, maxTickMs: 50, maxCommands: 8 }];
+    // The first runner in a process warms the call path in its own contexts. Pay that before counting this session's realms.
+    (dimension === "2d" ? await prepareGameScripts(fixture([source])) : await prepareGameScripts3D(document3D)).dispose();
     const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
     const session = dimension === "2d" ? await createScriptedGameSession(fixture([source]), 1)
       : await createGameSession3D(document3D, 1);

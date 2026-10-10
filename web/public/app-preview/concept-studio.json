@@ -130,7 +130,7 @@
                         "id": "slider-concepts-variations",
                         "binding": "op:concepts/in:num_variations",
                         "label": "How many variations?",
-                        "min": 1,
+                        "min": 2,
                         "max": 8,
                         "step": 1,
                         "events": []
@@ -759,8 +759,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 50,
-                "y": 50
+                "x": 0,
+                "y": 442
               },
               "zIndex": 0,
               "width": 280,
@@ -781,8 +781,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 330
+                "x": 0,
+                "y": 892
               },
               "zIndex": 0,
               "width": 280,
@@ -803,8 +803,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 610
+                "x": 0,
+                "y": 667
               },
               "zIndex": 0,
               "width": 280,
@@ -823,8 +823,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2440,
-                "y": 95
+                "x": 2845,
+                "y": 851
               },
               "zIndex": 0,
               "width": 280,
@@ -847,8 +847,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 830
+                "x": 0,
+                "y": 1117
               },
               "zIndex": 0,
               "width": 280,
@@ -879,8 +879,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 291,
-                "y": 120
+                "x": 0,
+                "y": 555
               },
               "zIndex": 0,
               "width": 220,
@@ -910,8 +910,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 291,
-                "y": 300
+                "x": 0,
+                "y": 780
               },
               "zIndex": 0,
               "width": 220,
@@ -930,8 +930,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1783,
-                "y": 149
+                "x": 1646,
+                "y": 671
               },
               "selectable": true,
               "title": "Creature gallery"
@@ -952,8 +952,7 @@
             "data": {
               "value": {
                 "type": "image",
-                "asset_id": "31cadd9e065711f1818000006beef284",
-                "uri": "/api/storage/31cadd9e065711f1818000006beef284.png"
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
               },
               "name": "image",
               "description": "The photo to enhance. Ships with a demo image so Run works immediately — drop in your own JPEG or PNG to edit it."
@@ -961,8 +960,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1,
-                "y": 71
+                "x": 0,
+                "y": 399
               },
               "zIndex": 0,
               "width": 260,
@@ -981,8 +980,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1420,
-                "y": 100
+                "x": 1720,
+                "y": 411
               },
               "selectable": true,
               "title": "Enhanced image"

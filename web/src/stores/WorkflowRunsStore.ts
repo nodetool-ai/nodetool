@@ -10,6 +10,17 @@
  */
 
 import { create } from "zustand";
+import useResultsStore from "./ResultsStore";
+import useStatusStore from "./StatusStore";
+import useErrorStore from "./ErrorStore";
+import useExecutionTimeStore from "./ExecutionTimeStore";
+
+/**
+ * Finished runs kept per workflow. Older finished runs are evicted with their
+ * job-keyed slices so a long-lived tab does not grow without bound. Runs still
+ * in flight and the focused (or pinned) run are always kept on top of this.
+ */
+export const MAX_RETAINED_RUNS_PER_WORKFLOW = 20;
 
 export type RunState =
   | "queued"
@@ -26,6 +37,8 @@ export interface RunMeta {
   startedAt: number;
   /** Optional human label (e.g. distinguishing param); may be undefined. */
   label?: string;
+  /** The job's own error text when it failed or timed out. */
+  error?: string;
 }
 
 const TERMINAL: ReadonlySet<RunState> = new Set([
@@ -35,6 +48,34 @@ const TERMINAL: ReadonlySet<RunState> = new Set([
 ]);
 
 const isTerminal = (state: RunState): boolean => TERMINAL.has(state);
+
+/** Drop a run's job-keyed slices from the run-state stores. */
+const clearJobSlices = (wf: string, jobId: string): void => {
+  useResultsStore.getState().clearJobResults(wf, jobId);
+  useStatusStore.getState().clearJobStatuses(wf, jobId);
+  useErrorStore.getState().clearJobErrors(wf, jobId);
+  useExecutionTimeStore.getState().clearJobTimings(wf, jobId);
+};
+
+/**
+ * The oldest finished runs beyond the retention cap, never the focused run or
+ * one still in flight.
+ */
+const runsToEvict = (
+  wfRuns: Record<string, RunMeta>,
+  focused: string | undefined
+): string[] => {
+  const runs = Object.values(wfRuns);
+  const excess = runs.length - MAX_RETAINED_RUNS_PER_WORKFLOW;
+  if (excess <= 0) {
+    return [];
+  }
+  return runs
+    .filter((r) => isTerminal(r.state) && r.jobId !== focused)
+    .sort((a, b) => a.startedAt - b.startedAt)
+    .slice(0, excess)
+    .map((r) => r.jobId);
+};
 
 type WorkflowRunsState = {
   /** workflowId → jobId → RunMeta */
@@ -48,11 +89,20 @@ type WorkflowRunsState = {
 type WorkflowRunsActions = {
   /**
    * Upsert a run. Auto-focuses the newest run (latest-run-wins) unless the user
-   * has explicitly pinned a focus via setFocusedJob.
+   * has explicitly pinned a focus via setFocusedJob. Evicts the oldest finished
+   * runs beyond MAX_RETAINED_RUNS_PER_WORKFLOW through removeRun.
    */
   recordRun: (meta: RunMeta) => void;
-  /** Update the RunState for an existing run. Focus is unchanged. */
-  updateRunState: (wf: string, jobId: string, state: RunState) => void;
+  /**
+   * Update the RunState for an existing run, and the job's error when it
+   * reported one. Focus is unchanged.
+   */
+  updateRunState: (
+    wf: string,
+    jobId: string,
+    state: RunState,
+    error?: string
+  ) => void;
   /** Explicit user focus selection — also sets pinned[wf] = true. */
   setFocusedJob: (wf: string, jobId: string) => void;
   getFocusedJob: (wf: string) => string | undefined;
@@ -61,8 +111,9 @@ type WorkflowRunsActions = {
   /** Check if a specific run exists for a workflow. */
   hasRun: (wf: string, jobId: string) => boolean;
   /**
-   * Remove a run. If it was the focused job, re-focus to the newest still-
-   * present running run, then the newest present run, then clear focus.
+   * Remove a run and its job-keyed slices in the Results, Status, Error and
+   * ExecutionTime stores. If it was the focused job, re-focus to the newest
+   * still-present running run, then the newest present run, then clear focus.
    * Clears pinned[wf] when re-focusing this way.
    */
   removeRun: (wf: string, jobId: string) => void;
@@ -86,15 +137,25 @@ const useWorkflowRunsStore = create<WorkflowRunsStore>((set, get) => ({
     // Auto-focus rule: latest-run-wins unless the user explicitly pinned a job.
     const shouldAutoFocus = !pinned[wf];
 
+    const nextFocusedJob = shouldAutoFocus
+      ? { ...focusedJob, [wf]: meta.jobId }
+      : focusedJob;
     set({
       runs: { ...runs, [wf]: wfRuns },
-      focusedJob: shouldAutoFocus
-        ? { ...focusedJob, [wf]: meta.jobId }
-        : focusedJob
+      focusedJob: nextFocusedJob
     });
+
+    for (const jobId of runsToEvict(wfRuns, nextFocusedJob[wf])) {
+      get().removeRun(wf, jobId);
+    }
   },
 
-  updateRunState: (wf: string, jobId: string, state: RunState) => {
+  updateRunState: (
+    wf: string,
+    jobId: string,
+    state: RunState,
+    error?: string
+  ) => {
     const { runs } = get();
     const wfRuns = runs[wf];
     if (!wfRuns || !wfRuns[jobId]) return;
@@ -104,7 +165,10 @@ const useWorkflowRunsStore = create<WorkflowRunsStore>((set, get) => ({
         ...runs,
         [wf]: {
           ...wfRuns,
-          [jobId]: { ...wfRuns[jobId], state }
+          [jobId]:
+            error === undefined
+              ? { ...wfRuns[jobId], state }
+              : { ...wfRuns[jobId], state, error }
         }
       }
     });
@@ -164,6 +228,7 @@ const useWorkflowRunsStore = create<WorkflowRunsStore>((set, get) => ({
     const newRuns = { ...runs, [wf]: newWfRuns };
 
     set({ runs: newRuns, focusedJob: newFocusedJob, pinned: newPinned });
+    clearJobSlices(wf, jobId);
   },
 
   clearWorkflow: (wf: string) => {

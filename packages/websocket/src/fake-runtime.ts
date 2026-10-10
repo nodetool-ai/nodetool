@@ -24,23 +24,88 @@
  * Set `NODETOOL_FAKE_DEBUG=1` for per-node REAL/FAKE resolution logging.
  */
 
+import { crc32, deflateSync } from "node:zlib";
 import {
   ScriptedProvider,
   autoScript,
   registerProvider,
   listRegisteredProviderIds,
+  sampleForSchema,
   isToolCall,
+  getRegisteredProvider,
   type BaseProvider,
-  type ProviderStreamItem
+  type CredentialCheckResult,
+  type ImageModel,
+  type LanguageModel,
+  type ProviderCapability,
+  type ImageToImageParams,
+  type ProviderStreamItem,
+  type TextToImageParams
 } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
-import { chunkSchema, type NodeDescriptor } from "@nodetool-ai/protocol";
+import {
+  PLAN_CODE_NODE_TYPE,
+  WORKFLOW_PLAN_TOOL_NAME,
+  chunkSchema,
+  type NodeDescriptor
+} from "@nodetool-ai/protocol";
 
 /** Valid 1x1 transparent PNG — bytes for faked image/media outputs, so
  *  downstream nodes that decode them don't choke. */
 export const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==";
+
+/** Encode an RGB pixel buffer as a PNG with no image library. */
+function encodePng(width: number, height: number, rgb: Uint8Array): Buffer {
+  const chunk = (type: string, data: Buffer): Buffer => {
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body));
+    return Buffer.concat([length, body, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8; // bit depth
+  header[9] = 2; // colour type: RGB
+  const rows = Buffer.alloc(height * (width * 3 + 1));
+  for (let y = 0; y < height; y++) {
+    const row = y * (width * 3 + 1);
+    rows[row] = 0; // filter: none
+    rows.set(rgb.subarray(y * width * 3, (y + 1) * width * 3), row + 1);
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", header),
+    chunk("IDAT", deflateSync(rows)),
+    chunk("IEND", Buffer.alloc(0))
+  ]);
+}
+
+/**
+ * A visible 256 × 256 gradient PNG for faked image outputs. A transparent 1 × 1
+ * pixel renders as nothing, so a person looking at the result cannot tell a
+ * finished generation from an empty one.
+ */
+function placeholderPng(): Buffer {
+  const size = 256;
+  const rgb = new Uint8Array(size * size * 3);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 3;
+      rgb[i] = x;
+      rgb[i + 1] = y;
+      rgb[i + 2] = 160;
+    }
+  }
+  return encodePng(size, size, rgb);
+}
+
+/** Bytes every faked image output and fake `textToImage` call returns. */
+export const FAKE_IMAGE_PNG_BASE64 = placeholderPng().toString("base64");
 
 /** The text every faked LLM call returns. Assert on this in tests. */
 export const FAKE_LLM_TEXT = "deterministic e2e response";
@@ -90,9 +155,48 @@ export function assertValidFakeChunk(chunk: unknown): void {
   }
 }
 
+/**
+ * Models the fake runtime lists, by provider id. Without them every model
+ * picker reads "No models available" and a person cannot start a chat or an
+ * image generation. Two providers keep the pickers short.
+ */
+const FAKE_MODEL_CATALOG: Record<
+  string,
+  { language: string[]; image: string[] }
+> = {
+  openai: { language: ["Test Chat Model"], image: ["Test Image Model"] },
+  anthropic: { language: ["Test Assistant Model"], image: [] }
+};
+
+/**
+ * The Workflow planner's answer. Schema-shaped "fake" strings make a plan the
+ * review step rejects ("This plan would fail when it runs"), so the guided
+ * workflow path could never be finished on the fakes. This plan builds and
+ * runs: one text input, a Code step that changes it, one text output.
+ */
+const FAKE_WORKFLOW_PLAN = {
+  inputs: [{ name: "text", type: "str", sample: "a sentence to change" }],
+  steps: [
+    {
+      id: "step-1",
+      title: "Change the text",
+      summary: "Returns the input text in capital letters.",
+      node_type: PLAN_CODE_NODE_TYPE,
+      code: 'await output("output", String(inputs.input).toUpperCase());'
+    }
+  ],
+  outputs: [{ name: "result", type: "str" }]
+};
+
+const modelId = (name: string): string =>
+  name.toLowerCase().replace(/\s+/g, "-");
+
 /** A provider that returns deterministic scripted responses; ignores kwargs. */
 export class FakeProvider extends ScriptedProvider {
-  constructor(_kwargs?: Record<string, unknown>) {
+  /** The provider id this fake stands in for. */
+  readonly fakeProviderId: string;
+
+  constructor(_kwargs?: Record<string, unknown>, providerId = "fake") {
     const inner = autoScript({
       plan: {
         title: "Agent task",
@@ -112,6 +216,43 @@ export class FakeProvider extends ScriptedProvider {
         return inner(messages, tools);
       }
     ]);
+    this.fakeProviderId = providerId;
+  }
+
+  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    return (FAKE_MODEL_CATALOG[this.fakeProviderId]?.language ?? []).map(
+      (name) => ({ id: modelId(name), name, provider: this.fakeProviderId })
+    );
+  }
+
+  override async getAvailableImageModels(): Promise<ImageModel[]> {
+    return (FAKE_MODEL_CATALOG[this.fakeProviderId]?.image ?? []).map(
+      (name) => ({
+        id: modelId(name),
+        name,
+        provider: this.fakeProviderId,
+        supportedTasks: ["text_to_image", "image_to_image"]
+      })
+    );
+  }
+
+  /** Image pickers and the image step read this, not the model list. */
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return (FAKE_MODEL_CATALOG[this.fakeProviderId]?.image.length ?? 0) > 0
+      ? ["text_to_image", "image_to_image"]
+      : [];
+  }
+
+  override async textToImage(_params: TextToImageParams): Promise<Uint8Array> {
+    return new Uint8Array(Buffer.from(FAKE_IMAGE_PNG_BASE64, "base64"));
+  }
+
+  /** An edit of an uploaded photo returns the same gradient as a generation. */
+  override async imageToImage(
+    _images: Uint8Array[],
+    _params: ImageToImageParams
+  ): Promise<Uint8Array> {
+    return new Uint8Array(Buffer.from(FAKE_IMAGE_PNG_BASE64, "base64"));
   }
 
   /**
@@ -121,8 +262,27 @@ export class FakeProvider extends ScriptedProvider {
    * downstream consumers.
    */
   override async *generateMessages(
-    args: Parameters<ScriptedProvider["generateMessages"]>[0]
+    args: Parameters<ScriptedProvider["generateMessages"]>[0] & {
+      toolChoice?: string;
+    }
   ): AsyncGenerator<ProviderStreamItem> {
+    // A caller that forces one tool wants structured output (`generate_text`
+    // with a schema, the image flow's brief). Answer with a call whose
+    // arguments satisfy that tool's schema, as a real model must.
+    const forced = (args.tools ?? []).find(
+      (t) => t.name === args.toolChoice && t.inputSchema
+    );
+    if (forced) {
+      yield {
+        id: `fake-${forced.name}`,
+        name: forced.name,
+        args:
+          forced.name === WORKFLOW_PLAN_TOOL_NAME
+            ? structuredClone(FAKE_WORKFLOW_PLAN)
+            : (sampleForSchema(forced.inputSchema) as Record<string, unknown>)
+      };
+      return;
+    }
     for await (const item of super.generateMessages(args)) {
       if (!isToolCall(item) && item.type === "chunk") {
         assertValidFakeChunk(item);
@@ -134,17 +294,49 @@ export class FakeProvider extends ScriptedProvider {
 
 /**
  * Replace every registered provider (openai, anthropic, gemini, …) with the
- * FakeProvider, registered with no required credentials. This makes
+ * FakeProvider, keeping its display name and access kind so settings and
+ * pickers show "OpenAI" rather than the bare id.
+ *
+ * By default each fake is registered with no required credentials. That makes
  * `isProviderConfigured` return true and `getProvider` return a fake on every
- * resolution path — so agent/LLM nodes never demand a real API key.
+ * resolution path, so agent/LLM nodes never demand a real API key. With
+ * `requireCredentials`, a fake keeps the provider's credential keys, so it
+ * counts as configured only once a key is stored, as for a new user who
+ * connects a provider in onboarding.
  *
  * Call again after node registration: providers self-register on import, so a
  * package loaded during registry setup can add a real provider afterwards.
  */
-export function fakeAllProviders(): void {
+export function fakeAllProviders({
+  requireCredentials = false
+}: { requireCredentials?: boolean } = {}): void {
   for (const id of listRegisteredProviderIds()) {
-    registerProvider(id, FakeProvider, {});
+    const registration = getRegisteredProvider(id);
+    if (registration?.cls.prototype instanceof FakeProvider) continue;
+    class FakeForProvider extends FakeProvider {
+      constructor(kwargs?: Record<string, unknown>) {
+        super(kwargs, id);
+      }
+    }
+    registerProvider(
+      id,
+      FakeForProvider,
+      requireCredentials ? (registration?.kwargs ?? {}) : {},
+      requireCredentials ? (registration?.optionalKwargs ?? {}) : {},
+      registration?.metadata ?? {}
+    );
   }
+}
+
+/**
+ * A credential check that accepts every key without a network request. The
+ * message reads like a real check that passed: a test copy that says it never
+ * contacts the provider reads to a first-time user as one where AI is off.
+ */
+export async function acceptCredential(
+  _secretKey: string
+): Promise<CredentialCheckResult> {
+  return { status: "valid", message: "The key was accepted." };
 }
 
 /** A `resolveProvider` implementation that always hands back a fake. */
@@ -213,6 +405,12 @@ const outputsMedia = (meta: FakeMeta | undefined): boolean =>
 const inputsMedia = (meta: FakeMeta | undefined): boolean =>
   (meta?.properties ?? []).some((p) => MEDIA_TYPES.has(baseType(p)));
 
+/** Nodes that talk to a chat model through the host provider. They run for
+ *  real against the fake provider, so their optional media inputs and outputs
+ *  (an Agent's image, audio) do not turn a text answer into placeholder media. */
+const usesLanguageModel = (meta: FakeMeta | undefined): boolean =>
+  (meta?.properties ?? []).some((p) => baseType(p) === "language_model");
+
 const needsSecret = (meta: FakeMeta | undefined): boolean =>
   Array.isArray(meta?.required_settings) && meta.required_settings.length > 0;
 
@@ -243,10 +441,11 @@ export function fakeValueForType(type: string): FakeSlotValue {
           : type === "video"
             ? "video/mp4"
             : "application/octet-stream";
+    const data = type === "image" ? FAKE_IMAGE_PNG_BASE64 : TINY_PNG_BASE64;
     return {
       type,
-      uri: `data:${mime};base64,${TINY_PNG_BASE64}`,
-      data: TINY_PNG_BASE64,
+      uri: `data:${mime};base64,${data}`,
+      data,
       mimeType: mime
     };
   }
@@ -313,14 +512,16 @@ export function shouldFakeNode(
   meta: FakeMeta | undefined
 ): boolean {
   if (isStructural(nodeType)) return false;
-  return (
+  if (
     needsSecret(meta) ||
     needsRuntime(meta) ||
-    outputsMedia(meta) ||
-    inputsMedia(meta) ||
     isExternal(nodeType) ||
     isFakeByClass(nodeType)
-  );
+  ) {
+    return true;
+  }
+  if (usesLanguageModel(meta)) return false;
+  return outputsMedia(meta) || inputsMedia(meta);
 }
 
 /**

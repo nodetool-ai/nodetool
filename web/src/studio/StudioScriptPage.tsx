@@ -36,6 +36,7 @@ import {
   useScriptSetupFlow,
   useScriptSetupStage
 } from "../components/setup/script/useScriptSetupFlow";
+import DocumentLoadStatus from "../components/workspace/DocumentLoadStatus";
 import StudioShell from "./StudioShell";
 
 type DockTab = "cast" | "assistant";
@@ -53,7 +54,7 @@ const StudioScriptPage = () => {
     ensureScript(scriptId);
   }, [ensureScript, scriptId]);
 
-  useScriptServerSync(scriptId);
+  const loadState = useScriptServerSync(scriptId);
   useScriptAgentBridge(scriptId);
 
   const { assemble, assembling, error: assembleError } =
@@ -111,6 +112,16 @@ const StudioScriptPage = () => {
       </span>
     </Tooltip>
   );
+
+  // The store seeds an empty script on mount, so rendering before the server
+  // copy lands looks like a script with no lines.
+  if (loadState !== "ready") {
+    return (
+      <StudioShell title={title || "Untitled script"}>
+        <DocumentLoadStatus state={loadState} label="script" />
+      </StudioShell>
+    );
+  }
 
   if (setupStage !== "done") {
     return (

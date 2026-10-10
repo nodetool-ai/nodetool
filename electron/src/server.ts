@@ -1,5 +1,6 @@
 import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
+import { isNodeToolBackendProcess } from "./processIdentity";
 import {
   getOptionalNodeModulesPath,
   getPythonPath,
@@ -38,6 +39,7 @@ import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
+import { runExclusive } from "./exclusive";
 import { probeHttpOk, waitForHttpOk } from "./httpProbe";
 import {
   ensureActiveVaultDirs,
@@ -138,6 +140,16 @@ function findPidListeningOnPort(port: number): number | null {
   }
 }
 
+async function removePidFile(): Promise<void> {
+  try {
+    await fs.unlink(PID_FILE_PATH);
+  } catch (error) {
+    if (!isErrnoException(error) || error.code !== "ENOENT") {
+      logMessage(`Failed to remove PID file: ${errorMessage(error)}`, "warn");
+    }
+  }
+}
+
 /**
  * Checks if there's an existing NodeTool server process from a PID file
  * @returns Promise resolving to the PID if a running server is found, null otherwise
@@ -151,13 +163,25 @@ async function findExistingServerPid(): Promise<number | null> {
       return null;
     }
     
-    if (isProcessRunning(pid)) {
-      logMessage(`Found existing NodeTool server process with PID ${pid}`);
-      return pid;
+    if (!isProcessRunning(pid)) {
+      logMessage(`PID file exists but process ${pid} is not running, will clean up`);
+      await removePidFile();
+      return null;
     }
-    
-    logMessage(`PID file exists but process ${pid} is not running, will clean up`);
-    return null;
+
+    if (!(await isNodeToolBackendProcess(pid))) {
+      // The backend that wrote this file is gone and the PID now belongs to
+      // another program. Killing it would take down whatever reused the PID.
+      logMessage(
+        `PID file names process ${pid}, which is not a NodeTool backend; ignoring the stale PID file`,
+        "warn"
+      );
+      await removePidFile();
+      return null;
+    }
+
+    logMessage(`Found existing NodeTool server process with PID ${pid}`);
+    return pid;
   } catch (error) {
     if (isErrnoException(error) && error.code === "ENOENT") {
       logMessage("No PID file found, no existing server process");
@@ -214,6 +238,11 @@ async function killExistingServer(): Promise<void> {
   try {
     const pidContent = await fs.readFile(PID_FILE_PATH, "utf8");
     const pid = parseInt(pidContent, 10);
+
+    if (pid && !(await isNodeToolBackendProcess(pid))) {
+      await removePidFile();
+      return;
+    }
 
     if (pid) {
       try {
@@ -536,7 +565,7 @@ async function isServerRunning(): Promise<boolean> {
  * Initializes the backend server, performing necessary checks and startup procedures
  * Handles server health checks, port availability, and process management
  */
-async function initializeBackendServer(): Promise<void> {
+async function initializeBackendServerNow(): Promise<void> {
   logMessage("Initializing backend server");
   backendKeychainErrorSeen = false;
   try {
@@ -744,7 +773,7 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
  * Gracefully stops the backend server process
  * Attempts SIGTERM first, followed by SIGKILL if necessary
  */
-async function stopServer(): Promise<void> {
+async function stopServerNow(): Promise<void> {
   logMessage("Initiating graceful shutdown");
 
   try {
@@ -794,9 +823,35 @@ export async function runApp(workflowId: string) {
   createWorkflowWindow(workflowId);
 }
 
+/**
+ * Start, stop and restart share one queue. Pack installs, vault switches and
+ * the tray can each restart the backend. Without the queue a second start sees
+ * the first one's PID before /health answers and kills it as unresponsive, or
+ * replaces `backendWatchdog` so the first backend is never stopped.
+ */
+const BACKEND_LIFECYCLE_KEY = "backend-lifecycle";
+
+function initializeBackendServer(): Promise<void> {
+  return runExclusive(BACKEND_LIFECYCLE_KEY, initializeBackendServerNow);
+}
+
+function stopServer(): Promise<void> {
+  return runExclusive(BACKEND_LIFECYCLE_KEY, stopServerNow);
+}
+
+/** Stop the backend, give the OS a moment to release the port and database, then start it. */
+function restartServer(): Promise<void> {
+  return runExclusive(BACKEND_LIFECYCLE_KEY, async () => {
+    await stopServerNow();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await initializeBackendServerNow();
+  });
+}
+
 export {
   serverState,
   initializeBackendServer,
+  restartServer,
   stopServer,
   isServerRunning,
 };

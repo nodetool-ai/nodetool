@@ -4,11 +4,11 @@ import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { evaluateVisual } from "../visual-animation.js";
 import type { GameSystemContext2D } from "./context2d.js";
 type PresentationContext2D = Readonly<
-  Pick<GameSystemContext2D, "tick" | "events" | "frameFor" | "document" | "scene" | "states" | "score" | "won" | "hud" | "scriptStats">
+  Pick<GameSystemContext2D, "tick" | "events" | "frameFor" | "document" | "scene" | "states" | "score" | "won" | "hud" | "scriptStats" | "queues">
 > &
   Pick<GameSystemContext2D, "presentationEvents" | "result">;
 export function stepPresentation2D(context: PresentationContext2D): void {
-  context.presentationEvents = structuredClone(context.events);
+  context.presentationEvents = [...structuredClone(context.events), ...(context.queues.particles ?? [])];
   context.result = {
     tick: context.tick,
     events: context.events,
@@ -48,6 +48,7 @@ export function frameFor(
   const camera = cameraState?.definition.camera2d;
   const sprites: GameRenderFrame["sprites"] = [];
   const tiles: GameRenderFrame["tiles"] = [];
+  const particles: NonNullable<GameRenderFrame["particles"]> = [];
   const cameraX = cameraState?.x ?? 0;
   const cameraY = cameraState?.y ?? 0;
   // Tiles and lights outside the view plus a margin never reach the renderer, so large levels stay cheap.
@@ -197,6 +198,9 @@ export function frameFor(
         tiles.push(item);
       }
     }
+    if (entity.particles) {
+      particles.push({ entityId: entity.id, x: state.x, y: state.y, rotation: state.visual?.rotation ?? state.rotation, particles: entity.particles });
+    }
     if (entity.light2d && scene.lighting) {
       const light = entity.light2d;
       const x = state.x + (light.offset?.x ?? 0);
@@ -237,6 +241,9 @@ export function frameFor(
     ),
     hud: projectGameplayHud(usesCollectibles(document), score, won, hud)
   };
+  if (particles.length > 0) {
+    frame.particles = particles;
+  }
   if (scene.lighting) {
     // Entity lights follow their entities; the nearest ones fill the slots the scene's fixed lights leave.
     const free = Math.max(0, MAX_LIGHTS - scene.lighting.points.length);

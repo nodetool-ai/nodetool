@@ -8,8 +8,13 @@ import { gameTransform2D } from "./components/transform.js";
 import { gameBehavior } from "./components/behaviors.js";
 import { gameBackgroundLayer } from "./components/background.js";
 import { gameEntityComponents } from "./components/entity-components.js";
+import { gameParticles } from "../game-particles.js";
 import { gameAuthoring } from "../game-authoring.js";
 import { gameAudioSettings } from "./components/audio.js";
+import { gameAudioEmitter } from "./components/audioSource.js";
+import { gameInputBindings } from "../game-input.js";
+
+export * from "../game-input.js";
 
 export const gameEntity = z.strictObject({
   id: z.string().min(1),
@@ -56,17 +61,26 @@ export const gameRenderEffect = z.discriminatedUnion("kind", [
 
 export type GameRenderEffect = z.infer<typeof gameRenderEffect>;
 
+/**
+ * The engine each 2D schema runs on. Schemas 1 and 2 run on engine 1. Schema 4 adds entity
+ * tags and props and runs on engine 3. Schema 5 is reserved for Rapier 2D physics on engine 4.
+ * Schema 3 is the 3D document and engine 2 is its engine.
+ */
+export const GAME_2D_ENGINE_BY_SCHEMA = { 1: "1", 2: "1", 4: "3", 5: "4" } as const;
+
+const gameEngineVersion2D = z.enum(["1", "3", "4"]);
+
 export const gameDocument = z.strictObject({
   authoring: gameAuthoring.optional(),
-  /** Schema 4 adds entity tags and props and runs on engine 3. Schemas 1 and 2 run on engine 1. */
-  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(4)]),
-  engineVersion: z.enum(["1", "3"]),
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(4), z.literal(5)]),
+  engineVersion: gameEngineVersion2D,
   id: z.string().min(1),
   revision: z.string().min(1),
   entrySceneId: z.string().min(1),
   pixelsPerUnit: positive,
   tickRate: z.literal(60),
   inputActions: z.array(z.string().min(1)),
+  inputBindings: gameInputBindings.optional(),
   collisionLayers: z.array(z.string().min(1)).max(32).optional(),
   renderEffects: z.array(gameRenderEffect).max(8).optional(),
   hudEffectOrder: z.enum(["beforeEffects", "afterEffects"]).optional(),
@@ -89,7 +103,7 @@ export const gameEvent = z.discriminatedUnion("kind", [
     phase: z.enum(["enter", "stay", "exit"]).optional(), normalX: finite.optional(), normalY: finite.optional() }),
   z.object({ kind: z.literal("collected"), entityId: z.string(), byId: z.string(), score: z.number() }),
   z.object({ kind: z.literal("win"), score: z.number() }),
-  z.object({ kind: z.literal("audio"), assetId: z.string(), voiceId: z.string().optional(), action: z.enum(["start", "stop"]).default("start"), loop: z.boolean().default(false), volume: finite.min(0).max(1).default(1), fadeInTicks: z.number().int().min(0).max(600).default(0), fadeOutTicks: z.number().int().min(0).max(600).default(0) }),
+  z.object({ kind: z.literal("audio"), assetId: z.string(), voiceId: z.string().optional(), emitter: gameAudioEmitter.optional(), action: z.enum(["start", "stop"]).default("start"), loop: z.boolean().default(false), volume: finite.min(0).max(1).default(1), fadeInTicks: z.number().int().min(0).max(600).default(0), fadeOutTicks: z.number().int().min(0).max(600).default(0) }),
   z.object({ kind: z.literal("trigger"), event: z.string(), entityId: z.string() }),
   z.object({ kind: z.literal("sceneTransition"), sceneId: z.string() })
 ]);
@@ -121,14 +135,15 @@ export const gameRenderFrame = z.object({
   backgrounds: z.array(gameBackgroundLayer).optional(),
   lighting: gameScene.shape.lighting,
   tiles: z.array(z.object({ entityId: z.string(), assetId: z.string(), x: finite, y: finite, width: positive, height: positive, frame: frame.optional(), layer: z.number().int(), tint: z.string().optional(), opacity: finite.min(0).max(1).optional(), sampling: z.enum(["nearest", "linear"]).optional() })),
-  hud: z.array(gameHudLabel)
+  hud: z.array(gameHudLabel),
+  particles: z.array(z.object({ entityId: z.string(), x: finite, y: finite, rotation: finite, particles: gameParticles })).optional()
 });
 
 export type GameRenderFrame = z.infer<typeof gameRenderFrame>;
 
 export const gameSnapshot = z.object({
   gameRevision: z.string(),
-  engineVersion: z.enum(["1", "3"]),
+  engineVersion: gameEngineVersion2D,
   sceneId: z.string(),
   tick: z.number().int().nonnegative(),
   rngState: z.number().int().nonnegative(),
@@ -179,3 +194,4 @@ export { gameBackgroundLayer, type GameBackgroundLayer } from "./components/back
 export { gameEntityPropertyValue, gameEntityProps, gameEntityTags, type GameEntityProps, type GameEntityTags } from "../game-entity-metadata.js";
 
 export { GAME_AUDIO_BUILTIN_BUSES, GAME_AUDIO_BASE_SNAPSHOT, gameAudioBus, type GameAudioBus, gameAudioMixerSnapshot, type GameAudioMixerSnapshot, gameAudioMixerTransition, type GameAudioMixerTransition, gameAudioDucking, type GameAudioDucking, gameAudioMixer, type GameAudioMixer, type GameAudioMixerInput, gameAudioSettings, type GameAudioSettings } from "./components/audio.js";
+export { GAME_AUDIO_MAX_DISTANCE, GAME_AUDIO_SPATIAL_DEFAULTS, gameAudioDistanceModel, gameAudioCone, type GameAudioCone, gameAudioEmitter, type GameAudioEmitter, gameAudioSourceIssues } from "./components/audioSource.js";

@@ -12,22 +12,36 @@
 import { useCallback } from "react";
 
 import { trpc } from "../../../trpc/client";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
 import { TimelineProvider } from "../../../stores/timeline/TimelineInstance";
-import { useLoadTimelineIntoStore } from "../../../hooks/timeline/useLoadTimelineIntoStore";
+import {
+  useLoadTimelineIntoStore,
+  type WireSequence
+} from "../../../hooks/timeline/useLoadTimelineIntoStore";
 import { useTimelineAutosave } from "../../../hooks/timeline/useTimelineAutosave";
 import { useTimelineAgentBridge } from "../../../hooks/timeline/useTimelineAgentBridge";
+import { buildTimelineDocumentPayload } from "../../../hooks/timeline/timelineDocumentPayload";
 import DocumentLoadStatus from "../../workspace/DocumentLoadStatus";
+import { FlexColumn, PADDING, ThinkingIndicator } from "../../ui_primitives";
 import { SetupFlow } from "../SetupFlow";
 import { useFinishIfLoadedDone } from "../useFinishIfLoadedDone";
-import { useVideoSetupFlow } from "./useVideoSetupFlow";
+import {
+  useVideoSetupFlow,
+  type VideoSetupFlowOptions
+} from "./useVideoSetupFlow";
 
 export interface VideoSetupHostProps {
   sequenceId: string;
-  /** Runs when the flow's last step finishes — the host opens the timeline. */
-  onFinish: () => void;
-  /** Hands the brief to the script flow (E3). */
-  onStartFromScript?: (brief: string) => void;
+  /**
+   * Runs when the flow's last step finishes — the host opens the timeline.
+   * The flow saves and refreshes the cached sequence before calling it.
+   */
+  onFinish: () => void | Promise<void>;
+  /** Hands the brief and the typed creative context to the script flow (E3). */
+  onStartFromScript?: VideoSetupFlowOptions["onStartFromScript"];
   /**
    * Takes the creator back to the entry surface to pick a different card. The
    * shell shows it on step 1 only, and only when a host supplies it; what
@@ -37,6 +51,12 @@ export interface VideoSetupHostProps {
    * the server copy can be a keystroke or a failed save behind.
    */
   onChangeFlow?: (brief: string) => void | Promise<void>;
+  /**
+   * Whether the host is the visible surface. A hidden workspace tab passes
+   * false so its instance does not take undo, save and generation statics
+   * from the timeline the user is looking at. Defaults to true.
+   */
+  active?: boolean;
 }
 
 const VideoSetupBody = ({
@@ -47,13 +67,49 @@ const VideoSetupBody = ({
 }: VideoSetupHostProps) => {
   const query = trpc.timeline.get.useQuery({ id: sequenceId });
   useLoadTimelineIntoStore(query.data);
-  useTimelineAutosave();
+  const { flush } = useTimelineAutosave();
   useTimelineAgentBridge(sequenceId);
-  const config = useVideoSetupFlow({ onFinish, onStartFromScript });
+  const store = useTimelineStoreApi();
+  const utils = trpc.useUtils();
+
+  // The editor the host opens reads `timeline.get` from the cache, which still
+  // holds the copy loaded before the flow. Save first, then put the flow's
+  // final document there, so the editor neither reopens the flow nor settles
+  // the new jobs as orphans. A failed save still hands over: jobs may be away.
+  const finish = useCallback(async () => {
+    try {
+      const saved = await flush();
+      const state = store.getState();
+      if (state.sequenceId === sequenceId) {
+        const updatedAt =
+          (saved.ok ? saved.updatedAt : null) ?? state.baseUpdatedAt;
+        utils.timeline.get.setData({ id: sequenceId }, (cached) =>
+          cached
+            ? ({
+                ...cached,
+                fps: state.fps,
+                width: state.width,
+                height: state.height,
+                ...buildTimelineDocumentPayload(state),
+                updatedAt: updatedAt ?? cached.updatedAt
+              } as WireSequence)
+            : cached
+        );
+      }
+    } catch {
+      // The editor falls back to the server copy; the closing flush still runs.
+    }
+    await onFinish();
+  }, [flush, onFinish, sequenceId, store, utils]);
+
+  const config = useVideoSetupFlow({ onFinish: finish, onStartFromScript });
   // The store starts empty and an empty store's stage reads `done`, so the flow
   // is only rendered once the server copy has landed in it.
   const loaded = useTimelineStore((state) => state.sequenceId === sequenceId);
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
+  const submitting = useTimelineStore(
+    (state) => state.setup?.prepared_generation !== undefined
+  );
 
   const handleChangeFlow = useCallback(
     () => onChangeFlow?.(brief),
@@ -67,6 +123,23 @@ const VideoSetupBody = ({
   if (!loaded) {
     return <DocumentLoadStatus state="loading" label="video" />;
   }
+  // Generate writes `done` before it saves and sends the clips, and the host
+  // opens the timeline only after that. The shell has no step for `done`, so
+  // this covers the wait instead of a blank panel.
+  if (config.stage === "done") {
+    return (
+      <FlexColumn
+        align="center"
+        justify="center"
+        sx={{ padding: PADDING.section }}
+      >
+        <ThinkingIndicator
+          label={submitting ? "Starting your clips" : "Opening your timeline"}
+          announce
+        />
+      </FlexColumn>
+    );
+  }
   return (
     <SetupFlow
       config={config}
@@ -75,8 +148,8 @@ const VideoSetupBody = ({
   );
 };
 
-const VideoSetupHost = (props: VideoSetupHostProps) => (
-  <TimelineProvider>
+const VideoSetupHost = ({ active = true, ...props }: VideoSetupHostProps) => (
+  <TimelineProvider active={active}>
     <VideoSetupBody {...props} />
   </TimelineProvider>
 );

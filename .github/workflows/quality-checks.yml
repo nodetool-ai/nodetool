@@ -118,6 +118,9 @@ jobs:
   #        --warnings-as-errors (set in the script) so a warning-level
   #        drift fails the gate too. File targets need no DB, only the
   #        built node registry from the `build` job's dist.
+  #        Then `npm run build:example-apps:check` fails when a shipped
+  #        app bundle no longer matches what its spec and template graphs
+  #        build, so a template fix reaches the app that binds it.
   #     4. `npm run codegen:dsl:check` — the same rot detector for the
   #        generated TypeScript DSL (packages/dsl/src/generated). It is
   #        the graph-authoring surface agents write against, so a node
@@ -162,10 +165,15 @@ jobs:
   #   removed from the other, or it runs twice or not at all.
   #
   #   `$TURBO_AFFECTED` (set on the `built` Run step) is `--affected`
-  #   whenever there is a base commit: turbo intersects it with the
-  #   shard's `--filter`. A shard the diff cannot reach is not in the
-  #   matrix at all. In the nightly full run it is empty and the full
-  #   slice runs. Needs fetch-depth: 0 for the SCM diff. The flag
+  #   when there is a base commit and the plan's `turbo_affected` is
+  #   true: turbo intersects it with the shard's `--filter`. A shard the
+  #   diff cannot reach is not in the matrix at all. It is empty in the
+  #   nightly full run, and for any diff with a file outside every
+  #   workspace directory (a full plan, or a path a workspace owns
+  #   through EXTRA_WORKSPACE_PATHS): turbo attributes such a file to the
+  #   root, which no package depends on, so `--affected` would select no
+  #   task. The shard then runs its whole slice and the task hashes
+  #   decide what reruns. Needs fetch-depth: 0 for the SCM diff. The flag
   #   is passed to turbo directly rather than through
   #   `npm run test:packages -- --affected`: npm appends `--` arguments
   #   to the END of the script string, so on the old `turbo && npm run
@@ -230,6 +238,9 @@ jobs:
       static: ${{ steps.legs.outputs.static }}
       built: ${{ steps.legs.outputs.built }}
       docker: ${{ steps.legs.outputs.docker }}
+      turbo-affected: ${{ steps.legs.outputs.turbo-affected }}
+      integration: ${{ steps.legs.outputs.integration }}
+      workflow-runner-e2e: ${{ steps.legs.outputs.workflow-runner-e2e }}
     steps:
       - name: Select legs from the plan
         id: legs
@@ -239,7 +250,7 @@ jobs:
           set -euo pipefail
           if ! jq -e 'type == "object"' <<<"${PLAN:-null}" >/dev/null 2>&1; then
             echo "::notice::No usable plan; running every leg."
-            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"tsc6":true,"docker":true}'
+            PLAN='{"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true,"blender":true}'
           fi
           select_legs() {
             jq -c --argjson p "$PLAN" '
@@ -248,14 +259,15 @@ jobs:
                 or ($w == "web_related" and $p.web == "related")
                 or ($w == "electron_or_mobile" and ($p.electron == true or $p.mobile == true));
               map(select(on(.when)) | del(.when)
-                | if .check == "test-electron-mobile" then .["mobile-deps"] = ($p.mobile == true | tostring) else . end)
+                | if .check == "test-electron-mobile" then .["mobile-deps"] = ($p.mobile == true | tostring) else . end
+                | if .check == "test-packages-nodes" then .blender = ($p.blender != false | tostring) else . end)
               | {include: .}'
           }
           static=$(select_legs <<'JSON'
           [
             {
               "check": "deps",
-              "command": "node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs && node scripts/check-lockfile-sync.mjs && node scripts/check-execution-boundary.mjs",
+              "command": "node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs && node scripts/check-lockfile-sync.mjs && node scripts/check-execution-boundary.mjs && npm run check:lockfile-libc && npm run check:document-sync && npm run check:agents-docs",
               "when": "always"
             },
             {
@@ -275,7 +287,7 @@ jobs:
           [
             {
               "check": "typecheck",
-              "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check",
+              "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run build:example-apps:check && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check",
               "mobile-deps": "true",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "false",
@@ -400,6 +412,9 @@ jobs:
             echo "static=$static"
             echo "built=$built"
             echo "docker=$(jq -r --arg event "$GITHUB_EVENT_NAME" '.docker == true and $event != "push"' <<<"$PLAN")"
+            echo "turbo-affected=$(jq -r '.turbo_affected == true' <<<"$PLAN")"
+            echo "integration=$(jq -r '.integration == true' <<<"$PLAN")"
+            echo "workflow-runner-e2e=$(jq -r '.workflow_runner_e2e == true' <<<"$PLAN")"
           } >> "$GITHUB_OUTPUT"
           jq -r '.include[].check' <<<"$built" | sed 's/^/built: /'
           jq -r '.include[].check' <<<"$static" | sed 's/^/static: /'
@@ -651,15 +666,19 @@ jobs:
       # workflow-runner job. The version lives in one place (BLENDER_VERSION
       # below); bump it and the cache key together with the floor in
       # `blender-binary.ts`.
+      # Only when the plan asks for Blender: a diff touching blender-nodes,
+      # or a full run. Without the binary the render suites skip, which keeps
+      # the leg's longest files off every other PR (see `BLENDER_FILES` in
+      # scripts/ci-plan.mjs).
       - name: Cache Blender
-        if: matrix.check == 'test-packages-nodes'
+        if: matrix.check == 'test-packages-nodes' && matrix.blender == 'true'
         uses: actions/cache@v5
         with:
           path: ~/blender
           key: ${{ runner.os }}-blender-5.2.1
 
       - name: Install Blender
-        if: matrix.check == 'test-packages-nodes'
+        if: matrix.check == 'test-packages-nodes' && matrix.blender == 'true'
         env:
           BLENDER_VERSION: 5.2.1
         run: |
@@ -763,8 +782,10 @@ jobs:
           # Base commit for Turbo's `--affected` diff, the harness gate and
           # `ci-plan.mjs run`. Empty in the nightly full run, where
           # TURBO_AFFECTED is empty too and every leg runs in full.
+          # TURBO_AFFECTED is also empty when the plan says turbo cannot
+          # attribute the diff to a package (see the shard comment above).
           TURBO_SCM_BASE: ${{ inputs.base-sha }}
-          TURBO_AFFECTED: ${{ inputs.base-sha != '' && '--affected' || '' }}
+          TURBO_AFFECTED: ${{ inputs.base-sha != '' && needs.changes.outputs.turbo-affected == 'true' && '--affected' || '' }}
           CI_BASE_SHA: ${{ inputs.base-sha }}
           # Keep deadline-sensitive harness fixtures isolated from parallel test files.
           NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}
@@ -931,6 +952,83 @@ jobs:
         if: always()
         run: docker rm -f nodetool-smoke || true
 
+  # Heavy jobs that start with the other legs (they wait only on the
+  # seconds-long `changes` job) rather than after them, so the critical path is
+  # max(legs, integration, e2e). They build packages themselves instead of
+  # waiting for the `build` artifact. Both feed the `quality` job below, so a
+  # failure blocks the required check.
+  integration:
+    name: Workflow Integration Tests
+    needs: changes
+    # Runs when the diff reaches base-nodes, whose shipped workflows it
+    # executes. Skipped with `changes` for prose-only and marketing-only diffs.
+    if: ${{ !inputs.skip-tests && needs.changes.outputs.integration == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
+        with:
+          extra-apt: mesa-vulkan-drivers ffmpeg
+
+      - name: Run shipped-workflow execution tests
+        run: npm run test:integration
+
+  workflow-runner-e2e:
+    name: Workflow Runner Browser E2E
+    needs: changes
+    # Runs when the diff reaches the workflow-runner package it drives.
+    if: ${{ !inputs.skip-tests && needs.changes.outputs.workflow-runner-e2e == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node, install deps, build packages
+        # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
+        # Chromium can acquire a WebGPU adapter on GPU-less CI runners. The
+        # workflow-runner browser harness uses it to drive shader-pool tests
+        # (color.brightnessContrast, etc.) against the same module catalog
+        # the server uses on Node/Dawn.
+        uses: ./.github/actions/setup-build
+        with:
+          extra-apt: mesa-vulkan-drivers
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+        working-directory: packages/workflow-runner
+
+      - name: Type-check workflow-runner browser suite
+        run: npm run typecheck:e2e --workspace=@nodetool-ai/workflow-runner
+
+      - name: Run workflow-runner browser E2E tests
+        run: npm run test:e2e --workspace=@nodetool-ai/workflow-runner
+
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: workflow-runner-playwright-report
+          path: |
+            packages/workflow-runner/playwright-report/
+            packages/workflow-runner/test-results/
+          retention-days: 7
+
   # Aggregating gate. Kept as job id `quality` (no custom name) so the surfaced
   # status check stays "Quality Gate (npm run check) / quality" — the existing
   # REQUIRED check, so branch protection needs no change.
@@ -942,7 +1040,7 @@ jobs:
   # — fails the gate.
   quality:
     name: quality
-    needs: [changes, static, build, built, docker]
+    needs: [changes, static, build, built, docker, integration, workflow-runner-e2e]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -959,7 +1057,9 @@ jobs:
             "static:${{ needs.static.result }}" \
             "build:${{ needs.build.result }}" \
             "built:${{ needs.built.result }}" \
-            "docker:${{ needs.docker.result }}"; do
+            "docker:${{ needs.docker.result }}" \
+            "integration:${{ needs.integration.result }}" \
+            "workflow-runner-e2e:${{ needs.workflow-runner-e2e.result }}"; do
             name="${leg%%:*}"
             result="${leg#*:}"
             echo "- \`$name\`: $result" >> $GITHUB_STEP_SUMMARY

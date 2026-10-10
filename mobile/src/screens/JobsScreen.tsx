@@ -5,7 +5,6 @@
  */
 import React, { useCallback, useMemo } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   RefreshControl,
@@ -15,20 +14,19 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RootStackParamList } from '../navigation/types';
+import type { TabScreenNavigationProp, TabScreenRouteProp } from '../navigation/types';
 import { type JobResponse } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
 import LoadErrorBanner from '../components/LoadErrorBanner';
+import { EmptyState, ErrorState, LoadingState } from '../components/ScreenState';
 import type { ThemeColors, ThemeShadows } from '../utils/theme';
 
 type Props = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Jobs'>;
+  navigation: TabScreenNavigationProp<'Jobs'>;
   /** Optional: arriving from a trigger card narrows the list to one workflow. */
-  route?: RouteProp<RootStackParamList, 'Jobs'>;
+  route?: TabScreenRouteProp<'Jobs'>;
 };
 
 export type StatusVariant = 'running' | 'completed' | 'failed' | 'cancelled' | 'queued' | 'unknown';
@@ -88,6 +86,8 @@ export function formatRelative(iso: string | null | undefined): string {
 }
 
 const keyExtractor = (job: JobResponse) => job.id;
+
+const RUNNING_POLL_MS = 5000;
 
 const JobCard = React.memo(function JobCard({
   job,
@@ -201,7 +201,20 @@ export default function JobsScreen({ navigation, route }: Props) {
     isRefetching,
     error,
     refetch,
-  } = trpc.jobs.list.useQuery({ limit: 100, workflow_id: route?.params?.workflowId });
+  } = trpc.jobs.list.useQuery(
+    { limit: 100, workflow_id: route?.params?.workflowId },
+    {
+      // A running job's row would otherwise sit on "running" until the user
+      // pulls to refresh. Poll only while something is still in flight.
+      refetchInterval: (query) =>
+        (query.state.data?.jobs ?? []).some((job) => {
+          const variant = statusVariant(job.status);
+          return variant === 'running' || variant === 'queued';
+        })
+          ? RUNNING_POLL_MS
+          : false,
+    },
+  );
   const jobs = useMemo(() => (jobsData?.jobs ?? []) as JobResponse[], [jobsData]);
   const loadError = error ? error.message || 'Failed to load jobs' : null;
 
@@ -266,22 +279,32 @@ export default function JobsScreen({ navigation, route }: Props) {
   );
 
   if (isLoading) {
+    return <LoadingState label="Loading jobs" />;
+  }
+
+  if (error && sortedJobs.length === 0) {
     return (
-      <View style={[styles.loading, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <ErrorState
+        title="Couldn't load jobs"
+        message={loadError}
+        onRetry={() => { void refetch(); }}
+      />
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LoadErrorBanner error={loadError} />
+      <LoadErrorBanner error={loadError} onRetry={() => { void refetch(); }} />
 
       <FlatList
         data={sortedJobs}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[
+          styles.list,
+          { paddingBottom: insets.bottom + 24 },
+          sortedJobs.length === 0 && styles.listEmpty,
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -291,15 +314,12 @@ export default function JobsScreen({ navigation, route }: Props) {
           />
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="briefcase-outline" size={36} color={colors.textTertiary} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No jobs yet
-            </Text>
-            <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>
-              Run a workflow to see it here.
-            </Text>
-          </View>
+          <EmptyState
+            inline
+            icon="pulse-outline"
+            title="No jobs yet"
+            message="Run an app and its jobs show up here, live."
+          />
         }
       />
     </View>
@@ -308,8 +328,8 @@ export default function JobsScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 16 },
+  listEmpty: { flexGrow: 1, justifyContent: 'center' },
   card: {
     borderRadius: 12,
     padding: 14,
@@ -363,7 +383,4 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   cancelText: { fontSize: 13, fontWeight: '600' },
-  empty: { alignItems: 'center', paddingTop: 60, gap: 8 },
-  emptyText: { fontSize: 15, fontWeight: '600' },
-  emptyHint: { fontSize: 13 },
 });

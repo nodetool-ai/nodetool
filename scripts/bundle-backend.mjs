@@ -111,6 +111,7 @@ const REQUIRED_EXTERNAL_PACKAGES = [
   "@mediabunny/server",
   "node-av",
   "webgpu",
+  "esbuild",
 ];
 
 // Staged into _modules/ on every profile.
@@ -161,6 +162,11 @@ const COMMON_EXTERNAL_PACKAGES = [
   // preserves import.meta.url so emscripten-module.wasm resolves next to the
   // package's own JS instead of next to backend/server.mjs.
   "@jitl/quickjs-ng-wasmfile-release-sync",
+  // The sandbox compiler bundles npm modules for the QuickJS guest with
+  // esbuild's JS API, which refuses to run once inlined (it locates its
+  // native binary relative to its own lib/main.js). Staging it keeps that
+  // layout and brings the @esbuild/<platform> binary along.
+  "esbuild",
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
   "@supabase/supabase-js",
@@ -544,6 +550,33 @@ async function stageSystemSkills(sourceDirRel) {
   return staged;
 }
 
+/**
+ * Every `{"kind": "js", "npm": …}` module a shipped sandbox pack declares.
+ *
+ * The directory repeats SHIPPED_SANDBOX_PACKS_SOURCE_DIR
+ * (`packages/config/src/package-asset-registry.ts`), which is imported only
+ * after the external packages are copied.
+ */
+function listShippedSandboxPackNpmModules() {
+  const sourceDir = path.join(ROOT_DIR, "packages", "sandbox-packs");
+  const modules = [];
+  for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const packRoot = path.join(sourceDir, entry.name);
+    const manifestPath = path.join(packRoot, "package.json");
+    if (!fs.existsSync(manifestPath)) continue;
+    const pkgJson = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const declared = pkgJson.nodetool?.sandboxModules;
+    if (!Array.isArray(declared)) continue;
+    for (const module of declared) {
+      if (module?.kind === "js" && typeof module.npm === "string") {
+        modules.push({ npmName: module.npm, packRoot, pack: pkgJson.name });
+      }
+    }
+  }
+  return modules;
+}
+
 async function stageShippedSandboxPacks(sourceDirRel) {
   console.log("\nStaging the sandbox packs NodeTool ships...");
   const sourceDir = path.join(ROOT_DIR, sourceDirRel);
@@ -629,6 +662,18 @@ async function copyExternalPackages() {
         queue.push({ name: pkgName, resolveFrom: ROOT_DIR });
         queued.add(pkgName);
       }
+    }
+  }
+
+  // The npm libraries the shipped guest packs compile. Nothing in server.mjs
+  // imports them, so esbuild never sees them. The sandbox compiler resolves
+  // each one from the staged pack under `_sandbox/`, which walks up to
+  // backend/node_modules once afterPack promotes `_modules/`.
+  const packNpmModules = listShippedSandboxPackNpmModules();
+  for (const { npmName, packRoot } of packNpmModules) {
+    if (!queued.has(npmName)) {
+      queue.push({ name: npmName, resolveFrom: packRoot });
+      queued.add(npmName);
     }
   }
 
@@ -725,6 +770,17 @@ async function copyExternalPackages() {
     throw new Error(
       `Required external packages not found: ${missingRequired.join(", ")}. ` +
       `Run 'npm install' in the workspace root first.`
+    );
+  }
+  const missingPackModules = packNpmModules.filter(
+    ({ npmName }) => !copiedPackages.has(npmName)
+  );
+  if (missingPackModules.length > 0) {
+    throw new Error(
+      `npm module(s) for shipped sandbox packs not found: ` +
+      `${missingPackModules.map((m) => `${m.npmName} (${m.pack})`).join(", ")}. ` +
+      `Declare each one as a devDependency of @nodetool-ai/sandbox-compiler ` +
+      `and run 'npm install'.`
     );
   }
 

@@ -55,6 +55,28 @@ describe("scene music JSON operations", () => {
       { ...target, set: { music: { ...before.scenes[0].music, assetId: "missing" } } }])).toThrow(GameOpError);
     expect(before).toEqual(snapshot);
   });
+  it("sets, switches and clears the scene sky through update_scene", () => {
+    const before = blockout();
+    before.scenes[0].entities.push(gameEntity3D.parse({ id: "sun", transform3d: {}, light3d: { kind: "directional", color: "#ffffff", intensity: 2 } }));
+    const target = { op: "update_scene" as const, scene_id: before.scenes[0].id };
+    const environment = before.scenes[0].environment;
+    const procedural = applyWire(before, [{ ...target, set: { environment: { ...environment, sky: { kind: "procedural", sunEntityId: "sun" } } } }]);
+    expect(procedural.scenes[0].environment).toEqual({ ...environment, sky: { kind: "procedural", sunEntityId: "sun", turbidity: 10, rayleigh: 2, groundColor: "#3d3a36", intensity: 1 } });
+    expect(() => applyWire(before, [{ ...target, set: { environment: { ...environment, sky: { kind: "hdri", assetId: "missing" } } } }])).toThrow(GameOpError);
+    expect(() => applyWire(before, [{ ...target, set: { environment: { ...environment, sky: { kind: "procedural", turbidity: 40 } } } }])).toThrow(/Too big/);
+    expect(applyWire(procedural, [{ ...target, set: { environment } }]).scenes[0].environment).toEqual(environment);
+  });
+  it("sets, tunes and clears scene post-processing through update_scene", () => {
+    const before = blockout();
+    const target = { op: "update_scene" as const, scene_id: before.scenes[0].id };
+    const environment = before.scenes[0].environment;
+    const post = applyWire(before, [{ ...target, set: { environment: { ...environment, postProcessing: { toneMapping: "agx", bloom: { intensity: 2 }, antialias: "fxaa" } } } }]);
+    expect(post.scenes[0].environment).toEqual({ ...environment, postProcessing: { enabled: true, exposure: 1, toneMapping: "agx", antialias: "fxaa",
+      bloom: { threshold: 0.85, softness: 0.1, radius: 0.4, intensity: 2 } } });
+    expect(() => applyWire(before, [{ ...target, set: { environment: { ...environment, postProcessing: { exposure: 40 } } } }])).toThrow(/Too big/);
+    expect(() => applyWire(before, [{ ...target, set: { environment: { ...environment, postProcessing: { ssao: {} } } } }])).toThrow(/Unrecognized key/);
+    expect(applyWire(post, [{ ...target, set: { environment } }]).scenes[0].environment).toEqual(environment);
+  });
 });
 
 describe("dimension-specific removal defaults at the public operation boundary", () => {

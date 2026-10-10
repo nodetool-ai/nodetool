@@ -149,7 +149,7 @@ mobile/
 
 1. **Configure Server**: Open Settings and enter your NodeTool server URL
 2. **AI Chat**:
-   - Tap the chat icon in the header to open Chat
+   - Tap the Chat tab
    - Select a model (tap model name in header)
    - Type a message and tap send
    - View streaming AI responses with markdown formatting

@@ -42,7 +42,7 @@ const ClipStoryboardLinkInner = ({ clip }: ClipStoryboardLinkProps) => {
   }
 
   return (
-    <FlexRow align="center" sx={{ px: SPACING.xs, pb: SPACING.xs }}>
+    <FlexRow align="center" sx={{ pt: SPACING.micro }}>
       <Chip
         compact
         variant="outlined"

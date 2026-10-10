@@ -559,7 +559,9 @@ describe("SetupFlow", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     finish();
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+      expect(
+        screen.getByRole("button", { name: "Back to this step" })
+      ).toBeEnabled()
     );
   });
 
@@ -713,7 +715,7 @@ describe("SetupFlow", () => {
     ).toBeDisabled();
   });
 
-  it("shows cancellation as terminal and requires an explicit retry", async () => {
+  it("returns to the unchanged step after canceling the shell's run", async () => {
     const user = userEvent.setup();
     let resolveCurrent: () => void = () => undefined;
     const onAdvance = jest.fn(
@@ -743,20 +745,69 @@ describe("SetupFlow", () => {
       screen.getByRole("heading", { name: "This step was canceled" })
     ).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("draft is unchanged");
-    expect(screen.getByRole("button", { name: "Retry" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Back to this step" })
+    ).toBeDisabled();
 
     // The canceled request may still resolve, but it cannot advance the draft.
     resolveCurrent();
     await waitFor(() => expect(onStageChange).not.toHaveBeenCalled());
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled()
+      expect(
+        screen.getByRole("button", { name: "Back to this step" })
+      ).toBeEnabled()
     );
 
-    // Only the deliberate retry can start another operation.
-    await user.click(screen.getByRole("button", { name: "Retry" }));
+    // The way on shows the step's choices again, and nothing is re-run.
+    await user.click(screen.getByRole("button", { name: "Back to this step" }));
+    expect(screen.getByText("genre body")).toBeInTheDocument();
+    expect(onAdvance).toHaveBeenCalledTimes(1);
+    await user.click(
+      screen.getByRole("button", { name: "Review your screenplay" })
+    );
     expect(onAdvance).toHaveBeenCalledTimes(2);
     resolveCurrent();
     await waitFor(() => expect(onStageChange).toHaveBeenCalledWith("review"));
+  });
+
+  it("shows the step body again after leaving a canceled step", async () => {
+    const user = userEvent.setup();
+    let finish: () => void = () => undefined;
+    const onAdvance = () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    const onStageChange = jest.fn();
+    const config: SetupFlowConfig<Stage> = {
+      labels: { title: "Storyboard" },
+      stage: "genre",
+      onStageChange,
+      steps: steps.map((entry) =>
+        entry.stage === "genre" ? { ...entry, onAdvance } : entry
+      )
+    };
+    const { rerender } = render(flow(config));
+    await user.click(
+      screen.getByRole("button", { name: "Review your screenplay" })
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      screen.getByRole("heading", { name: "This step was canceled" })
+    ).toBeInTheDocument();
+    finish();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Back" })).toBeEnabled()
+    );
+
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(onStageChange).toHaveBeenCalledWith("idea");
+    rerender(flow({ ...config, stage: "idea" }));
+    rerender(flow({ ...config, stage: "genre" }));
+
+    expect(screen.getByText("genre body")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "This step was canceled" })
+    ).not.toBeInTheDocument();
   });
 
   it("clears canceled pending state when the document changes stage", async () => {
@@ -867,8 +918,9 @@ describe("SetupFlow", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveTextContent(
-      "comes with you to the flow you pick next"
+      "come with you to the flow you pick next"
     );
+    expect(dialog).toHaveTextContent("creative context, imported files");
     expect(dialog).toHaveTextContent("storyboard draft is discarded");
     expect(onChangeFlow).not.toHaveBeenCalled();
 
@@ -1068,6 +1120,42 @@ describe("SetupFlow", () => {
     ).not.toBeInTheDocument();
   });
 
+  // The dialog hands focus back to Change flow while the discard has it
+  // disabled, so a keyboard creator was left on the page after a failure.
+  it("returns focus to Change flow after a failed discard", async () => {
+    const user = userEvent.setup();
+    let fail: (error: Error) => void = () => undefined;
+    const onChangeFlow = jest.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          fail = reject;
+        })
+    );
+    renderFlow({}, onChangeFlow);
+
+    await user.click(screen.getByRole("button", { name: "Change flow" }));
+    await user.click(
+      screen.getByRole("button", { name: "Discard and choose" })
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // A browser drops focus to the page from the disabled button; jsdom
+    // keeps it there, so the test drops it the same way.
+    act(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    expect(document.body).toHaveFocus();
+    await act(async () => {
+      fail(new Error("offline"));
+    });
+
+    expect(
+      await screen.findByText("We couldn't discard this draft")
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Change flow" })).toHaveFocus()
+    );
+  });
+
   // A browser drops focus to the page when the focused button is disabled for
   // the run. A run that fails stays on the step, so focus comes back to it.
   it("returns focus to the control that started a run that failed", async () => {
@@ -1096,6 +1184,100 @@ describe("SetupFlow", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Try again" })).toHaveFocus()
+    );
+  });
+
+  // A failed discard is retried from Change flow on step 1. Leaving step 1
+  // and coming back must not bring that old failure back with it.
+  it("drops a failed change of flow once the creator moves on", async () => {
+    const user = userEvent.setup();
+    const onChangeFlow = jest.fn().mockRejectedValue(new Error("offline"));
+    const config: SetupFlowConfig<Stage> = {
+      labels: { title: "Storyboard" },
+      steps,
+      stage: "idea",
+      onStageChange: jest.fn()
+    };
+    const { rerender } = render(flow(config, onChangeFlow));
+
+    await user.click(screen.getByRole("button", { name: "Change flow" }));
+    await user.click(
+      screen.getByRole("button", { name: "Discard and choose" })
+    );
+    expect(
+      await screen.findByText("We couldn't discard this draft")
+    ).toBeInTheDocument();
+
+    rerender(flow({ ...config, stage: "genre" }, onChangeFlow));
+    rerender(flow({ ...config, stage: "idea" }, onChangeFlow));
+
+    expect(
+      screen.queryByText("We couldn't discard this draft")
+    ).not.toBeInTheDocument();
+  });
+
+  // A step can leave its stage without the shell's buttons (an import that
+  // jumps ahead, a second host). The failure belongs to the step it came
+  // from: the new step must not read it, or call its own first run "Try again".
+  it("drops a step's failure when the document moves to another stage", async () => {
+    const user = userEvent.setup();
+    const config: SetupFlowConfig<Stage> = {
+      labels: { title: "Storyboard" },
+      stage: "genre",
+      onStageChange: jest.fn(),
+      steps: steps.map((entry) =>
+        entry.stage === "genre"
+          ? {
+              ...entry,
+              onAdvance: jest
+                .fn()
+                .mockRejectedValue(new Error("Director unavailable"))
+            }
+          : entry
+      )
+    };
+    const { rerender } = render(flow(config));
+
+    await user.click(
+      screen.getByRole("button", { name: "Review your screenplay" })
+    );
+    await screen.findByText("Director unavailable");
+
+    rerender(flow({ ...config, stage: "look" }));
+
+    expect(screen.queryByText("Director unavailable")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Generate your storyboard" })
+    ).toBeEnabled();
+  });
+
+  // Cancel disappears once pressed. A wait the shell did not start has no
+  // control to hand focus back to, so it goes to the button that replaces it.
+  it("keeps keyboard focus after canceling a run it did not start", async () => {
+    const user = userEvent.setup();
+    const Host = () => {
+      const [pending, setPending] = React.useState(true);
+      return flow({
+        labels: { title: "Video" },
+        stage: "review",
+        onStageChange: jest.fn(),
+        steps: steps.map((entry) =>
+          entry.stage === "review"
+            ? { ...entry, pending, onCancel: () => setPending(false) }
+            : entry
+        )
+      });
+    };
+    render(<Host />);
+
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    cancel.focus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Back to review" })
+      ).toHaveFocus()
     );
   });
 

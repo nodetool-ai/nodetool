@@ -1,6 +1,6 @@
 import { primitiveInstance, modelInstance } from "./assets/instances.js";
 import { releaseInstance } from "./assets/dispose.js";
-import { sampleGameAnimation3D } from "./animation/index.js";
+import { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
 import type { RenderInstance } from "./types.js";
 import type { GameModelCache3D } from "./assets/cache.js";
 import * as THREE from "three";
@@ -51,7 +51,15 @@ export async function syncGameScene(scene: THREE.Scene, instances: Map<string, R
         material.transparent = material.userData.baseTransparent === true || material.opacity < 1 || (entity.primitive?.material.alphaMode === "blend") || (entity.model?.material?.alphaMode === "blend");
       }
       let poseChanged = false;
-      if (instance.mixer && instance.clips && entity.animation) {
+      if (instance.clips && entity.animationPose) {
+        const sampledTick = frame.tick - 1 + Math.max(0, Math.min(1, interpolation));
+        const key = `${JSON.stringify(entity.animationPose)}:${sampledTick}`;
+        if (instance.sampledAnimationKey !== key) {
+          sampleGameAnimationPose3D(instance.object, instance.clips, entity.animationPose, sampledTick);
+          instance.sampledAnimationKey = key;
+          poseChanged = true;
+        }
+      } else if (instance.mixer && instance.clips && entity.animation) {
         const sampledTick = frame.tick - 1 + Math.max(0, Math.min(1, interpolation));
         const key = `${JSON.stringify(entity.animation)}:${sampledTick}`;
         if (instance.sampledAnimationKey !== key) {

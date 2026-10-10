@@ -201,7 +201,7 @@ function resolveDocumentTransitions(
   const groupIds = new Set(clips.filter((clip) => clip.mediaType === "group").map((clip) => clip.id));
   const byTrack = new Map<string, Map<string | undefined, TimelineClip[]>>();
   for (const clip of clips) {
-    if (clip.mediaType === "adjustment" || !isClipActive(clip, currentTimeMs)) continue;
+    if (clip.mediaType === "adjustment" || clip.hidden || !isClipActive(clip, currentTimeMs)) continue;
     const parentId = clip.parentId && groupIds.has(clip.parentId) ? clip.parentId : undefined;
     let byParent = byTrack.get(clip.trackId);
     if (!byParent) {
@@ -1200,12 +1200,14 @@ function computeActiveLayersWithHorizonBase(
     // carry its contribution to the frame. The transition resolver handles
     // group clips as siblings separately, without pairing them with children.
     // An adjustment is held out for the same reason: it treats the picture beneath,
-    // so it can be neither side of a cut.
+    // so it can be neither side of a cut. A hidden clip draws nothing, caption
+    // included, except as a matte source, which is never drawn itself.
     const activeClips = trackClips
       .filter(
         (c) =>
           c.mediaType !== "group" &&
           c.mediaType !== "adjustment" &&
+          (!c.hidden || matteSourceIds.has(c.id)) &&
           isClipActive(c, options.layerTimeMs?.(c) ?? currentTimeMs)
       )
       .sort((a, b) => a.startMs - b.startMs);
@@ -1225,7 +1227,7 @@ function computeActiveLayersWithHorizonBase(
     // z their treatment runs at. Only a visual track has a composite to treat.
     if (isVisual) {
       for (const clip of trackClips) {
-        if (clip.mediaType !== "adjustment") continue;
+        if (clip.mediaType !== "adjustment" || clip.hidden) continue;
         if (!isClipActive(clip, currentTimeMs)) continue;
         considerBoundary(clip.startMs + clip.durationMs);
         const parent = clip.parentId ? groups.get(clip.parentId) : undefined;

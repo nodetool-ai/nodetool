@@ -144,7 +144,7 @@
                             "props": {
                               "id": "model-backdrop-bg-model",
                               "binding": "op:backdrop/prop:bg#model",
-                              "label": "2  Cut out model",
+                              "label": "Cut out model",
                               "modelKind": "image_model",
                               "events": []
                             }
@@ -154,7 +154,7 @@
                             "props": {
                               "id": "model-backdrop-comp-model",
                               "binding": "op:backdrop/prop:comp#model",
-                              "label": "3  Place on backdrop model",
+                              "label": "Place on backdrop model",
                               "modelKind": "image_model",
                               "events": []
                             }
@@ -164,7 +164,7 @@
                             "props": {
                               "id": "model-relight-rl-model",
                               "binding": "op:relight/prop:rl#model",
-                              "label": "2  Relight model",
+                              "label": "Relight model",
                               "modelKind": "image_model",
                               "events": []
                             }
@@ -174,7 +174,7 @@
                             "props": {
                               "id": "model-listing-ag-model",
                               "binding": "op:listing/prop:ag#model",
-                              "label": "2  Copywriter model",
+                              "label": "Copywriter model",
                               "modelKind": "language_model",
                               "events": []
                             }
@@ -390,8 +390,8 @@
                         "id": "slider-turntable-v-duration",
                         "binding": "op:turntable/prop:v#duration",
                         "label": "Seconds",
-                        "min": 4,
-                        "max": 8,
+                        "min": 6,
+                        "max": 10,
                         "step": 2,
                         "events": []
                       }
@@ -408,7 +408,7 @@
                             "props": {
                               "id": "model-turntable-v-model",
                               "binding": "op:turntable/prop:v#model",
-                              "label": "2  Animate model",
+                              "label": "Animate model",
                               "modelKind": "video_model",
                               "events": []
                             }
@@ -418,7 +418,7 @@
                             "props": {
                               "id": "model-print-up-model",
                               "binding": "op:print/prop:up#model",
-                              "label": "2  Upscale 4x model",
+                              "label": "Upscale 4x model",
                               "modelKind": "image_model",
                               "events": []
                             }
@@ -684,6 +684,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Cut a Product Out of Its Background\n\nRemoves the background from a product photo and softens only the cutout edge, so the product stays sharp. Use it to prepare clean PNGs for listings.\n\n**How it works:** \"Photo\" goes into \"Remove background\". \"Soften cutout edge\" blurs that result by the \"Edge softness\" radius, and \"Keep product detail\" uses the blurred copy only as the alpha channel over the unblurred cutout. \"Save finished PNG\" writes the file to the workspace and \"Result\" shows it.\n\n**Try this:** Set \"Edge softness\" to 0 for the original hard cutout, or raise it toward 3 for a softer edge on hair or fabric."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 286
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.ImageInput",
             "data": {
@@ -697,7 +716,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 366
               },
               "zIndex": 0,
               "width": 300,
@@ -724,8 +743,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 441
               },
               "zIndex": 0,
               "width": 300,
@@ -743,8 +762,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1650,
-                "y": 120
+                "x": 2000,
+                "y": 468
               },
               "zIndex": 0,
               "width": 300,
@@ -766,8 +785,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 460
+                "x": 0,
+                "y": 590
               },
               "width": 300,
               "title": "Edge softness"
@@ -784,8 +803,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 300
+                "x": 800,
+                "y": 455
               },
               "width": 300,
               "title": "Soften cutout edge"
@@ -801,8 +820,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
-                "y": 120
+                "x": 1200,
+                "y": 465
               },
               "width": 300,
               "title": "Keep product detail"
@@ -819,8 +838,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1320,
-                "y": 120
+                "x": 1600,
+                "y": 388
               },
               "width": 300,
               "title": "Save finished PNG"
@@ -892,6 +911,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Put a Product on a Studio Backdrop\n\nCuts a product out of its photo and places it in a new studio scene. Use it to restyle product shots without a reshoot.\n\n**How it works:** \"Photo\" goes to \"Cut out\", which removes the background. \"Soften cutout edge\" blurs the mask by the \"Edge softness\" value, and \"Keep product detail\" puts that softer mask back on the product. \"Place on backdrop\" generates a concrete plinth scene around it, and \"Result\" shows the image.\n\n**Try this:** Pick a model on \"Place on backdrop\", then change its prompt to \"white marble countertop, morning window light\"."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 286
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.ImageInput",
             "data": {
@@ -905,7 +943,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 366
               },
               "zIndex": 0,
               "width": 300,
@@ -930,8 +968,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 441
               },
               "zIndex": 0,
               "width": 300,
@@ -962,8 +1000,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1320,
-                "y": 120
+                "x": 1600,
+                "y": 459
               },
               "zIndex": 0,
               "width": 300,
@@ -981,8 +1019,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1650,
-                "y": 120
+                "x": 2000,
+                "y": 468
               },
               "zIndex": 0,
               "width": 300,
@@ -1004,8 +1042,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 460
+                "x": 0,
+                "y": 590
               },
               "width": 300,
               "title": "Edge softness"
@@ -1022,8 +1060,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 300
+                "x": 800,
+                "y": 455
               },
               "width": 300,
               "title": "Soften cutout edge"
@@ -1039,8 +1077,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
-                "y": 120
+                "x": 1200,
+                "y": 465
               },
               "width": 300,
               "title": "Keep product detail"
@@ -1112,17 +1150,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Relight a Product for a Seasonal Campaign\n\nChanges the lighting on an existing product photo so it fits a new season without a reshoot. The product's shape and materials stay as they are.\n\n**How it works:** \"Photo\" takes the image you upload. \"Relight\" sends it to a relighting model with a prompt that describes the new light source, and \"Result\" shows the relit photo.\n\n**Try this:** Pick a model on \"Relight\", then swap the prompt for \"cool morning light from behind, pale blue haze\" to get a spring look."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The photo to work on"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 351
               },
               "zIndex": 0,
               "width": 300,
@@ -1149,8 +1209,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -1168,8 +1228,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 359
               },
               "zIndex": 0,
               "width": 300,
@@ -1208,17 +1268,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Spin a Packshot into a Turntable Clip\n\nTurns a product still into a short orbiting clip for a product page. Image-to-video keeps the product as photographed and adds only the camera move.\n\n**How it works:** \"Packshot\" takes your product photo. \"Animate\" generates a 4-second square clip at 720p from a prompt for a slow orbit with fixed lighting, and \"Clip\" returns it.\n\n**Try this:** Pick a model on \"Animate\", then change the prompt to \"slow push in toward the label\" for a detail shot instead of an orbit."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The packshot"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 351
               },
               "zIndex": 0,
               "width": 300,
@@ -1246,13 +1328,13 @@
               "entities": [],
               "aspect_ratio": "1:1",
               "resolution": "720p",
-              "duration": 4,
+              "duration": 6,
               "timeout_seconds": 0
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -1270,8 +1352,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 359
               },
               "zIndex": 0,
               "width": 300,
@@ -1310,6 +1392,25 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Take a Product Shot to Print Resolution\n\nUpscales an approved product photo four times and adds a light sharpening pass for print. The result is saved as a PNG in the workspace.\n\n**How it works:** \"Photo\" starts with a sample coffee image. \"Upscale 4x\" enlarges it, then \"Sharpen fine detail\" applies an unsharp mask whose amount comes from the \"Sharpness\" input. \"Save finished PNG\" writes a timestamped file, and \"Result\" shows it.\n\n**Try this:** Pick a model on \"Upscale 4x\", then set \"Sharpness\" to 0 to compare the upscale with no sharpening."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 286
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.ImageInput",
             "data": {
@@ -1323,7 +1424,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 366
               },
               "zIndex": 0,
               "width": 300,
@@ -1350,8 +1451,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 433
               },
               "zIndex": 0,
               "width": 300,
@@ -1369,8 +1470,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1320,
-                "y": 120
+                "x": 1600,
+                "y": 507
               },
               "zIndex": 0,
               "width": 300,
@@ -1389,8 +1490,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 463
               },
               "width": 300,
               "title": "Sharpen fine detail"
@@ -1410,8 +1511,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 440
+                "x": 0,
+                "y": 590
               },
               "width": 300,
               "title": "Sharpness"
@@ -1428,8 +1529,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
-                "y": 120
+                "x": 1200,
+                "y": 427
               },
               "width": 300,
               "title": "Save finished PNG"
@@ -1487,17 +1588,39 @@
       "graph": {
         "nodes": [
           {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Write a Listing from the Product Photo\n\nWrites a marketplace listing from the product photo itself. Working from the image catches details a spec sheet leaves out, such as finish and proportion.\n\n**How it works:** Drop the photo into \"1 Photo\". \"2 Copywriter\" looks at it and writes a title under 70 characters and a description of about 80 words, without superlatives or invented specs. \"3 Listing\" returns the text.\n\n**Try this:** Pick a vision-capable model on \"2 Copywriter\" and change its prompt to ask for five bullet points instead."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 560,
+              "selectable": true,
+              "height": 266
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "in",
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The product photo"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 370
               },
               "zIndex": 0,
               "width": 300,
@@ -1531,8 +1654,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 120
+                "x": 400,
+                "y": 346
               },
               "zIndex": 0,
               "width": 300,
@@ -1550,8 +1673,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,

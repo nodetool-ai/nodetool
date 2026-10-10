@@ -83,22 +83,22 @@ export interface PlanBeatsContext {
 export interface VideoPlanFingerprintInputs {
   brief: string;
   formatId: string | undefined;
-  modelId: string;
   context: PlanBeatsContext;
 }
 
-/** The persisted identity of the inputs answered by one Video plan. */
+/**
+ * The persisted identity of the inputs answered by one Video plan. The
+ * Director model is not an input: a different model drafts the same request.
+ */
 export function videoPlanFingerprint({
   brief,
   formatId,
-  modelId,
   context
 }: VideoPlanFingerprintInputs): string {
   return deterministicFingerprint({
     kind: "video-plan",
     brief: brief.trim(),
     formatId: formatId ?? "",
-    modelId,
     context
   });
 }
@@ -232,6 +232,28 @@ const previousPlanNote = (previous: readonly TimelineBeat[]): string =>
   ].join("\n");
 
 /**
+ * The brief the Director is actually sent: the creator's words, the context
+ * lines and, on a re-plan, the edited plan. The format step prices this text,
+ * so the estimate counts the same input the run sends.
+ */
+export const directedPlanBrief = ({
+  brief,
+  context,
+  previous
+}: {
+  brief: string;
+  context?: PlanBeatsContext;
+  previous?: readonly TimelineBeat[];
+}): string =>
+  [
+    brief.trim(),
+    context ? contextNote(context) : "",
+    previous && previous.length > 0 ? previousPlanNote(previous) : ""
+  ]
+    .filter((part) => part.length > 0)
+    .join("\n");
+
+/**
  * Draft the beat list. Returns the beats; writing them onto the sequence is
  * {@link applyBeatPlan}'s job, so a caller can review the result before it
  * touches a document.
@@ -254,13 +276,11 @@ export async function planBeats({
   // already built, so its length is the clip count and not the format's.
   const placed = context?.clips?.length ?? 0;
   const shotCount = clampShotCount(placed > 0 ? placed : format.beatCount);
-  const directedBrief = [
-    trimmed,
-    context ? contextNote(context) : "",
-    previous && previous.length > 0 ? previousPlanNote(previous) : ""
-  ]
-    .filter((part) => part.length > 0)
-    .join("\n");
+  const directedBrief = directedPlanBrief({
+    brief: trimmed,
+    context,
+    previous
+  });
 
   const result = await request(
     "generate_text",
@@ -474,7 +494,6 @@ export function usePlanBeats(): UsePlanBeatsResult {
       const fingerprint = videoPlanFingerprint({
         brief: setup?.brief ?? "",
         formatId: setup?.format,
-        modelId: selectedModel.id,
         context: planContext
       });
       setError(null);

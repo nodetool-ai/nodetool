@@ -219,11 +219,13 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
     holder.current?.querySelector<HTMLElement>("input, textarea")?.focus();
   }, [expanded]);
 
-  // What the last commit sent, so tabbing through an untouched review does not
-  // write a value nobody edited.
+  // The value the field held when it took focus (or at its last commit), so
+  // tabbing through an untouched review does not write a value nobody edited.
+  // It is read on focus, not kept from mount: a rewrite or Restore can change
+  // the row underneath, and typing the earlier value back must still save.
   const committed = useRef(row.value);
-  const commit = (value: string): void => {
-    if (row.onCommit === undefined || value === committed.current) {
+  const commit = (value: string, before: string): void => {
+    if (row.onCommit === undefined || value === before) {
       return;
     }
     committed.current = value;
@@ -231,6 +233,11 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
   };
 
   if (row.addLabel && !row.value && !expanded) {
+    // A held field has nothing to add: opening it shows an empty box that
+    // takes no typing.
+    if (row.readOnly) {
+      return null;
+    }
     return (
       <EditorButton
         variant="text"
@@ -254,8 +261,9 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
       options={row.options}
       disabled={row.readOnly}
       onChange={(value) => {
+        const before = row.value;
         row.onChange(value);
-        commit(value);
+        commit(value, before);
       }}
     />
   ) : (
@@ -268,7 +276,10 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
       multiline={row.multiline}
       placeholder={row.placeholder}
       onChange={(event) => row.onChange(event.target.value)}
-      onBlur={(event) => commit(event.target.value)}
+      onFocus={() => {
+        committed.current = row.value;
+      }}
+      onBlur={(event) => commit(event.target.value, committed.current)}
       onKeyDown={(event) => {
         // Enter is a line break in a body field, so only a single-line field
         // commits on it. Plain Enter stays local. The shell's advertised
@@ -278,7 +289,7 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
           return;
         }
         event.preventDefault();
-        commit((event.target as HTMLInputElement).value);
+        commit((event.target as HTMLInputElement).value, committed.current);
         if (!(event.metaKey || event.ctrlKey)) {
           event.stopPropagation();
         }

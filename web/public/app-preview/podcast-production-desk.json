@@ -354,7 +354,7 @@
                         "id": "in-publish-quote-count",
                         "binding": "op:publish/in:quote_count",
                         "label": "Quote cards",
-                        "min": 1,
+                        "min": 2,
                         "max": 8,
                         "events": []
                       }
@@ -599,13 +599,16 @@
             "type": "nodetool.input.AudioInput",
             "data": {
               "name": "audio",
-              "value": null,
+              "value": {
+                "type": "audio",
+                "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+              },
               "description": "The rough recording"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 362
               },
               "zIndex": 0,
               "width": 300,
@@ -623,8 +626,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 330
+                "x": 2000,
+                "y": 421
               },
               "zIndex": 0,
               "width": 300,
@@ -648,13 +651,16 @@
             "type": "nodetool.input.AudioInput",
             "data": {
               "name": "audio",
-              "value": null,
+              "value": {
+                "type": "audio",
+                "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+              },
               "description": "The recorded voice"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 381
               },
               "zIndex": 0,
               "width": 280,
@@ -672,8 +678,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 0,
-                "y": 340
+                "x": 1520,
+                "y": 440
               },
               "zIndex": 0,
               "width": 280,
@@ -699,14 +705,14 @@
               "name": "episode_audio",
               "value": {
                 "type": "audio",
-                "uri": "https://app.nodetool.ai/examples/remove_silence.mp3"
+                "uri": "package://nodetool-base/recipe-inputs/meeting.wav"
               },
               "description": "The full episode recording (any common audio format)"
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 80
+                "x": 0,
+                "y": 1165
               },
               "zIndex": 0,
               "width": 280,
@@ -727,8 +733,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 330
+                "x": 0,
+                "y": 1520
               },
               "zIndex": 0,
               "width": 280,
@@ -751,8 +757,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 580
+                "x": 0,
+                "y": 1952
               },
               "zIndex": 0,
               "width": 280,
@@ -771,8 +777,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1530,
-                "y": -200
+                "x": 1630,
+                "y": 462
               },
               "zIndex": 0,
               "width": 320,
@@ -792,8 +798,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1530,
-                "y": 220
+                "x": 1630,
+                "y": 918
               },
               "zIndex": 0,
               "width": 320,
@@ -813,8 +819,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1530,
-                "y": 660
+                "x": 1630,
+                "y": 1384
               },
               "zIndex": 0,
               "width": 300,
@@ -834,8 +840,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2270,
-                "y": 1090
+                "x": 2490,
+                "y": 1722
               },
               "zIndex": 0,
               "width": 360,

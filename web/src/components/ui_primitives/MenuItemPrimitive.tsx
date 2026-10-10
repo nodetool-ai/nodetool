@@ -108,7 +108,7 @@ const styles = (theme: Theme) => css`
     .shortcut {
       font-size: var(--fontSizeSmaller);
       color: ${theme.vars.palette.text.disabled};
-      font-family: monospace;
+      font-family: var(--fontFamily2);
       background: ${theme.vars.palette.action.hover};
       padding: 2px 6px;
       border-radius: ${BORDER_RADIUS.sm};

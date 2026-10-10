@@ -22,6 +22,29 @@ import type { RepointPythonBridge, ProbeWorkerHealth } from "../context.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 
+/**
+ * Workers are a desktop feature: one server-wide manager that spends the
+ * operator's provider keys and re-points every user's Python bridge. A
+ * multi-user production server must not hand that to each signed-in user.
+ */
+const isProductionServer = (): boolean =>
+  process.env["NODETOOL_ENV"] === "production";
+
+const localProcedure = protectedProcedure.use(({ next }) => {
+  if (isProductionServer()) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Remote workers are disabled in production"
+    });
+  }
+  return next();
+});
+
+// The reads the web app makes on every page load answer "no workers" in
+// production instead of refusing, so the UI shows an empty state rather than
+// logging a FORBIDDEN error per query. They never reach the manager there.
+const NO_API_KEYS = { runpod: false, vast: false, verda: false };
+
 const targetSchema = z.enum(["runpod", "vast", "verda"]);
 
 const profileCreateInput = z.object({
@@ -140,9 +163,13 @@ function requireProbe(probe: ProbeWorkerHealth | undefined): ProbeWorkerHealth {
 const profilesRouter = router({
   list: protectedProcedure
     .output(z.array(workerProfileOutput))
-    .query(({ ctx }) => requireManager(ctx.workerManager).listProfiles()),
+    .query(({ ctx }) =>
+      isProductionServer()
+        ? []
+        : requireManager(ctx.workerManager).listProfiles()
+    ),
 
-  create: protectedProcedure
+  create: localProcedure
     .input(profileCreateInput)
     .output(workerProfileOutput)
     .mutation(({ ctx, input }) =>
@@ -157,7 +184,7 @@ const profilesRouter = router({
       })
     ),
 
-  delete: protectedProcedure
+  delete: localProcedure
     .input(profileNameInput)
     .output(okOutput)
     .mutation(async ({ ctx, input }) => {
@@ -169,7 +196,9 @@ const profilesRouter = router({
 const instancesRouter = router({
   list: protectedProcedure
     .output(z.array(workerInstanceOutput))
-    .query(({ ctx }) => requireManager(ctx.workerManager).list())
+    .query(({ ctx }) =>
+      isProductionServer() ? [] : requireManager(ctx.workerManager).list()
+    )
 });
 
 export const workerRouter = router({
@@ -181,16 +210,20 @@ export const workerRouter = router({
   // env-provided key.
   apiKeyStatus: protectedProcedure
     .output(apiKeyStatusOutput)
-    .query(({ ctx }) => requireManager(ctx.workerManager).apiKeyStatus()),
+    .query(({ ctx }) =>
+      isProductionServer()
+        ? NO_API_KEYS
+        : requireManager(ctx.workerManager).apiKeyStatus()
+    ),
 
-  provision: protectedProcedure
+  provision: localProcedure
     .input(provisionInput)
     .output(workerInstanceOutput)
     .mutation(({ ctx, input }) =>
       requireManager(ctx.workerManager).provision(input.profileName)
     ),
 
-  stop: protectedProcedure
+  stop: localProcedure
     .input(idInput)
     .output(workerInstanceOutput)
     .mutation(({ ctx, input }) =>
@@ -199,7 +232,7 @@ export const workerRouter = router({
 
   // Resume a paused worker (re-allocates the GPU, keeps the volume). May fail
   // if the provider cannot re-allocate a GPU.
-  resume: protectedProcedure
+  resume: localProcedure
     .input(idInput)
     .output(workerInstanceOutput)
     .mutation(({ ctx, input }) =>
@@ -207,19 +240,19 @@ export const workerRouter = router({
     ),
 
   // Destroy a worker and its volume — the real teardown that stops all billing.
-  terminate: protectedProcedure
+  terminate: localProcedure
     .input(idInput)
     .output(workerInstanceOutput)
     .mutation(({ ctx, input }) =>
       requireManager(ctx.workerManager).terminate(input.id)
     ),
 
-  stopAll: protectedProcedure.output(okOutput).mutation(async ({ ctx }) => {
+  stopAll: localProcedure.output(okOutput).mutation(async ({ ctx }) => {
     await requireManager(ctx.workerManager).stopAll();
     return { ok: true as const };
   }),
 
-  reconcile: protectedProcedure
+  reconcile: localProcedure
     .output(reconcileOutput)
     .mutation(({ ctx }) => requireManager(ctx.workerManager).reconcile()),
 
@@ -229,7 +262,7 @@ export const workerRouter = router({
    * and report whether it answered. Lets the panel show true readiness
    * ("Booting…" → "Ready") before the user attaches.
    */
-  health: protectedProcedure
+  health: localProcedure
     .input(idInput)
     .output(healthOutput)
     .query(async ({ ctx, input }) => {
@@ -239,7 +272,7 @@ export const workerRouter = router({
       return requireProbe(ctx.probeWorkerHealth)(connection);
     }),
 
-  attach: protectedProcedure
+  attach: localProcedure
     .input(idInput)
     .output(connectionOutput)
     .mutation(async ({ ctx, input }) => {
@@ -257,7 +290,7 @@ export const workerRouter = router({
       return connection;
     }),
 
-  detach: protectedProcedure.output(okOutput).mutation(async ({ ctx }) => {
+  detach: localProcedure.output(okOutput).mutation(async ({ ctx }) => {
     await requireManager(ctx.workerManager).detach();
     await requireRepoint(ctx.repointPythonBridge)(null);
     return { ok: true as const };

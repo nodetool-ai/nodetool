@@ -100,6 +100,11 @@ export interface DirectMediaGenerationRequest {
    * a frame that was already delivered to a dead socket.
    */
   requestId?: string;
+  /**
+   * Aborts the provider call. The `cancel_generation` command fires it, so a
+   * render the creator cancelled stops instead of finishing and billing.
+   */
+  signal?: AbortSignal;
   /** Submission-time timeline mapping for a native video edit. */
   sourceContext?: DirectMediaSourceContext;
   timelineContext?: { sequenceId: string; sourceClipId?: string; targetClipId?: string };
@@ -975,9 +980,11 @@ export class DirectInferenceHandler {
     const userId = this.session.requireUserId();
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
+    req.signal?.throwIfAborted();
     const { generate, seamAssetId, storeAsset } = createGenerationRun({
       userId,
       providerId: req.provider,
+      signal: req.signal,
       modelId: req.model,
       provider,
       origin: { surface: "rpc", request_id: req.requestId ?? null },

@@ -1,4 +1,3 @@
-
 import { checkExpectedPackageVersions } from '../packageManager';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
@@ -28,12 +27,25 @@ jest
   .spyOn(utils, 'checkPermissions')
   .mockResolvedValue({ accessible: true, error: null });
 
-jest
-  .spyOn(torchPlatformCache, 'getTorchIndexUrl')
-  .mockReturnValue('https://download.pytorch.org/whl/cpu');
+jest.spyOn(torchPlatformCache, 'getTorchBackend').mockReturnValue('cpu');
 
-describe('Performance Optimization', () => {
+describe('checkExpectedPackageVersions', () => {
   let spawnMock: jest.Mock;
+
+  function listing(packages: Array<{ name: string; version: string }>): void {
+    spawnMock.mockImplementation(() => {
+      const mockProcess = new EventEmitter() as any;
+      mockProcess.stdout = new EventEmitter();
+      mockProcess.stderr = new EventEmitter();
+      mockProcess.stdin = { write: jest.fn(), end: jest.fn() };
+      setTimeout(() => {
+        mockProcess.stdout.emit('data', Buffer.from(JSON.stringify(packages)));
+        mockProcess.emit('exit', 0);
+        mockProcess.emit('close', 0);
+      }, 10);
+      return mockProcess;
+    });
+  }
 
   beforeEach(() => {
     // `child_process` is jest-mocked in this file, so `spawn` is a `jest.fn()`.
@@ -43,66 +55,33 @@ describe('Performance Optimization', () => {
     (BrowserWindow as any).getAllWindows = jest.fn().mockReturnValue([]);
   });
 
-  test('checkExpectedPackageVersions should only spawn process once', async () => {
-    // Mock spawn implementation
-    spawnMock.mockImplementation((command, args) => {
-      const mockProcess = new EventEmitter() as any;
-      mockProcess.stdout = new EventEmitter();
-      mockProcess.stderr = new EventEmitter();
-      mockProcess.stdin = { write: jest.fn(), end: jest.fn() };
+  test('reads the installed set with one uv call', async () => {
+    listing([{ name: 'nodetool-core', version: '0.8.1' }]);
 
-      setTimeout(() => {
-        if (args.includes('list') && args.includes('--format=json')) {
-             const packages = Array.from({ length: 5 }, (_, i) => ({
-                name: `nodetool-pkg-${i}`,
-                version: '0.9.0'
-            }));
-            // Add a matching version package
-            packages.push({ name: 'nodetool-ok', version: '1.0.0' });
+    await checkExpectedPackageVersions();
 
-            mockProcess.stdout.emit('data', Buffer.from(JSON.stringify(packages)));
-        } else if (args.includes('show')) {
-            // This would happen in the unoptimized version
-             mockProcess.stdout.emit('data', Buffer.from('Version: 0.9.0\n'));
-        }
-        mockProcess.emit('exit', 0);
-      }, 10);
-
-      return mockProcess;
-    });
-
-    const result = await checkExpectedPackageVersions();
-
-    // Optimized version: 1 call for list
     expect(spawnMock.mock.calls.length).toBe(1);
-
-    // Verify result length. 5 packages need update (0.9.0 vs 1.0.0), 1 matches (1.0.0).
-    expect(result.length).toBe(5);
   });
 
-  test('checkExpectedPackageVersions skips packs with their own version line', async () => {
-    spawnMock.mockImplementation(() => {
-      const mockProcess = new EventEmitter() as any;
-      mockProcess.stdout = new EventEmitter();
-      mockProcess.stderr = new EventEmitter();
-      mockProcess.stdin = { write: jest.fn(), end: jest.fn() };
-      setTimeout(() => {
-        mockProcess.stdout.emit(
-          'data',
-          Buffer.from(
-            JSON.stringify([
-              { name: 'nodetool-core', version: '0.9.0' },
-              { name: 'nodetool-wan2gp', version: '0.1.0' }
-            ])
-          )
-        );
-        mockProcess.emit('exit', 0);
-      }, 10);
-      return mockProcess;
-    });
+  test('never pins packs to the app version', async () => {
+    listing([
+      { name: 'nodetool-core', version: '0.8.2' },
+      { name: 'nodetool-huggingface', version: '0.8.1' },
+      { name: 'nodetool-mlx', version: '0.7.2' },
+      { name: 'nodetool-wan2gp', version: '0.1.0' },
+    ]);
 
-    const result = await checkExpectedPackageVersions();
+    expect(await checkExpectedPackageVersions()).toEqual([]);
+  });
 
-    expect(result.map((p) => p.packageName)).toEqual(['nodetool-core']);
+  test('flags core below the bridge protocol floor', async () => {
+    listing([
+      { name: 'nodetool-core', version: '0.8.1' },
+      { name: 'nodetool-huggingface', version: '0.5.0' },
+    ]);
+
+    expect(await checkExpectedPackageVersions()).toEqual([
+      { packageName: 'nodetool-core', currentVersion: '0.8.1', expectedVersion: '>=0.8.2' },
+    ]);
   });
 });

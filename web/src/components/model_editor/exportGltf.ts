@@ -7,42 +7,63 @@ import { isLightTarget } from "./sceneTree";
 /**
  * Set the scene up for the exporter and return the function that undoes it.
  *
- * - Hidden objects are written with a `nodetool_hidden` extra and made
- *   visible for the export, because the exporter drops invisible nodes and
- *   glTF has no visibility flag.
- * - A light's target child is hidden for the export. The light's direction
- *   already encodes it, and writing it as a node would add an empty child to
- *   the light on every save.
+ * - Hidden objects get a `nodetool_hidden` extra, because glTF has no
+ *   visibility flag. The export runs with `onlyVisible: false` instead of
+ *   showing them, since frames keep rendering while the export runs.
+ * - A light's target child is taken out of its `children` list for the
+ *   export. The light's direction already encodes it, and writing it as a
+ *   node would add an empty child to the light on every save.
  */
 const prepareForExport = (root: THREE.Object3D): (() => void) => {
-  const revealed: THREE.Object3D[] = [];
-  const skipped: THREE.Object3D[] = [];
+  const flagged: THREE.Object3D[] = [];
+  const targets: THREE.Object3D[] = [];
   root.traverse((node) => {
     if (node === root) {
       return;
     }
     if (isLightTarget(node)) {
-      if (node.visible) {
-        node.visible = false;
-        skipped.push(node);
-      }
+      targets.push(node);
       return;
     }
     if (!node.visible) {
-      node.visible = true;
       node.userData[HIDDEN_EXTRA] = true;
-      revealed.push(node);
+      flagged.push(node);
     }
   });
+  // Splice rather than `remove`, so `parent` stays and nothing is notified.
+  const detached = targets.map((target) => {
+    const siblings = (target.parent as THREE.Object3D).children;
+    const index = siblings.indexOf(target);
+    siblings.splice(index, 1);
+    return { siblings, index, target };
+  });
   return () => {
-    for (const node of revealed) {
-      node.visible = false;
+    for (const node of flagged) {
       delete node.userData[HIDDEN_EXTRA];
     }
-    for (const node of skipped) {
-      node.visible = true;
+    for (const { siblings, index, target } of detached.reverse()) {
+      siblings.splice(index, 0, target);
     }
   };
+};
+
+/**
+ * A skinned mesh whose bones were deleted would be written with `null`
+ * joints, and the file would no longer load. Name it instead of saving.
+ */
+const assertSkinsComplete = (root: THREE.Object3D): void => {
+  const inScene = new Set<THREE.Object3D>();
+  root.traverse((node) => inScene.add(node));
+  root.traverse((node) => {
+    if (
+      node instanceof THREE.SkinnedMesh &&
+      node.skeleton.bones.some((bone) => !inScene.has(bone))
+    ) {
+      throw new Error(
+        `${node.name || "A skinned mesh"} lost bones it is rigged to. Undo the delete of its armature or bones, or delete the mesh too, then save again.`
+      );
+    }
+  });
 };
 
 /**
@@ -57,6 +78,11 @@ export const exportSceneToGlb = (
   root: THREE.Object3D,
   animations: THREE.AnimationClip[] = []
 ): Promise<Blob> => {
+  try {
+    assertSkinsComplete(root);
+  } catch (error) {
+    return Promise.reject(error);
+  }
   // Same technique as GLTFExporter's own AuxScene: push to `children` instead
   // of calling `add`, so the live objects keep their parent in the editor.
   const scene = new THREE.Scene();
@@ -76,7 +102,7 @@ export const exportSceneToGlb = (
         }
       },
       (error) => reject(error),
-      { binary: true, animations }
+      { binary: true, animations, onlyVisible: false }
     );
   }).finally(restore);
 };

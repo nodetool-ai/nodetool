@@ -72,12 +72,13 @@ export const MIN_BRIDGE_PROTOCOL_VERSION = 1;
 
 /**
  * Lowest published nodetool-core version (PEP 440 string) the Electron
- * installer pins. Used by the prebuild registry check and the installer's pin
- * specifier.
+ * installer pins. Used by the prebuild registry check, the installer's pin
+ * specifier and the desktop boot check, which upgrades an installed core
+ * below it.
  *
- * This tracks `MIN_BRIDGE_PROTOCOL_VERSION` (the connection floor), NOT
- * `BRIDGE_PROTOCOL_VERSION`: an additive bump does not require a new minimum
- * wheel, because older wheels still connect and run. Bump this only when
- * `MIN_BRIDGE_PROTOCOL_VERSION` moves and a wheel carrying that floor exists.
+ * It moves when `MIN_BRIDGE_PROTOCOL_VERSION` moves, and when a core release
+ * carries a fix every desktop install needs: 0.8.2 brings the
+ * `NODETOOL_TORCH_DEVICE` override, the MPS CPU fallback and the OOM retry.
+ * Only name a version that is published on PyPI.
  */
-export const MIN_NODETOOL_CORE_VERSION = "0.7.0";
+export const MIN_NODETOOL_CORE_VERSION = "0.8.2";

@@ -23,6 +23,7 @@ import {
 } from "react";
 import {
   isModelSelected,
+  type CreativeContext,
   type Entity,
   type ProductionReferenceBinding
 } from "@nodetool-ai/protocol";
@@ -34,6 +35,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 
 import {
   BORDER_RADIUS,
+  AlertBanner,
   Box,
   Caption,
   Chip,
@@ -49,6 +51,7 @@ import {
   Popover,
   ResponsiveImage,
   ScrollArea,
+  CONTROL,
   SPACING,
   SPACING_PX,
   Text,
@@ -106,6 +109,7 @@ import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
 import StartExamples from "./StartExamples";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
+import ReportBugButton from "../support/ReportBugButton";
 import { openPageTab } from "../workspace/openPageTab";
 import {
   OPTION_CARD_CLASS,
@@ -165,6 +169,13 @@ const ENTRY_BACKGROUNDS: Partial<Record<EntryFlowId, string>> = {
 
 /** Width of the centered column, per the new-project mockup. */
 const COLUMN_WIDTH = 860;
+/** The measure of a centered line of intro copy, in px. */
+const INTRO_TEXT_WIDTH = 640;
+/** A dropped reference image's thumbnail, in px. */
+const REFERENCE_THUMB_SIZE = 48;
+/** The blank-document submenu's column, and the popover's room around it. */
+const SUBMENU_WIDTH = 320;
+const SUBMENU_MAX_WIDTH = 340;
 
 /** A starter pill at rest: outlined, quiet, the project's colour on hover. */
 const starterPillSx = {
@@ -290,6 +301,16 @@ const SETUP_TAB_TYPE = {
   game: "game"
 } as const;
 
+/** What a flow makes, in the creator's words. */
+const SETUP_KIND_NOUN: Record<SetupTarget["kind"], string> = {
+  entity: "entity",
+  storyboard: "storyboard",
+  video: "video",
+  script: "script",
+  workflow: "workflow",
+  game: "game"
+};
+
 /**
  * One composer attachment, as a setup document may hold it.
  *
@@ -386,11 +407,14 @@ const buildFailures = (result: BuildFromPlanResult): string[] => {
 interface NewProjectSurfaceProps {
   flowRef?: string;
   initialSetupTarget?: SetupTarget | null;
+  /** False while this workspace tab is hidden behind another one. */
+  active?: boolean;
 }
 
 const NewProjectSurface = ({
   flowRef,
-  initialSetupTarget
+  initialSetupTarget,
+  active = true
 }: NewProjectSurfaceProps) => {
   const [prompt, setPrompt] = useState("");
   const [showMoreFlows, setShowMoreFlows] = useState(false);
@@ -413,10 +437,25 @@ const NewProjectSurface = ({
   const [modelAnchor, setModelAnchor] = useState<HTMLElement | null>(null);
   // A start requested before a provider was configured, resumed once one is.
   const [pendingStart, setPendingStart] = useState(false);
+  // A start parked on the model menu, resumed once a model is picked.
+  const [pendingModelStart, setPendingModelStart] = useState(false);
   // The flow can swap its own target and finish in the same tick — the example
   // route replaces the placeholder workflow with the copy, then finishes — so
   // the handlers read this rather than the render's copy of the state.
   const setupTargetRef = useRef<SetupTarget | null>(setupTarget);
+  // Whether this guided tab is the one on screen. The New Project tab itself
+  // (no `flowRef`) only finishes from a click, so it always is.
+  const guidedTabActive = useWorkspaceTabsStore(
+    (state) => !flowRef || state.activeTabId === tabId("guided-flow", flowRef)
+  );
+  const guidedTabActiveRef = useRef(guidedTabActive);
+  guidedTabActiveRef.current = guidedTabActive;
+  // A finish that could not hand off yet: held while this tab is hidden, or
+  // after its project failed to open.
+  const [heldFinish, setHeldFinish] = useState<{
+    result?: BuildFromPlanResult | null;
+  } | null>(null);
+  const [finishError, setFinishError] = useState<string | null>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -665,14 +704,14 @@ const NewProjectSurface = ({
     // A configured provider is not a picked model: the chat's model selection
     // starts on the "empty" sentinel, and a send with it never leaves the
     // client. Open this surface's own model menu rather than point at a
-    // composer that is not on this screen.
+    // composer that is not on this screen, and start once a model is picked.
     if (!isModelSelected(selectedModel)) {
+      setPendingModelStart(true);
       setModelAnchor(modelButtonRef.current);
       addNotification({
-        type: "error",
+        type: "info",
         alert: true,
-        content:
-          "No model selected. Pick a language model here before opening chat."
+        content: "Pick a language model and the chat starts."
       });
       return;
     }
@@ -1331,7 +1370,8 @@ const NewProjectSurface = ({
             ...card,
             meta: "Creating…",
             disabled: true,
-            disabledReason: "Creating your project…"
+            // Every card files a draft into the open project and makes none.
+            disabledReason: "Creating your draft…"
           }
         : {
             ...card,
@@ -1355,9 +1395,24 @@ const NewProjectSurface = ({
       if (!target || target.kind === "entity") {
         return;
       }
-      if (!(await showDocumentProject(target.projectId, target.name))) {
+      // Every tab stays mounted, so a flow can finish (or load as finished)
+      // while the creator works in another tab or project. Opening its
+      // project then would pull them away, so the hand-off waits until this
+      // tab is in view again.
+      if (!guidedTabActiveRef.current) {
+        setHeldFinish({ result });
         return;
       }
+      if (!(await showDocumentProject(target.projectId, target.name))) {
+        // The document is done, so the flow has no step left to show. The
+        // hand-off is kept with a way to try it again.
+        setHeldFinish({ result });
+        setFinishError(
+          `Your ${SETUP_KIND_NOUN[target.kind]} is ready, but its project did not open.`
+        );
+        return;
+      }
+      setFinishError(null);
       const failures = result ? buildFailures(result) : [];
       if (failures.length > 0) {
         addNotification({
@@ -1381,6 +1436,20 @@ const NewProjectSurface = ({
     },
     [addNotification, applySetupTarget, closeTab, flowRef, openTab, showDocumentProject]
   );
+
+  useEffect(() => {
+    if (heldFinish && guidedTabActive && finishError === null) {
+      setHeldFinish(null);
+      void handleSetupFinished(heldFinish.result);
+    }
+  }, [finishError, guidedTabActive, handleSetupFinished, heldFinish]);
+
+  const retryFinish = useCallback(() => {
+    const held = heldFinish;
+    setHeldFinish(null);
+    setFinishError(null);
+    void handleSetupFinished(held?.result);
+  }, [handleSetupFinished, heldFinish]);
 
   const handleEntityFinished = useCallback(() => {
     useOnboardingStore.getState().markStep("start-guided-flow");
@@ -1527,7 +1596,7 @@ const NewProjectSurface = ({
    * and the script's `Send to timeline` makes a sequence of its own.
    */
   const startScriptFromVideo = useCallback(
-    async (brief: string) => {
+    async (brief: string, creativeContext?: CreativeContext) => {
       const target = setupTargetRef.current;
       if (!target || starting) {
         return;
@@ -1550,7 +1619,8 @@ const NewProjectSurface = ({
                 contentType: type
               })
             ),
-            entityIds: target.carried?.entityIds ?? []
+            entityIds: target.carried?.entityIds ?? [],
+            creativeContext
           })
         });
         applySetupTarget({
@@ -1583,6 +1653,14 @@ const NewProjectSurface = ({
     setPendingStart(false);
     void resumeProject.current();
   }, [pendingStart, hasConfiguredProvider]);
+
+  useEffect(() => {
+    if (!pendingModelStart || !isModelSelected(selectedModel)) {
+      return;
+    }
+    setPendingModelStart(false);
+    void resumeProject.current();
+  }, [pendingModelStart, selectedModel]);
 
   // The handler rides the field wrapper, where MUI puts unknown props, and the
   // keydown reaches it by bubbling from the textarea. Both pickers only read
@@ -1640,6 +1718,38 @@ const NewProjectSurface = ({
     openPageTab("tutorials");
   }, []);
 
+  if (setupTarget && finishError) {
+    return (
+      <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl, maxWidth: COLUMN_WIDTH }}>
+        <AlertBanner
+          severity="error"
+          title="Could not open it yet"
+          action={
+            <ReportBugButton
+              label="Report this failure"
+              variant="outlined"
+              size="small"
+              context={{
+                source: "manual",
+                summary: `Guided ${SETUP_KIND_NOUN[setupTarget.kind]} flow could not open its project`,
+                errorText: finishError
+              }}
+            />
+          }
+        >
+          {finishError}
+        </AlertBanner>
+        <EditorButton
+          variant="contained"
+          onClick={retryFinish}
+          sx={{ alignSelf: "flex-start" }}
+        >
+          {`Open your ${SETUP_KIND_NOUN[setupTarget.kind]}`}
+        </EditorButton>
+      </FlexColumn>
+    );
+  }
+
   // An entry card was clicked: this tab is the flow now (PRD § 6.1).
   if (setupTarget) {
     if (setupTarget.kind === "entity") {
@@ -1669,8 +1779,11 @@ const NewProjectSurface = ({
       return (
         <VideoSetupHost
           sequenceId={setupTarget.id}
+          active={active}
           onFinish={handleSetupFinished}
-          onStartFromScript={(brief) => void startScriptFromVideo(brief)}
+          onStartFromScript={(brief, creativeContext) =>
+            void startScriptFromVideo(brief, creativeContext)
+          }
           onChangeFlow={handleChangeFlow}
         />
       );
@@ -1758,7 +1871,7 @@ const NewProjectSurface = ({
               </Text>
               <Text
                 color="secondary"
-                sx={{ maxWidth: "640px", textAlign: "center" }}
+                sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
               >
                 An agent plans the documents and builds them while you watch.
                 Everything it makes stays editable.
@@ -1805,7 +1918,7 @@ const NewProjectSurface = ({
                         fit="cover"
                         borderRadius={BORDER_RADIUS.sm}
                         showErrorFallback
-                        sx={{ width: "48px", height: "48px" }}
+                        sx={{ width: REFERENCE_THUMB_SIZE, height: REFERENCE_THUMB_SIZE }}
                       />
                       <CloseButton
                         onClick={() => removeFile(file.id)}
@@ -1965,7 +2078,7 @@ const NewProjectSurface = ({
                 {starter ? (
                   <Caption
                     color="secondary"
-                    sx={{ maxWidth: "620px", textAlign: "center" }}
+                    sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
                   >
                     {starter.description}
                   </Caption>
@@ -2126,7 +2239,7 @@ const NewProjectSurface = ({
                   display: "flex",
                   alignItems: "center",
                   gap: (theme) => theme.spacing(SPACING.md),
-                  height: "32px",
+                  height: CONTROL.height.md,
                   px: SPACING.md,
                   cursor: "pointer",
                   border: "none",
@@ -2165,7 +2278,10 @@ const NewProjectSurface = ({
       <LanguageModelMenuDialog
         open={modelAnchor !== null}
         anchorEl={modelAnchor}
-        onClose={() => setModelAnchor(null)}
+        onClose={() => {
+          setModelAnchor(null);
+          setPendingModelStart(false);
+        }}
         onModelChange={(model) => {
           setSelectedModel(model);
           setModelAnchor(null);
@@ -2178,10 +2294,10 @@ const NewProjectSurface = ({
         anchorEl={submenu?.element ?? null}
         onClose={() => setSubmenu(null)}
         placement="top-left"
-        maxWidth={340}
+        maxWidth={SUBMENU_MAX_WIDTH}
         maxHeight="50vh"
       >
-        <FlexColumn sx={{ width: 320, py: SPACING.micro }}>
+        <FlexColumn sx={{ width: SUBMENU_WIDTH, py: SPACING.micro }}>
           {submenu?.kind === "texts" &&
             TEXT_FILE_TEMPLATES.map((template) => (
               <MenuItemPrimitive

@@ -204,7 +204,8 @@ not change runtime state.
 
 ## 2D scripts and visuals
 
-A `script` behavior is a function expression. It receives `{tick, pressed,
+A `script` behavior is a function expression, or an object of lifecycle
+hooks (see "Lifecycle hooks and timers"). A function receives `{tick, pressed,
 justPressed, events, entity, world, state, random}` and returns `{state,
 commands}`. `events` are the previous tick's events. `world` lists every active
 entity with a collider or camera as `{id, source, x, y}`. `entity` holds the
@@ -474,9 +475,119 @@ for the machine-readable report.
 
 ### R: 3D rendering
 
+A 3D scene's `environment.sky` sets its background and image-based lighting.
+Omit it, or use `{ kind: "color" }`, for the solid `background` color without
+environment lighting. That is the default and renders exactly as before.
+
+`{ kind: "procedural", sunEntityId?, turbidity, rayleigh, groundColor, intensity }`
+renders a physical sky. Its sun follows `sunEntityId`, which must name a
+directional light in the same scene. Without it, the sun follows the scene's
+first directional light. Rotate that light to move the sun. `turbidity` (1 to 20,
+default 10) adds haze. `rayleigh` (0 to 4, default 2) deepens blue and sunset
+tones. `groundColor` fills the lower hemisphere.
+
+`{ kind: "hdri", assetId, rotation, intensity }` uses an `hdri` asset binding: a
+2:1 equirectangular `.hdr` or `.exr` of at most 2048×1024 and 16 MiB. `rotation`
+turns it about +Y in radians. HDRI candidates cannot be installed until HDRI
+preparation ships. A renderer without an HDRI decoder draws the background color
+and reports a diagnostic in the capture stats.
+
+`intensity` (0 to 8, default 1) scales both the sky background and its
+reflections. Metal and glossy materials reflect the sky. Ambient light still
+adds on top, so lower `ambient.intensity` when the sky lights the scene. Set the
+sky with `update_scene`. It replaces the whole `environment`, so send the
+existing `background`, `ambient`, `fog` and `shadows` with the new `sky`.
+Capture the scene to review the result.
+
+A 3D scene's `environment.postProcessing` grades the rendered image. It is
+presentation only and never changes simulation or snapshots. Omit it to render
+as before. `enabled: false` keeps the settings and renders as if they were
+absent. The fields are:
+
+- `exposure` (1/32 to 16, default 1) multiplies scene light before tone mapping.
+- `toneMapping` is `aces` (default), `agx`, `neutral` or `linear`. AgX keeps
+  saturated highlights from turning white. Neutral keeps base colors closest to
+  their authored values. Linear scales by exposure and clips.
+- `bloom` `{ threshold, softness, radius, intensity }` adds glow around light
+  above `threshold` (0 to 8, default 0.85). Emissive materials and bright
+  highlights bloom. `softness` (0 to 0.5) widens the threshold transition.
+  `radius` (0 to 1) spreads the glow, and `intensity` (0 to 4) sets its strength.
+- `vignette` `{ intensity, radius, softness }` darkens the corners. `intensity`
+  (0 to 1) of 1 reaches black. Darkening starts at `radius` (0 at the center,
+  1 at the corner) and reaches full strength over `softness`.
+- `antialias` is `msaa` (default), `fxaa`, `smaa` or `none`. `smaa` gives the
+  cleanest edges after the other effects. `fxaa` is cheaper and softer.
+
+The passes always run in this order: bloom, exposure and tone mapping,
+vignette, antialiasing. Exposure and tone mapping alone cost nothing extra.
+Bloom, vignette, or an `antialias` other than `msaa` renders through extra
+full-screen passes, and the background color then passes through tone mapping
+too. Set post-processing with `update_scene` and the whole existing
+`environment`. Capture the scene to compare settings. SSAO, depth of field,
+color grading with a LUT and chromatic aberration are not available yet.
+
 ### V: 2D rendering and visual effects
 
+Add particle effects with the `particles` component on any 2D (schema 2 or 4)
+or 3D entity. It holds up to 8 `emitters`, each with a unique `id`. An emitter
+sets `rate` (particles per second), `bursts` (`time`, `count`, `cycles`,
+`interval`), `duration`, `loop`, `playOnStart`, `maxParticles` and a `shape`:
+`point`, `circle`, `sphere`, `cone`, `box` or `edge`. Cone, box and edge emit
+along local +Y. Point, circle and sphere emit outward. Per-particle values
+`lifetime`, `speed`, `size`, `rotation` and `angularVelocity` take a number or
+`{ min, max }`. `color` takes `#rrggbb` or `{ min, max }`. The
+`sizeOverLifetime`, `speedOverLifetime` and `opacityOverLifetime` curves are
+lists of `{ t, value }` keys sorted by `t` from 0 to 1.
+`colorOverLifetime` uses `{ t, color }` keys. Add `gravity`
+(`{ x, y, z }` in units per second squared) and `drag`. `space: "local"` makes
+particles follow the entity. `onDeath: [{ emitter, count }]` fires another
+emitter of the same component where each particle dies. Give that emitter
+`playOnStart: false` and `rate: 0`.
+
+Scripts trigger emitters with `{ kind: "emitParticles", emitter?, count? }` on
+their own entity. Without `count`, the emitter restarts its cycle, which suits a
+one-shot explosion with `loop: false`. With `count`, that many particles spawn
+at once. Omitting `emitter` selects the first emitter in the component's `emitters` list. The command is a presentation
+event from `takePresentationEvents()`. It never appears in gameplay events or
+snapshots. Particles cannot affect scores, physics or scripts. Prefer them over
+spawned prefabs for sparks, smoke and dust.
+
+Each emitter also sets how its particles draw in 2D. Without `sprite`, a
+particle is a soft round dot tinted by its colour. `sprite: { assetId, columns,
+rows, frameCount?, cycles?, sampling? }` uses an image asset instead. A sheet is
+cut into `columns` by `rows` cells read left to right and top to bottom, and the
+first `frameCount` cells play `cycles` times over each particle's life.
+`sampling` defaults to `nearest`. `blend: "additive"` adds light, which suits
+fire, sparks and magic. The default `normal` alpha-blends, which suits smoke and
+dust. Particles take scene lighting like sprites. Set `unlit: true` so glowing
+particles keep their colour in the dark. `layer` sets the draw layer. It
+defaults to the entity's sprite layer, or 0 without a sprite, and particles
+draw above sprites of the same layer. `size` is the particle's width in world
+units. `rotation` and `angularVelocity` are radians and radians per second.
+
+The standalone player, `nodetool game capture` and the agent's
+`capture_native_game_frame` draw 2D particles. A capture simulates particles
+for every tick up to the captured one, so a burst at tick 0 is still visible a
+few ticks later. WebGPU draws every live particle as instanced quads. The
+Canvas2D fallback draws at most 1024 visible particles. The editor's play view
+does not draw particles yet, so capture a frame to review them. 3D particles
+are not drawn yet.
+
+Hosts run 2D particles with `GameParticles2D` from
+`@nodetool-ai/game-renderer`. After every session step, call
+`particles.tick(step.frame, session.takePresentationEvents())`, then pass
+`particles` as the third argument of `renderer.render`. Underneath it is a
+`ParticleSimulator`: each tick it calls `sync(particleSourcesFromFrame(frame))`,
+`emit(events)` and `step(seconds)`. One `step` simulates at most 0.25 seconds, so a resumed tab does not replay a long pause. Each emitter's random stream is seeded from its entity and
+emitter ids, so captures repeat.
+
 ### P: Physics
+
+2D `schemaVersion: 5` with `engineVersion: "4"` is reserved for Rapier 2D
+physics. This runtime does not provide that engine yet, so validation and
+sessions refuse such a document with the `engine_unavailable` diagnostic. Do not
+author schema 5. Keep 2D games on schema 4 with engine 3, or on schemas 1 and 2
+with engine 1. A schema must use its own engine version.
 
 ### A: Audio
 
@@ -505,18 +616,199 @@ so a mixer edit never changes `nodetool game simulate` results or replay.
 Players can scale and mute a bus at runtime through `GameAudioPlayer`
 `setBusVolume` and `setBusMuted`.
 
+Set `audioSource.spatial: true` to play an entity's effect at its position in
+2D and 3D. The listener is the active camera, so an emitter right of the camera
+plays in the right ear. Effects play at full volume within `minDistance`
+(default 1 world unit) and fall off by `distanceModel` (`linear`, `inverse`
+by default, or `exponential`) and `rolloff` (default 1) out to `maxDistance`
+(default 50), which must exceed `minDistance`. The `linear` model clamps
+`rolloff` to 1 and is silent at `maxDistance`. A 3D `cone {innerAngle,
+outerAngle, outerGain}` points along the entity's -Z axis. 2D emitters ignore
+the cone. `doppler` (default 0, 1 is physical) shifts pitch with emitter and
+camera motion. Set a field to `null` in `update_entity` to return it to its
+default. Positions follow the interpolated frame every rendered frame. The
+event that starts the effect carries the emitter position, so a collectible
+that despawns as it plays still sounds where it was. Spatial settings never
+change simulation. Players pan with HRTF. `GameAudioPlayer`
+`spatialQuality: "low"` switches to cheaper equal-power panning.
+
 ### N: Animation
+
+A 3D animation graph lives in the document's `animationGraphs` map. An
+entity's `animator3d.graph` names one, and its `animator3d.clips` maps the
+graph's clip aliases to prepared clip IDs, so one graph can drive several rigs.
+Store a graph with `set_animation_graph {graph_id, graph}` and delete it with
+`remove_animation_graph {graph_id}`. An animator with a graph cannot also set
+`initialClip`.
+
+A graph declares `parameters` (`float` with a default, `bool` with a default,
+or `trigger`) and one to eight `layers`. Each layer has an `initialState`,
+`states` and `transitions`. A state plays a `motion`: one `clip`, a `blend1d`
+over a float parameter with points in increasing `value` order, or a `blend2d`
+over two float parameters. `speed` scales the animator's `playbackRate`, and
+`loop` defaults to true. The first layer is the unmasked override base. Later
+layers can be `additive` and can set `weight` and a `mask` of prepared model
+node IDs. A mask covers each listed node and its descendants.
+
+A transition names `from` (a state ID, or `*` for any state), `to`,
+`conditions`, optional `exitTicks` and `durationTicks` for the crossfade. Every
+condition must hold. Float conditions use `gt`, `gte`, `lt`, `lte`, `eq` or
+`neq` with a `value`. Bool conditions use `true` or `false`. A trigger uses
+`set` and resets once a transition consumes it. `exitTicks` is how long the
+source state must run before the transition may fire. Each transition needs a
+condition or `exitTicks`. A crossfading layer does not start another
+transition. Transitions are checked in document order.
+
+Scripts set parameters with `setAnimParam {name, value}`. Pass `true` to fire
+a trigger. `playAnimation {clip}` on a graph entity switches the base layer
+directly to the state with that ID, or else to the first state that plays that
+clip alias, using `animator3d.transitionTicks`. Example locomotion: a `speed`
+float, a `move` state with `blend1d` points idle at 0, walk at 2 and run at 6,
+and a script that sends `setAnimParam` with the character's planar speed.
+
+Graph state (current state, entry tick, crossfade source and parameter values)
+is simulation state. It is saved in snapshots and replays exactly with
+`nodetool game simulate --verify-replay`. Render frames carry the resolved
+`animationPose` (clip weights per layer), and the renderer samples it at the
+interpolated tick. Blended clips share one normalized phase. The pose sampler
+blends node translation, rotation and scale. It does not blend morph targets.
 
 ### S: Scripting and gameplay
 
+#### Script time limits
+
+`maxTickMs` counts the CPU time of the thread running the script. The count
+starts just before the call, or before the source is evaluated when the call
+must compile it, and ends when its output is checked. A resident script
+compiles on its first call only. Time spent waiting for a processor does not
+count. The operating system updates CPU time in steps: one scheduler tick on
+Linux (1 to 10 ms) and about 16 ms on Windows. A call ends only when both its
+CPU time and its wall time reach the limit, so these steps cannot end it
+early. Browsers have no thread CPU clock, so there the limit counts wall time. The
+50 ms script budget for a whole tick, which includes context setup, and the
+100 ms limit for evaluating a source during preparation count wall time on
+every host. A script that loops forever still ends at its limit.
+
+#### Script parameters
+
+Declare a script's tunables as `params` on its script behavior instead of
+constants in the source. The inspector edits them and scripts read the values
+on `input.params`. Set them with `set_script_params {entity_id, scene_id?,
+index, params?, values?}`. `params` replaces the declarations and `null`
+removes them with their values. `values` merges stored values, and a `null`
+value returns one to its default. 2D games need schema 4. 3D games accept
+params on schema 3.
+
+```json
+{"op": "set_script_params", "entity_id": "player", "index": 0,
+ "params": {"speed": {"type": "number", "default": 3, "minimum": 0, "maximum": 10},
+            "target": {"type": "entity"}, "hit": {"type": "asset", "kind": "audio"}},
+ "values": {"speed": 5, "target": "goal"}}
+```
+
+Types are `number` (`minimum`, `maximum`, `integer`), `boolean`, `color`
+(`#rrggbb`), `enum` (`options`, default the first option), `entity`, `asset`
+(optional `kind`) and `vector` (`dimensions` 2 or 3). A behavior declares at
+most 32 params with identifier names. `input.params` holds the stored value,
+else the default. An `entity` or `asset` param without either is `null`.
+Validation rejects an entity reference outside the behavior's scene, a missing
+asset slot, an asset of the wrong `kind`, and in 3D an entity reference inside
+a prefab or an undeclared prefab asset. A behavior without `params` has no
+`input.params` key. Params count once per behavior definition toward the
+64 KiB script input limit.
+
+#### Lifecycle hooks and timers
+
+A script source may be an object of hooks instead of a function. It works in
+2D and 3D with no schema change.
+
+```js
+({
+  onStart(input) { every(30, "fire"); return { state: { shots: 0 } }; },
+  fire(input) { return { state: { shots: input.state.shots + 1 },
+    commands: [{ kind: "spawn", prefabId: "bolt" }] }; },
+  onTriggerEnter(input, contact) { return { commands: [{ kind: "emit", event: "hit:" + contact.otherId }] }; },
+  onDestroy(input) { return { commands: [{ kind: "emit", event: "gone" }] }; }
+})
+```
+
+Hooks receive the same `input` as a function script and return
+`{state?, commands?}` or nothing. Each hook sees the state returned by the
+one before it. Within a tick they run in this order:
+
+1. `onStart`, on the behavior's first call.
+2. `onSceneEnter`, on the first tick of the scene.
+3. `onTriggerEnter`, `onTriggerExit` and `onContact`, once per contact of
+   the entity in the previous tick's events, in event order. A contact where
+   either collider is a sensor is a trigger. Triggers fire on `enter` and
+   `exit`. `onContact` receives every phase of a solid contact. The second
+   argument is `{otherId, phase, sensor}`.
+4. Due timers, in the order they were scheduled.
+5. `onFixedUpdate` or `onUpdate`. They are aliases. Define one of them.
+
+`onDestroy` runs alone in the tick after the entity despawns. It may return
+only `hud`, `emit`, `spawn`, `despawn` and `sceneTransition` commands. A scene
+transition discards behavior state without calling `onDestroy`.
+
+`after(ticks, name)` calls the object's method `name` once, `ticks` ticks
+later. `every(ticks, name)` calls it every `ticks` ticks. `ticks` is an
+integer from 1 to 1000000, `name` must be a method that is not a hook, and a
+behavior holds at most 32 timers. Scheduling an existing name replaces that
+timer. Timers live in the behavior's snapshot state, so they replay from any
+snapshot. Session preparation rejects an unknown `on*` key, a hook that is not
+a function, and an object that defines both `onUpdate` and `onFixedUpdate`.
+Lifecycle objects run in a fresh context each call, like any function the
+persistence check does not accept.
+
 ### U: Input and game UI
+
+Action and axis names come from `inputActions` and `inputAxes`. The optional
+document-level `inputBindings` maps each name to physical controls. Set it with
+`set_game {input_bindings}`, or pass `input_bindings: null` to return to the
+defaults. The op replaces the whole map:
+
+- `actions`: `{ action: [binding] }`. A binding is `{kind: "key", code}` with a
+  `KeyboardEvent.code` such as `KeyJ`, `{kind: "keyValue", key}` with a
+  `KeyboardEvent.key` such as `z` or `+` (letter case is ignored, and a key
+  that a `key` binding names by code does not also match), `{kind: "mouseButton", button}`,
+  `{kind: "gamepadButton", button}` in the standard gamepad layout,
+  `{kind: "gamepadAxis", axis, direction: "negative"|"positive", threshold?}`,
+  `{kind: "touchButton", label?}` or `{kind: "touchStick", direction}`.
+- `axes` (3D only): `{ axis: [binding] }` with `{kind: "keys", negative, positive}`
+  code lists, `{kind: "gamepadAxis", axis, deadZone?, invert?}`,
+  `{kind: "gamepadButtons", negative, positive}` or
+  `{kind: "touchStick", axis: "x"|"y", invert?}`. The binding with the largest
+  magnitude sets the value.
+- `look` (3D only): a list of `{kind: "mouse", sensitivity?, invertY?}`,
+  `{kind: "gamepadStick", xAxis?, yAxis?, deadZone?, speed?, invertY?}` and
+  `{kind: "touchDrag", sensitivity?, invertY?}`.
+
+A listed action or axis uses exactly the listed bindings, and an empty list
+unbinds it. An unlisted one keeps the defaults generated from its name. In 2D,
+arrows and WASD are `left`/`right`/`up`/`down` and Space is `space`, by key
+position. Any other action is a `keyValue` binding of its name, so it follows the
+player's keyboard layout. In 3D, `fire` is the left mouse button and F,
+`jump` is Space, `respawn` is R, and `moveX`/`moveZ` read WASD and arrows.
+Defaults add the gamepad d-pad and left stick for directions and movement,
+button 0 for `jump`/`space`, the right trigger for `fire`, the right stick for
+look, and touch buttons for every other action. Binding an undeclared action or
+axis is a validation error.
+
+Bindings only turn physical input into input frames. They never enter the
+simulation, so playtests, replays and snapshots use the same `pressed`,
+`justPressed`, `axes` and `look` frames as before. Gamepads are polled once per
+tick. The 3D players capture the mouse for look on click. On a touch screen
+both standalone players show a stick when an action or axis has a touch stick
+binding and one button per action with a touch button binding. The 3D player
+also turns the camera by dragging on the right half. Input pressed while play is
+paused is dropped. Player-facing rebinding is not stored yet.
 
 ### G: Navigation and AI
 
 ### E: Editor tools
 
-Both editors provide hierarchy, inspector, revisions, scripts and assistant
-panels. Opening another entity keeps an already open script anchored to its
+Both editors provide hierarchy, inspector, revisions, scripts, assets and
+assistant panels. Opening another entity keeps an already open script anchored to its
 original entity and behavior.
 
 Use **Run 10 s** to diagnose the captured draft in an independent session. The
@@ -525,6 +817,15 @@ draft cancels that diagnostic. For a script error, **Replay to tick** rewinds
 the active play session's recorded history. It does not replay the independent
 diagnostic session. Use **Ask the assistant** to pass the script context to
 the game assistant.
+
+The **Console** panel in the bottom dock lists play-session errors, script
+errors with their tick, failures from **Run 10 s**, and validation errors
+for the current draft. Identical consecutive lines collapse into one line with
+a repeat count and a tick range. Filter by level or by text, which also
+matches entity names. Select an entity link to select that entity in its
+scene. **Ask the assistant** on a line writes that line into the assistant
+input without sending it. Console lines are editor data: they are not saved
+with the game and never enter a snapshot. Scripts cannot write log lines yet.
 
 Both editors read their commands and default shortcuts from one registry.
 Press Ctrl+K (Cmd+K on macOS) to open the command palette. It lists editor
@@ -537,6 +838,63 @@ Shortcuts are saved per user in the browser.
 
 ### C: Content and assets
 
+Call `browse_native_game_assets {game_id}` before replacing or regenerating
+art. It returns every bound asset with `usedBy` (the entities, scenes, prefabs
+and game settings that reference it), prefabs with their instances, scenes with
+the assets they use, the staged candidates under the game's `assets/` folder,
+and `slot_requests`. A slot request is the template slot's prompt and image
+preparation, or the prompt recorded with the asset now bound. Use it to
+regenerate in the same style. Narrow the lists with `query` and `kind`.
+
+`staleSiblings` lists `<slot>.frame.N` and `<slot>.tile.M` bindings that still
+point at the slot's previous bytes. Rebind them with `bind_asset` operations
+before publishing, or the sheet's animations keep drawing the old art.
+
+To bind a staged candidate, call `browse_native_game_assets {game_id, digest,
+slot}`. Pass the returned `binding` and `draft_updated_at` to
+`install_native_game_asset`. A recorded binding keeps its frame and
+preparation metadata. An unrecorded image or audio file gets a binding derived
+from its bytes with the slot's pivot and sampling. A 3D model is prepared
+from its GLB. An unrecorded collider cannot be derived and must be restaged.
+
+The editor's **Assets** panel in the bottom dock shows the same catalog with
+thumbnails: images from the stored thumbnail, audio as a waveform, and models
+rendered by the game renderer. Its search and type filter match the
+capability's `query` and `kind`. **Generate** and **Regenerate** run
+`generate_game_asset` for image, speech and music slots with an editable
+prompt, record the prompt beside the staged file, and install the result with
+its frame bindings. The panel stages with `install: false` and binds onto the
+draft that is current when the bytes are ready, so edits saved while it runs
+stay. **Use** binds an older candidate in place and moves the slot's frame and
+tile bindings onto it. Sound-effect, model and collider slots
+need a provider node, so the panel drafts the request in the assistant
+instead. Candidates staged by `StageGameAssets` and by the panel carry a record
+at `<source_root>/candidates/<digest>.json`. Files staged by
+`generate_game_asset` itself have none and list as unrecorded.
+
 ### D: Performance and delivery
+
+#### Distance culling and frame budgets (3D)
+
+Both are presentation only. They never change simulation, snapshots or replay.
+
+- `set_performance {performance}` replaces document `performance`. `null`
+  removes it. `cullLayers` maps a layer name to `{maxDistance}` (at most 32
+  layers). `budgets` sets `drawCalls`, `triangles`, `particles` and `voices`.
+- `update_entity` with `set: {renderCulling: {layer?, maxDistance?}}` hides
+  that entity and its children when the game camera is farther than the
+  distance from the entity's origin. The nearest setting in the parent chain
+  wins, and an entity's own `maxDistance` wins over its layer's. A layer must
+  be declared, or validation reports `missing_cull_layer`.
+- Distance is measured to the entity origin, not to its nearest surface. Cull
+  props and small decoration. Do not cull large scenery such as terrain or
+  buildings, because they disappear while the camera is still close to their
+  edges. Never cull the player or anything the player must see to win. The
+  editor camera shows every entity.
+- Budgets left out use the player defaults: 1000 draw calls, 1,000,000
+  triangles, 4096 particles and 24 voices. The standalone player warns in the
+  browser console once each time the draw call, triangle, particle or voice
+  budget is exceeded. Only the 2D standalone player counts particles, and it
+  uses the default particle budget because 2D documents have no `performance`. `nodetool game capture` reports `budget.overruns` for a 3D frame.
 
 ### M: Milestone games

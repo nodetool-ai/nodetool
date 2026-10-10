@@ -12,10 +12,11 @@
  * the motion came from and leaves it alone (I4).
  */
 
-import React, { memo, useCallback, useRef } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import {
   ANIMATED_PROPERTIES,
+  normalizeCustomCurves,
   parseEasing,
   type CustomClipAnimation
 } from "@nodetool-ai/timeline";
@@ -59,6 +60,8 @@ export function makeCustomAnimation(): CustomClipAnimation {
   return { curves: [{ property: "opacity", keyframes: DEFAULT_KEYFRAMES }] };
 }
 
+const EMPTY_CURVES: CustomCurve[] = [];
+
 const SCRUB_T = { step: 0.01, min: 0, max: 1 };
 const SCRUB_VALUE = { step: 0.01 };
 
@@ -76,6 +79,8 @@ interface KeyframeRowProps {
    * source-anchored keyframe's placement is a follow-up op.
    */
   sourceAnchored: boolean;
+  /** False for a curve's only keyframe: a curve needs at least one. */
+  canRemove: boolean;
   onPatch: (
     curveIndex: number,
     keyIndex: number,
@@ -89,7 +94,16 @@ interface KeyframeRowProps {
  * scrubbing one row leaves every other row's props identical.
  */
 const KeyframeRow: React.FC<KeyframeRowProps> = memo(
-  ({ keyframe, curveIndex, keyIndex, name, sourceAnchored, onPatch, onRemove }) => {
+  ({
+    keyframe,
+    curveIndex,
+    keyIndex,
+    name,
+    sourceAnchored,
+    canRemove,
+    onPatch,
+    onRemove
+  }) => {
     const handleTimeCommit = useCallback(
       (raw: string) => {
         const t = Number(raw);
@@ -158,6 +172,7 @@ const KeyframeRow: React.FC<KeyframeRowProps> = memo(
           />
           <DeleteButton
             onClick={handleRemove}
+            disabled={!canRemove}
             tooltip={`Remove ${name}`}
             ariaLabel={`Remove ${name}`}
             iconVariant="clear"
@@ -247,6 +262,7 @@ const CurveEditor: React.FC<CurveEditorProps> = memo(
             keyIndex={keyIndex}
             name={`${curveLabel} keyframe ${keyIndex + 1}`}
             sourceAnchored={sourceAnchored}
+            canRemove={curve.keyframes.length > 1}
             onPatch={onPatchKeyframe}
             onRemove={onRemoveKeyframe}
           />
@@ -281,7 +297,7 @@ interface ClipCustomCurvesProps {
 
 export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
   ({ custom, labelPrefix, sourceAnchored, onChange }) => {
-    const curves = custom?.curves ?? [];
+    const curves = custom?.curves ?? EMPTY_CURVES;
     const bakedFromCode = custom?.code !== undefined;
     const bakedFrom = custom?.bakedFrom;
 
@@ -321,11 +337,22 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
       [patchCurve]
     );
 
+    const nextProperty = ANIMATED_PROPERTIES.find(
+      (property) => !curves.some((curve) => curve.property === property)
+    );
+    const curvesError = useMemo(() => {
+      if (curves.length === 0) return null;
+      const result = normalizeCustomCurves(curves, custom?.timeBase);
+      return result.ok ? null : result.error;
+    }, [curves, custom?.timeBase]);
+
     const addCurve = useCallback(() => {
-      setCurves([
-        ...(customRef.current?.curves ?? []),
-        { property: "opacity", keyframes: DEFAULT_KEYFRAMES }
-      ]);
+      const current = customRef.current?.curves ?? [];
+      const property = ANIMATED_PROPERTIES.find(
+        (candidate) => !current.some((curve) => curve.property === candidate)
+      );
+      if (!property) return;
+      setCurves([...current, { property, keyframes: DEFAULT_KEYFRAMES }]);
     }, [setCurves]);
 
     const removeCurve = useCallback(
@@ -355,7 +382,7 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
     const removeKeyframe = useCallback(
       (curveIndex: number, keyIndex: number) => {
         const curve = customRef.current?.curves[curveIndex];
-        if (!curve) return;
+        if (!curve || curve.keyframes.length <= 1) return;
         patchCurve(curveIndex, {
           keyframes: curve.keyframes.filter((_, i) => i !== keyIndex)
         });
@@ -402,11 +429,17 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
             : "Columns are time (0..1 across the animation), value, and easing: "}
           {EASING_HINT}
         </Caption>
+        {curvesError && (
+          <Caption color="error" role="alert">
+            {`These curves will not play: ${curvesError}.`}
+          </Caption>
+        )}
         <Button
           size="small"
           variant="outlined"
           startIcon={<AddOutlinedIcon />}
           onClick={addCurve}
+          disabled={nextProperty === undefined}
         >
           Add curve
         </Button>

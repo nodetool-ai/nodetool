@@ -158,7 +158,7 @@ const styles = (theme: Theme) =>
     "& .position-text": {
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
-      fontFamily: "monospace",
+      fontFamily: "var(--fontFamily2)",
       marginTop: getSpacingPx(SPACING.md)
     },
     "& .namespace-button": {

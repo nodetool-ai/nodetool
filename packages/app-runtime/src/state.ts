@@ -159,6 +159,13 @@ export type AppStateEvent =
       invocation: InvocationState;
       outputKeys: ReadonlyArray<string>;
       variableKeys?: ReadonlyArray<string>;
+      /**
+       * A run queued behind a live one: registered so it reads as running,
+       * but it leaves the operation's slots to its predecessor. A second
+       * `runStarted` for the same invocation, once the predecessor settles,
+       * claims them.
+       */
+      queued?: boolean;
     }
   | {
       type: "invocationAlias";
@@ -371,6 +378,15 @@ export const applyEvent = (
       return { ...state, view: { ...state.view, [event.key]: event.value } };
 
     case "runStarted": {
+      if (event.queued) {
+        return {
+          ...state,
+          invocations: {
+            ...state.invocations,
+            [event.invocation.id]: event.invocation
+          }
+        };
+      }
       const outputs = { ...state.outputs };
       const variables = { ...state.variables };
       const variableWriters = { ...state.variableWriters };

@@ -27,6 +27,7 @@ import {
   useWorkflowManagerStore
 } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import type { WorkflowManagerState } from "../../stores/WorkflowManagerStore";
 
 /** A workflow that has no `settings.setup` is finished, not mid-flow. */
 export const useWorkflowSetupStage = (workflowId: string): WorkflowSetupStage =>
@@ -43,12 +44,25 @@ export const useWorkflowSetupDocument = (
     (state) => readWorkflowSetup(state.getWorkflow(workflowId)?.settings) ?? null
   );
 
+/** How a setup write is saved. */
+export interface SetupSaveOptions {
+  /**
+   * True when the save carries a graph change worth a version row, such as
+   * the nodes a build placed. Setup answers alone change no graph, so they
+   * add none. Defaults to false for the setup writer.
+   */
+  snapshot?: boolean;
+}
+
 export interface WorkflowSetupWriter {
   /**
    * Merge a patch into `settings.setup` and persist it now. Resolves once a
    * save that includes the patch has finished, and rejects when it fails.
    */
-  setSetup: (patch: Partial<WorkflowSetup>) => Promise<void>;
+  setSetup: (
+    patch: Partial<WorkflowSetup>,
+    options?: SetupSaveOptions
+  ) => Promise<void>;
   /**
    * Merge a typed edit into `settings.setup` at once and persist it after the
    * typing pauses. A failed save is reported as a notification, because no
@@ -72,7 +86,9 @@ export const reportSetupSaveError = (cause: unknown): void => {
 };
 
 interface SaveQueue {
-  save: () => Promise<void>;
+  save: (snapshot: boolean) => Promise<void>;
+  /** Whether a writer waiting on the next save asked for a version row. */
+  snapshot: boolean;
   /** The save on the wire, if any. */
   inFlight: Promise<void> | null;
   /** The save waiting for `inFlight` to finish. It reads state when it starts. */
@@ -88,7 +104,10 @@ interface SaveQueue {
  */
 const saveQueues = new Map<string, SaveQueue>();
 
-const queueFor = (workflowId: string, save: () => Promise<void>): SaveQueue => {
+const queueFor = (
+  workflowId: string,
+  save: (snapshot: boolean) => Promise<void>
+): SaveQueue => {
   const existing = saveQueues.get(workflowId);
   if (existing) {
     existing.save = save;
@@ -96,6 +115,7 @@ const queueFor = (workflowId: string, save: () => Promise<void>): SaveQueue => {
   }
   const created: SaveQueue = {
     save,
+    snapshot: false,
     inFlight: null,
     queued: null,
     timer: null
@@ -118,13 +138,19 @@ const releaseIfIdle = (workflowId: string, queue: SaveQueue): void => {
 /**
  * Save what memory holds, after any save already on the wire. Changes made
  * before the queued save starts ride along with it, so a burst of writes
- * costs at most one save behind the current one.
+ * costs at most one save behind the current one. The save adds a version
+ * row when any writer it carries asked for one.
  */
-const flushQueue = (workflowId: string, queue: SaveQueue): Promise<void> => {
+const flushQueue = (
+  workflowId: string,
+  queue: SaveQueue,
+  snapshot: boolean
+): Promise<void> => {
   if (queue.timer !== null) {
     clearTimeout(queue.timer);
     queue.timer = null;
   }
+  queue.snapshot = queue.snapshot || snapshot;
   if (queue.queued) {
     return queue.queued;
   }
@@ -133,7 +159,9 @@ const flushQueue = (workflowId: string, queue: SaveQueue): Promise<void> => {
     .catch(() => undefined)
     .then(async () => {
       queue.queued = null;
-      const saving = queue.save();
+      const withSnapshot = queue.snapshot;
+      queue.snapshot = false;
+      const saving = queue.save(withSnapshot);
       queue.inFlight = saving;
       try {
         await saving;
@@ -147,6 +175,53 @@ const flushQueue = (workflowId: string, queue: SaveQueue): Promise<void> => {
   queue.queued = queued;
   return queued;
 };
+
+/** The store calls a workflow save needs. */
+export type WorkflowSaveState = Pick<
+  WorkflowManagerState,
+  "getWorkflow" | "getNodeStore" | "saveWorkflow"
+>;
+
+/**
+ * Save the workflow as it is when the save starts. The row's graph can be
+ * behind the canvas — the build places nodes and then writes stage `done` — so
+ * save what the editor holds when there is one, and the stored graph when
+ * there is not.
+ */
+const saveCurrentWorkflow = async (
+  state: WorkflowSaveState,
+  workflowId: string,
+  snapshot: boolean
+): Promise<void> => {
+  const workflow =
+    state.getNodeStore(workflowId)?.getState().getWorkflow() ??
+    state.getWorkflow(workflowId);
+  if (!workflow) {
+    return;
+  }
+  await state.saveWorkflow(workflow, { snapshot });
+};
+
+/**
+ * Save the workflow through its setup save queue, after any save already on
+ * the wire. Writers outside the flow (the agent's setup tools, a file import)
+ * use this, so their save does not race a flow save with the same
+ * `expected_updated_at` and fail with a concurrency conflict. It adds a
+ * version row unless `snapshot` is false, which a writer of setup answers
+ * alone passes.
+ */
+export const queueWorkflowSave = (
+  state: WorkflowSaveState,
+  workflowId: string,
+  options: SetupSaveOptions = {}
+): Promise<void> =>
+  flushQueue(
+    workflowId,
+    queueFor(workflowId, (snapshot) =>
+      saveCurrentWorkflow(state, workflowId, snapshot)
+    ),
+    options.snapshot ?? true
+  );
 
 /**
  * Write setup answers back onto the workflow.
@@ -167,19 +242,11 @@ export const useWorkflowSetupWriter = (
 
   // The save reads the workflow when it starts, not when it was asked for, so
   // a queued save carries every change made while the previous one was out.
-  const save = useCallback(async () => {
-    const state = store.getState();
-    // The row's graph can be behind the canvas — the build places nodes and
-    // then writes stage `done` — so save what the editor holds when there is
-    // one, and the stored graph when there is not.
-    const workflow =
-      state.getNodeStore(workflowId)?.getState().getWorkflow() ??
-      state.getWorkflow(workflowId);
-    if (!workflow) {
-      return;
-    }
-    await state.saveWorkflow(workflow);
-  }, [store, workflowId]);
+  const save = useCallback(
+    (snapshot: boolean) =>
+      saveCurrentWorkflow(store.getState(), workflowId, snapshot),
+    [store, workflowId]
+  );
 
   const apply = useCallback(
     (patch: Partial<WorkflowSetup>) => {
@@ -197,9 +264,13 @@ export const useWorkflowSetupWriter = (
   );
 
   const setSetup = useCallback(
-    async (patch: Partial<WorkflowSetup>) => {
+    async (patch: Partial<WorkflowSetup>, options?: SetupSaveOptions) => {
       apply(patch);
-      await flushQueue(workflowId, queueFor(workflowId, save));
+      await flushQueue(
+        workflowId,
+        queueFor(workflowId, save),
+        options?.snapshot ?? false
+      );
     },
     [apply, save, workflowId]
   );
@@ -218,7 +289,7 @@ export const useWorkflowSetupWriter = (
       }
       queue.timer = setTimeout(() => {
         queue.timer = null;
-        flushQueue(workflowId, queue).catch(reportSetupSaveError);
+        flushQueue(workflowId, queue, false).catch(reportSetupSaveError);
       }, SETUP_EDIT_SAVE_DELAY_MS);
     },
     [apply, save, workflowId]
@@ -230,7 +301,7 @@ export const useWorkflowSetupWriter = (
     () => () => {
       const queue = saveQueues.get(workflowId);
       if (queue?.timer != null) {
-        flushQueue(workflowId, queue).catch(reportSetupSaveError);
+        flushQueue(workflowId, queue, false).catch(reportSetupSaveError);
       }
     },
     [workflowId]

@@ -3,13 +3,12 @@ import type { GameDocument, GameInputFrame, GameRenderFrame, GameSnapshot } from
 import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
-import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
-import { FixedTickClock, type GameRenderer } from "@nodetool-ai/game-renderer";
+import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
+import { browserGamepads, FixedTickClock, GameInput, GameParticles2D, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
 import { GameReplayHistory } from "./gameReplayHistory";
-import { gameInputFrame } from "./gameInputFrame";
 
 interface PlayState { tick: number; score: number; won: boolean; sceneId: string }
 export interface ScriptFailure { message: string; tick: number; entityId: string | null }
@@ -39,11 +38,11 @@ interface UseGamePlaySessionOptions {
 export function useGamePlaySession({ refId, active, document, editorSceneId, name }: UseGamePlaySessionOptions) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<GameSession | null>(null);
+  const particlesRef = useRef<GameParticles2D | null>(null);
   const sessionFailedRef = useRef(false);
   const rendererRef = useRef<GameRenderer | null>(null);
   const sessionGenerationRef = useRef(0);
-  const keysRef = useRef(new Map<string, string>());
-  const newlyPressedRef = useRef(new Set<string>());
+  const inputRef = useRef(new GameInput());
   const inputHistoryRef = useRef(new GameReplayHistory<GameInputFrame, GameSnapshot>());
   const lastTickRef = useRef(0);
   const lastPresentationRef = useRef<{ state: PlayState; frame: GameRenderFrame } | null>(null);
@@ -88,7 +87,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const width = Math.round(current.width * current.pixelsPerUnit);
     const height = Math.round(current.height * current.pixelsPerUnit);
     if (renderer.canvas.width !== width || renderer.canvas.height !== height) renderer.resize(width, height);
-    await renderer.render(current, interpolation);
+    audioRef.current?.updateSpatial(gameAudioSpatialView2D(current, interpolation));
+    await renderer.render(current, interpolation, particlesRef.current ?? undefined);
     if (renderer.capabilities.fallbackReason) {
       setBackend("Canvas 2D");
       setError("GPU effects omitted after WebGPU failure");
@@ -134,6 +134,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const disposeSession = useCallback(() => {
     const current = sessionRef.current;
     sessionRef.current = null;
+    particlesRef.current = null;
     current?.dispose();
   }, []);
 
@@ -143,6 +144,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (playDocument) inputHistoryRef.current.record(input, () => session.snapshot());
     try {
       const result = session.step(input);
+      particlesRef.current?.tick(result.frame, session.takePresentationEvents());
       result.events.forEach((event) => audioRef.current?.handle(event));
       const state = session.snapshot();
       lastTickRef.current = state.tick;
@@ -175,8 +177,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (!rendererRef.current) setBackend("Initializing");
     setError(null);
     setScriptError(null);
-    const keys = keysRef.current;
-    const newlyPressed = newlyPressedRef.current;
+    const input = inputRef.current;
     const audio = audioRef.current ?? new GameAudioPlayer({
       assets: sessionDocument.assets,
       tickRate: sessionDocument.tickRate,
@@ -217,6 +218,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       if (!createdSession) return;
       if (cancelled || sessionGenerationRef.current !== generation) { createdSession.dispose(); return; }
       sessionRef.current = createdSession;
+      particlesRef.current = new GameParticles2D(sessionDocument.tickRate);
       sessionFailedRef.current = false;
       lastTickRef.current = createdSession.snapshot().tick;
       audio.reset(createdSession.snapshot());
@@ -244,8 +246,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     return () => {
       cancelled = true;
       sessionGenerationRef.current += 1;
-      keys.clear();
-      newlyPressed.clear();
+      input.release();
       disposeSession();
 
     };
@@ -275,8 +276,9 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   useEffect(() => {
     if (!active || !playing) audioRef.current?.pause();
     else audioRef.current?.resume();
+    // Paused input is dropped, not queued for the next tick (F23).
+    inputRef.current.setEnabled(active && playing);
     if (!active || !playing) {
-      keysRef.current.clear(); newlyPressedRef.current.clear();
       const presentation = lastPresentationRef.current;
       if (playDocument && presentation) {
         setPlayState(presentation.state);
@@ -291,8 +293,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const clock = new FixedTickClock(sessionDocument.tickRate);
     const animate = (now: number) => {
       clock.advance(now, () => {
-        step(gameInputFrame(keysRef.current, newlyPressedRef.current, sessionDocument));
-        newlyPressedRef.current.clear();
+        inputRef.current.pollGamepads(browserGamepads());
+        step(inputRef.current.sample2D(sessionDocument));
       });
       request = requestAnimationFrame(animate);
     };
@@ -304,8 +306,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
 
   const beginPlay = () => {
     if (playDocument && sessionFailedRef.current) { return; }
-    keysRef.current.clear();
-    newlyPressedRef.current.clear();
+    inputRef.current.release();
     if (!document) return;
     if (!playing && !playDocument) {
       inputHistoryRef.current.clear();
@@ -343,6 +344,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       setScriptError(null);
       disposeSession();
       sessionRef.current = restored;
+      particlesRef.current = new GameParticles2D(sessionDocument.tickRate);
       sessionFailedRef.current = false;
       audioRef.current?.reset(restored.snapshot());
       showCurrentFrame();
@@ -361,6 +363,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       catch (cause) { replay.dispose(); throw cause; }
       disposeSession();
       sessionRef.current = replay;
+      particlesRef.current = new GameParticles2D(playDocument.tickRate);
       sessionFailedRef.current = false;
       audioRef.current?.reset(replay.snapshot());
       showCurrentFrame();
@@ -373,7 +376,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     catch { return null; }
   })();
 
-  return { canvasRef, keysRef, newlyPressedRef, playing, playDocument, playState, backend, error, setError,
+  return { canvasRef, inputRef, playing, playDocument, playState, backend, error, setError,
     scriptError, setScriptError, frame, showCurrentFrame, onViewportAspect, onCamera, resetCamera,
     step, beginPlay, stop, save, load, replayBeforeError, runtimeEntities };
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiService } from '../services/api';
+import { webSocketService } from '../services/WebSocketService';
 import {
   diagnoseServer,
   type ServerDiagnosticStatus,
@@ -21,6 +23,10 @@ import {
 import { queryClient } from '../queryClient';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
+import { FONT_SIZE, FONT_WEIGHT, MIN_TOUCH_TARGET, RADIUS, SPACING } from '../utils/tokens';
+
+const SAVED_INDICATOR_MS = 2000;
+const STATUS_RESET_MS = 3000;
 
 type ConnectionStatus = 'idle' | 'testing' | ServerDiagnosticStatus;
 
@@ -31,6 +37,20 @@ function isValidUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Point the app at a new server. Cached queries and the realtime socket belong
+ * to the old host, so both are dropped; the socket reconnects to the new host
+ * on its next use.
+ */
+async function switchApiHost(host: string): Promise<void> {
+  const previous = apiService.getApiHost();
+  await apiService.saveApiHost(host);
+  if (host !== previous) {
+    webSocketService.disconnect();
+  }
+  queryClient.clear();
 }
 
 function connectionStatusMessage(status: ServerDiagnosticStatus): string {
@@ -55,6 +75,9 @@ export default function SettingsScreen() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   const [savedIndicator, setSavedIndicator] = useState(false);
   const { colors, shadows, mode, setTheme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const user = useAuthStore((s) => s.user);
   const authState = useAuthStore((s) => s.state);
   const signOut = useAuthStore((s) => s.signOut);
@@ -62,12 +85,12 @@ export default function SettingsScreen() {
 
   const handleSignOut = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      'Sign out?',
+      'You will need to sign in again to use this server.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: 'Sign out',
           style: 'destructive',
           onPress: async () => {
             await signOut();
@@ -82,6 +105,26 @@ export default function SettingsScreen() {
     loadSettings();
   }, []);
 
+  // Pending indicator resets must not fire into an unmounted screen.
+  useEffect(
+    () => () => {
+      if (savedTimerRef.current) {
+        clearTimeout(savedTimerRef.current);
+      }
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
+      }
+    },
+    []
+  );
+
+  const resetStatusLater = () => {
+    if (statusTimerRef.current) {
+      clearTimeout(statusTimerRef.current);
+    }
+    statusTimerRef.current = setTimeout(() => setConnectionStatus('idle'), STATUS_RESET_MS);
+  };
+
   const loadSettings = async () => {
     try {
       setIsLoading(true);
@@ -89,7 +132,7 @@ export default function SettingsScreen() {
       setApiHost(host);
     } catch (error) {
       console.error('Failed to load settings:', error);
-      Alert.alert('Error', 'Failed to load settings');
+      Alert.alert('Error', 'Could not load settings.');
     } finally {
       setIsLoading(false);
     }
@@ -97,7 +140,10 @@ export default function SettingsScreen() {
 
   const showSavedIndicator = () => {
     setSavedIndicator(true);
-    setTimeout(() => setSavedIndicator(false), 2000);
+    if (savedTimerRef.current) {
+      clearTimeout(savedTimerRef.current);
+    }
+    savedTimerRef.current = setTimeout(() => setSavedIndicator(false), SAVED_INDICATOR_MS);
   };
 
   const handleSave = async () => {
@@ -105,24 +151,23 @@ export default function SettingsScreen() {
     const trimmed = apiHost.trim();
 
     if (!trimmed) {
-      Alert.alert('Error', 'Please enter a valid API host');
+      Alert.alert('Error', 'Enter the address of your NodeTool server.');
       return;
     }
 
     if (!isValidUrl(trimmed)) {
-      Alert.alert('Invalid URL', 'Please enter a valid URL starting with http:// or https://');
+      Alert.alert('Invalid address', 'Enter an address that starts with http:// or https://.');
       return;
     }
 
     try {
       setIsSaving(true);
-      await apiService.saveApiHost(trimmed);
-      queryClient.clear();
+      await switchApiHost(trimmed);
       setApiHost(trimmed);
       showSavedIndicator();
     } catch (error) {
       console.error('Failed to save settings:', error);
-      Alert.alert('Error', 'Failed to save API host');
+      Alert.alert('Error', 'Could not save the server address.');
     } finally {
       setIsSaving(false);
     }
@@ -133,12 +178,12 @@ export default function SettingsScreen() {
     const trimmed = apiHost.trim();
 
     if (!trimmed) {
-      Alert.alert('Error', 'Please enter a valid API host');
+      Alert.alert('Error', 'Enter the address of your NodeTool server.');
       return;
     }
 
     if (!isValidUrl(trimmed)) {
-      Alert.alert('Invalid URL', 'Please enter a valid URL starting with http:// or https://');
+      Alert.alert('Invalid address', 'Enter an address that starts with http:// or https://.');
       return;
     }
 
@@ -148,25 +193,24 @@ export default function SettingsScreen() {
 
       if (result.status === 'ready') {
         try {
-          await apiService.saveApiHost(trimmed);
-          queryClient.clear();
+          await switchApiHost(trimmed);
           setApiHost(trimmed);
         } catch (error: unknown) {
           console.error('Failed to save the tested server:', error);
-          Alert.alert('Server Ready', 'The server is ready, but its URL could not be saved.');
+          Alert.alert('Server ready', 'The server is ready, but its URL could not be saved.');
         }
       }
 
       setConnectionStatus(result.status);
       if (result.status !== 'ready') {
-        Alert.alert('Connection Failed', connectionStatusMessage(result.status));
+        Alert.alert('Connection failed', connectionStatusMessage(result.status));
       }
-      setTimeout(() => setConnectionStatus('idle'), 3000);
+      resetStatusLater();
     } catch (error: unknown) {
       console.error('Connection test failed:', error);
       setConnectionStatus('network-error');
-      Alert.alert('Connection Failed', 'The server check could not be completed.');
-      setTimeout(() => setConnectionStatus('idle'), 3000);
+      Alert.alert('Connection failed', 'The server check could not be completed.');
+      resetStatusLater();
     }
   };
 
@@ -182,6 +226,8 @@ export default function SettingsScreen() {
 
   const getTestButtonStyle = () => {
     switch (connectionStatus) {
+      case 'testing':
+        return { backgroundColor: colors.inputBg, borderColor: colors.borderLight };
       case 'ready':
         return { backgroundColor: colors.success + '15', borderColor: colors.success };
       case 'unauthorized':
@@ -191,118 +237,124 @@ export default function SettingsScreen() {
       case 'incompatible':
         return { backgroundColor: colors.error + '15', borderColor: colors.error };
       default:
-        return { backgroundColor: colors.cardBg, borderColor: colors.border };
+        return { backgroundColor: colors.primary, borderColor: colors.primary };
     }
   };
 
   const getTestButtonContent = () => {
     switch (connectionStatus) {
       case 'testing':
-        return <ActivityIndicator color={colors.text} />;
+        return <ActivityIndicator color={colors.textSecondary} />;
       case 'ready':
         return (
           <View style={styles.buttonContent}>
             <Ionicons name="checkmark-circle" size={18} color={colors.success} style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, { color: colors.success }]}>Server Ready & Saved</Text>
+            <Text style={[styles.buttonText, { color: colors.success }]}>Connected and saved</Text>
           </View>
         );
       case 'unauthorized':
         return (
           <View style={styles.buttonContent}>
             <Ionicons name="lock-closed" size={18} color={colors.warning} style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, { color: colors.warning }]}>Sign In Required</Text>
+            <Text style={[styles.buttonText, { color: colors.warning }]}>Sign-in required</Text>
           </View>
         );
       case 'timeout':
         return (
           <View style={styles.buttonContent}>
             <Ionicons name="time-outline" size={18} color={colors.warning} style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, { color: colors.warning }]}>Connection Timed Out</Text>
+            <Text style={[styles.buttonText, { color: colors.warning }]}>Timed out</Text>
           </View>
         );
       case 'incompatible':
         return (
           <View style={styles.buttonContent}>
             <Ionicons name="server-outline" size={18} color={colors.error} style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, { color: colors.error }]}>Incompatible Server</Text>
+            <Text style={[styles.buttonText, { color: colors.error }]}>Not a NodeTool server</Text>
           </View>
         );
       case 'network-error':
         return (
           <View style={styles.buttonContent}>
             <Ionicons name="close-circle" size={18} color={colors.error} style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, { color: colors.error }]}>Network Error</Text>
+            <Text style={[styles.buttonText, { color: colors.error }]}>Can't reach server</Text>
           </View>
         );
       default:
         return (
           <View style={styles.buttonContent}>
-            <Ionicons name="wifi-outline" size={18} color={colors.text} style={styles.buttonIcon} />
-            <Text style={[styles.buttonText, { color: colors.text }]}>Test & Save</Text>
+            <Ionicons name="pulse-outline" size={18} color={colors.textOnPrimary} style={styles.buttonIcon} />
+            <Text style={[styles.buttonText, { color: colors.textOnPrimary }]}>Test and save</Text>
           </View>
         );
     }
   };
 
+  const themeOptions = [
+    { value: 'light', label: 'Light', icon: 'sunny-outline' },
+    { value: 'dark', label: 'Dark', icon: 'moon-outline' },
+    { value: 'system', label: 'System', icon: 'phone-portrait-outline' },
+  ] as const;
+
+  const cardStyle = [styles.card, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }];
+  const sectionLabelStyle = [styles.sectionLabel, { color: colors.textSecondary }];
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + SPACING.xxl }]}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Theme Section */}
-      <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.cardIconWrap, { backgroundColor: colors.accentMuted }]}>
-            <Ionicons name="color-palette-outline" size={16} color={colors.accent} />
-          </View>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Appearance</Text>
-        </View>
-        <View style={[styles.themeSwitcher, { backgroundColor: colors.inputBg, borderColor: colors.borderLight }]}>
-          {(['light', 'dark', 'system'] as const).map((theme) => (
-            <TouchableOpacity
-              key={theme}
-              style={[
-                styles.themeOption,
-                mode === theme && [styles.themeOptionActive, shadows.small, { backgroundColor: colors.primary }]
-              ]}
-              onPress={() => setTheme(theme)}
-              accessibilityRole="button"
-              accessibilityLabel={`${theme} theme`}
-              accessibilityState={{ selected: mode === theme }}
-            >
-              <Ionicons
-                name={theme === 'light' ? 'sunny-outline' : theme === 'dark' ? 'moon-outline' : 'phone-portrait-outline'}
-                size={15}
-                color={mode === theme ? '#fff' : colors.textSecondary}
-                style={{ marginRight: 5 }}
-              />
-              <Text style={[styles.themeOptionText, { color: mode === theme ? '#fff' : colors.textSecondary }]}>
-                {theme.charAt(0).toUpperCase() + theme.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      <Text style={sectionLabelStyle} accessibilityRole="header">Appearance</Text>
+      <View style={cardStyle}>
+        <View style={[styles.themeSwitcher, { backgroundColor: colors.background }]}>
+          {themeOptions.map((option) => {
+            const selected = mode === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.themeOption,
+                  selected && [shadows.small, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }],
+                ]}
+                onPress={() => setTheme(option.value)}
+                accessibilityRole="button"
+                accessibilityLabel={`${option.value} theme`}
+                accessibilityState={{ selected }}
+              >
+                <Ionicons
+                  name={option.icon}
+                  size={15}
+                  color={selected ? colors.text : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    { color: selected ? colors.text : colors.textSecondary },
+                    selected && styles.themeOptionTextSelected,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
-      {/* Server Section */}
-      <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.cardIconWrap, { backgroundColor: colors.primaryMuted }]}>
-            <Ionicons name="server-outline" size={16} color={colors.primary} />
+      <View style={styles.sectionLabelRow}>
+        <Text style={sectionLabelStyle} accessibilityRole="header">Server</Text>
+        {savedIndicator && (
+          <View style={styles.savedBadge}>
+            <Ionicons name="checkmark-circle" size={13} color={colors.success} />
+            <Text style={[styles.savedText, { color: colors.success }]}>Saved</Text>
           </View>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Server Connection</Text>
-          {savedIndicator && (
-            <View style={[styles.savedBadge, { backgroundColor: colors.success + '15' }]}>
-              <Ionicons name="checkmark-circle" size={13} color={colors.success} />
-              <Text style={[styles.savedText, { color: colors.success }]}>Saved</Text>
-            </View>
-          )}
-        </View>
-
-        <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>API Host</Text>
+        )}
+      </View>
+      <View style={cardStyle}>
+        <Text style={[styles.inputLabel, { color: colors.text }]}>Server address</Text>
         <TextInput
-          style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.borderLight }]}
+          style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
           value={apiHost}
           onChangeText={(text: string) => {
             setApiHost(text);
@@ -317,116 +369,82 @@ export default function SettingsScreen() {
           onSubmitEditing={Keyboard.dismiss}
           accessibilityLabel="API host URL"
         />
-        <Text style={[styles.hint, { color: colors.textTertiary }]}>
-          The URL of your NodeTool server (e.g. http://your-ip:7777)
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>
+          The NodeTool server this phone talks to, for example http://your-ip:7777.
         </Text>
 
-        <View style={styles.buttonGroup}>
-          <TouchableOpacity
-            style={[styles.button, getTestButtonStyle(), { borderWidth: 1, flex: 1 }, connectionStatus === 'testing' && styles.buttonDisabled]}
-            onPress={handleTestConnection}
-            disabled={connectionStatus === 'testing' || isSaving}
-            accessibilityRole="button"
-            accessibilityLabel="Test connection and save"
-          >
-            {getTestButtonContent()}
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, getTestButtonStyle(), connectionStatus === 'testing' && styles.buttonDisabled]}
+          onPress={handleTestConnection}
+          disabled={connectionStatus === 'testing' || isSaving}
+          accessibilityRole="button"
+          accessibilityLabel="Test connection and save"
+        >
+          {getTestButtonContent()}
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.primary, flex: 1 }, isSaving && styles.buttonDisabled]}
-            onPress={handleSave}
-            disabled={connectionStatus === 'testing' || isSaving}
-            accessibilityRole="button"
-            accessibilityLabel="Save settings"
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={[styles.buttonText, { color: '#fff' }]}>Save Only</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={[styles.textButton, isSaving && styles.buttonDisabled]}
+          onPress={handleSave}
+          disabled={connectionStatus === 'testing' || isSaving}
+          accessibilityRole="button"
+          accessibilityLabel="Save settings"
+        >
+          {isSaving ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Text style={[styles.textButtonText, { color: colors.primary }]}>Save without testing</Text>
+          )}
+        </TouchableOpacity>
       </View>
 
-      {/* Account Section */}
       {user && (
-        <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconWrap, { backgroundColor: colors.primaryMuted }]}>
-              <Ionicons name="person-circle-outline" size={16} color={colors.primary} />
+        <>
+          <Text style={sectionLabelStyle} accessibilityRole="header">Account</Text>
+          <View style={[cardStyle, styles.listCard]}>
+            <View style={[styles.listRow, { borderBottomColor: colors.borderLight }]}>
+              <Text style={[styles.listLabel, { color: colors.text }]}>Signed in as</Text>
+              <Text
+                style={[styles.listValue, styles.listValueShrink, { color: colors.textSecondary }]}
+                numberOfLines={1}
+                ellipsizeMode="middle"
+              >
+                {user.email || user.id}
+              </Text>
             </View>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Account</Text>
-          </View>
-
-          <View style={[styles.aboutRow, styles.aboutRowLast]}>
-            <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>Signed in as</Text>
-            <Text
-              style={[styles.aboutValue, { color: colors.text, flexShrink: 1, marginLeft: 12 }]}
-              numberOfLines={1}
-              ellipsizeMode="middle"
+            <TouchableOpacity
+              style={[styles.listRow, styles.listRowLast, isSigningOut && styles.buttonDisabled]}
+              onPress={handleSignOut}
+              disabled={isSigningOut}
+              accessibilityRole="button"
+              accessibilityLabel="Sign out"
             >
-              {user.email || user.id}
-            </Text>
+              {isSigningOut ? (
+                <ActivityIndicator color={colors.error} />
+              ) : (
+                <Text style={[styles.listLabel, { color: colors.error }]}>Sign out</Text>
+              )}
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              {
-                backgroundColor: colors.error + '15',
-                borderColor: colors.error,
-                borderWidth: 1,
-                marginTop: 12,
-              },
-              isSigningOut && styles.buttonDisabled,
-            ]}
-            onPress={handleSignOut}
-            disabled={isSigningOut}
-            accessibilityRole="button"
-            accessibilityLabel="Sign out"
-          >
-            {isSigningOut ? (
-              <ActivityIndicator color={colors.error} />
-            ) : (
-              <View style={styles.buttonContent}>
-                <Ionicons
-                  name="log-out-outline"
-                  size={18}
-                  color={colors.error}
-                  style={styles.buttonIcon}
-                />
-                <Text style={[styles.buttonText, { color: colors.error }]}>Sign Out</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+        </>
       )}
 
-      {/* About Section */}
-      <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.cardIconWrap, { backgroundColor: colors.primaryMuted }]}>
-            <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
-          </View>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>About</Text>
-        </View>
-
-        <View style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}>
-          <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>Version</Text>
-          <View style={[styles.versionBadge, { backgroundColor: colors.primaryMuted }]}>
-            <Text style={[styles.aboutValue, { color: colors.primary }]}>{appVersion}</Text>
-          </View>
+      <Text style={sectionLabelStyle} accessibilityRole="header">About</Text>
+      <View style={[cardStyle, styles.listCard]}>
+        <View style={[styles.listRow, { borderBottomColor: colors.borderLight }]}>
+          <Text style={[styles.listLabel, { color: colors.text }]}>Version</Text>
+          <Text style={[styles.listValue, { color: colors.textSecondary }]}>{appVersion}</Text>
         </View>
         <TouchableOpacity
-          style={[styles.aboutRow, styles.aboutRowLast]}
+          style={[styles.listRow, styles.listRowLast]}
           onPress={() => Linking.openURL('https://github.com/nodetool-ai/nodetool')}
           accessibilityRole="link"
           accessibilityLabel="Open NodeTool on GitHub"
         >
-          <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>GitHub</Text>
-          <View style={styles.aboutLink}>
-            <Text style={[styles.aboutValue, { color: colors.primary }]}>nodetool-ai/nodetool</Text>
-            <Ionicons name="open-outline" size={13} color={colors.primary} style={{ marginLeft: 4 }} />
+          <Text style={[styles.listLabel, { color: colors.text }]}>Source code</Text>
+          <View style={styles.listLink}>
+            <Text style={[styles.listValue, { color: colors.textSecondary }]}>GitHub</Text>
+            <Ionicons name="open-outline" size={14} color={colors.textTertiary} />
           </View>
         </TouchableOpacity>
       </View>
@@ -444,72 +462,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xs,
+  },
+  // Grouped-list layout: a small caps label above each card, as in the
+  // platform settings apps.
+  sectionLabel: {
+    fontSize: FONT_SIZE.caption,
+    fontWeight: FONT_WEIGHT.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.sm,
+    marginLeft: SPACING.xs,
+  },
+  sectionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
   },
   card: {
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 14,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  cardIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    flex: 1,
-    letterSpacing: -0.2,
+  listCard: {
+    paddingVertical: 0,
   },
   savedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    gap: SPACING.xs,
+    marginBottom: SPACING.sm,
+    marginRight: SPACING.xs,
   },
   savedText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: FONT_SIZE.caption,
+    fontWeight: FONT_WEIGHT.semibold,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: FONT_SIZE.footnote,
+    fontWeight: FONT_WEIGHT.semibold,
+    marginBottom: SPACING.sm,
   },
   input: {
-    padding: 14,
-    borderRadius: 12,
+    minHeight: MIN_TOUCH_TARGET + SPACING.xs,
+    paddingHorizontal: SPACING.md + 2,
+    borderRadius: RADIUS.md,
     borderWidth: StyleSheet.hairlineWidth,
-    fontSize: 15,
+    fontSize: FONT_SIZE.body,
   },
   hint: {
-    fontSize: 13,
-    marginTop: 6,
-    marginBottom: 14,
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    gap: 10,
+    fontSize: FONT_SIZE.footnote,
+    lineHeight: 18,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   button: {
-    padding: 14,
-    borderRadius: 12,
+    minHeight: MIN_TOUCH_TARGET + SPACING.xs,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -519,58 +534,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonIcon: {
-    marginRight: 8,
+    marginRight: SPACING.sm,
   },
   buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: FONT_SIZE.body,
+    fontWeight: FONT_WEIGHT.semibold,
   },
-  aboutRow: {
+  textButton: {
+    minHeight: MIN_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.xs,
+    marginBottom: -SPACING.sm,
+  },
+  textButtonText: {
+    fontSize: FONT_SIZE.body,
+    fontWeight: FONT_WEIGHT.medium,
+  },
+  listRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    minHeight: MIN_TOUCH_TARGET + SPACING.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   // Rows carry a hairline separator; the last row in a card must not, or the
-  // divider floats above the card's bottom padding.
-  aboutRowLast: {
+  // divider sits on the card's bottom edge.
+  listRowLast: {
     borderBottomWidth: 0,
   },
-  aboutLabel: {
-    fontSize: 15,
+  listLabel: {
+    fontSize: FONT_SIZE.body,
   },
-  aboutValue: {
-    fontSize: 14,
-    fontWeight: '600',
+  listValue: {
+    fontSize: FONT_SIZE.body,
   },
-  aboutLink: {
+  listValueShrink: {
+    flexShrink: 1,
+    marginLeft: SPACING.md,
+  },
+  listLink: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  versionBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
+    gap: SPACING.xs,
   },
   themeSwitcher: {
     flexDirection: 'row',
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 4,
+    borderRadius: RADIUS.md,
+    padding: 3,
   },
   themeOption: {
     flex: 1,
     flexDirection: 'row',
-    paddingVertical: 10,
+    gap: SPACING.xs + 2,
+    minHeight: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 9,
-  },
-  themeOptionActive: {
+    borderRadius: RADIUS.sm + 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'transparent',
   },
   themeOptionText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: FONT_SIZE.footnote,
+    fontWeight: FONT_WEIGHT.medium,
+  },
+  themeOptionTextSelected: {
+    fontWeight: FONT_WEIGHT.semibold,
   },
 });

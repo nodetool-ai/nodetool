@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
@@ -25,7 +25,7 @@ interface EnumPropertyExtra {
   enum?: (string | number)[];
 }
 
-const EnumProperty: React.FC<PropertyProps<string>> = ({
+const EnumProperty: React.FC<PropertyProps<string | number>> = ({
   property,
   propertyIndex,
   value,
@@ -55,6 +55,16 @@ const EnumProperty: React.FC<PropertyProps<string>> = ({
     })) || [];
   }, [values]);
 
+  // Select works on strings. Map the picked option back to the declared value
+  // so an int enum such as [2, 4] keeps writing numbers.
+  const handleChange = useCallback(
+    (next: string) => {
+      const match = values?.find((val) => String(val) === next);
+      onChange(match ?? next);
+    },
+    [values, onChange]
+  );
+
   return (
     <div className="enum-property">
       <PropertyLabel
@@ -63,8 +73,8 @@ const EnumProperty: React.FC<PropertyProps<string>> = ({
         id={id}
       />
       <Select
-        value={value || ""}
-        onChange={onChange}
+        value={value === undefined || value === null ? "" : String(value)}
+        onChange={handleChange}
         options={options}
         label={property.name}
         placeholder="Select…"

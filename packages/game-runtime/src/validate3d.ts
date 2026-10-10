@@ -1,10 +1,13 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import {
-  gameDocument3D, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
+  gameDocument3D, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
-import { validateGame } from "./validate.js";
+import { gameScriptParamValueOf } from "@nodetool-ai/protocol";
+import { scriptParamReferenceIssues } from "./script-params.js";
+import { GAME_ENGINE_4_UNAVAILABLE, validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
+import { validateAnimationGraph3D, validateAnimatorGraph3D } from "./validate-animation-graph3d.js";
 
 export interface GameValidationResult3D {
   readonly valid: boolean;
@@ -45,6 +48,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
       const names = document[key] ?? [];
       if (new Set(names).size !== names.length) { add("duplicate_name", [key], "Names must be unique"); }
     }
+    for (const issue of gameInputBindingIssues(document)) { add("missing_input_binding_target", issue.path, issue.message); }
     for (const [slot, asset] of Object.entries(document.assets)) {
       if (asset.mediaKind === "model" || asset.mediaKind === "collider") {
         if (["x", "y", "z"].some((axis) => {
@@ -58,6 +62,9 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           add("ambiguous_selector", ["assets", slot], "Prepared node and clip IDs must be unique");
         }
       }
+    }
+    for (const [graphId, graph] of Object.entries(document.animationGraphs ?? {})) {
+      validateAnimationGraph3D(graph, ["animationGraphs", graphId], add);
     }
 
     function validateEntities(entities: readonly GameEntity3D[], path: (string | number)[], prefab?: GamePrefab3D): void {
@@ -119,9 +126,12 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
             }
           }
         }
+        if (entity.renderCulling?.layer !== undefined && !Object.hasOwn(document.performance?.cullLayers ?? {}, entity.renderCulling.layer)) {
+          add("missing_cull_layer", [...entityPath, "renderCulling", "layer"], `Cull layer ${entity.renderCulling.layer} is not declared in performance.cullLayers`);
+        }
         if (entity.primitive && entity.model) { add("competing_visual", [...entityPath, "model"], "Entity must choose either primitive or model rendering"); }
         if (entity.interactionActor && !entity.collider3d) { add("missing_interaction_collider", [...entityPath, "interactionActor"], "Interaction actors require a collider"); }
-        const checkAsset = (slot: string, kind: "model" | "collider" | "audio", componentPath: (string | number)[]): void => {
+        const checkAsset = (slot: string, kind: "model" | "collider" | "audio" | "image", componentPath: (string | number)[]): void => {
           const asset = document.assets[slot];
           if (!asset || asset.mediaKind !== kind) { add("missing_asset", componentPath, `Asset ${slot} must be a ${kind} binding`); }
           if (prefab && !prefab.externalAssets.includes(slot)) { add("undeclared_external_asset", componentPath, `Prefab must declare asset ${slot}`); }
@@ -140,7 +150,14 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
             add("collider_shape_mismatch", [...entityPath, "collider3d", "assetId"], "Prepared collider shape does not match the component");
           }
         }
-        if (entity.audioSource) { checkAsset(entity.audioSource.assetId, "audio", [...entityPath, "audioSource", "assetId"]); }
+        if (entity.audioSource) {
+          checkAsset(entity.audioSource.assetId, "audio", [...entityPath, "audioSource", "assetId"]);
+          for (const issue of gameAudioSourceIssues(entity.audioSource)) { add("invalid_audio_source", [...entityPath, "audioSource", ...issue.path], issue.message); }
+        }
+        for (const issue of entity.particles ? gameParticleIssues(entity.particles) : []) { add("invalid_particles", [...entityPath, "particles", ...issue.path], issue.message); }
+        for (const [index, emitter] of (entity.particles?.emitters ?? []).entries()) {
+          if (emitter.sprite) { checkAsset(emitter.sprite.assetId, "image", [...entityPath, "particles", "emitters", index, "sprite", "assetId"]); }
+        }
         if (entity.animator3d) {
           const asset = entity.model && document.assets[entity.model.assetId];
           if (!asset || asset.mediaKind !== "model") { add("missing_animation_model", [...entityPath, "animator3d"], "Animator requires a model binding"); }
@@ -152,8 +169,20 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           if (entity.animator3d.initialClip && !(entity.animator3d.initialClip in entity.animator3d.clips)) {
             add("missing_animation_clip", [...entityPath, "animator3d", "initialClip"], "Initial clip alias does not exist");
           }
+          validateAnimatorGraph3D(document, entity, asset || undefined, [...entityPath, "animator3d"], add);
         }
         for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
+          if (behavior.kind === "script") {
+            for (const issue of scriptParamReferenceIssues(behavior, prefab ? null : (target) => byId.has(target), (slot) => document.assets[slot]?.mediaKind)) {
+              add("invalid_script_param_reference", [...entityPath, "behaviors", behaviorIndex, ...issue.path], issue.message);
+            }
+            for (const [name, param] of Object.entries(behavior.params ?? {})) {
+              const slot = param.type === "asset" ? gameScriptParamValueOf(param, behavior.values && Object.hasOwn(behavior.values, name) ? behavior.values[name] : undefined) : null;
+              if (prefab && typeof slot === "string" && !prefab.externalAssets.includes(slot)) {
+                add("undeclared_external_asset", [...entityPath, "behaviors", behaviorIndex, "params", name], `Prefab must declare asset ${slot}`);
+              }
+            }
+          }
           if (behavior.kind === "spawn" && !document.prefabs[behavior.prefabId] && (prefab || !byId.get(behavior.prefabId)?.templateOnly)) {
             add("missing_prefab", [...entityPath, "behaviors", behaviorIndex, "prefabId"], `Prefab ${behavior.prefabId} does not exist`);
           }
@@ -173,6 +202,12 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
         add("shadow_budget", [...path, "entities"], "Only one directional light may cast shadows");
       }
       if (scene.environment.fog && scene.environment.fog.near >= scene.environment.fog.far) { add("invalid_fog", [...path, "environment", "fog"], "Fog near must be less than far"); }
+      const sky = scene.environment.sky;
+      if (sky?.kind === "hdri" && document.assets[sky.assetId]?.mediaKind !== "hdri") { add("missing_asset", [...path, "environment", "sky", "assetId"], "HDRI sky requires an hdri binding"); }
+      if (sky?.kind === "procedural" && sky.sunEntityId !== undefined) {
+        const sun = scene.entities.find((entity) => entity.id === sky.sunEntityId);
+        if (!sun || sun.templateOnly || sun.light3d?.kind !== "directional") { add("invalid_sky_sun", [...path, "environment", "sky", "sunEntityId"], "Procedural sky sun must select a directional light in the scene"); }
+      }
       if (scene.music && document.assets[scene.music.assetId]?.mediaKind !== "audio") { add("missing_asset", [...path, "music", "assetId"], "Scene music requires an audio binding"); }
     }
     for (const [prefabId, prefab] of Object.entries(document.prefabs)) {
@@ -201,6 +236,9 @@ export function validateAnyGame(value: unknown): AnyGameValidationResult {
   if (parsed.document.schemaVersion === 3) {
     const result = validateGame3D(parsed.document);
     return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [] } : { valid: false, diagnostics: result.diagnostics };
+  }
+  if (parsed.document.engineVersion === "4") {
+    return { valid: false, diagnostics: [{ code: "engine_unavailable", path: ["engineVersion"], message: GAME_ENGINE_4_UNAVAILABLE }] };
   }
   const result = validateGame(parsed.document);
   return result.valid && result.document ? { valid: true, document: result.document, diagnostics: [] } :
