@@ -77,13 +77,32 @@ export async function importWorkflowGraph(
   const next = { ...workflow, graph };
   state.updateWorkflow(next);
   const nodeStore = state.getNodeStore(workflowId)?.getState();
+  const canvasBefore = nodeStore
+    ? { nodes: nodeStore.nodes, edges: nodeStore.edges }
+    : null;
   if (nodeStore) {
     nodeStore.setNodes(
       graph.nodes.map((node) => graphNodeToReactFlowNode(next, node))
     );
     nodeStore.setEdges(graph.edges.map(graphEdgeToReactFlowEdge));
   }
-  // Behind any setup save on the wire, which carries the same
-  // `expected_updated_at` and would refuse this one.
-  await queueWorkflowSave(state, workflowId);
+  try {
+    // Behind any setup save on the wire, which carries the same
+    // `expected_updated_at` and would refuse this one.
+    await queueWorkflowSave(state, workflowId);
+  } catch (cause) {
+    // The creator stays on the idea step. A graph left in memory would ride
+    // along with the next stage save, and the build would place the plan
+    // beside nodes they were told did not import.
+    const current = state.getWorkflow(workflowId);
+    if (current) {
+      const restored = { ...current, graph: workflow.graph };
+      state.updateWorkflow(restored);
+    }
+    if (nodeStore && canvasBefore) {
+      nodeStore.setNodes(canvasBefore.nodes);
+      nodeStore.setEdges(canvasBefore.edges);
+    }
+    throw cause;
+  }
 }

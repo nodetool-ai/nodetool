@@ -44,6 +44,21 @@ export const gameParticleShape = z.discriminatedUnion("kind", [
 
 export type GameParticleShape = z.infer<typeof gameParticleShape>;
 
+/**
+ * Image for each particle. A sheet is cut into `columns` by `rows` cells, read left to right and top to bottom,
+ * and the first `frameCount` cells play `cycles` times over each particle's life.
+ */
+export const gameParticleSprite = z.strictObject({
+  assetId: z.string().min(1),
+  columns: z.number().int().min(1).max(64).default(1),
+  rows: z.number().int().min(1).max(64).default(1),
+  frameCount: z.number().int().min(1).max(4096).optional(),
+  cycles: z.number().int().min(1).max(64).default(1),
+  sampling: z.enum(["nearest", "linear"]).optional()
+});
+
+export type GameParticleSprite = z.infer<typeof gameParticleSprite>;
+
 export const gameParticleEmitter = z.strictObject({
   id,
   playOnStart: z.boolean().default(true),
@@ -69,7 +84,15 @@ export const gameParticleEmitter = z.strictObject({
   gravity: vector.default({ x: 0, y: 0, z: 0 }),
   drag: finite.min(0).max(100).default(0),
   /** Emitters of the same component that fire at each dying particle's position. */
-  onDeath: z.array(z.strictObject({ emitter: id, count: z.number().int().min(1).max(64).default(1) })).max(4).default([])
+  onDeath: z.array(z.strictObject({ emitter: id, count: z.number().int().min(1).max(64).default(1) })).max(4).default([]),
+  /** Without a sprite, particles draw as a soft round dot. */
+  sprite: gameParticleSprite.optional(),
+  /** `normal` alpha-blends. `additive` adds light, which suits fire, sparks and magic. Defaults to `normal`. */
+  blend: z.enum(["normal", "additive"]).optional(),
+  /** Opts out of scene lighting so particles keep their own colour in the dark. */
+  unlit: z.boolean().optional(),
+  /** 2D draw layer. Defaults to the entity's sprite layer, or 0 without a sprite. */
+  layer: z.number().int().optional()
 });
 
 export type GameParticleEmitter = z.infer<typeof gameParticleEmitter>;
@@ -124,6 +147,10 @@ export function gameParticleIssues(particles: GameParticles): { readonly path: (
     }
   }
   for (const [index, emitter] of particles.emitters.entries()) {
+    const sprite = emitter.sprite;
+    if (sprite?.frameCount !== undefined && sprite.frameCount > sprite.columns * sprite.rows) {
+      issues.push({ path: ["emitters", index, "sprite", "frameCount"], message: `frameCount must not exceed columns × rows (${sprite.columns * sprite.rows})` });
+    }
     for (const [subIndex, sub] of emitter.onDeath.entries()) {
       if (!ids.has(sub.emitter)) {
         issues.push({ path: ["emitters", index, "onDeath", subIndex, "emitter"], message: `Particle emitter ${sub.emitter} does not exist` });

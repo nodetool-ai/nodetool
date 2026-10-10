@@ -19,7 +19,7 @@
 #
 # Options:
 #   --prefix DIR    Installation directory (overrides NODETOOL_HOME)
-#   --pack NAME     Also install a Python pack: huggingface or mlx (repeatable)
+#   --pack NAME     Also install a Python pack: huggingface, mlx or wan2gp (repeatable)
 #   -y, --yes       Non-interactive mode, skip confirmation prompts
 #   --help          Show this help message
 #
@@ -34,6 +34,7 @@ set -euo pipefail
 # ==============================================================================
 
 MICROMAMBA_VERSION="2.3.3-0"
+DOCS_URL="https://github.com/nodetool-ai/nodetool/blob/main/docs/installation.md#python-nodes-without-the-desktop-app"
 MICROMAMBA_RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}"
 
 # Conda dependencies from conda-forge
@@ -138,7 +139,7 @@ die() {
     error "$@"
     echo ""
     error "Installation failed. Please check the error message above."
-    error "For troubleshooting, see: https://github.com/nodetool-ai/nodetool#troubleshooting"
+    error "For troubleshooting, see: ${DOCS_URL}"
     exit 1
 }
 
@@ -372,28 +373,48 @@ create_conda_environment() {
 }
 
 # Pack name -> PyPI distribution, and the platforms the pack supports.
-# Mirrors PYTHON_PACKS in packages/protocol/src/python-packs.ts.
+# Mirrors PYTHON_NODE_PACKS in packages/protocol/src/python-packs.ts.
 pack_distribution() {
     case "$1" in
         huggingface) echo "nodetool-huggingface" ;;
         mlx) echo "nodetool-mlx" ;;
+        wan2gp) echo "nodetool-wan2gp" ;;
         *) return 1 ;;
     esac
+}
+
+# PyTorch 2.14 and MLX publish macOS wheels only for macOS 14 and newer.
+macos_14_or_newer() {
+    local major
+    major="$(sw_vers -productVersion 2>/dev/null | cut -d. -f1)"
+    [[ "$major" =~ ^[0-9]+$ ]] && (( major >= 14 ))
 }
 
 pack_supported() {
     case "$1" in
         mlx)
-            [[ "$PLATFORM" == "osx-arm64" ]]
+            [[ "$PLATFORM" == "osx-arm64" ]] && macos_14_or_newer
             ;;
         huggingface)
             # PyTorch publishes no wheels for Intel Macs.
-            [[ "$PLATFORM" != "osx-64" ]]
+            if [[ "$OS" == "osx" ]]; then
+                [[ "$PLATFORM" == "osx-arm64" ]] && macos_14_or_newer
+            else
+                return 0
+            fi
+            ;;
+        wan2gp)
+            # The nodes call a Wan2GP server over MCP and load no model.
+            return 0
             ;;
         *)
             return 1
             ;;
     esac
+}
+
+pack_needs_torch() {
+    [[ "$1" == "huggingface" || "$1" == "mlx" ]]
 }
 
 install_python_packages() {
@@ -410,13 +431,15 @@ install_python_packages() {
     local pack dist
     for pack in "${PACKS[@]+${PACKS[@]}}"; do
         if ! dist="$(pack_distribution "$pack")"; then
-            die "Unknown pack: $pack. Available packs: huggingface, mlx"
+            die "Unknown pack: $pack. Available packs: huggingface, mlx, wan2gp"
         fi
         if ! pack_supported "$pack"; then
-            die "The $pack pack does not support $PLATFORM. MLX needs a Mac with Apple Silicon, and PyTorch has no build for Intel Macs."
+            die "The $pack pack does not support $PLATFORM. MLX and HuggingFace on a Mac need Apple Silicon and macOS 14 or newer."
         fi
         requirements+=("$dist")
-        needs_torch="true"
+        if pack_needs_torch "$pack"; then
+            needs_torch="true"
+        fi
     done
 
     # One resolve for core and every pack, so pack pins cannot downgrade core.
@@ -462,9 +485,10 @@ print_completion_message() {
     echo -e "    ${CYAN}NODETOOL_PYTHON=\"$python_path\" nodetool serve${NC}"
     echo ""
     echo "Without NODETOOL_PYTHON, the server finds the environment only at"
-    echo "~/.local/share/nodetool/conda_env on Linux."
+    # shellcheck disable=SC2088 # a literal path for the reader
+    echo "~/.local/share/nodetool/conda_env on Linux. On macOS, always set it."
     echo ""
-    echo -e "${BOLD}Documentation:${NC} https://github.com/nodetool-ai/nodetool"
+    echo -e "${BOLD}Documentation:${NC} ${DOCS_URL}"
     echo ""
 }
 
@@ -481,7 +505,7 @@ Usage: $0 [OPTIONS]
 
 Options:
     --prefix DIR    Installation directory (default: ~/.local/share/nodetool)
-    --pack NAME     Also install a Python pack: huggingface or mlx (repeatable)
+    --pack NAME     Also install a Python pack: huggingface, mlx or wan2gp (repeatable)
     -y, --yes       Non-interactive mode, skip confirmation prompts
     --help          Show this help message
 

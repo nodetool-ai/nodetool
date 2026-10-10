@@ -167,8 +167,8 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
         size="small"
       >
         Gated or private Hugging Face models need access on huggingface.co (accept
-        the license or request access) plus a read token for the server process:
-        set HF_TOKEN before starting NodeTool, or run huggingface-cli login once.
+        the license or request access) plus a read token: save HF_TOKEN in
+        Settings, or run hf auth login once.
         If a download fails, open the progress panel and use Copy message to share
         the details.
       </Text>

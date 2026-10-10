@@ -43,7 +43,12 @@ import { useEffect, useMemo } from "react";
 import { videoFormatById } from "../../components/setup/video/formats";
 import { DEFAULT_TIMELINE_INSTRUMENT } from "../../stores/timeline/instrumentPresets";
 import { generateFromBeats } from "./useGenerateFromBeats";
-import { planBeats } from "./usePlanBeats";
+import {
+  applyBeatPlan,
+  planBeats,
+  planContextOf,
+  videoPlanFingerprint
+} from "./usePlanBeats";
 
 import { renderRasterClipFrames } from "../../components/timeline/preview/rasterClipFrames";
 import {
@@ -1228,21 +1233,32 @@ export const useTimelineAgentBridge = (
             "This sequence has no format yet. Set one with ui_timeline_set_setup, or pass `beats` to write the plan yourself."
           );
         }
+        // The same run the flow's Plan button makes: the model the format
+        // step picked, and the clips, references and creative context on the
+        // sequence. The beats keep their link to the dropped clips and the
+        // plan records what it answers, so the flow does not offer a re-plan.
+        const context = planContextOf(doc);
         const beats = await planBeats({
           brief: setup.brief,
           format,
-          previous: opts.replan ? setup.beats : undefined
+          ...(setup.directorModel && {
+            model: {
+              id: setup.directorModel.id,
+              provider: setup.directorModel.provider
+            }
+          }),
+          previous: opts.replan ? setup.beats : undefined,
+          context
         });
-        await editOp({
-          op: "plan_beats",
-          beats: beats.map((beat) => ({
-            prompt: beat.prompt,
-            durationMs: beat.duration_ms,
-            transition: beat.transition,
-            voiceover: beat.voiceover,
-            music: beat.music
-          }))
-        });
+        applyBeatPlan(
+          doc,
+          beats,
+          videoPlanFingerprint({
+            brief: setup.brief,
+            formatId: setup.format,
+            context
+          })
+        );
         return doc.getState().setup?.beats ?? [];
       },
 

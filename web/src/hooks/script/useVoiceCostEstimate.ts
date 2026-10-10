@@ -22,7 +22,10 @@
 import { useMemo } from "react";
 import { getModelUnitPrice } from "../../utils/modelUnitPricing";
 import { useScriptStore } from "../../stores/script/ScriptStore";
-import { voiceTargets } from "../../stores/script/scriptVoicing";
+import {
+  DEFAULT_ASR_CONFIG,
+  voiceTargets
+} from "../../stores/script/scriptVoicing";
 
 export interface VoiceCostEstimate {
   /** Lines the click would voice. */
@@ -111,6 +114,12 @@ export function useVoiceCostEstimate(scriptId: string): VoiceCostEstimate {
       breakdowns.push(`${group.model} · ${price.breakdown ?? ""}`.trim());
       notes.push(...(price.assumptions ?? []), ...(price.warnings ?? []));
     }
+
+    // `voiceLine` sends every take to speech-to-text for its word timings.
+    // The catalog prices no transcription model, so the figure leaves it out.
+    notes.push(
+      `Each take is also transcribed with ${DEFAULT_ASR_CONFIG.model} for word timings, which this figure leaves out.`
+    );
 
     return {
       lineCount: targets.length,

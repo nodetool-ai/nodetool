@@ -49,7 +49,7 @@ const LENGTH_CARD_WIDTH = 96;
 /** What the field holds while it is being typed, and what it means. */
 const customSecondsError = (draft: string): string | null => {
   const value = Number(draft.trim());
-  if (draft.trim() === "" || !Number.isFinite(value)) {
+  if (draft.trim() === "" || !Number.isInteger(value)) {
     return `Enter a whole number of seconds, ${MIN_CUSTOM_SECONDS}–${MAX_CUSTOM_SECONDS}.`;
   }
   if (value < MIN_CUSTOM_SECONDS || value > MAX_CUSTOM_SECONDS) {
@@ -191,7 +191,7 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
     if (readOnly || customSecondsError(customDraft) !== null) {
       return;
     }
-    setSetup(scriptId, { length_seconds: Math.round(Number(customDraft)) });
+    setSetup(scriptId, { length_seconds: Number(customDraft) });
   }, [customDraft, readOnly, scriptId, setSetup]);
 
   const customError = custom ? customSecondsError(customDraft) : null;

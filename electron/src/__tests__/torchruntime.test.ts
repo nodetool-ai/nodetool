@@ -110,6 +110,31 @@ describe("detectTorchPlatform", () => {
     expect(result.error).toBeUndefined();
   });
 
+  it("reads the result from the last line when torchruntime printed warnings on stdout", async () => {
+    mockSpawn.mockReturnValue(
+      fakeProcess(
+        '[WARNING] Unsupported AMD graphics card: Radeon 610M\n{"platform": "cpu", "gpu_count": 1}\n',
+        0
+      )
+    );
+
+    const result = await detectTorchPlatform();
+
+    expect(result.error).toBeUndefined();
+    expect(result).toMatchObject({ platform: "cpu", backend: "cpu" });
+  });
+
+  it("keeps torchruntime's own output off stdout in the detection script", async () => {
+    mockSpawn.mockReturnValue(fakeProcess('{"platform": "cpu", "gpu_count": 0}', 0));
+
+    await detectTorchPlatform();
+
+    const script = mockSpawn.mock.calls
+      .map((call) => (call[1] as string[])[1])
+      .find((arg) => arg?.includes("get_torch_platform"));
+    expect(script).toContain("contextlib.redirect_stdout(sys.stderr)");
+  });
+
   it("maps DirectML to CPU with a warning instead of failing", async () => {
     mockSpawn.mockReturnValue(fakeProcess('{"platform": "directml", "gpu_count": 1}', 0));
 

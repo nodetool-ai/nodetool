@@ -734,6 +734,29 @@ describe("summarizeProject", () => {
     });
     expect(summary.spend.totalUsd).toBeCloseTo(0.75, 6);
   });
+
+  it("lists a workflow saved in the project, but not one elsewhere", async () => {
+    const workflow = await Workflow.create<Workflow>({
+      user_id: "u1",
+      project_id: "p1",
+      name: "Shout it"
+    });
+    await Workflow.create<Workflow>({
+      user_id: "u1",
+      project_id: "p2",
+      name: "Other project"
+    });
+
+    const summary = await summarizeProject("u1", "p1");
+    expect(summary.documents).toEqual([
+      expect.objectContaining({
+        type: "workflow",
+        ref: workflow.id,
+        name: "Shout it",
+        status: null
+      })
+    ]);
+  });
 });
 
 describe("rollup limits", () => {

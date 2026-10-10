@@ -28,6 +28,23 @@ jest.mock("../../serverState/useMetadata", () => ({
   loadMetadata: jest.fn()
 }));
 
+jest.mock("../../lib/resolveDocumentProject", () => ({
+  resolveDocumentProject: jest.fn(async (_type: string, id: string) => ({
+    id,
+    projectId: "proj-1"
+  }))
+}));
+
+const mockOpenTab = jest.fn();
+const mockTabs: { id: string }[] = [];
+jest.mock("../WorkspaceTabsStore", () => ({
+  LOOSE_PROJECT_ID: "default",
+  tabId: (type: string, ref: string) => `${type}:${ref}`,
+  useWorkspaceTabsStore: {
+    getState: () => ({ tabs: mockTabs, openTab: mockOpenTab })
+  }
+}));
+
 describe("handleResourceChange", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -92,6 +109,37 @@ describe("handleResourceChange", () => {
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["workflow", "workflow-123", "versions"]
     });
+  });
+
+  it("opens a tab for a workflow created outside the editor", async () => {
+    handleResourceChange({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-new" }
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockOpenTab).toHaveBeenCalledWith({
+      type: "workflow",
+      ref: "wf-new",
+      mode: "edit",
+      projectId: "proj-1"
+    });
+  });
+
+  it("does not reopen a workflow that already has a tab", async () => {
+    mockTabs.push({ id: "workflow:wf-open" });
+    handleResourceChange({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-open" }
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    mockTabs.length = 0;
+
+    expect(mockOpenTab).not.toHaveBeenCalled();
   });
 
   it("reloads an open workflow after a remote update", () => {

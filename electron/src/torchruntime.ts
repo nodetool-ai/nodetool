@@ -17,10 +17,10 @@ import { emitBootMessage } from "./events";
  *
  * Assumption, not verified from this build environment (download.pytorch.org
  * was unreachable when this table was written): torch 2.14 is published for
- * cu126, cu128 and cu130, ROCm 7.2, xpu and cpu. If a release drops one of
- * these, the install fails with a resolver error naming the index. It does not
- * fall back to a CPU wheel, because the install passes the index to uv as
- * `--torch-backend`, which takes torch packages only from that index. Update
+ * cu126, cu128 and cu130, ROCm 7.2, xpu and cpu. uv takes torch packages
+ * (torch, torchvision, torchaudio, torchcodec) only from the `--torch-backend`
+ * index. When that index lacks a build the packs need, the pack install
+ * retries once with the CPU index and warns (see `packageManager.ts`). Update
  * {@link TORCH_INDEX_FAMILIES} when the torch pin moves.
  */
 
@@ -33,6 +33,24 @@ export type TorchBackend =
   | "rocm7.2"
   | "xpu"
   | "auto";
+
+/**
+ * The oldest uv that accepts each `--torch-backend` value. Older uv releases
+ * reject the value as a CLI error. Measured by running each uv release from
+ * PyPI with each value.
+ */
+export const MIN_UV_FOR_TORCH_BACKEND: Record<TorchBackend, string> = {
+  cpu: "0.6.9",
+  cu126: "0.6.9",
+  auto: "0.6.9",
+  cu128: "0.7.0",
+  xpu: "0.8.0",
+  cu130: "0.9.3",
+  "rocm7.2": "0.11.3",
+};
+
+/** The uv the Python runtime installs: one that accepts every backend above. */
+export const MIN_UV_VERSION = "0.11.3";
 
 /** The newest index of each family that carries the pinned torch. */
 export const TORCH_INDEX_FAMILIES = {
@@ -248,6 +266,7 @@ async function detectPlatformWithTorchruntime(): Promise<string> {
   const pythonPath = getPythonPath();
   
   const detectionScript = `
+import contextlib
 import torchruntime
 import json
 import sys
@@ -255,9 +274,12 @@ import sys
 try:
     if not hasattr(torchruntime, 'device_db') or not hasattr(torchruntime, 'platform_detection'):
         raise AttributeError("torchruntime API structure has changed")
-    
-    gpus = torchruntime.device_db.get_gpus()
-    platform = torchruntime.platform_detection.get_torch_platform(gpus)
+
+    # torchruntime prints "[WARNING] ..." lines on stdout. Keep stdout for
+    # the JSON result.
+    with contextlib.redirect_stdout(sys.stderr):
+        gpus = torchruntime.device_db.get_gpus()
+        platform = torchruntime.platform_detection.get_torch_platform(gpus)
     print(json.dumps({"platform": platform, "gpu_count": len(gpus)}))
 except AttributeError as e:
     print(json.dumps({"error": f"torchruntime API error: {str(e)}"}), file=sys.stderr)
@@ -299,7 +321,10 @@ except Exception as e:
       }
 
       try {
-        const parsed = detectionResultSchema.safeParse(JSON.parse(stdout.trim()));
+        // The JSON result is the last line. Anything a library printed on
+        // stdout before it is not part of the result.
+        const lastLine = stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).pop() ?? "";
+        const parsed = detectionResultSchema.safeParse(JSON.parse(lastLine));
         if (!parsed.success) {
           reject(new Error(`Unexpected torchruntime output: ${stdout}`));
           return;

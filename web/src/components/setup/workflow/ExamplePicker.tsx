@@ -29,6 +29,7 @@ import {
 } from "../../ui_primitives";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import type { Workflow, WorkflowList } from "../../../stores/ApiTypes";
+import ReportBugButton from "../../support/ReportBugButton";
 import { OptionCardGrid } from "../OptionCardGrid";
 import type { OptionCardItem } from "../OptionCardGrid";
 
@@ -51,7 +52,13 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
 }) => {
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
   const [query, setQuery] = useState("");
-  const { data, isLoading, isError, refetch } = useQuery<WorkflowList>({
+  const {
+    data,
+    isLoading,
+    isError,
+    error: listError,
+    refetch
+  } = useQuery<WorkflowList>({
     queryKey: ["templates"],
     queryFn: loadTemplates
   });
@@ -98,10 +105,28 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
         </Text>
       </FlexColumn>
 
-      {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}
+      {error ? (
+        <AlertBanner
+          severity="error"
+          action={
+            <ReportBugButton
+              context={{
+                source: "operation-failure",
+                summary: "Copying a workflow example failed",
+                errorText: error
+              }}
+            />
+          }
+        >
+          {error}
+        </AlertBanner>
+      ) : null}
 
       <FlexRow gap={GAP.normal} align="center" wrap>
+        {/* The card that opened this browser is gone, so the keyboard lands
+            here rather than on the page. */}
         <SearchInput
+          autoFocus
           value={query}
           onChange={setQuery}
           placeholder="Search examples"
@@ -129,14 +154,24 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
         <AlertBanner
           severity="error"
           action={
-            <EditorButton
-              variant="text"
-              onClick={() => {
-                void refetch();
-              }}
-            >
-              Try again
-            </EditorButton>
+            <FlexRow gap={GAP.tight} align="center">
+              <EditorButton
+                variant="text"
+                onClick={() => {
+                  void refetch();
+                }}
+              >
+                Try again
+              </EditorButton>
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Reading the workflow examples failed",
+                  errorText:
+                    listError?.message ?? "Could not read the examples."
+                }}
+              />
+            </FlexRow>
           }
         >
           <Caption component="span">Could not read the examples.</Caption>

@@ -39,8 +39,9 @@ Linux. Exact steps for each are below: [macOS](#macos), [Windows](#windows),
 On Apple Silicon Macs with macOS 14 or newer, local models can run on Apple's
 [MLX framework](models.md#mlx-framework-apple-silicon). MLX is an optional
 Python pack: install **MLX** from **Tools → Package Manager → Python packs**,
-which sets up Python first if it is missing. Intel Macs cannot run MLX or the
-HuggingFace pack. They run cloud providers, Ollama, and llama.cpp.
+which sets up Python first if it is missing. Intel Macs and Macs on macOS 13
+or older cannot run MLX or the HuggingFace pack. They run cloud providers,
+Ollama, and llama.cpp.
 
 ---
 
@@ -185,18 +186,49 @@ card:
 
 ### GPU requirements
 
-Python nodes run on PyTorch 2.14. These limits come from the PyTorch builds,
-not from NodeTool. Rows marked *inferred* follow from PyTorch's published
-platform support and have not been tested on every card.
+Python nodes run on PyTorch 2.14. Which PyTorch build you get, and so which
+cards and drivers work, depends on how you installed Python nodes. Rows marked
+*inferred* follow from PyTorch's published platform support and have not been
+tested on every card.
 
-| Hardware | Requirement |
+**Desktop app.** Before it installs the HuggingFace or MLX pack, the app
+detects your GPU and picks the matching PyTorch build:
+
+| Hardware | Build the app installs |
 |---|---|
-| NVIDIA, Linux | The default PyTorch 2.14 build on PyPI uses CUDA 13.0. NVIDIA's CUDA 13.0 release needs driver 580 or newer and a Turing (RTX 20xx, GTX 16xx) or newer card. |
-| NVIDIA, Windows | PyPI ships only a CPU build for Windows, so the GPU build comes from PyTorch's own index. The desktop app picks it for you. Driver and card limits match Linux (*inferred*). |
-| Older NVIDIA cards (GTX 10xx and earlier) | Not supported by CUDA 13 builds. Python nodes can fail with a CUDA error. Set `NODETOOL_TORCH_DEVICE` to `cpu` to run them on the CPU (*inferred*). llama.cpp and Ollama still use the card. |
-| AMD | Linux only, through PyTorch's ROCm builds. The ROCm version on the machine must be one PyTorch publishes a 2.14 build for (*inferred*). On Windows, AMD cards run llama.cpp through Vulkan. |
-| Apple Silicon | macOS 14 or newer. PyTorch uses Metal (MPS), and MLX uses unified memory. |
-| Intel Mac | No PyTorch 2.14 build. The HuggingFace and MLX packs do not install. |
+| NVIDIA Turing (RTX 20xx, GTX 16xx) or newer | CUDA 12.8, which needs driver 570 or newer |
+| NVIDIA Maxwell, Pascal (GTX 10xx) or Volta | CUDA 12.6 (*inferred*) |
+| NVIDIA Kepler and older | CPU. The app logs that the card is too old |
+| AMD on Linux, RDNA 2 or newer (RX 6000 and later) | ROCm 7.2 (*inferred*) |
+| AMD on Linux, older cards (Polaris, Vega, RDNA 1) | CPU, with a warning |
+| AMD on Windows | CPU, with a warning. PyTorch reaches these cards only through DirectML, which has no 2.14 build. llama.cpp still uses the card through Vulkan |
+| Intel Arc and Intel integrated graphics (Windows, Linux) | Intel XPU (*inferred*) |
+| Apple Silicon, macOS 14 or newer | The PyPI build, which uses Metal (MPS) |
+| Intel Mac, or a Mac on macOS 13 or older | None. The HuggingFace and MLX packs are hidden, because PyTorch 2.14 and MLX publish no build for them |
+
+If PyTorch publishes no 2.14 build for the chosen GPU index, the app installs
+the CPU build instead and logs a warning. Python nodes then run on the CPU.
+After a driver update, install the pack again to retry the GPU build.
+Detection runs on every install.
+
+**install.sh.** On Linux, [install.sh](#python-nodes-without-the-desktop-app)
+lets uv pick the CUDA, ROCm or Intel XPU build from the installed driver
+(`--torch-backend auto`). On macOS it installs the PyPI build, which needs
+Apple Silicon and macOS 14 or newer.
+
+**Manual `pip install torch`.** The PyPI build on Linux uses CUDA 13.0, which
+needs driver 580 or newer and a Turing or newer card. On a GTX 10xx or with an
+older driver, Python nodes fail with a CUDA error. Install a CUDA 12.6 or 12.8
+build from [pytorch.org](https://pytorch.org/get-started/locally/) instead, or
+set `NODETOOL_TORCH_DEVICE` to `cpu`. PyPI ships only a CPU build for Windows,
+so a GPU build on Windows always comes from pytorch.org.
+
+**Docker worker image.** The worker image installs PyPI's CUDA 13.0 build, so
+the GPU host needs NVIDIA driver 580 or newer. See
+[Worker deployment](worker-deployment.md#worker-images).
+
+llama.cpp and Ollama do not use PyTorch, so these limits do not apply to them.
+On a card PyTorch cannot use, they still run on the GPU.
 
 Rough VRAM (or unified memory on a Mac) per model family:
 
@@ -261,6 +293,22 @@ you create the environment yourself. The server starts Python nodes
 by running `python -m nodetool.worker --stdio`, so `nodetool-core` and every
 pack you want must be installed in the interpreter it picks.
 
+On Linux and macOS,
+[install.sh](https://github.com/nodetool-ai/nodetool/blob/main/install.sh)
+does steps 1 to 3 below for you. It creates a Python 3.11 environment with
+ffmpeg in `~/.local/share/nodetool/conda_env` and installs `nodetool-core` plus the packs you name with `--pack`
+(`huggingface`, `mlx`, or `wan2gp`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash -s -- -y --pack huggingface
+```
+
+It prints the `nodetool serve` command to run at the end. On Linux the server
+finds that environment by itself. On macOS it does not search there, so always
+start the server with `NODETOOL_PYTHON` set as the script shows.
+
+To set up the environment by hand:
+
 1. Create an environment named `nodetool` with Python 3.11 or newer:
 
    ```bash
@@ -288,7 +336,10 @@ pack you want must be installed in the interpreter it picks.
    NODETOOL_PYTHON="$CONDA_PREFIX/bin/python" nodetool serve
    ```
 
-   On Windows, `NODETOOL_PYTHON` is `%CONDA_PREFIX%\python.exe`.
+   On Windows, `NODETOOL_PYTHON` is `%CONDA_PREFIX%\python.exe`. In a venv,
+   use `NODETOOL_PYTHON="$VIRTUAL_ENV/bin/python"`, or
+   `%VIRTUAL_ENV%\Scripts\python.exe` on Windows. With the conda environment
+   named `nodetool` active, the server finds it without the variable.
 
 The server tries `NODETOOL_PYTHON` first. Without it, it uses the active conda
 environment when that environment is named `nodetool` or `conda_env`, then the

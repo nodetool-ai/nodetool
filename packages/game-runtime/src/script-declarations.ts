@@ -57,3 +57,33 @@ declare const world: {
 };
 `;
 }
+
+/** Lifecycle-object script declarations. `input` and `command` name the dimension's input and command types. */
+export function gameScriptLifecycleDeclaration(name: string, input: string, command: string): string {
+  return `
+type ${name}Contact = { otherId: string; phase: "enter" | "stay" | "exit"; sensor: boolean };
+type ${name}Result = { state?: unknown; commands?: ${command}[] } | undefined | void;
+type ${name}DestroyCommandKind = "hud" | "emit" | "spawn" | "despawn" | "sceneTransition";
+/**
+ * A script may be an object of hooks instead of a function. Within a tick they run in this order:
+ * onStart (first call), onSceneEnter, onTriggerEnter, onTriggerExit and onContact (previous tick's contacts
+ * in event order), due timers, then onFixedUpdate or onUpdate. onDestroy runs alone in the tick after a despawn.
+ * Each hook sees the state returned by the previous one. Other methods are timer handlers.
+ */
+type ${name} = {
+  onStart?(input: ${input}): ${name}Result;
+  onSceneEnter?(input: ${input}): ${name}Result;
+  onTriggerEnter?(input: ${input}, contact: ${name}Contact): ${name}Result;
+  onTriggerExit?(input: ${input}, contact: ${name}Contact): ${name}Result;
+  onContact?(input: ${input}, contact: ${name}Contact): ${name}Result;
+  onFixedUpdate?(input: ${input}): ${name}Result;
+  onUpdate?(input: ${input}): ${name}Result;
+  onDestroy?(input: ${input}): { state?: unknown; commands?: Extract<${command}, { kind: ${name}DestroyCommandKind }>[] } | undefined | void;
+  [method: string]: ((input: ${input}, contact: ${name}Contact) => ${name}Result) | undefined;
+};
+/** Calls the script object's method \`name\` once, \`ticks\` ticks from now. A timer with the same name is replaced. */
+declare function after(ticks: number, name: string): void;
+/** Calls the script object's method \`name\` every \`ticks\` ticks. A timer with the same name is replaced. */
+declare function every(ticks: number, name: string): void;
+`;
+}

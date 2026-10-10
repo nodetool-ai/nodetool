@@ -104,6 +104,9 @@ const DIRECTOR_MAX_OUTPUT_TOKENS = 8192;
 const CAMERA_PASS_MAX_OUTPUT_TOKENS = 4096;
 const EMPTY_ENTITY_IDS: string[] = [];
 
+const shotsLabel = (count: number): string =>
+  `${count} shot${count === 1 ? "" : "s"}`;
+
 export interface StoryboardSetupFlowOptions {
   boardId: string;
   /**
@@ -393,7 +396,9 @@ export const useStoryboardSetupFlow = ({
         canAdvance: genre.length > 0,
         blockedReason: "Pick a genre",
         pending: directing,
-        pendingLabel: `Writing ${directedShotCount} shots`,
+        pendingLabel: cameraPass
+          ? `Directing ${shotsLabel(directedShotCount)}`
+          : `Writing ${shotsLabel(directedShotCount)}`,
         // What the run costs, in the same shape every other flow shows before
         // its planning call (F23). A run that is not going to happen — the
         // screenplay already matches these inputs — shows nothing, because it
@@ -459,10 +464,12 @@ export const useStoryboardSetupFlow = ({
         // The shell's own wait here is `onReviewed`, which writes a linked
         // script it cannot take back. Cancel stops the rewrite only, and the
         // wait is named for what it is.
+        // The camera pass directs every imported shot, which can be more
+        // than a rewrite may ask for.
         pendingLabel: directing
           ? cameraPass
-            ? `Directing ${rewriteShotCount} shots`
-            : `Rewriting ${rewriteShotCount} shots`
+            ? `Directing ${shotsLabel(directedShotCount)}`
+            : `Rewriting ${shotsLabel(rewriteShotCount)}`
           : "Saving your screenplay",
         onCancel: directing ? cancelRewrite : undefined,
         cancelable: false,

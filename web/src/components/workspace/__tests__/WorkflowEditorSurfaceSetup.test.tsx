@@ -420,6 +420,7 @@ it("keeps a failed workflow load visible and lets the user retry", async () => {
   managerState.fetchWorkflow.mockRejectedValue(new Error("offline"));
   renderSurface();
   expect(await screen.findByText("Could not load workflow")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Report" })).toBeVisible();
   const callsBeforeRetry = managerState.fetchWorkflow.mock.calls.length;
   await userEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(managerState.fetchWorkflow.mock.calls.length).toBeGreaterThan(

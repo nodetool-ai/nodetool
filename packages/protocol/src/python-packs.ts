@@ -28,6 +28,11 @@ export interface PythonNodePack {
    * refuses to install it.
    */
   platforms?: readonly PythonPackPlatform[];
+  /**
+   * Lowest macOS major version the pack's wheels install on. The package
+   * manager hides the pack on older macOS and refuses to install it.
+   */
+  minMacOSVersion?: number;
   /** What the pack needs, named in the refusal on an unsupported platform. */
   platformRequirement?: string;
 }
@@ -46,7 +51,9 @@ export const PYTHON_NODE_PACKS: readonly PythonNodePack[] = [
     description: "Apple Silicon MLX nodes for NodeTool.",
     namespaces: ["nodetool.nodes.mlx"],
     platforms: ["darwin-arm64"],
-    platformRequirement: "a Mac with Apple Silicon"
+    // MLX ships macOS 14+ wheels only.
+    minMacOSVersion: 14,
+    platformRequirement: "a Mac with Apple Silicon and macOS 14 or newer"
   },
   {
     name: "HuggingFace",
@@ -54,7 +61,8 @@ export const PYTHON_NODE_PACKS: readonly PythonNodePack[] = [
     description:
       "Use a growing list of HuggingFace models from categories like vision, audio, classification, segmentation and more.",
     namespaces: ["nodetool.nodes.huggingface"],
-    // PyTorch 2.14, which the pack pins, has no Intel Mac (darwin-x64) build.
+    // PyTorch 2.14, which the pack pins, has no Intel Mac (darwin-x64) build,
+    // and its macOS wheels need macOS 14.
     platforms: [
       "darwin-arm64",
       "linux-x64",
@@ -62,8 +70,9 @@ export const PYTHON_NODE_PACKS: readonly PythonNodePack[] = [
       "win32-x64",
       "win32-arm64"
     ],
+    minMacOSVersion: 14,
     platformRequirement:
-      "a Mac with Apple Silicon or a Windows or Linux PC. PyTorch has no build for Intel Macs"
+      "a Mac with Apple Silicon and macOS 14 or newer, or a Windows or Linux PC. PyTorch has no build for Intel Macs or older macOS"
   },
   {
     name: "Wan2GP",
@@ -84,12 +93,23 @@ export function findPythonNodePack(
 
 /**
  * Whether `pack` runs on the given platform and architecture (Node's
- * `process.platform` and `process.arch` values).
+ * `process.platform` and `process.arch` values). On macOS, `osVersion` is the
+ * product version (`13.6.1`). An unknown version passes the macOS check.
  */
 export function isPythonPackSupported(
   pack: PythonNodePack,
   platform: string,
-  arch: string
+  arch: string,
+  osVersion?: string
 ): boolean {
-  return !pack.platforms || pack.platforms.includes(`${platform}-${arch}`);
+  if (pack.platforms && !pack.platforms.includes(`${platform}-${arch}`)) {
+    return false;
+  }
+  if (platform === "darwin" && pack.minMacOSVersion !== undefined && osVersion) {
+    const major = Number.parseInt(osVersion, 10);
+    if (Number.isFinite(major) && major < pack.minMacOSVersion) {
+      return false;
+    }
+  }
+  return true;
 }

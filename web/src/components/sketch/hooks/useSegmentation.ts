@@ -26,7 +26,7 @@ import {
   createDefaultLayer,
   generateLayerId
 } from "../types";
-import { useSketchStore } from "../state";
+import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import {
   deserializeLayerData,
   exportSelectedRasterLayer
@@ -101,6 +101,9 @@ export function useSegmentation({
   const [result, setResult] = useState<SegmentationResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // A split applies its masks after a model call that takes seconds, so it
+  // writes to this editor even when another tab is focused by then.
+  const { editor } = useSketchInstance();
 
   /**
    * Fail with what actually went wrong. The provider's own message names the
@@ -156,7 +159,7 @@ export function useSegmentation({
       return;
     }
 
-    const store = useSketchStore.getState();
+    const store = editor.getState();
     const doc = store.document;
     // `store.toolSettings` is the live slice the panels write to; the copy on
     // the document is the last saved snapshot, so reading it here ran every
@@ -255,12 +258,12 @@ export function useSegmentation({
     }
 
     pushHistory(historyLabel);
-  }, [canvasRef, pushHistory]);
+  }, [canvasRef, editor, pushHistory]);
 
   const checkModel = useCallback(async () => {
     setStatus("checking-model");
     try {
-      const segment = useSketchStore.getState().toolSettings.segment;
+      const segment = editor.getState().toolSettings.segment;
       const info = await getSegmentationService().checkModelAvailability(
         segment.model
       );
@@ -270,11 +273,11 @@ export function useSegmentation({
     } catch (err) {
       fail("Could not check the model", err);
     }
-  }, [fail]);
+  }, [editor, fail]);
 
   const runSegmentation = useCallback(
     async (points: SegmentPointPrompt[], box: SegmentBoxPrompt | null) => {
-      const store = useSketchStore.getState();
+      const store = editor.getState();
       const doc = store.document;
       const activeLayer = doc.layers.find(
         (l) => l.id === doc.activeLayerId
@@ -350,11 +353,11 @@ export function useSegmentation({
         fail("Inference failed", err);
       }
     },
-    [exportLayerPixels]
+    [editor, exportLayerPixels, fail]
   );
 
   const splitSelectedLayer = useCallback(async () => {
-    const store = useSketchStore.getState();
+    const store = editor.getState();
     const doc = store.document;
     const selectedLayerIds =
       store.selectedLayerIds.length > 0
@@ -425,7 +428,7 @@ export function useSegmentation({
       }
       fail("Split selected layer failed", err);
     }
-  }, [applyMasksToDocument, exportLayerPixels]);
+  }, [applyMasksToDocument, editor, exportLayerPixels]);
 
   const cancelSegmentation = useCallback(() => {
     abortRef.current?.abort();

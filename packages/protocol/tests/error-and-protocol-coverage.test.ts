@@ -93,7 +93,7 @@ describe("bridge-protocol constants", () => {
   });
 
   it("MIN_NODETOOL_CORE_VERSION is a PEP 440 style version string", () => {
-    expect(MIN_NODETOOL_CORE_VERSION).toBe("0.7.0");
+    expect(MIN_NODETOOL_CORE_VERSION).toBe("0.8.2");
     expect(MIN_NODETOOL_CORE_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });

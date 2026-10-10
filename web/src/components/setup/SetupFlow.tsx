@@ -154,6 +154,7 @@ export function SetupFlow<Stage extends string>({
   const step = currentIndex >= 0 ? steps[currentIndex] : undefined;
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const primaryRef = useRef<HTMLButtonElement | null>(null);
+  const changeFlowRef = useRef<HTMLButtonElement | null>(null);
 
   // A model call outlives the stage that asked for it. The stage plus a
   // counter that moves on every stage change is the token an in-flight action
@@ -254,6 +255,15 @@ export function SetupFlow<Stage extends string>({
       setChangeFlowError(
         cause instanceof Error ? cause.message : String(cause)
       );
+      // The dialog hands focus back to Change flow while the discard has it
+      // disabled, so focus falls to the page. The step stays up, so it goes
+      // back to Change flow, which is how the creator retries.
+      if (changeFlowRef.current) {
+        returnFocusRef.current = {
+          element: changeFlowRef.current,
+          stage: stageRef.current
+        };
+      }
     } finally {
       setChangingFlow(false);
     }
@@ -775,6 +785,7 @@ export function SetupFlow<Stage extends string>({
                 switch — an enabled control that does nothing is worse than none. */}
               {onChangeFlow && currentIndex === 0 ? (
                 <EditorButton
+                  ref={changeFlowRef}
                   variant="text"
                   size="large"
                   onClick={() => setConfirmingChange(true)}

@@ -102,6 +102,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
   const setSetup = useTimelineStore((state) => state.setSetup);
   const { importFiles, importing } = useSetupMediaImport();
+  // Placed media lives on this draft, which the script hand-off discards.
+  const hasPlacedMedia = useTimelineStore((state) => state.clips.length > 0);
   const [error, setError] = useState<string | null>(null);
   const [imported, setImported] = useState<SetupMediaImportResult | null>(null);
   // Dropped files that are not media, by name. The picker cannot offer them,
@@ -249,13 +251,16 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         title: "Start from a script",
         description: "Write the words first, then send them to the timeline",
         onSelect: onStartFromScript ?? (() => undefined),
-        // Leaving the flow mid-upload would drop the media still arriving.
-        disabled: !onStartFromScript || importing,
+        // Leaving the flow mid-upload would drop the media still arriving,
+        // and leaving after it would drop the clips it placed.
+        disabled: !onStartFromScript || importing || hasPlacedMedia,
         disabledReason: !onStartFromScript
           ? "Not available here. Start a script from the project screen."
           : importing
             ? UPLOAD_PENDING_REASON
-            : undefined
+            : hasPlacedMedia
+              ? "Your media is on this timeline and would be left behind. Plan the beats here instead."
+              : undefined
       },
       {
         id: "blank",
@@ -266,7 +271,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         disabledReason: importing ? UPLOAD_PENDING_REASON : undefined
       }
     ],
-    [importing, onStartBlank, onStartFromScript]
+    [hasPlacedMedia, importing, onStartBlank, onStartFromScript]
   );
 
   return (
