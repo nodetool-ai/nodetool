@@ -240,6 +240,25 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
       } }]
   }
 }, {
+  id: "post-processing",
+  description: "Author a 3D post-processing stack with AgX tone mapping, bloom and SMAA through public 3D edit ops.",
+  objective: "Give the 3D scene post-processing with AgX tone mapping, exposure 1.2, bloom at intensity 1.5 and SMAA antialiasing, while keeping its background, ambient and shadow settings.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("post-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene replaces the whole environment object, so send its existing fields with the new postProcessing {exposure, toneMapping, bloom?, vignette?, antialias}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "postProcessing", detail: "The scene post-processing differs from the request, or the scene lost its other environment settings.",
+      test: document => {
+        const initial = createNative3DGame("post-eval").scenes[0].environment;
+        const scene = document.scenes[0];
+        if (document.schemaVersion !== 3 || !scene || !("environment" in scene)) { return false; }
+        const { postProcessing, ...rest } = scene.environment;
+        const { postProcessing: _initialPost, ...initialRest } = initial;
+        return postProcessing?.enabled === true && postProcessing.toneMapping === "agx" && postProcessing.exposure === 1.2 &&
+          postProcessing.bloom?.intensity === 1.5 && postProcessing.antialias === "smaa" && JSON.stringify(rest) === JSON.stringify(initialRest);
+      } }]
+  }
+}, {
   id: "hud-widget-tree",
   description: "Author a document HUD tree with a score panel and a pause button that presses an input action, through set_game and set_ui.",
   objective: "Add a pause input action. Then give the game a HUD with a panel anchored to the top-right corner holding a text node with id score, and a button with id pause anchored to the bottom centre that presses the pause action.",

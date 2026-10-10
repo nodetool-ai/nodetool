@@ -465,6 +465,40 @@ describe("useAppRuntime — run policy", () => {
     );
   });
 
+  it("keeps the result of the run in flight when a second run queues behind it", async () => {
+    const { result } = renderRuntime(workflowA, operation("queue"));
+    await act(async () => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalled());
+    const first = await runnerState("wf-a").run.mock.results[0].value;
+
+    act(() => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    deliver({
+      type: "output_update",
+      job_id: first,
+      node_id: "out1",
+      value: "first result",
+      disposition: "replace"
+    });
+
+    await waitFor(() =>
+      expect(result.current.store.getState().outputs["main:out1"]?.value).toBe(
+        "first result"
+      )
+    );
+    deliver({ type: "job_update", job_id: first, status: "completed" });
+    await waitFor(() =>
+      expect(runnerState("wf-a").run).toHaveBeenCalledTimes(2)
+    );
+    // The admitted run now owns the slot and its result replaces the first.
+    expect(result.current.store.getState().outputs["main:out1"]?.status).toBe(
+      "pending"
+    );
+  });
+
   it("admits queued actions in FIFO order with captured input values", async () => {
     const queued = operation("queue");
     queued.operations[0].inputs = { in1: { from: "widget" } };
@@ -985,6 +1019,31 @@ describe("useAppRuntime — script operations", () => {
     expect(getScript).not.toHaveBeenCalled();
     expect(bundledRunner).toHaveBeenCalledWith("script-1", { a: 3 }, undefined, 1, expect.any(Function), undefined);
     expect(runJsScript).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.store.getState().variables.total).toBe(4));
+  });
+
+  it("runs a script whose optional image port is left empty", async () => {
+    const bundled = (await getScript({ id: "bundle-adder" })).document;
+    const bundledRunner = jest.fn(async () => ({
+      ok: true, outputs: { sum: 4 }, streamed: [], logs: [], duration_ms: 3
+    }));
+    const { result } = renderHook(() => useAppRuntime(workflowA, false, {
+      document: scriptDoc(),
+      scriptOverrides: {
+        "script-1": {
+          ...bundled,
+          schemaVersion: 1,
+          inputs: [...bundled.inputs, { name: "reference", type: "image" }]
+        }
+      },
+      scriptRunner: bundledRunner
+    }), { wrapper });
+    await waitFor(() => expect(result.current.ioFor("main").inputs).toHaveLength(2));
+    await act(async () => {
+      result.current.write({ kind: "input", operationId: "main", nodeId: "a" }, 3);
+      await result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    expect(bundledRunner).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(result.current.store.getState().variables.total).toBe(4));
   });
 

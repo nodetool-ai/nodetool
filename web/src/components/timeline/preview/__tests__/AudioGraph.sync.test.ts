@@ -168,7 +168,8 @@ describe("streamed start (F59)", () => {
       [],
       0
     );
-    jest.runOnlyPendingTimers();
+    // Fire the start timer only; the end timer would release the element.
+    jest.advanceTimersByTime(0);
     // Buffering took 1.5 s of audio-clock time before the first sample.
     ctx.currentTime = 1.5;
     element.currentTime = 0;

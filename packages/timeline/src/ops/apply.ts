@@ -72,13 +72,13 @@ import { selectGeneratedMatteVersion } from "../generatedMatte.js";
 import {
   groupDescendantIds,
   isGroupClip,
-  moveGroup,
+  moveUnitIds,
   trimGroup,
   ungroup
 } from "../group.js";
 import {
   isMediaTrackStale,
-  resliceTracksForSplitClip,
+  splitClipMediaTracks,
   resliceTracksForTrimmedClip
 } from "../mediaTrack.js";
 import { quantizeNotes, scaleVelocity, transposeNotes } from "../midi/edit.js";
@@ -93,6 +93,7 @@ import {
   rescaleClipsForTempo,
   resolveTempo
 } from "../midi/tempo.js";
+import { msToTicks } from "../midi/ticks.js";
 import { computeModel3DBakeHash } from "../model3dBake.js";
 import {
   addReframeKeyframe,
@@ -515,17 +516,12 @@ class OpScope {
   }
 
   editTargets(clip: TimelineClip): TimelineClip[] {
-    const children = isGroupClip(clip)
-      ? groupDescendantIds(this.clips, clip.id)
-      : new Set<string>();
-    const targets = this.clips.filter(
-      (candidate) =>
-        candidate.id === clip.id ||
-        children.has(candidate.id) ||
-        (this.ctx.followLinks !== false &&
-          clip.linkId &&
-          candidate.linkId === clip.linkId)
-    );
+    // A group's children and, when links are followed, every partner of the
+    // clip or of a child: the whole unit the editor would move.
+    const unit = moveUnitIds(this.clips, [clip.id], {
+      followLinks: this.ctx.followLinks !== false
+    });
+    const targets = this.clips.filter((candidate) => unit.has(candidate.id));
     this.assertWritable(targets);
     return targets;
   }
@@ -762,22 +758,25 @@ class OpScope {
     // Moving a group moves what it holds by the same delta (D4). Children keep
     // their own tracks, so their z-order is untouched (I9) — only the group
     // itself takes a new `trackId`.
-    let moved = clip;
     if (isGroupClip(clip) && patch.startMs !== undefined) {
-      const nextStartMs = Math.max(0, patch.startMs);
-      this.clips = moveGroup(this.clips, clip.id, nextStartMs - clip.startMs);
-      moved = this.clips.find((c) => c.id === clip.id)!;
+      // One delta for the whole unit, clamped by its earliest member, so a
+      // child's J-cut partner keeps its offset at zero.
+      const minimum = Math.min(...targets.map((target) => target.startMs));
+      const delta = Math.max(-minimum, patch.startMs - clip.startMs);
+      for (const target of targets) {
+        target.startMs += delta;
+      }
       this.touch(...targets.map((target) => target.id));
     } else if (patch.startMs !== undefined) {
       clip.startMs = Math.max(0, patch.startMs);
     }
     if (destination) {
-      moved.trackId = destination.id;
+      clip.trackId = destination.id;
     }
     if (patch.startMs !== undefined || patch.trackId !== undefined) {
-      this.touch(moved.id);
+      this.touch(clip.id);
     }
-    return moved;
+    return clip;
   }
 
   /** Resolve a marker by id, or by case-insensitive label. */
@@ -1422,26 +1421,28 @@ async function runOp(
         targets.length > 1 ? scope.ctx.newId("link") : undefined;
       const halves: TimelineClip[] = [];
       for (const target of targets) {
-        const [left, right] = splitClip(target, at);
-        left.id = scope.ctx.newId("clip");
-        right.id = scope.ctx.newId("clip");
+        const [cutLeft, cutRight] = splitClip(target, at);
+        cutLeft.id = scope.ctx.newId("clip");
+        cutRight.id = scope.ctx.newId("clip");
         if (targets.length > 1) {
-          left.linkId = leftLink;
-          right.linkId = rightLink;
+          cutLeft.linkId = leftLink;
+          cutRight.linkId = rightLink;
         }
+        const split = splitClipMediaTracks(
+          scope.mediaTracks,
+          target.id,
+          cutLeft,
+          cutRight,
+          () => scope.ctx.newId("track")
+        );
+        const { left, right } = split;
+        scope.mediaTracks = split.mediaTracks;
         const idx = scope.clips.findIndex((c) => c.id === target.id);
         scope.clips.splice(idx, 1, left, right);
         state.selectedClipIds = state.selectedClipIds.filter(
           (id) => id !== target.id
         );
         scope.touch(target.id, left.id, right.id);
-        scope.mediaTracks = resliceTracksForSplitClip(
-          scope.mediaTracks,
-          target.id,
-          left,
-          right,
-          () => scope.ctx.newId("track")
-        );
         halves.push(left, right);
       }
       return { ok: true, clips: halves.map((half) => scope.clipOut(half)) };
@@ -2617,7 +2618,14 @@ async function runOp(
             : quantizeNotes(before, {
                 division: op.division,
                 strength: op.strength,
-                target: op.target
+                target: op.target,
+                // The grid is anchored at `tempo.offsetMs`, as the editor draws it.
+                phaseTick: msToTicks(
+                  resolveTempo(scope.state).offsetMs -
+                    clip.startMs +
+                    (clip.inPointMs ?? 0),
+                  resolveTempo(scope.state).bpm
+                )
               });
       clip.notes = notes;
       scope.touch(clip.id);

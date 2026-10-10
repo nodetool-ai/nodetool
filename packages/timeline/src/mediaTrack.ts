@@ -299,6 +299,45 @@ export function resliceTracksForSplitClip(
   });
 }
 
+/**
+ * A split's media tracks and halves together: the tracks the clip owned are
+ * resliced per half ({@link resliceTracksForSplitClip}), and a half whose own
+ * Smart Reframe follows one of them is pointed at its half's new track, so the
+ * split keeps the framing instead of falling back to centre.
+ */
+export function splitClipMediaTracks(
+  mediaTracks: readonly MediaTrack[],
+  originalClipId: string,
+  left: TimelineClip,
+  right: TimelineClip,
+  newTrackId: () => string
+): { mediaTracks: MediaTrack[]; left: TimelineClip; right: TimelineClip } {
+  const next = resliceTracksForSplitClip(
+    mediaTracks,
+    originalClipId,
+    left,
+    right,
+    newTrackId
+  );
+  const reframeTrackId = left.reframe?.trackId;
+  if (next === mediaTracks || reframeTrackId === undefined) {
+    return { mediaTracks: next, left, right };
+  }
+  const owned = mediaTracks.filter((t) => t.clipId === originalClipId);
+  const index = owned.findIndex((t) => t.id === reframeTrackId);
+  if (index === -1) return { mediaTracks: next, left, right };
+  const resliced = next.filter(
+    (t) => t.clipId === left.id || t.clipId === right.id
+  );
+  const leftTrack = resliced[index * 2];
+  const rightTrack = resliced[index * 2 + 1];
+  return {
+    mediaTracks: next,
+    left: { ...left, reframe: { ...left.reframe!, trackId: leftTrack.id } },
+    right: { ...right, reframe: { ...right.reframe!, trackId: rightTrack.id } }
+  };
+}
+
 /** The track with a finished generation applied, `status: "ready"`. */
 export function applyMediaTrackResult(
   track: MediaTrack,

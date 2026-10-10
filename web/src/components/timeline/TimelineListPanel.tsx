@@ -23,6 +23,8 @@ import { trpc } from "../../trpc/client";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { importTimelineZip } from "../../utils/timelineBundle";
+import { buildTimelineDocumentPayload } from "../../hooks/timeline/timelineDocumentPayload";
+import { isTranscriptClip } from "../../stores/timeline/transcriptOps";
 import {
   DocumentListPanel,
   FlexRow,
@@ -367,14 +369,15 @@ const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
         });
         await updateTimeline.mutateAsync({
           id: copy.id,
-          document: {
-            tracks: source.tracks,
-            trackFolders: source.trackFolders,
-            clips: source.clips,
-            markers: source.markers,
-            transcript: source.transcript,
-            scriptEnabled: source.scriptEnabled
-          }
+          document: buildTimelineDocumentPayload({
+            ...source,
+            trackFolders: source.trackFolders ?? [],
+            mediaTracks: source.mediaTracks ?? [],
+            transcript: source.transcript ?? [],
+            scriptEnabled:
+              source.scriptEnabled ?? source.clips.some(isTranscriptClip),
+            camera2d: source.camera2d ?? null
+          })
         });
       } catch (error) {
         notifyMutationError("duplicate the timeline", error);

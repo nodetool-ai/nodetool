@@ -38,6 +38,7 @@ import { materializeBitmapRefs } from "../lib/workflow/materializeBrowserOutputs
 import type { MsgpackData } from "./workflowUpdates";
 import useStatusStore from "./StatusStore";
 import useResultsStore from "./ResultsStore";
+import useWorkflowRunsStore from "./WorkflowRunsStore";
 import { queryClient } from "../queryClient";
 import { clearRunSignatures, recordRunSignatures } from "./runSignatures";
 import { computeRunSignatures } from "../utils/computeRunSignatures";
@@ -76,6 +77,22 @@ export const deriveJobTitle = (
  * runs have no server-side job, so cancel() aborts these instead of sending
  * `cancel_job` over the websocket. */
 const browserRunAbortControllers = new Map<string, AbortController>();
+
+/**
+ * Mark a run cancelled on this client and stop its visuals (node "running"
+ * borders, edge animations, progress, running placeholders) right away. The
+ * message handler drops the run's later node and edge frames once it is
+ * cancelled, so the backend's own cleanup frames would never land. Job-scoped,
+ * so sibling runs of the workflow keep theirs.
+ */
+const haltJobLocally = (workflowId: string, jobId: string): void => {
+  const runsStore = useWorkflowRunsStore.getState();
+  if (runsStore.hasRun(workflowId, jobId)) {
+    runsStore.updateRunState(workflowId, jobId, "cancelled");
+  }
+  useStatusStore.getState().clearJobStatuses(workflowId, jobId);
+  useResultsStore.getState().clearJobRunVisuals(workflowId, jobId);
+};
 
 /**
  * Build the submitted graph. Nodes marked with the legacy `bypassed` flag are
@@ -760,12 +777,7 @@ export const createWorkflowRunnerStore = (
         return;
       }
 
-      // Stop this run's visuals (node "running" borders, edge animations,
-      // progress) right away: once state is "cancelled" the message handler
-      // drops all further node/edge updates, so the backend's own cleanup
-      // messages would never land. Job-scoped — sibling runs keep theirs.
-      useStatusStore.getState().clearJobStatuses(workflowId, job_id);
-      useResultsStore.getState().clearJobRunVisuals(workflowId, job_id);
+      haltJobLocally(workflowId, job_id);
 
       // In-browser runs have no server-side job — abort the local run; the
       // kernel then emits the cancelled job_update / node statuses through
@@ -791,6 +803,7 @@ export const createWorkflowRunnerStore = (
         await get().cancel();
         return;
       }
+      haltJobLocally(workflowId, jobId);
       const browserController = browserRunAbortControllers.get(jobId);
       if (browserController) {
         browserController.abort();

@@ -34,10 +34,15 @@ jest.mock("../NodeStore", () => ({
         workflowIsDirty: false,
         getWorkflow: () => get().workflow,
         setWorkflowDirty: jest.fn(),
-        setWorkflowUpdatedAt: (updatedAt: string) =>
+        setWorkflowUpdatedAt: (updatedAt: string, etag?: string | null) =>
           set((state) => ({
-            workflow: { ...state.workflow, updated_at: updatedAt }
+            workflow: {
+              ...state.workflow,
+              updated_at: updatedAt,
+              etag: etag ?? state.workflow.etag
+            }
           })),
+        adoptSavedWorkflow: (saved: Workflow) => set(() => ({ workflow: saved })),
         cleanup: jest.fn()
       })
     )
@@ -190,6 +195,78 @@ describe("saveWorkflow first save", () => {
     expect(updateMutate.mock.calls[0][0].expected_updated_at).toBe(
       "2026-08-02T00:00:00.000Z"
     );
+  });
+
+  it("runs overlapping saves one at a time and coalesces the waiting ones", async () => {
+    const store = createWorkflowManagerStore(new QueryClient());
+    const serverWorkflow: Workflow = {
+      id: "wf-queue",
+      name: "Existing",
+      description: "",
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      created_at: "2026-08-01T00:00:00.000Z",
+      updated_at: "2026-08-02T00:00:00.000Z"
+    };
+    store.getState().addWorkflow(serverWorkflow);
+
+    let releaseFirst: (value: Workflow) => void = () => {};
+    updateMutate.mockImplementationOnce(
+      () =>
+        new Promise<Workflow>((resolve) => {
+          releaseFirst = resolve;
+        })
+    );
+    updateMutate.mockImplementation(async (input: { name: string }) => ({
+      ...serverWorkflow,
+      name: input.name,
+      updated_at: "2026-08-04T00:00:00.000Z"
+    }));
+
+    const first = store.getState().saveWorkflow(serverWorkflow);
+    const second = store
+      .getState()
+      .saveWorkflow({ ...serverWorkflow, name: "Second" });
+    const third = store
+      .getState()
+      .saveWorkflow({ ...serverWorkflow, name: "Third" });
+    expect(second).toBe(third);
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+    expect(store.getState().isSavingWorkflow("wf-queue")).toBe(true);
+
+    releaseFirst({ ...serverWorkflow, updated_at: "2026-08-03T00:00:00.000Z" });
+    await Promise.all([first, second, third]);
+
+    // One request for the two waiting saves, carrying the newest input and
+    // the token the first save left in the editor.
+    expect(updateMutate).toHaveBeenCalledTimes(2);
+    expect(updateMutate.mock.calls[1][0].name).toBe("Third");
+    expect(updateMutate.mock.calls[1][0].expected_updated_at).toBe(
+      "2026-08-03T00:00:00.000Z"
+    );
+  });
+
+  it("still runs a queued save after the one before it fails", async () => {
+    const store = createWorkflowManagerStore(new QueryClient());
+    const serverWorkflow: Workflow = {
+      id: "wf-retry",
+      name: "Existing",
+      description: "",
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      created_at: "2026-08-01T00:00:00.000Z",
+      updated_at: "2026-08-02T00:00:00.000Z"
+    };
+    store.getState().addWorkflow(serverWorkflow);
+    updateMutate.mockRejectedValueOnce(new Error("network down"));
+    updateMutate.mockResolvedValue({ ...serverWorkflow });
+
+    const first = store.getState().saveWorkflow(serverWorkflow);
+    const second = store.getState().saveWorkflow(serverWorkflow);
+
+    await expect(first).rejects.toThrow("Failed to save workflow");
+    await expect(second).resolves.toBeUndefined();
+    expect(updateMutate).toHaveBeenCalledTimes(2);
   });
 
   it("adds a version row unless the save asks for none", async () => {

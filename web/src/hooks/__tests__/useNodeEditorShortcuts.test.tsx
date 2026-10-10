@@ -5,6 +5,7 @@ import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import type { NodeData } from "../../stores/NodeData";
 
 import { useNodeEditorShortcuts } from "../useNodeEditorShortcuts";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import {
   registerComboCallback,
   unregisterComboCallback
@@ -62,6 +63,15 @@ jest.mock("../../utils/browser", () => ({
   getIsElectronDetails: () => ({ isElectron: mockIsElectron }),
   isTextInputActive: () => mockTextInputActive,
   canTakeFocus: () => mockCanTakeFocus
+}));
+
+const mockCloseDocument = jest.fn();
+jest.mock("../useWorkspaceDocumentClose", () => ({
+  useWorkspaceDocumentClose: () => ({
+    closeDocument: mockCloseDocument,
+    closeOtherDocuments: jest.fn(),
+    closeAllDocuments: jest.fn()
+  })
 }));
 
 jest.mock("../../utils/MousePosition", () => ({
@@ -343,6 +353,31 @@ describe("useNodeEditorShortcuts", () => {
       ["child", 10],
       ["loose", -10]
     ]);
+  });
+
+  it("closes the active tab through the dirty-checking close path on Ctrl+W", () => {
+    mockIsElectron = true;
+    const tab = {
+      id: "tab-1",
+      type: "workflow" as const,
+      ref: "wf-1",
+      mode: "edit" as const,
+      title: "Workflow"
+    };
+    useWorkspaceTabsStore.setState({ tabs: [tab], activeTabId: tab.id });
+    renderHook(() => useNodeEditorShortcuts(true));
+
+    const registration = jest
+      .mocked(registerComboCallback)
+      .mock.calls.find(([combo]) => combo === "control+w");
+    const callback = registration?.[1]?.callback;
+    if (!callback) {
+      throw new Error("Ctrl+W callback was not registered");
+    }
+    callback();
+
+    expect(mockCloseDocument).toHaveBeenCalledWith(tab);
+    expect(useWorkspaceTabsStore.getState().tabs).toEqual([tab]);
   });
 
   it("does not register keyboard shortcuts when editor is inactive", () => {

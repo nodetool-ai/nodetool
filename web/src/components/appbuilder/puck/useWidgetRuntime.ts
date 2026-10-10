@@ -51,6 +51,11 @@ export interface WidgetRuntime {
   /** Fractional progress of the app's active run, when it reports any. */
   progress: number | undefined;
   /**
+   * True when the widget is bound to a run's own progress (`exec#progress`),
+   * whose value is the 0..1 fraction rather than a number the graph produced.
+   */
+  boundToRunProgress: boolean;
+  /**
    * What the run this widget watches last reported it was doing — the tool an
    * agent is calling, the planning phase, the task step. Undefined when the run
    * reports nothing but a spinner.
@@ -105,7 +110,9 @@ export const useWidgetRuntime = ({
       : storedValue;
 
   // A widget reports on the operation its own events drive, so a button wired
-  // to the second operation shows that operation's run, not operation 0's.
+  // to the second operation shows that operation's run, not operation 0's. A
+  // widget without events (a Progress bar bound to `op:X/exec#progress`)
+  // reports on the operation its binding names.
   const operationId = useMemo(() => {
     const named = (events ?? []).find(
       (event) =>
@@ -113,8 +120,12 @@ export const useWidgetRuntime = ({
         event.operationId &&
         operations.some((operation) => operation.id === event.operationId)
     )?.operationId;
-    return named ?? scope.defaultOperationId;
-  }, [events, operations, scope.defaultOperationId]);
+    const bound =
+      boundRef?.kind === "execution" || boundRef?.kind === "output"
+        ? boundRef.operationId
+        : undefined;
+    return named ?? bound ?? scope.defaultOperationId;
+  }, [boundRef, events, operations, scope.defaultOperationId]);
   const runnerState = useRuntimeSelector((s) =>
     isOperationRunning(s, operationId) ? "running" : "idle"
   );
@@ -204,6 +215,8 @@ export const useWidgetRuntime = ({
     designMode,
     runnerState,
     progress,
+    boundToRunProgress:
+      boundRef?.kind === "execution" && boundRef.field === "progress",
     activity,
     producing
   };

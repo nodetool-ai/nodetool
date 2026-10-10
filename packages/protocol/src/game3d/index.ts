@@ -277,7 +277,7 @@ export {
   gameAnimationPose3D, type GameAnimationPose3D
 } from "./components/animation-graph.js";
 
-export { gameEnvironment3D, type GameEnvironment3D, gameSky3D, type GameSky3D } from "./components/environment.js";
+export { gameEnvironment3D, type GameEnvironment3D, gameSky3D, type GameSky3D, gamePostProcessing3D, type GamePostProcessing3D } from "./components/environment.js";
 
 export { gameModelImportSettings3D, type GameModelImportSettings3D, gameAssetBinding3D, type GameAssetBinding3D, anyGameAssetBinding, type AnyGameAssetBinding } from "./components/assets.js";
 

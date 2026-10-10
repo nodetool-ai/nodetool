@@ -52,6 +52,7 @@ import {
 import { useCodeEditorActivation } from "../../hooks/editor/useCodeEditorActivation";
 import { useBespokePropertyWriter } from "../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
+import { useUndoGroup } from "../../hooks/useUndoGroup";
 import { useNodes } from "../../contexts/NodeContext";
 import { deriveCodeIOUpdates } from "../../utils/codeOutputInference";
 import {
@@ -323,6 +324,9 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     }
   }, [id]);
 
+  // Typing between focus and blur undoes as one step.
+  const { begin: beginUndoGroup, end: endUndoGroup } = useUndoGroup();
+
   const handleEditorMount = useCallback(
     (editor: monaco.editor.IStandaloneCodeEditor) => {
       monacoOnMount(editor);
@@ -334,8 +338,12 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
       if (el) {
         editor.layout({ width: el.clientWidth, height: el.clientHeight });
       }
-      const focus = editor.onDidFocusEditorText(() => setIsFocused(true));
+      const focus = editor.onDidFocusEditorText(() => {
+        setIsFocused(true);
+        beginUndoGroup();
+      });
       const blur = editor.onDidBlurEditorText(() => {
+        endUndoGroup();
         setIsFocused(false);
         completeRef.current();
       });
@@ -347,7 +355,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
         }
       });
     },
-    [monacoOnMount, attachEditor]
+    [monacoOnMount, attachEditor, beginUndoGroup, endUndoGroup]
   );
 
   const toggleExpand = useCallback(() => {

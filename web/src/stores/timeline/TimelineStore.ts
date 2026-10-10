@@ -30,10 +30,11 @@ import { create } from "zustand";
 import { temporal } from "../temporal";
 import type { TemporalState } from "../temporal";
 import {
-  groupDescendantIds,
   isGroupClip,
   moveGroup,
+  moveUnitIds,
   splitClip,
+  splitClipMediaTracks,
   trimClip,
   rippleTrim,
   rollEdit,
@@ -58,6 +59,7 @@ import {
   createTimeOrderedUuid,
   createMidiNote,
   quantizeNotes,
+  msToTicks,
   rescaleClipsForTempo,
   DEFAULT_TEMPO,
   resolveTempo,
@@ -451,7 +453,13 @@ export interface TimelineStoreState {
    * Returns the new track id, or null when `trackId` is unknown.
    */
   duplicateTrack: (trackId: string) => string | null;
-  removeTrack: (trackId: string) => void;
+  /**
+   * Remove a track and every clip on it. Refused (returns false) when the
+   * track is locked or any clip on it belongs to a locked edit unit. Partners,
+   * children and media-track bindings of the removed clips are released, and
+   * the remaining tracks are re-indexed.
+   */
+  removeTrack: (trackId: string) => boolean;
   /** Reorder tracks by supplying the new ordered array of track IDs. */
   reorderTracks: (orderedIds: string[]) => void;
   setTrackHeight: (trackId: string, heightPx: number) => void;
@@ -520,8 +528,8 @@ export interface TimelineStoreState {
   transposeClip: (clipId: string, semitones: number) => void;
   /**
    * Snap a midi clip's onsets — and, with `target: "start_and_length"`, its
-   * held lengths — to a note grid. Ticks are the grid, so the result does not
-   * depend on the document tempo. One undo entry.
+   * held lengths — to a note grid anchored at `tempo.offsetMs`, the grid the
+   * piano roll draws. One undo entry.
    */
   quantizeClip: (clipId: string, options: QuantizeOptions) => void;
   /**
@@ -714,6 +722,23 @@ export interface TimelineStoreState {
 
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
+
+  /**
+   * Set a clip's playback speed, and its linked partners' with linked
+   * selection on. The source window stays put: the duration scales by
+   * old rate / new rate. A clip that would grow into the next clip on its
+   * track is capped there and its out point pulled in to match, by the same
+   * amount for every partner so the link stays in sync. Refused for a locked
+   * edit unit. One undo entry.
+   */
+  setClipSpeed: (clipId: string, speedMultiplier: number) => void;
+
+  /**
+   * Wrap clips in a new group clip (D4) spanning them, placed on the topmost
+   * member's track. Members in a locked edit unit are left out. Returns the
+   * group id, or null when fewer than two members remain. One undo entry.
+   */
+  groupClips: (clipIds: ReadonlySet<string>) => string | null;
 
   /** Replace a clip's motion-design animations. One patch per call so undo
    *  granularity stays per-edit. */
@@ -1173,14 +1198,18 @@ function editMidiNotes(
     updater: (state: TimelineStoreState) => Partial<TimelineStoreState>
   ) => void,
   clipId: string,
-  edit: (notes: readonly MidiNote[]) => MidiNote[]
+  edit: (
+    notes: readonly MidiNote[],
+    clip: TimelineClip,
+    state: TimelineStoreState
+  ) => MidiNote[]
 ): void {
   set((state) => {
     const clip = state.clips.find((c) => c.id === clipId);
     if (!clip || clip.mediaType !== "midi") {
       return state;
     }
-    const notes = sortNotes(edit(clip.notes ?? []));
+    const notes = sortNotes(edit(clip.notes ?? [], clip, state));
     if (sameNotes(clip.notes ?? [], notes)) {
       return state;
     }
@@ -1396,13 +1425,16 @@ function removeClipsLinkAware(
  * linkId, all RIGHT halves another (so neither side is a 3-member group). A
  * sibling that does not contain `atMs` (rare — links stay time-aligned) is
  * left untouched and excluded from the new groups. `targetIds` is deduped so a
- * sibling that is also a target is split only once.
+ * sibling that is also a target is split only once. The media tracks each
+ * split clip owned are resliced per half, and a half's reframe follows its
+ * own half's track.
  */
 function splitClipsLinkAware(
   clips: TimelineClip[],
+  mediaTracks: MediaTrack[],
   atMs: number,
   targetIds: string[]
-): TimelineClip[] {
+): { clips: TimelineClip[]; mediaTracks: MediaTrack[] } {
   // A group is a transform parent, not media: `splitClip` refuses it, so it is
   // never a target and its children are split individually.
   const contains = (c: TimelineClip) =>
@@ -1437,7 +1469,7 @@ function splitClipsLinkAware(
     }
   }
   if (toSplit.size === 0) {
-    return clips;
+    return { clips, mediaTracks };
   }
 
   // One fresh linkId per original group, for each side. Lone (unlinked) clips
@@ -1457,6 +1489,7 @@ function splitClipsLinkAware(
   };
 
   const next: TimelineClip[] = [];
+  let nextMediaTracks = mediaTracks;
   for (const clip of clips) {
     if (toSplit.has(clip.id)) {
       try {
@@ -1468,7 +1501,15 @@ function splitClipsLinkAware(
           delete left.linkId;
           delete right.linkId;
         }
-        next.push(left, right);
+        const resliced = splitClipMediaTracks(
+          nextMediaTracks,
+          clip.id,
+          left,
+          right,
+          createTimeOrderedUuid
+        );
+        nextMediaTracks = resliced.mediaTracks;
+        next.push(resliced.left, resliced.right);
       } catch {
         // atMs outside this clip's bounds — leave it untouched.
         next.push(clip);
@@ -1477,7 +1518,7 @@ function splitClipsLinkAware(
       next.push(clip);
     }
   }
-  return next;
+  return { clips: next, mediaTracks: nextMediaTracks };
 }
 
 /**
@@ -2286,11 +2327,52 @@ export const createTimelineStore = (
           return track.id;
         },
 
-        removeTrack: (trackId) =>
-          set((state) => ({
-            tracks: state.tracks.filter((t) => t.id !== trackId),
-            clips: state.clips.filter((c) => c.trackId !== trackId)
-          })),
+        removeTrack: (trackId) => {
+          const state = get();
+          const track = state.tracks.find((t) => t.id === trackId);
+          if (!track || track.locked) return false;
+          const removed = new Set(
+            state.clips.filter((c) => c.trackId === trackId).map((c) => c.id)
+          );
+          const editable = editableUserTargets(
+            state.clips,
+            state.tracks,
+            removed,
+            { followLinks: true, includeGroupDescendants: true }
+          );
+          if (editable.size !== removed.size) return false;
+
+          // Subject tracks belong to a clip; they go with it, and a clip bound
+          // to one of them is released (the rule delete_track applies).
+          const droppedMediaTracks = new Set(
+            state.mediaTracks
+              .filter((t) => removed.has(t.clipId))
+              .map((t) => t.id)
+          );
+          const clips = removeClipsLinkAware(state.clips, removed).map((c) => {
+            if (
+              c.trackBinding === undefined ||
+              !droppedMediaTracks.has(c.trackBinding.trackId)
+            ) {
+              return c;
+            }
+            const { trackBinding: _dropped, ...rest } = c;
+            return rest;
+          });
+          set({
+            tracks: state.tracks
+              .filter((t) => t.id !== trackId)
+              .map((t, index) => (t.index === index ? t : { ...t, index })),
+            clips,
+            mediaTracks:
+              droppedMediaTracks.size === 0
+                ? state.mediaTracks
+                : state.mediaTracks.filter(
+                    (t) => !droppedMediaTracks.has(t.id)
+                  )
+          });
+          return true;
+        },
 
         reorderTracks: (orderedIds) =>
           set((state) => {
@@ -2468,16 +2550,18 @@ export const createTimelineStore = (
             newStartMs = Math.max(0, newStartMs);
             let appliedDelta = newStartMs - clip.startMs;
 
-            // Clamp the delta once for the whole link set so J-cut offsets
-            // survive a drag against t=0 (same rule as moveSelectedClips).
+            // Clamp the delta once for the whole link set (or group with its
+            // children and their partners) so offsets survive a drag against
+            // t=0 (same rule as moveSelectedClips).
             if (
-              !isGroupClip(clip) &&
-              clip.linkId !== undefined &&
-              state.linkedSelection
+              isGroupClip(clip) ||
+              (clip.linkId !== undefined && state.linkedSelection)
             ) {
+              const moving = moveUnitIds(state.clips, [clipId], {
+                followLinks: state.linkedSelection
+              });
               const minStartMs = state.clips.reduce(
-                (min, c) =>
-                  c.linkId === clip.linkId ? Math.min(min, c.startMs) : min,
+                (min, c) => (moving.has(c.id) ? Math.min(min, c.startMs) : min),
                 clip.startMs
               );
               appliedDelta = Math.max(appliedDelta, -minStartMs);
@@ -2487,7 +2571,9 @@ export const createTimelineStore = (
             // A group carries what it holds (D4): the children follow the same
             // delta and keep their own tracks, so their z-order is untouched.
             if (isGroupClip(clip)) {
-              const moved = moveGroup(state.clips, clipId, appliedDelta);
+              const moved = moveGroup(state.clips, clipId, appliedDelta, {
+                followLinks: state.linkedSelection
+              });
               return {
                 clips: toTrackId
                   ? moved.map((c) =>
@@ -2580,61 +2666,31 @@ export const createTimelineStore = (
               snappedDelta = snappedStart - primary.startMs;
             }
 
-            // Clamp the delta ONCE for the whole group so relative spacing is
-            // preserved when the selection is dragged against t=0.
+            // Linked siblings of the selection, a selected group's descendants
+            // (D4) and their linked partners all shift by the same delta and
+            // keep their own tracks, so a move can't desync a link.
+            const moving = moveUnitIds(state.clips, editableSelectedIds, {
+              followLinks: state.linkedSelection
+            });
+            // Clamp the delta ONCE for everything that moves so relative
+            // spacing (J-cut offsets included) survives a drag against t=0.
             const minStartMs = state.clips.reduce(
-              (min, c) =>
-                editableSelectedIds.has(c.id) ? Math.min(min, c.startMs) : min,
+              (min, c) => (moving.has(c.id) ? Math.min(min, c.startMs) : min),
               primary.startMs
             );
             const effectiveDelta = Math.max(snappedDelta, -minStartMs);
 
-            // Linked siblings of any selected clip that are NOT themselves
-            // selected must follow by the same delta (keeping their own track),
-            // so a multi-select drag or arrow-key nudge can't desync a link.
-            const selectedLinkIds = new Set<string>();
-            // A selected group's descendants shift with it for the same reason
-            // (D4), whether or not they are themselves selected.
-            const carried = new Set<string>();
-            for (const c of state.clips) {
-              if (!editableSelectedIds.has(c.id)) continue;
-              if (state.linkedSelection && c.linkId !== undefined) {
-                selectedLinkIds.add(c.linkId);
-              }
-              if (isGroupClip(c)) {
-                for (const id of groupDescendantIds(state.clips, c.id)) {
-                  carried.add(id);
-                }
-              }
-            }
-
             return {
               clips: state.clips.map((c) => {
-                if (editableSelectedIds.has(c.id)) {
-                  if (c.id === effectivePrimaryId) {
-                    return {
-                      ...c,
-                      startMs: c.startMs + effectiveDelta,
-                      trackId: toTrackId ?? c.trackId
-                    };
-                  }
-                  return {
-                    ...c,
-                    startMs: c.startMs + effectiveDelta
-                  };
-                }
-                // Unselected linked sibling or group child — shift it too,
-                // but keep its track.
-                if (
-                  carried.has(c.id) ||
-                  (c.linkId !== undefined && selectedLinkIds.has(c.linkId))
-                ) {
-                  return {
-                    ...c,
-                    startMs: Math.max(0, c.startMs + effectiveDelta)
-                  };
-                }
-                return c;
+                if (!moving.has(c.id)) return c;
+                return {
+                  ...c,
+                  startMs: c.startMs + effectiveDelta,
+                  trackId:
+                    c.id === effectivePrimaryId
+                      ? (toTrackId ?? c.trackId)
+                      : c.trackId
+                };
               })
             };
           }),
@@ -3027,8 +3083,13 @@ export const createTimelineStore = (
             ) {
               return state;
             }
-            const next = splitClipsLinkAware(state.clips, atMs, [clipId]);
-            return next === state.clips ? state : { clips: next };
+            const next = splitClipsLinkAware(
+              state.clips,
+              state.mediaTracks,
+              atMs,
+              [clipId]
+            );
+            return next.clips === state.clips ? state : next;
           }),
 
         splitSelectedAtPlayhead: (currentTimeMs, selectedIds) =>
@@ -3052,10 +3113,13 @@ export const createTimelineStore = (
               requestedTargetIds,
               { followLinks: true, includeGroupDescendants: false }
             );
-            const next = splitClipsLinkAware(state.clips, currentTimeMs, [
-              ...targetIds
-            ]);
-            return next === state.clips ? state : { clips: next };
+            const next = splitClipsLinkAware(
+              state.clips,
+              state.mediaTracks,
+              currentTimeMs,
+              [...targetIds]
+            );
+            return next.clips === state.clips ? state : next;
           }),
 
         duplicateSelected: (selectedIds, offsetMs = 0) => {
@@ -3207,8 +3271,17 @@ export const createTimelineStore = (
             transposeNotes(notes, Math.trunc(semitones))
           ),
 
+        // The grid is anchored at `tempo.offsetMs` on the timeline, the same
+        // phase the piano roll draws and snaps to.
         quantizeClip: (clipId, options) =>
-          editMidiNotes(set, clipId, (notes) => quantizeNotes(notes, options)),
+          editMidiNotes(set, clipId, (notes, clip, state) => {
+            const tempo = resolveTempo(state);
+            const phaseTick = msToTicks(
+              tempo.offsetMs - clip.startMs + (clip.inPointMs ?? 0),
+              tempo.bpm
+            );
+            return quantizeNotes(notes, { phaseTick, ...options });
+          }),
 
         scaleClipVelocity: (clipId, factor) =>
           editMidiNotes(set, clipId, (notes) => scaleVelocity(notes, factor)),
@@ -3241,6 +3314,105 @@ export const createTimelineStore = (
               )
             };
           }),
+
+        setClipSpeed: (clipId, speedMultiplier) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (
+              !clip ||
+              isGroupClip(clip) ||
+              !Number.isFinite(speedMultiplier) ||
+              speedMultiplier <= 0 ||
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                {
+                  followLinks: state.linkedSelection,
+                  includeGroupDescendants: false
+                }
+              ).has(clipId)
+            ) {
+              return state;
+            }
+            const members =
+              state.linkedSelection && clip.linkId !== undefined
+                ? state.clips.filter((c) => c.linkId === clip.linkId)
+                : [clip];
+            const memberIds = new Set(members.map((m) => m.id));
+            const planned = members.map((m) => {
+              const newRate = sourceRate({ ...m, speedMultiplier });
+              const targetMs = (m.durationMs * sourceRate(m)) / newRate;
+              const nextStartMs = state.clips.reduce(
+                (min, c) =>
+                  c.trackId === m.trackId &&
+                  !memberIds.has(c.id) &&
+                  c.startMs > m.startMs
+                    ? Math.min(min, c.startMs)
+                    : min,
+                Number.POSITIVE_INFINITY
+              );
+              const allowedMs = Math.max(m.durationMs, nextStartMs - m.startMs);
+              return { m, newRate, targetMs, overflowMs: targetMs - allowedMs };
+            });
+            const overflowMs = Math.max(0, ...planned.map((p) => p.overflowMs));
+            const next = new Map<string, TimelineClip>();
+            for (const { m, newRate, targetMs } of planned) {
+              const durationMs = Math.max(1, targetMs - overflowMs);
+              const retimed: TimelineClip = { ...m, speedMultiplier, durationMs };
+              if (overflowMs > 0 && m.outPointMs !== undefined) {
+                retimed.outPointMs = (m.inPointMs ?? 0) + durationMs * newRate;
+              }
+              next.set(m.id, retimed);
+            }
+            return { clips: state.clips.map((c) => next.get(c.id) ?? c) };
+          }),
+
+        groupClips: (clipIds) => {
+          const state = get();
+          const editable = editableUserTargets(
+            state.clips,
+            state.tracks,
+            new Set(clipIds),
+            {
+              followLinks: state.linkedSelection,
+              includeGroupDescendants: true
+            }
+          );
+          const members = state.clips.filter((c) => editable.has(c.id));
+          if (members.length < 2) return null;
+          const startMs = Math.min(...members.map((m) => m.startMs));
+          const endMs = Math.max(
+            ...members.map((m) => m.startMs + m.durationMs)
+          );
+          const trackIndexOf = (trackId: string) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+          };
+          // The group sits on the topmost member's track so its bracket
+          // renders above what it holds; children keep their tracks (I9).
+          const topTrackId = members.reduce((top, m) =>
+            trackIndexOf(m.trackId) < trackIndexOf(top.trackId) ? m : top
+          ).trackId;
+          const group = makeClip({
+            trackId: topTrackId,
+            name: "Group",
+            mediaType: "group",
+            sourceType: "imported",
+            status: "generated",
+            startMs,
+            durationMs: Math.max(1, endMs - startMs)
+          });
+          set({
+            clips: [
+              ...state.clips.map((c) =>
+                editable.has(c.id) ? { ...c, parentId: group.id } : c
+              ),
+              group
+            ]
+          });
+          return group.id;
+        },
 
         patchClip: (clipId, patch) =>
           set((state) => {
@@ -4043,9 +4215,12 @@ export const createTimelineStore = (
                 label: label ?? ""
               })
             ],
-            clips: splitClipsLinkAware(state.clips, Math.round(timeMs), [
-              ...editableAllClips(state)
-            ])
+            ...splitClipsLinkAware(
+              state.clips,
+              state.mediaTracks,
+              Math.round(timeMs),
+              [...editableAllClips(state)]
+            )
           })),
 
         removeScene: (markerId) =>

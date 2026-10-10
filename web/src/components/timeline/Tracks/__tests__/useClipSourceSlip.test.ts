@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import { getTimelineTemporal } from "../../../../stores/timeline/TimelineInstance";
 import { slipSourceWindow, useClipSourceSlip } from "../useClipSourceSlip";
 
 describe("slipSourceWindow", () => {
@@ -100,6 +101,19 @@ describe("useClipSourceSlip link group (F23)", () => {
       store.getState().clips.map((x) => [x.id, x.inPointMs])
     );
     expect(c).toEqual({ v1: 1200, a1: 1200 });
+  });
+
+  it("undoes a linked slip in one step", async () => {
+    const { element, store } = setup(1000);
+    act(() => getTimelineTemporal().clear());
+    wheel(element, 200);
+    // Let the gesture's idle timer close the history batch.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 200)));
+    act(() => getTimelineTemporal().undo());
+    const c = Object.fromEntries(
+      store.getState().clips.map((x) => [x.id, x.inPointMs])
+    );
+    expect(c).toEqual({ v1: 1000, a1: 1000 });
   });
 
   it("refuses the slip when a linked member would run out of source", () => {
