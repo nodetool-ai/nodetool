@@ -435,7 +435,10 @@ describe("useEditorCommands", () => {
     };
   };
 
-  it("routes layer via copy through a new target layer", async () => {
+  it("routes layer via copy through a new target layer in one undo step", async () => {
+    act(() => {
+      useSketchStore.getState().resetDocument();
+    });
     const params = createParams();
     const { result } = renderHook(() => useEditorCommands(params));
 
@@ -443,15 +446,21 @@ describe("useEditorCommands", () => {
       await result.current.handleLayerViaCopy();
     });
 
+    const { document, history } = useSketchStore.getState();
     expect(params.canvasActions.handleCopy).toHaveBeenCalledTimes(1);
-    expect(params.layerActions.handleAddLayer).toHaveBeenCalledTimes(1);
+    expect(document.layers).toHaveLength(2);
     expect(params.canvasActions.handlePaste).toHaveBeenCalledWith(true, {
-      targetLayerId: "layer-new",
-      pasteAnchorDocument: null
+      targetLayerId: document.activeLayerId,
+      pasteAnchorDocument: null,
+      recordHistory: false
     });
+    expect(history.map((entry) => entry.action)).toEqual(["layer via copy"]);
   });
 
-  it("routes layer via cut through a new target layer", async () => {
+  it("routes layer via cut through a new target layer in one undo step", async () => {
+    act(() => {
+      useSketchStore.getState().resetDocument();
+    });
     const params = createParams();
     const { result } = renderHook(() => useEditorCommands(params));
 
@@ -459,12 +468,15 @@ describe("useEditorCommands", () => {
       await result.current.handleLayerViaCut();
     });
 
-    expect(params.canvasActions.handleCut).toHaveBeenCalledTimes(1);
-    expect(params.layerActions.handleAddLayer).toHaveBeenCalledTimes(1);
+    const { document, history } = useSketchStore.getState();
+    expect(params.canvasActions.handleCopy).toHaveBeenCalledTimes(1);
+    expect(params.canvasActions.handleClearLayer).toHaveBeenCalledWith({ recordHistory: false });
     expect(params.canvasActions.handlePaste).toHaveBeenCalledWith(true, {
-      targetLayerId: "layer-new",
-      pasteAnchorDocument: null
+      targetLayerId: document.activeLayerId,
+      pasteAnchorDocument: null,
+      recordHistory: false
     });
+    expect(history.map((entry) => entry.action)).toEqual(["layer via cut"]);
   });
 
   it("routes provider auto runs through splitSelectedLayer", () => {

@@ -1,8 +1,8 @@
 /**
  * @jest-environment jsdom
  *
- * Paste writes pixels into the target layer, so a locked layer must refuse it
- * the way Clear and Fill do.
+ * Paste: a locked layer refuses it the way Clear and Fill do, and paste as a
+ * new layer is a single undo step.
  */
 import type { RefObject } from "react";
 import { stub } from "../../../test-utils/doubles";
@@ -60,4 +60,48 @@ it("does not paste into a locked layer", async () => {
 
   expect(pushHistory).not.toHaveBeenCalled();
   expect(snapshotLayerCanvas).not.toHaveBeenCalled();
+});
+
+it("records paste as a new layer as one undo step", async () => {
+  act(() => {
+    useSketchStore.getState().resetDocument(32, 32);
+  });
+  const store = useSketchStore.getState();
+  const { result } = renderHook(() =>
+    useCanvasGeometryActions({
+      canvasRef: stub<RefObject<SketchCanvasRef | null>>({
+        current: {
+          setLayerData: jest.fn(),
+          snapshotLayerCanvas: jest.fn(() => null),
+          getLayerData: jest.fn(() => null)
+        }
+      }),
+      document: store.document,
+      pushHistory: store.pushHistory,
+      updateLayerData: store.updateLayerData,
+      setZoom: store.setZoom,
+      setPan: store.setPan,
+      resizeCanvas: store.resizeCanvas,
+      offsetAllPaintLayersTransform: store.offsetAllPaintLayersTransform,
+      commitPixelLayerChange: jest.fn(),
+      syncPixelLayerFromCanvas: jest.fn(),
+      reconcileAllLayerTransforms: jest.fn(),
+      syncSketchOutputsNow: jest.fn()
+    })
+  );
+
+  await act(async () => {
+    await result.current.handlePasteAsNewLayer(() => useSketchStore.getState().addLayer());
+  });
+  expect(useSketchStore.getState().document.layers).toHaveLength(2);
+  // The checkpoint is taken before the layer exists.
+  const { history, historyIndex } = useSketchStore.getState();
+  expect(history[historyIndex].action).toBe("paste");
+  expect(history[historyIndex].layerStructure).toHaveLength(1);
+
+  act(() => {
+    useSketchStore.getState().undo();
+  });
+  expect(useSketchStore.getState().document.layers).toHaveLength(1);
+  expect(useSketchStore.getState().canUndo()).toBe(false);
 });

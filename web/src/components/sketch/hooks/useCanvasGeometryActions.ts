@@ -194,6 +194,8 @@ interface UseCanvasGeometryActionsParams {
 interface HandlePasteOptions {
   targetLayerId?: string;
   pasteAnchorDocument?: Point | null;
+  /** False when the caller already pushed the checkpoint for this edit. */
+  recordHistory?: boolean;
 }
 
 export interface UseCanvasGeometryActionsReturn {
@@ -223,7 +225,7 @@ export interface UseCanvasGeometryActionsReturn {
     width: number,
     height: number
   ) => void;
-  handleClearLayer: () => void;
+  handleClearLayer: (options?: { recordHistory?: boolean }) => void;
   handleFillLayerWithColor: (color: string) => void;
   handleTrimLayerToBounds: () => void;
   contextMenu: { x: number; y: number } | null;
@@ -321,7 +323,8 @@ export function useCanvasGeometryActions({
   );
 
   // ─── Clear active layer (or selection area) ────────────────────
-  const handleClearLayer = useCallback(() => {
+  const handleClearLayer = useCallback((options?: { recordHistory?: boolean }) => {
+    const recordHistory = options?.recordHistory !== false;
     const activeLayerId = document.activeLayerId;
     if (!activeLayerId || !canvasRef.current) {
       return;
@@ -337,7 +340,9 @@ export function useCanvasGeometryActions({
     }
     const sel = useSketchStore.getState().selection;
     if (sel && selectionHasAnyPixels(sel)) {
-      pushHistory("clear selection", undefined, { timing: "before" });
+      if (recordHistory) {
+        pushHistory("clear selection", undefined, { timing: "before" });
+      }
       const layerCanvas = canvasRef.current.getLayerCanvas(activeLayerId);
       const offset = getLayerGeometry(layer, layerCanvas, {
         width: Math.max(
@@ -357,7 +362,9 @@ export function useCanvasGeometryActions({
       );
       syncPixelLayerFromCanvas(activeLayerId);
     } else {
-      pushHistory("clear layer", undefined, { timing: "before" });
+      if (recordHistory) {
+        pushHistory("clear layer", undefined, { timing: "before" });
+      }
       canvasRef.current.clearLayer(activeLayerId);
       commitPixelLayerChange(activeLayerId, null);
     }
@@ -837,7 +844,9 @@ export function useCanvasGeometryActions({
         return;
       }
 
-      pushHistory("paste", undefined, { timing: "before" });
+      if (options?.recordHistory !== false) {
+        pushHistory("paste", undefined, { timing: "before" });
+      }
 
       const pasteSnapshot = canvasRef.current.snapshotLayerCanvas(layerId);
       if (!pasteSnapshot) {
@@ -918,6 +927,10 @@ export function useCanvasGeometryActions({
         return null;
       }
 
+      // One undo step removes the new layer with its pixels, so the
+      // checkpoint goes before the layer exists and `createLayer` records
+      // no history of its own.
+      pushHistory("paste", undefined, { timing: "before" });
       const newLayerId = createLayer();
       if (!newLayerId) {
         return null;
@@ -927,8 +940,6 @@ export function useCanvasGeometryActions({
       // returns null on the freshly-added layer (reconciliation hasn't
       // run yet) and the paste silently bails.
       canvasRef.current.setLayerData(newLayerId, null);
-
-      pushHistory("paste", undefined, { timing: "before" });
 
       const snapshot = canvasRef.current.snapshotLayerCanvas(newLayerId);
       if (!snapshot) {
