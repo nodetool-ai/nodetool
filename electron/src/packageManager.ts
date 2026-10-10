@@ -104,6 +104,7 @@ import {
   runtimeRegistry,
 } from "./runtime/packages/registry";
 import { NpmRuntimePackage } from "./runtime/packages/NpmRuntimePackage";
+import { runExclusive } from "./exclusive";
 
 /**
  * Package Manager Module
@@ -789,7 +790,8 @@ async function runUvCommand(
       }
     });
 
-    process.on("exit", (code: number | null) => {
+    // "close" fires after stdout drains; "exit" can fire before the last chunk.
+    process.on("close", (code: number | null) => {
       if (code === 0) {
         resolve(stdout);
       } else {
@@ -982,61 +984,66 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     return { success: false, message: unsupported };
   }
 
-  try {
-    const packageName = repoId.split("/")[1];
+  // One uv command at a time per environment: each one snapshots the
+  // installed packs to keep them in its resolve, which a parallel
+  // install would invalidate.
+  return runExclusive(getCondaEnvPath(), async () => {
+    try {
+      const packageName = repoId.split("/")[1];
 
-    const installTarget = await resolvePackageInstallTarget(packageName);
-    if (!installTarget) {
+      const installTarget = await resolvePackageInstallTarget(packageName);
+      if (!installTarget) {
+        return {
+          success: false,
+          message: `Could not find package ${packageName} on PyPI`,
+        };
+      }
+
+      const { installSpec, displayVersion } = installTarget;
+      const message = `Installing ${packageName} v${displayVersion}...`;
+      logMessage(message);
+      emitServerLog(message);
+
+      const pipPackages = await readPipPackages(true);
+      const installed = toNodetoolPackageModels(pipPackages);
+      const coInstalled = coInstalledRequirements(installed, [packageName]);
+      const backend = await detectTorchBackendForInstall([
+        packageName,
+        ...installed.map((pkg) => pkg.name),
+      ]);
+
+      // One resolve over the new pack and every installed pack, so the new
+      // pack's torch (or other shared pin) has to agree with theirs.
+      const args = [
+        "pip",
+        "install",
+        ...torchReinstallArgs(pipPackages, backend),
+        ...buildInstallIndexArgs(backend),
+        "--system",
+        installSpec,
+        ...coInstalled,
+      ];
+
+      await runUvCommand(args);
+
+      return {
+        success: true,
+        message: `Package ${repoId} v${displayVersion} installed successfully from PyPI`,
+      };
+    } catch (error: unknown) {
+      logMessage(
+        `Failed to install package ${repoId}: ${errorMsg(error)}`,
+        "error"
+      );
+      // Renderer prepends its own "Failed to install package:" framing, so
+      // return just the underlying reason to avoid duplicated prefixes in
+      // user-facing dialogs.
       return {
         success: false,
-        message: `Could not find package ${packageName} on PyPI`,
+        message: errorMsg(error),
       };
     }
-
-    const { installSpec, displayVersion } = installTarget;
-    const message = `Installing ${packageName} v${displayVersion}...`;
-    logMessage(message);
-    emitServerLog(message);
-
-    const pipPackages = await readPipPackages(true);
-    const installed = toNodetoolPackageModels(pipPackages);
-    const coInstalled = coInstalledRequirements(installed, [packageName]);
-    const backend = await detectTorchBackendForInstall([
-      packageName,
-      ...installed.map((pkg) => pkg.name),
-    ]);
-
-    // One resolve over the new pack and every installed pack, so the new
-    // pack's torch (or other shared pin) has to agree with theirs.
-    const args = [
-      "pip",
-      "install",
-      ...torchReinstallArgs(pipPackages, backend),
-      ...buildInstallIndexArgs(backend),
-      "--system",
-      installSpec,
-      ...coInstalled,
-    ];
-
-    await runUvCommand(args);
-
-    return {
-      success: true,
-      message: `Package ${repoId} v${displayVersion} installed successfully from PyPI`,
-    };
-  } catch (error: unknown) {
-    logMessage(
-      `Failed to install package ${repoId}: ${errorMsg(error)}`,
-      "error"
-    );
-    // Renderer prepends its own "Failed to install package:" framing, so
-    // return just the underlying reason to avoid duplicated prefixes in
-    // user-facing dialogs.
-    return {
-      success: false,
-      message: errorMsg(error),
-    };
-  }
+  });
 }
 
 /**
@@ -1059,26 +1066,28 @@ export async function uninstallPackage(
     return { success: false, message: `${repoId} is not a NodeTool package.` };
   }
 
-  try {
+  return runExclusive(getCondaEnvPath(), async () => {
+    try {
 
-    // Use uv pip uninstall
-    await runUvCommand(["pip", "uninstall", projectName], { stdin: "y\n" });
+      // Use uv pip uninstall
+      await runUvCommand(["pip", "uninstall", projectName], { stdin: "y\n" });
 
-    return {
-      success: true,
-      message: `Package ${repoId} uninstalled successfully`,
-    };
-  } catch (error: unknown) {
-    logMessage(
-      `Failed to uninstall package ${repoId}: ${errorMsg(error)}`,
-      "error"
-    );
-    // Renderer prepends its own "Failed to uninstall package:" framing.
-    return {
-      success: false,
-      message: errorMsg(error),
-    };
-  }
+      return {
+        success: true,
+        message: `Package ${repoId} uninstalled successfully`,
+      };
+    } catch (error: unknown) {
+      logMessage(
+        `Failed to uninstall package ${repoId}: ${errorMsg(error)}`,
+        "error"
+      );
+      // Renderer prepends its own "Failed to uninstall package:" framing.
+      return {
+        success: false,
+        message: errorMsg(error),
+      };
+    }
+  });
 }
 
 /**
@@ -1099,62 +1108,64 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     return { success: false, message: unsupported };
   }
 
-  try {
-    const packageName = repoId.split("/")[1];
+  return runExclusive(getCondaEnvPath(), async () => {
+    try {
+      const packageName = repoId.split("/")[1];
 
-    const installTarget = await resolvePackageInstallTarget(packageName);
-    if (!installTarget) {
+      const installTarget = await resolvePackageInstallTarget(packageName);
+      if (!installTarget) {
+        return {
+          success: false,
+          message: `Could not find package ${packageName} on PyPI`,
+        };
+      }
+
+      const { installSpec, displayVersion } = installTarget;
+      const message = `Updating ${packageName} to v${displayVersion}...`;
+      logMessage(message);
+      emitServerLog(message);
+      emitBootMessage(message);
+
+      const pipPackages = await readPipPackages(true);
+      const installed = toNodetoolPackageModels(pipPackages);
+      const coInstalled = coInstalledRequirements(installed, [packageName]);
+      const backend = await detectTorchBackendForInstall([
+        packageName,
+        ...installed.map((pkg) => pkg.name),
+      ]);
+
+      // Reinstall only this pack from a fresh index read. The other installed
+      // packs stay in the resolve so the update cannot break them, and they are
+      // not reinstalled (a blanket --reinstall re-downloaded torch every time).
+      const args = [
+        "pip",
+        "install",
+        "--reinstall-package",
+        packageName,
+        "--refresh-package",
+        packageName,
+        ...torchReinstallArgs(pipPackages, backend),
+        ...buildInstallIndexArgs(backend),
+        "--system",
+        installSpec,
+        ...coInstalled,
+      ];
+
+      await runUvCommand(args);
+
+      return {
+        success: true,
+        message: `Package ${repoId} updated to v${displayVersion} successfully from PyPI`,
+      };
+    } catch (error: unknown) {
+      logMessage(`Failed to update package ${repoId}: ${errorMsg(error)}`, "error");
+      // Renderer prepends its own "Failed to update package:" framing.
       return {
         success: false,
-        message: `Could not find package ${packageName} on PyPI`,
+        message: errorMsg(error),
       };
     }
-
-    const { installSpec, displayVersion } = installTarget;
-    const message = `Updating ${packageName} to v${displayVersion}...`;
-    logMessage(message);
-    emitServerLog(message);
-    emitBootMessage(message);
-
-    const pipPackages = await readPipPackages(true);
-    const installed = toNodetoolPackageModels(pipPackages);
-    const coInstalled = coInstalledRequirements(installed, [packageName]);
-    const backend = await detectTorchBackendForInstall([
-      packageName,
-      ...installed.map((pkg) => pkg.name),
-    ]);
-
-    // Reinstall only this pack from a fresh index read. The other installed
-    // packs stay in the resolve so the update cannot break them, and they are
-    // not reinstalled (a blanket --reinstall re-downloaded torch every time).
-    const args = [
-      "pip",
-      "install",
-      "--reinstall-package",
-      packageName,
-      "--refresh-package",
-      packageName,
-      ...torchReinstallArgs(pipPackages, backend),
-      ...buildInstallIndexArgs(backend),
-      "--system",
-      installSpec,
-      ...coInstalled,
-    ];
-
-    await runUvCommand(args);
-
-    return {
-      success: true,
-      message: `Package ${repoId} updated to v${displayVersion} successfully from PyPI`,
-    };
-  } catch (error: unknown) {
-    logMessage(`Failed to update package ${repoId}: ${errorMsg(error)}`, "error");
-    // Renderer prepends its own "Failed to update package:" framing.
-    return {
-      success: false,
-      message: errorMsg(error),
-    };
-  }
+  });
 }
 
 /**
@@ -1214,46 +1225,48 @@ export async function installExpectedPackages(): Promise<{
   packagesUpdated: number;
   failures: Array<{ packageName: string; error: string }>;
 }> {
-  const packagesNeedingUpdate = await checkExpectedPackageVersions();
-  const failures: Array<{ packageName: string; error: string }> = [];
-  let packagesUpdated = 0;
+  return runExclusive(getCondaEnvPath(), async () => {
+    const packagesNeedingUpdate = await checkExpectedPackageVersions();
+    const failures: Array<{ packageName: string; error: string }> = [];
+    let packagesUpdated = 0;
 
-  if (packagesNeedingUpdate.length > 0) {
-    const installed = await listPythonInstalledPackages();
-    const backend = getSavedTorchPlatform()?.backend ?? null;
+    if (packagesNeedingUpdate.length > 0) {
+      const installed = await listPythonInstalledPackages();
+      const backend = getSavedTorchPlatform()?.backend ?? null;
 
-    for (const pkg of packagesNeedingUpdate) {
-      const spec = `${pkg.packageName}${pkg.expectedVersion ?? ""}`;
-      try {
-        const message = `Updating ${spec}...`;
-        logMessage(message);
-        emitServerLog(message);
-        emitBootMessage(message);
+      for (const pkg of packagesNeedingUpdate) {
+        const spec = `${pkg.packageName}${pkg.expectedVersion ?? ""}`;
+        try {
+          const message = `Updating ${spec}...`;
+          logMessage(message);
+          emitServerLog(message);
+          emitBootMessage(message);
 
-        await runUvCommand([
-          "pip",
-          "install",
-          ...buildInstallIndexArgs(backend),
-          "--system",
-          spec,
-          ...coInstalledRequirements(installed, [pkg.packageName]),
-        ]);
-        packagesUpdated += 1;
-        logMessage(`Updated ${spec}`);
-      } catch (error: unknown) {
-        const msg = errorMsg(error);
-        logMessage(`Failed to update ${spec}: ${msg}`, "error");
-        failures.push({ packageName: pkg.packageName, error: msg });
+          await runUvCommand([
+            "pip",
+            "install",
+            ...buildInstallIndexArgs(backend),
+            "--system",
+            spec,
+            ...coInstalledRequirements(installed, [pkg.packageName]),
+          ]);
+          packagesUpdated += 1;
+          logMessage(`Updated ${spec}`);
+        } catch (error: unknown) {
+          const msg = errorMsg(error);
+          logMessage(`Failed to update ${spec}: ${msg}`, "error");
+          failures.push({ packageName: pkg.packageName, error: msg });
+        }
       }
     }
-  }
 
-  return {
-    success: failures.length === 0,
-    packagesChecked: packagesNeedingUpdate.length,
-    packagesUpdated,
-    failures,
-  };
+    return {
+      success: failures.length === 0,
+      packagesChecked: packagesNeedingUpdate.length,
+      packagesUpdated,
+      failures,
+    };
+  });
 }
 
 /**

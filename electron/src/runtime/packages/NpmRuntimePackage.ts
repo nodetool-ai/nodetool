@@ -5,6 +5,7 @@ import { fileExists } from "../../utils";
 import { logMessage } from "../../logger";
 import { emitServerLog } from "../../events";
 import { getProcessEnv, resolveNpmInvocation } from "../../config";
+import { runExclusive } from "../../exclusive";
 import {
   RuntimePackage,
   RuntimeContext,
@@ -157,7 +158,12 @@ export class NpmRuntimePackage implements RuntimePackage {
       "--cache",
       cacheDir,
     ];
-    return new Promise<void>((resolve, reject) => {
+    // Node pack installs share this root (nodePackManager), so they queue too.
+    return runExclusive(ctx.optionalNodeRoot, () => new Promise<void>((resolve, reject) => {
+      if (signal.aborted) {
+        reject(new Error("aborted"));
+        return;
+      }
       logMessage(`Running npm command: ${command.join(" ")}`);
       const child = spawn(command[0], command.slice(1), {
         env: getProcessEnv(),
@@ -202,7 +208,7 @@ export class NpmRuntimePackage implements RuntimePackage {
         signal.removeEventListener("abort", onAbort);
         reject(error);
       });
-    });
+    }));
   }
 
   async *install(ctx: RuntimeContext, signal: AbortSignal): AsyncIterable<RuntimeProgress> {
@@ -261,7 +267,7 @@ export class NpmRuntimePackage implements RuntimePackage {
       "--cache",
       cacheDir,
     ];
-    await new Promise<void>((resolve, reject) => {
+    await runExclusive(ctx.optionalNodeRoot, () => new Promise<void>((resolve, reject) => {
       const child = spawn(npm.command, args, {
         env: getProcessEnv(),
         stdio: "pipe",
@@ -275,7 +281,7 @@ export class NpmRuntimePackage implements RuntimePackage {
         code === 0 ? resolve() : reject(new Error(`npm uninstall failed: ${stderr}`))
       );
       child.on("error", reject);
-    });
+    }));
   }
 
   async resolve(ctx: RuntimeContext): Promise<RuntimeResolution | null> {

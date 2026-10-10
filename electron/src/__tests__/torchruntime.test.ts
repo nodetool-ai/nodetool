@@ -32,7 +32,8 @@ function fakeProcess(stdout: string, code: number, error?: Error) {
     },
     stderr: { on: jest.fn() },
     on: jest.fn((event, handler) => {
-      if (event === "exit") {
+      // Real children emit "exit" and then "close".
+      if (event === "exit" || event === "close") {
         handler(code);
       } else if (event === "error" && error) {
         handler(error);
