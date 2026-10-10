@@ -1,6 +1,10 @@
 import { useCallback } from "react";
 import { NodeData } from "../stores/NodeData";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
+import {
+  applyAbsolutePositions,
+  layoutSelection
+} from "../utils/selectionLayout";
 
 /** Configuration options for aligning nodes. */
 type AlignNodesOptions = {
@@ -27,7 +31,12 @@ const useAlignNodes = () => {
 
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {
-      const selectedNodes = getSelectedNodes();
+      // Canvas coordinates: a group child's `position` is relative to its
+      // group. A child of a selected group moves with the group instead.
+      const selectedNodes = layoutSelection(
+        getSelectedNodes(),
+        nodeStore.getState().nodes
+      );
       if (selectedNodes.length < 2) {return;}
 
       // Create maps for O(1) lookups instead of repeated find() calls
@@ -114,13 +123,15 @@ const useAlignNodes = () => {
       }
 
       const nodes = nodeStore.getState().nodes;
+      const positions = new Map(
+        [...nodeUpdates].map(([id, update]) => [id, update.position])
+      );
       setNodes(
-        nodes.map((currentNode) => {
+        applyAbsolutePositions(nodes, positions).map((currentNode) => {
           const updatedProps = nodeUpdates.get(currentNode.id);
           if (updatedProps) {
             return {
               ...currentNode,
-              position: { ...updatedProps.position },
               data: { ...currentNode.data, ...updatedProps.data }
             };
           }

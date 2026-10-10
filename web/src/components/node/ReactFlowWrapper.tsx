@@ -227,6 +227,12 @@ const ReactFlowWrapper = ({
     staleTime: 60_000
   });
   const [showPortLabels, setShowPortLabels] = useState(false);
+  // Stable so the memoized ViewportStatusIndicator skips this component's
+  // per-frame re-renders during drags.
+  const togglePortLabels = useCallback(
+    () => setShowPortLabels((visible) => !visible),
+    []
+  );
   const [suppressNodeDrivenEdgeSelection, setSuppressNodeDrivenEdgeSelection] =
     useState(false);
 
@@ -1232,6 +1238,10 @@ const ReactFlowWrapper = ({
         proOptions={proOptions}
         panActivationKeyCode=""
         deleteKeyCode={null}
+        // Arrow-key nudge and Shift+Arrow align are editor shortcuts. React
+        // Flow's own keyboard handling on a focused node or selection box
+        // would move the selection a second time.
+        disableKeyboardA11y
       >
         <Background
           id={workflowId}
@@ -1262,7 +1272,7 @@ const ReactFlowWrapper = ({
       <MiniMapNavigator />
       <ViewportStatusIndicator
         showPortLabels={showPortLabels}
-        onTogglePortLabels={() => setShowPortLabels((visible) => !visible)}
+        onTogglePortLabels={togglePortLabels}
       />
       {(nodes.length === 0 || showFirstWorkflowGuide) && (
         <FirstWorkflowGuide
