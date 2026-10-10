@@ -142,6 +142,12 @@ const STILL_VARIANT_TASKS: Record<StillVariantMode, string> = {
   outpaint: "outpaint"
 };
 
+/** What a single clip render may set beyond its model. */
+export interface ClipRenderOptions {
+  /** Output resolution, e.g. "720p". Defaults to {@link CLIP_RESOLUTION}. */
+  resolution?: string;
+}
+
 interface UseGenerateShotResult {
   generateKeyframe: (
     boardId: string,
@@ -153,7 +159,8 @@ interface UseGenerateShotResult {
     boardId: string,
     shot: Shot,
     model?: ShotModelRef,
-    batchId?: string
+    batchId?: string,
+    options?: ClipRenderOptions
   ) => Promise<void>;
   generateRevisedClip: (
     boardId: string,
@@ -408,7 +415,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       boardId: string,
       shot: Shot,
       modelOverride?: ShotModelRef,
-      batchId?: string
+      batchId?: string,
+      options?: ClipRenderOptions
     ): Promise<void> => {
       assertProductionGenerationAllowed(shot.production, "text_to_video");
       if (isShotBusy(shot.id)) {
@@ -524,7 +532,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         mode: "video",
         prompt: `${productionCandidates[0]?.snapshot.prompt ?? prompt}${entityTokenSuffix(entities)}`,
         aspect_ratio: aspectRatio,
-        resolution: CLIP_RESOLUTION,
+        resolution: options?.resolution ?? CLIP_RESOLUTION,
         variations: 1
       };
       if (productionRoute === "reference_to_video") {

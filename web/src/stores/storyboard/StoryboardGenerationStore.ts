@@ -1152,9 +1152,14 @@ const settleShotAsset = (
       .getBoard(context.boardId)
       ?.shots.find((item) => item.id === context.shotId);
     if (!shot) return;
-    // The first successful render is ready to use. Further variations remain
-    // takes until the creator chooses one.
-    if (!shot.clip && candidate.asset_id) {
+    // A new render's first finished take becomes the shot's clip. Further
+    // variations from the same batch remain takes until the creator chooses.
+    const selectedBatch =
+      shot.clip && "batchId" in shot.clip ? shot.clip.batchId : undefined;
+    if (
+      candidate.asset_id &&
+      (!shot.clip || selectedBatch !== candidate.batchId)
+    ) {
       storyboard.setShotClip(context.boardId, context.shotId, candidate);
     }
     const versions = [...(shot.clip_versions ?? [])].sort((left, right) => {
@@ -1251,7 +1256,8 @@ const settleShotAsset = (
     .getBoard(context.boardId)
     ?.shots.find((item) => item.id === context.shotId);
   if (shot) {
-    if (!shot.clip && clip.asset_id) {
+    // A new render becomes the shot's clip. Earlier clips stay as takes.
+    if (clip.asset_id) {
       storyboard.setShotClip(context.boardId, context.shotId, clip);
       if (context.oneTake) {
         coverBoardWithOneTake(context.boardId, context.shotId, context.oneTake);
