@@ -104,6 +104,8 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "preview_storyboard_design",
   "edit_storyboard",
   "extract_script_from_storyboard",
+  "get_storyboard_one_take",
+  "update_storyboard_one_take",
 
   // Sketch snapshot history (find a sketch, pin a state, roll one back)
   "list_sketches",

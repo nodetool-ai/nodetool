@@ -21,6 +21,7 @@ import type {
   ClipVersion,
   ImageRef,
   KeyframeVersion,
+  OneTakeStep,
   RenderInputs,
   Shot,
   ShotStatus,
@@ -60,6 +61,15 @@ export type ShotGenerationStatus =
 /** Which asset a job produces, so completion writes the right shot field. */
 export type ShotJobKind = "keyframe" | "clip";
 
+/**
+ * How a one-take clip splits back onto the board. The clip lands on the shot
+ * the request is attached to, and every other shot in `steps` is covered by a
+ * window of it.
+ */
+export interface OneTakeCompletion {
+  steps: OneTakeStep[];
+}
+
 /** Immutable provider operation used to repeat one failed request exactly. */
 export interface ShotGenerationOperation {
   data: Record<string, unknown>;
@@ -67,6 +77,7 @@ export interface ShotGenerationOperation {
   mediaEdit?: MediaEditRequest;
   acceptedShotStatus?: ShotStatus;
   production?: CompiledProductionCandidate;
+  oneTake?: OneTakeCompletion;
 }
 
 export interface ShotJobState {
@@ -98,6 +109,8 @@ export interface ShotJobState {
   acceptedShotStatus?: ShotStatus;
   /** Immutable production candidate captured before provider dispatch. */
   production?: CompiledProductionCandidate;
+  /** Set when this clip is a whole-board one-take render. */
+  oneTake?: OneTakeCompletion;
 }
 
 /** Persistent request-level outcome shown by the batch receipt. */
@@ -132,6 +145,7 @@ export interface DirectShotJobContext {
   mediaEdit?: MediaEditRequest;
   acceptedShotStatus?: ShotStatus;
   production?: CompiledProductionCandidate;
+  oneTake?: OneTakeCompletion;
 }
 
 /**
@@ -151,6 +165,7 @@ export interface PendingShotJob {
   mediaEdit?: MediaEditRequest;
   acceptedShotStatus?: ShotStatus;
   production?: CompiledProductionCandidate;
+  oneTake?: OneTakeCompletion;
 }
 
 /** The wire shape of a `generate_media` reply. */
@@ -458,6 +473,9 @@ export const useStoryboardGenerationStore =
               if (job.acceptedShotStatus) {
                 row.acceptedShotStatus = job.acceptedShotStatus;
               }
+              if (job.oneTake) {
+                row.oneTake = job.oneTake;
+              }
               if (job.production) {
                 row.production = job.production;
                 nextProductionJobs[job.jobId] = row;
@@ -542,6 +560,9 @@ export const useStoryboardGenerationStore =
           if (production) {
             jobState.production = production;
           }
+          if (operation?.oneTake) {
+            jobState.oneTake = operation.oneTake;
+          }
           const requestRecord: ShotRequestRecord = {
             ...jobState,
             batchId: batchId ?? production?.identity.batchId ?? jobId,
@@ -572,6 +593,9 @@ export const useStoryboardGenerationStore =
           }
           if (production) {
             pending.production = production;
+          }
+          if (jobState.oneTake) {
+            pending.oneTake = jobState.oneTake;
           }
           set((state) => {
             const nextShotJobs = {
@@ -1053,6 +1077,42 @@ export const __resetStoryboardSubscriptionsForTests = (): void => {
   jobContexts.clear();
 };
 
+/**
+ * Split a landed one-take clip back onto the board. The owning shot keeps the
+ * clip and drops any coverage of its own. Every other shot names the owner
+ * with its window and gives up its selected clip, because a shot with a clip
+ * of its own never plays its coverage. Its takes stay in `clip_versions`.
+ */
+const coverBoardWithOneTake = (
+  boardId: string,
+  ownerShotId: string,
+  oneTake: OneTakeCompletion
+): void => {
+  const storyboard = useStoryboardStore.getState();
+  const shots = storyboard.getBoard(boardId)?.shots ?? [];
+  if (shots.find((shot) => shot.id === ownerShotId)?.covered_by) {
+    storyboard.updateShot(boardId, ownerShotId, { covered_by: null });
+  }
+  for (const step of oneTake.steps) {
+    const shot = shots.find((candidate) => candidate.id === step.shot_id);
+    if (!shot || shot.id === ownerShotId) {
+      continue;
+    }
+    const patch: Partial<Shot> = {
+      covered_by: {
+        shot_id: ownerShotId,
+        start_seconds: step.start_seconds,
+        end_seconds: step.end_seconds
+      }
+    };
+    if (shot.clip) {
+      patch.clip = null;
+      patch.clip_versions = shot.clip_versions ?? [shot.clip];
+    }
+    storyboard.updateShot(boardId, shot.id, patch);
+  }
+};
+
 /** Write a produced asset back onto its shot and settle the status. */
 const settleShotAsset = (
   context: DirectShotJobContext,
@@ -1193,6 +1253,9 @@ const settleShotAsset = (
   if (shot) {
     if (!shot.clip && clip.asset_id) {
       storyboard.setShotClip(context.boardId, context.shotId, clip);
+      if (context.oneTake) {
+        coverBoardWithOneTake(context.boardId, context.shotId, context.oneTake);
+      }
     }
     storyboard.setShotStatus(
       context.boardId,
@@ -1384,7 +1447,8 @@ export const reattachBoardJobs = async (boardId: string): Promise<void> => {
         kind: job.kind,
         mediaEdit: job.mediaEdit,
         acceptedShotStatus: job.acceptedShotStatus,
-        production: job.production
+        production: job.production,
+        oneTake: job.oneTake
       };
       if (outcome && isSettled(outcome.status)) {
         // The row settled while this client was away. Land it from the row:

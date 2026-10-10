@@ -41,6 +41,7 @@ import TuneIcon from "@mui/icons-material/Tune";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SlideshowIcon from "@mui/icons-material/Slideshow";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -131,6 +132,7 @@ import BoardCardSizeSlider from "./BoardCardSizeSlider";
 import StoryboardSlideshow from "./StoryboardSlideshow";
 import { useStoryboardViewStore } from "../../stores/storyboard/StoryboardViewStore";
 import ShotEditPanel from "./ShotEditPanel";
+import OneTakePanel from "./OneTakePanel";
 import ShotInsertPoint, { SHOT_INSERT_POINT_CLASS } from "./ShotInsertPoint";
 import ShotInspector from "./ShotInspector";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
@@ -502,6 +504,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const settingsPanelId = `storyboard-board-settings-${boardId}`;
+  const [oneTakeOpen, setOneTakeOpen] = useState(false);
+  const toggleOneTake = useCallback(() => setOneTakeOpen((open) => !open), []);
+  const closeOneTake = useCallback(() => setOneTakeOpen(false), []);
+  const oneTakePanelId = `storyboard-one-take-${boardId}`;
 
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -1100,6 +1106,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     >
                       Board settings
                     </EditorButton>
+                    <EditorButton
+                      variant={oneTakeOpen ? "contained" : "outlined"}
+                      startIcon={<MovieOutlinedIcon fontSize="small" />}
+                      onClick={toggleOneTake}
+                      aria-expanded={oneTakeOpen}
+                      aria-controls={oneTakePanelId}
+                    >
+                      One take
+                    </EditorButton>
                     {onToggleAssistant && (
                       <EditorButton
                         variant={assistantOpen ? "contained" : "outlined"}
@@ -1162,6 +1177,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     active={settingsVisible}
                     aria-expanded={settingsVisible}
                     aria-controls={settingsPanelId}
+                  />
+                )}
+                {!readOnly && (
+                  <ToolbarIconButton
+                    icon={<MovieOutlinedIcon />}
+                    tooltip="One take"
+                    onClick={toggleOneTake}
+                    active={oneTakeOpen}
+                    aria-expanded={oneTakeOpen}
+                    aria-controls={oneTakePanelId}
                   />
                 )}
                 {!readOnly && actionsMenu}
@@ -1304,6 +1329,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   </FlexRow>
                 </FlexColumn>
               </Panel>
+            </Collapse>
+          )}
+
+          {!readOnly && (
+            <Collapse in={oneTakeOpen} timeout="auto" unmountOnExit>
+              <OneTakePanel
+                boardId={boardId}
+                id={oneTakePanelId}
+                onClose={closeOneTake}
+              />
             </Collapse>
           )}
 

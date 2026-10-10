@@ -1061,6 +1061,11 @@ those keyframes into clips, **`revise_storyboard_clip`** revises one take, and
 **`assemble_storyboard_timeline`** lays the rendered clips into a saved timeline
 sequence — which `validate_timeline` then checks. **`list_storyboards`** and
 **`get_storyboard`** find the board and its shot ids.
+**`get_storyboard_one_take`** reads a board's one-take prompt with the block
+compiled from the board and its `[Image N]` references, and
+**`update_storyboard_one_take`** writes the prompt, the render settings
+(`duration_seconds`, `aspect_ratio`, `resolution`, `model`), and each shot's
+`end_state` and `sound`.
 
 `edit_storyboard`'s `set_board` operation accepts screenplay-level `narration`
 and `music_prompt` strings. It preserves the screenplay's other fields and
