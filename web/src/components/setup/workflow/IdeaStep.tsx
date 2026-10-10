@@ -32,6 +32,7 @@ import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import { useWorkflowSetupDocument } from "../../../hooks/workflow/useWorkflowSetup";
 import type { Workflow } from "../../../stores/ApiTypes";
+import ReportBugButton from "../../support/ReportBugButton";
 import { WorkflowExamplePicker } from "./ExamplePicker";
 
 export interface WorkflowIdeaStepProps {
@@ -184,7 +185,20 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
         />
 
         {importError ? (
-          <AlertBanner severity="error" onClose={onDismissImportError}>
+          <AlertBanner
+            severity="error"
+            onClose={onDismissImportError}
+            action={
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Workflow import failed",
+                  errorText: importError,
+                  workflowId
+                }}
+              />
+            }
+          >
             {importError}
           </AlertBanner>
         ) : null}

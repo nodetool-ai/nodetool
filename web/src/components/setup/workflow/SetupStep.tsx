@@ -42,6 +42,7 @@ import {
   TextInput
 } from "../../ui_primitives";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
+import ReportBugButton from "../../support/ReportBugButton";
 import { OptionCardGrid } from "../OptionCardGrid";
 import type { OptionCardItem } from "../OptionCardGrid";
 import { MODEL_ROLE_LABEL, MODEL_ROLE_ONBOARDING } from "./modelRoles";
@@ -286,9 +287,19 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
         <AlertBanner
           severity="error"
           action={
-            <EditorButton variant="text" onClick={role.onRetry}>
-              Try again
-            </EditorButton>
+            <FlexRow gap={GAP.tight} align="center">
+              <EditorButton variant="text" onClick={role.onRetry}>
+                Try again
+              </EditorButton>
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: `Reading the ${role.role} models failed`,
+                  errorText:
+                    role.errorMessage ?? `Could not read the ${role.role} models.`
+                }}
+              />
+            </FlexRow>
           }
         >
           <Caption component="span">

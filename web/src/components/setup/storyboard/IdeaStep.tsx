@@ -46,6 +46,7 @@ import { useExampleStoryboards } from "../../../hooks/storyboard/useStoryboards"
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import { ExampleBriefs } from "../ExampleBriefs";
+import ReportBugButton from "../../support/ReportBugButton";
 import { ShotlistReport } from "./ShotlistReport";
 import { SCRIPT_ACCEPT, useScriptImport } from "./useScriptImport";
 import {
@@ -285,18 +286,40 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           }
         />
 
+        {/* The Report control sits in the body: an `action` would replace
+            the banner's close button. */}
         {script.error ? (
           <AlertBanner severity="error" onClose={script.clearError}>
-            {script.error}
+            <FlexColumn gap={GAP.tight} align="flex-start">
+              {script.error}
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Storyboard script import failed",
+                  errorText: script.error
+                }}
+              />
+            </FlexColumn>
           </AlertBanner>
         ) : null}
         {shotlist.error ? (
           <AlertBanner severity="error" onClose={shotlist.clearError}>
-            {shotlist.error}
+            <FlexColumn gap={GAP.tight} align="flex-start">
+              {shotlist.error}
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Storyboard shotlist import failed",
+                  errorText: shotlist.error
+                }}
+              />
+            </FlexColumn>
           </AlertBanner>
         ) : null}
 
-        {readOnly ? null : (
+        {/* An example would replace the held script with a line the camera
+            pass ignores, and "Edit as text" would then start from it. */}
+        {readOnly || locked ? null : (
           <ExampleBriefs
             examples={inspirations}
             brief={brief}

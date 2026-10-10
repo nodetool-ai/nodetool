@@ -28,6 +28,7 @@ import { useCreateApplication } from "../../hooks/useApplications";
 import { useOpenApplication } from "../../hooks/useOpenApplication";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
+import ReportBugButton from "../support/ReportBugButton";
 import {
   examplePackageName,
   exampleSeedRef
@@ -119,7 +120,8 @@ const WorkflowEditorSurface = ({
     (state) => state.settings.editorViewMode
   );
   const [missing, setMissing] = useState(false);
-  const [loadFailed, setLoadFailed] = useState(false);
+  // Why the last load failed, or null while it has not.
+  const [loadFailed, setLoadFailed] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   // A workflow flow still in setup (`settings.setup` not at `done`) is where
   // this tab lands after a refresh or a close — same rule as the game flow
@@ -348,7 +350,7 @@ const WorkflowEditorSurface = ({
     }
 
     let cancelled = false;
-    setLoadFailed(false);
+    setLoadFailed(null);
     void fetchWorkflow(workflowId, { throwOnError: true })
       .then((loadedWorkflow) => {
         if (cancelled || loadedWorkflow) {
@@ -357,9 +359,9 @@ const WorkflowEditorSurface = ({
         setMissing(true);
         closeTab(tabId("workflow", workflowId));
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         if (!cancelled) {
-          setLoadFailed(true);
+          setLoadFailed(cause instanceof Error ? cause.message : String(cause));
         }
       });
 
@@ -369,12 +371,24 @@ const WorkflowEditorSurface = ({
   }, [nodeStore, fetchWorkflow, workflowId, closeTab, loadAttempt]);
 
   if (!nodeStore) {
-    if (loadFailed) {
+    if (loadFailed !== null) {
       return (
         <EmptyState
           variant="error"
           title="Could not load workflow"
-          description="Check your connection and try again. Your tab is still open."
+          description={
+            <FlexColumn align="center" gap={SPACING.sm}>
+              Check your connection and try again. Your tab is still open.
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Workflow tab failed to load",
+                  errorText: loadFailed,
+                  workflowId
+                }}
+              />
+            </FlexColumn>
+          }
           actionText="Retry"
           onAction={() => setLoadAttempt((attempt) => attempt + 1)}
         />

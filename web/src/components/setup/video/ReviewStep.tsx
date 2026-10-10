@@ -105,10 +105,25 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   // What is in the length fields, as typed. The document takes an entry only
   // once it reads as a length, so a half-typed "1." or a cleared field stays
   // on screen as typed instead of snapping back to the stored value (F21).
-  const [lengths, setLengths] = useState<Record<string, string>>({});
+  // Each entry keeps the length the beat had when it was typed: a change from
+  // elsewhere (the agent's `ui_timeline_update_beat`) outdates it, and the
+  // field then shows the length the beat now has.
+  const [drafts, setDrafts] = useState<
+    Record<string, { value: string; base: number }>
+  >({});
+  const lengths = useMemo(() => {
+    const live: Record<string, string> = {};
+    for (const beat of beats ?? []) {
+      const draft = drafts[beat.id];
+      if (draft && draft.base === beat.duration_ms) {
+        live[beat.id] = draft.value;
+      }
+    }
+    return live;
+  }, [beats, drafts]);
   const handleLength = useCallback(
-    (beatId: string, value: string) =>
-      setLengths((current) => ({ ...current, [beatId]: value })),
+    (beatId: string, value: string, base: number) =>
+      setDrafts((current) => ({ ...current, [beatId]: { value, base } })),
     []
   );
 
@@ -127,6 +142,10 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         });
       }
       updateBeat(beatId, patch);
+      // The typed text now matches the plan, so it stays as typed.
+      setDrafts((current) =>
+        current[beatId] ? { ...current, [beatId]: { value, base: ms } } : current
+      );
     }
   };
 
@@ -164,7 +183,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         value: lengths[beat.id] ?? secondsText(beat.duration_ms),
         placeholder: rangeText,
         compact: true,
-        onChange: (value: string) => handleLength(beat.id, value),
+        onChange: (value: string) =>
+          handleLength(beat.id, value, beat.duration_ms),
         onCommit: (value: string) => commitLength(beat.id, value)
       },
       {

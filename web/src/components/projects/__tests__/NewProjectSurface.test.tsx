@@ -226,7 +226,10 @@ jest.mock("../../setup/video/VideoSetupHost", () => ({
     onStartFromScript
   }: {
     sequenceId: string;
-    onStartFromScript?: (brief: string) => void;
+    onStartFromScript?: (
+      brief: string,
+      creativeContext?: { schema_version: 1; tone?: string }
+    ) => void;
   }) => (
     <div data-testid="setup-flow">
       {sequenceId}
@@ -235,6 +238,17 @@ jest.mock("../../setup/video/VideoSetupHost", () => ({
         onClick={() => onStartFromScript?.("A spot for our desk lamp")}
       >
         Start from a script
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onStartFromScript?.("A spot for our desk lamp", {
+            schema_version: 1,
+            tone: "Warm, minimal, night-time mood"
+          })
+        }
+      >
+        Start from a script with context
       </button>
     </div>
   )
@@ -1422,6 +1436,35 @@ describe("NewProjectSurface", () => {
     // The tab is the script flow now.
     expect(await screen.findByTestId("setup-flow")).toHaveTextContent(
       "script-1"
+    );
+  });
+
+  // The creative context typed on the video flow's step 1 was dropped when
+  // the draft was discarded for a script.
+  it("carries the video flow's creative context into the script it starts", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+
+    await screen.findByTestId("setup-flow");
+    await user.click(
+      screen.getByRole("button", { name: "Start from a script with context" })
+    );
+
+    await waitFor(() =>
+      expect(createScript).toHaveBeenCalledWith(
+        expect.objectContaining({
+          document: expect.objectContaining({
+            creative_context: {
+              schema_version: 1,
+              tone: "Warm, minimal, night-time mood"
+            }
+          })
+        })
+      )
     );
   });
 

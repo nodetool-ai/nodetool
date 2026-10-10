@@ -4,8 +4,10 @@ import {
   handleJobMessage
 } from "../useGenerateLayer";
 import { useSketchGenerationStore } from "../../../stores/sketch/SketchGenerationStore";
+import { createSketchInstance } from "../../../stores/sketch/SketchInstance";
 
 const ctx = (layerId: string, workflowId: string, outNode: string) => ({
+  target: createSketchInstance(),
   layerId, documentId: "doc", workflowId, selectedOutputNodeId: outNode
 });
 

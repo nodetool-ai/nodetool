@@ -4,9 +4,18 @@
  * while every shot gets an explicit selection the creator can refine here.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { useTheme } from "@mui/material/styles";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
+import { formatUsd } from "@nodetool-ai/model-pricing";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import { useEntities, useSaveEntity } from "../../../serverState/useEntities";
@@ -17,6 +26,7 @@ import { useDefaultStillModel } from "../../../hooks/storyboard/useDefaultStillM
 import { useDefaultDirectorModel } from "../../../hooks/storyboard/useDefaultDirectorModel";
 import { useInStudio } from "../../../studio/StudioContext";
 import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
+import { priceRenderStep } from "../../../hooks/storyboard/shotCostPricing";
 import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import EntityEditorDialog from "../../entities/EntityEditorDialog";
 import ImageModelSelect from "../../properties/ImageModelSelect";
@@ -64,6 +74,18 @@ import {
   SETUP_MEDIA_WIDTH,
   SETUP_WIDE_CONTENT_WIDTH
 } from "../layout";
+
+// The estimate pulls in the provider price tables, as on the review step.
+const GenerationEstimateLine = lazy(() =>
+  import("../GenerationSummary").then((module) => ({
+    default: module.GenerationEstimateLine
+  }))
+);
+
+/** What `Find entities` lets the screenplay model answer with. */
+const SUGGESTIONS_MAX_OUTPUT_TOKENS = 2048;
+/** The size a suggested entity's reference is drawn at. */
+const REFERENCE_RESOLUTION = "1K";
 
 /** One entity creation, as the flow tracks it. */
 export interface EntityCreation {
@@ -174,6 +196,11 @@ export const EntitiesStep = ({
     "create"
   );
   const mountedRef = useRef(true);
+  const priceIdBase = useId();
+  // The running `Find entities` call, so its Cancel can stop it.
+  const findControllerRef = useRef<AbortController | null>(null);
+  const findButtonRef = useRef<HTMLButtonElement>(null);
+  const [findEnded, setFindEnded] = useState(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -208,6 +235,48 @@ export const EntitiesStep = ({
     }
   };
 
+  // The Find button is disabled while it runs and Cancel leaves with the run,
+  // so focus that fell to the page goes back to Find when the run ends.
+  useEffect(() => {
+    if (!findEnded || suggesting) {
+      return;
+    }
+    setFindEnded(false);
+    const active = document.activeElement;
+    if (active === null || active === document.body) {
+      findButtonRef.current?.focus();
+    }
+  }, [findEnded, suggesting]);
+
+  // The screenplay `Find entities` sends, for the call and its estimate.
+  const suggestionsPrompt = useMemo(() => {
+    const screenplay = boardScreenplaySnapshot(board);
+    return screenplay ? buildEntitySuggestionsPrompt(screenplay) : "";
+  }, [board]);
+
+  // What one `Create <name>` costs: one reference image at 1K from the model
+  // that will draw it, which may be the text-to-image variant of the still
+  // model.
+  const createPrice = useMemo(() => {
+    if (referenceModel?.kind !== "ready") {
+      return null;
+    }
+    return priceRenderStep(
+      "Reference",
+      referenceModel.model,
+      "reference image model",
+      REFERENCE_RESOLUTION,
+      undefined,
+      []
+    );
+  }, [referenceModel]);
+  const createPriceText =
+    createPrice === null
+      ? null
+      : createPrice.cost === null
+        ? "Price unknown"
+        : `About ${formatUsd(createPrice.cost)}`;
+
   const handleCreated = (entity: Entity | null): void => {
     if (entity) {
       setCreatedEntities((current) => [...current, entity]);
@@ -231,24 +300,34 @@ export const EntitiesStep = ({
       );
       return;
     }
+    const controller = new AbortController();
+    findControllerRef.current?.abort();
+    findControllerRef.current = controller;
     setSuggesting(true);
     setAssistError(null);
     try {
-      const answer = await rpcRequest("generate_text", {
-        provider: model.provider,
-        model: model.id,
-        system: ENTITY_SUGGESTIONS_SYSTEM_PROMPT,
-        prompt: buildEntitySuggestionsPrompt(screenplay),
-        max_tokens: 2048,
-        schema: ENTITY_SUGGESTIONS_SCHEMA,
-        schema_name: "storyboard_entity_suggestions",
-        schema_description:
-          "Visually important reusable entities found in a storyboard screenplay."
-      });
-      if (!mountedRef.current) return;
+      const answer = await rpcRequest(
+        "generate_text",
+        {
+          provider: model.provider,
+          model: model.id,
+          system: ENTITY_SUGGESTIONS_SYSTEM_PROMPT,
+          prompt: buildEntitySuggestionsPrompt(screenplay),
+          max_tokens: SUGGESTIONS_MAX_OUTPUT_TOKENS,
+          schema: ENTITY_SUGGESTIONS_SCHEMA,
+          schema_name: "storyboard_entity_suggestions",
+          schema_description:
+            "Visually important reusable entities found in a storyboard screenplay."
+        },
+        undefined,
+        controller.signal
+      );
+      if (controller.signal.aborted) return;
+      // Kept per board, so an answer paid for after the creator moved on
+      // (Continue, Back) is waiting when they return.
       setEntitySuggestions(boardId, parseEntitySuggestions(answer.data));
     } catch (error) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || controller.signal.aborted) return;
       setAssistFailure("find");
       setAssistError(
         error instanceof Error
@@ -256,10 +335,21 @@ export const EntitiesStep = ({
           : "Could not find entities in the story."
       );
     } finally {
-      if (mountedRef.current) {
-        setSuggesting(false);
+      if (findControllerRef.current === controller) {
+        findControllerRef.current = null;
+        if (mountedRef.current) {
+          setSuggesting(false);
+          setFindEnded(true);
+        }
       }
     }
+  };
+
+  const cancelFind = (): void => {
+    findControllerRef.current?.abort();
+    findControllerRef.current = null;
+    setSuggesting(false);
+    setFindEnded(true);
   };
 
   const createSuggestion = async (
@@ -420,17 +510,42 @@ export const EntitiesStep = ({
               you want to use.
             </Caption>
           </FlexColumn>
-          <EditorButton
-            variant="outlined"
-            onClick={() => void suggestFromStory()}
-            disabled={readOnly || suggesting}
-          >
-            {suggesting
-              ? "Finding entities"
-              : suggestions.length > 0
-                ? "Refresh suggestions"
-                : "Find entities"}
-          </EditorButton>
+          <FlexColumn gap={SPACING.xs} align="flex-end">
+            <FlexRow gap={SPACING.sm} align="center">
+              <EditorButton
+                ref={findButtonRef}
+                variant="outlined"
+                onClick={() => void suggestFromStory()}
+                disabled={readOnly || suggesting}
+              >
+                {suggesting
+                  ? "Finding entities"
+                  : suggestions.length > 0
+                    ? "Refresh suggestions"
+                    : "Find entities"}
+              </EditorButton>
+              {suggesting ? (
+                <EditorButton variant="text" onClick={cancelFind}>
+                  Cancel
+                </EditorButton>
+              ) : null}
+            </FlexRow>
+            {readOnly ? null : (
+              <Suspense
+                fallback={
+                  <Caption color="secondary">Loading estimate…</Caption>
+                }
+              >
+                <GenerationEstimateLine
+                  result="Find the characters, places, and props in your screenplay"
+                  next="Nothing is created until you choose."
+                  model={board?.directorModel ?? null}
+                  brief={`${ENTITY_SUGGESTIONS_SYSTEM_PROMPT}\n${suggestionsPrompt}`}
+                  maxOutputTokens={SUGGESTIONS_MAX_OUTPUT_TOKENS}
+                />
+              </Suspense>
+            )}
+          </FlexColumn>
         </FlexRow>
 
         {assistError ? (
@@ -488,7 +603,7 @@ export const EntitiesStep = ({
               </FormField>
             ) : null}
             <FlexColumn gap={SPACING.md}>
-              {suggestions.map((suggestion) => {
+              {suggestions.map((suggestion, suggestionIndex) => {
                 const creating = creatingKeys.has(
                   `${suggestion.kind}:${suggestion.name}`
                 );
@@ -519,25 +634,37 @@ export const EntitiesStep = ({
                       </FlexRow>
                       <Text color="secondary">{suggestion.descriptor}</Text>
                     </FlexColumn>
-                    <EditorButton
-                      variant="contained"
-                      disabled={
-                        readOnly ||
-                        (!existing && !board?.imageModel?.id) ||
-                        creating
-                      }
-                      onClick={() => void createSuggestion(suggestion)}
-                    >
-                      {creating ? (
-                        <ThinkingIndicator
-                          label={`Creating ${suggestion.name}`}
-                        />
-                      ) : existing ? (
-                        `Use ${suggestion.name}`
-                      ) : (
-                        `Create ${suggestion.name}`
-                      )}
-                    </EditorButton>
+                    <FlexRow gap={SPACING.sm} align="center">
+                      {!existing && createPriceText ? (
+                        <Caption id={`${priceIdBase}-${suggestionIndex}`}>
+                          {createPriceText}
+                        </Caption>
+                      ) : null}
+                      <EditorButton
+                        variant="contained"
+                        aria-describedby={
+                          !existing && createPriceText
+                            ? `${priceIdBase}-${suggestionIndex}`
+                            : undefined
+                        }
+                        disabled={
+                          readOnly ||
+                          (!existing && !board?.imageModel?.id) ||
+                          creating
+                        }
+                        onClick={() => void createSuggestion(suggestion)}
+                      >
+                        {creating ? (
+                          <ThinkingIndicator
+                            label={`Creating ${suggestion.name}`}
+                          />
+                        ) : existing ? (
+                          `Use ${suggestion.name}`
+                        ) : (
+                          `Create ${suggestion.name}`
+                        )}
+                      </EditorButton>
+                    </FlexRow>
                   </FlexRow>
                 );
               })}
@@ -572,13 +699,22 @@ export const EntitiesStep = ({
           severity="error"
           title="Could not load your entities"
           action={
-            <EditorButton
-              variant="text"
-              size="small"
-              onClick={() => void refetchEntities()}
-            >
-              Try again
-            </EditorButton>
+            <FlexRow gap={SPACING.sm}>
+              <EditorButton
+                variant="text"
+                size="small"
+                onClick={() => void refetchEntities()}
+              >
+                Try again
+              </EditorButton>
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Storyboard entity library failed to load",
+                  errorText: entitiesError?.message
+                }}
+              />
+            </FlexRow>
           }
         >
           {entitiesError?.message ??

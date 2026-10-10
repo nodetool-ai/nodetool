@@ -77,7 +77,9 @@ const generate = jest.fn(async () => {});
 let renderPrice: string | undefined;
 jest.mock("../LookStep", () => ({
   LookStep: ({ blockedReason }: { blockedReason?: string }) =>
-    blockedReason ? <div data-testid="look-blocker">{blockedReason}</div> : null,
+    blockedReason ? (
+      <div data-testid="look-blocker">{blockedReason}</div>
+    ) : null,
   LookFooterControls: () => null,
   useLookStep: () => ({
     canAdvance: true,
@@ -524,9 +526,9 @@ describe("useStoryboardSetupFlow", () => {
 
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
     expect(screen.queryByText(/Rewriting/)).toBeNull();
-    expect(screen.getAllByText("Saving your screenplay").length).toBeGreaterThan(
-      0
-    );
+    expect(
+      screen.getAllByText("Saving your screenplay").length
+    ).toBeGreaterThan(0);
 
     await act(async () => release());
     await waitFor(() => expect(stageOf()).toBe("entities"));
@@ -686,7 +688,7 @@ describe("useStoryboardSetupFlow", () => {
     });
 
     expect(direct).toHaveBeenCalledWith(BOARD_ID, 1, expect.any(AbortSignal));
-    expect(review?.pendingLabel).toBe("Rewriting 1 shots");
+    expect(review?.pendingLabel).toBe("Rewriting 1 shot");
   });
 
   // F15: the undo belongs to a rewrite that replaced something. A failed or
@@ -750,7 +752,8 @@ describe("useStoryboardSetupFlow", () => {
     const { result } = renderHook(() =>
       useStoryboardSetupFlow({ boardId: BOARD_ID })
     );
-    const idea = () => result.current.steps.find((step) => step.stage === "idea");
+    const idea = () =>
+      result.current.steps.find((step) => step.stage === "idea");
     expect(idea()?.canAdvance).toBe(true);
     const body = idea()?.render() as {
       props: { onImportingChange: (importing: boolean) => void };
@@ -813,7 +816,7 @@ describe("useStoryboardSetupFlow", () => {
     );
     const genre = result.current.steps.find((step) => step.stage === "genre");
 
-    expect(genre?.pendingLabel).toBe("Writing 3 shots");
+    expect(genre?.pendingLabel).toBe("Directing 3 shots");
     expect(genre?.generation?.result).toBe(
       "Add camera direction to your 3-shot script"
     );
@@ -830,6 +833,39 @@ describe("useStoryboardSetupFlow", () => {
       props: { maxOutputTokens: number };
     };
     expect(reviewBody.props.maxOutputTokens).toBe(4096);
+  });
+
+  // The camera pass directs every imported shot, past the 20 a rewrite may
+  // ask for, so its wait names the script's own count.
+  it("names the camera pass's wait by every shot it directs", () => {
+    seedStepValues();
+    useStoryboardStore.getState().setScreenplay(BOARD_ID, {
+      type: "screenplay",
+      id: `fdx-${BOARD_ID}`,
+      title: "",
+      shots: Array.from({ length: 25 }, (_, index) => ({
+        type: "shot" as const,
+        id: `fdx-shot-${index}`,
+        index,
+        action: `beat ${index}`,
+        status: "planned" as const
+      }))
+    });
+    setImportSource(BOARD_ID, {
+      kind: "fdx",
+      fileName: "script.fdx",
+      importedAt: "2026-01-01T00:00:00.000Z",
+      preserveWords: true
+    });
+    directing = true;
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const label = (stage: string) =>
+      result.current.steps.find((step) => step.stage === stage)?.pendingLabel;
+
+    expect(label("genre")).toBe("Directing 25 shots");
+    expect(label("review")).toBe("Directing 25 shots");
   });
 
   // F16: the shell no longer disables the step body in view mode, so each

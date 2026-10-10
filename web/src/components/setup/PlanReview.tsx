@@ -233,6 +233,11 @@ const PlanReviewControl: React.FC<{ row: PlanReviewField }> = ({ row }) => {
   };
 
   if (row.addLabel && !row.value && !expanded) {
+    // A held field has nothing to add: opening it shows an empty box that
+    // takes no typing.
+    if (row.readOnly) {
+      return null;
+    }
     return (
       <EditorButton
         variant="text"
