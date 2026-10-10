@@ -120,3 +120,49 @@ describe("useCanvasGeometryActions history integration", () => {
     });
   });
 });
+
+describe("useCanvasGeometryActions guides", () => {
+  beforeEach(() => {
+    act(() => {
+      useSketchStore.getState().resetDocument();
+      useSketchStore.getState().pushHistory("initial");
+      useSketchStore.getState().addGuide("vertical", 100);
+      useSketchStore.getState().addGuide("horizontal", 50);
+    });
+  });
+
+  function positions(): number[] {
+    return (useSketchStore.getState().document.guides ?? []).map((g) => g.position);
+  }
+
+  it("shifts guides with the content on crop, and undo puts them back", () => {
+    const { result } = renderHook(() => useCanvasGeometryActions(makeParams()));
+
+    act(() => {
+      result.current.handleCropComplete(16, 12, 128, 96);
+    });
+    expect(positions()).toEqual([84, 38]);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(positions()).toEqual([100, 50]);
+  });
+
+  it("shifts guides when a resize drag moves the canvas origin", () => {
+    const { result } = renderHook(() => useCanvasGeometryActions(makeParams()));
+
+    act(() => {
+      result.current.handleCanvasResizeStart();
+      result.current.handleCanvasResizeDrag(532, 522, {
+        translateLayers: { x: 20, y: 10 }
+      });
+    });
+    expect(positions()).toEqual([120, 60]);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(positions()).toEqual([100, 50]);
+  });
+});

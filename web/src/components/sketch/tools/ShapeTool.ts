@@ -304,6 +304,19 @@ export class ShapeTool implements ToolHandler {
     ctx.drawOverlayShape(this.shapeStart, end);
   }
 
+  /** Pointer cancel or a pinch: drop the drag without drawing. */
+  onCancel(ctx: ToolContext): void {
+    this.snapping.end();
+    this.removeModifierListener();
+    if (this.shapeStart) {
+      ctx.clearOverlay();
+      ctx.drawSelectionOverlay();
+    }
+    this.shapeStart = null;
+    this.lastEnd = null;
+    this.activeCtx = null;
+  }
+
   onUp(ctx: ToolContext, event?: ToolPointerEvent): void {
     if (!this.shapeStart) {
       return;

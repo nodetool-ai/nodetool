@@ -462,7 +462,7 @@ export class TransformTool implements ToolHandler {
       gesture.handle,
       { ctrlOrMeta, shift, alt }
     );
-    pt = this.snapGesturePoint(ctx, gesture, pt, gestureMode === "scale");
+    pt = this.snapGesturePoint(ctx, gesture, pt, gestureMode === "scale", shift);
     const newTransform = this.computeGestureTransform(
       targets,
       gesture,
@@ -561,12 +561,15 @@ export class TransformTool implements ToolHandler {
    * Adjust the pointer so a move lands the targets' edges or center on a
    * snap line, and a scale handle lands the edges it drags on one. Handles
    * snap only for an unrotated scale, not for skew, distort or perspective.
+   * A corner snaps only in free scale (Shift): a proportional corner drag
+   * scales by the pointer's distance, so its edges do not track the pointer.
    */
   private snapGesturePoint(
     ctx: ToolContext,
     gesture: DragGestureSnapshot,
     pt: Point,
-    isScale: boolean
+    isScale: boolean,
+    freeScale: boolean
   ): Point {
     const extents = this.snapStartExtents;
     if (!extents) {
@@ -583,10 +586,25 @@ export class TransformTool implements ToolHandler {
     if (!isScale || !isAffineTransform(start) || Math.abs(start.rotation) > 1e-6) {
       return pt;
     }
-    const movesLeft = handle === "left" || handle === "top-left" || handle === "bottom-left";
-    const movesRight = handle === "right" || handle === "top-right" || handle === "bottom-right";
-    const movesTop = handle === "top" || handle === "top-left" || handle === "top-right";
-    const movesBottom = handle === "bottom" || handle === "bottom-left" || handle === "bottom-right";
+    const isCorner =
+      handle === "top-left" || handle === "top-right" ||
+      handle === "bottom-left" || handle === "bottom-right";
+    if (isCorner && !freeScale) {
+      this.snapping.snapEdges(ctx, null, null);
+      return pt;
+    }
+    // Handle names are in the layer's own frame. A flip mirrors them, so the
+    // "left" handle of a horizontally flipped layer drags its visual right edge.
+    const flipX = start.scaleX < 0;
+    const flipY = start.scaleY < 0;
+    const namedLeft = handle === "left" || handle === "top-left" || handle === "bottom-left";
+    const namedRight = handle === "right" || handle === "top-right" || handle === "bottom-right";
+    const namedTop = handle === "top" || handle === "top-left" || handle === "top-right";
+    const namedBottom = handle === "bottom" || handle === "bottom-left" || handle === "bottom-right";
+    const movesLeft = flipX ? namedRight : namedLeft;
+    const movesRight = flipX ? namedLeft : namedRight;
+    const movesTop = flipY ? namedBottom : namedTop;
+    const movesBottom = flipY ? namedTop : namedBottom;
     const edgeX = movesLeft ? extents.x : movesRight ? extents.x + extents.width : null;
     const edgeY = movesTop ? extents.y : movesBottom ? extents.y + extents.height : null;
     if (edgeX === null && edgeY === null) {
