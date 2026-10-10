@@ -156,6 +156,13 @@ describe("ui_workflow_set_setup", () => {
     expect(saveWorkflow).toHaveBeenCalledTimes(2);
   });
 
+  it("saves setup answers without a version row", async () => {
+    await call("ui_workflow_set_setup", { stage: "category" });
+    expect(saveWorkflow).toHaveBeenCalledWith(expect.anything(), {
+      snapshot: false
+    });
+  });
+
   it("leaves the rest of settings alone", async () => {
     settings = { hide_ui: true };
     await call("ui_workflow_set_setup", { brief: "b" });
@@ -205,6 +212,15 @@ describe("ui_workflow_plan", () => {
       }
     });
     expect(readWorkflowSetup(settings)?.plan?.steps[0].id).toBe("step-1");
+  });
+
+  it("refuses a plan whose step ids repeat", async () => {
+    await expect(
+      call("ui_workflow_plan", {
+        plan: { ...PLAN, steps: [PLAN.steps[0], PLAN.steps[0]] }
+      })
+    ).rejects.toThrow("Repeated: compose");
+    expect(readWorkflowSetup(settings)?.plan).toBeUndefined();
   });
 
   it("marks a step whose node type this install does not have", async () => {
@@ -310,6 +326,40 @@ describe("ui_workflow_update_plan_step", () => {
     ).toEqual(["second"]);
   });
 
+  it("refuses to add a step under an id the plan already has", async () => {
+    await expect(
+      call("ui_workflow_update_plan_step", {
+        op: "add",
+        step_id: "compose",
+        title: "Again"
+      })
+    ).rejects.toThrow('already has a step "compose"');
+    expect(
+      readWorkflowSetup(settings)?.plan?.steps.map((step) => step.id)
+    ).toEqual(["compose"]);
+  });
+
+  it("gives an added step a free id after a removal", async () => {
+    await call("ui_workflow_plan", {
+      plan: {
+        ...PLAN,
+        steps: [
+          { ...PLAN.steps[0], id: "step-1" },
+          { ...PLAN.steps[0], id: "step-2" },
+          { ...PLAN.steps[0], id: "step-3" }
+        ]
+      }
+    });
+    await call("ui_workflow_update_plan_step", {
+      op: "remove",
+      step_id: "step-2"
+    });
+    await call("ui_workflow_update_plan_step", { op: "add", title: "New" });
+    expect(
+      readWorkflowSetup(settings)?.plan?.steps.map((step) => step.id)
+    ).toEqual(["step-1", "step-3", "step-4"]);
+  });
+
   it("names the step ids when the one asked for is not there", async () => {
     await expect(
       call("ui_workflow_update_plan_step", { step_id: "nope", title: "x" })
@@ -352,6 +402,16 @@ describe("ui_workflow_build_from_plan", () => {
       "Missing provider roles: language"
     );
     expect(nodeToolCalls).toEqual([]);
+  });
+
+  it("adds one version row, from the save that places the graph", async () => {
+    await call("ui_workflow_plan", { plan: PLAN });
+    saveWorkflow.mockClear();
+    await call("ui_workflow_build_from_plan", {});
+    const saves = saveWorkflow.mock.calls as unknown as Array<
+      [unknown, { snapshot?: boolean } | undefined]
+    >;
+    expect(saves.map(([, options]) => options?.snapshot)).toEqual([true]);
   });
 
   it("reports build submission separately from result verification", async () => {

@@ -17,7 +17,14 @@ let runResponse: unknown = { ok: true, job_id: "job-1" };
 let deferredToolName: string | null = null;
 let releaseDeferredTool: () => void = () => undefined;
 let failingToolName: string | null = null;
-let runFinalState: "completed" | "cancelled" = "completed";
+let runFinalState: "completed" | "cancelled" | "error" = "completed";
+/** A node error the run reports before it fails. */
+let runNodeError: { nodeId: string; message: string } | null = null;
+/** The error the job's own failure frame carries. */
+let runJobError: string | undefined;
+/** A pre-flight property issue the failure frame records after the state. */
+let runPropertyIssue: { node_id: string; property: string; message: string } | null =
+  null;
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
     call: jest.fn(async (name: string, args: Record<string, unknown>) => {
@@ -39,8 +46,12 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
       }
       if (name === "ui_run_workflow") {
         if (runResponse && (runResponse as Record<string, unknown>)["job_id"]) {
-          const runs = require("../../../stores/WorkflowRunsStore").default;
-          const results = require("../../../stores/ResultsStore").default;
+          const runs = jest.requireActual<
+            typeof import("../../../stores/WorkflowRunsStore")
+          >("../../../stores/WorkflowRunsStore").default;
+          const results = jest.requireActual<
+            typeof import("../../../stores/ResultsStore")
+          >("../../../stores/ResultsStore").default;
           runs.getState().recordRun({
             jobId: "job-1",
             workflowId: "w1",
@@ -50,7 +61,32 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
           results
             .getState()
             .setOutputResult("w1", "job-1", "output_1", "hello");
-          runs.getState().updateRunState("w1", "job-1", runFinalState);
+          if (runNodeError) {
+            jest
+              .requireActual<typeof import("../../../stores/ErrorStore")>(
+                "../../../stores/ErrorStore"
+              )
+              .default.getState()
+              .setError("w1", "job-1", runNodeError.nodeId, runNodeError.message);
+          }
+          if (runPropertyIssue) {
+            // The job's failure frame, once the build is waiting on it: the
+            // run state changes first, then the issues are recorded.
+            const issue = runPropertyIssue;
+            setTimeout(() => {
+              runs.getState().updateRunState("w1", "job-1", runFinalState);
+              jest
+                .requireActual<
+                  typeof import("../../../stores/PropertyValidationStore")
+                >("../../../stores/PropertyValidationStore")
+                .default.getState()
+                .setIssues("w1", [issue]);
+            }, 0);
+          } else {
+            runs
+              .getState()
+              .updateRunState("w1", "job-1", runFinalState, runJobError);
+          }
         }
         return runResponse;
       }
@@ -104,6 +140,8 @@ jest.mock("../../../stores/MetadataStore", () => ({
 }));
 
 import { readWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import useErrorStore from "../../../stores/ErrorStore";
+import usePropertyValidationStore from "../../../stores/PropertyValidationStore";
 import {
   useBuildFromPlan,
   workflowBuildRecord,
@@ -155,6 +193,11 @@ beforeEach(() => {
   releaseDeferredTool = () => undefined;
   failingToolName = null;
   runFinalState = "completed";
+  runNodeError = null;
+  runPropertyIssue = null;
+  runJobError = undefined;
+  useErrorStore.setState({ errors: {} });
+  usePropertyValidationStore.setState({ errors: {} });
 });
 
 describe("buildFromPlan", () => {
@@ -359,6 +402,50 @@ describe("buildFromPlan", () => {
     const setup = readWorkflowSetup(settings);
     expect(setup?.stage).toBe("done");
     expect(setup?.["build"]).toMatchObject({ status: "canceled" });
+  });
+
+  it("adds one version row per build", async () => {
+    await build();
+
+    const saves = managerState.saveWorkflow.mock.calls as unknown as Array<
+      [unknown, { snapshot?: boolean } | undefined]
+    >;
+    expect(saves.length).toBeGreaterThan(1);
+    expect(
+      saves.filter(([, options]) => options?.snapshot !== false)
+    ).toHaveLength(1);
+  });
+
+  it("says which step failed the sample run and why", async () => {
+    runFinalState = "error";
+    runNodeError = { nodeId: "step_1", message: "API key missing" };
+    const built = await build();
+
+    expect(built.status).toBe("failed");
+    expect(built.testRun.error).toBe("Compose: API key missing");
+    expect(built.explanation).toBe(
+      "The sample run failed: Compose: API key missing"
+    );
+  });
+
+  it("names the job's own error when no node reported one", async () => {
+    runFinalState = "error";
+    runJobError = "Worker ran out of memory";
+    const built = await build();
+
+    expect(built.testRun.error).toBe("Worker ran out of memory");
+  });
+
+  it("names the field a run refused before it started", async () => {
+    runFinalState = "error";
+    runPropertyIssue = {
+      node_id: "step_1",
+      property: "string",
+      message: "is required"
+    };
+    const built = await build();
+
+    expect(built.testRun.error).toBe("Compose, string: is required");
   });
 
   it("records a canceled job as canceled, not as a failed run", async () => {

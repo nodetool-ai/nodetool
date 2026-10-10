@@ -410,6 +410,52 @@ describe("useVideoSetupFlow plan outcomes", () => {
     );
   });
 
+  it("drops a failed Re-plan once the creator leaves the review (V1)", async () => {
+    seed("review", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    });
+    mockRpc.mockRejectedValue(new Error("The provider refused the request."));
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const review = () =>
+      result.current.steps[2].render() as ReactElement<{
+        onReplan: () => void;
+        error?: string | null;
+      }>;
+    await act(async () => {
+      review().props.onReplan();
+      await Promise.resolve();
+    });
+    expect(review().props.error).toBe("The provider refused the request.");
+
+    act(() => result.current.onStageChange("format"));
+    act(() => result.current.onStageChange("review"));
+
+    expect(review().props.error ?? null).toBeNull();
+  });
+
+  it("keeps a failed format-step plan off the review (V1)", async () => {
+    seed("format", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }],
+      planFingerprint: "stale"
+    });
+    mockRpc.mockRejectedValue(new Error("The provider refused the request."));
+    const { result } = renderHook(() => useVideoSetupFlow());
+    await act(async () => {
+      await expect(result.current.steps[1].onAdvance?.()).rejects.toThrow(
+        "The provider refused the request."
+      );
+    });
+
+    // The format step's plan is current again (a format switched back), so
+    // Continue moves on without a run.
+    act(() => result.current.onStageChange("review"));
+
+    const review = result.current.steps[2].render() as ReactElement<{
+      error?: string | null;
+    }>;
+    expect(review.props.error ?? null).toBeNull();
+  });
+
   it("holds Continue on the idea step while dropped media uploads", () => {
     seed("idea");
     const { result } = renderHook(() => useVideoSetupFlow());
@@ -576,6 +622,52 @@ describe("useVideoSetupFlow audit fixes", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("hands over when the agent writes done while the flow is up (V2)", async () => {
+    seed("look", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    });
+    const onFinish = jest.fn(async () => undefined);
+    renderHook(() => useVideoSetupFlow({ onFinish }));
+    const prepared = {
+      batch_id: "batch",
+      fingerprint: "f",
+      requests: []
+    };
+    // `ui_timeline_generate_from_beats`: done is written before the jobs.
+    await act(async () => {
+      useTimelineStore.getState().setSetup({
+        stage: "done",
+        prepared_generation: { ...prepared, status: "unsubmitted" }
+      } as never);
+    });
+    expect(onFinish).not.toHaveBeenCalled();
+    await act(async () => {
+      useTimelineStore.getState().setSetup({
+        prepared_generation: { ...prepared, status: "submitted" }
+      } as never);
+    });
+    expect(onFinish).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands over once when the flow itself finishes, and never for an unloaded store (V2)", async () => {
+    const onFinish = jest.fn(async () => undefined);
+    const { result } = renderHook(() => useVideoSetupFlow({ onFinish }));
+    // An empty store reads done before the document loads.
+    expect(result.current.stage).toBe("done");
+    expect(onFinish).not.toHaveBeenCalled();
+
+    await act(async () => seed("idea"));
+    const idea = result.current.steps[0].render() as ReactElement<{
+      onStartBlank: () => void;
+    }>;
+    await act(async () => {
+      idea.props.onStartBlank();
+      await Promise.resolve();
+    });
+    expect(useTimelineStore.getState().setup?.stage).toBe("done");
+    expect(onFinish).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps a Generate failure that landed after the host replaced the shell (V11)", async () => {
     seed("look", {
       beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
@@ -615,6 +707,24 @@ describe("useVideoSetupFlow audit fixes", () => {
     // Leaving the step clears it.
     act(() => result.current.onStageChange("review"));
     expect(lookError()).toBeUndefined();
+  });
+
+  it("hands the typed creative context to the script flow with the brief (V4)", () => {
+    seed("idea", {
+      creative_context: { schema_version: 1, product_name: "Kite" }
+    });
+    const onStartFromScript = jest.fn();
+    const { result } = renderHook(() =>
+      useVideoSetupFlow({ onStartFromScript })
+    );
+    const idea = result.current.steps[0].render() as ReactElement<{
+      onStartFromScript?: () => void;
+    }>;
+    act(() => idea.props.onStartFromScript?.());
+    expect(onStartFromScript).toHaveBeenCalledWith(
+      "a paper boat",
+      expect.objectContaining({ product_name: "Kite" })
+    );
   });
 
   it("holds Change flow while dropped media uploads (V10)", () => {

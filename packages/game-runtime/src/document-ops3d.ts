@@ -9,6 +9,7 @@ import { applyGameAuthoringOperation } from "./authoring-reconcile.js";
 import { applyGameOps, gameDocumentOp, GameOpError, type GameDocumentOp } from "./document-ops.js";
 import { validateGame3D } from "./validate3d.js";
 import { editScriptParams } from "./script-params.js";
+import { gameAudioSourcePatch } from "./audio-source-ops.js";
 
 const id = z.string().min(1);
 const index = z.number().int().nonnegative();
@@ -34,7 +35,7 @@ const entitySet = preservingPatch(gameEntity3D.partial().extend({
   light3d: z.union(gameLight3D.options.map((schema) => schema.partial())).nullable().optional(),
   animator3d: gameEntity3D.shape.animator3d.unwrap().partial().extend({ graph: id.nullable().optional() }).nullable().optional(),
   interactionActor: gameEntity3D.shape.interactionActor.unwrap().partial().nullable().optional(),
-  audioSource: gameEntity3D.shape.audioSource.unwrap().partial().nullable().optional(),
+  audioSource: gameAudioSourcePatch,
   particles: gameEntity3D.shape.particles.unwrap().partial().nullable().optional(),
   renderCulling: gameEntity3D.shape.renderCulling.unwrap().partial().nullable().optional()
 }));

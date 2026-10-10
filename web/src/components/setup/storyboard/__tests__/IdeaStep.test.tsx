@@ -6,13 +6,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  act,
-  render,
-  screen,
-  waitFor,
-  within
-} from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -331,9 +325,7 @@ describe("IdeaStep — upload your file", () => {
     );
 
     await waitFor(() => expect(board()?.shots).toHaveLength(4));
-    expect(
-      screen.getByText("Imported from script.fdx")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Imported from script.fdx")).toBeInTheDocument();
     expect(screen.getByLabelText("Your story")).toHaveAttribute("readonly");
 
     await user.click(screen.getByRole("button", { name: "Edit as text" }));
@@ -344,6 +336,22 @@ describe("IdeaStep — upload your file", () => {
         "readonly"
       )
     );
+  });
+
+  it("offers no example over a held script", async () => {
+    const user = userEvent.setup();
+    renderStep();
+    expect(
+      screen.getByRole("group", { name: "Inspiration" })
+    ).toBeInTheDocument();
+
+    await user.upload(
+      screen.getByLabelText("Upload your file"),
+      upload("script.fdx", "text/xml", fixture("two-scenes.fdx"))
+    );
+
+    await waitFor(() => expect(board()?.shots).toHaveLength(4));
+    expect(screen.queryByRole("group", { name: "Inspiration" })).toBeNull();
   });
 
   it("sends a PDF to the extraction route and lands its text", async () => {
@@ -407,6 +415,10 @@ describe("IdeaStep — upload your file", () => {
     );
 
     expect(await screen.findByText(scanned)).toBeInTheDocument();
+    // Every error surface reaches the bug-report dialog, and the notice still
+    // closes.
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
     expect(board()?.brief).toBe("");
     expect(getImportSource(BOARD)).toBeUndefined();
   });

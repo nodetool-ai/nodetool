@@ -18,7 +18,14 @@
  * anything; the one model call it can make is `Re-plan`.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -53,6 +60,7 @@ import {
 import type { AutocompleteOption } from "../../ui_primitives";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
+import ReportBugButton from "../../support/ReportBugButton";
 import { PlanReview } from "../PlanReview";
 import {
   EDITABLE_FIELD,
@@ -142,8 +150,32 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
     [onPlanChange, plan]
   );
 
+  // The removed row takes its button with it, so the keyboard moves to the
+  // row that took its place, or to "Add a step" when none is left.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const addStepRef = useRef<HTMLButtonElement>(null);
+  const focusAfterRemoveRef = useRef<number | null>(null);
+  useEffect(() => {
+    const removedAt = focusAfterRemoveRef.current;
+    if (removedAt === null) {
+      return;
+    }
+    focusAfterRemoveRef.current = null;
+    const target = Math.min(removedAt, plan.steps.length - 1);
+    const next =
+      target >= 0
+        ? rootRef.current?.querySelector<HTMLElement>(
+            `button[aria-label="Remove step ${target + 1}"]`
+          )
+        : null;
+    (next ?? addStepRef.current)?.focus();
+  }, [plan.steps.length]);
+
   const removeStep = useCallback(
     (id: string) => {
+      focusAfterRemoveRef.current = plan.steps.findIndex(
+        (step) => step.id === id
+      );
       onPlanChange({
         ...plan,
         steps: plan.steps.filter((step) => step.id !== id)
@@ -250,6 +282,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
 
   return (
     <FlexColumn
+      ref={rootRef}
       gap={GAP.spacious}
       sx={{ width: "100%", maxWidth: REVIEW_CONTENT_WIDTH }}
     >
@@ -274,7 +307,19 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
       ) : null}
 
       {error ? (
-        <AlertBanner severity="error" role="alert">
+        <AlertBanner
+          severity="error"
+          role="alert"
+          action={
+            <ReportBugButton
+              context={{
+                source: "provider-call",
+                summary: "Workflow re-plan failed",
+                errorText: error
+              }}
+            />
+          }
+        >
           {error}
         </AlertBanner>
       ) : null}
@@ -354,6 +399,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
 
       <FlexRow gap={GAP.normal}>
         <EditorButton
+          ref={addStepRef}
           variant="outlined"
           onClick={addStep}
           disabled={replanPending}

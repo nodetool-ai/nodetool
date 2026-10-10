@@ -1,7 +1,8 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import type { GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
-import { paintHud, pixelRect, projectedCamera, tintPixels, visibleItems, type VisibleItem } from "./frame.js";
+import { paintHud, pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems, type VisibleItem } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
+import { CANVAS2D_MAX_PARTICLES, PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
 
 export type GameImage = ImageBitmap | HTMLImageElement;
 export type GameAssetResolver = (assetId: string) => Promise<GameImage | null>;
@@ -29,11 +30,11 @@ export class AssetCache {
   }
 }
 
-export function imageWidth(image: GameImage): number {
+export function imageWidth(image: GameImage | HTMLCanvasElement): number {
   return image instanceof HTMLImageElement ? image.naturalWidth : image.width;
 }
 
-export function imageHeight(image: GameImage): number {
+export function imageHeight(image: GameImage | HTMLCanvasElement): number {
   return image instanceof HTMLImageElement ? image.naturalHeight : image.height;
 }
 
@@ -42,6 +43,8 @@ export class Canvas2DGameRenderer implements GameRenderer {
   private readonly context: CanvasRenderingContext2D;
   private readonly tinted = new Map<string, HTMLCanvasElement>();
   private lightCanvas: HTMLCanvasElement | undefined;
+  private particleDot: HTMLCanvasElement | undefined;
+  private particleScratch: HTMLCanvasElement | undefined;
   private tintedBytes = 0;
   private disposed = false;
 
@@ -66,12 +69,12 @@ export class Canvas2DGameRenderer implements GameRenderer {
     context.imageSmoothingEnabled = false;
   }
 
-  async render(frame: GameRenderFrame, interpolation: number): Promise<GameRendererStats> {
+  async render(frame: GameRenderFrame, interpolation: number, particles?: GameParticleField): Promise<GameRendererStats> {
     if (this.disposed) {
       throw new Error("Game renderer is disposed");
     }
-    const items = visibleItems(frame, interpolation);
-    const images = await Promise.all(items.map((entry) => this.assets.get(entry.assetId)));
+    const items = visibleItems(frame, interpolation, 0, particles && { field: particles, limit: CANVAS2D_MAX_PARTICLES });
+    const images = await Promise.all(items.map((entry) => entry.assetId === PARTICLE_DOT_ASSET ? this.dot() : this.assets.get(entry.assetId)));
     const context = this.context;
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     context.imageSmoothingEnabled = false;
@@ -129,7 +132,7 @@ export class Canvas2DGameRenderer implements GameRenderer {
   private drawSprite(
     context: CanvasRenderingContext2D,
     entry: VisibleItem,
-    image: GameImage | null,
+    image: GameImage | HTMLCanvasElement | null,
     frame: GameRenderFrame,
     camera: { readonly x: number; readonly y: number },
     pixelScale: number,
@@ -137,11 +140,11 @@ export class Canvas2DGameRenderer implements GameRenderer {
     sy: number,
     normalBlend = false,
   ): void {
-    const source = image ? entry.frame ?? { x: 0, y: 0, width: imageWidth(image), height: imageHeight(image) } : undefined;
+    const source = image ? sourceRect(entry, imageWidth(image), imageHeight(image)) : undefined;
     const { x, y, width: targetWidth, height: targetHeight } = pixelRect(entry,
       (frame.width / 2 + (entry.x - camera.x) * pixelScale) * sx, (frame.height / 2 - (entry.y - camera.y) * pixelScale) * sy,
       entry.width * pixelScale * sx, entry.height * pixelScale * sy);
-    const tinted = image && source ? this.tint(image, entry.assetId, source, entry.tint) : undefined;
+    const tinted = image && source ? entry.particle ? this.tintParticle(image, source, entry.tint) : this.tint(image, entry.assetId, source, entry.tint) : undefined;
     context.save();
     context.translate(x, y);
     context.rotate(-entry.rotation);
@@ -160,8 +163,56 @@ export class Canvas2DGameRenderer implements GameRenderer {
     context.restore();
   }
 
+  private dot(): Promise<HTMLCanvasElement> {
+    if (!this.particleDot) {
+      const canvas = document.createElement("canvas");
+      canvas.width = PARTICLE_DOT_SIZE;
+      canvas.height = PARTICLE_DOT_SIZE;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        throw new Error("Canvas2D particle target is unavailable");
+      }
+      const pixels = context.createImageData(PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE);
+      pixels.data.set(particleDotPixels());
+      context.putImageData(pixels, 0, 0);
+      this.particleDot = canvas;
+    }
+    return Promise.resolve(this.particleDot);
+  }
+
+  /**
+   * Multiplies a particle's image by its colour in a reused scratch canvas. Particle colours change every frame,
+   * so a per-tint cache would only churn.
+   */
+  private tintParticle(
+    image: GameImage | HTMLCanvasElement,
+    source: { readonly x: number; readonly y: number; readonly width: number; readonly height: number },
+    tint: string | undefined,
+  ): HTMLCanvasElement | undefined {
+    if (!tint || tint.toLowerCase() === "#ffffff") {
+      return undefined;
+    }
+    const canvas = this.particleScratch ?? document.createElement("canvas");
+    this.particleScratch = canvas;
+    canvas.width = source.width;
+    canvas.height = source.height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Canvas2D particle target is unavailable");
+    }
+    context.drawImage(image, source.x, source.y, source.width, source.height, 0, 0, source.width, source.height);
+    context.globalCompositeOperation = "multiply";
+    context.fillStyle = tint;
+    context.fillRect(0, 0, source.width, source.height);
+    // Multiply fills transparent pixels too, so the image's own alpha is restored afterwards.
+    context.globalCompositeOperation = "destination-in";
+    context.drawImage(image, source.x, source.y, source.width, source.height, 0, 0, source.width, source.height);
+    context.globalCompositeOperation = "source-over";
+    return canvas;
+  }
+
   private tint(
-    image: GameImage,
+    image: GameImage | HTMLCanvasElement,
     assetId: string,
     source: { readonly x: number; readonly y: number; readonly width: number; readonly height: number },
     tint: string | undefined,
@@ -223,6 +274,8 @@ export class Canvas2DGameRenderer implements GameRenderer {
     this.disposed = true;
     this.tinted.clear();
     this.lightCanvas = undefined;
+    this.particleDot = undefined;
+    this.particleScratch = undefined;
     this.tintedBytes = 0;
     this.assets.clear();
   }

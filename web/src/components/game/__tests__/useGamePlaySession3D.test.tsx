@@ -7,6 +7,7 @@ import { gameAuthoring, gameDocument3D, type GameDocument3D, type GameRenderFram
 import { createGameSession3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession3D } from "../useGamePlaySession3D";
 import { FixedTickClock } from "@nodetool-ai/game-renderer";
+import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import { asResolvedMediaUrl, resolveMediaUri } from "../../../utils/resolveMediaUri";
 
 const mockRenderers: { render: jest.Mock; dispose: jest.Mock }[] = [];
@@ -18,9 +19,9 @@ jest.mock("@nodetool-ai/game-renderer/browser3d", () => ({
     return renderer;
   })
 }), { virtual: true });
-jest.mock("@nodetool-ai/game-renderer/audio", () => ({
+jest.mock("@nodetool-ai/game-renderer/audio", () => ({ gameAudioSpatialView2D: jest.fn(() => ({})), gameAudioSpatialView3D: jest.fn(() => ({})),
   GameAudioPlayer: jest.fn().mockImplementation(() => ({ updateAssets: jest.fn(), updateMixer: jest.fn(), preload: jest.fn(), sync: jest.fn(), resume: jest.fn(), pause: jest.fn(),
-    reset: jest.fn(), handle: jest.fn(), dispose: jest.fn() }))
+    reset: jest.fn(), handle: jest.fn(), updateSpatial: jest.fn(), dispose: jest.fn() }))
 }));
 jest.mock("../../../utils/resolveMediaUri", () => ({
   ...jest.requireActual<typeof import("../../../utils/resolveMediaUri")>("../../../utils/resolveMediaUri"), resolveMediaUri: jest.fn()
@@ -233,6 +234,27 @@ it("reports storage failures and clears them after a successful save (F29)", asy
   expect(screen.getByTestId("error")).toHaveTextContent("Storage access denied");
   read.mockRestore();
   view.unmount();
+});
+
+it("moves spatial audio to every displayed frame", async () => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  const view = render(<Harness document={fixture()} />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
+    const audio = (GameAudioPlayer as unknown as jest.Mock).mock.results.at(-1)?.value as { updateSpatial: jest.Mock };
+    const spatialView = jest.mocked(gameAudioSpatialView3D);
+    spatialView.mockClear();
+    audio.updateSpatial.mockClear();
+    const renders = mockRenderers[0].render.mock.calls.length;
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() => expect(mockRenderers[0].render.mock.calls.length).toBeGreaterThan(renders));
+    const [frame, alpha] = mockRenderers[0].render.mock.calls.at(-1) ?? [];
+    expect(spatialView).toHaveBeenCalledWith(frame, alpha);
+    expect(audio.updateSpatial).toHaveBeenCalledWith(spatialView.mock.results.at(-1)?.value);
+  } finally {
+    view.unmount(); animation.mockRestore();
+  }
 });
 
 it("publishes Play updates only at crossed HUD tick boundaries", async () => {

@@ -30,7 +30,14 @@
  * are the same artifact.
  */
 
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type RefObject
+} from "react";
 import {
   ATTRIBUTION_SYSTEM_PROMPT,
   ATTRIBUTION_TOOL_DESCRIPTION,
@@ -177,12 +184,47 @@ export interface UseWriteScriptResult {
  * which are paid-for audio of different words. The counter is what makes each
  * write's ids its own, the way `ScriptStore`'s own id helper does it.
  */
+/** What `errorRef` holds after a canceled write. `error` stays empty. */
+export const WRITE_CANCELED = "The write was canceled.";
+
 let writeSequence = 0;
 const nextIdPrefix = (): string =>
   `w${Date.now().toString(36)}${(writeSequence++).toString(36)}`;
 
-export const useWriteScript = (): UseWriteScriptResult => {
-  const [writing, setWriting] = useState(false);
+/**
+ * The write running on each script, whichever hook instance started it. The
+ * setup flow and the agent bridge each hold their own `useWriteScript`, so a
+ * per-instance flag let the agent's `ui_script_write` run while the flow's
+ * format and review steps stayed open, and a second paid write could start.
+ */
+interface ActiveWrite {
+  controller: AbortController;
+  owner: symbol;
+}
+const activeWrites = new Map<string, ActiveWrite>();
+const writeListeners = new Set<() => void>();
+const notifyWrites = (): void => {
+  writeListeners.forEach((listener) => listener());
+};
+const subscribeWrites = (listener: () => void): (() => void) => {
+  writeListeners.add(listener);
+  return () => {
+    writeListeners.delete(listener);
+  };
+};
+
+/**
+ * `scriptId` scopes `writing` and `cancel` to one script, so a write the agent
+ * started shows (and can be canceled) on the flow that shows that script.
+ * Without it they cover only this instance's own writes.
+ */
+export const useWriteScript = (scriptId?: string): UseWriteScriptResult => {
+  const owner = useRef(Symbol("useWriteScript")).current;
+  const writing = useSyncExternalStore(subscribeWrites, () =>
+    scriptId !== undefined
+      ? activeWrites.has(scriptId)
+      : [...activeWrites.values()].some((entry) => entry.owner === owner)
+  );
   const [error, setErrorState] = useState<string | null>(null);
   const errorRef = useRef<string | null>(null);
   const setError = useCallback((message: string | null) => {
@@ -190,13 +232,32 @@ export const useWriteScript = (): UseWriteScriptResult => {
     setErrorState(message);
   }, []);
 
-  const activeController = useRef<AbortController | null>(null);
-  const cancel = useCallback(() => activeController.current?.abort(), []);
-  useEffect(() => cancel, [cancel]);
+  const cancel = useCallback(() => {
+    activeWrites.forEach((entry, id) => {
+      if (scriptId !== undefined ? id === scriptId : entry.owner === owner) {
+        entry.controller.abort();
+      }
+    });
+  }, [owner, scriptId]);
+  // Unmounting stops only this instance's own writes: a flow that leaves
+  // must not abort a write the agent asked for.
+  useEffect(
+    () => () => {
+      activeWrites.forEach((entry, id) => {
+        if (entry.owner === owner) {
+          entry.controller.abort();
+          activeWrites.delete(id);
+        }
+      });
+      notifyWrites();
+    },
+    [owner]
+  );
 
   const write = useCallback(
     async (scriptId: string, options: WriteScriptOptions = {}) => {
       if (options.signal?.aborted) {
+        errorRef.current = WRITE_CANCELED;
         return false;
       }
       const store = useScriptStore.getState();
@@ -241,15 +302,18 @@ export const useWriteScript = (): UseWriteScriptResult => {
       const idPrefix = nextIdPrefix();
       const heldLineIds = lineIdsOf(script);
 
+      if (activeWrites.has(scriptId)) {
+        setError("This script is already being written.");
+        return false;
+      }
       const signature = writerSignature(setup, imported);
-      activeController.current?.abort();
       const controller = new AbortController();
-      activeController.current = controller;
+      activeWrites.set(scriptId, { controller, owner });
+      notifyWrites();
       const abort = (): void => controller.abort();
       options.signal?.addEventListener("abort", abort, { once: true });
       const { signal } = controller;
       setError(null);
-      setWriting(true);
       try {
         let written: WrittenScript;
 
@@ -346,19 +410,22 @@ export const useWriteScript = (): UseWriteScriptResult => {
         return true;
       } catch (cause) {
         if (signal.aborted) {
+          // Not shown: the creator who canceled knows. A caller that reports
+          // the reason, such as the agent's tool, reads it from the ref.
+          errorRef.current = WRITE_CANCELED;
           return false;
         }
         setError(cause instanceof Error ? cause.message : String(cause));
         return false;
       } finally {
         options.signal?.removeEventListener("abort", abort);
-        if (activeController.current === controller) {
-          activeController.current = null;
-          setWriting(false);
+        if (activeWrites.get(scriptId)?.controller === controller) {
+          activeWrites.delete(scriptId);
+          notifyWrites();
         }
       }
     },
-    [setError]
+    [owner, setError]
   );
 
   const clearError = useCallback(() => setError(null), [setError]);
