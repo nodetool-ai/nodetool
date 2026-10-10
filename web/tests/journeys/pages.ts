@@ -391,3 +391,28 @@ export class StoryboardPage {
     return this.page.getByTestId("shot-edit-panel");
   }
 }
+
+/** A text file opened from the New menu, edited in Monaco. */
+export class TextFilePage {
+  constructor(private readonly page: Page) {}
+
+  /** New → New text file… → the given format, from the workspace home. */
+  async create(format: RegExp): Promise<void> {
+    await goto(this.page, "/workspace");
+    await this.page.getByRole("button", { name: "Open or create a tab" }).click();
+    await this.page.getByRole("menuitem", { name: /New text file/ }).click();
+    await this.page.getByRole("menuitem", { name: format }).click();
+    // Monaco exposes no role for its text area; `.view-lines` is what renders.
+    await this.lines().waitFor({ state: "visible", timeout: 30_000 });
+  }
+
+  lines(): Locator {
+    return this.page.locator(".monaco-editor .view-lines").first();
+  }
+
+  /** Type the way a fast typist or a key-repeat does: one key every 15 ms. */
+  async typeFast(text: string): Promise<void> {
+    await this.lines().click();
+    await this.page.keyboard.type(text, { delay: 15 });
+  }
+}

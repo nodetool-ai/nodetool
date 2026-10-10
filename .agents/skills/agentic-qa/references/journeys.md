@@ -37,6 +37,10 @@ Choose one per campaign. Rotate between campaigns.
 | `automation-keep` | Set up something that takes a sentence you type and gives back a changed version of it, and try it with your own sentence. Then leave the page, come back, and run it again with a different sentence. | Two runs with different input, the second after a reload, on the same saved document. |
 | `key-change` | Connect this app to your OpenAI account with your old key. Then you learn the old key has been revoked: switch the app over to your new key, and check that the app still works. | Needs two `credentials` entries. The stored key is replaced, not added beside the old one, and a later request succeeds. |
 
+| `name-find` | Make something in this app, anything you like. Give it a name you will recognise. Then leave the page, come back, and find it again by that name. | The item is reachable by its name after reload. Record which surfaces list it and which say they are empty. |
+| `undo-delete` | Make something in this app, anything you like. Then delete it. Then change your mind and try to get it back. | Whether deletion warns, whether anything restores it, and what the surfaces that showed the item say afterwards. |
+| `appearance` | Change how this app looks so it is more comfortable for you to read, for example a different colour scheme or bigger text. Then leave the page, come back, and check that your change is still there. | The change persists. Every screenshot in the new theme is legible (see [ux-review.md](ux-review.md)). |
+
 Two goals per campaign fit the 10-minute limit when one of them is short
 (`key-change` took 15 actions). Prefer goals no earlier campaign ran, and say
 which goals were repeated.
@@ -46,6 +50,14 @@ With fake providers every goal can complete, with placeholder content (see
 `automation` on whether the participant's sentence reached a run and a visible
 output appeared. Only the guided planner's plan changes the sentence (it
 capitalizes it). A model step answers with the fixed reply whatever the input.
+
+## UX campaign
+
+When the user asks for UX issues rather than task success, run
+`app-first-use` with `"viewport": { "width": 1280, "height": 720 }` and two or
+three of `name-find`, `undo-delete`, and `appearance`. These goals pass through
+the surfaces where state shows up in several places at once: tabs, panels,
+toasts, and themes. Then run every check in [ux-review.md](ux-review.md).
 
 ## Persistence and recovery
 
