@@ -303,7 +303,10 @@ export const paletteLight: NonNullable<ColorSystemOptions["palette"]> = {
     defaultAvatarColor: "#52525B",
     defaultIconColor: "#52525B"
   },
+  // `border` is MUI's palette key here, not a CSS property.
+  // eslint-disable-next-line design-tokens/color-tokens
   StepConnector: { border: "#D4D4D8" },
+  // eslint-disable-next-line design-tokens/color-tokens
   StepContent: { border: "#D4D4D8" },
   Switch: { defaultDisabledColor: "#F5F5F6" },
   glass: {
