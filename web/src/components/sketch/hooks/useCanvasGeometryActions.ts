@@ -821,7 +821,12 @@ export function useCanvasGeometryActions({
         return;
       }
 
-      if (liveDoc.layers.some((layer) => layer.id === layerId && layer.type === "vector")) {
+      // Vector layers hold no pixels, and locked layers reject pixel edits.
+      if (
+        liveDoc.layers.some(
+          (layer) => layer.id === layerId && (layer.type === "vector" || layer.locked)
+        )
+      ) {
         return;
       }
       const imageToPaste = await resolveSketchPasteImageCanvas({
