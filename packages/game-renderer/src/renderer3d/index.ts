@@ -9,6 +9,8 @@ import { configureGameEnvironment } from "./environment/index.js";
 import { GameSkyRenderer3D, type GameSkySources3D } from "./environment/sky.js";
 import { paintGameHud } from "./hud/paint.js";
 import { applyDistanceCulling3D } from "./culling.js";
+import { GamePostProcessor3D } from "./passes/post-processing.js";
+import { GameShadows3D } from "./shadows/index.js";
 export { interpolateGameTransform3D } from "./scene-sync.js";
 export { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
 import * as THREE from "three";
@@ -94,8 +96,10 @@ class ThreeGameRenderer implements GameRenderer3D {
   private readonly fonts: GameFonts3D;
   private readonly diagnostics: string[] = [];
   private readonly lights = new Map<string, THREE.Light>();
+  private readonly shadows = new GameShadows3D(this.diagnostics, (message) => this.options.onDiagnostic?.(message));
   private readonly controller = new AbortController();
   private readonly sky: GameSkyRenderer3D;
+  private readonly postProcessor: GamePostProcessor3D;
   private readonly hudCanvas = document.createElement("canvas");
   private readonly hudScene = new THREE.Scene();
   private readonly hudCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 2);
@@ -122,7 +126,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.options.onContextState?.("lost");
   };
   private readonly onRestored = (): void => {
-    if (this.status !== "disposed") { this.status = "ready"; this.restoring = true; this.sky.reset(); }
+    if (this.status !== "disposed") { this.status = "ready"; this.restoring = true; this.sky.reset(); this.postProcessor.release(); }
   };
   private readonly onAbort = (): void => this.dispose();
 
@@ -130,6 +134,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.modelCache = new GameModelCache3D(options, this.controller);
     this.fonts = new GameFonts3D(options, this.controller, this.diagnostics);
     this.sky = new GameSkyRenderer3D(renderer, options, this.controller.signal, this.diagnostics);
+    this.postProcessor = new GamePostProcessor3D(renderer);
     this.scene.add(this.ambient);
     this.hudCamera.position.z = 1;
     this.hudTexture.colorSpace = THREE.SRGBColorSpace;
@@ -270,9 +275,10 @@ class ThreeGameRenderer implements GameRenderer3D {
     const activeCamera = this.editorCamera ?? this.camera;
     activeCamera.updateMatrixWorld(true);
     const culledEntities = applyDistanceCulling3D(this.instances, frame, this.editorCamera ? null : this.camera);
-    syncGameLights(this.scene, this.lights, frame);
+    syncGameLights(this.scene, this.lights, frame, this.shadows, activeCamera);
     configureGameEnvironment(this.scene, this.ambient, this.renderer, frame.environment);
     await this.sky.apply(this.scene, frame);
+    await this.postProcessor.configure(frame.environment.postProcessing);
     this.controller.signal.throwIfAborted();
     await this.fonts.load(frame);
     this.controller.signal.throwIfAborted();
@@ -282,7 +288,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.renderer.compile(this.scene, activeCamera);
     this.controller.signal.throwIfAborted();
     await this.pipeline.render({ renderer: this.renderer, scene: this.scene, camera: activeCamera,
-      hudScene: this.hudScene, hudCamera: this.hudCamera });
+      hudScene: this.hudScene, hudCamera: this.hudCamera, postProcessor: this.postProcessor });
     if (this.renderer.getContext().isContextLost()) { throw new Error("WebGL2 context was lost during render"); }
     this.successful = true;
     if (this.restoring) { this.restoring = false; this.options.onContextState?.("ready"); }
@@ -300,7 +306,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     for (const model of this.modelCache.loadedModels) { geometryBytes += model.prepared.geometryBytes; textureBytes += model.prepared.textureBytes; }
     return { backend: this.backend, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles,
       geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, geometryBytes, textureBytes,
-      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities };
+      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8 + this.postProcessor.targetBytes, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities };
   }
   dispose(): void {
     if (this.status === "disposed") { return; }
@@ -314,8 +320,10 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.modelCache.dispose();
     this.fonts.dispose();
     this.sky.dispose();
+    this.postProcessor.dispose();
     this.lights.forEach((light) => removeGameLight(light));
     this.lights.clear();
+    this.shadows.dispose();
     this.hudTexture.dispose();
     this.hudGeometry.dispose();
     this.hudMaterial.dispose();

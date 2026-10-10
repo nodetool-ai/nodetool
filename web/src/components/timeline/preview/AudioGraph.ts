@@ -169,6 +169,8 @@ interface PlayingSource {
   /** Stop at `when` on the audio clock, or now. */
   stop(when?: number): void;
   disconnect(): void;
+  /** Called once the source has played to its end or been stopped. */
+  onended: ((event: Event) => unknown) | null;
 }
 
 /**
@@ -202,6 +204,7 @@ function rampToSilence(param: AudioParam, now: number, endAt: number): void {
  * and end even though the element itself starts on a timer.
  */
 class StreamedSegment implements PlayingSource {
+  onended: ((event: Event) => unknown) | null = null;
   private readonly timers: ReturnType<typeof setTimeout>[] = [];
   private stopped = false;
   private ctx: BaseAudioContext | null = null;
@@ -257,7 +260,9 @@ class StreamedSegment implements PlayingSource {
       // The gate already closed at endAt; pausing stops the download.
       setTimeout(
         () => {
-          if (!this.stopped) this.element.pause();
+          if (this.stopped) return;
+          this.element.pause();
+          this.onended?.(new Event("ended"));
         },
         Math.max(0, (endAt - ctx.currentTime) * 1000)
       )
@@ -920,11 +925,13 @@ export class AudioGraph {
         const fadeOutStartAt = Math.max(fadeInEndAt, clipEndAt - fadeSec);
         if (fadeOutStartAt < clipEndAt) {
           // A fade-out reads its curve backwards: full volume at the top of
-          // the ramp down to silence at the clip's end.
+          // the ramp down to silence at the clip's end. Playback starting
+          // inside it resumes at the level the fade has already reached.
+          const elapsedSec = Math.max(0, fadeOutStartAt - (clipEndAt - fadeSec));
           rampAlongFade(
             clipGain.gain,
             fades.fadeOutShape,
-            1,
+            Math.max(0, 1 - elapsedSec / fadeSec),
             0,
             volumeLinear,
             fadeOutStartAt,
@@ -979,6 +986,22 @@ export class AudioGraph {
         );
         sources.push(src);
       }
+
+      // Once every source has played out, release the clip so its buffer is
+      // not held until the next pause or seek. A source that ends after the
+      // clip was stopped or replaced finds other sources registered and
+      // leaves them alone.
+      let playingCount = sources.length;
+      const onSourceEnded = (): void => {
+        playingCount -= 1;
+        if (playingCount > 0 || this.clipSources.get(clip.id) !== sources) {
+          return;
+        }
+        this.clipSources.delete(clip.id);
+        this.clipGains.delete(clip.id);
+        this.releaseClip(sources, clipGain);
+      };
+      for (const src of sources) src.onended = onSourceEnded;
 
       this.clipSources.set(clip.id, sources);
       this.clipGains.set(clip.id, clipGain);

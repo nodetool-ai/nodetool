@@ -89,6 +89,18 @@ describe("rescaleClipsForTempo", () => {
     expect(scaled.durationMs).toBe(2000);
   });
 
+  it("trims a clip that would start before zero instead of saving a negative start", () => {
+    const [clip] = rescaleClipsForTempo(
+      [makeClip({ startMs: 0, durationMs: 2000 })],
+      tracks,
+      { ...DEFAULT_TEMPO, bpm: 120, offsetMs: 500 },
+      { ...DEFAULT_TEMPO, bpm: 60, offsetMs: 500 }
+    );
+    expect(clip.startMs).toBe(0);
+    expect(clip.inPointMs).toBe(500);
+    expect(clip.durationMs).toBe(3500);
+  });
+
   it("leaves an audio clip untouched, by reference", () => {
     const audio = makeClip({
       id: "clip-2",

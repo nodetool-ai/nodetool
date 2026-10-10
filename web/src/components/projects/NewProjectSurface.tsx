@@ -407,11 +407,14 @@ const buildFailures = (result: BuildFromPlanResult): string[] => {
 interface NewProjectSurfaceProps {
   flowRef?: string;
   initialSetupTarget?: SetupTarget | null;
+  /** False while this workspace tab is hidden behind another one. */
+  active?: boolean;
 }
 
 const NewProjectSurface = ({
   flowRef,
-  initialSetupTarget
+  initialSetupTarget,
+  active = true
 }: NewProjectSurfaceProps) => {
   const [prompt, setPrompt] = useState("");
   const [showMoreFlows, setShowMoreFlows] = useState(false);
@@ -1776,6 +1779,7 @@ const NewProjectSurface = ({
       return (
         <VideoSetupHost
           sequenceId={setupTarget.id}
+          active={active}
           onFinish={handleSetupFinished}
           onStartFromScript={(brief, creativeContext) =>
             void startScriptFromVideo(brief, creativeContext)

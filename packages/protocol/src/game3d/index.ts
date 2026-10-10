@@ -268,6 +268,8 @@ export { gameCameraProjection3D, gameCamera3D, type GameCamera3D } from "./compo
 
 export { gameLight3D, type GameLight3D } from "./components/light.js";
 
+export { GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D, gameShadowCascades3D, type GameShadowCascades3D, gameShadowSettings3D, type GameShadowSettings3D } from "./components/shadows.js";
+
 export { gameAnimator3D } from "./components/animator.js";
 
 export {
@@ -278,7 +280,7 @@ export {
   gameAnimationPose3D, type GameAnimationPose3D
 } from "./components/animation-graph.js";
 
-export { gameEnvironment3D, type GameEnvironment3D, gameSky3D, type GameSky3D } from "./components/environment.js";
+export { gameEnvironment3D, type GameEnvironment3D, gameSky3D, type GameSky3D, gamePostProcessing3D, type GamePostProcessing3D } from "./components/environment.js";
 
 export { gameModelImportSettings3D, type GameModelImportSettings3D, gameAssetBinding3D, type GameAssetBinding3D, anyGameAssetBinding, type AnyGameAssetBinding } from "./components/assets.js";
 

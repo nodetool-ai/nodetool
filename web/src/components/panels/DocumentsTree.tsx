@@ -465,7 +465,9 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
             description={
               query.trim()
                 ? "Try a different search term."
-                : "Documents created in this project will appear here."
+                : // A new text file is a Library file, not a document. Say so,
+                  // or the empty panel reads as a lost save.
+                  "Documents created in this project will appear here. Text files and uploads are in the Library."
             }
           />
         </FlexColumn>

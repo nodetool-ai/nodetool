@@ -137,7 +137,11 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     (s) => s.setClipDirectGenModel
   );
   const patchClipBinding = useTimelineStore((s) => s.patchClipBinding);
-  const patchClip = useTimelineStore((s) => s.patchClip);
+  const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
+  const trackLocked = useTimelineStore(
+    (s) => s.tracks.find((track) => track.id === clip?.trackId)?.locked ?? false
+  );
+  const timingLocked = !!clip?.locked || trackLocked;
   const addNotification = useNotificationStore((s) => s.addNotification);
 
   const {
@@ -233,11 +237,13 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     1,
     Math.round((clip?.durationMs ?? 4000) / 1000)
   );
+  const currentDurationMs = clip?.durationMs;
   const handleDurationChange = useCallback(
     (seconds: number) => {
-      patchClip(clipId, { durationMs: seconds * 1000 });
+      if (timingLocked || currentDurationMs === undefined) return;
+      trimClipEnd(clipId, seconds * 1000 - currentDurationMs);
     },
-    [clipId, patchClip]
+    [clipId, currentDurationMs, timingLocked, trimClipEnd]
   );
 
   // Eligible source clips: any other image/overlay clip with a rendered
@@ -554,6 +560,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                   value={videoDuration}
                   options={durationOptions}
                   onChange={handleDurationChange}
+                  disabled={timingLocked}
                 />
                 <MediaOptionChip
                   icon={<TvIcon fontSize="small" />}

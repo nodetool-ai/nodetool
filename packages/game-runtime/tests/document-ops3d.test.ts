@@ -66,6 +66,17 @@ describe("scene music JSON operations", () => {
     expect(() => applyWire(before, [{ ...target, set: { environment: { ...environment, sky: { kind: "procedural", turbidity: 40 } } } }])).toThrow(/Too big/);
     expect(applyWire(procedural, [{ ...target, set: { environment } }]).scenes[0].environment).toEqual(environment);
   });
+  it("sets, tunes and clears scene post-processing through update_scene", () => {
+    const before = blockout();
+    const target = { op: "update_scene" as const, scene_id: before.scenes[0].id };
+    const environment = before.scenes[0].environment;
+    const post = applyWire(before, [{ ...target, set: { environment: { ...environment, postProcessing: { toneMapping: "agx", bloom: { intensity: 2 }, antialias: "fxaa" } } } }]);
+    expect(post.scenes[0].environment).toEqual({ ...environment, postProcessing: { enabled: true, exposure: 1, toneMapping: "agx", antialias: "fxaa",
+      bloom: { threshold: 0.85, softness: 0.1, radius: 0.4, intensity: 2 } } });
+    expect(() => applyWire(before, [{ ...target, set: { environment: { ...environment, postProcessing: { exposure: 40 } } } }])).toThrow(/Too big/);
+    expect(() => applyWire(before, [{ ...target, set: { environment: { ...environment, postProcessing: { ssao: {} } } } }])).toThrow(/Unrecognized key/);
+    expect(applyWire(post, [{ ...target, set: { environment } }]).scenes[0].environment).toEqual(environment);
+  });
 });
 
 describe("dimension-specific removal defaults at the public operation boundary", () => {
@@ -203,5 +214,30 @@ describe("atomic 3D document operations", () => {
     expect(applyAnyGameOps(old, [{ op: "update_entity", entity_id: "player", set: { name: "Renamed" } }]).schemaVersion).toBe(old.schemaVersion);
     expect(() => applyAnyGameOps(old, [{ op: "set_prefab", prefab_id: "actor", prefab: withPrefab().prefabs.actor }])).toThrow(GameOpError);
     expect(applyAnyGameOps(blockout(), [{ op: "update_entity", entity_id: "player", set: { name: "Renamed" } }]).dimension).toBe("3d");
+  });
+});
+
+describe("shadow settings through public operations", () => {
+  function withLamps(count: number): GameDocument3D {
+    const game = blockout();
+    for (let index = 0; index < count; index++) {
+      game.scenes[0].entities.push(gameEntity3D.parse({ id: `lamp${index}`, transform3d: {}, light3d: { kind: "point", color: "#ffffff", intensity: 1, range: 6 } }));
+    }
+    return game;
+  }
+  it("sets per-light shadows and bias, and scene cascades", () => {
+    const game = withLamps(1);
+    const lit = applyGameOps3D(game, [{ op: "update_entity", entity_id: "lamp0", set: { light3d: { castShadow: true, shadowBias: -0.0005, shadowNormalBias: 0.02 } } }]);
+    expect(lit.scenes[0].entities.find((entity) => entity.id === "lamp0")?.light3d).toEqual({ kind: "point", color: "#ffffff", intensity: 1, range: 6, decay: 2,
+      castShadow: true, shadowBias: -0.0005, shadowNormalBias: 0.02 });
+    const shadows = game.scenes[0].environment.shadows;
+    const cascaded = applyGameOps3D(lit, [{ op: "update_scene", scene_id: game.scenes[0].id, set: { environment: { ...game.scenes[0].environment, shadows: { ...shadows, cascades: { count: 4 } } } } }]);
+    expect(cascaded.scenes[0].environment.shadows).toEqual({ ...shadows, cascades: { count: 4, split: 0.5, maxDistance: 200 } });
+    expect(() => applyGameOps3D(lit, [{ op: "update_scene", scene_id: game.scenes[0].id, set: { environment: { ...game.scenes[0].environment, shadows: { ...shadows, cascades: { count: 6 } } } } }])).toThrow(GameOpError);
+  });
+  it("rejects a fifth shadowed local light", () => {
+    const game = withLamps(5);
+    const four = applyGameOps3D(game, [0, 1, 2, 3].map((index) => ({ op: "update_entity" as const, entity_id: `lamp${index}`, set: { light3d: { castShadow: true } } })));
+    expect(() => applyGameOps3D(four, [{ op: "update_entity", entity_id: "lamp4", set: { light3d: { castShadow: true } } }])).toThrow(/At most 4 point and spot lights/);
   });
 });

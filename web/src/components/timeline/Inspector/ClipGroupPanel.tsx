@@ -48,6 +48,12 @@ export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
     const [timingOpen, setTimingOpen] = usePersistedFold("timing");
     const [groupOpen, setGroupOpen] = usePersistedFold("group", true);
     const patchClip = useTimelineStore((s) => s.patchClip);
+    const moveClip = useTimelineStore((s) => s.moveClip);
+    const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
+    const trackLocked = useTimelineStore(
+      (s) => s.tracks.find((track) => track.id === clip.trackId)?.locked ?? false
+    );
+    const timingLocked = !!clip.locked || trackLocked;
     const fps = useTimelineStore((s) => s.fps);
     // A count, not the clips — the panel re-renders only when the membership
     // changes, not when a child moves.
@@ -66,20 +72,22 @@ export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
 
     const handleStart = useCallback(
       (raw: string) => {
+        if (timingLocked) return;
         const ms = parseTimecode(raw, fps);
         if (ms == null) return;
-        patchClip(clip.id, { startMs: Math.max(0, ms) });
+        moveClip(clip.id, Math.max(0, ms) - clip.startMs);
       },
-      [clip.id, fps, patchClip]
+      [clip.id, clip.startMs, fps, moveClip, timingLocked]
     );
 
     const handleDuration = useCallback(
       (raw: string) => {
+        if (timingLocked) return;
         const ms = parseSeconds(raw);
         if (ms == null || ms < 1) return;
-        patchClip(clip.id, { durationMs: ms });
+        trimClipEnd(clip.id, ms - clip.durationMs);
       },
-      [clip.id, patchClip]
+      [clip.id, clip.durationMs, timingLocked, trimClipEnd]
     );
 
     const handleHidden = useCallback(
@@ -142,6 +150,7 @@ export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
                 value={formatTimecode(clip.startMs, fps)}
                 minWidth={112}
                 onCommit={handleStart}
+                disabled={timingLocked}
                 ariaLabel="Start timecode"
               />
             </InspectorRow>
@@ -151,6 +160,7 @@ export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
                 unit="s"
                 scrub={SCRUB_DURATION}
                 onCommit={handleDuration}
+                disabled={timingLocked}
                 ariaLabel="Duration in seconds"
               />
             </InspectorRow>

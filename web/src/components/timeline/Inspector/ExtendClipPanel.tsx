@@ -91,6 +91,12 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
   )
     ? direction
     : directionOptions[0]?.value ?? "end";
+  // A model that lists durations accepts nothing else, so offer only those.
+  const durationChoices = model?.durations?.length ? model.durations : null;
+  const selectedDuration =
+    durationChoices && !durationChoices.includes(Number(duration))
+      ? String(durationChoices[0])
+      : duration;
   const pending = jobs.some((job) => job.status === "running");
   const eligibility = clip ? captureExtensionSource(clip) : null;
 
@@ -106,7 +112,7 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
       await start({
         clipId,
         direction: selectedDirection,
-        addedSourceDurationMs: Number(duration) * 1000,
+        addedSourceDurationMs: Number(selectedDuration) * 1000,
         prompt: intent,
         model: {
           id: model.id,
@@ -185,16 +191,30 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                     />
                   </FlexColumn>
                   <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
-                    <TextInput
-                      label="Seconds to add"
-                      type="number"
-                      value={duration}
-                      onChange={(event) => setDuration(event.target.value)}
-                      disabled={pending}
-                      inputProps={{ min: 0, step: 1 }}
-                      compact
-                      fullWidth
-                    />
+                    {durationChoices ? (
+                      <SelectField
+                        label="Source seconds to add"
+                        size="small"
+                        value={selectedDuration}
+                        options={durationChoices.map((seconds) => ({
+                          value: String(seconds),
+                          label: `${seconds} s`
+                        }))}
+                        onChange={setDuration}
+                        disabled={pending}
+                      />
+                    ) : (
+                      <TextInput
+                        label="Source seconds to add"
+                        type="number"
+                        value={duration}
+                        onChange={(event) => setDuration(event.target.value)}
+                        disabled={pending}
+                        inputProps={{ min: 0, step: 1 }}
+                        compact
+                        fullWidth
+                      />
+                    )}
                   </FlexColumn>
                 </FlexRow>
                 <TextInput
@@ -218,7 +238,7 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                     pending ||
                     !intent.trim() ||
                     !sequenceId ||
-                    !(Number(duration) > 0)
+                    !(Number(selectedDuration) > 0)
                   }
                 >
                   {pending ? "Extending…" : "Generate extension"}

@@ -27,7 +27,7 @@ const routes: Route[] = [
   {
     name: "Node catalog",
     href: "/node-based-ai",
-    body: "Hundreds of building blocks, called nodes, for AI models, data, and files, including one for every model on Replicate, fal.ai, and Kie.ai.",
+    body: "Hundreds of building blocks, called nodes, for AI models, data, and files, including generated nodes for thousands of models on Replicate, fal.ai, and Kie.ai.",
     icon: Blocks,
   },
   {

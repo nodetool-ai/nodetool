@@ -16,6 +16,7 @@ type ErrorStore = {
   errors: Record<NodeKey, NodeError>;
   clearErrors: (workflowId: string, nodeIds?: Set<string>) => void;
   clearNodeErrors: (workflowId: string, nodeId: string) => void;
+  clearJobErrors: (workflowId: string, jobId: string) => void;
   setError: (
     workflowId: string,
     jobId: string,
@@ -146,6 +147,21 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
       let changed = false;
       for (const key in newErrors) {
         if (key.startsWith(prefix) && key.endsWith(suffix)) {
+          delete newErrors[key as NodeKey];
+          changed = true;
+        }
+      }
+      return changed ? { errors: newErrors } : state;
+    });
+  },
+  /** Clear every node error of one run. Sibling runs keep theirs. */
+  clearJobErrors: (workflowId: string, jobId: string) => {
+    const prefix = `${workflowId}:${jobId}:`;
+    set((state) => {
+      const newErrors = { ...state.errors };
+      let changed = false;
+      for (const key in newErrors) {
+        if (key.startsWith(prefix)) {
           delete newErrors[key as NodeKey];
           changed = true;
         }

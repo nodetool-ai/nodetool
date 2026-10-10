@@ -19,6 +19,7 @@ import type {
   WipeDirection
 } from "./types.js";
 import { parseStaggerUnit } from "./types.js";
+import { isKeyframeAnimation } from "../keyframes.js";
 import {
   getAnimationPreset,
   resolvePresetParams,
@@ -369,7 +370,13 @@ export function compileClipAnimations(
     curves = applyEasing(curves, animation, animation.role, baseEasing);
 
     const delayMs = Math.max(0, animation.delayMs ?? 0);
-    const durationMs = Math.max(1, animation.durationMs);
+    // Hand-set keyframes are stored as `t` over the whole clip, so their
+    // window is the clip's current length, not the length when they were set:
+    // an extended clip stretches them rather than dropping to neutral.
+    const durationMs = Math.max(
+      1,
+      isKeyframeAnimation(animation) ? clipDurationMs : animation.durationMs
+    );
 
     if (fullClip) {
       // kenBurns: one-shot over the whole clip; duration/delay/stagger ignored.

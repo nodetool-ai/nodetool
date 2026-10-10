@@ -230,8 +230,7 @@
                     {
                       "trigger": "change",
                       "kind": "run",
-                      "operationId": "autofill",
-                      "pace": "release"
+                      "operationId": "autofill"
                     },
                     {
                       "trigger": "change",

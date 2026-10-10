@@ -5,6 +5,7 @@ import {
   sliceSourceAnimation
 } from "./animation/sourceCurves.js";
 import { sourceRate } from "./sourceRate.js";
+import { isKeyframeAnimation, sliceKeyframeAnimation } from "./keyframes.js";
 import { assertNotTimeRemapped } from "./timeRemap.js";
 import type { ClipAnimation } from "./animation/types.js";
 import type { CaptionWord, TimelineClip } from "./types.js";
@@ -31,6 +32,10 @@ import type { CaptionWord, TimelineClip } from "./types.js";
  *   on the media's clock rather than the clip's, so role says nothing about
  *   which half it belongs to: BOTH halves get it, each carrying the stretch of
  *   the curve its own source window shows (`animation/sourceCurves.ts`).
+ *
+ * - The hand-keyframe animation spans the whole clip with `t` normalized over
+ *   it, so each half gets the stretch of every curve inside its own span
+ *   ({@link sliceKeyframeAnimation}), not the whole curve squeezed into one.
  *
  * Right-half animations get fresh ids so the two clips edit independently.
  */
@@ -64,6 +69,14 @@ function splitAnimations(
           source.outPointMs,
           source.rightDurationMs
         ),
+        id: createTimeOrderedUuid()
+      });
+    } else if (isKeyframeAnimation(anim)) {
+      const totalMs = source.leftDurationMs + source.rightDurationMs;
+      const cutT = totalMs > 0 ? splitMs / totalMs : 0;
+      left.push(sliceKeyframeAnimation(anim, 0, cutT, source.leftDurationMs));
+      right.push({
+        ...sliceKeyframeAnimation(anim, cutT, 1, source.rightDurationMs),
         id: createTimeOrderedUuid()
       });
     } else if (anim.role === "in") {

@@ -553,7 +553,8 @@ export const workflowsRouter = router({
             version: null,
             message: "Autosave skipped (rate limited)",
             skipped: true,
-            updated_at: workflow.updated_at ?? null
+            updated_at: workflow.updated_at ?? null,
+            etag: workflow.getEtag()
           };
         }
       }
@@ -562,8 +563,8 @@ export const workflowsRouter = router({
         graph: input.graph
       };
       if (input.name !== undefined) fields.name = input.name;
-      if (input.description !== undefined)
-        fields.description = input.description;
+      // `description` and `save_type` describe the version row this autosave
+      // creates (e.g. "Before execution" on a checkpoint), never the workflow.
       // Only the owner can change visibility; editors keep it as-is.
       if (
         role === "owner" &&
@@ -584,6 +585,8 @@ export const workflowsRouter = router({
       await syncTriggerRegistrations(savedWorkflow);
       recordAutosave(input.id, Date.now());
 
+      const saveType =
+        input.save_type === "checkpoint" ? "checkpoint" : "autosave";
       let version: {
         id: string;
         version: number;
@@ -599,16 +602,16 @@ export const workflowsRouter = router({
           user_id: ctx.userId,
           graph: input.graph,
           version: nextVer,
-          save_type: "autosave",
+          save_type: saveType,
           name: savedWorkflow.name,
-          description: savedWorkflow.description
+          description: input.description ?? savedWorkflow.description
         });
         await wv.save();
         version = {
           id: wv.id,
           version: wv.version,
           workflow_id: wv.workflow_id,
-          save_type: wv.save_type ?? "autosave",
+          save_type: wv.save_type ?? saveType,
           created_at: (wv.created_at as string | undefined) ?? null
         };
         await WorkflowVersion.pruneOldAutosaves(input.id, maxVersions);
@@ -620,7 +623,8 @@ export const workflowsRouter = router({
         version,
         message: "Autosaved successfully",
         skipped: false,
-        updated_at: savedWorkflow.updated_at ?? null
+        updated_at: savedWorkflow.updated_at ?? null,
+        etag: savedWorkflow.getEtag()
       };
     }),
 

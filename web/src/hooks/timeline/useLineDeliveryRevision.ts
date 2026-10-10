@@ -105,7 +105,9 @@ export function useLineDeliveryRevision(): UseLineDeliveryRevisionApi {
         return requestId;
       } catch {
         cleanup();
-        useDirectGenPendingStore.getState().settle(sequenceId, input.clipId);
+        useDirectGenPendingStore
+          .getState()
+          .settle(sequenceId, input.clipId, undefined, requestId);
         return null;
       }
     },

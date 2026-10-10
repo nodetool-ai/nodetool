@@ -328,6 +328,45 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
       } }]
   }
 }, {
+  id: "post-processing",
+  description: "Author a 3D post-processing stack with AgX tone mapping, bloom and SMAA through public 3D edit ops.",
+  objective: "Give the 3D scene post-processing with AgX tone mapping, exposure 1.2, bloom at intensity 1.5 and SMAA antialiasing, while keeping its background, ambient and shadow settings.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("post-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene replaces the whole environment object, so send its existing fields with the new postProcessing {exposure, toneMapping, bloom?, vignette?, antialias}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "postProcessing", detail: "The scene post-processing differs from the request, or the scene lost its other environment settings.",
+      test: document => {
+        const initial = createNative3DGame("post-eval").scenes[0].environment;
+        const scene = document.scenes[0];
+        if (document.schemaVersion !== 3 || !scene || !("environment" in scene)) { return false; }
+        const { postProcessing, ...rest } = scene.environment;
+        const { postProcessing: _initialPost, ...initialRest } = initial;
+        return postProcessing?.enabled === true && postProcessing.toneMapping === "agx" && postProcessing.exposure === 1.2 &&
+          postProcessing.bloom?.intensity === 1.5 && postProcessing.antialias === "smaa" && JSON.stringify(rest) === JSON.stringify(initialRest);
+      } }]
+  }
+}, {
+  id: "cascaded-shadows",
+  description: "Author cascaded sun shadows and a per-light normal bias through public 3D edit ops.",
+  objective: "Give the 3D scene cascaded sun shadows with 4 cascades that reach 150 meters, keep its other environment settings, and set the sun light's shadow normal bias to 0.03.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("shadow-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene replaces the whole environment object, so send its existing fields. environment.shadows takes cascades {count 2-4, split 0-1, maxDistance}. update_entity sets light3d fields such as shadowBias and shadowNormalBias.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "cascadedShadows", detail: "The scene does not cascade 4 shadow maps over 150 m, lost other environment settings, or the sun has no 0.03 normal bias.",
+      test: document => {
+        const initial = createNative3DGame("shadow-eval").scenes[0].environment;
+        const scene = document.scenes[0];
+        if (document.schemaVersion !== 3 || !scene || !("environment" in scene)) { return false; }
+        const { cascades, ...shadows } = scene.environment.shadows;
+        const sun = scene.entities.find(entity => entity.id === "sun")?.light3d;
+        return cascades?.count === 4 && cascades.maxDistance === 150 && JSON.stringify(shadows) === JSON.stringify(initial.shadows) &&
+          JSON.stringify({ ...scene.environment, shadows: initial.shadows }) === JSON.stringify(initial) &&
+          sun?.kind === "directional" && sun.castShadow && sun.shadowNormalBias === 0.03;
+      } }]
+  }
+}, {
   id: "typed-event-script",
   description: "Author a targeted emit with a JSON payload and a receiving onEvent hook through public edit ops.",
   objective: "Add a script behavior to the player written as a lifecycle object whose onStart hook emits the event bonus with the payload {points: 5} targeted at the entity gem. Add a lifecycle script to the gem whose onEvent hook stores the received payload's points in its state. Keep both entities' other behaviors.",

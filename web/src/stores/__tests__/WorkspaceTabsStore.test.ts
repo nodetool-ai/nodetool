@@ -821,6 +821,26 @@ describe("rehydration", () => {
     expect(creationProjectId()).toBe(LOOSE_PROJECT_ID);
   });
 
+  it("keeps the personal project active across a reload with no tabs", async () => {
+    localStorage.setItem(
+      "workspace-tabs-storage",
+      JSON.stringify({
+        state: {
+          tabs: [],
+          activeTabId: null,
+          activeProjectId: "personal:1",
+          personalProjectId: "personal:1",
+          projectSessions: {}
+        },
+        version: 4
+      })
+    );
+
+    await useWorkspaceTabsStore.persist.rehydrate();
+
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("personal:1");
+  });
+
   it("migrates the shared tab list into independent project sessions", async () => {
     localStorage.setItem(
       "workspace-tabs-storage",

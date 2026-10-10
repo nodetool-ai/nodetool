@@ -6,6 +6,7 @@ import type { DynamicSlotDeclaration } from "../../../stores/NodeData";
 
 const mockUpdateNodeData = jest.fn();
 const mockUpdateEdgeHandle = jest.fn();
+const mockDeleteEdges = jest.fn();
 
 const type = (name: string): TypeMetadata => ({
   type: name,
@@ -24,11 +25,16 @@ const mockFindNode = jest.fn(() => ({
 }));
 
 const { renderHook } = nodeStoreRenderers(
-  makeNodeStore({
-    updateNodeData: mockUpdateNodeData,
-    updateEdgeHandle: mockUpdateEdgeHandle,
-    findNode: mockFindNode
-  })
+  makeNodeStore(
+    {
+      edges: [],
+      updateNodeData: mockUpdateNodeData,
+      updateEdgeHandle: mockUpdateEdgeHandle,
+      deleteEdges: mockDeleteEdges,
+      findNode: mockFindNode
+    },
+    { pastStates: [], beginGroup: jest.fn(), endGroup: jest.fn() }
+  )
 );
 
 describe("useDynamicProperty", () => {
