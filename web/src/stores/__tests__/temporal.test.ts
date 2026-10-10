@@ -14,6 +14,7 @@ type Partialized = { count: number };
 const makeStore = (options?: {
   limit?: number;
   equality?: (a: Partialized, b: Partialized) => boolean;
+  onRestore?: (state: CounterState) => void;
 }) =>
   createStore<CounterState>()(
     temporal(
@@ -27,6 +28,7 @@ const makeStore = (options?: {
       {
         limit: options?.limit,
         equality: options?.equality,
+        onRestore: options?.onRestore,
         partialize: (state): Partialized => ({ count: state.count })
       }
     )
@@ -229,5 +231,74 @@ describe("temporal middleware", () => {
     expect(store.temporal.getState().pastStates[0].n).toBe(0);
     store.temporal.getState().undo();
     expect(store.getState().n).toBe(0);
+  });
+
+  describe("edit groups", () => {
+    const sameCount = (a: Partialized, b: Partialized): boolean =>
+      a.count === b.count;
+
+    it("records a continuous edit as one undo step", () => {
+      const store = makeStore({ equality: sameCount });
+      store.getState().setCount(1);
+      temporalOf(store).beginGroup();
+      store.getState().setCount(2);
+      store.getState().setCount(3);
+      store.getState().setCount(4);
+      temporalOf(store).endGroup();
+
+      expect(temporalOf(store).pastStates).toEqual([{ count: 0 }, { count: 1 }]);
+      expect(temporalOf(store).isTracking).toBe(true);
+      temporalOf(store).undo();
+      expect(store.getState().count).toBe(1);
+    });
+
+    it("drops the entry and keeps redo when the group changed nothing", () => {
+      const store = makeStore({ equality: sameCount });
+      store.getState().setCount(1);
+      temporalOf(store).undo();
+      expect(temporalOf(store).futureStates).toEqual([{ count: 1 }]);
+
+      temporalOf(store).beginGroup();
+      temporalOf(store).endGroup();
+
+      expect(temporalOf(store).pastStates).toEqual([]);
+      expect(temporalOf(store).futureStates).toEqual([{ count: 1 }]);
+    });
+
+    it("nests, recording only for the outermost group", () => {
+      const store = makeStore({ equality: sameCount });
+      temporalOf(store).beginGroup();
+      temporalOf(store).beginGroup();
+      store.getState().setCount(1);
+      temporalOf(store).endGroup();
+      expect(temporalOf(store).isTracking).toBe(false);
+      store.getState().setCount(2);
+      temporalOf(store).endGroup();
+
+      expect(temporalOf(store).pastStates).toEqual([{ count: 0 }]);
+      expect(temporalOf(store).isTracking).toBe(true);
+    });
+
+    it("leaves a pause it did not make in place", () => {
+      const store = makeStore({ equality: sameCount });
+      temporalOf(store).pause();
+      temporalOf(store).beginGroup();
+      store.getState().setCount(1);
+      temporalOf(store).endGroup();
+
+      expect(temporalOf(store).pastStates).toEqual([]);
+      expect(temporalOf(store).isTracking).toBe(false);
+    });
+  });
+
+  it("calls onRestore with the restored state after undo and redo", () => {
+    const restored: number[] = [];
+    const store = makeStore({
+      onRestore: (state) => restored.push(state.count)
+    });
+    store.getState().setCount(1);
+    temporalOf(store).undo();
+    temporalOf(store).redo();
+    expect(restored).toEqual([0, 1]);
   });
 });

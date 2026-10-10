@@ -17,6 +17,7 @@ import { useShallow } from "zustand/react/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
+import { useWorkspaceDocumentClose } from "./useWorkspaceDocumentClose";
 import { useNavigate } from "react-router-dom";
 import { openSettingsTab } from "../components/workspace/openPageTab";
 import { useFitView } from "./useFitView";
@@ -98,7 +99,7 @@ export const useNodeEditorShortcuts = (
   // Get store ref to access nodes imperatively without subscribing
   const nodeStore = useNodeStoreRef();
   const reactFlow = useReactFlow();
-  const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
+  const { closeDocument } = useWorkspaceDocumentClose();
   const getCurrentWorkflow = useWorkflowManager((state) => state.getCurrentWorkflow);
   const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
@@ -259,17 +260,13 @@ export const useNodeEditorShortcuts = (
   }, [alignNodes]);
 
   const closeCurrentWorkflow = useCallback(() => {
-    // Close the active workspace tab — mirrors WorkspaceTabBar's × button.
-    // The legacy WorkflowManager-only close removed the workflow and navigated
-    // /editor (which now just re-opens a tab), leaving the visible tab in place.
-    const { activeTabId, tabs, closeTab } = useWorkspaceTabsStore.getState();
+    // Close the active workspace tab through the same dirty-checking path as
+    // WorkspaceTabBar's × button, so unsaved edits prompt before closing.
+    const { activeTabId, tabs } = useWorkspaceTabsStore.getState();
     const tab = tabs.find((t) => t.id === activeTabId);
     if (!tab) return;
-    closeTab(tab.id);
-    if (tab.type === "workflow") {
-      removeWorkflow(tab.ref);
-    }
-  }, [removeWorkflow]);
+    closeDocument(tab);
+  }, [closeDocument]);
 
   const handleNewWorkflow = useCallback(async () => {
     const newWorkflow = await createNewWorkflow();

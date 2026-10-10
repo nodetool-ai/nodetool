@@ -62,6 +62,7 @@ import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useEditorActions } from "../../hooks/editor/useEditorActions";
 import { useEditorKeyboardShortcuts } from "../../hooks/editor/useEditorKeyboardShortcuts";
 import { useChatIntegration } from "../../hooks/editor/useChatIntegration";
+import { useUndoGroup } from "../../hooks/useUndoGroup";
 import {
   allowsSingleBraceVariables,
   findTemplateVariables,
@@ -903,6 +904,17 @@ const TextEditorModal = ({
       }, 300),
     [onChange]
   );
+
+  // Everything typed while the editor is open undoes as one step.
+  const { begin: beginUndoGroup, end: endUndoGroup } = useUndoGroup();
+  const editable = onChange !== undefined && !readOnly;
+  useEffect(() => {
+    if (!editable) {
+      return;
+    }
+    beginUndoGroup();
+    return endUndoGroup;
+  }, [editable, beginUndoGroup, endUndoGroup]);
 
   const handleEditorChange = useCallback(
     (editorState: EditorState) => {

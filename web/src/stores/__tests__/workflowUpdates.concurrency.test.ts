@@ -59,14 +59,18 @@ const jobUpdate = (
   job_id: string,
   status: JobUpdate["status"],
   job_seq?: number
-): JobUpdate =>
-  ({
+): JobUpdate => {
+  const update: Record<string, unknown> = {
     type: "job_update",
     job_id,
     workflow_id: "wf",
-    status,
-    ...(job_seq !== undefined ? { job_seq } : {})
-  }) as JobUpdate;
+    status
+  };
+  if (job_seq !== undefined) {
+    update.job_seq = job_seq;
+  }
+  return update as JobUpdate;
+};
 
 const nodeUpdate = (
   job_id: string,

@@ -32,10 +32,15 @@ jest.mock("../NodeStore", () => ({
         workflowIsDirty: false,
         getWorkflow: () => get().workflow,
         setWorkflowDirty: jest.fn(),
-        setWorkflowUpdatedAt: (updatedAt: string) =>
+        setWorkflowUpdatedAt: (updatedAt: string, etag?: string | null) =>
           set((state) => ({
-            workflow: { ...state.workflow, updated_at: updatedAt }
+            workflow: {
+              ...state.workflow,
+              updated_at: updatedAt,
+              etag: etag ?? state.workflow.etag
+            }
           })),
+        adoptSavedWorkflow: (saved: Workflow) => set(() => ({ workflow: saved })),
         cleanup: jest.fn()
       })
     )

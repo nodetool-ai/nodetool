@@ -1,6 +1,14 @@
 import { Node, Edge } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
 
+/** The workflow row's concurrency tokens after an autosave or checkpoint. */
+export interface AutosaveResult {
+  updatedAt: string;
+  etag?: string;
+  /** True when the server's rate limit skipped the write. */
+  skipped: boolean;
+}
+
 export async function triggerAutosaveForWorkflow(
   workflowId: string,
   graph: { nodes: unknown[]; edges: unknown[] },
@@ -11,7 +19,7 @@ export async function triggerAutosaveForWorkflow(
     maxVersions?: number;
     expectedUpdatedAt?: string;
   }
-): Promise<string | null> {
+): Promise<AutosaveResult | null> {
   try {
     const result = await trpcClient.workflows.autosave.mutate({
       id: workflowId,
@@ -23,7 +31,14 @@ export async function triggerAutosaveForWorkflow(
       max_versions: options?.maxVersions ?? 50,
       expected_updated_at: options?.expectedUpdatedAt
     });
-    return result.updated_at;
+    if (!result.updated_at) {
+      return null;
+    }
+    return {
+      updatedAt: result.updated_at,
+      etag: result.etag ?? undefined,
+      skipped: result.skipped
+    };
   } catch (error) {
     console.error(`Autosave (${saveType}) failed:`, error);
     return null;

@@ -31,7 +31,10 @@ import TracePanel from "./TracePanel";
 import QueuePanel from "./jobs/QueuePanel";
 import WorkersPanel from "../workers/WorkersPanel";
 import WorkerStatusIndicator from "../workers/WorkerStatusIndicator";
-import { VersionHistoryPanel } from "../version/VersionHistoryPanel";
+import {
+  VersionHistoryPanel,
+  type RestoredWorkflowTokens
+} from "../version/VersionHistoryPanel";
 import PanelHeadline from "../ui/PanelHeadline";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -387,7 +390,7 @@ export const PanelBodyContent = memo(function PanelBodyContent({
   );
 
   const handleRestoreVersion = useCallback(
-    async (version: WorkflowVersion) => {
+    async (version: WorkflowVersion, restored: RestoredWorkflowTokens) => {
       if (!activeNodeStore || !currentWorkflowId) {
         return;
       }
@@ -410,6 +413,11 @@ export const PanelBodyContent = memo(function PanelBodyContent({
 
       storeState.setNodes(newNodes);
       storeState.setEdges(newEdges);
+      // The restore rewrote the row on the server. Without its new tokens
+      // the next save fails as an optimistic-concurrency conflict.
+      if (restored.updated_at) {
+        storeState.setWorkflowUpdatedAt(restored.updated_at, restored.etag);
+      }
       storeState.setWorkflowDirty(true);
     },
     [activeNodeStore, currentWorkflowId]
