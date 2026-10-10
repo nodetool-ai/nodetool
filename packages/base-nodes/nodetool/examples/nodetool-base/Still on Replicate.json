@@ -18,7 +18,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Still on Replicate\n\nGenerates an image through Replicate. The graph has the same shape as the fal and Kie variants, so changing provider means changing the model field, not rebuilding the graph.\n\n**How it works:** \"Subject\" holds the description, a fishing boat on black sand by default. \"Render\" is a text-to-image node set to 16:9 at 1080p, and \"Image\" returns the picture.\n\n**Try this:** Pick a Replicate model on \"Render\", run it, then switch the model to another provider and compare the two results."
+          "comment": "# Still on Replicate\n\nGenerates an image through Replicate. The graph has the same shape as the fal and Kie variants, so changing provider means changing the model field, not rebuilding the graph.\n\n**How it works:** \"Subject\" holds the description, a fishing boat on black sand by default. \"Render\" is a text-to-image node set to 16:9 at 1K, and \"Image\" returns the picture.\n\n**Try this:** Pick a Replicate model on \"Render\", run it, then switch the model to another provider and compare the two results."
         },
         "ui_properties": {
           "position": {
@@ -69,7 +69,7 @@
           "negative_prompt": "",
           "entities": [],
           "aspect_ratio": "16:9",
-          "resolution": "1080p"
+          "resolution": "1K"
         },
         "ui_properties": {
           "position": {

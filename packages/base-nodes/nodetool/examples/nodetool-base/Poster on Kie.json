@@ -18,7 +18,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Poster on Kie\n\nGenerates a poster-style image through the Kie provider. Kie serves several model families behind one key, so this is a quick way to check that your Kie key works.\n\n**How it works:** Describe the scene in \"Subject\". \"Render\" turns it into a 16:9 image at 1080p and avoids text, watermarks and logos through its negative prompt. \"Poster\" shows the image.\n\n**Try this:** Pick a Kie image model on \"Render\", then change aspect_ratio to 2:3 for a portrait poster."
+          "comment": "# Poster on Kie\n\nGenerates a poster-style image through the Kie provider. Kie serves several model families behind one key, so this is a quick way to check that your Kie key works.\n\n**How it works:** Describe the scene in \"Subject\". \"Render\" turns it into a 16:9 image at 1K and avoids text, watermarks and logos through its negative prompt. \"Poster\" shows the image.\n\n**Try this:** Pick a Kie image model on \"Render\", then change aspect_ratio to 2:3 for a portrait poster."
         },
         "ui_properties": {
           "position": {
@@ -69,7 +69,7 @@
           "negative_prompt": "text, watermark, logo",
           "entities": [],
           "aspect_ratio": "16:9",
-          "resolution": "1080p"
+          "resolution": "1K"
         },
         "ui_properties": {
           "position": {
