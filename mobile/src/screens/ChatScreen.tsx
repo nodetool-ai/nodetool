@@ -123,10 +123,11 @@ export default function ChatScreen({ navigation, route }: Props) {
   const handleNewChat = useCallback(async () => {
     try {
       await createNewThread();
+      navigation.setParams({ threadId: undefined });
     } catch (err) {
       console.error('Failed to create new thread:', err);
     }
-  }, [createNewThread]);
+  }, [createNewThread, navigation]);
 
   const handleOpenThreads = useCallback(() => {
     navigation.navigate('Threads');

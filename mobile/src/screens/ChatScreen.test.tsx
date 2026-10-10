@@ -105,11 +105,12 @@ describe('ChatScreen', () => {
   const setOptionsMock = jest.fn();
   const partialNavigation: Pick<
     ChatScreenProps['navigation'],
-    'navigate' | 'setOptions' | 'goBack'
+    'navigate' | 'setOptions' | 'goBack' | 'setParams'
   > = {
     navigate: jest.fn(),
     setOptions: setOptionsMock,
     goBack: jest.fn(),
+    setParams: jest.fn(),
   };
   // SAFETY: ChatScreen calls only these three navigator methods.
   const mockNavigation = partialNavigation as ChatScreenProps['navigation'];
@@ -229,6 +230,33 @@ describe('ChatScreen', () => {
   });
 
   describe('Header configuration', () => {
+    it('can reopen a routed thread after starting a new chat', async () => {
+      let params: ChatScreenProps['route']['params'] = { threadId: 'thread-1' };
+      const navigation = {
+        ...mockNavigation,
+        setParams: jest.fn((patch: Partial<NonNullable<ChatScreenProps['route']['params']>>) => {
+          params = { ...params, ...patch };
+        }),
+      };
+      const renderScreen = () => (
+        <ChatScreen navigation={navigation} route={{ key: 'chat', name: 'Chat', params }} />
+      );
+      const { rerender } = render(renderScreen());
+      const HeaderRight = setOptionsMock.mock.calls[0][0].headerRight;
+      const header = render(<HeaderRight />);
+      await act(async () => {
+        fireEvent.press(header.getByTestId('icon-add-circle-outline'));
+      });
+      mockStoreState({ ...mockStore, currentThreadId: 'new-thread-id' });
+      rerender(renderScreen());
+      params = { threadId: 'thread-1' };
+      rerender(renderScreen());
+
+      await waitFor(() => {
+        expect(mockStore.loadThreadFromServer).toHaveBeenCalledWith('thread-1');
+      });
+    });
+
     it('sets header right button', () => {
       renderChatScreen();
       
