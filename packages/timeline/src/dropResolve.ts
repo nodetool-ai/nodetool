@@ -10,7 +10,8 @@
  *   clip that spans it is cut in two around it.
  * - **insert** — the moved clip pushes everything from its start onward to
  *   the right by its length, on every unlocked track, cutting a clip on its
- *   own track that straddles the insert point.
+ *   own track that straddles the insert point (and that clip's linked
+ *   partners).
  * - **overlap** — nothing else moves; the renderer composites the later clip
  *   on top and cross-fades across the overlap. This was the only behaviour
  *   before drop modes existed and stays available for that reason.
@@ -18,7 +19,9 @@
  * Pure over the clip array so the store, the agent bridge and a test agree.
  */
 
-import { shiftClipsFrom, type RippleOptions } from "./rippleEdit.js";
+import { createTimeOrderedUuid } from "./defaults.js";
+import { groupDescendantIds, isGroupClip } from "./group.js";
+import { planShift, type RippleOptions } from "./rippleEdit.js";
 import { splitClip } from "./splitClip.js";
 import { trimClip } from "./trimClip.js";
 import type { TimelineClip } from "./types.js";
@@ -28,35 +31,54 @@ export type DropMode = (typeof DROP_MODES)[number];
 
 const clipEndMs = (c: TimelineClip): number => c.startMs + c.durationMs;
 
-/** Ids of every moved clip plus the members of their link groups. */
-function movedAndLinked(
+/**
+ * Ids of every moved clip plus what travels with it: the members of its link
+ * group and, for a group clip, everything under it. All of them moved.
+ */
+function movedWithDependants(
   clips: readonly TimelineClip[],
   movedIds: ReadonlySet<string>
 ): Set<string> {
-  const linkIds = new Set<string>();
-  for (const c of clips) {
-    if (movedIds.has(c.id) && c.linkId !== undefined) linkIds.add(c.linkId);
-  }
   const out = new Set(movedIds);
-  for (const c of clips) {
-    if (c.linkId !== undefined && linkIds.has(c.linkId)) out.add(c.id);
+  const linkIds = new Set<string>();
+  const expanded = new Set<string>();
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const c of clips) {
+      if (!out.has(c.id) || expanded.has(c.id)) continue;
+      expanded.add(c.id);
+      if (c.linkId !== undefined) linkIds.add(c.linkId);
+      if (isGroupClip(c)) {
+        for (const id of groupDescendantIds(clips, c.id)) out.add(id);
+        grew = true;
+      }
+    }
+    for (const c of clips) {
+      if (c.linkId !== undefined && linkIds.has(c.linkId) && !out.has(c.id)) {
+        out.add(c.id);
+        grew = true;
+      }
+    }
   }
   return out;
 }
 
 /**
  * Cut back, split or remove the clips that `movedIds` now cover on their own
- * tracks. Linked siblings of a moved clip are never victims (they moved
- * too), and a clip that refuses a trim or split (a time-remapped one) is
- * left where it is rather than half-edited.
+ * tracks. Linked siblings and group children of a moved clip moved with it,
+ * so each clears its own track and none is a victim. A group clip is never a
+ * victim either: removing or trimming it as media would strand its children.
+ * A clip that refuses a trim or split (a time-remapped one) is left where it
+ * is rather than half-edited.
  */
 export function resolveOverwrite(
   clips: readonly TimelineClip[],
   movedIds: ReadonlySet<string>
 ): TimelineClip[] {
-  const movers = clips.filter((c) => movedIds.has(c.id));
+  const movingIds = movedWithDependants(clips, movedIds);
+  const movers = clips.filter((c) => movingIds.has(c.id));
   if (movers.length === 0) return [...clips];
-  const protectedIds = movedAndLinked(clips, movedIds);
 
   let next: TimelineClip[] = [...clips];
   for (const m of movers) {
@@ -64,7 +86,11 @@ export function resolveOverwrite(
     const mEnd = clipEndMs(m);
     const out: TimelineClip[] = [];
     for (const c of next) {
-      if (protectedIds.has(c.id) || c.trackId !== m.trackId) {
+      if (
+        movingIds.has(c.id) ||
+        c.trackId !== m.trackId ||
+        isGroupClip(c)
+      ) {
         out.push(c);
         continue;
       }
@@ -106,38 +132,83 @@ export function resolveOverwrite(
  * Make room for `movedIds`: every clip on an unlocked track that starts at or
  * after the earliest moved start shifts right by the moved span, and a clip on
  * a moved clip's own track that straddles that point is cut there first so
- * its second half can move. The moved clips themselves stay put.
+ * its second half can move. A cut clip's linked partners are cut at the same
+ * point, each side forming its own link group, so the right halves move
+ * together. The moved clips, their linked siblings and their group children
+ * stay put. When the shift would separate a link group the drop is left as an
+ * overlap.
  */
 export function resolveInsert(
   clips: readonly TimelineClip[],
   movedIds: ReadonlySet<string>,
   options: RippleOptions = {}
 ): TimelineClip[] {
-  const movers = clips.filter((c) => movedIds.has(c.id));
+  const movingIds = movedWithDependants(clips, movedIds);
+  const movers = clips.filter((c) => movingIds.has(c.id));
   if (movers.length === 0) return [...clips];
-  const protectedIds = movedAndLinked(clips, movedIds);
   const insertMs = Math.min(...movers.map((c) => c.startMs));
   const spanMs = Math.max(...movers.map(clipEndMs)) - insertMs;
   const moverTracks = new Set(movers.map((c) => c.trackId));
+  const straddles = (c: TimelineClip): boolean =>
+    !movingIds.has(c.id) && c.startMs < insertMs && clipEndMs(c) > insertMs;
+  const locked = (c: TimelineClip): boolean =>
+    options.lockedTrackIds?.has(c.trackId) === true ||
+    options.lockedClipIds?.has(c.id) === true;
+
+  // Straddlers on a mover's track, plus the straddling partners they link to.
+  const cutLinkIds = new Set<string>();
+  const toCut = new Set<string>();
+  for (const c of clips) {
+    if (moverTracks.has(c.trackId) && straddles(c)) {
+      toCut.add(c.id);
+      if (c.linkId !== undefined) cutLinkIds.add(c.linkId);
+    }
+  }
+  for (const c of clips) {
+    if (c.linkId !== undefined && cutLinkIds.has(c.linkId) && straddles(c)) {
+      toCut.add(c.id);
+    }
+  }
+
+  // A link group is cut whole or not at all.
+  const halves = new Map<string, [TimelineClip, TimelineClip]>();
+  const unitOf = (c: TimelineClip): string => c.linkId ?? `clip:${c.id}`;
+  const units = new Map<string, TimelineClip[]>();
+  for (const c of clips) {
+    if (!toCut.has(c.id)) continue;
+    const unit = units.get(unitOf(c));
+    if (unit) unit.push(c);
+    else units.set(unitOf(c), [c]);
+  }
+  for (const unit of units.values()) {
+    if (unit.some(locked)) continue;
+    let split: [TimelineClip, TimelineClip][];
+    try {
+      split = unit.map((c) => splitClip(c, insertMs));
+    } catch {
+      // A clip that cannot be split stays whole and does not move.
+      continue;
+    }
+    if (unit[0].linkId !== undefined) {
+      const leftLinkId = createTimeOrderedUuid();
+      const rightLinkId = createTimeOrderedUuid();
+      split = split.map(([left, right]) => [
+        { ...left, linkId: leftLinkId },
+        { ...right, linkId: rightLinkId }
+      ]);
+    }
+    unit.forEach((c, i) => halves.set(c.id, split[i]));
+  }
 
   const cut: TimelineClip[] = [];
   for (const c of clips) {
-    if (
-      !protectedIds.has(c.id) &&
-      moverTracks.has(c.trackId) &&
-      c.startMs < insertMs &&
-      clipEndMs(c) > insertMs
-    ) {
-      try {
-        cut.push(...splitClip(c, insertMs));
-        continue;
-      } catch {
-        // A clip that cannot be split stays whole and does not move.
-      }
-    }
-    cut.push(c);
+    const pair = halves.get(c.id);
+    if (pair) cut.push(...pair);
+    else cut.push(c);
   }
-  return shiftClipsFrom(cut, insertMs, spanMs, protectedIds, options);
+  return (
+    planShift(cut, insertMs, spanMs, movingIds, options) ?? [...clips]
+  );
 }
 
 /** Apply `mode` to a finished drop. */

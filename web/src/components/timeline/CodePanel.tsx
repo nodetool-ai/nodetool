@@ -38,7 +38,8 @@ import {
   ScrollArea,
   Text,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import PanelToolbar from "../panels/PanelToolbar";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
@@ -66,7 +67,7 @@ const editorBoxStyles = (theme: Theme) =>
 
 const sceneRowStyles = (theme: Theme) =>
   css({
-    padding: `${SPACING.sm}px ${SPACING.md}px`,
+    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     cursor: "pointer",
     "&:hover": {
@@ -287,7 +288,7 @@ export const CodePanel: React.FC = memo(() => {
 
   if (error) {
     return (
-      <FlexColumn gap={0.5} sx={{ p: SPACING.md }}>
+      <FlexColumn gap={SPACING.micro} sx={{ p: SPACING.md }}>
         <Text color="error">Failed to load the timeline's code</Text>
         <Caption size="smaller" color="secondary">
           {error instanceof Error ? error.message : String(error)}
@@ -302,7 +303,7 @@ export const CodePanel: React.FC = memo(() => {
         align="center"
         justify="center"
         fullHeight
-        sx={{ flex: 1, px: 2 }}
+        sx={{ flex: 1, px: SPACING.md }}
       >
         <EmptyState
           title="No code"

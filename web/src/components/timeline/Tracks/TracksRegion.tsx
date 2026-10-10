@@ -62,6 +62,7 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 
 import {
+  lockedUserTargetIds,
   useTimelineStore,
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
@@ -140,11 +141,7 @@ import {
 } from "./timelineGesture";
 import { resolveTimelineAction } from "../timelineKeymap";
 import { performSourceEdit } from "../sourceEdit";
-import {
-  getSelectedAssetForExplorer,
-  useAssetsSelectedAsset,
-  useLibrarySelectedAsset
-} from "../../../stores/AssetGridStore";
+import { getSelectedAssetForExplorer } from "../../../stores/AssetGridStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import {
   hasKeyframeAt,
@@ -277,14 +274,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         ? s.panel.activeView
         : null
     );
-    const assetsAsset = useAssetsSelectedAsset();
-    const libraryAsset = useLibrarySelectedAsset();
-    const activeAssetId =
-      activeExplorer === "library"
-        ? (libraryAsset?.id ?? null)
-        : activeExplorer === "assets"
-          ? (assetsAsset?.id ?? null)
-          : null;
     const storedHeaderWidthPx = useTimelineUIStore((s) => s.trackHeaderWidthPx);
     const setTrackHeaderWidthPx = useTimelineUIStore(
       (s) => s.setTrackHeaderWidthPx
@@ -364,13 +353,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const docStore = useTimelineStoreApi();
     const playbackStore = useTimelinePlaybackStoreApi();
     const uiStoreApi = useTimelineUIStoreApi();
-    const previousSourceAssetId = useRef<string | null>(null);
-    useEffect(() => {
-      if (previousSourceAssetId.current !== activeAssetId) {
-        uiStoreApi.getState().setSourceRange(null);
-        previousSourceAssetId.current = activeAssetId;
-      }
-    }, [activeAssetId, uiStoreApi]);
 
     const addTrack = useTimelineStore((s) => s.addTrack);
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
@@ -889,7 +871,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       const isTextEditingTarget = (target: EventTarget | null): boolean => {
         if (
           target instanceof HTMLTextAreaElement ||
-          (target instanceof HTMLElement && target.isContentEditable)
+          (target instanceof HTMLElement &&
+            (target.isContentEditable ||
+              target.closest(".monaco-editor") !== null))
         ) {
           return true;
         }
@@ -1202,8 +1186,16 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           case "cut": {
             if (selectedClipIds.size === 0) return;
             e.preventDefault();
+            // A cut copies only what it can delete, so a locked clip left in
+            // place is not pasted a second time.
+            const locked =
+              action === "cut"
+                ? lockedUserTargetIds(doc.clips, doc.tracks)
+                : undefined;
             copyClipsToClipboard(
-              doc.clips.filter((c) => selectedClipIds.has(c.id))
+              doc.clips.filter(
+                (c) => selectedClipIds.has(c.id) && !locked?.has(c.id)
+              )
             );
             if (action === "cut") {
               deleteSelected(selectedClipIds);
@@ -1218,8 +1210,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             // relative offsets.
             const pasted = buildPastedClips(doc.tracks, liveMs);
             if (pasted.length > 0) {
-              addClips(pasted);
-              setSelection(pasted.map((c) => c.id));
+              const pastedIds = new Set(pasted.map((c) => c.id));
+              runAsOneUndoEntry(docStore, () => {
+                addClips(pasted);
+                docStore.getState().resolveDrop(pastedIds, ui.dropMode);
+              });
+              setSelection([...pastedIds]);
             }
             return;
           }

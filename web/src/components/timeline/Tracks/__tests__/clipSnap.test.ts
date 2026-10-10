@@ -126,6 +126,24 @@ describe("collectSnapCandidates", () => {
     expect(out).not.toContain(3500);
     expect(out).toContain(6200);
   });
+
+  it("drops the clips under an excluded group", () => {
+    const out = collectSnapCandidates(
+      [
+        { ...clip("g", 2500, 1500), mediaType: "group" },
+        { ...clip("child", 2700, 1100), parentId: "g" },
+        { ...clip("childAudio", 2700, 1100, "L"), trackId: "t2" },
+        { ...clip("linkedChild", 2700, 1100, "L"), parentId: "g" },
+        clip("x", 6200, 100)
+      ],
+      0,
+      0,
+      new Set(["g"])
+    );
+    expect(out).not.toContain(2700);
+    expect(out).not.toContain(3800);
+    expect(out).toContain(6200);
+  });
 });
 
 describe("snapGridSpecFrom", () => {

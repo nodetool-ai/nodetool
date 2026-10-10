@@ -8,7 +8,11 @@
 import type { Asset } from "../../stores/ApiTypes";
 import type { TimelineStoreState } from "../../stores/timeline/TimelineStore";
 import type { TimelineUIState } from "../../stores/timeline/TimelineUIStore";
-import { assetMediaType, isCompatibleWithTrack } from "./dnd/assetToClipAdapter";
+import {
+  assetMediaType,
+  assetToClip,
+  isCompatibleWithTrack
+} from "./dnd/assetToClipAdapter";
 
 export type SourceEditKind = "append" | "insert" | "overwrite";
 
@@ -28,11 +32,12 @@ export function sourceRangeFor(
     asset.duration !== null && asset.duration !== undefined
       ? Math.round(asset.duration * 1000)
       : 0;
+  const marks = range?.assetId === asset.id ? range : null;
   const inMs = Math.min(
     fullMs || Number.POSITIVE_INFINITY,
-    Math.max(0, range?.inMs ?? 0)
+    Math.max(0, marks?.inMs ?? 0)
   );
-  const outMs = range?.outMs ?? (fullMs > 0 ? fullMs : inMs);
+  const outMs = marks?.outMs ?? (fullMs > 0 ? fullMs : inMs);
   return {
     inMs,
     outMs: Math.min(fullMs || Number.POSITIVE_INFINITY, Math.max(inMs, outMs))
@@ -61,7 +66,7 @@ export function performSourceEdit(
   { doc, ui, playheadMs, asset }: SourceEditContext
 ): string | null {
   if (!asset) return null;
-  const { inMs, outMs } = sourceRangeFor(asset, ui.sourceRange);
+  let { inMs, outMs } = sourceRangeFor(asset, ui.sourceRange);
   const mediaType = assetMediaType(asset.content_type);
   if (!mediaType) return null;
   // An image has no length; the range is the clip length on the timeline.
@@ -69,6 +74,10 @@ export function performSourceEdit(
 
   const trackId = sourceTargetTrackId(doc, asset);
   if (!trackId) return null;
+  if (mediaType === "image" && outMs <= inMs) {
+    inMs = 0;
+    outMs = assetToClip(asset, trackId, 0).durationMs;
+  }
 
   let startMs = playheadMs;
   if (kind === "append") {

@@ -30,7 +30,16 @@ const pressBinding = (binding: KeyBinding): void => {
     bubbles: true
   };
   window.dispatchEvent(new KeyboardEvent("keydown", init));
-  window.dispatchEvent(new KeyboardEvent("keyup", init));
+  // The keyup releases the modifiers too, so none stays held in KeyPressedStore.
+  window.dispatchEvent(
+    new KeyboardEvent("keyup", {
+      ...init,
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+      altKey: false
+    })
+  );
 };
 
 /** Lists the timeline's keyboard actions in the command menu while it is active. */

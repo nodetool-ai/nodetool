@@ -642,12 +642,13 @@ interface InspectorSectionTitleProps {
    */
   checked?: boolean;
   onCheckedChange?: (next: boolean) => void;
+  checkboxDisabled?: boolean;
   /** Hover-revealed trailing action, e.g. reset-to-defaults. */
   action?: InspectorSectionAction;
 }
 
 export const InspectorSectionTitle: React.FC<InspectorSectionTitleProps> = memo(
-  ({ title, icon, checked, onCheckedChange, action }) => {
+  ({ title, icon, checked, onCheckedChange, checkboxDisabled, action }) => {
     const theme = useTheme();
     const hasCheckbox = onCheckedChange !== undefined;
     const dimmed = hasCheckbox && !checked;
@@ -668,6 +669,7 @@ export const InspectorSectionTitle: React.FC<InspectorSectionTitleProps> = memo(
             role="checkbox"
             aria-checked={!!checked}
             aria-label={`${title} enabled`}
+            disabled={checkboxDisabled}
             css={sectionCheckboxStyles(theme, !!checked)}
             onClick={(e) => {
               e.stopPropagation();
