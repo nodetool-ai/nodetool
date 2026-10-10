@@ -146,6 +146,25 @@ describe("typed script events", () => {
       expect((result.results[0].state as { state: unknown }).state).toEqual([[7, "hit", [7], "x"]]);
     } finally { runner.dispose(); }
   });
+
+  it("gives onEvent the tick's events even after an earlier hook mutates input.events", async () => {
+    const source = `({
+      onStart(input) { input.events.reverse(); input.events.length = 0; },
+      onEvent(input, event) { return { state: [...(input.state ?? []), [event.event, event.payload]] }; }
+    })`;
+    const base = createTopDownRoomGame("f".repeat(32));
+    const game = gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
+      ? { ...entity, behaviors: [{ kind: "script", source, maxCommands: 8, maxTickMs: 50 }] } : entity) })) });
+    const mutating = await prepareGameScripts(game);
+    const key = scriptSourceKey("room", "player", 0);
+    const call: GameScriptCall = { sourceKey: key, stateKey: key, entityId: "player", source: "player", state: null, x: 0, y: 0, velocityX: 0, velocityY: 0,
+      touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 50, lifecycle: { events: [0, 2] } };
+    try {
+      const events = [{ kind: "trigger", event: "first", entityId: "x", payload: 1 }, { kind: "win", score: 1 }, { kind: "trigger", event: "second", entityId: "x", payload: 2 }];
+      const result = mutating.run([call], { tick: 4, pressed: [], justPressed: [], events, world: [] }, 1);
+      expect((result.results[0].state as { state: unknown }).state).toEqual([["first", 1], ["second", 2]]);
+    } finally { mutating.dispose(); }
+  });
 });
 
 describe("3D typed script events", () => {

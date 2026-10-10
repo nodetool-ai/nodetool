@@ -1,3 +1,4 @@
+import * as acorn from "acorn";
 import { z } from "zod";
 import { gameDocument, gameDocument3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
 import { applyGameOps, applyGameOps3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
@@ -77,6 +78,93 @@ export function createGameToolBridge3D(initial: GameDocument3D): HeadlessSurface
     ],
     finalState: () => document
   };
+}
+
+type ScriptNode = { readonly type: string; readonly [key: string]: unknown };
+
+/** Parses a lifecycle-object script source, or undefined when it is not one. */
+function lifecycleObject(source: string): ScriptNode | undefined {
+  try {
+    const program = acorn.parse(`(${source})`, { ecmaVersion: "latest" }) as unknown as { body: { expression?: ScriptNode }[] };
+    const expression = program.body.length === 1 ? program.body[0].expression : undefined;
+    return expression?.type === "ObjectExpression" ? expression : undefined;
+  } catch {
+    // Source that does not parse is not a lifecycle object.
+    return undefined;
+  }
+}
+
+/** Every AST node under `node`, including itself. */
+function scriptNodes(node: unknown): ScriptNode[] {
+  const nodes: ScriptNode[] = [];
+  const pending = [node];
+  while (pending.length > 0) {
+    const value = pending.pop();
+    if (Array.isArray(value)) { pending.push(...value); continue; }
+    if (typeof value !== "object" || value === null || typeof (value as ScriptNode).type !== "string") { continue; }
+    nodes.push(value as ScriptNode);
+    for (const [key, child] of Object.entries(value)) {
+      if (key !== "type" && typeof child === "object") { pending.push(child); }
+    }
+  }
+  return nodes;
+}
+
+/** A property's key as written, quoted or not. */
+function propertyName(property: ScriptNode): string | undefined {
+  const key = property.key as ScriptNode | undefined;
+  if (property.computed === true || !key) { return undefined; }
+  return key.type === "Identifier" ? key.name as string : key.type === "Literal" ? String(key.value) : undefined;
+}
+
+/** A constant string or number literal, including a template literal without expressions. */
+function constantValue(node: unknown): unknown {
+  const value = node as ScriptNode | undefined;
+  if (value?.type === "Literal") { return value.value; }
+  if (value?.type === "TemplateLiteral" && (value.expressions as unknown[]).length === 0) {
+    return ((value.quasis as { value: { cooked: string } }[])[0]).value.cooked;
+  }
+  return undefined;
+}
+
+/** The object's own properties by name. Spreads and computed keys are left out. */
+function objectProperties(node: unknown): Map<string, unknown> | undefined {
+  const value = node as ScriptNode | undefined;
+  if (value?.type !== "ObjectExpression") { return undefined; }
+  const properties = new Map<string, unknown>();
+  for (const property of value.properties as ScriptNode[]) {
+    const name = property.type === "Property" ? propertyName(property) : undefined;
+    if (name !== undefined) { properties.set(name, property.value); }
+  }
+  return properties;
+}
+
+/** The hook's function with its parameters and body, whether written as a method or as a function-valued property. */
+function hookFunction(object: ScriptNode, hook: string): unknown {
+  const value = objectProperties(object)?.get(hook) as ScriptNode | undefined;
+  return value?.type === "FunctionExpression" || value?.type === "ArrowFunctionExpression" ? value : undefined;
+}
+
+/** onStart builds {kind: "emit", event: "bonus", payload: {points: 5}, target: {entityId: "gem"}}. Target fields are strict, as in the command schema. */
+function emitsTargetedBonus(source: string): boolean {
+  const object = lifecycleObject(source);
+  return object !== undefined && scriptNodes(hookFunction(object, "onStart")).some((node) => {
+    const command = objectProperties(node);
+    const payload = objectProperties(command?.get("payload"));
+    const target = objectProperties(command?.get("target"));
+    return constantValue(command?.get("kind")) === "emit" && constantValue(command?.get("event")) === "bonus"
+      && constantValue(payload?.get("points")) === 5 && target?.size === 1 && constantValue(target.get("entityId")) === "gem";
+  });
+}
+
+/** onEvent reads `points` from the event payload, by member access or destructuring. */
+function readsEventPoints(source: string): boolean {
+  const object = lifecycleObject(source);
+  const names = scriptNodes(object && hookFunction(object, "onEvent")).flatMap((node) =>
+    node.type === "MemberExpression" && node.computed !== true ? [(node.property as ScriptNode).name as string]
+      : node.type === "MemberExpression" ? [String(constantValue(node.property))]
+      : node.type === "Property" ? [propertyName(node) ?? ""] : []);
+  return names.includes("payload") && names.includes("points");
 }
 
 export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] = [{
@@ -252,12 +340,8 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         const entities = document.scenes[0].entities;
         const behaviors = (id: string) => entities.find(entity => entity.id === id)?.behaviors ?? [];
         const source = (id: string) => behaviors(id).find(behavior => behavior.kind === "script")?.source ?? "";
-        const sender = source("player");
-        const receiver = source("gem");
         return behaviors("player").some(behavior => behavior.kind === "movement") && behaviors("gem").some(behavior => behavior.kind === "collectible")
-          && /onStart/.test(sender) && /kind\s*:\s*["'`]emit["'`]/.test(sender) && /["'`]bonus["'`]/.test(sender)
-          && /payload\s*:\s*\{\s*points\s*:\s*5\s*\}/.test(sender) && /target\s*:\s*\{\s*entityId\s*:\s*["'`]gem["'`]\s*\}/.test(sender)
-          && /^\s*\(?\s*\{/.test(receiver) && /onEvent\s*\(/.test(receiver) && /payload/.test(receiver) && /points/.test(receiver);
+          && emitsTargetedBonus(source("player")) && readsEventPoints(source("gem"));
       } }]
   }
 }];

@@ -279,9 +279,10 @@ export function commitScriptHooks(value: unknown, plan: GameScriptHookPlan, tick
  * Guest code for the dispatcher, compiled into each lifecycle-object context, so it stays small. It runs the
  * planned hooks and returns `{state: [state, scheduled], commands}`, which `commitScriptHooks` turns into a record.
  */
-export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, defineProperty, hookNames) => (hooks, payload, steps) => {
+export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, defineProperty, copy, hookNames) => (hooks, payload, steps) => {
   let state = payload.state;
-  const commands = [], scheduled = [], events = payload.events;
+  // A shallow copy, so a hook that reorders or empties input.events cannot change what a later onEvent receives.
+  const commands = [], scheduled = [], events = isArray(payload.events) ? copy(payload.events) : [];
   const schedule = (repeat) => (ticks, name) => {
     if (!isInteger(ticks) || ticks < 1 || ticks > ${MAX_GAME_SCRIPT_TIMER_TICKS}) { throw new Error("timer ticks must be an integer from 1 to ${MAX_GAME_SCRIPT_TIMER_TICKS}"); }
     if (typeof name !== "string" || hookNames.includes(name) || typeof hooks[name] !== "function") { throw new Error("timer " + String(name) + " must name a method of the script object that is not a hook"); }
@@ -303,4 +304,4 @@ export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, definePr
     }
   }
   return { state: [state, scheduled], commands };
-})(Object.hasOwn, Array.isArray, Number.isInteger, Object.defineProperty, ${JSON.stringify(GAME_SCRIPT_HOOKS)})`;
+})(Object.hasOwn, Array.isArray, Number.isInteger, Object.defineProperty, Function.prototype.call.bind(Array.prototype.slice), ${JSON.stringify(GAME_SCRIPT_HOOKS)})`;
