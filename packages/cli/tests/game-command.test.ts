@@ -398,3 +398,22 @@ it("simulates lifecycle hooks and timers and verifies replay from the midpoint",
     expect(Object.values(session.snapshot().scriptState)).toEqual([{$lifecycle:1,state:17,timers:[{name:"beat",at:126,every:7}]}]);
   } finally { session.dispose(); }
 });
+
+it("simulates typed events with payloads and targets and verifies replay from the midpoint", async () => {
+  const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
+  vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);
+  const document = createTopDownRoomGame("d".repeat(32));
+  const player = document.scenes[0].entities.find(entity=>entity.id==="player");
+  const gem = document.scenes[0].entities.find(entity=>entity.id==="gem");
+  if (!player || !gem) { throw new Error("CLI fixture requires player and gem"); }
+  player.behaviors.push({kind:"script",maxCommands:2,maxTickMs:30,source:"(input) => ({ state: null, commands: input.tick % 10 === 0 ? [{ kind: 'emit', event: 'bonus', payload: { points: input.tick }, target: { entityId: 'gem' } }] : [] })"});
+  gem.behaviors.push({kind:"script",maxCommands:2,maxTickMs:30,source:"({ onEvent(input, event) { return { state: (input.state ?? 0) + event.payload.points }; } })"});
+  await writeFile(gamePath,JSON.stringify(document));
+  const report = await runSimulation("--ticks","120","--verify-replay");
+  expect(report).toMatchObject({ok:true,replay:{verified:true}});
+  const session = await createScriptedGameSession(document,1);
+  try {
+    for (let tick = 0; tick < 50; tick += 1) { session.step({pressed:[]}); }
+    expect(Object.values(session.snapshot().scriptState)).toContainEqual({$lifecycle:1,state:0+10+20+30+40,timers:[]});
+  } finally { session.dispose(); }
+});

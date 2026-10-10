@@ -1,3 +1,5 @@
+import { gameEventReaches, type GameEventTarget } from "@nodetool-ai/protocol";
+
 /**
  * Lifecycle-object scripts: a script source may evaluate to an object of hooks instead of a function.
  * The guest dispatcher below runs the hooks inside the behavior's single call per tick, so the call,
@@ -7,7 +9,7 @@
 
 /** Hook names in the order the dispatcher runs them within one tick. */
 export const GAME_SCRIPT_HOOKS = [
-  "onStart", "onSceneEnter", "onTriggerEnter", "onTriggerExit", "onContact", "onFixedUpdate", "onUpdate", "onDestroy"
+  "onStart", "onSceneEnter", "onTriggerEnter", "onTriggerExit", "onContact", "onEvent", "onFixedUpdate", "onUpdate", "onDestroy"
 ] as const;
 
 export type GameScriptHook = (typeof GAME_SCRIPT_HOOKS)[number];
@@ -28,6 +30,8 @@ export interface GameScriptContact {
 export interface GameScriptLifecycle {
   readonly sceneEnter?: true;
   readonly contacts?: readonly GameScriptContact[];
+  /** Indices into the call input's `events` of the previous tick's trigger events that reach the entity, in event order. */
+  readonly events?: readonly number[];
   /** The entity despawned in the previous tick. Only `onDestroy` runs. */
   readonly destroy?: true;
 }
@@ -162,16 +166,33 @@ export function scriptContacts(
   return contacts;
 }
 
-/** The lifecycle facts for a call, or undefined when there are none. */
-export function scriptLifecycle(sceneEnter: boolean, contacts: readonly GameScriptContact[]): GameScriptLifecycle | undefined {
-  if (!sceneEnter && contacts.length === 0) {
-    return undefined;
-  }
-  return { ...(sceneEnter ? { sceneEnter: true as const } : undefined), ...(contacts.length > 0 ? { contacts } : undefined) };
+/**
+ * Indices of the previous tick's trigger events that reach an entity, in event order. Only calls of scripts that
+ * define `onEvent` carry them, so the input of every other call stays as it was.
+ */
+export function scriptEvents(entityId: string, tags: readonly string[] | undefined, events: readonly unknown[]): number[] {
+  const indices: number[] = [];
+  events.forEach((value, index) => {
+    const event = value as { readonly kind: string; readonly target?: GameEventTarget };
+    if (event.kind === "trigger" && gameEventReaches(event, entityId, tags)) { indices.push(index); }
+  });
+  return indices;
 }
 
-/** One hook invocation of a call, in order. The second element is the hook's contact argument. */
-export type GameScriptHookStep = readonly [name: string, contact?: GameScriptContact];
+/** The lifecycle facts for a call, or undefined when there are none. */
+export function scriptLifecycle(sceneEnter: boolean, contacts: readonly GameScriptContact[], events: readonly number[] = []): GameScriptLifecycle | undefined {
+  if (!sceneEnter && contacts.length === 0 && events.length === 0) {
+    return undefined;
+  }
+  return { ...(sceneEnter ? { sceneEnter: true as const } : undefined), ...(contacts.length > 0 ? { contacts } : undefined),
+    ...(events.length > 0 ? { events } : undefined) };
+}
+
+/**
+ * One hook invocation of a call, in order. The second element is a contact hook's contact, or for `onEvent` the
+ * index of its event in the call input's `events`. The dispatcher resolves the index, so a payload is not sent twice.
+ */
+export type GameScriptHookStep = readonly [name: string, argument?: GameScriptContact | number];
 
 export interface GameScriptHookPlan {
   /** The state the first hook sees. */
@@ -184,7 +205,7 @@ export interface GameScriptHookPlan {
 
 /**
  * Orders the hooks of one call. Timers due at the start of the tick fire in schedule order after the contact
- * hooks. A timer scheduled during the tick fires on a later tick.
+ * and event hooks. A timer scheduled during the tick fires on a later tick.
  */
 export function planScriptHooks(record: unknown, lifecycle: GameScriptLifecycle | undefined, tick: number): GameScriptHookPlan {
   const first = record === null || record === undefined;
@@ -208,6 +229,7 @@ export function planScriptHooks(record: unknown, lifecycle: GameScriptLifecycle 
     else if (contact.phase === "enter") { steps.push(["onTriggerEnter", contact]); }
     else if (contact.phase === "exit") { steps.push(["onTriggerExit", contact]); }
   }
+  for (const index of lifecycle?.events ?? []) { steps.push(["onEvent", index]); }
   const timers: GameScriptTimer[] = [];
   for (const timer of first ? [] : record.timers) {
     if (timer.at > tick) { timers.push(timer); continue; }
@@ -257,9 +279,10 @@ export function commitScriptHooks(value: unknown, plan: GameScriptHookPlan, tick
  * Guest code for the dispatcher, compiled into each lifecycle-object context, so it stays small. It runs the
  * planned hooks and returns `{state: [state, scheduled], commands}`, which `commitScriptHooks` turns into a record.
  */
-export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, defineProperty, hookNames) => (hooks, payload, steps) => {
+export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, defineProperty, copy, hookNames) => (hooks, payload, steps) => {
   let state = payload.state;
-  const commands = [], scheduled = [];
+  // A shallow copy, so a hook that reorders or empties input.events cannot change what a later onEvent receives.
+  const commands = [], scheduled = [], events = isArray(payload.events) ? copy(payload.events) : [];
   const schedule = (repeat) => (ticks, name) => {
     if (!isInteger(ticks) || ticks < 1 || ticks > ${MAX_GAME_SCRIPT_TIMER_TICKS}) { throw new Error("timer ticks must be an integer from 1 to ${MAX_GAME_SCRIPT_TIMER_TICKS}"); }
     if (typeof name !== "string" || hookNames.includes(name) || typeof hooks[name] !== "function") { throw new Error("timer " + String(name) + " must name a method of the script object that is not a hook"); }
@@ -267,11 +290,11 @@ export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, definePr
   };
   defineProperty(globalThis, "after", { value: schedule(false), writable: true, configurable: true });
   defineProperty(globalThis, "every", { value: schedule(true), writable: true, configurable: true });
-  for (const [name, contact] of steps) {
+  for (const [name, argument] of steps) {
     const hook = hooks[name];
     if (typeof hook !== "function") { continue; }
     payload.state = state;
-    const result = contact === undefined ? hook.call(hooks, payload) : hook.call(hooks, payload, contact);
+    const result = argument === undefined ? hook.call(hooks, payload) : hook.call(hooks, payload, name === "onEvent" ? events[argument] : argument);
     if (result === undefined) { continue; }
     if (result === null || typeof result !== "object" || isArray(result)) { throw new Error(name + " must return an object or undefined"); }
     if (hasOwn(result, "state")) { state = result.state; }
@@ -281,4 +304,4 @@ export const SCRIPT_LIFECYCLE_DISPATCH = `((hasOwn, isArray, isInteger, definePr
     }
   }
   return { state: [state, scheduled], commands };
-})(Object.hasOwn, Array.isArray, Number.isInteger, Object.defineProperty, ${JSON.stringify(GAME_SCRIPT_HOOKS)})`;
+})(Object.hasOwn, Array.isArray, Number.isInteger, Object.defineProperty, Function.prototype.call.bind(Array.prototype.slice), ${JSON.stringify(GAME_SCRIPT_HOOKS)})`;

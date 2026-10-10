@@ -1,4 +1,4 @@
-import { GAME_AUDIO_SPATIAL_DEFAULTS, type GameAudioCone, type GameAudioEmitter, type GameEvent, type GameHudLabel, type GameParticleEmission } from "@nodetool-ai/protocol";
+import { GAME_AUDIO_SPATIAL_DEFAULTS, gameEventReaches, type GameAudioCone, type GameAudioEmitter, type GameEmitCommand, type GameEvent, type GameHudLabel, type GameParticleEmission } from "@nodetool-ai/protocol";
 
 export const MAX_GAME_EVENTS_PER_TICK = 512;
 export const MAX_GAME_SPAWNED_INSTANCES = 1024;
@@ -17,6 +17,7 @@ export interface GameplayBehavior {
 
 export interface GameplayDefinition {
   readonly id: string;
+  readonly tags?: readonly string[];
   readonly behaviors: readonly GameplayBehavior[];
   readonly templateOnly?: boolean;
   readonly audioSource?: {
@@ -60,13 +61,16 @@ export function initialGameplayState(definition: GameplayDefinition, spawnTick: 
   return state;
 }
 
+/** Whether a trigger event named `name` from the previous tick reaches the entity. */
+function triggered(previousEvents: readonly GameEvent[], name: string | undefined, entityId: string, tags: readonly string[] | undefined): boolean {
+  return previousEvents.some((event) => event.kind === "trigger" && event.event === name && gameEventReaches(event, entityId, tags));
+}
+
 export function queueGameplayBehavior(behavior: GameplayBehavior, entityId: string, spawnTick: number, tick: number,
-  previousEvents: readonly GameEvent[], queues: GameplayQueues): void {
-  if (behavior.kind === "sceneTransition" && behavior.sceneId !== undefined &&
-      previousEvents.some((event) => event.kind === "trigger" && event.event === behavior.onEvent)) {
+  previousEvents: readonly GameEvent[], queues: GameplayQueues, tags?: readonly string[]): void {
+  if (behavior.kind === "sceneTransition" && behavior.sceneId !== undefined && triggered(previousEvents, behavior.onEvent, entityId, tags)) {
     queues.transitionTo = behavior.sceneId;
-  } else if (behavior.kind === "spawn" && behavior.prefabId !== undefined &&
-      previousEvents.some((event) => event.kind === "trigger" && event.event === behavior.onEvent)) {
+  } else if (behavior.kind === "spawn" && behavior.prefabId !== undefined && triggered(previousEvents, behavior.onEvent, entityId, tags)) {
     queues.spawns.push({ prefabId: behavior.prefabId });
   } else if (behavior.kind === "lifetime" && behavior.ticks !== undefined && tick - spawnTick >= behavior.ticks) {
     queues.despawns.add(entityId);
@@ -118,7 +122,7 @@ export function finalizeGameplayEntities<S extends GameplayEntityState>(states: 
     }
     const audio = state.definition.audioSource;
     if (audio && events.some((event) => (event.kind === audio.onEvent && (event.kind !== "collected" || event.entityId === state.definition.id)) ||
-        (event.kind === "trigger" && event.event === audio.onEvent))) {
+        (event.kind === "trigger" && event.event === audio.onEvent && gameEventReaches(event, state.definition.id, state.definition.tags)))) {
       const event: GameEvent = { kind: "audio", action: "start", assetId: audio.assetId,
         voiceId: `effect:${sceneId}:${state.definition.id}:${tick + 1}:${events.length}`,
         loop: false, volume: audio.volume, fadeInTicks: 0, fadeOutTicks: 0 };
@@ -164,7 +168,7 @@ export function runGameplayTick<T, E extends GameEvent = GameEvent>(run: (tick: 
 
 export type GameplayCommand<S extends GameplaySpawn = GameplaySpawn> =
   | ({ readonly kind: "hud" } & GameHudLabel)
-  | { readonly kind: "emit"; readonly event: string }
+  | GameEmitCommand
   | ({ readonly kind: "spawn" } & S)
   | { readonly kind: "despawn"; readonly entityId: string }
   | { readonly kind: "sceneTransition"; readonly sceneId: string };
@@ -179,7 +183,10 @@ export function applyGameplayCommand<S extends GameplaySpawn>(command: GameplayC
       hud.set(label.id, label);
     }
   } else if (command.kind === "emit") {
-    emit({ kind: "trigger", event: command.event, entityId });
+    // A plain emit keeps the event shape it had before payloads and targets existed.
+    emit({ kind: "trigger", event: command.event, entityId,
+      ...(command.payload === undefined ? undefined : { payload: command.payload }),
+      ...(command.target === undefined ? undefined : { target: command.target }) });
   } else if (command.kind === "spawn") {
     queues.spawns.push(command);
   } else if (command.kind === "despawn") {
