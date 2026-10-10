@@ -413,6 +413,25 @@ function tailRemnant(
 }
 
 /**
+ * Relinks the remnants on one side of a cut: one fresh `linkId` per original
+ * link group, so the head halves of a linked pair stay linked to each other but
+ * not to the tail halves (mirrors the store's link-aware split). Unlinked
+ * clips pass through.
+ */
+function sideRelinker(): (clip: TimelineClip) => TimelineClip {
+  const byGroup = new Map<string, string>();
+  return (clip) => {
+    if (clip.linkId === undefined) return clip;
+    let linkId = byGroup.get(clip.linkId);
+    if (linkId === undefined) {
+      linkId = createTimeOrderedUuid();
+      byGroup.set(clip.linkId, linkId);
+    }
+    return { ...clip, linkId };
+  };
+}
+
+/**
  * Ripple-delete the absolute time span [startMs, endMs) across every track:
  * clips fully inside are dropped, clips overlapping an edge are trimmed (their
  * words partitioned and the tail's rebased), and everything after shifts left
@@ -430,6 +449,8 @@ export function rippleDeleteRange(
   }
   const span = endMs - startMs;
   const next: TimelineClip[] = [];
+  const relinkHead = sideRelinker();
+  const relinkTail = sideRelinker();
 
   for (const clip of clips) {
     const cStart = clip.startMs;
@@ -451,9 +472,9 @@ export function rippleDeleteRange(
     // Overlaps the cut: keep the head before it and the tail after it.
     const headLen = Math.max(0, startMs - cStart);
     const tailFromLocal = Math.min(clip.durationMs, endMs - cStart);
-    if (headLen > 0) next.push(headRemnant(clip, headLen));
+    if (headLen > 0) next.push(relinkHead(headRemnant(clip, headLen)));
     if (clip.durationMs - tailFromLocal > 0) {
-      next.push(tailRemnant(clip, tailFromLocal, startMs));
+      next.push(relinkTail(tailRemnant(clip, tailFromLocal, startMs)));
     }
     // Neither remnant → the clip was fully covered and is dropped.
   }
@@ -655,11 +676,37 @@ function isDraftBeat(clip: TimelineClip): boolean {
 }
 
 /**
+ * Close the gaps left by removed draft beats: voiceover beats on the same
+ * track that start at or after a removed draft's end shift left by its length.
+ * Every other clip, and every gap the edit did not create, stays put.
+ */
+function removeDraftBeats(
+  clips: TimelineClip[],
+  removedIds: ReadonlySet<string>
+): TimelineClip[] {
+  const gone = clips
+    .filter((c) => removedIds.has(c.id))
+    .sort((a, b) => b.startMs - a.startMs);
+  let next = clips.filter((c) => !removedIds.has(c.id));
+  for (const draft of gone) {
+    const end = draft.startMs + draft.durationMs;
+    next = next.map((c) =>
+      isVoiceoverBeat(c) && c.trackId === draft.trackId && c.startMs >= end
+        ? { ...c, startMs: c.startMs - draft.durationMs }
+        : c
+    );
+  }
+  return next;
+}
+
+/**
  * Apply a whole freeform edit to the clips in one transform: reconcile voiced
  * words (relabel + ripple-cut), update existing draft prompts, drop drafts
- * whose text was deleted, create draft beats for newly-typed lines, then re-flow.
- * Returns the same array when nothing changed. With `seeded`, only words and
- * drafts the editor was seeded with can be cut or removed.
+ * whose text was deleted (closing only their gaps), and append draft beats for
+ * newly-typed lines after the last clip. Beats the edit did not add or remove
+ * keep their starts and the gaps between them. Returns the same array when
+ * nothing changed. With `seeded`, only words and drafts the editor was seeded
+ * with can be cut or removed.
  */
 export function applyEditorEdits(
   clips: TimelineClip[],
@@ -677,11 +724,13 @@ export function applyEditorEdits(
 
   // Existing drafts: write back the edited prompt.
   const updateById = new Map(edits.draftUpdates.map((d) => [d.clipId, d.text.trim()]));
-  next = next.map((c) =>
-    updateById.has(c.id) && (c.prompt ?? "") !== updateById.get(c.id)
-      ? { ...c, prompt: updateById.get(c.id) }
-      : c
-  );
+  const promptChanged = (c: TimelineClip): boolean =>
+    updateById.has(c.id) && (c.prompt ?? "") !== updateById.get(c.id);
+  if (next.some(promptChanged)) {
+    next = next.map((c) =>
+      promptChanged(c) ? { ...c, prompt: updateById.get(c.id) } : c
+    );
+  }
 
   // Drafts whose text was deleted entirely are removed.
   const kept = new Set(edits.draftUpdates.map((d) => d.clipId));
@@ -691,7 +740,7 @@ export function applyEditorEdits(
       .map((c) => c.id)
       .filter((id) => !kept.has(id) && (!seeded || seeded.draftIds.has(id)))
   );
-  if (removed.size > 0) next = next.filter((c) => !removed.has(c.id));
+  if (removed.size > 0) next = removeDraftBeats(next, removed);
 
   // Newly-typed lines become draft beats to voice.
   for (const text of edits.newDraftTexts) {
@@ -716,7 +765,7 @@ export function applyEditorEdits(
     ];
   }
 
-  return reflowGenerated(next);
+  return { clips: next, durationMs: maxEnd(next) };
 }
 
 // ── Move (cut / paste a word range) ──────────────────────────────────────────
@@ -794,6 +843,8 @@ export function pasteClipsAt(
   if (block.length === 0) return { clips, durationMs: maxEnd(clips) };
   const blockLen = block.reduce((m, c) => Math.max(m, c.startMs + c.durationMs), 0);
   const next: TimelineClip[] = [];
+  const relinkHead = sideRelinker();
+  const relinkTail = sideRelinker();
 
   for (const clip of clips) {
     const cStart = clip.startMs;
@@ -806,8 +857,8 @@ export function pasteClipsAt(
       next.push(clip);
     } else {
       const headLen = targetMs - cStart;
-      next.push(headRemnant(clip, headLen));
-      next.push(tailRemnant(clip, headLen, targetMs + blockLen));
+      next.push(relinkHead(headRemnant(clip, headLen)));
+      next.push(relinkTail(tailRemnant(clip, headLen, targetMs + blockLen)));
     }
   }
 

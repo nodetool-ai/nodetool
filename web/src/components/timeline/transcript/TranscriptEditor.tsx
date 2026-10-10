@@ -877,8 +877,15 @@ const EditorBody: React.FC<{
     },
     [playbackApi, wordIndex]
   );
-  useGlobalCombo("arrowright", () => stepWord("forward"), scriptMode);
-  useGlobalCombo("arrowleft", () => stepWord("back"), scriptMode);
+  // The arrows step words only while focus is in the transcript. Elsewhere
+  // they belong to the timeline, which skips keys this combo prevented.
+  const focusedSurfaceTarget = useCallback(() => {
+    const surface = surfaceRef.current;
+    return surface?.contains(document.activeElement) ? surface : null;
+  }, []);
+  const scriptArrows = { active: !writing, target: focusedSurfaceTarget } as const;
+  useGlobalCombo("arrowright", () => stepWord("forward"), scriptArrows);
+  useGlobalCombo("arrowleft", () => stepWord("back"), scriptArrows);
 
   // Write-mode keys ride the editor (it holds focus): ⌘S plays, Esc finishes,
   // and "/" at the start of a block opens the command menu (mid-text "/" stays
@@ -926,6 +933,9 @@ const EditorBody: React.FC<{
   return (
     <EditorSurface
       ref={surfaceRef}
+      // Focusable by click (not Tab) so Script mode, whose editor is not
+      // editable, can still hold focus for the word-step arrows.
+      tabIndex={-1}
       className={writing ? "is-writing" : undefined}
       onKeyDown={onKeyDown}
       onClick={onClick}

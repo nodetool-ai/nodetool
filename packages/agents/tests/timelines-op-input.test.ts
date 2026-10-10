@@ -1703,7 +1703,16 @@ describe("track ops through edit_timeline", () => {
 
 describe("marker ops", () => {
   function bridgeWithNoMarkers() {
-    const bridge = createTimelineToolBridge({ tracks: [{ type: "video" }] });
+    // Counter ids keep the expected markers readable.
+    const counts = new Map<string, number>();
+    const bridge = createTimelineToolBridge({
+      tracks: [{ type: "video" }],
+      newId: (kind) => {
+        const n = (counts.get(kind) ?? 0) + 1;
+        counts.set(kind, n);
+        return `${kind}_${n}`;
+      }
+    });
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
     return { bridge, byName };
   }

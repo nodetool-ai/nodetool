@@ -442,7 +442,9 @@ export async function renderTimelineComposited(
         if (layer.kind === "caption" && layer.caption) {
           const raster = rasterizer.caption(layer.caption);
           if (!raster) return null;
-          return finish({
+          // No `finish`: the clip's shape mask belongs to its picture, and a
+          // caption has no layer space to mask in — the browser leaves it off.
+          return {
             ...common,
             id: id("c"),
             source: raster,
@@ -458,7 +460,7 @@ export async function renderTimelineComposited(
             // here keeps its geometry — and a dip's one solid — off a layer
             // that composites untransformed anyway.
             transition: undefined
-          });
+          };
         }
 
         if (layer.kind === "text" && anim.textStyle) {

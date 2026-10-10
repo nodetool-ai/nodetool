@@ -9,7 +9,11 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-import { sourceRate, type TimelineClip } from "@nodetool-ai/timeline";
+import {
+  retimeCaption,
+  sourceRate,
+  type TimelineClip
+} from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
   useTimelineStoreApi
@@ -159,18 +163,22 @@ export function useClipSourceSlip({
       const appliedTimelineMs =
         ((wantedPatch.inPointMs ?? 0) - (fresh.inPointMs ?? 0)) /
         sourceRate(fresh);
-      const patches = members.map((c) => ({
-        id: c.id,
-        patch:
+      const patches = members.map((c) => {
+        const patch: Partial<TimelineClip> =
           c.id === fresh.id
-            ? wantedPatch
-            : slipSourceWindow(
-                c,
-                appliedTimelineMs * sourceRate(c),
-                undefined
-              ),
-        wantedIn: (c.inPointMs ?? 0) + appliedTimelineMs * sourceRate(c)
-      }));
+            ? { ...wantedPatch }
+            : slipSourceWindow(c, appliedTimelineMs * sourceRate(c), undefined);
+        // Words are timed against the clip's start, so they slide back by
+        // the timeline time the media slipped.
+        if (c.caption) {
+          patch.caption = retimeCaption(c.caption, -appliedTimelineMs);
+        }
+        return {
+          id: c.id,
+          patch,
+          wantedIn: (c.inPointMs ?? 0) + appliedTimelineMs * sourceRate(c)
+        };
+      });
       // Refuse the whole slip when a member would run out of source.
       if (
         patches.some(

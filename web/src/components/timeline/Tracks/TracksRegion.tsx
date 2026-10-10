@@ -146,7 +146,9 @@ import { performSourceEdit } from "../sourceEdit";
 import { getSelectedAssetForExplorer } from "../../../stores/AssetGridStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import {
+  groupDescendantIds,
   hasKeyframeAt,
+  isGroupClip,
   keyframeTimesMs,
   keyframeValueAt
 } from "@nodetool-ai/timeline";
@@ -1053,10 +1055,25 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             }
             return;
 
-          case "splitAtPlayhead":
+          case "splitAtPlayhead": {
             e.preventDefault();
-            splitSelectedAtPlayhead(liveMs, selectedClipIds);
+            const rightHalves = splitSelectedAtPlayhead(
+              liveMs,
+              selectedClipIds
+            );
+            // The halves have new ids. Selecting the right ones keeps the next
+            // S on the same clips instead of cutting every track.
+            if (selectedClipIds.size > 0 && rightHalves.length > 0) {
+              const live = new Set(
+                docStore.getState().clips.map((c) => c.id)
+              );
+              setSelection([
+                ...[...selectedClipIds].filter((id) => live.has(id)),
+                ...rightHalves
+              ]);
+            }
             return;
+          }
 
           case "cutAllTracks":
             e.preventDefault();
@@ -1196,10 +1213,17 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               action === "cut"
                 ? lockedUserTargetIds(doc.clips, doc.tracks)
                 : undefined;
+            // A selected group brings its children, or the copy is empty.
+            const copied = new Set(selectedClipIds);
+            for (const c of doc.clips) {
+              if (selectedClipIds.has(c.id) && isGroupClip(c)) {
+                for (const id of groupDescendantIds(doc.clips, c.id)) {
+                  copied.add(id);
+                }
+              }
+            }
             copyClipsToClipboard(
-              doc.clips.filter(
-                (c) => selectedClipIds.has(c.id) && !locked?.has(c.id)
-              )
+              doc.clips.filter((c) => copied.has(c.id) && !locked?.has(c.id))
             );
             if (action === "cut") {
               deleteSelected(selectedClipIds);

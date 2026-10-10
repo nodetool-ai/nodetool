@@ -348,7 +348,9 @@ const ChatView = ({
   const [mobileRail, setMobileRail] = useState<MobileRail>("chat");
   const mobileRails = useMemo<MobileRail[]>(() => {
     const rails: MobileRail[] = ["chat"];
-    if (projectDocumentsSidebar && !documentsFit) {
+    // Phones get no documents rail: a Chat/Documents picker crowds the
+    // conversation, and documents stay reachable from the side panel.
+    if (projectDocumentsSidebar && !documentsFit && !isMobile) {
       rails.push("documents");
     }
     if (!railsFit && todos.length > 0) {
@@ -358,7 +360,14 @@ const ChatView = ({
       rails.push("task");
     }
     return rails;
-  }, [todos.length, hasTaskRail, projectDocumentsSidebar, documentsFit, railsFit]);
+  }, [
+    todos.length,
+    hasTaskRail,
+    projectDocumentsSidebar,
+    documentsFit,
+    railsFit,
+    isMobile
+  ]);
   const showMobileRails = mobileRails.length > 1;
   // A rail whose content went away leaves the conversation hidden behind an
   // option that is no longer offered.

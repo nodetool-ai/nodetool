@@ -3,9 +3,10 @@
  * timeline.
  *
  * When a board has been assembled (board.timelineId set) and a shot's clip is
- * re-rendered, the timeline clips that shot owns (matched by
+ * re-rendered, the timeline clips that play that shot's render (matched by
  * `storyboardShotId`) get the new asset — the video clip and the audio twin
- * that carries the shot's own sound. Uses a get→CAS-update cycle against the persisted document;
+ * that carries the shot's own sound. A finished cut's other layers for the
+ * shot keep their media. Uses a get→CAS-update cycle against the persisted document;
  * an editor that has the sequence open picks the change up on next load.
  * Failures are logged, never thrown — a sync miss must not fail the shot.
  */
@@ -40,6 +41,24 @@ export function invalidateTimelineGetQuery(id: string): void {
       return input?.id === id;
     }
   });
+}
+
+/**
+ * Element ids of the clips that play the shot's render: legacy assemblies
+ * stamp none, a finished cut stamps `$source` / `$source-audio`. Every other
+ * finished layer (text, shape, logo, product) carries the shot id too.
+ */
+const SHOT_SOURCE_ELEMENT_IDS = new Set([undefined, "$source", "$source-audio"]);
+
+/**
+ * Whether `clip` plays the shot's rendered video: a source element whose media
+ * type can show a video asset (the picture, or its audio twin's sound).
+ */
+function isShotSourceClip(clip: TimelineClip): boolean {
+  return (
+    SHOT_SOURCE_ELEMENT_IDS.has(clip.storyboardElementId) &&
+    (clip.mediaType === "video" || clip.mediaType === "audio")
+  );
 }
 
 export async function syncShotClipToTimeline(
@@ -77,6 +96,9 @@ export async function syncShotClipToTimeline(
         // too, and those play the script's takes. The shot's own clips — the
         // video one and its audio twin — carry no line.
         if (clip.scriptLineId) {
+          return clip;
+        }
+        if (!isShotSourceClip(clip)) {
           return clip;
         }
         if (clip.currentAssetId === activeAssetId) {
