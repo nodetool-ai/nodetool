@@ -71,6 +71,8 @@ import {
   findBakedAnimationIndex,
   AUDIO_BAKED_ANIMATION_KIND,
   applyTakeToClip,
+  applyShotTakeToClip,
+  clipsFollowingShot,
   selectTake,
   sourceRate,
   renameTake as renameTakeOnClip,
@@ -82,6 +84,7 @@ import type {
   AnimatedProperty,
   DropMode,
   QuantizeOptions,
+  ShotTakeMedia,
   TransitionGrowthOptions
 } from "@nodetool-ai/timeline";
 import type {
@@ -864,6 +867,13 @@ export interface TimelineStoreState {
   setClipLocked: (clipId: string, locked: boolean) => void;
 
   replaceClipOutput: (clipId: string, assetId: string) => void;
+
+  /**
+   * Put a storyboard shot's selected take on every unlocked clip that follows
+   * the shot (`applyShotTakeToClip`). One undo entry; a no-op when no clip
+   * changes. Returns the ids of the clips that changed.
+   */
+  applyShotTake: (boardId: string, shotId: string, take: ShotTakeMedia) => string[];
 
   /** Mark all clips referencing the given workflowId as stale. */
   markClipsStaleForWorkflow: (workflowId: string) => void;
@@ -3909,6 +3919,27 @@ export const createTimelineStore = (
             const clips = patchById(state.clips, clipId, { locked });
             return clips === state.clips ? state : { clips };
           }),
+
+        applyShotTake: (boardId, shotId, take) => {
+          const followers = new Set(
+            clipsFollowingShot(get().clips, boardId, shotId).map((c) => c.id)
+          );
+          const changed: string[] = [];
+          set((state) => {
+            const clips = state.clips.map((clip) => {
+              if (!followers.has(clip.id)) {
+                return clip;
+              }
+              const next = applyShotTakeToClip(clip, take);
+              if (next !== clip) {
+                changed.push(clip.id);
+              }
+              return next;
+            });
+            return changed.length > 0 ? { clips } : state;
+          });
+          return changed;
+        },
 
         replaceClipOutput: (clipId, assetId) =>
           set((state) => {

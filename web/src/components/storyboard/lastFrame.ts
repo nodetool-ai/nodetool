@@ -1,13 +1,26 @@
 /**
- * Decodes the final frame of a clip in the browser, so the next shot can start
- * where this one ends. The frame keeps the video's own resolution: a still that
- * a clip render animates must not be a downscaled thumbnail.
+ * Decodes one frame of a clip in the browser: the final one, so the next shot
+ * can start where this one ends, or any other, as a reference for a derived
+ * shot. The frame keeps the video's own resolution: a still that a clip render
+ * animates must not be a downscaled thumbnail.
  */
 
 /** How far before the end to seek. The very last timestamp can decode black. */
 const END_OFFSET_SECONDS = 0.05;
 
 export function captureLastFrame(url: string, name: string): Promise<File> {
+  return captureFrameAt(url, Number.POSITIVE_INFINITY, name);
+}
+
+/**
+ * The frame at `seconds` into the clip, clamped to the clip's length. Past the
+ * end it is the last frame that decodes.
+ */
+export function captureFrameAt(
+  url: string,
+  seconds: number,
+  name: string
+): Promise<File> {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
     video.crossOrigin = "anonymous";
@@ -58,7 +71,10 @@ export function captureLastFrame(url: string, name: string): Promise<File> {
           },
           { once: true }
         );
-        video.currentTime = Math.max(0, video.duration - END_OFFSET_SECONDS);
+        video.currentTime = Math.max(
+          0,
+          Math.min(seconds, video.duration - END_OFFSET_SECONDS)
+        );
       },
       { once: true }
     );
