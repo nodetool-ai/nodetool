@@ -807,13 +807,16 @@ export const createDocumentSlice: StateCreator<
     );
     set((state) => {
       const layers = state.document.layers;
-      const activeIdx = layers.findIndex(
-        (l) => l.id === state.document.activeLayerId
+      // Same placement as a new layer: above the active layer in its parent,
+      // so the new group never splits another group's children apart.
+      const { insertAt, parentId } = computeNewLayerInsertion(
+        layers,
+        state.document.activeLayerId
       );
-      const insertAt = activeIdx >= 0 ? activeIdx + 1 : layers.length;
+      const placed: Layer = parentId ? { ...group, parentId } : group;
       const newLayers = [
         ...layers.slice(0, insertAt),
-        group,
+        placed,
         ...layers.slice(insertAt)
       ];
       return {
