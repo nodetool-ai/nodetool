@@ -30,9 +30,9 @@ import {
   STAGGER_UNITS,
   activeTakeIdOf,
   applyTakeToClip,
-  applyTransitionAtCutCandidate,
   captureMediaEditSourceContext,
   composeGenerativeTakePatch,
+  createTimeOrderedUuid,
   createMediaEditRequest,
   ensureBaselineTake,
   formatBarsBeats,
@@ -286,6 +286,12 @@ export interface TimelineBridgeInitialState {
    * can hand over state it still owns.
    */
   sequence?: TimelineBridgeSequenceSeed;
+  /**
+   * Mint an id of one kind (`clip`, `track`, `link`, …). Defaults to a 32-hex
+   * resource id, which no seeded unit can already hold. A test that scripts a
+   * transcript against known ids passes a counter here.
+   */
+  newId?: (kind: string) => string;
   /**
    * Resolve an asset ref for `ui_timeline_add_media_clip`. Without one the op
    * reports that this surface has no asset lookup rather than inventing a
@@ -565,10 +571,6 @@ export function createTimelineToolBridge(
   // Absent until a midi track or `set_tempo` puts one there — a document with
   // no midi in it should not grow a tempo field it never asked for.
   let tempo: TimelineTempo | undefined = seed?.tempo;
-  let trackSeq = 0;
-  let clipSeq = 0;
-  let versionSeq = 0;
-  let transitionSeq = 0;
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
@@ -586,21 +588,14 @@ export function createTimelineToolBridge(
   const previewTimesMs: number[] = [];
   const previewedLayerKinds = new Set<string>();
 
-  // Ids the sequence already uses. A seeded document brings its own, which the
-  // `track_1`/`clip_1` counters would otherwise collide with on the first edit.
-  const usedIds = new Set<string>();
-  const mint = (prefix: string, next: () => number): string => {
-    let id = `${prefix}_${next()}`;
-    while (usedIds.has(id)) {
-      id = `${prefix}_${next()}`;
-    }
-    usedIds.add(id);
-    return id;
-  };
-  const nextTrackId = () => mint("track", () => ++trackSeq);
-  const nextClipId = () => mint("clip", () => ++clipSeq);
-  const nextVersionId = () => mint("version", () => ++versionSeq);
-  const nextTransitionId = () => mint("transition", () => ++transitionSeq);
+  // Generated ids are 32 hex characters, like every other resource id. A
+  // per-call counter restarted at `link_1` on each call and joined a new split
+  // to a link group the seeded document already held.
+  const newId = initial.newId ?? (() => createTimeOrderedUuid());
+  const nextTrackId = () => newId("track");
+  const nextClipId = () => newId("clip");
+  const nextVersionId = () => newId("version");
+  const nextTransitionId = () => newId("transition");
 
   const clipEnd = (clip: TimelineClip): number =>
     clip.startMs + clip.durationMs;
@@ -771,11 +766,11 @@ export function createTimelineToolBridge(
     return candidate;
   }
 
-  function applyTransitionCandidate(candidateId: string): {
+  async function applyTransitionCandidate(candidateId: string): Promise<{
     candidate: TimelineTransitionCandidate;
     operation: TimelineTransitionCandidate["operation"];
     description: string;
-  } {
+  }> {
     const candidate = transitionCandidates.find(
       (entry) => entry.id === candidateId
     );
@@ -792,19 +787,22 @@ export function createTimelineToolBridge(
         `Generated transition candidate "${candidate.id}" was already applied.`
       );
     }
-    const planned = planTransitionAtCut(clips, {
-      outgoingClipId: candidate.source.outgoingClipId,
-      incomingClipId: candidate.source.incomingClipId,
-      ...candidate.request
-    });
-    if (!planned.ok) {
-      throw new Error(planned.error);
+    // Through the shared op, so a locked outgoing clip, its linked partners
+    // and its source length decide the growth the way they do in the editor.
+    const outcome = await applyTimelineOp(
+      readState(),
+      {
+        op: "apply_transition_at_cut",
+        outgoingClipId: candidate.source.outgoingClipId,
+        incomingClipId: candidate.source.incomingClipId,
+        ...candidate.request
+      },
+      opContext
+    );
+    if (outcome.error) {
+      throw new Error(outcome.error);
     }
-    const applied = applyTransitionAtCutCandidate(clips, planned.candidate);
-    if (!applied.ok) {
-      throw new Error(applied.error);
-    }
-    clips = applied.clips;
+    commitOutcome(outcome.state);
     appliedTransitionCandidates = [
       ...appliedTransitionCandidates,
       structuredClone(candidate)
@@ -1003,29 +1001,10 @@ export function createTimelineToolBridge(
   // Seed from a real sequence when one was handed over, otherwise from the
   // shorthand. Cloned, so the bridge never writes through to the caller's state.
   if (seed) {
-    for (const track of seed.tracks) {
-      const copy = structuredClone(track);
-      usedIds.add(copy.id);
-      tracks.push(copy);
-    }
-    for (const clip of seed.clips) {
-      const copy = structuredClone(clip);
-      usedIds.add(copy.id);
-      for (const animation of copy.animations ?? []) {
-        usedIds.add(animation.id);
-      }
-      clips.push(copy);
-    }
-    for (const marker of seed.markers ?? []) {
-      const copy = structuredClone(marker);
-      usedIds.add(copy.id);
-      markers.push(copy);
-    }
-    for (const mediaTrack of seed.mediaTracks ?? []) {
-      const copy = structuredClone(mediaTrack);
-      usedIds.add(copy.id);
-      mediaTracks.push(copy);
-    }
+    tracks.push(...structuredClone(seed.tracks));
+    clips.push(...structuredClone(seed.clips));
+    markers.push(...structuredClone(seed.markers ?? []));
+    mediaTracks.push(...structuredClone(seed.mediaTracks ?? []));
   }
 
   // Seed initial tracks and clips.
@@ -1193,8 +1172,7 @@ export function createTimelineToolBridge(
     };
   };
   const opContext: TimelineOpContext = {
-    newId: (kind) =>
-      mint(kind, () => (counters[kind] = (counters[kind] ?? 0) + 1)),
+    newId,
     resolveAsset,
     bakeAnimation,
     bakeModel3DClip,
@@ -1213,7 +1191,16 @@ export function createTimelineToolBridge(
       return { state: readState(), result, changedClipIds: [] };
     }
   };
-  const counters: Partial<Record<string, number>> = {};
+  function commitOutcome(next: TimelineOpState): void {
+    tracks.splice(0, tracks.length, ...next.tracks);
+    clips = next.clips;
+    markers = next.markers;
+    mediaTracks = next.mediaTracks ?? [];
+    tempo = next.tempo;
+    setup = next.setup ?? null;
+    playheadMs = next.playheadMs;
+    selectedClipIds = next.selectedClipIds;
+  }
   async function editOp(name: TimelineOpName, args: Record<string, unknown>) {
     const outcome = await applyTimelineOp(
       readState(),
@@ -1223,14 +1210,7 @@ export function createTimelineToolBridge(
     if (outcome.error) {
       throw new Error(outcome.error);
     }
-    tracks.splice(0, tracks.length, ...outcome.state.tracks);
-    clips = outcome.state.clips;
-    markers = outcome.state.markers;
-    mediaTracks = outcome.state.mediaTracks ?? [];
-    tempo = outcome.state.tempo;
-    setup = outcome.state.setup ?? null;
-    playheadMs = outcome.state.playheadMs;
-    selectedClipIds = outcome.state.selectedClipIds;
+    commitOutcome(outcome.state);
     return name === "get_state"
       ? { sequenceId, ...outcome.result }
       : outcome.result;
@@ -1482,7 +1462,9 @@ export function createTimelineToolBridge(
       transitionCandidateLifecycleParams,
       async (args) => {
         if (args.candidate_id !== undefined) {
-          const applied = applyTransitionCandidate(args.candidate_id as string);
+          const applied = await applyTransitionCandidate(
+            args.candidate_id as string
+          );
           return { ok: true, applied: true, ...applied };
         }
         const candidate = await createTransitionCandidate(args);

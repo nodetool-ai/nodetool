@@ -14,9 +14,11 @@ import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import {
   DEFAULT_MIDI_INSTRUMENT,
+  effectiveAssetId,
   midiRenderKey,
   previewTake,
-  resolveTempo
+  resolveTempo,
+  videoClipsWithOwnAudio
 } from "@nodetool-ai/timeline";
 import type {
   MidiInstrument,
@@ -107,24 +109,37 @@ const AUDIO_TOPUP_INTERVAL_MS = 5_000;
 const SEEK_RESTART_DEBOUNCE_MS = 120;
 
 /**
+ * Ids of the video clips that sound their own audio (no extracted-audio
+ * partner, unmuted, not silenced by a solo). The video elements stay muted;
+ * these clips are played through the audio graph like an audio clip.
+ */
+function ownAudioClipIds(
+  clips: readonly TimelineClip[],
+  tracks: readonly TimelineTrack[]
+): Set<string> {
+  return new Set(videoClipsWithOwnAudio(clips, tracks).map((clip) => clip.id));
+}
+
+/**
  * True if `clip` is a schedulable sounding clip that hasn't finished by `atMs`.
  *
  * A midi clip has no asset and no generation to wait for — its notes are the
  * content — so it needs neither `currentAssetId` nor a status; an empty note
- * list would render silence, so it is skipped instead.
+ * list would render silence, so it is skipped instead. An audio clip sounds
+ * under the status rule its picture would be drawn under, and a video clip
+ * only when it is in `ownAudio`.
  */
-function isPendingAudioClip(clip: TimelineClip, atMs: number): boolean {
+function isPendingAudioClip(
+  clip: TimelineClip,
+  atMs: number,
+  ownAudio: ReadonlySet<string>
+): boolean {
   if (clip.muted || clip.startMs + clip.durationMs <= atMs) return false;
   if (clip.mediaType === "midi") {
     return (clip.notes?.length ?? 0) > 0;
   }
-  return (
-    clip.mediaType === "audio" &&
-    !!clip.currentAssetId &&
-    (clip.status === "generated" ||
-      clip.status === "stale" ||
-      clip.status === "locked")
-  );
+  if (clip.mediaType === "video") return ownAudio.has(clip.id);
+  return clip.mediaType === "audio" && effectiveAssetId(clip) !== undefined;
 }
 
 /** The voice a midi clip on this track plays. */
@@ -505,10 +520,18 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
     /** The key `clip`'s scheduled sound answers to, or null when it has no
      * schedulable sound. Track routing is part of the key because a source is
-     * connected to its track chain when it is scheduled. */
+     * connected to its track chain when it is scheduled. A video clip has a
+     * key only while it sounds its own audio, so muting its track, soloing a
+     * sound track or adding an audio partner stops it. */
     const audioScheduleKeyOf = useCallback(
-      (clip: TimelineClip): string | null => {
-        if (clip.mediaType !== "audio" && clip.mediaType !== "midi") {
+      (clip: TimelineClip, ownAudio: ReadonlySet<string>): string | null => {
+        const ownVideoAudio =
+          clip.mediaType === "video" && ownAudio.has(clip.id);
+        if (
+          clip.mediaType !== "audio" &&
+          clip.mediaType !== "midi" &&
+          !ownVideoAudio
+        ) {
           return null;
         }
         const midiKey = (() => {
@@ -570,6 +593,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           useTimelineUIStore.getState().audition
         );
         const clipIdsNow = new Set(clipsNow.map((c) => c.id));
+        const ownAudio = ownAudioClipIds(
+          clipsNow,
+          timelineApi.getState().tracks
+        );
 
         const removedClipIds = [...scheduledClipIdsRef.current].filter(
           (id) => !clipIdsNow.has(id)
@@ -584,7 +611,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
         const newlyEnteredClips = clipsNow.filter(
           (c) =>
-            isPendingAudioClip(c, liveMs) &&
+            isPendingAudioClip(c, liveMs, ownAudio) &&
             c.startMs < windowEndMs &&
             !scheduledClipIdsRef.current.has(c.id)
         );
@@ -595,14 +622,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const changedAudioClips = clipsNow.filter((c) => {
           if (!scheduledClipIdsRef.current.has(c.id)) return false;
           return (
-            audioScheduleKeyOf(c) !== scheduledAudioKeysRef.current.get(c.id)
+            audioScheduleKeyOf(c, ownAudio) !==
+            scheduledAudioKeysRef.current.get(c.id)
           );
         });
         if (changedAudioClips.length > 0) {
           graph.stopClips(changedAudioClips.map((c) => c.id));
         }
         const restaleAudioClips = changedAudioClips.filter((c) =>
-          isPendingAudioClip(c, liveMs)
+          isPendingAudioClip(c, liveMs, ownAudio)
         );
         const restaleAudioIds = new Set(restaleAudioClips.map((c) => c.id));
         for (const c of changedAudioClips) {
@@ -618,7 +646,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         // the 5 s interval) can't attempt the same clip twice.
         for (const c of pending) {
           scheduledClipIdsRef.current.add(c.id);
-          const key = audioScheduleKeyOf(c);
+          const key = audioScheduleKeyOf(c, ownAudio);
           if (key !== null) scheduledAudioKeysRef.current.set(c.id, key);
         }
 
@@ -795,10 +823,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       );
       // Backwards playback (J) is picture only: the audio graph schedules
       // forward from a source position.
+      const ownAudio = ownAudioClipIds(
+        clipsNow,
+        timelineApi.getState().tracks
+      );
       const remainingAudioClips =
         globalRate < 0
           ? []
-          : clipsNow.filter((c) => isPendingAudioClip(c, startMs));
+          : clipsNow.filter((c) => isPendingAudioClip(c, startMs, ownAudio));
 
       if (remainingAudioClips.length === 0) {
         // Nothing left to play — e.g. a seek landed past the last audio
@@ -841,7 +873,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       for (const { clip } of validClips) {
         scheduledClipIdsRef.current.add(clip.id);
-        const key = audioScheduleKeyOf(clip);
+        const key = audioScheduleKeyOf(clip, ownAudio);
         if (key !== null) scheduledAudioKeysRef.current.set(clip.id, key);
       }
 

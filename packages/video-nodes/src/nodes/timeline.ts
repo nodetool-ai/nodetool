@@ -30,8 +30,13 @@ import type { DocumentRef, TimelineRef, VideoRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
+  computeModel3DBakeHash,
   createTimeOrderedUuid,
   DEFAULT_MIDI_INSTRUMENT,
+  effectiveAssetId,
+  extractedAudioLinkIds as sharedExtractedAudioLinkIds,
+  soundTrackSoloed,
+  videoClipsWithOwnAudio,
   encodeWavPcm16,
   ffmpegFadeCurve,
   fillTimelineText,
@@ -49,6 +54,8 @@ import {
   timeRemapAudioSegments,
   type TimeRemapAudioSegment,
   type TimelineClip,
+  type TrackCompressorEffect,
+  type TrackEffect,
   type TimelineSequence,
   type TimelineTrack
 } from "@nodetool-ai/timeline";
@@ -163,24 +170,14 @@ function renderableVideoClips(seq: TimelineSequence): TimelineClip[] {
 }
 
 /**
- * Solo is the preview's rule (`renderAudio.ts`, `AudioGraph.updateTracks`):
- * audio and midi tracks form the solo group, and once any of them is soloed
- * every track outside the solo set is silent.
- */
-function soundTrackSoloed(seq: TimelineSequence): boolean {
-  return seq.tracks.some(
-    (track) => (track.type === "audio" || track.type === "midi") && track.solo
-  );
-}
-
-/**
  * Clips the mix draws from: audio-track clips backed by an asset, and midi
  * clips, whose sound is rendered from the notes they carry rather than fetched
- * (they have no `currentAssetId` at all).
+ * (they have no `currentAssetId` at all). An audio clip sounds under the same
+ * status rule its picture would be drawn under (`effectiveAssetId`).
  */
 function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
   const tracks = trackById(seq.tracks);
-  const hasSolo = soundTrackSoloed(seq);
+  const hasSolo = soundTrackSoloed(seq.tracks);
   return seq.clips
     .filter((clip) => {
       const track = tracks.get(clip.trackId);
@@ -195,36 +192,15 @@ function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
       return (
         track.type === "audio" &&
         clip.mediaType === "audio" &&
-        !!clip.currentAssetId
+        !!effectiveAssetId(clip)
       );
     })
     .sort((a, b) => a.startMs - b.startMs);
 }
 
-/**
- * linkIds of audio-track clips that are the detached audio representation of a
- * video clip. The mere presence of such a clip means the linked video's own
- * muxed audio must be suppressed (the editor mutes the video element; audio
- * comes only from audio-track clips). This is intentionally NOT gated on
- * mute/hidden — those govern whether the audio clip is mixed in, not whether
- * the video's embedded audio resurfaces. If the user deletes the audio clip,
- * the store auto-unlinks the lone survivor, clearing the video's linkId, so the
- * video's audio returns on its own.
- */
+/** The detached-audio linkIds of a sequence; see the shared rule. */
 export function extractedAudioLinkIds(seq: TimelineSequence): Set<string> {
-  const tracks = trackById(seq.tracks);
-  const ids = new Set<string>();
-  for (const clip of seq.clips) {
-    const track = tracks.get(clip.trackId);
-    if (
-      track?.type === "audio" &&
-      clip.mediaType === "audio" &&
-      isNonEmptyString(clip.linkId)
-    ) {
-      ids.add(clip.linkId);
-    }
-  }
-  return ids;
+  return sharedExtractedAudioLinkIds(seq.clips, seq.tracks);
 }
 
 /** Scale + letterbox to the sequence frame, normalize fps and pixel format. */
@@ -342,30 +318,13 @@ async function encodeSegment(opts: {
 /**
  * Clips whose embedded audio the composited path must mix in itself: the
  * rough cut carried a video clip's audio through its segment, but a
- * frame-by-frame composite has no audio at all. Muted clips/tracks, clips
- * whose audio was extracted onto an audio track (see
- * {@link extractedAudioLinkIds}) and everything while a sound track is
- * soloed are left out.
+ * frame-by-frame composite has no audio at all. The preview and browser
+ * export pick the same clips through `videoClipsWithOwnAudio`.
  */
 function embeddedAudioClips(seq: TimelineSequence): TimelineClip[] {
-  // A picture track cannot be soloed, so a soloed sound track silences it.
-  if (soundTrackSoloed(seq)) return [];
-  const tracks = trackById(seq.tracks);
-  const suppressed = extractedAudioLinkIds(seq);
-  return seq.clips
-    .filter((clip) => {
-      const track = tracks.get(clip.trackId);
-      return (
-        (track?.type === "video" || track?.type === "overlay") &&
-        track.muted !== true &&
-        !clip.muted &&
-        clip.mediaType === "video" &&
-        !!clip.currentAssetId &&
-        clip.durationMs > 0 &&
-        !(isString(clip.linkId) && suppressed.has(clip.linkId))
-      );
-    })
-    .sort((a, b) => a.startMs - b.startMs);
+  return videoClipsWithOwnAudio(seq.clips, seq.tracks).sort(
+    (a, b) => a.startMs - b.startMs
+  );
 }
 
 /** Seconds, at millisecond resolution, for an ffmpeg filter argument. */
@@ -465,7 +424,100 @@ function audioRemapSegmentFilter(
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
 }
 
-/** Anything that draws: media, titles, shapes, or a caption riding a clip. */
+/** Clamp for an ffmpeg option that refuses values outside its range. */
+function clampTo(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+/** Sample rate a track's effect chain runs at, the mix's own `-ar`. */
+const EFFECT_SAMPLE_RATE = 48000;
+
+/** A biquad frequency ffmpeg accepts, held below Nyquist as Web Audio holds it. */
+function biquadHz(frequency: number): number {
+  return clampTo(frequency, 1, EFFECT_SAMPLE_RATE / 2 - 1);
+}
+
+/**
+ * Web Audio's compressor adds makeup gain of its own: the gain that brings a
+ * full-scale input back to full scale, raised to the power 0.6. ffmpeg's
+ * `acompressor` adds none, so it is computed here from the curve at 0 dBFS
+ * with a quadratic soft knee, which is close to but not exactly the spec's.
+ */
+function compressorMakeupGain(e: TrackCompressorEffect): number {
+  const threshold = clampTo(e.thresholdDb, -100, 0);
+  const ratio = clampTo(e.ratio, 1, 20);
+  const knee = clampTo(e.kneeDb, 0, 40);
+  const over = -threshold;
+  let gainDb: number;
+  if (2 * over < -knee) {
+    gainDb = 0;
+  } else if (2 * Math.abs(over) <= knee) {
+    gainDb = ((1 / ratio - 1) * (over + knee / 2) ** 2) / (2 * Math.max(knee, 1e-6));
+  } else {
+    gainDb = threshold + over / ratio;
+  }
+  return clampTo(Math.pow(10, (-gainDb * 0.6) / 20), 1, 64);
+}
+
+/**
+ * ffmpeg steps for one enabled effect, matching the Web Audio node
+ * `AudioGraph.buildEffectUnit` builds for the preview. The shelves use Web
+ * Audio's fixed slope of 1, a lowpass/highpass Q is in dB as it is there, and
+ * a bandpass Q is linear. The compressor detects peaks; its knee is capped at
+ * the 18 dB `acompressor` allows.
+ */
+function audioEffectSteps(effect: TrackEffect): string[] {
+  switch (effect.type) {
+    case "gain":
+      return [`volume=${effect.gainDb}dB`];
+    case "eq3":
+      return [
+        `lowshelf=f=${biquadHz(effect.lowFreq)}:g=${effect.lowGainDb}:t=s:w=1`,
+        `equalizer=f=${biquadHz(effect.midFreq)}:t=q:w=${Math.max(0.0001, effect.midQ)}:g=${effect.midGainDb}`,
+        `highshelf=f=${biquadHz(effect.highFreq)}:g=${effect.highGainDb}:t=s:w=1`
+      ];
+    case "filter": {
+      const q =
+        effect.mode === "bandpass"
+          ? Math.max(0.0001, effect.q)
+          : Math.max(0.0001, Math.pow(10, effect.q / 20));
+      return [`${effect.mode}=f=${biquadHz(effect.frequency)}:t=q:w=${q}`];
+    }
+    case "compressor":
+      return [
+        "acompressor=" +
+          [
+            `threshold=${clampTo(Math.pow(10, effect.thresholdDb / 20), 0.000976563, 1)}`,
+            `ratio=${clampTo(effect.ratio, 1, 20)}`,
+            `attack=${clampTo(effect.attackMs, 0.01, 2000)}`,
+            `release=${clampTo(effect.releaseMs, 0.01, 9000)}`,
+            `knee=${clampTo(Math.pow(10, effect.kneeDb / 20), 1, 8)}`,
+            `makeup=${compressorMakeupGain(effect)}`,
+            "detection=peak"
+          ].join(":")
+      ];
+    default:
+      return [];
+  }
+}
+
+/**
+ * The DSP chain of a track, in array order. Only audio and midi tracks carry
+ * one, as in the preview, where `AudioGraph.updateTracks` applies effects to
+ * those tracks alone.
+ */
+function trackEffectSteps(track: TimelineTrack | undefined): string[] {
+  if (!track || (track.type !== "audio" && track.type !== "midi")) return [];
+  const steps = (track.effects ?? [])
+    .filter((effect) => effect.enabled)
+    .flatMap(audioEffectSteps);
+  return steps.length > 0 ? [`aresample=${EFFECT_SAMPLE_RATE}`, ...steps] : [];
+}
+
+/**
+ * Anything that draws: media, titles, shapes, a caption riding a clip, or a 3D
+ * clip whose bake still matches it (a live one draws only in the editor).
+ */
 function hasRenderableVisual(seq: TimelineSequence): boolean {
   const tracks = trackById(seq.tracks);
   return seq.clips.some((clip) => {
@@ -475,8 +527,17 @@ function hasRenderableVisual(seq: TimelineSequence): boolean {
     if (track.type !== "video" && track.type !== "overlay") return false;
     if (clip.mediaType === "text") return !!clip.textStyle;
     if (clip.mediaType === "shape") return !!clip.shapeStyle;
+    if (clip.mediaType === "model3d") {
+      const bake = clip.model3dStyle?.bake;
+      return (
+        bake !== undefined &&
+        computeModel3DBakeHash(clip, seq) === bake.dependencyHash
+      );
+    }
     return (
-      (clip.mediaType === "video" || clip.mediaType === "image") &&
+      (clip.mediaType === "video" ||
+        clip.mediaType === "image" ||
+        clip.mediaType === "overlay") &&
       !!clip.currentAssetId
     );
   });
@@ -702,6 +763,8 @@ async function renderRoughCut(opts: {
 async function mixAudioInto(opts: {
   basePath: string;
   clips: TimelineClip[];
+  /** The sequence's tracks, whose effect chains run over their clips' sum. */
+  tracks: TimelineTrack[];
   baseHasAudio: boolean;
   assets: { path(assetId: string): Promise<string | null> };
   midi: MidiFiles;
@@ -712,6 +775,7 @@ async function mixAudioInto(opts: {
   const {
     basePath,
     clips,
+    tracks,
     baseHasAudio,
     assets,
     midi,
@@ -722,6 +786,17 @@ async function mixAudioInto(opts: {
   const inputs: string[] = ["-i", basePath];
   const filters: string[] = [];
   const labels: string[] = [];
+  // Each clip's stream(s), grouped by track so a track's effect chain runs
+  // over the sum of its clips, as the preview's chain does.
+  const trackLabels = new Map<string, string[]>();
+  const labelsOf = (clip: TimelineClip): string[] => {
+    let list = trackLabels.get(clip.trackId);
+    if (!list) {
+      list = [];
+      trackLabels.set(clip.trackId, list);
+    }
+    return list;
+  };
   let inputIndex = 1;
 
   for (const [i, clip] of clips.entries()) {
@@ -740,7 +815,7 @@ async function mixAudioInto(opts: {
       inputs.push("-i", audioPath);
       const label = `a${i}`;
       filters.push(audioClipFilter(clip, inputIndex, label));
-      labels.push(`[${label}]`);
+      labelsOf(clip).push(`[${label}]`);
       inputIndex += 1;
       continue;
     }
@@ -772,10 +847,25 @@ async function mixAudioInto(opts: {
             ]
           : clipFadeSteps(clip, clip.startMs);
       filters.push(`${segmentLabels.join("")}${steps.join(",")}[${faded}]`);
-      labels.push(`[${faded}]`);
+      labelsOf(clip).push(`[${faded}]`);
       continue;
     }
-    labels.push(...segmentLabels);
+    labelsOf(clip).push(...segmentLabels);
+  }
+  const byTrack = trackById(tracks);
+  for (const [trackId, streams] of trackLabels) {
+    const steps = trackEffectSteps(byTrack.get(trackId));
+    if (steps.length === 0) {
+      labels.push(...streams);
+      continue;
+    }
+    const label = `t${filters.length}`;
+    const head =
+      streams.length > 1
+        ? [`amix=inputs=${streams.length}:duration=longest:normalize=0`]
+        : [];
+    filters.push(`${streams.join("")}${[...head, ...steps].join(",")}[${label}]`);
+    labels.push(`[${label}]`);
   }
   if (labels.length === 0) return basePath;
 
@@ -828,6 +918,7 @@ export async function mixCompositedTimelineAudio(opts: {
   return mixAudioInto({
     basePath,
     clips,
+    tracks: sequence.tracks,
     baseHasAudio: false,
     assets: { path: resolveAssetPath },
     midi: new MidiFiles(workDir, sequence, resolveAssetPath),
@@ -1183,6 +1274,7 @@ export class RenderTimelineNode extends BaseNode {
           ? await mixAudioInto({
               basePath,
               clips: audioToMix,
+              tracks: seq.tracks,
               baseHasAudio,
               assets,
               midi,

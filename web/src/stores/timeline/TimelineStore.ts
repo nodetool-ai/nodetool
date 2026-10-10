@@ -31,10 +31,12 @@ import { temporal } from "../temporal";
 import type { TemporalState } from "../temporal";
 import {
   isGroupClip,
+  groupDescendantIds,
   moveGroup,
   moveUnitIds,
   splitClip,
   splitClipMediaTracks,
+  retimeCaption,
   trimClip,
   rippleTrim,
   rollEdit,
@@ -58,6 +60,8 @@ import {
   makeTrackEffect,
   createTimeOrderedUuid,
   createMidiNote,
+  hasTimeRemap,
+  MIDI_MAX_NOTES_PER_CLIP,
   quantizeNotes,
   msToTicks,
   rescaleClipsForTempo,
@@ -631,6 +635,8 @@ export interface TimelineStoreState {
   ) => void;
   /** Ramps both ends of every audible clip in `clipIds` in and out. */
   applyFades: (clipIds: ReadonlySet<string>, durationMs?: number) => void;
+  /** Remove both fades from the unlocked clips among `clipIds`. */
+  clearFades: (clipIds: ReadonlySet<string>) => void;
   /** Resize a clip's incoming transition, growing the predecessor as needed. */
   setTransitionDuration: (clipId: string, durationMs: number) => void;
   removeTransition: (clipId: string) => void;
@@ -663,11 +669,16 @@ export interface TimelineStoreState {
   /** Split the clip at the given time. The clip must contain that time. */
   splitClipAtTime: (clipId: string, atMs: number) => void;
 
-  /** Split all selected clips at the current playhead (passed as argument). */
+  /**
+   * Split all selected clips at the current playhead (passed as argument).
+   * Returns the ids of the right halves on the tracks of the selected clips,
+   * so the caller can keep a selection: both halves get new ids, which drops
+   * the old selection, and an empty selection means "every clip".
+   */
   splitSelectedAtPlayhead: (
     currentTimeMs: number,
     selectedIds: Set<string>
-  ) => void;
+  ) => string[];
 
   /**
    * Duplicate selected clips. Each duplicate is placed immediately after its
@@ -1206,16 +1217,36 @@ function editMidiNotes(
 ): void {
   set((state) => {
     const clip = state.clips.find((c) => c.id === clipId);
-    if (!clip || clip.mediaType !== "midi") {
+    if (
+      !clip ||
+      clip.mediaType !== "midi" ||
+      clipLockError(state, clipId) !== null
+    ) {
       return state;
     }
     const notes = sortNotes(edit(clip.notes ?? [], clip, state));
     if (sameNotes(clip.notes ?? [], notes)) {
       return state;
     }
+    if (notes.length > MIDI_MAX_NOTES_PER_CLIP) {
+      notifyNoteLimit(notes.length);
+      return state;
+    }
     return {
       clips: state.clips.map((c) => (c.id === clipId ? { ...c, notes } : c))
     };
+  });
+}
+
+/**
+ * A clip over the note cap fails the save schema, and every autosave after it
+ * with it, so the edit is refused here with a notice instead.
+ */
+function notifyNoteLimit(count: number): void {
+  useNotificationStore.getState().addNotification({
+    type: "warning",
+    alert: true,
+    content: `A MIDI clip holds at most ${MIDI_MAX_NOTES_PER_CLIP} notes. This edit would make ${count}.`
   });
 }
 
@@ -1324,6 +1355,23 @@ export function lockedUserTargetIds(
     includeGroupDescendants: true
   });
   return new Set([...allIds].filter((id) => !editable.has(id)));
+}
+
+/**
+ * Why a user edit of one clip's own content is refused: the clip or its track
+ * is locked. Null when the edit may go ahead.
+ */
+function clipLockError(
+  state: { clips: readonly TimelineClip[]; tracks: readonly TimelineTrack[] },
+  clipId: string
+): string | null {
+  const clip = state.clips.find((c) => c.id === clipId);
+  if (!clip) return null;
+  if (clip.locked) return `Unlock "${clip.name}" to change it.`;
+  if (state.tracks.find((t) => t.id === clip.trackId)?.locked) {
+    return `Unlock the track to change "${clip.name}".`;
+  }
+  return null;
 }
 
 /** The clips a transition or fade shortcut may change: those not locked. */
@@ -2951,10 +2999,17 @@ export const createTimelineStore = (
         resolveDrop: (movedIds, mode) =>
           set((state) => {
             if (mode === "overlap") return state;
+            const lockedClipIds = lockedUserTargetIds(state.clips, state.tracks);
+            // A locked clip in the selection did not move with the drag, so
+            // it neither clears what is under it nor sets the insert point.
+            const moved = new Set(
+              [...movedIds].filter((id) => !lockedClipIds.has(id))
+            );
+            if (moved.size === 0) return state;
             return {
-              clips: resolveDrop(state.clips, movedIds, mode, {
+              clips: resolveDrop(state.clips, moved, mode, {
                 lockedTrackIds: lockedTrackIds(state.tracks),
-                lockedClipIds: lockedUserTargetIds(state.clips, state.tracks)
+                lockedClipIds
               })
             };
           }),
@@ -2999,6 +3054,23 @@ export const createTimelineStore = (
             return changed ? { clips } : state;
           }),
 
+        clearFades: (clipIds) =>
+          set((state) => {
+            const editable = editableTransitionTargets(state, clipIds);
+            let changed = false;
+            const clips = state.clips.map((clip) => {
+              if (
+                !editable.has(clip.id) ||
+                (!clip.fadeInMs && !clip.fadeOutMs)
+              ) {
+                return clip;
+              }
+              changed = true;
+              return { ...clip, fadeInMs: 0, fadeOutMs: 0 };
+            });
+            return changed ? { clips } : state;
+          }),
+
         setTransitionDuration: (clipId, durationMs) =>
           set((state) => {
             if (
@@ -3029,7 +3101,7 @@ export const createTimelineStore = (
         setClipKeyframe: (clipId, property, atMs, value) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
-            if (!clip) return state;
+            if (!clip || clipLockError(state, clipId)) return state;
             const animations = setKeyframe(clip, property, atMs, value);
             return {
               clips: state.clips.map((c) =>
@@ -3041,7 +3113,7 @@ export const createTimelineStore = (
         removeClipKeyframe: (clipId, property, atMs) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
-            if (!clip) return state;
+            if (!clip || clipLockError(state, clipId)) return state;
             const animations = removeKeyframe(clip, property, atMs);
             return {
               clips: state.clips.map((c) =>
@@ -3092,7 +3164,8 @@ export const createTimelineStore = (
             return next.clips === state.clips ? state : next;
           }),
 
-        splitSelectedAtPlayhead: (currentTimeMs, selectedIds) =>
+        splitSelectedAtPlayhead: (currentTimeMs, selectedIds) => {
+          const rightHalfIds: string[] = [];
           set((state) => {
             // Target every selected clip containing the playhead (or all clips
             // when nothing is selected). splitClipsLinkAware dedupes so a
@@ -3119,16 +3192,43 @@ export const createTimelineStore = (
               currentTimeMs,
               [...targetIds]
             );
-            return next.clips === state.clips ? state : next;
-          }),
+            if (next.clips === state.clips) return state;
+            const oldIds = new Set(state.clips.map((c) => c.id));
+            const targetTracks = new Set(
+              state.clips
+                .filter((c) => targetIds.has(c.id))
+                .map((c) => c.trackId)
+            );
+            for (const c of next.clips) {
+              if (
+                !oldIds.has(c.id) &&
+                targetTracks.has(c.trackId) &&
+                c.startMs === currentTimeMs
+              ) {
+                rightHalfIds.push(c.id);
+              }
+            }
+            return next;
+          });
+          return rightHalfIds;
+        },
 
         duplicateSelected: (selectedIds, offsetMs = 0) => {
           const newIds: string[] = [];
           set((state) => {
+            // A selected group brings its children, or the copy is empty.
+            const requested = new Set(selectedIds);
+            for (const c of state.clips) {
+              if (selectedIds.has(c.id) && isGroupClip(c)) {
+                for (const id of groupDescendantIds(state.clips, c.id)) {
+                  requested.add(id);
+                }
+              }
+            }
             const editable = editableUserTargets(
               state.clips,
               state.tracks,
-              selectedIds,
+              requested,
               { followLinks: false, includeGroupDescendants: false }
             );
             const sources = state.clips.filter((c) => editable.has(c.id));
@@ -3235,6 +3335,9 @@ export const createTimelineStore = (
 
         setTrackInstrument: (trackId, instrument) =>
           set((state) => {
+            if (state.tracks.find((t) => t.id === trackId)?.locked) {
+              return state;
+            }
             const tracks = patchById(state.tracks, trackId, { instrument });
             return tracks === state.tracks ? state : { tracks };
           }),
@@ -3262,9 +3365,7 @@ export const createTimelineStore = (
         },
 
         setClipNotes: (clipId, notes) =>
-          get().patchClip(clipId, {
-            notes: sortNotes(notes.map(createMidiNote))
-          }),
+          editMidiNotes(set, clipId, () => notes.map(createMidiNote)),
 
         transposeClip: (clipId, semitones) =>
           editMidiNotes(set, clipId, (notes) =>
@@ -3305,7 +3406,12 @@ export const createTimelineStore = (
         unlinkClip: (clipId) =>
           set((state) => {
             const linkId = state.clips.find((c) => c.id === clipId)?.linkId;
-            if (!linkId) {
+            if (
+              !linkId ||
+              state.clips.some(
+                (c) => c.linkId === linkId && clipLockError(state, c.id)
+              )
+            ) {
               return state;
             }
             return {
@@ -3339,6 +3445,9 @@ export const createTimelineStore = (
               state.linkedSelection && clip.linkId !== undefined
                 ? state.clips.filter((c) => c.linkId === clip.linkId)
                 : [clip];
+            // A time remap names absolute source times over the clip's window,
+            // so a speed change would retime it. Trim refuses the same clip.
+            if (members.some((m) => hasTimeRemap(m))) return state;
             const memberIds = new Set(members.map((m) => m.id));
             const planned = members.map((m) => {
               const newRate = sourceRate({ ...m, speedMultiplier });
@@ -3362,6 +3471,15 @@ export const createTimelineStore = (
               const retimed: TimelineClip = { ...m, speedMultiplier, durationMs };
               if (overflowMs > 0 && m.outPointMs !== undefined) {
                 retimed.outPointMs = (m.inPointMs ?? 0) + durationMs * newRate;
+              }
+              // Words are timed on the clip's clock, which the new speed
+              // stretches by the same factor as the clip.
+              if (m.caption) {
+                retimed.caption = retimeCaption(
+                  m.caption,
+                  0,
+                  sourceRate(m) / newRate
+                );
               }
               next.set(m.id, retimed);
             }
@@ -3824,6 +3942,8 @@ export const createTimelineStore = (
         applyTake: (clipId, versionId) => {
           const clip = get().clips.find((c) => c.id === clipId);
           if (!clip) return `Clip ${clipId} not found`;
+          const locked = clipLockError(get(), clipId);
+          if (locked) return locked;
           const result = applyTakeToClip(clip, versionId);
           if (result.error) return result.error;
           if (result.clip === clip) return null;
@@ -3847,6 +3967,8 @@ export const createTimelineStore = (
         deleteTake: (clipId, versionId) => {
           const clip = get().clips.find((c) => c.id === clipId);
           if (!clip) return `Clip ${clipId} not found`;
+          const locked = clipLockError(get(), clipId);
+          if (locked) return locked;
           const { clip: next, error } = deleteTakeOnClip(clip, versionId);
           if (error) return error;
           set((state) => ({
@@ -3861,12 +3983,26 @@ export const createTimelineStore = (
             throw new Error(`Clip ${clipId} not found`);
           }
 
+          if (get().tracks.find((t) => t.id === src.trackId)?.locked) {
+            throw new Error(`Unlock the track to duplicate "${src.name}".`);
+          }
           let newClipId: string | undefined;
           set((state) => {
             const currentSrc = state.clips.find((c) => c.id === clipId);
             if (!currentSrc) {
               return state;
             }
+            // Imported media has nothing to regenerate, so its copy keeps the
+            // asset. A generated clip's copy is a fresh draft of the binding.
+            const media =
+              currentSrc.sourceType === "imported"
+                ? {}
+                : {
+                    status: "draft" as const,
+                    currentAssetId: undefined,
+                    lastGeneratedHash: undefined,
+                    versions: []
+                  };
             const newClip = makeClip({
               ...currentSrc,
               id: createTimeOrderedUuid(),
@@ -3875,10 +4011,8 @@ export const createTimelineStore = (
               paramOverrides: currentSrc.paramOverrides
                 ? structuredClone(currentSrc.paramOverrides)
                 : undefined,
-              status: "draft",
+              ...media,
               locked: false,
-              currentAssetId: undefined,
-              lastGeneratedHash: undefined,
               // A lone duplicate is not linked to the source group.
               linkId: undefined,
               // Copy animations with fresh ids so the two clips edit
@@ -3887,7 +4021,10 @@ export const createTimelineStore = (
                 ...a,
                 id: createTimeOrderedUuid()
               })),
-              versions: []
+              versions:
+                currentSrc.sourceType === "imported"
+                  ? structuredClone(currentSrc.versions)
+                  : []
             });
             newClipId = newClip.id;
             return { clips: [...state.clips, newClip] };
@@ -3909,6 +4046,7 @@ export const createTimelineStore = (
 
         replaceClipOutput: (clipId, assetId) =>
           set((state) => {
+            if (clipLockError(state, clipId)) return state;
             const clips = patchById(state.clips, clipId, {
               currentAssetId: assetId
             });
@@ -4131,6 +4269,13 @@ export const createTimelineStore = (
         },
 
         regenerateAsCopy: (clipId, deltaMs = 0) => {
+          const source = get().clips.find((c) => c.id === clipId);
+          if (
+            source &&
+            get().tracks.find((t) => t.id === source.trackId)?.locked
+          ) {
+            throw new Error(`Unlock the track to copy "${source.name}".`);
+          }
           let newId: string | undefined;
           set((state) => {
             const src = state.clips.find((c) => c.id === clipId);
@@ -4139,6 +4284,14 @@ export const createTimelineStore = (
               ...src,
               id: createTimeOrderedUuid(),
               startMs: src.startMs + src.durationMs + deltaMs,
+              // The copy is a new clip, not a member of the source's link
+              // group or group, and its animations edit independently.
+              linkId: undefined,
+              parentId: undefined,
+              animations: src.animations?.map((a) => ({
+                ...a,
+                id: createTimeOrderedUuid()
+              })),
               // Clone independent overrides / binding so edits diverge.
               paramOverrides: src.paramOverrides
                 ? structuredClone(src.paramOverrides)

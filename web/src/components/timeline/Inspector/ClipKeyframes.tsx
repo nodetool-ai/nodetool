@@ -39,6 +39,14 @@ import {
 } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
 
+/**
+ * Rotation is stored in radians (`animation/types.ts`) and shown in degrees,
+ * as the Transform section does. Every other property is shown as stored.
+ */
+const DISPLAY_SCALE: Partial<Record<KeyframeProperty, number>> = {
+  rotation: 180 / Math.PI
+};
+
 const PROPERTY_LABELS: Record<KeyframeProperty, { label: string; unit?: string; step: number }> = {
   opacity: { label: "Opacity", step: 0.05 },
   scale: { label: "Scale", unit: "×", step: 0.05 },
@@ -67,6 +75,7 @@ const KeyframeRow: React.FC<{
   const keyframeProperty = useTimelineUIStore((s) => s.keyframeProperty);
   const setKeyframeProperty = useTimelineUIStore((s) => s.setKeyframeProperty);
   const meta = PROPERTY_LABELS[property];
+  const displayScale = DISPLAY_SCALE[property] ?? 1;
   const value = keyframeValueAt(clip, property, atMs);
   const keyed = hasKeyframeAt(clip, property, atMs);
   const armed = keyframeProperty === property;
@@ -83,10 +92,18 @@ const KeyframeRow: React.FC<{
       if (!inside) return;
       const next = Number.parseFloat(raw);
       if (!Number.isFinite(next) || raw.trim() === "") return;
-      setClipKeyframe(clip.id, property, atMs, next);
+      setClipKeyframe(clip.id, property, atMs, next / displayScale);
       setKeyframeProperty(property);
     },
-    [inside, setClipKeyframe, setKeyframeProperty, clip.id, property, atMs]
+    [
+      inside,
+      setClipKeyframe,
+      setKeyframeProperty,
+      clip.id,
+      property,
+      atMs,
+      displayScale
+    ]
   );
 
   return (
@@ -112,7 +129,7 @@ const KeyframeRow: React.FC<{
       }
     >
       <InspectorPillInput
-        value={String(Math.round(value * 100) / 100)}
+        value={String(Math.round(value * displayScale * 100) / 100)}
         onCommit={commit}
         unit={meta.unit}
         ariaLabel={`${meta.label} at playhead`}

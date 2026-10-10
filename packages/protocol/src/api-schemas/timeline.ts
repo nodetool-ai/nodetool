@@ -2031,7 +2031,12 @@ export const createTimelineInput = z.object({
   projectId: z.string().min(1),
   fps: z.number().int().min(1).optional().default(30),
   width: z.number().int().min(1).optional().default(1920),
-  height: z.number().int().min(1).optional().default(1080)
+  height: z.number().int().min(1).optional().default(1080),
+  /**
+   * The caller's sequence this one is derived from (a format adaptation).
+   * Recorded at creation because a later save keeps the stored lineage.
+   */
+  templateId: z.string().min(1).optional()
 });
 export type CreateTimelineInput = z.infer<typeof createTimelineInput>;
 

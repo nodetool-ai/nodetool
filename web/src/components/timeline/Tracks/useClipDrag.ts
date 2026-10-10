@@ -136,11 +136,27 @@ export function useClipDrag({
 
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (
-        !clip ||
-        interactionLocked ||
-        (e.pointerType === "touch" && !e.isPrimary)
-      ) {
+      if (!clip || (e.pointerType === "touch" && !e.isPrimary)) {
+        return;
+      }
+      if (interactionLocked) {
+        // A locked clip does not drag, but a touch hold still opens its menu,
+        // which is where Unlock lives on a phone.
+        longPress.start(e);
+        const pointerId = e.pointerId;
+        const onMove = (ev: PointerEvent): void => {
+          if (ev.pointerId === pointerId) longPress.move(ev);
+        };
+        const onEnd = (ev: PointerEvent): void => {
+          if (ev.pointerId !== pointerId) return;
+          longPress.cancel();
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onEnd);
+          window.removeEventListener("pointercancel", onEnd);
+        };
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onEnd);
+        window.addEventListener("pointercancel", onEnd);
         return;
       }
       // Cut tool: split the clip at the pointer's ms position instead of

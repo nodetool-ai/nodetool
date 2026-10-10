@@ -30,7 +30,10 @@ import {
   SPACING
 } from "../ui_primitives";
 
-import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../stores/timeline/TimelineStore";
 import { useTimelineTranscriptStore } from "../../stores/timeline/TimelineTranscriptStore";
 import { buildTranscriptDoc, isTranscriptClip } from "../../stores/timeline/transcriptOps";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -48,6 +51,7 @@ export const TranscriptPanel: React.FC = memo(() => {
   const removeFillers = useTimelineTranscriptStore((s) => s.removeFillers);
   const importMedia = useTimelineTranscriptStore((s) => s.importMedia);
   const sequenceId = useTimelineStore((s) => s.sequenceId);
+  const docApi = useTimelineStoreApi();
   const createAsset = useAssetStore((s) => s.createAsset);
   const addNotification = useNotificationStore((s) => s.addNotification);
   const { extract, extracting } = useExtractScript();
@@ -88,7 +92,8 @@ export const TranscriptPanel: React.FC = memo(() => {
   const onExtractScript = useCallback(async () => {
     if (!sequenceId) return;
     try {
-      await extract(sequenceId);
+      // The live clips, so edits autosave has not written yet are included.
+      await extract(sequenceId, docApi.getState().clips);
     } catch (err) {
       addNotification({
         content: `Extract as script failed: ${
@@ -98,7 +103,7 @@ export const TranscriptPanel: React.FC = memo(() => {
         alert: true
       });
     }
-  }, [extract, sequenceId, addNotification]);
+  }, [extract, sequenceId, docApi, addNotification]);
 
   return (
     <Panel

@@ -13,6 +13,7 @@
 
 import { applyTimelineOp, TIMELINE_OP_NAMES } from "@nodetool-ai/timeline/ops";
 import { DEFAULT_MIDI_INSTRUMENT, DEFAULT_TEMPO } from "@nodetool-ai/timeline";
+import type { TimelineOpIdKind } from "@nodetool-ai/timeline/ops";
 import { describe, expect, it } from "vitest";
 import {
   createTimelineToolBridge,
@@ -31,8 +32,22 @@ import {
   seedTracks
 } from "@nodetool-ai/timeline/testing";
 
+/**
+ * The bridge mints 32-hex ids; parity needs the same ids on both sides, so the
+ * bridge gets the direct context's counter (plus one for its own kinds).
+ */
+function sequentialIds(): (kind: string) => string {
+  const ctx = directContext(directState());
+  let transitions = 0;
+  return (kind) =>
+    kind === "transition"
+      ? `transition_${++transitions}`
+      : ctx.newId(kind as TimelineOpIdKind);
+}
+
 function bridgeInit(): TimelineBridgeInitialState {
   return {
+    newId: sequentialIds(),
     retargetFormat: async () => ({ sequenceId: "adapted_1", name: "Adapted" }),
     sequence: {
       tempo: directState().tempo,
