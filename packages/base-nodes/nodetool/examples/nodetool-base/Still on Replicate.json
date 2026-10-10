@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Still on Replicate",
   "tool_name": null,
-  "description": "Generate an image through Replicate rather than fal. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
+  "description": "Generate an image with a Replicate model rather than a fal one. Pick a Replicate model on Render. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
   "tags": [
     "image",
     "example"
@@ -18,7 +18,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Still on Replicate\n\nGenerates an image through Replicate. The graph has the same shape as the fal and Kie variants, so changing provider means changing the model field, not rebuilding the graph.\n\n**How it works:** \"Subject\" holds the description, a fishing boat on black sand by default. \"Render\" is a text-to-image node set to 16:9 at 1K, and \"Image\" returns the picture.\n\n**Try this:** Pick a Replicate model on \"Render\", run it, then switch the model to another provider and compare the two results."
+          "comment": "# Still on Replicate\n\nGenerates an image and is meant to run on a Replicate model. The graph has the same shape as the fal and Kie variants, so changing provider means changing the model field, not rebuilding the graph.\n\n**How it works:** \"Subject\" holds the description, a fishing boat on black sand by default. \"Render\" is a text-to-image node set to 16:9 at 1K, and \"Image\" returns the picture.\n\n**Try this:** Pick a Replicate model on \"Render\", run it, then switch the model to another provider and compare the two results."
         },
         "ui_properties": {
           "position": {
@@ -60,9 +60,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "replicate",
-            "id": "black-forest-labs/flux-2-klein-9b",
-            "name": "FLUX.2 Klein 9B",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

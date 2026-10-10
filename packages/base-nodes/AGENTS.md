@@ -18,7 +18,8 @@ These graphs ship with the package and seed every install's example library. The
   [`web/src/utils/applyDefaultModels.ts`](../../web/src/utils/applyDefaultModels.ts)
   fills each empty model from the user's own default for that type — a hardcoded
   model id strands every user who lacks that provider/model. Empty is detected by
-  `id === ""` / `provider === ""`.
+  `id === ""` / `provider === ""`. Upscale and Remove Background nodes take the
+  user's task default (`IMAGE_TASK_DEFAULTS` there) before the image default.
 - **Keep the intro `Comment` and the top-level `description` in sync with the
   graph.** Don't promise inputs or output nodes the graph doesn't contain (a
   "grid"/`Preview` step, a "count" input that was removed). Stale copy is the most

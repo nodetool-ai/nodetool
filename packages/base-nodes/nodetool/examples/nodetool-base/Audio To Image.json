@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Audio To Image",
   "tool_name": null,
-  "description": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
+  "description": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then an image model renders the description as an image — the whole pipeline runs from a single voice note.",
   "tags": [
     "huggingface",
     "multimodal",
@@ -53,7 +53,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and watch it become an image. Use it when you would rather describe a picture out loud than type a prompt.\n\n**How it works:** \"1 Record audio\" holds a voice clip. \"2 Transcribe\" turns it into text with GPT-4o Mini Transcribe on OpenAI. That text becomes the prompt of \"3 Generate image\", which renders a 1:1, 1K image with FLUX.1 Schnell on fal, and the output node shows it. Transcription needs an OpenAI key and the image needs a fal key.\n\n**Try this:** Set \"aspect_ratio\" on \"3 Generate image\" to 16:9 and record the same description to get a wide version."
+          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and watch it become an image. Use it when you would rather describe a picture out loud than type a prompt.\n\n**How it works:** \"1 Record audio\" holds a voice clip. \"2 Transcribe\" turns it into text. That text becomes the prompt of \"3 Generate image\", which renders a 1:1, 1K image, and the output node shows it. Each model step uses your default model for its type, or the one you pick on the node.\n\n**Try this:** Set \"aspect_ratio\" on \"3 Generate image\" to 16:9 and record the same description to get a wide version."
         },
         "ui_properties": {
           "selected": false,
@@ -101,9 +101,9 @@
         "data": {
           "model": {
             "type": "asr_model",
-            "provider": "openai",
-            "id": "gpt-4o-mini-transcribe",
-            "name": "GPT-4o Mini Transcribe",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null
           }
         },
@@ -128,9 +128,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

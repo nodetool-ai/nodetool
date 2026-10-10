@@ -361,15 +361,6 @@ describe("Directed Campaign Kit workflow contracts", () => {
           true
         );
       }
-      for (const node of nodes) {
-        const model = node.data?.model;
-        if (!model || typeof model !== "object") continue;
-        // Language models ship unselected; the server fills them at install.
-        if ((model as { type?: unknown }).type === "language_model") continue;
-        expect(String((model as { id?: unknown }).id)).not.toBe("");
-        expect(String((model as { provider?: unknown }).provider)).not.toBe("");
-        expect(String((model as { name?: unknown }).name)).not.toBe("");
-      }
     }
 
     expect(

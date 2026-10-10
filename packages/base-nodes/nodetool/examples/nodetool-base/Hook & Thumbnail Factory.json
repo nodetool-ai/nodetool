@@ -5,7 +5,7 @@
   "updated_at": "2026-07-17T12:00:00.000Z",
   "name": "Hook & Thumbnail Factory",
   "tool_name": null,
-  "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
+  "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run.",
   "tags": [
     "image",
     "content",
@@ -155,7 +155,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for each hook, a matching color-graded thumbnail, all from one run.\n\n**How it works:** \"Video topic\", \"Target audience\" and \"How many hooks\" (4 by default) fill \"Build hook brief\". \"Stream hooks\" is a List Generator that emits one hook at a time, and \"Hook ideas\" previews each one. For every hook, \"Build thumbnail prompt\" combines it with the topic, \"Generate thumbnail\" renders a 16:9 image with FLUX schnell, and \"Color grade for punch\" raises contrast to 1.18 and brightness by 0.03. \"Latest thumbnail\" previews each image and \"Collect gallery\" gathers them into \"Thumbnail gallery\". Pick a text model on \"Stream hooks\". Each thumbnail is one paid image.\n\n**Try this:** Set \"How many hooks\" to 2 for a cheaper test run, then raise \"contrast\" on \"Color grade for punch\" to 1.35 and compare how much the thumbnails pop."
+          "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for each hook, a matching color-graded thumbnail, all from one run.\n\n**How it works:** \"Video topic\", \"Target audience\" and \"How many hooks\" (4 by default) fill \"Build hook brief\". \"Stream hooks\" is a List Generator that emits one hook at a time, and \"Hook ideas\" previews each one. For every hook, \"Build thumbnail prompt\" combines it with the topic, \"Generate thumbnail\" renders a 16:9 image, and \"Color grade for punch\" raises contrast to 1.18 and brightness by 0.03. \"Latest thumbnail\" previews each image and \"Collect gallery\" gathers them into \"Thumbnail gallery\". Pick a text model on \"Stream hooks\" and an image model on \"Generate thumbnail\". Each thumbnail is one paid image.\n\n**Try this:** Set \"How many hooks\" to 2 for a cheaper test run, then raise \"contrast\" on \"Color grade for punch\" to 1.35 and compare how much the thumbnails pop."
         },
         "ui_properties": {
           "selected": false,
@@ -330,9 +330,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

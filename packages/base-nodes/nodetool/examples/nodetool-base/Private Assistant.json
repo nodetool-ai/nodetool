@@ -5,7 +5,7 @@
   "updated_at": "2026-07-17T00:00:00.000Z",
   "name": "Private Assistant",
   "tool_name": null,
-  "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
+  "description": "Ask questions about your own notes and documents — fully local, no API keys. It is meant to run on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled, such as llama3.2 (`ollama pull llama3.2`), picked on the agent node.",
   "tags": [
     "local",
     "privacy",
@@ -22,7 +22,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🔒 Private Assistant\n\nA fully local Q&A assistant. Paste your own notes, ask a question, and a local Ollama model answers from your text only. No API key and no cloud call, so the document never leaves your machine.\n\n**How it works:** \"1️⃣ Document\", \"2️⃣ Question\" and \"3️⃣ Tone\" fill \"4️⃣ Build the prompt\", which wraps the document as the only allowed source. \"5️⃣ Local Ollama assistant\" runs llama3.2 with no tools and a system prompt that refuses to answer beyond the text. \"6️⃣ Answer\" shows its Markdown reply. Install [Ollama](https://ollama.com) and run `ollama pull llama3.2` first. Swap the model on the agent node for any model you have pulled, such as qwen2.5 or gemma3.\n\n**Try this:** Ask \"2️⃣ Question\" something the notes do not cover, such as \"Who is the CEO?\", and confirm the assistant says the notes don't cover it."
+          "comment": "# 🔒 Private Assistant\n\nA fully local Q&A assistant, meant to run on a local Ollama model. Paste your own notes, ask a question, and the model answers from your text only. With a local model there is no API key and no cloud call, so the document never leaves your machine.\n\n**How it works:** \"1️⃣ Document\", \"2️⃣ Question\" and \"3️⃣ Tone\" fill \"4️⃣ Build the prompt\", which wraps the document as the only allowed source. \"5️⃣ Local assistant\" runs with no tools and a system prompt that refuses to answer beyond the text. \"6️⃣ Answer\" shows its Markdown reply. Install [Ollama](https://ollama.com), pull a model such as llama3.2, qwen2.5 or gemma3, and pick it on \"5️⃣ Local assistant\".\n\n**Try this:** Ask \"2️⃣ Question\" something the notes do not cover, such as \"Who is the CEO?\", and confirm the assistant says the notes don't cover it."
         },
         "ui_properties": {
           "selected": false,
@@ -139,9 +139,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "ollama",
-            "id": "llama3.2",
-            "name": "Llama 3.2",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -152,7 +152,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "5️⃣ Local Ollama assistant",
+          "title": "5️⃣ Local assistant",
           "position": {
             "x": 800,
             "y": 648

@@ -240,9 +240,9 @@
           "only_stale": true,
           "image_model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           }
@@ -270,9 +270,9 @@
           "require_keyframe": true,
           "video_model": {
             "type": "video_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/ltx-2.3/image-to-video/fast",
-            "name": "LTX-2.3 Image to Video Fast",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           }

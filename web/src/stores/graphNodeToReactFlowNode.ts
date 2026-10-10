@@ -110,7 +110,7 @@ export function graphNodeToReactFlowNode(
       const props: Record<string, unknown> = isRecord(raw) ? raw : {};
       const meta = useMetadataStore.getState().getMetadata(node.type);
       if (meta?.properties) {
-        return applyDefaultModels(props, meta.properties);
+        return applyDefaultModels(props, meta.properties, node.type);
       }
       return props;
     })(),

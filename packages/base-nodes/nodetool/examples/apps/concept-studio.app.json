@@ -741,7 +741,7 @@
     {
       "key": "concepts",
       "name": "Concept Art Iteration Board",
-      "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on your default language model; images on fal-ai/flux/schnell.",
+      "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Each model step uses your default model for its type, or the one you pick on the node.",
       "sourceId": "nodetool-base/Concept Art Iteration Board",
       "graph": {
         "edges": [
@@ -858,7 +858,7 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations. Use it to compare several directions for the same subject in one run.\n\n**How it works:** \"5 Build art-direction brief\" combines \"1 Brief\", \"2 Style\" and \"3 Mood\". \"6 Art-director agent\" turns that into one art direction, so every variation shares a visual language. \"7 Write variation prompts\" asks for \"4 Variations\" (4, range 2 to 8) prompts from that direction and the style. \"8 Generate prompt list\" emits them one at a time, and \"9 Render each variation\" renders each at 1:1 with FLUX.1 Schnell on fal into \"Concept Art\". Pick a language model on \"6 Art-director agent\" and \"8 Generate prompt list\". Images need a fal key.\n\n**Try this:** Set \"4 Variations\" to 6 and change \"3 Mood\" to \"ominous, decaying, hostile\" to get six variations in a darker direction."
+              "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations. Use it to compare several directions for the same subject in one run.\n\n**How it works:** \"5 Build art-direction brief\" combines \"1 Brief\", \"2 Style\" and \"3 Mood\". \"6 Art-director agent\" turns that into one art direction, so every variation shares a visual language. \"7 Write variation prompts\" asks for \"4 Variations\" (4, range 2 to 8) prompts from that direction and the style. \"8 Generate prompt list\" emits them one at a time, and \"9 Render each variation\" renders each at 1:1 into \"Concept Art\". Pick a language model on \"6 Art-director agent\" and \"8 Generate prompt list\", and an image model on \"9 Render each variation\".\n\n**Try this:** Set \"4 Variations\" to 6 and change \"3 Mood\" to \"ominous, decaying, hostile\" to get six variations in a darker direction."
             },
             "ui_properties": {
               "position": {
@@ -880,9 +880,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/flux/schnell",
-                "name": "FLUX.1 Schnell",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1219,7 +1219,7 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🐲 Pokemon Maker\n\nName a few animals, pick an art style, and get four original collectible creatures, each a fusion of the animals you chose, all rendered in the same style.\n\n**How it works:** \"1️⃣ Animal inspiration\" (lion, eagle, koi fish) and \"2️⃣ Art style\" fill \"3️⃣ Build design brief\", which asks for four creature prompts in one consistent style. \"4️⃣ Write four creature prompts\" splits the answer into four separate prompts. \"5️⃣ Render each creature\" draws each one as a 1:1 image with FLUX Schnell, and \"Creature gallery\" collects all four. Pick a language model on \"4️⃣ Write four creature prompts\". The render step needs a FAL key.\n\n**Try this:** Set \"1️⃣ Animal inspiration\" to \"axolotl, hummingbird\" and switch \"2️⃣ Art style\" to \"Retro 16-bit pixel art\" to see the whole set restyle at once."
+              "comment": "# 🐲 Pokemon Maker\n\nName a few animals, pick an art style, and get four original collectible creatures, each a fusion of the animals you chose, all rendered in the same style.\n\n**How it works:** \"1️⃣ Animal inspiration\" (lion, eagle, koi fish) and \"2️⃣ Art style\" fill \"3️⃣ Build design brief\", which asks for four creature prompts in one consistent style. \"4️⃣ Write four creature prompts\" splits the answer into four separate prompts. \"5️⃣ Render each creature\" draws each one as a 1:1 image, and \"Creature gallery\" collects all four. Pick a language model on \"4️⃣ Write four creature prompts\". The render step uses your default image model, or the one you pick on the node.\n\n**Try this:** Set \"1️⃣ Animal inspiration\" to \"axolotl, hummingbird\" and switch \"2️⃣ Art style\" to \"Retro 16-bit pixel art\" to see the whole set restyle at once."
             },
             "ui_properties": {
               "selected": false,
@@ -1350,9 +1350,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/flux/schnell",
-                "name": "FLUX.1 Schnell",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },

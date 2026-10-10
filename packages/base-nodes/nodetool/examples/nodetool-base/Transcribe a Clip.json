@@ -81,9 +81,9 @@
         "data": {
           "model": {
             "type": "asr_model",
-            "provider": "openai",
-            "id": "gpt-4o-mini-transcribe",
-            "name": "GPT-4o Mini Transcribe",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null
           },
           "language": "en",

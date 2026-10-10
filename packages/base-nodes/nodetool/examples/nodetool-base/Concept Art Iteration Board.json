@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Concept Art Iteration Board",
   "tool_name": null,
-  "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on your default language model; images on fal-ai/flux/schnell.",
+  "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Each model step uses your default model for its type, or the one you pick on the node.",
   "tags": [
     "concept-art",
     "planning",
@@ -128,7 +128,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations. Use it to compare several directions for the same subject in one run.\n\n**How it works:** \"5 Build art-direction brief\" combines \"1 Brief\", \"2 Style\" and \"3 Mood\". \"6 Art-director agent\" turns that into one art direction, so every variation shares a visual language. \"7 Write variation prompts\" asks for \"4 Variations\" (4, range 2 to 8) prompts from that direction and the style. \"8 Generate prompt list\" emits them one at a time, and \"9 Render each variation\" renders each at 1:1 with FLUX.1 Schnell on fal into \"Concept Art\". Pick a language model on \"6 Art-director agent\" and \"8 Generate prompt list\". Images need a fal key.\n\n**Try this:** Set \"4 Variations\" to 6 and change \"3 Mood\" to \"ominous, decaying, hostile\" to get six variations in a darker direction."
+          "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations. Use it to compare several directions for the same subject in one run.\n\n**How it works:** \"5 Build art-direction brief\" combines \"1 Brief\", \"2 Style\" and \"3 Mood\". \"6 Art-director agent\" turns that into one art direction, so every variation shares a visual language. \"7 Write variation prompts\" asks for \"4 Variations\" (4, range 2 to 8) prompts from that direction and the style. \"8 Generate prompt list\" emits them one at a time, and \"9 Render each variation\" renders each at 1:1 into \"Concept Art\". Pick a language model on \"6 Art-director agent\" and \"8 Generate prompt list\", and an image model on \"9 Render each variation\".\n\n**Try this:** Set \"4 Variations\" to 6 and change \"3 Mood\" to \"ominous, decaying, hostile\" to get six variations in a darker direction."
         },
         "ui_properties": {
           "position": {
@@ -150,9 +150,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

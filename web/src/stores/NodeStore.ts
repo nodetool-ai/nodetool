@@ -1597,7 +1597,8 @@ export const createNodeStore = (
             // Apply user's default models for empty model properties
             const withModelDefaults = applyDefaultModels(
               defaults,
-              metadata.properties
+              metadata.properties,
+              metadata.node_type
             );
             Object.assign(defaults, withModelDefaults);
 

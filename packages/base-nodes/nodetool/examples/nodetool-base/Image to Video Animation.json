@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Image to Video Animation",
   "tool_name": null,
-  "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
+  "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. The animation step costs more per run than image-only templates.",
   "tags": [
     "image",
     "video",
@@ -78,7 +78,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Image to Video Animation\n\nGenerates a still from a scene prompt, then animates it into a short cinematic clip.\n\n**How it works:** \"Scene prompt\" drives \"Generate still\", which renders a 16:9 image with FLUX schnell. \"Build motion prompt\" combines the scene with \"Motion prompt\" and \"Duration prompt\" into instructions for the animation. \"Animate to video\" takes the still, that prompt and the \"Negative prompt\", and renders an 8 second 1080p clip with Veo 3.1, which the Output node plays. Both steps are paid, and Veo bills per second, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"Motion prompt\" to \"Slow orbit around the scene as clouds drift overhead\". The same still animates with a different camera move."
+          "comment": "# 🎬 Image to Video Animation\n\nGenerates a still from a scene prompt, then animates it into a short cinematic clip.\n\n**How it works:** \"Scene prompt\" drives \"Generate still\", which renders a 16:9 image. \"Build motion prompt\" combines the scene with \"Motion prompt\" and \"Duration prompt\" into instructions for the animation. \"Animate to video\" takes the still, that prompt and the \"Negative prompt\", and renders an 8 second 1080p clip, which the Output node plays. Each model step uses your default model for its type, or the one you pick on the node. Both steps are paid, and video generation is usually billed per second, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"Motion prompt\" to \"Slow orbit around the scene as clouds drift overhead\". The same still animates with a different camera move."
         },
         "ui_properties": {
           "selected": false,
@@ -101,9 +101,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "gemini",
-            "id": "veo-3.1-generate-preview",
-            "name": "Veo 3.1 Preview",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -133,9 +133,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

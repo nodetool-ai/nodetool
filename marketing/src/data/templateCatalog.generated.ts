@@ -51,7 +51,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "ad-loop-from-a-product-photo",
         "name": "Ad Loop from a Product Photo",
-        "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
+        "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, an image-to-video model animates the still, and a speed pass slows it into a hero loop. The video step uses your default video model, or the one you pick on the node, and is billed per generation.",
         "tags": [
           "image",
           "video",
@@ -95,7 +95,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "brand-asset-generator",
         "name": "Brand Asset Generator",
-        "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and your default language model for text.",
+        "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Each model step uses your default model for its type, and the image steps are paid.",
         "tags": [
           "brand-asset",
           "branding",
@@ -133,7 +133,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "concept-art-iteration-board",
         "name": "Concept Art Iteration Board",
-        "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on your default language model; images on fal-ai/flux/schnell.",
+        "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Each model step uses your default model for its type, or the one you pick on the node.",
         "tags": [
           "concept-art",
           "planning"
@@ -193,7 +193,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "edit-a-still-with-words",
         "name": "Edit a Still with Words",
-        "description": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
+        "description": "Change an image by describing the change. The model edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
         "tags": [
           "image"
         ]
@@ -201,7 +201,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "editorial-still-from-a-line",
         "name": "Editorial Still from a Line",
-        "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] is among the cheapest ways to get a usable frame.",
+        "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image.",
         "tags": [
           "image"
         ]
@@ -242,7 +242,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "hook-thumbnail-factory",
         "name": "Hook & Thumbnail Factory",
-        "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
+        "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run.",
         "tags": [
           "image",
           "content",
@@ -261,7 +261,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "image-to-video-animation",
         "name": "Image to Video Animation",
-        "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
+        "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. The animation step costs more per run than image-only templates.",
         "tags": [
           "image",
           "video"
@@ -321,7 +321,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "poster-on-kie",
         "name": "Poster on Kie",
-        "description": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
+        "description": "Generate a poster-style image on a Kie model that you pick on \"Render\". Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
         "tags": [
           "image"
         ]
@@ -337,7 +337,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "product-mockup-generator",
         "name": "Product Mockup Generator",
-        "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then Nano Banana composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+        "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then an image-to-image step composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
         "tags": [
           "product-mockup",
           "mockup",
@@ -347,7 +347,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "product-spot-from-text",
         "name": "Product Spot from Text",
-        "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
+        "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, an image step renders the still, then an image-to-video step animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
         "tags": [
           "image",
           "video"
@@ -400,7 +400,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "research-a-brand-from-its-website",
         "name": "Research a Brand from Its Website",
-        "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses Claude Sonnet 5 with browser and web search tools. Pick any language model for the extractor.",
+        "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses browser and web search tools. Pick a language model for the researcher and the extractor.",
         "tags": [
           "brand-asset",
           "branding",
@@ -445,7 +445,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "still-on-replicate",
         "name": "Still on Replicate",
-        "description": "Generate an image through Replicate rather than fal. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
+        "description": "Generate an image with a Replicate model rather than a fal one. Pick a Replicate model on Render. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
         "tags": [
           "image"
         ]
@@ -480,7 +480,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "upscale-a-still",
         "name": "Upscale a Still",
-        "description": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
+        "description": "Enlarge an image without the softness a plain resize gives you. An upscaling model reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
         "tags": [
           "image"
         ]
@@ -488,7 +488,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "vectorize-a-generated-logo",
         "name": "Vectorize a Generated Logo",
-        "description": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
+        "description": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: one model draws the shape, and a vectorizing model converts it to SVG paths that scale without resampling.",
         "tags": [
           "image"
         ]
@@ -588,7 +588,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "clip-on-kie",
         "name": "Clip on Kie",
-        "description": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
+        "description": "Generate a short clip on a Kie video model. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
         "tags": [
           "video"
         ]
@@ -621,7 +621,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "direct-a-short-film",
         "name": "Direct a Short Film",
-        "description": "Type a brief; get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count — at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
+        "description": "Type a brief, get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Some providers publish those as separate model ids, so Continuation Model carries the second. On a provider where one id does both you can leave it empty.\n\nCost scales with shot count and with the video models you pick. Text costs pennies.",
         "tags": [
           "video"
         ]
@@ -661,7 +661,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "generate-a-native-audio-ugc-testimonial",
         "name": "Generate a Native-Audio UGC Testimonial",
-        "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
+        "description": "Turn creator and product references plus one short script into a continuous 15-second testimonial with native voice and lip-sync.",
         "tags": [
           "video",
           "marketing",
@@ -709,7 +709,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "movie-trailer-generator",
         "name": "Movie Trailer Generator",
-        "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+        "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through image-to-video, which is usually metered per second of generated video and is the most expensive step in the pipeline. A 6-shot trailer makes 6 video generations.",
         "tags": [
           "video",
           "generation",
@@ -763,7 +763,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "product-video-generator",
         "name": "Product Video Generator",
-        "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
+        "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then an image-to-video model animates the shot. Cost note: the video step is a paid generation, so this run costs noticeably more than an image-only template.",
         "tags": [
           "business",
           "data",
@@ -1068,7 +1068,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "narrate-a-script",
         "name": "Narrate a Script",
-        "description": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
+        "description": "Turn written copy into a voice track. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
         "tags": [
           "audio"
         ]
@@ -1276,7 +1276,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "model-arena",
         "name": "Model Arena",
-        "description": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
+        "description": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to three model lanes in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
         "tags": [
           "comparison",
           "llm",
@@ -1312,7 +1312,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "workflow-as-a-tool",
         "name": "Workflow As A Tool",
-        "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager, on a model you pick, decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+        "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research gathers the facts, Copy Editor polishes the draft, and the manager decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
         "tags": [
           "agents",
           "composition",
@@ -1356,7 +1356,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "audio-to-image",
         "name": "Audio To Image",
-        "description": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
+        "description": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then an image model renders the description as an image — the whole pipeline runs from a single voice note.",
         "tags": [
           "huggingface",
           "multimodal"
@@ -1569,7 +1569,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "private-assistant",
         "name": "Private Assistant",
-        "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
+        "description": "Ask questions about your own notes and documents — fully local, no API keys. It is meant to run on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled, such as llama3.2 (`ollama pull llama3.2`), picked on the agent node.",
         "tags": [
           "local",
           "privacy",

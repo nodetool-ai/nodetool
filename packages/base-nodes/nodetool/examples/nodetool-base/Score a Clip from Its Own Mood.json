@@ -120,9 +120,9 @@
         "data": {
           "model": {
             "type": "music_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/stable-audio-25/text-to-audio",
-            "name": "Stable Audio 2.5",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null
           },
           "prompt": "",

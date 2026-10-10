@@ -209,9 +209,9 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     type: "asr_model",
     default: {
       type: "asr_model",
-      provider: "fal_ai",
-      id: "openai/whisper-large-v3",
-      name: "",
+      provider: "openai",
+      id: "gpt-4o-mini-transcribe",
+      name: "GPT-4o Mini Transcribe",
       path: null
     },
     title: "Model"

@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Narrate a Script",
   "tool_name": null,
-  "description": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
+  "description": "Turn written copy into a voice track. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
   "tags": [
     "audio",
     "example"
@@ -60,9 +60,9 @@
         "data": {
           "model": {
             "type": "tts_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/elevenlabs/tts/multilingual-v2",
-            "name": "ElevenLabs Multilingual v2",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "voices": []
           },

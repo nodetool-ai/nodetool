@@ -309,7 +309,7 @@
               },
               "zIndex": 0,
               "width": 300,
-              "title": "🟢 OpenAI answer",
+              "title": "🟢 Lane 1 answer",
               "selectable": true,
               "bypassed": false
             },
@@ -329,7 +329,7 @@
               },
               "zIndex": 0,
               "width": 300,
-              "title": "🟣 Anthropic answer",
+              "title": "🟣 Lane 2 answer",
               "selectable": true,
               "bypassed": false
             },
@@ -349,7 +349,7 @@
               },
               "zIndex": 0,
               "width": 300,
-              "title": "🔵 Gemini answer",
+              "title": "🔵 Lane 3 answer",
               "selectable": true,
               "bypassed": false
             },

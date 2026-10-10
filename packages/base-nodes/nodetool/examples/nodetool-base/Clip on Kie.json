@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Clip on Kie",
   "tool_name": null,
-  "description": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
+  "description": "Generate a short clip on a Kie video model. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
   "tags": [
     "video",
     "example"
@@ -18,7 +18,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Clip on Kie\n\nGenerates a short video clip from a one-line shot description. Use it to compare what the same direction produces across providers before committing a template to one.\n\n**How it works:** \"1 Shot\" describes a tram crossing an empty city square in rain at night. \"2 Render\" makes a 5-second 16:9 clip at 1080p, with a negative prompt against text and watermarks. \"3 Clip\" shows the video.\n\n**Try this:** Pick a model on \"2 Render\", then rewrite \"1 Shot\" with your own scene and compare the result against another provider."
+          "comment": "# Clip on Kie\n\nGenerates a short video clip from a one-line shot description. Use it to compare what the same direction produces across providers before committing a template to one. The example is meant to run on a Kie video model.\n\n**How it works:** \"1 Shot\" describes a tram crossing an empty city square in rain at night. \"2 Render\" makes a 5-second 16:9 clip at 1080p, with a negative prompt against text and watermarks. \"3 Clip\" shows the video.\n\n**Try this:** Pick a Kie model on \"2 Render\", then rewrite \"1 Shot\" with your own scene and compare the result against another provider."
         },
         "ui_properties": {
           "position": {
@@ -60,9 +60,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "kie",
-            "id": "kling-2.6/text-to-video",
-            "name": "Kling 2.6 Text to Video",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

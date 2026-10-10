@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Ad Loop from a Product Photo",
   "tool_name": null,
-  "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
+  "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, an image-to-video model animates the still, and a speed pass slows it into a hero loop. The video step uses your default video model, or the one you pick on the node, and is billed per generation.",
   "tags": [
     "image",
     "video",
@@ -20,7 +20,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Ad Loop from a Product Photo\n\nOne product photo in, a looping hero shot out. Use it for a short, slow product reveal for an ad or a landing page.\n\n**How it works:** \"Motion brief\" puts the \"2 Motion\" text into a prompt that forbids redesigning the product, so the model may move only the camera and the light. \"3 Animate (Kie)\" sends \"1 Product photo\" and that brief to Kling 2.6 for a 5 second, 16:9, 1080p clip. \"4 Half speed\" sets the speed factor to 0.5 so the loop reads as a slow reveal, and \"5 Ad loop\" shows it. Add your own photo first. The video step needs a KIE_API_KEY and is billed per generation.\n\n**Try this:** Set \"speed_factor\" on \"4 Half speed\" to 1.0 and compare the pace of the loop at its original speed."
+          "comment": "# Ad Loop from a Product Photo\n\nOne product photo in, a looping hero shot out. Use it for a short, slow product reveal for an ad or a landing page.\n\n**How it works:** \"Motion brief\" puts the \"2 Motion\" text into a prompt that forbids redesigning the product, so the model may move only the camera and the light. \"3 Animate\" sends \"1 Product photo\" and that brief to the video model for a 5 second, 16:9, 1080p clip. \"4 Half speed\" sets the speed factor to 0.5 so the loop reads as a slow reveal, and \"5 Ad loop\" shows it. Add your own photo first. The video step uses your default model for its type, or the one you pick on the node, and is billed per generation.\n\n**Try this:** Set \"speed_factor\" on \"4 Half speed\" to 1.0 and compare the pace of the loop at its original speed."
         },
         "ui_properties": {
           "position": {
@@ -105,9 +105,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "kie",
-            "id": "kling-2.6/image-to-video",
-            "name": "Kling 2.6 Image to Video",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -125,7 +125,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "3  Animate (Kie)"
+          "title": "3  Animate"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
