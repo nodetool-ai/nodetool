@@ -94,7 +94,12 @@ import {
   saveTorchPlatform,
   torchBackendArgs,
 } from "./torchPlatformCache";
-import { detectTorchPlatform, type TorchBackend } from "./torchruntime";
+import {
+  MIN_UV_FOR_TORCH_BACKEND,
+  MIN_UV_VERSION,
+  detectTorchPlatform,
+  type TorchBackend,
+} from "./torchruntime";
 import { fileExists } from "./utils";
 import { RUNTIME_PACKAGES } from "./runtime/packages/definitions";
 import {
@@ -120,13 +125,18 @@ const TORCH_DEPENDENT_PACKAGES = new Set(["nodetool-huggingface", "nodetool-mlx"
 
 let nodeCache: PackageNode[] | null = null;
 
+/** The macOS product version (`14.5`), or undefined off macOS. */
+function macOSVersion(): string | undefined {
+  return process.platform === "darwin" ? process.getSystemVersion() : undefined;
+}
+
 /**
  * The packages the package manager offers: the Python node packs in the
  * embedded catalog, then the npm runtime packages.
  */
 export async function fetchAvailablePackages(): Promise<PackageListResponse> {
   const packages: PackageInfo[] = PYTHON_NODE_PACKS.filter((pack) =>
-    isPythonPackSupported(pack, process.platform, process.arch)
+    isPythonPackSupported(pack, process.platform, process.arch, macOSVersion())
   ).map((pack) => ({
     name: pack.name,
     description: pack.description,
@@ -262,14 +272,110 @@ function compareVersions(a: string, b: string): number {
 /**
  * Index arguments for every pack install. PyPI is the only package index.
  * Torch packages come from the PyTorch index through `--torch-backend`,
- * which uv applies to the PyTorch packages only and never falls back from,
- * so a missing GPU build fails the install instead of silently installing
- * PyPI's CPU wheel. Pre-releases stay off: allowing them backtracked
+ * which uv applies to the PyTorch packages only and never falls back from.
+ * {@link runPackInstall} retries on the CPU index, with a warning, when the
+ * GPU index lacks a build. Pre-releases stay off: allowing them backtracked
  * `nodetool-huggingface` into an unbuildable spacy dev sdist and gave core an
  * httpx 1.0 dev release without `AsyncClient`.
  */
 function buildInstallIndexArgs(backend: TorchBackend | null): string[] {
   return ["--index-url", PYPI_SIMPLE_INDEX_URL, ...torchBackendArgs(backend)];
+}
+
+/** The runtime uv's version (`uv 0.11.3 ...` -> `0.11.3`), or null when unreadable. */
+async function getUvVersion(): Promise<string | null> {
+  try {
+    const output = await runUvCommand(["--version"], { silent: true });
+    return /^uv\s+(\d+(?:\.\d+)*)/.exec(output.trim())?.[1] ?? null;
+  } catch (error: unknown) {
+    logMessage(`Could not read the uv version: ${errorMsg(error)}`, "warn");
+    return null;
+  }
+}
+
+/**
+ * The backend to pass to uv. A Python runtime installed by an older app keeps
+ * the uv of that time, which rejects newer `--torch-backend` values. Update
+ * that uv through conda, and install without a backend (PyPI's torch wheels)
+ * when the update fails.
+ */
+async function ensureUvAcceptsTorchBackend(
+  backend: TorchBackend | null
+): Promise<TorchBackend | null> {
+  if (!backend) {
+    return backend;
+  }
+  const required = MIN_UV_FOR_TORCH_BACKEND[backend];
+  const current = await getUvVersion();
+  if (!current || compareVersions(current, required) >= 0) {
+    return backend;
+  }
+
+  const message = `Updating uv ${current} to ${MIN_UV_VERSION} or newer for the ${backend} PyTorch build...`;
+  logMessage(message);
+  emitServerLog(message);
+  emitBootMessage(message);
+  try {
+    const { installCondaPackageBySpec } = await import("./installer");
+    await installCondaPackageBySpec(getCondaEnvPath(), [`uv>=${MIN_UV_VERSION}`], "Updating uv");
+    const updated = await getUvVersion();
+    if (updated && compareVersions(updated, required) >= 0) {
+      return backend;
+    }
+  } catch (error: unknown) {
+    logMessage(`Failed to update uv: ${errorMsg(error)}`, "error");
+  }
+
+  const warning =
+    `uv ${current} cannot install the ${backend} PyTorch build and could not be updated. ` +
+    `Installing PyPI's default torch instead. Reinstall the Python runtime to get the ${backend} build.`;
+  logMessage(warning, "warn");
+  emitServerLog(warning);
+  emitBootMessage(warning);
+  return null;
+}
+
+/** The torch packages uv takes from the `--torch-backend` index. */
+const TORCH_INDEX_PACKAGE = /\btorch(?:vision|audio|codec)?\b/;
+/** uv's resolver failures, as opposed to network, build or CLI errors. */
+const RESOLVE_FAILURE =
+  /No solution found|unsatisfiable|not found in the package registry|no version of|no matching distribution/i;
+
+/**
+ * Whether a failed uv install is a resolve failure involving the torch
+ * packages, which come only from the `--torch-backend` index. Such a failure
+ * means that index has no build the packs can use.
+ */
+export function isTorchIndexResolveFailure(message: string): boolean {
+  return RESOLVE_FAILURE.test(message) && TORCH_INDEX_PACKAGE.test(message);
+}
+
+/**
+ * Run a pack install on `backend`. When the GPU index has no torch build the
+ * packs can use, retry once on the CPU index and return the warning shown to
+ * the user, so the pack still installs.
+ */
+async function runPackInstall(
+  argsFor: (backend: TorchBackend | null) => string[],
+  detectedBackend: TorchBackend | null
+): Promise<string | undefined> {
+  const backend = await ensureUvAcceptsTorchBackend(detectedBackend);
+  try {
+    await runUvCommand(argsFor(backend));
+    return undefined;
+  } catch (error: unknown) {
+    if (backend === null || backend === "cpu" || !isTorchIndexResolveFailure(errorMsg(error))) {
+      throw error;
+    }
+    const warning =
+      `The PyTorch ${backend} index has no build these packs can use. ` +
+      `Installed the CPU build instead, so Python nodes will run on the CPU.`;
+    logMessage(warning, "warn");
+    emitServerLog(warning);
+    emitBootMessage(warning);
+    await runUvCommand(argsFor("cpu"));
+    return warning;
+  }
 }
 
 /**
@@ -310,11 +416,15 @@ function unsupportedPackMessage(repoId: string): string | null {
   if (!pack) {
     return `${repoId} is not a NodeTool package.`;
   }
-  if (isPythonPackSupported(pack, process.platform, process.arch)) {
+  const osVersion = macOSVersion();
+  if (isPythonPackSupported(pack, process.platform, process.arch, osVersion)) {
     return null;
   }
+  const where = osVersion
+    ? `macOS ${osVersion} (${process.arch})`
+    : `${process.platform}-${process.arch}`;
   return (
-    `${pack.name} is not available on ${process.platform}-${process.arch}.` +
+    `${pack.name} is not available on ${where}.` +
     (pack.platformRequirement ? ` It needs ${pack.platformRequirement}.` : "")
   );
 }
@@ -358,10 +468,6 @@ async function fetchLatestVersionFromSimpleIndex(
           candidates.push(version);
         }
       }
-    }
-
-    if (candidates.length === 0) {
-      return null;
     }
 
     // Install the newest release. A pre-release is only taken when the
@@ -1008,21 +1114,24 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
 
     // One resolve over the new pack and every installed pack, so the new
     // pack's torch (or other shared pin) has to agree with theirs.
-    const args = [
-      "pip",
-      "install",
-      ...torchReinstallArgs(pipPackages, backend),
-      ...buildInstallIndexArgs(backend),
-      "--system",
-      installSpec,
-      ...coInstalled,
-    ];
-
-    await runUvCommand(args);
+    const warning = await runPackInstall(
+      (torchBackend) => [
+        "pip",
+        "install",
+        ...torchReinstallArgs(pipPackages, torchBackend),
+        ...buildInstallIndexArgs(torchBackend),
+        "--system",
+        installSpec,
+        ...coInstalled,
+      ],
+      backend
+    );
 
     return {
       success: true,
-      message: `Package ${repoId} v${displayVersion} installed successfully from PyPI`,
+      message:
+        `Package ${repoId} v${displayVersion} installed successfully from PyPI` +
+        (warning ? `. ${warning}` : ""),
     };
   } catch (error: unknown) {
     logMessage(
@@ -1127,25 +1236,28 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     // Reinstall only this pack from a fresh index read. The other installed
     // packs stay in the resolve so the update cannot break them, and they are
     // not reinstalled (a blanket --reinstall re-downloaded torch every time).
-    const args = [
-      "pip",
-      "install",
-      "--reinstall-package",
-      packageName,
-      "--refresh-package",
-      packageName,
-      ...torchReinstallArgs(pipPackages, backend),
-      ...buildInstallIndexArgs(backend),
-      "--system",
-      installSpec,
-      ...coInstalled,
-    ];
-
-    await runUvCommand(args);
+    const warning = await runPackInstall(
+      (torchBackend) => [
+        "pip",
+        "install",
+        "--reinstall-package",
+        packageName,
+        "--refresh-package",
+        packageName,
+        ...torchReinstallArgs(pipPackages, torchBackend),
+        ...buildInstallIndexArgs(torchBackend),
+        "--system",
+        installSpec,
+        ...coInstalled,
+      ],
+      backend
+    );
 
     return {
       success: true,
-      message: `Package ${repoId} updated to v${displayVersion} successfully from PyPI`,
+      message:
+        `Package ${repoId} updated to v${displayVersion} successfully from PyPI` +
+        (warning ? `. ${warning}` : ""),
     };
   } catch (error: unknown) {
     logMessage(`Failed to update package ${repoId}: ${errorMsg(error)}`, "error");
@@ -1230,14 +1342,17 @@ export async function installExpectedPackages(): Promise<{
         emitServerLog(message);
         emitBootMessage(message);
 
-        await runUvCommand([
-          "pip",
-          "install",
-          ...buildInstallIndexArgs(backend),
-          "--system",
-          spec,
-          ...coInstalledRequirements(installed, [pkg.packageName]),
-        ]);
+        await runPackInstall(
+          (torchBackend) => [
+            "pip",
+            "install",
+            ...buildInstallIndexArgs(torchBackend),
+            "--system",
+            spec,
+            ...coInstalledRequirements(installed, [pkg.packageName]),
+          ],
+          backend
+        );
         packagesUpdated += 1;
         logMessage(`Updated ${spec}`);
       } catch (error: unknown) {

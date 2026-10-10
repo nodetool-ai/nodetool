@@ -64,7 +64,7 @@ describe('checkExpectedPackageVersions', () => {
 
   test('never pins packs to the app version', async () => {
     listing([
-      { name: 'nodetool-core', version: '0.8.1' },
+      { name: 'nodetool-core', version: '0.8.2' },
       { name: 'nodetool-huggingface', version: '0.8.1' },
       { name: 'nodetool-mlx', version: '0.7.2' },
       { name: 'nodetool-wan2gp', version: '0.1.0' },
@@ -75,12 +75,12 @@ describe('checkExpectedPackageVersions', () => {
 
   test('flags core below the bridge protocol floor', async () => {
     listing([
-      { name: 'nodetool-core', version: '0.6.3' },
+      { name: 'nodetool-core', version: '0.8.1' },
       { name: 'nodetool-huggingface', version: '0.5.0' },
     ]);
 
     expect(await checkExpectedPackageVersions()).toEqual([
-      { packageName: 'nodetool-core', currentVersion: '0.6.3', expectedVersion: '>=0.7.0' },
+      { packageName: 'nodetool-core', currentVersion: '0.8.1', expectedVersion: '>=0.8.2' },
     ]);
   });
 });

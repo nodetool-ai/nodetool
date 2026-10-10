@@ -369,6 +369,42 @@ describe('Config', () => {
       fs.rmSync(xdg, { recursive: true, force: true });
     });
 
+    it('keeps the ~/.cache model caches when only they hold data (Flatpak XDG_CACHE_HOME)', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      const home = fs.mkdtempSync(path.join(os.tmpdir(), 'nt-home-'));
+      const xdg = path.join(home, '.var', 'app', 'ai.nodetool.NodeTool', 'cache');
+      fs.mkdirSync(path.join(home, '.cache', 'huggingface', 'hub', 'models--a--b'), { recursive: true });
+      fs.mkdirSync(path.join(home, '.cache', 'llama.cpp'), { recursive: true });
+      fs.writeFileSync(path.join(home, '.cache', 'llama.cpp', 'model.gguf'), '');
+      process.env.HOME = home;
+      process.env.XDG_CACHE_HOME = xdg;
+
+      const legacy = getProcessEnv();
+      expect(legacy.HF_HOME).toBe(path.join(home, '.cache', 'huggingface'));
+      expect(legacy.LLAMA_CACHE).toBe(path.join(home, '.cache', 'llama.cpp'));
+
+      // Once the XDG caches hold data, they win.
+      fs.mkdirSync(path.join(xdg, 'huggingface', 'hub', 'models--c--d'), { recursive: true });
+      fs.mkdirSync(path.join(xdg, 'llama.cpp'), { recursive: true });
+      fs.writeFileSync(path.join(xdg, 'llama.cpp', 'other.gguf'), '');
+      const current = getProcessEnv();
+      expect(current.HF_HOME).toBe(path.join(xdg, 'huggingface'));
+      expect(current.LLAMA_CACHE).toBe(path.join(xdg, 'llama.cpp'));
+
+      // A user's LLAMA_CACHE is left alone.
+      process.env.LLAMA_CACHE = '/models/gguf';
+      expect(getProcessEnv().LLAMA_CACHE).toBe('/models/gguf');
+      fs.rmSync(home, { recursive: true, force: true });
+    });
+
+    it('does not set LLAMA_CACHE without XDG_CACHE_HOME or off Linux', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      expect(getProcessEnv().LLAMA_CACHE).toBeUndefined();
+      Object.defineProperty(process, 'platform', { value: 'darwin' });
+      process.env.XDG_CACHE_HOME = '/tmp/xdg';
+      expect(getProcessEnv().LLAMA_CACHE).toBeUndefined();
+    });
+
     it('should handle missing PATH environment variable', () => {
       delete process.env.PATH;
 
