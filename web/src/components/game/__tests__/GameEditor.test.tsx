@@ -274,7 +274,9 @@ it.each(["active play", "independent diagnostic"])("offers host replay only for 
   else { mockDiagnosticFailure = mockFailure; }
   render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
   await user.click(screen.getByRole("button", { name: "Edit player script" }));
-  expect(screen.getByText(mockFailure.message)).toBeInTheDocument();
+  const shown = screen.getAllByText(mockFailure.message);
+  expect(shown.filter((element) => !element.closest("[role='log']")).length).toBeGreaterThan(0);
+  expect(within(screen.getByRole("log", { hidden: true })).getAllByRole("listitem", { hidden: true }).at(-1)).toHaveTextContent(mockFailure.message);
   if (provenance === "independent diagnostic") {
     expect(screen.queryByRole("button", { name: "Replay displayed error" })).not.toBeInTheDocument();
     expect(mockReplay).not.toHaveBeenCalled();
@@ -335,6 +337,9 @@ it("keeps hierarchy navigation keys from editing the selected entity", async () 
 it("keeps inspector-button undo and delete outside the editor keyboard scope", async () => {
   const user = userEvent.setup();
   mockPlayDocument = null;
+  // Autosave may start while the test types. Holding the save open keeps the server copy from replacing the local edit,
+  // so the assertions below depend only on the keyboard scope and not on how fast the editor renders.
+  mockSave.mockImplementationOnce(() => new Promise(() => undefined));
   const store = getGameDraftStore(mockDocument.id);
   store.getState().select("player");
   store.getState().apply([{ op: "update_entity", scene_id: mockDocument.entrySceneId, entity_id: "player", set: { transform2d: { x: 1 } } }]);

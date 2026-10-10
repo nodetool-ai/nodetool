@@ -694,6 +694,15 @@ the active play session's recorded history. It does not replay the independent
 diagnostic session. Use **Ask the assistant** to pass the script context to
 the game assistant.
 
+The **Console** panel in the bottom dock lists play-session errors, script
+errors with their tick, failures from **Run 10 s**, and validation warnings
+for the current draft. Identical consecutive lines collapse into one line with
+a repeat count and a tick range. Filter by level or by text, which also
+matches entity names. Select an entity link to select that entity in its
+scene. **Ask the assistant** on a line writes that line into the assistant
+input without sending it. Console lines are editor data: they are not saved
+with the game and never enter a snapshot. Scripts cannot write log lines yet.
+
 Both editors read their commands and default shortcuts from one registry.
 Press Ctrl+K (Cmd+K on macOS) to open the command palette. It lists editor
 commands with their current shortcuts and assistant actions, such as a
