@@ -130,7 +130,8 @@ import {
   DelegatedTokenProvider,
   isDelegatedToken,
   AppSessionTokenProvider,
-  isAppSessionToken
+  isAppSessionToken,
+  FileUserManager
 } from "@nodetool-ai/auth";
 import {
   fastifyTRPCPlugin,
@@ -962,6 +963,10 @@ const serverAuthToken = enforceAuth
   ? null
   : resolveServerAuthToken(process.env["SERVER_AUTH_TOKEN"]);
 
+// API users created with `nodetool deploy users-add` (the tRPC users router)
+// live in USERS_FILE. Local mode only, for the same reason as the token above.
+const apiUsers = enforceAuth ? null : new FileUserManager();
+
 if (enforceAuth && process.env["SERVER_AUTH_TOKEN"]) {
   log.warn(
     "SERVER_AUTH_TOKEN is set while auth is enforced (Supabase mode); it is " +
@@ -1209,6 +1214,14 @@ app.addHook("onRequest", async (req, reply) => {
 
   if (matchesServerAuthToken(token, serverAuthToken)) {
     req.userId = "1";
+    req.authToken = token;
+    return;
+  }
+
+  const apiUser =
+    token && apiUsers ? await apiUsers.verifyToken(token) : null;
+  if (apiUser) {
+    req.userId = apiUser.id;
     req.authToken = token;
     return;
   }

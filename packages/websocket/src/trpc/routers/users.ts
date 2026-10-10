@@ -1,8 +1,9 @@
 /**
  * Users router — migrated from REST `/api/users*`.
  *
- * All procedures require the caller to be an admin (userId === "1" in dev,
- * or listed in the comma-separated `ADMIN_USER_IDS` env var in production).
+ * All procedures require the caller to be an admin (see `isAdmin`). Issuing
+ * a token (create / resetToken) is refused in Supabase mode, where API user
+ * tokens do not authenticate.
  * The response shapes differ by operation:
  *   • list / get return `token_hash` (masked).
  *   • create / resetToken return plaintext `token` (shown once on creation).
@@ -23,32 +24,49 @@ import {
   type UserListItem
 } from "@nodetool-ai/protocol/api-schemas/users.js";
 
+/** Manager singleton — matches legacy behaviour (module-scoped instance). */
+const manager = new FileUserManager();
+
 /**
- * Check if a user ID has admin privileges. Mirrors `isAdmin` from the
- * legacy users-api.ts: user "1" is always admin in dev, and
- * `ADMIN_USER_IDS` (comma-separated) grants admin in production.
+ * Check if a user ID has admin privileges: user "1" (the Local-mode user),
+ * an id in the comma-separated `ADMIN_USER_IDS`, or an API user created with
+ * the admin role.
  */
-function isAdmin(userId: string): boolean {
+async function isAdmin(userId: string): Promise<boolean> {
   if (userId === "1") return true;
   const adminIds = process.env.ADMIN_USER_IDS;
-  if (adminIds) {
-    return adminIds
-      .split(",")
+  if (
+    adminIds
+      ?.split(",")
       .map((s) => s.trim())
-      .includes(userId);
+      .includes(userId)
+  ) {
+    return true;
   }
-  return false;
+  return (await manager.getUserById(userId))?.role === "admin";
 }
 
 /** Guard: throws FORBIDDEN if caller is not an admin. */
-function requireAdmin(userId: string): void {
-  if (!isAdmin(userId)) {
+async function requireAdmin(userId: string): Promise<void> {
+  if (!(await isAdmin(userId))) {
     throwApiError(ApiErrorCode.FORBIDDEN, "Admin access required");
   }
 }
 
-/** Manager singleton — matches legacy behaviour (module-scoped instance). */
-const manager = new FileUserManager();
+/**
+ * API user tokens authenticate only in Local mode (see the auth hook in
+ * server.ts). In Supabase mode a token issued here would never work, so
+ * refuse to issue one.
+ */
+function requireLocalMode(): void {
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+    throwApiError(
+      ApiErrorCode.INVALID_INPUT,
+      "API users are only supported in Local mode. With Supabase auth, " +
+        "create the user in Supabase or have them mint an access token in the app."
+    );
+  }
+}
 
 /** Build a list-item response from a FileUserManager UserRecord. */
 function toUserListItem(
@@ -66,7 +84,7 @@ function toUserListItem(
 
 export const usersRouter = router({
   list: protectedProcedure.output(listOutput).query(async ({ ctx }) => {
-    requireAdmin(ctx.userId);
+    await requireAdmin(ctx.userId);
     const users = await manager.listUsers();
     return {
       users: Object.entries(users).map(([username, rec]) =>
@@ -79,7 +97,8 @@ export const usersRouter = router({
     .input(createInput)
     .output(userCreateResponse)
     .mutation(async ({ ctx, input }) => {
-      requireAdmin(ctx.userId);
+      await requireAdmin(ctx.userId);
+      requireLocalMode();
       try {
         const result = await manager.addUser(input.username, input.role);
         return {
@@ -99,7 +118,7 @@ export const usersRouter = router({
     .input(removeInput)
     .output(removeOutput)
     .mutation(async ({ ctx, input }) => {
-      requireAdmin(ctx.userId);
+      await requireAdmin(ctx.userId);
       try {
         await manager.removeUser(input.username);
         return { message: `User '${input.username}' removed successfully` };
@@ -113,7 +132,8 @@ export const usersRouter = router({
     .input(resetTokenInput)
     .output(userCreateResponse)
     .mutation(async ({ ctx, input }) => {
-      requireAdmin(ctx.userId);
+      await requireAdmin(ctx.userId);
+      requireLocalMode();
       try {
         const result = await manager.resetToken(input.username);
         return {
