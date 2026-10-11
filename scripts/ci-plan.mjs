@@ -118,9 +118,14 @@ export function buildCiPlan(files, packages, computeAffected) {
   // package depends on. A file another workspace owns through
   // EXTRA_WORKSPACE_PATHS (shipped skills, sandbox packs, journeys) therefore
   // selects no test task under `--affected`, so the shards run without it and
-  // the task hashes decide what reruns.
+  // the task hashes decide what reruns. Markdown in such a path counts too: a
+  // sandbox pack's SKILL.md is parsed by node-sdk, even though DOC_ONLY reads
+  // it as prose.
+  const under = (f, dir) => f === dir || f.startsWith(`${dir}/`);
   const outsideWorkspaces = files.some(
-    (f) => !DOC_ONLY.test(f) && !packages.some((p) => f === p.dir || f.startsWith(`${p.dir}/`))
+    (f) =>
+      !packages.some((p) => under(f, p.dir)) &&
+      (!DOC_ONLY.test(f) || packages.some((p) => p.ownedPaths?.some((dir) => under(f, dir))))
   );
 
   const { affected } = computeAffected(files, packages);

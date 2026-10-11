@@ -5,7 +5,7 @@
     "target": "ES2020",
     "module": "ESNext",
     "lib": [
-      "ES2020"
+      "ES2022"
     ],
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
@@ -28,6 +28,12 @@
       ],
       "@nodetool-ai/gpu": [
         "../packages/gpu/src/index.ts"
+      ],
+      "@nodetool-ai/protocol": [
+        "../packages/protocol/src/index.ts"
+      ],
+      "@nodetool-ai/protocol/api-schemas/*": [
+        "../packages/protocol/src/api-schemas/*"
       ],
       "@nodetool-ai/protocol/triggers": [
         "../packages/protocol/src/triggers.ts"

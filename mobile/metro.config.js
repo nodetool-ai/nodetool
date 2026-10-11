@@ -3,8 +3,11 @@
  *
  * `mobile/` is not a root workspace — it has its own dependency tree — so the
  * shared packages it uses at runtime are wired in by hand.
- * `@nodetool-ai/app-runtime` is dependency-free TypeScript, so Metro compiles
- * it from source and no `build:packages` is needed before `expo start`.
+ * `@nodetool-ai/app-runtime` and `@nodetool-ai/protocol` are TypeScript that
+ * Metro compiles from source, so no `build:packages` is needed before
+ * `expo start` and the app never runs a stale published copy. `protocol`
+ * imports `zod`, which mobile declares itself: an EAS build has no root
+ * `node_modules`, so `nodeModulesPaths` points the package sources at mobile's.
  * (`@nodetool-ai/timeline` is imported for types only, which Babel erases, so
  * it needs a `tsconfig.json` path and nothing here.)
  *
@@ -37,16 +40,16 @@ const protocolSrc = path.join(protocolRoot, "src");
 /** Package entry points compiled from source, and the src roots they live in. */
 const SOURCE_PACKAGES = [
   { name: "@nodetool-ai/app-runtime", src: appRuntimeSrc },
+  { name: "@nodetool-ai/protocol", src: protocolSrc },
 ];
 
 /**
  * Single modules compiled from source, mapped straight to their file.
  *
- * `protocol`'s entry point re-exports `toolSchemas`, which pulls in `zod` — a
- * dependency mobile does not have and does not want in the bundle for one
- * string helper. The modules named here are dependency-free, so they are wired
- * individually rather than through the package root. Import them in `mobile/`
- * by the same deep specifier.
+ * `protocol`'s entry point re-exports `toolSchemas`, which pulls in `zod`. The
+ * modules named here are dependency-free, so code that needs only a string
+ * helper imports them by the same deep specifier and does not load the
+ * package root.
  */
 const SOURCE_MODULES = {
   "@nodetool-ai/protocol/triggers": path.join(protocolSrc, "triggers.ts"),
@@ -63,6 +66,7 @@ const SOURCE_ROOTS = [
 const config = getDefaultConfig(projectRoot);
 
 config.projectRoot = projectRoot;
+config.resolver.nodeModulesPaths = [path.join(projectRoot, "node_modules")];
 config.watchFolders = [
   projectRoot,
   appRuntimeRoot,
