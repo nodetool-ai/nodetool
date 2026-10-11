@@ -54,6 +54,10 @@ const pickerStyles = () =>
       "&:hover": {
         backgroundColor: "var(--palette-action-hover)"
       }
+    },
+    ".workflow-options": {
+      maxHeight: "50vh",
+      overflowY: "auto"
     }
   });
 
@@ -167,7 +171,7 @@ export const CreateApplicationFromWorkflowButton = memo(
                 description="Create a workflow first, then build an app on top of it."
               />
             ) : (
-              <FlexColumn className="workflow-options" gap={SPACING.micro}>
+              <FlexColumn className="workflow-options" gap={0.5}>
                 {workflows.map((workflow) => (
                   <button
                     key={workflow.id}

@@ -298,6 +298,13 @@ const styles = (theme: Theme, gap: number) =>
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)`
       }
+    },
+    ".compare-dialog .MuiPaper-root": {
+      maxWidth: "90vw",
+      maxHeight: "90vh",
+      width: "90vw",
+      height: "90vh",
+      overflow: "hidden"
     }
   });
 
