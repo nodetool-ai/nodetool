@@ -16,6 +16,9 @@ import {
   dataframeToCsv,
   parseCsvToDataframe
 } from "../../utils/csvDataframe";
+import { useContextCommands } from "../../hooks/useContextCommands";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
+import { isMac } from "../../utils/platform";
 import MonacoPane from "./MonacoPane";
 import DataTable from "../node/DataTable/DataTable";
 import EditorToolbar from "../textEditor/EditorToolbar";
@@ -30,6 +33,8 @@ import {
 
 interface TextDocumentEditorProps {
   asset: Asset;
+  /** Whether the editor's tab is on screen; lists its commands in the Cmd+K menu. */
+  active?: boolean;
 }
 
 const textAssetKey = (id: string) => ["textAsset", id] as const;
@@ -86,7 +91,10 @@ const styles = (theme: Theme) =>
  * (dirty dot) and persisted back via the asset update API (Cmd/Ctrl+S or the
  * toolbar Save button).
  */
-const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
+const TextDocumentEditor = ({
+  asset,
+  active = false
+}: TextDocumentEditorProps) => {
   const theme = useTheme();
   const editorStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -217,6 +225,41 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
     }
     saveMutation.mutate(content);
   }, [content, savedContent, isSaving, saveMutation]);
+
+  const menuCommands = useMemo<ContextCommand[]>(() => {
+    const mod = isMac() ? "⌘" : "Ctrl+";
+    const shiftMod = isMac() ? "⌘⇧" : "Ctrl+Shift+";
+    const commands: ContextCommand[] = [];
+    if (isDirty && !isSaving) {
+      commands.push({
+        id: "save",
+        label: "Save",
+        run: handleSave,
+        shortcut: `${mod}S`
+      });
+    }
+    if (!isCsv) {
+      commands.push(
+        { id: "undo", label: "Undo", run: handleUndo, shortcut: `${mod}Z` },
+        { id: "redo", label: "Redo", run: handleRedo, shortcut: `${shiftMod}Z` }
+      );
+      commands.push({
+        id: "word-wrap",
+        label: wordWrap ? "Turn Off Word Wrap" : "Turn On Word Wrap",
+        run: () => setWordWrap((wrap) => !wrap)
+      });
+    }
+    return commands;
+  }, [
+    isDirty,
+    isSaving,
+    isCsv,
+    wordWrap,
+    handleSave,
+    handleUndo,
+    handleRedo
+  ]);
+  useContextCommands("Text", menuCommands, active);
 
   const delimiter = useMemo(
     () => csvDelimiterFor(asset.name ?? ""),

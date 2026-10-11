@@ -56,6 +56,8 @@ export {
   MAX_INTERACTIVE_DECISION_TIMEOUT_MS
 } from "./workflow-run.js";
 export type {
+  PartialRunReport,
+  RunGeneration,
   RunModelCatalogs,
   RunWorkflowOptions,
   RunWorkflowOutcome,

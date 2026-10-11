@@ -21,7 +21,10 @@ const ColorProperty: React.FC<PropertyProps> = ({
     [onChange]
   );
 
-  const color = value?.value;
+  // A color can arrive as `{type: "color", value}` or, from an app variable a
+  // script filled, as the bare hex string.
+  const color: string | null =
+    typeof value === "string" ? value : (value?.value ?? null);
 
   return (
     <div className="property-wrapper">

@@ -24,7 +24,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🔎 Research Agent\n\nType a topic, name the audience, and get back a sourced briefing. Use it when you need a cited summary built from pages the agent actually opened, not from one prompt call.\n\n**How it works:** \"Topic\" and \"Audience\" fill the template in \"Compose research objective\", which asks for 3 to 5 research questions, cross-checked claims and a markdown brief with short takeaways and a numbered source list. \"Research agent (search + browse)\" receives that objective and loops over its two tools, google_search and browser, opening pages to verify details. Its text streams into \"Cited brief\" with inline [n] citations. Pick a language model on the agent before running. The search and browser tools reach the open web.\n\n**Try this:** Change \"Audience\" to \"a non-technical executive deciding on budget\" and compare the depth and framing of the new brief."
+          "comment": "# 🔎 Research Agent\n\nType a topic, name the audience, and get back a sourced briefing. Use it when you need a cited summary built from pages the agent actually opened, not from one prompt call.\n\n**How it works:** \"Topic\" and \"Audience\" fill the template in \"Compose research objective\", which asks for 3 to 5 research questions, cross-checked claims and a markdown brief with short takeaways and a numbered source list. \"Research agent (search + browse)\" receives that objective and loops over its two tools, web_search and browser, opening pages to verify details. Its text streams into \"Cited brief\" with inline [n] citations. Pick a language model on the agent before running. The search and browser tools reach the open web.\n\n**Try this:** Change \"Audience\" to \"a non-technical executive deciding on budget\" and compare the depth and framing of the new brief."
         },
         "ui_properties": {
           "selected": false,
@@ -91,7 +91,7 @@
         "parent_id": null,
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Research the topic below and write a briefing document for the stated audience.\n\nTOPIC: {{ topic }}\nAUDIENCE: {{ audience }}\n\nMethod:\n1. Break the topic into 3–5 concrete research questions.\n2. Use google_search to find authoritative, recent sources for each question.\n3. Use the browser tool to open the most promising results and pull out specifics — facts, figures, dates, direct quotes. Do not rely on search snippets alone.\n4. Cross-check every claim against at least two sources before stating it as fact.\n\nWrite the answer as a single markdown document with:\n- A `#` title naming the topic.\n- A **TL;DR** section: 3–4 bullet takeaways written for the audience.\n- Themed `##` sections covering the key findings, in a logical order.\n- A final **Sources** section: a numbered list of every URL you actually opened, as markdown links.\n\nCitations:\n- Put an inline [n] marker after any specific claim, matching the numbered entry in Sources.\n- Tailor depth and framing to the AUDIENCE.\n- Keep the tone neutral and precise, no filler. If sources disagree, say so and note which you trust more and why."
+          "prompt": "Research the topic below and write a briefing document for the stated audience.\n\nTOPIC: {{ topic }}\nAUDIENCE: {{ audience }}\n\nMethod:\n1. Break the topic into 3–5 concrete research questions.\n2. Use web_search to find authoritative, recent sources for each question.\n3. Use the browser tool to open the most promising results and pull out specifics — facts, figures, dates, direct quotes. Do not rely on search snippets alone.\n4. Cross-check every claim against at least two sources before stating it as fact.\n\nWrite the answer as a single markdown document with:\n- A `#` title naming the topic.\n- A **TL;DR** section: 3–4 bullet takeaways written for the audience.\n- Themed `##` sections covering the key findings, in a logical order.\n- A final **Sources** section: a numbered list of every URL you actually opened, as markdown links.\n\nCitations:\n- Put an inline [n] marker after any specific claim, matching the numbered entry in Sources.\n- Tailor depth and framing to the AUDIENCE.\n- Keep the tone neutral and precise, no filler. If sources disagree, say so and note which you trust more and why."
         },
         "ui_properties": {
           "title": "3️⃣ Compose research objective",
@@ -122,12 +122,12 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a research analyst. You produce accurate, well-sourced briefings for a specific audience.\n\nYou have two tools:\n- google_search: find sources on the open web.\n- browser: open a URL and read its full content.\n\nMethod:\n- Search first, then open the best results with the browser to verify details — never state a fact from a search snippet alone.\n- Prefer primary sources and recent, reputable material.\n- Every factual claim must trace to a page you actually opened.\n- When evidence is thin or sources conflict, say so plainly instead of guessing.\n\nOutput: a single markdown document. Use inline [n] citation markers tied to a numbered Sources list. Write it as you go so the reader sees progress.",
+          "system": "You are a research analyst. You produce accurate, well-sourced briefings for a specific audience.\n\nYou have two tools:\n- web_search: find sources on the open web.\n- browser: open a URL and read its full content.\n\nMethod:\n- Search first, then open the best results with the browser to verify details — never state a fact from a search snippet alone.\n- Prefer primary sources and recent, reputable material.\n- Every factual claim must trace to a page you actually opened.\n- When evidence is thin or sources conflict, say so plainly instead of guessing.\n\nOutput: a single markdown document. Use inline [n] citation markers tied to a numbered Sources list. Write it as you go so the reader sees progress.",
           "prompt": "",
           "tools": [
             {
               "type": "tool_name",
-              "name": "google_search"
+              "name": "web_search"
             },
             {
               "type": "tool_name",

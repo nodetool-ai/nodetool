@@ -106,6 +106,10 @@ describe("durable recovery of fal media responses", () => {
     expect(generation?.asset_ids).toHaveLength(1);
     const asset = await Asset.find("u1", generation?.asset_ids?.[0] ?? "");
     expect(asset?.content_type).toBe("audio/mpeg");
+    // The name every reader looks the bytes up by.
+    expect(storeAssetWithThumbnail.mock.calls[0][2]).toBe(
+      `${asset?.id}.mp3`
+    );
   });
 
   it("still saves the nested envelope beside its structured fields", async () => {

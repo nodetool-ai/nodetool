@@ -133,7 +133,7 @@ describe("useGenerateClip", () => {
     expect(runnerState.run).toHaveBeenCalledTimes(1);
     expect(subscribeMock).toHaveBeenCalledWith("job-1", expect.any(Function));
 
-    const queuedState = useTimelineGenerationStore.getState().clipJobs[clip.id];
+    const queuedState = useTimelineGenerationStore.getState().getClipJobState(clip.id, "seq-1");
     expect(queuedState?.jobId).toBe("job-1");
     expect(queuedState?.status).toBe("queued");
 
@@ -145,7 +145,7 @@ describe("useGenerateClip", () => {
       });
     });
 
-    expect(useTimelineGenerationStore.getState().clipJobs[clip.id]?.status).toBe(
+    expect(useTimelineGenerationStore.getState().getClipJobState(clip.id, "seq-1")?.status).toBe(
       "running"
     );
     expect(
@@ -162,7 +162,7 @@ describe("useGenerateClip", () => {
       });
     });
 
-    expect(useTimelineGenerationStore.getState().clipJobs[clip.id]?.progress).toBe(
+    expect(useTimelineGenerationStore.getState().getClipJobState(clip.id, "seq-1")?.progress).toBe(
       50
     );
 
@@ -175,7 +175,7 @@ describe("useGenerateClip", () => {
       });
     });
 
-    expect(useTimelineGenerationStore.getState().clipJobs[clip.id]?.status).toBe(
+    expect(useTimelineGenerationStore.getState().getClipJobState(clip.id, "seq-1")?.status).toBe(
       "failed"
     );
     expect(useErrorStore.getState().getError("wf-1", "job-1", "output-1")).toBe(
@@ -264,7 +264,7 @@ describe("useGenerateClip", () => {
     });
     // Job entry is cleared once the asset is applied.
     expect(
-      useTimelineGenerationStore.getState().clipJobs[clip.id]
+      useTimelineGenerationStore.getState().getClipJobState(clip.id, "seq-1")
     ).toBeUndefined();
 
     fetchQuerySpy.mockRestore();
@@ -324,7 +324,7 @@ describe("useGenerateClip", () => {
     });
 
     expect(
-      useTimelineGenerationStore.getState().clipJobs[clip.id]?.status
+      useTimelineGenerationStore.getState().getClipJobState(clip.id, "seq-1")?.status
     ).toBe("failed");
     expect(
       useTimelineStore.getState().clips.find((c) => c.id === clip.id)?.status
@@ -465,6 +465,6 @@ describe("useGenerateClip", () => {
     });
 
     expect(cancelMutate).toHaveBeenCalledWith({ id: "job-cancel" });
-    expect(useTimelineGenerationStore.getState().clipJobs[clip.id]).toBeUndefined();
+    expect(useTimelineGenerationStore.getState().getClipJobState(clip.id, "seq-1")).toBeUndefined();
   });
 });

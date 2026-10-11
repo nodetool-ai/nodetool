@@ -45,6 +45,7 @@ import {
 import { NodeInputs } from "../node/NodeInputs";
 import AddDynamicOutputButton from "../node/AddDynamicOutputButton";
 import HandleColumn from "../node/HandleColumn";
+import NodeModelChips from "../node/NodeModelChips";
 import ImageView from "../node/ImageView";
 import OutputRenderer from "../node/OutputRenderer";
 import { NodeOutputs } from "../node/NodeOutputs";
@@ -852,6 +853,13 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             colliding with inline-field rows below. */}
         <HandleColumn id={id} properties={handleProps} connectedEdges={connectedEdges} />
       </div>
+
+      <NodeModelChips
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+      />
 
       {/* Inline fields: rendered as full editors in normal flow under preview.
           Labels are visible here (no display: none). Dynamic inputs are

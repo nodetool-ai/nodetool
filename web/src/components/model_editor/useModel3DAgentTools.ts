@@ -17,6 +17,7 @@ import {
 } from "./editorCommands";
 import type { EditorCommand, EditorHistory } from "./editorHistory";
 import type { PrimitiveKind } from "./objectFactory";
+import { OBJECT_ID_EXTRA } from "./sceneOps";
 import { isLightTarget } from "./sceneTree";
 import type { CameraRequestInput } from "./ViewportHelpers";
 import {
@@ -35,6 +36,11 @@ export interface Model3DAgentToolsOptions {
   selectedUuidRef: MutableRefObject<string | null>;
   setSelectedUuid: (uuid: string | null) => void;
   pushCommand: (command: EditorCommand) => void;
+  /**
+   * Runs before every tool call that changes the scene. The editor ends its
+   * animation preview here, so the preview's rest pose cannot overwrite the edit.
+   */
+  beforeEdit: () => void;
   /** Re-render after a history step that pushed no command. */
   refresh: () => void;
   addPrimitive: (kind: PrimitiveKind, name?: string) => THREE.Object3D;
@@ -49,7 +55,10 @@ export interface Model3DAgentToolsOptions {
 const toDegrees = THREE.MathUtils.radToDeg;
 const toRadians = THREE.MathUtils.degToRad;
 
-/** Find an object by uuid, then by exact name, then by case-insensitive name. */
+/**
+ * Find an object by uuid, then by the stable id the headless scene tools
+ * list (`get_model3d`), then by exact name, then by case-insensitive name.
+ */
 export const findSceneObject = (
   root: THREE.Object3D,
   idOrName: string
@@ -57,6 +66,16 @@ export const findSceneObject = (
   const byUuid = root.getObjectByProperty("uuid", idOrName);
   if (byUuid) {
     return byUuid;
+  }
+  const id = idOrName.trim();
+  let byStoredId: THREE.Object3D | null = null;
+  root.traverse((child) => {
+    if (!byStoredId && child !== root && child.userData[OBJECT_ID_EXTRA] === id) {
+      byStoredId = child;
+    }
+  });
+  if (byStoredId) {
+    return byStoredId;
   }
   const byName = root.getObjectByName(idOrName);
   if (byName) {
@@ -126,6 +145,7 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
     selectedUuidRef,
     setSelectedUuid,
     pushCommand,
+    beforeEdit,
     refresh,
     addPrimitive,
     deleteObject,
@@ -162,6 +182,7 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
     };
 
     const historyStep = (step: () => EditorCommand | null): Model3DHistoryResult => {
+      beforeEdit();
       const command = step();
       if (command) {
         refresh();
@@ -189,7 +210,10 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
         return object ? node(object) : null;
       },
       getObject: (idOrName) => detail(requireObject(idOrName)),
-      addPrimitive: (kind, name) => node(addPrimitive(kind, name)),
+      addPrimitive: (kind, name) => {
+        beforeEdit();
+        return node(addPrimitive(kind, name));
+      },
       selectObject: (idOrName) => {
         if (!idOrName) {
           setSelectedUuid(null);
@@ -200,12 +224,14 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
         return node(object);
       },
       deleteObject: (idOrName) => {
+        beforeEdit();
         const object = requireObject(idOrName);
         const deleted = node(object);
         deleteObject(object);
         return deleted;
       },
       duplicateObject: (idOrName) => {
+        beforeEdit();
         const copy = duplicateObject(requireObject(idOrName));
         if (!copy) {
           throw new Error(`${idOrName} cannot be duplicated.`);
@@ -213,6 +239,7 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
         return node(copy);
       },
       setParent: (idOrName, parentIdOrName) => {
+        beforeEdit();
         const object = requireObject(idOrName);
         const parent = parentIdOrName ? requireObject(parentIdOrName) : root;
         if (object.parent === parent) {
@@ -233,6 +260,7 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
         return node(object);
       },
       setTransform: (idOrName, patch) => {
+        beforeEdit();
         const object = requireObject(idOrName);
         const before = captureTransform(object);
         if (patch.position) {
@@ -260,11 +288,13 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
         return node(object);
       },
       setVisibility: (idOrName, visible) => {
+        beforeEdit();
         const object = requireObject(idOrName);
         setVisible(object, visible);
         return node(object);
       },
       renameObject: (idOrName, name) => {
+        beforeEdit();
         const object = requireObject(idOrName);
         const trimmed = name.trim();
         if (!trimmed) {
@@ -274,16 +304,19 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
         return node(object);
       },
       setMaterialColor: (idOrName, color) => {
+        beforeEdit();
         const mesh = requireMesh(idOrName);
         pushCommand(materialPatchCommand(mesh, { color }));
         return node(mesh);
       },
       setMaterial: (idOrName, patch) => {
+        beforeEdit();
         const mesh = requireMesh(idOrName);
         pushCommand(materialPatchCommand(mesh, patch));
         return detail(mesh);
       },
       setLight: (idOrName, patch) => {
+        beforeEdit();
         const object = requireObject(idOrName);
         if (!(object instanceof THREE.Light)) {
           throw new Error(`${object.name || idOrName} is a ${object.type}, not a light.`);
@@ -292,6 +325,7 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
         return detail(object);
       },
       setGeometry: (idOrName, params) => {
+        beforeEdit();
         const mesh = requireMesh(idOrName);
         pushCommand(geometryPatchCommand(mesh, params));
         return detail(mesh);
@@ -312,6 +346,7 @@ export const useModel3DAgentTools = (options: Model3DAgentToolsOptions): void =>
     selectedUuidRef,
     setSelectedUuid,
     pushCommand,
+    beforeEdit,
     refresh,
     addPrimitive,
     deleteObject,

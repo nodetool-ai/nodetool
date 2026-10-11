@@ -52,9 +52,9 @@ const ROUTES = [
   { name: 'chat-thread', path: (v) => `chat/${v}`, needs: 'threadId' },
   { name: 'documents', path: 'documents' },
   { name: 'app', path: (v) => `app/${v}`, needs: 'applicationId' },
-  // Metro's dev server owns `/assets/*`, so this one is reached by tapping the
-  // header button instead of by URL.
-  { name: 'assets', path: '', click: 'Open assets' },
+  // Metro's dev server owns `/assets/*`, so this one is reached by tapping its
+  // tab instead of by URL.
+  { name: 'assets', path: '', tab: 'Assets' },
   { name: 'asset-viewer', path: (v) => `asset/${v}`, needs: 'assetId' },
   { name: 'jobs', path: 'jobs' },
   { name: 'job-detail', path: (v) => `job/${v}`, needs: 'jobId' },
@@ -118,8 +118,8 @@ for (const route of ROUTES) {
   const file = `${String(++index).padStart(2, '0')}-${route.name}.png`;
   await page.goto(`${WEB}/${rel}`, { waitUntil: 'load', timeout: 120_000 });
   await page.waitForTimeout(SETTLE_MS);
-  if (route.click) {
-    await page.getByLabel(route.click).first().click({ timeout: 15_000 });
+  if (route.tab) {
+    await page.getByRole('tab', { name: route.tab }).click({ timeout: 15_000 });
     await page.waitForTimeout(SETTLE_MS);
   }
   await page.screenshot({ path: path.join(OUT, file) });

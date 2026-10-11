@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T12:00:00.000Z",
   "name": "Find Every Number in a Sentence",
   "tool_name": null,
-  "description": "FindAllRegex returns each match rather than the first, which is what you want when pulling figures out of a report.",
+  "description": "A Code node with a global regular expression returns each match rather than the first, which is what you want when pulling figures out of a report.",
   "tags": [
     "text",
     "example"

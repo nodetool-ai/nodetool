@@ -37,7 +37,7 @@ import {
   type TimelineKeyboardPreset
 } from "./timelineKeymap";
 
-interface Row {
+export interface Row {
   /** The action whose bindings fill the key column, or fixed keys for a
    *  pointer gesture that has no keyboard binding. */
   action?: TimelineAction;
@@ -45,12 +45,12 @@ interface Row {
   label: string;
 }
 
-interface Group {
+export interface Group {
   title: string;
   rows: Row[];
 }
 
-const GROUPS: Group[] = [
+export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
   {
     title: "Tools",
     rows: [
@@ -74,7 +74,7 @@ const GROUPS: Group[] = [
       { action: "trimEditRight", label: "Trim edit point one frame on" },
       { action: "trimEditLeftLarge", label: "Trim edit point ten frames back" },
       { action: "trimEditRightLarge", label: "Trim edit point ten frames on" },
-      { action: "duplicate", label: "Duplicate (after each source)" },
+      { action: "duplicate", label: "Duplicate after the selection" },
       { action: "duplicateWithGap", label: "Duplicate with a 1 s gap" },
       { action: "applyDefaultTransition", label: "Cross-fade into selected clips" },
       { action: "applyFades", label: "Fade selected clips in and out" },
@@ -279,7 +279,7 @@ export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
             "@media (max-width: 560px)": { gridTemplateColumns: "1fr" }
           })}
         >
-          {GROUPS.map((group) => (
+          {TIMELINE_SHORTCUT_GROUPS.map((group) => (
             <FlexColumn key={group.title} gap={0.5} css={groupStyles}>
               <Caption sx={groupTitleSx}>{group.title}</Caption>
               {group.rows.map((row) => (

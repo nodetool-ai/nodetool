@@ -28,6 +28,53 @@ function getAlpha(canvas: HTMLCanvasElement, x: number, y: number): number {
 }
 
 describe("selection free transform helpers", () => {
+  it("splits a feathered edge between the lifted copy and the base", () => {
+    const snapshot = document.createElement("canvas");
+    snapshot.width = 4;
+    snapshot.height = 1;
+    setCanvasRasterBounds(snapshot, { x: 0, y: 0, width: 4, height: 1 });
+    const ctx = snapshot.getContext("2d")!;
+    ctx.fillStyle = "#ff0000";
+    ctx.fillRect(0, 0, 4, 1);
+
+    // A soft edge: fully, three-quarters and a quarter selected.
+    const selection: Selection = {
+      width: 4,
+      height: 1,
+      data: new Uint8ClampedArray([255, 191, 64, 0]),
+      originX: 0,
+      originY: 0
+    };
+    const layer = {
+      id: "layer-1",
+      name: "Layer 1",
+      type: "raster",
+      visible: true,
+      locked: false,
+      opacity: 1,
+      blendMode: "normal",
+      data: null,
+      transform: makeAffineTransform({ x: 0, y: 0 }),
+      contentBounds: { x: 0, y: 0, width: 4, height: 1 }
+    } as Layer;
+
+    const prepared = prepareSelectionFreeTransformCanvases({
+      snapshot,
+      layer,
+      documentCanvasWidth: 4,
+      documentCanvasHeight: 1,
+      selection
+    })!;
+
+    for (let x = 0; x < 3; x++) {
+      const lifted = getAlpha(prepared.selectionCanvas, x, 0);
+      const left = getAlpha(prepared.baseCanvas, x, 0);
+      expect(Math.abs(lifted + left - 255)).toBeLessThanOrEqual(2);
+    }
+    expect(getAlpha(prepared.baseCanvas, 2, 0)).toBeGreaterThan(180);
+    expect(getAlpha(prepared.baseCanvas, 3, 0)).toBe(255);
+  });
+
   it("isolates selected pixels and clears them from the base snapshot", () => {
     const snapshot = document.createElement("canvas");
     snapshot.width = 4;

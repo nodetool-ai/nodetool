@@ -59,6 +59,7 @@ jest.mock('../../ui_primitives', () => {
     ...jest.requireActual('../../ui_primitives/spacing'),
     MOTION: jest.requireActual('../../ui_primitives/tokens').MOTION,
     Z_INDEX: jest.requireActual('../../ui_primitives/tokens').Z_INDEX,
+    SHADOW: jest.requireActual('../../ui_primitives/tokens').SHADOW,
     CopyButton,
     Text,
     TextLink,

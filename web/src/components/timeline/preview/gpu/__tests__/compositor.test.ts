@@ -154,6 +154,31 @@ describe("WebGPUCompositor", () => {
     survivor.dispose();
   });
 
+  it("draws nothing for a layer whose matte source is still loading", async () => {
+    const gpu = fakeGpu();
+    const compositor = new WebGPUCompositor();
+    await compositor.init(gpu.canvas);
+    const source = stub<ImageBitmap>({ width: 8, height: 8, close() {} });
+    composite.mockReturnValueOnce({ texture: {}, drawn: 0 });
+    compositor.setLayers([
+      {
+        id: "matted",
+        source,
+        opacity: 1,
+        blendMode: "normal",
+        zIndex: 0,
+        mattePending: true
+      }
+    ]);
+    compositor.render();
+    // The shared core is given no layers, and with nothing drawn the last
+    // frame stays on screen rather than flashing the unmatted picture.
+    const [frameLayers] = composite.mock.calls[0] as unknown as [unknown[]];
+    expect(frameLayers).toEqual([]);
+    expect(blit).not.toHaveBeenCalled();
+    compositor.dispose();
+  });
+
   it("configures the canvas in the format the shared core blits into", async () => {
     // The core's blit pipeline targets rgba8unorm. A canvas configured with
     // the browser's preferred format (bgra8unorm on macOS and Windows) fails

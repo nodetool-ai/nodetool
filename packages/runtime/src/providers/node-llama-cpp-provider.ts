@@ -1,5 +1,10 @@
 import type { Chunk } from "@nodetool-ai/protocol";
-import { importOptionalModule, importNodeBuiltin } from "@nodetool-ai/config";
+import {
+  getHfHubCacheDir as getConfigHfHubCacheDir,
+  getLlamaCppCacheDir,
+  importOptionalModule,
+  importNodeBuiltin
+} from "@nodetool-ai/config";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import type {
   EmbeddingModel,
@@ -217,44 +222,15 @@ export async function disposeNodeLlamaCppModels(): Promise<void> {
   );
 }
 
-/** Platform default directory for downloaded GGUF models. Mirrors the location
- * `@nodetool-ai/huggingface`'s `getLlamaCppCacheDir` writes to, so models
- * fetched through the existing download path resolve without extra config. */
+/** Default directory for downloaded GGUF models: llama.cpp's own cache
+ * directory, the one `@nodetool-ai/huggingface`'s download path writes to. */
 async function getDefaultModelsDir(): Promise<string> {
-  const os = await importNodeBuiltin<typeof import("node:os")>("node:os");
-  const path = await importNodeBuiltin<typeof import("node:path")>("node:path");
-  if (!os || !path) {
-    throw new Error("node-llama-cpp provider requires a Node.js runtime");
-  }
-  const home = os.homedir();
-  if (process.platform === "darwin") {
-    return path.join(home, "Library", "Caches", "llama.cpp");
-  }
-  if (process.platform === "win32") {
-    const localAppData = process.env.LOCALAPPDATA;
-    return localAppData
-      ? path.join(localAppData, "llama.cpp")
-      : path.join(home, ".cache", "llama.cpp");
-  }
-  return path.join(home, ".cache", "llama.cpp");
+  return getLlamaCppCacheDir();
 }
 
-/** Default HuggingFace hub cache. Mirrors `@nodetool-ai/huggingface`'s
- * `getDefaultHfCacheDir`; that package sits above runtime in the dependency
- * order, so the resolution is duplicated rather than imported — same reason as
- * {@link getDefaultModelsDir}. */
+/** HuggingFace hub cache root, from the resolver every hub reader shares. */
 async function getHfHubCacheDir(): Promise<string | null> {
-  const os = await importNodeBuiltin<typeof import("node:os")>("node:os");
-  const path = await importNodeBuiltin<typeof import("node:path")>("node:path");
-  if (!os || !path) return null;
-  const expand = (p: string) =>
-    p.startsWith("~") ? path.join(os.homedir(), p.slice(1)) : p;
-
-  const envCache = process.env.HF_HUB_CACHE;
-  if (envCache) return expand(envCache);
-  const hfHome = process.env.HF_HOME;
-  if (hfHome) return path.join(expand(hfHome), "hub");
-  return path.join(os.homedir(), ".cache", "huggingface", "hub");
+  return getConfigHfHubCacheDir();
 }
 
 /** A GGUF file discovered on disk. `id` is what gets loaded (a bare filename

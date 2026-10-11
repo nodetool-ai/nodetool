@@ -124,3 +124,9 @@
   white-space: pre-wrap;
   color: var(--palette-grey-100);
 }
+
+.command-menu-shortcut {
+  margin-left: auto;
+  font-size: var(--fontSizeSmall);
+  color: var(--palette-grey-400);
+}

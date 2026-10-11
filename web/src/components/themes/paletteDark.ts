@@ -41,6 +41,8 @@ declare module "@mui/material/styles" {
     c_overlay_subtle?: string;
     c_overlay?: string;
     c_overlay_strong?: string;
+    // Multiplier on every elevation shadow's opacity (SHADOW, --shadow-*)
+    c_shadow_alpha?: string;
     c_provider_api?: string;
     c_provider_local?: string;
     c_provider_hf?: string;
@@ -120,6 +122,8 @@ declare module "@mui/material/styles" {
     c_overlay_subtle?: string;
     c_overlay?: string;
     c_overlay_strong?: string;
+    // Multiplier on every elevation shadow's opacity (SHADOW, --shadow-*)
+    c_shadow_alpha?: string;
     c_provider_api?: string;
     c_provider_local?: string;
     c_provider_hf?: string;
@@ -220,9 +224,9 @@ export const paletteDark: PaletteOptions = {
   c_scroll_bg: "transparent",
   c_scroll_hover: "#3A3D44",
   c_scroll_thumb: "#27292E",
-  c_node_bg: "#1B1D21",
+  c_node_bg: "#0D0E10",
   c_node_bg_group: "#22252A",
-  c_node_header_bg: "#141518",
+  c_node_header_bg: "#0D0E10",
   c_node_header_bg_group: "#2A2D33",
   c_bg_loop: "#2563EB22",
   c_bg_group: "#A0A0A030",
@@ -238,6 +242,7 @@ export const paletteDark: PaletteOptions = {
   c_overlay_subtle: "rgba(255, 255, 255, 0.03)",
   c_overlay: "rgba(255, 255, 255, 0.06)",
   c_overlay_strong: "rgba(255, 255, 255, 0.15)",
+  c_shadow_alpha: "1",
   c_provider_api: "#93C5FD",
   c_provider_local: "#86EFAC",
   c_provider_hf: "#C4B5FD",

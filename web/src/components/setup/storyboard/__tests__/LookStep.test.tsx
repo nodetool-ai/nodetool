@@ -82,7 +82,8 @@ jest.mock("../../../../serverState/useAssetUpload", () => ({
 const rpcRequest = jest.fn(
   async (
     _command: string,
-    _data: Record<string, unknown>
+    _data: Record<string, unknown>,
+    _signal?: AbortSignal
   ): Promise<{ data: Record<string, unknown> }> => ({
     data: {
       name: "Sun-bleached Super 8",
@@ -91,8 +92,12 @@ const rpcRequest = jest.fn(
   })
 );
 jest.mock("../../../../lib/websocket/rpcRequest", () => ({
-  rpcRequest: (command: string, data: Record<string, unknown>) =>
-    rpcRequest(command, data)
+  rpcRequest: (
+    command: string,
+    data: Record<string, unknown>,
+    _timeoutMs?: number,
+    signal?: AbortSignal
+  ) => rpcRequest(command, data, signal)
 }));
 
 let presets: Array<{
@@ -110,9 +115,14 @@ jest.mock("../../../../serverState/useStylePresets", () => ({
 // The still-model picker reads the image-model catalog through TanStack
 // Query; this suite stands up no client. What the picker itself does is
 // pinned by `StillModelField` tests below, through the store.
+const languageModels: unknown[] = [];
 jest.mock("../../../../hooks/useModelsByProvider", () => ({
   __esModule: true,
-  useImageModelsByProvider: () => ({ models: [], isLoading: false })
+  useImageModelsByProvider: () => ({ models: [], isLoading: false }),
+  useLanguageModelsByProvider: () => ({
+    models: languageModels,
+    isLoading: false
+  })
 }));
 jest.mock("../../../properties/ImageModelSelect", () => ({
   __esModule: true,
@@ -237,6 +247,7 @@ beforeEach(() => {
   saveEntity.mockClear();
   uploadAsset.mockClear();
   rpcRequest.mockClear();
+  languageModels.length = 0;
   presets = [NOIR, COMIC];
   library = [asEntity(NOIR), asEntity(COMIC)];
   useStoryboardStore.setState({ boards: {}, history: {} } as never);
@@ -631,6 +642,25 @@ describe("LookStep — Add your own style", () => {
     await user.click(screen.getByRole("button", { name: "Add style" }));
   };
 
+  // A shotlist import lands here from step 1, past the genre step that fills
+  // in the screenplay model this dialog asks.
+  it("works on a board that skipped the genre step", async () => {
+    languageModels.push({
+      id: "catalog-model",
+      provider: "openai",
+      name: "Catalog"
+    });
+    renderStep();
+    await waitFor(() =>
+      expect(board().directorModel?.id).toBe("catalog-model")
+    );
+
+    await addOwnStyle();
+
+    await waitFor(() => expect(board().entityIds).toEqual(["e-mine"]));
+    expect(screen.queryByText(/Pick a model before adding a style/)).toBeNull();
+  });
+
   it("saves the model's descriptor as a user entity and applies it", async () => {
     seedOnNoir();
     renderStep();
@@ -681,6 +711,90 @@ describe("LookStep — Add your own style", () => {
     ).toBeInTheDocument();
     expect(board().entityIds).toEqual([NOIR.entityId]);
     expect(board().style).toBe(NOIR.descriptor);
+    expect(saveEntity).not.toHaveBeenCalled();
+  });
+
+  // F8: the save goes on once the references are sent, so the dialog cannot
+  // be dismissed out from under it, and Generate waits for the style it
+  // applies.
+  it("stays open and holds Generate while the references are read", async () => {
+    seedOnNoir();
+    let answer: (value: { data: Record<string, unknown> }) => void = () =>
+      undefined;
+    rpcRequest.mockReturnValueOnce(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    renderStep();
+    const look = renderHook(() => useLookStep(BOARD));
+
+    await addOwnStyle();
+    await waitFor(() => expect(rpcRequest).toHaveBeenCalled());
+    expect(look.result.current.canAdvance).toBe(false);
+    expect(look.result.current.blockedReason).toBe("Saving your style");
+
+    const user = userEvent.setup();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(
+      screen.getByRole("dialog", { name: /Add your own style/ })
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      answer({
+        data: {
+          name: "Sun-bleached Super 8",
+          descriptor: "Grainy 16mm, warm halation."
+        }
+      });
+    });
+    await waitFor(() => expect(board().entityIds).toEqual(["e-mine"]));
+    expect(look.result.current.blockedReason).not.toBe("Saving your style");
+  });
+});
+
+describe("LookStep — canceling Add your own style", () => {
+  // The descriptor call has no timeout. A reply that never comes held
+  // Generate on "Saving your style" with no way out.
+  it("stops the reading and releases Generate on Cancel", async () => {
+    const current = board();
+    useStoryboardStore.getState().loadBoard(BOARD, {
+      ...current,
+      entityIds: [NOIR.entityId],
+      style: NOIR.descriptor,
+      directorModel: { type: "language_model", provider: "openai", id: "gpt-5" }
+    } as never);
+    let readSignal: AbortSignal | undefined;
+    rpcRequest.mockImplementationOnce((_command, _data, signal) => {
+      readSignal = signal;
+      return new Promise(() => undefined);
+    });
+    renderStep();
+    const look = renderHook(() => useLookStep(BOARD));
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: /Add your own style/ })
+    );
+    await user.upload(
+      screen.getByLabelText("Reference images"),
+      new File(["ref"], "ref.png", { type: "image/png" })
+    );
+    await user.click(screen.getByRole("button", { name: "Add style" }));
+    await waitFor(() =>
+      expect(look.result.current.blockedReason).toBe("Saving your style")
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(readSignal?.aborted).toBe(true);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /Add your own style/ })
+      ).toBeNull()
+    );
+    expect(look.result.current.blockedReason).not.toBe("Saving your style");
+    expect(board().entityIds).toEqual([NOIR.entityId]);
     expect(saveEntity).not.toHaveBeenCalled();
   });
 });

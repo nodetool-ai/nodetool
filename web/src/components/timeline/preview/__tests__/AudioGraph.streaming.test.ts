@@ -185,18 +185,26 @@ describe("AudioGraph streamed playback", () => {
   });
 
   it("releases the element when the clip is stopped", async () => {
-    const { graph, elements } = setup();
+    const { graph, ctx, gains, elements } = setup();
     await graph.scheduleClips(
       [scheduled({}, { assetSize: STREAM_MIN_BYTES })] as never,
       [],
       0
     );
 
+    const node = ctx.createMediaElementSource.mock.results[0].value;
+    const gate = gains[gains.length - 1];
     graph.stopClips(["c1"]);
     const [el] = elements;
+    // The element plays on under the clip gain's short ramp to silence, then
+    // is released and its nodes are detached from the graph.
+    expect(el.pause).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(30);
     expect(el.pause).toHaveBeenCalled();
     expect(el.removeAttribute).toHaveBeenCalledWith("src");
     expect(el.load).toHaveBeenCalled();
+    expect(node.disconnect).toHaveBeenCalled();
+    expect(gate.disconnect).toHaveBeenCalled();
     // A stopped segment never starts.
     jest.advanceTimersByTime(5000);
     expect(el.play).not.toHaveBeenCalled();

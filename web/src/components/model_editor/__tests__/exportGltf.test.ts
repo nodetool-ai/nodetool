@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { exportSceneToGlb } from "../exportGltf";
-import { HIDDEN_EXTRA } from "../sceneOps";
+import { EDITOR_SETTINGS_EXTRA, HIDDEN_EXTRA } from "../sceneOps";
 import { createPrimitive } from "../objectFactory";
 
 const mockParse = jest.fn();
@@ -54,7 +54,7 @@ describe("exportSceneToGlb", () => {
     expect(blob.type).toBe("model/gltf-binary");
   });
 
-  it("writes hidden objects with the hidden extra and restores the live scene", async () => {
+  it("writes hidden objects with the hidden extra without showing them", async () => {
     const root = new THREE.Group();
     const hidden = new THREE.Mesh();
     hidden.visible = false;
@@ -69,26 +69,95 @@ describe("exportSceneToGlb", () => {
 
     await exportSceneToGlb(root);
 
-    expect(seen).toEqual({ visible: true, extra: true });
-    expect(hidden.visible).toBe(false);
+    // Frames keep rendering during an export, so a hidden object must not
+    // flash on screen; the exporter is told to keep invisible nodes instead.
+    expect(seen).toEqual({ visible: false, extra: true });
+    expect(mockParse.mock.calls[0][3]).toMatchObject({ onlyVisible: false });
     expect(hidden.userData).toEqual({});
   });
 
-  it("leaves a light's target out of the export", async () => {
+  it("exports a wireframe mesh as triangles and keeps its settings in an extra", async () => {
     const root = new THREE.Group();
-    const light = createPrimitive("directionalLight") as THREE.DirectionalLight;
-    root.add(light);
-    let targetVisible: boolean | null = null;
+    const material = new THREE.MeshStandardMaterial({ wireframe: true, side: THREE.BackSide });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(), material);
+    mesh.castShadow = true;
+    mesh.renderOrder = 3;
+    root.add(mesh);
+    let seen: { wireframe: boolean; material: unknown; object: unknown } | null = null;
     mockParse.mockImplementation(
       (_input: unknown, onDone: (result: ArrayBuffer) => void) => {
-        targetVisible = light.target.visible;
+        seen = {
+          wireframe: material.wireframe,
+          material: material.userData[EDITOR_SETTINGS_EXTRA],
+          object: mesh.userData[EDITOR_SETTINGS_EXTRA]
+        };
         onDone(new ArrayBuffer(4));
       }
     );
 
     await exportSceneToGlb(root);
 
-    expect(targetVisible).toBe(false);
-    expect(light.target.visible).toBe(true);
+    // GLTFExporter writes a wireframe material's mesh as LINES over the
+    // triangle indices, which reloads as broken line segments.
+    expect(seen).toEqual({
+      wireframe: false,
+      material: { wireframe: true, backSide: true },
+      object: { castShadow: true, renderOrder: 3 }
+    });
+    expect(material.wireframe).toBe(true);
+    expect(material.userData).toEqual({});
+    expect(mesh.userData).toEqual({});
+  });
+
+  it("writes no settings extra for default objects and materials", async () => {
+    const root = new THREE.Group();
+    const mesh = createPrimitive("box") as THREE.Mesh;
+    root.add(mesh);
+    let seen: unknown[] = [];
+    mockParse.mockImplementation(
+      (_input: unknown, onDone: (result: ArrayBuffer) => void) => {
+        seen = [
+          mesh.userData[EDITOR_SETTINGS_EXTRA],
+          (mesh.material as THREE.Material).userData[EDITOR_SETTINGS_EXTRA]
+        ];
+        onDone(new ArrayBuffer(4));
+      }
+    );
+
+    await exportSceneToGlb(root);
+
+    expect(seen).toEqual([undefined, undefined]);
+  });
+
+  it("leaves a light's target out of the export and puts it back", async () => {
+    const root = new THREE.Group();
+    const light = createPrimitive("directionalLight") as THREE.DirectionalLight;
+    root.add(light);
+    let targetListed: boolean | null = null;
+    mockParse.mockImplementation(
+      (_input: unknown, onDone: (result: ArrayBuffer) => void) => {
+        targetListed = light.children.includes(light.target);
+        onDone(new ArrayBuffer(4));
+      }
+    );
+
+    await exportSceneToGlb(root);
+
+    expect(targetListed).toBe(false);
+    expect(light.children).toContain(light.target);
+    expect(light.target.parent).toBe(light);
+  });
+
+  it("refuses to save a skinned mesh whose bones were deleted", async () => {
+    const root = new THREE.Group();
+    const bone = new THREE.Bone();
+    const mesh = new THREE.SkinnedMesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+    mesh.name = "Body";
+    root.add(bone, mesh);
+    mesh.bind(new THREE.Skeleton([bone]));
+    root.remove(bone);
+
+    await expect(exportSceneToGlb(root)).rejects.toThrow(/Body lost bones/);
+    expect(mockParse).not.toHaveBeenCalled();
   });
 });

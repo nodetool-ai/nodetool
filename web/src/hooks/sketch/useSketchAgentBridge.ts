@@ -35,7 +35,11 @@ import {
 import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import type { SketchCanvasRefState } from "../../stores/sketch/SketchCanvasRefStore";
 import { useDirectGenJob } from "./useDirectGenJob";
-import { requestRefinedBrief } from "./useRefineBrief";
+import { briefInputSignature, requestRefinedBrief } from "./useRefineBrief";
+import {
+  imageReferences,
+  readReferences
+} from "../../components/setup/image/setupContext";
 import {
   IMAGE_USE_CASES,
   findImageUseCase
@@ -281,12 +285,22 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
 
       async refineBrief() {
         const setup = editor.getState().document.setup;
+        // The same request the flow's Refine sends, attached pictures included.
         const refined = await requestRefinedBrief({
           brief: setup?.brief,
-          use_case: setup?.use_case
+          use_case: setup?.use_case,
+          references: imageReferences(readReferences(setup)).map(
+            (reference) => reference.uri
+          )
         });
         // D4: one language-model call and one store write. No layer, no job.
-        editor.getState().setSetup({ refined, stage: "review" });
+        // `refined_from` tells the use case step this brief is current, so it
+        // continues instead of paying for the same expansion again (F15).
+        editor.getState().setSetup({
+          refined,
+          stage: "review",
+          refined_from: briefInputSignature(setup)
+        });
         return editor.getState().document.setup ?? {};
       },
 

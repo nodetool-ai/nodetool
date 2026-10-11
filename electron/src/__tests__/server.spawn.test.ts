@@ -70,6 +70,35 @@ describe("backend utilityProcess spawn contract", () => {
     jest.mocked(electronMock.utilityProcess.fork).mockClear();
   });
 
+  test.each([false, true])("stopping during startup cancels polling (TCP reachable: %s)", async (reachable) => {
+    jest.useFakeTimers();
+    const watchdog = new Watchdog({
+      name: "nodetool", modulePath: "/mock/server.mjs",
+      pidFilePath: "/mock/backend.pid", healthUrl: "http://127.0.0.1:7777/health"
+    });
+    const probes = watchdog as unknown as {
+      isReachable: () => Promise<boolean>;
+      isReady: () => Promise<boolean>;
+    };
+    jest.spyOn(probes, "isReachable").mockResolvedValue(reachable);
+    jest.spyOn(probes, "isReady").mockResolvedValue(false);
+    let startupError: unknown;
+    const startup = watchdog.waitUntilHealthy(1000).catch((error: unknown) => {
+      startupError = error;
+    });
+    try {
+      await jest.advanceTimersByTimeAsync(0);
+      await watchdog.stopGracefully();
+      await jest.advanceTimersByTimeAsync(1000);
+      await startup;
+      expect(startupError).toEqual(new Error("nodetool watchdog: startup stopped"));
+      expect(probes.isReachable).toHaveBeenCalledTimes(1);
+      expect(probes.isReady).toHaveBeenCalledTimes(reachable ? 1 : 0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   test("Watchdog accepts the env shape server.ts builds for the backend", async () => {
     // This object mirrors the shape constructed inside server.ts startServer().
     // If server.ts ever drops/renames a required key, the renderer or backend
@@ -95,7 +124,7 @@ describe("backend utilityProcess spawn contract", () => {
       NODETOOL_PYTHON: "",
       NODE_ENV: "production",
       NODETOOL_PACKS_REQUIRE_ALLOWLIST: "1",
-      NODE_OPTIONS: "--conditions=nodetool-dev",
+      NODE_OPTIONS: "",
       NODE_PATH: "/mock/backend/node_modules",
     } satisfies Record<string, string>;
 

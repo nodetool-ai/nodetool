@@ -9,6 +9,7 @@ import type { Entity } from "@nodetool-ai/protocol";
 
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import EntityTilesField from "./EntityTilesField";
+import { CreateEntityButton } from "../entities/EntityListPanel";
 
 interface ShotEntitiesFieldProps {
   boardId: string;
@@ -68,6 +69,10 @@ const ShotEntitiesFieldInner: React.FC<ShotEntitiesFieldProps> = ({
       removeLabel={removeLabel}
       emptyText="No entities. Choose a character, location, style or prop to keep it consistent in this shot."
       readOnly={readOnly}
+      // A new entity joins the board and this shot, as a picked one does.
+      extraAction={
+        <CreateEntityButton label="New entity" onCreated={handlePick} />
+      }
     />
   );
 };

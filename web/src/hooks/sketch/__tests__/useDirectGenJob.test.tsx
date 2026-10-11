@@ -5,7 +5,8 @@
  * `generate_media` RPC for each layer binding kind.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { act, renderHook } from "@testing-library/react";
+import React from "react";
+import { act, render, renderHook } from "@testing-library/react";
 
 const sendMock = jest.fn(async (_frame?: unknown) => {});
 const subscribeMock = jest.fn(
@@ -27,6 +28,10 @@ import { useSketchStore } from "../../../components/sketch/state/useSketchStore"
 import { createDefaultDocument } from "../../../components/sketch/types";
 import { useAssetStore } from "../../../stores/AssetStore";
 import type { LayerWorkflowBinding } from "../../../stores/sketch/SketchSessionStore";
+import {
+  SketchProvider,
+  createSketchInstance
+} from "../../../stores/sketch/SketchInstance";
 
 const seedBinding = (binding: Partial<LayerWorkflowBinding>): void => {
   const existing =
@@ -115,6 +120,65 @@ describe("useDirectGenJob request payloads", () => {
       mode: "image_edit",
       source_asset_id: "src-upload",
       prompt: "make it night"
+    });
+  });
+
+  it("image-to-image: uploads a placed photo nothing has painted on yet", async () => {
+    // "Upload an image to edit" leaves the photo on a layer whose pixels are
+    // still only the image it was placed from: `data` is null.
+    let photoId = "";
+    act(() => {
+      useSketchStore.getState().setDocument(createDefaultDocument(800, 600));
+      const doc = useSketchStore.getState().document;
+      photoId = doc.layers[0].id;
+      useSketchStore.getState().setDocument({
+        ...doc,
+        layers: doc.layers.map((layer) =>
+          layer.id === photoId
+            ? {
+                ...layer,
+                name: "holiday-photo.jpg",
+                data: null,
+                imageReference: {
+                  uri: "/api/storage/1/photo.jpg",
+                  naturalWidth: 800,
+                  naturalHeight: 600,
+                  objectFit: "contain"
+                }
+              }
+            : layer
+        )
+      });
+    });
+    const photo = new Blob(["jpeg bytes"], { type: "image/jpeg" });
+    const fetchMock = jest.fn(async (_url: string) => ({
+      ok: true,
+      status: 200,
+      blob: async () => photo
+    }));
+    global.fetch = fetchMock as never;
+    const createAsset = jest.fn(async (_file: File) => ({ id: "photo-upload" }));
+    useAssetStore.setState({ createAsset } as never);
+
+    seedBinding({
+      kind: "image-to-image",
+      provider: "prov",
+      model: "edit-1",
+      prompt: "make it a sunset",
+      sourceLayerId: photoId,
+      status: "draft"
+    } as never);
+    await start();
+
+    expect(directGenFailure("layer-1")).toBeNull();
+    expect(fetchMock.mock.calls[0][0]).toMatch(/\/api\/storage\/1\/photo\.jpg$/);
+    expect(createAsset.mock.calls[0][0]).toMatchObject({
+      name: "holiday-photo.jpg",
+      type: "image/jpeg"
+    });
+    expect(sentData()).toMatchObject({
+      mode: "image_edit",
+      source_asset_id: "photo-upload"
     });
   });
 
@@ -344,5 +408,72 @@ describe("a result that lands mid-edit", () => {
         .document.layers.find((layer) => layer.id === layerId)?.imageReference
         ?.uri
     ).toBe("https://x.test/asset-heron.png");
+  });
+});
+
+/**
+ * An inactive workspace tab stays mounted but leaves the activation stack, so
+ * the shared hooks' `getState()` then reads the focused document. A render
+ * that settles after a tab switch must still land on its own tab.
+ */
+describe("a result that lands after a tab switch", () => {
+  it("writes the image and the status to the tab that started it", async () => {
+    const own = createSketchInstance();
+    const other = createSketchInstance();
+    let layerId = "";
+    act(() => {
+      own.editor.getState().setDocument(createDefaultDocument(512, 512));
+      layerId = own.editor.getState().addLayer("Variation 1");
+      own.session.setState({
+        bindings: {
+          [layerId]: {
+            kind: "text-to-image",
+            provider: "prov",
+            model: "model-1",
+            prompt: "a heron",
+            status: "draft",
+            versions: []
+          }
+        }
+      } as never);
+      useAssetStore.setState({
+        get: async (id: string) => ({ id, get_url: `https://x.test/${id}.png` })
+      } as never);
+    });
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <SketchProvider instance={own} active={false}>
+        {children}
+      </SketchProvider>
+    );
+    const { result } = renderHook(() => useDirectGenJob(), { wrapper });
+    // Another tab is focused while the take renders.
+    render(
+      <SketchProvider instance={other} active>
+        <div />
+      </SketchProvider>
+    );
+    await act(async () => {
+      await result.current.start(layerId);
+    });
+    const frame = sendMock.mock.calls[0][0] as { request_id?: string };
+    const handler = subscribeMock.mock.calls[0][1] as (msg: unknown) => void;
+    await act(async () => {
+      handler({
+        type: "rpc_response",
+        request_id: frame.request_id,
+        command: "generate_media",
+        result: { asset_ids: ["asset-heron"] }
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    const landed = own.editor
+      .getState()
+      .document.layers.find((layer) => layer.id === layerId);
+    expect(landed?.imageReference?.uri).toBe("https://x.test/asset-heron.png");
+    expect(own.session.getState().bindings[layerId]?.status).not.toBe(
+      "generating"
+    );
+    expect(other.session.getState().bindings[layerId]).toBeUndefined();
   });
 });

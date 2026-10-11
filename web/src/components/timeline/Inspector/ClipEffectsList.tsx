@@ -182,6 +182,10 @@ function makeEffect(type: AddableEffectType): ClipEffect {
 
 const SCRUB_PX = { step: 1 };
 const SCRUB_UNIT = { step: 0.01 };
+// Gamma is a divisor (out = in ^ (1 / gamma)), so it stays above 0. Gain
+// multiplies, and a negative gain renders the same black as 0.
+const SCRUB_GAMMA = { step: 0.01, min: 0.01 };
+const SCRUB_GAIN = { step: 0.01, min: 0 };
 
 interface EffectFieldsProps {
   effect: ClipEffect;
@@ -465,7 +469,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
           <InspectorRow label="Gamma">
             <InspectorPillInput
               value={effect.gamma.toFixed(2)}
-              scrub={SCRUB_UNIT}
+              scrub={SCRUB_GAMMA}
               onCommit={(raw) =>
                 commitNumber(raw, (gamma) => onPatch({ gamma }), 0, true)
               }
@@ -495,10 +499,11 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
     }
 
     if (isClipLiftGammaGainEffect(effect)) {
+      // Lift is an offset and may go negative.
       const triples = [
-        { key: "lift", label: "Lift", value: effect.lift },
-        { key: "gamma", label: "Gamma", value: effect.gamma },
-        { key: "gain", label: "Gain", value: effect.gain }
+        { key: "lift", label: "Lift", value: effect.lift, scrub: SCRUB_UNIT, min: undefined, exclusiveMin: false },
+        { key: "gamma", label: "Gamma", value: effect.gamma, scrub: SCRUB_GAMMA, min: 0, exclusiveMin: true },
+        { key: "gain", label: "Gain", value: effect.gain, scrub: SCRUB_GAIN, min: 0, exclusiveMin: false }
       ] as const;
       const channelNames = ["R", "G", "B"] as const;
       return (
@@ -510,15 +515,20 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
                   key={channel}
                   value={triple.value[index].toFixed(2)}
                   minWidth={52}
-                  scrub={SCRUB_UNIT}
+                  scrub={triple.scrub}
                   onCommit={(raw) =>
-                    commitNumber(raw, (next) => {
-                      const updated: [number, number, number] = [
-                        ...triple.value
-                      ];
-                      updated[index] = next;
-                      onPatch({ [triple.key]: updated });
-                    })
+                    commitNumber(
+                      raw,
+                      (next) => {
+                        const updated: [number, number, number] = [
+                          ...triple.value
+                        ];
+                        updated[index] = next;
+                        onPatch({ [triple.key]: updated });
+                      },
+                      triple.min,
+                      triple.exclusiveMin
+                    )
                   }
                   ariaLabel={`${name} ${triple.label.toLowerCase()} ${channel}`}
                 />

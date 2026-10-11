@@ -1,5 +1,6 @@
 /**
- * renderTimelineAudio — offline mixdown of the timeline's audio and midi tracks.
+ * renderTimelineAudio — offline mixdown of the timeline's audio and midi tracks,
+ * and of the video clips that carry their own audio.
  *
  * Reuses {@link AudioGraph} (the same clip scheduling, fades, speed, per-clip
  * gain, track mute/solo and DSP chain the live preview uses) but drives it with
@@ -9,8 +10,10 @@
 
 import {
   DEFAULT_MIDI_INSTRUMENT,
+  effectiveAssetId,
   renderMidiClip,
-  resolveTempo
+  resolveTempo,
+  videoClipsWithOwnAudio
 } from "@nodetool-ai/timeline";
 import type {
   TimelineClip,
@@ -74,13 +77,7 @@ function isPlayableAudioClip(clip: TimelineClip): boolean {
   if (clip.muted || clip.startMs + clip.durationMs <= 0) return false;
   // A midi clip's notes are its content: no asset, nothing to generate.
   if (clip.mediaType === "midi") return (clip.notes?.length ?? 0) > 0;
-  return (
-    clip.mediaType === "audio" &&
-    clip.currentAssetId != null &&
-    (clip.status === "generated" ||
-      clip.status === "stale" ||
-      clip.status === "locked")
-  );
+  return clip.mediaType === "audio" && effectiveAssetId(clip) !== undefined;
 }
 
 /**
@@ -107,9 +104,16 @@ export async function renderTimelineAudio(
       .filter((track) => !track.muted && (!hasSolo || track.solo))
       .map((track) => track.id)
   );
-  const audioClips = clips.filter(
-    (clip) => isPlayableAudioClip(clip) && audibleTrackIds.has(clip.trackId)
-  );
+  // A video clip with no extracted-audio partner sounds its own audio, as it
+  // does in the server export; its mute and solo are decided by the shared rule.
+  const audioClips = [
+    ...videoClipsWithOwnAudio(clips, tracks).filter(
+      (clip) => clip.startMs + clip.durationMs > 0
+    ),
+    ...clips.filter(
+      (clip) => isPlayableAudioClip(clip) && audibleTrackIds.has(clip.trackId)
+    )
+  ];
   if (audioClips.length === 0) return null;
 
   const length = Math.max(1, Math.round((durationMs / 1000) * sampleRate));
@@ -125,15 +129,18 @@ export async function renderTimelineAudio(
         if (clip.mediaType === "midi") {
           // Rendered inline: the export already runs off the main thread's hot
           // path, and one context per render makes a worker round trip pure cost.
+          const recordings = await getSamplerAudio(
+            offline,
+            instrumentOf(clip.trackId),
+            resolveUrl
+          );
+          // A cancelled export has already returned; do not render the notes.
+          throwIfAborted(signal);
           const samples = renderMidiClip({
             clip,
             bpm,
             instrument: instrumentOf(clip.trackId),
-            samples: await getSamplerAudio(
-              offline,
-              instrumentOf(clip.trackId),
-              resolveUrl
-            ),
+            samples: recordings,
             sampleRate
           });
           const buffer = offline.createBuffer(
@@ -156,10 +163,16 @@ export async function renderTimelineAudio(
   );
   if (validClips.length === 0) return null;
 
-  const graph = new AudioGraph(offline);
+  // The graph's fetches take the export's signal, and a cancel stops it
+  // scheduling once its buffers settle, so a cancelled mix stops downloading
+  // and decoding rather than finishing behind the next export.
+  const graph = new AudioGraph(offline, { signal });
   // currentTimeMs = 0: the renderer always mixes the whole timeline from t=0,
   // so each clip is scheduled at its absolute startMs on the offline clock.
-  await abortable(graph.scheduleClips(validClips, tracks, 0), signal);
+  await abortable(
+    graph.scheduleClips(validClips, tracks, 0, () => signal?.aborted === true),
+    signal
+  );
   throwIfAborted(signal);
 
   return abortable(offline.startRendering(), signal);

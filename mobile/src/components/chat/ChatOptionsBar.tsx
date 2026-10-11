@@ -164,8 +164,8 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
       style={[
         styles.chip,
         {
-          backgroundColor: active ? colors.primary : colors.inputBg,
-          borderColor: active ? colors.primary : colors.borderLight,
+          backgroundColor: active ? colors.primaryMuted : 'transparent',
+          borderColor: active ? colors.primary : colors.border,
         },
       ]}
       accessibilityRole="button"
@@ -175,22 +175,19 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
       <Ionicons
         name={iconName}
         size={13}
-        color={active ? '#fff' : colors.textSecondary}
-        style={{ marginRight: 4 }}
+        color={active ? colors.primary : colors.textSecondary}
+        style={label ? styles.chipIcon : undefined}
       />
-      <Text style={[styles.chipText, { color: active ? '#fff' : colors.text }]} numberOfLines={1}>
-        {label}
-      </Text>
+      {label ? (
+        <Text style={[styles.chipText, { color: active ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
+          {label}
+        </Text>
+      ) : null}
     </TouchableOpacity>
   );
 
   return (
-    <View
-      style={[
-        styles.container,
-        { borderTopColor: colors.borderLight, backgroundColor: colors.surfaceHeader },
-      ]}
-    >
+    <View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -292,7 +289,7 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
                       },
                     ]}
                   >
-                    {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    {checked && <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} />}
                   </View>
                 </TouchableOpacity>
               );
@@ -303,7 +300,7 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Done"
             >
-              <Text style={styles.doneText}>Done</Text>
+              <Text style={[styles.doneText, { color: colors.textOnPrimary }]}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -392,7 +389,7 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
                           },
                         ]}
                       >
-                        {checked && <Ionicons name="checkmark" size={14} color="#fff" />}
+                        {checked && <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} />}
                       </View>
                     </TouchableOpacity>
                   );
@@ -406,7 +403,7 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Done"
             >
-              <Text style={styles.doneText}>Done</Text>
+              <Text style={[styles.doneText, { color: colors.textOnPrimary }]}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -416,24 +413,23 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
   scrollContent: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
+    paddingTop: 10,
+    paddingBottom: 6,
+    gap: 6,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingVertical: 5,
+    borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
     maxWidth: 220,
   },
-  chipText: { fontSize: 12, fontWeight: '600' },
+  chipIcon: { marginRight: 4 },
+  chipText: { fontSize: 12, fontWeight: '500' },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -499,7 +495,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  doneText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  doneText: { fontSize: 15, fontWeight: '600' },
 });
 
 export default ChatOptionsBar;

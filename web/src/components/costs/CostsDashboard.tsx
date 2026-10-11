@@ -27,7 +27,8 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  SHADOW
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -78,7 +79,7 @@ const segmentedSx = (theme: Theme): SxProps<Theme> => ({
     "&.Mui-selected": {
       backgroundColor: theme.vars.palette.background.default,
       color: theme.vars.palette.text.primary,
-      boxShadow: "0 1px 2px rgba(0,0,0,0.35)",
+      boxShadow: SHADOW(theme).sm,
       "&:hover": { backgroundColor: theme.vars.palette.background.default }
     }
   }

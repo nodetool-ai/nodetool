@@ -369,8 +369,6 @@ const makeAsset = (
   etag: null
 });
 
-export const MOCK_ROOT_FOLDER = makeAsset("folder-root", "root", "folder", "", 0);
-
 export const MOCK_ASSETS = [
   makeAsset("folder-images", "Images", "folder", "folder-root", 0),
   makeAsset("folder-audio", "Audio", "folder", "folder-root", 0),

@@ -49,9 +49,9 @@ Install the **Transformers.js** runtime from the Package Manager first. Without 
 
 ## Local Python pack
 
-The optional `nodetool-huggingface` pack adds local Diffusers and Transformers nodes for image, audio, and speech models. Install it from the Package Manager. It depends on PyTorch, and the desktop Package Manager handles it as a PyTorch-dependent package. NodeTool does not install it by default. When the Python worker runs, its local Hugging Face provider appears as `huggingface-local`, so it does not clash with the hosted `huggingface` provider.
+The optional `nodetool-huggingface` pack adds local Diffusers and Transformers nodes for image, audio, and speech models. Install it from **Package Manager → Python packs**, which sets up Python first if it is missing. It runs on PyTorch 2.14, and the desktop app installs the PyTorch build that matches your graphics card. See [GPU requirements](installation.md#gpu-requirements). Without the desktop app, see [Python nodes without the desktop app](installation.md#python-nodes-without-the-desktop-app). NodeTool does not install it by default. When the Python worker runs, its local Hugging Face provider appears as `huggingface-local`, so it does not clash with the hosted `huggingface` provider.
 
-The Model Manager recognizes the model types this pack uses, such as Flux (including Kontext, Canny, Depth, and Redux), Stable Diffusion 1.5, XL, and 3, Qwen Image and Qwen Image Edit, ControlNet, IP Adapter, and LoRA. Variants such as Nunchaku 4-bit and MLX are also detected. The pack's own node reference ships with the pack.
+The Model Manager recognizes the model types this pack uses, such as Flux (including Kontext, Canny, Depth, and Redux), Stable Diffusion 1.5, XL, and 3, Qwen Image and Qwen Image Edit, ControlNet, IP Adapter, and LoRA. MLX variants are also detected. The pack's own node reference ships with the pack.
 
 ## Authentication and gated models
 
@@ -60,11 +60,12 @@ Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settin
 | Feature | Token source |
 |---|---|
 | HuggingFace provider and `huggingface.*` nodes | The stored `HF_TOKEN` secret, then the `HF_TOKEN` environment variable. Paste it into the HuggingFace card in **Settings → Models & Providers**, or run `nodetool secrets store HF_TOKEN` |
-| Local Hub downloads | The `HF_TOKEN`, `HF_API_TOKEN`, or `HUGGING_FACE_HUB_TOKEN` environment variable, then the token file from `hf auth login` (`$HF_TOKEN_PATH`, or `token` under `$HF_HOME`, default `~/.cache/huggingface/token`) |
+| Model Manager downloads, local or to an attached worker | The stored `HF_TOKEN` secret, then the `HF_TOKEN`, `HF_API_TOKEN`, or `HUGGING_FACE_HUB_TOKEN` environment variable, then the token file from `hf auth login` (`$HF_TOKEN_PATH`, or `token` under `$HF_HOME`, default `~/.cache/huggingface/token`). The server sends the token to a worker, which has no token of its own |
+| `nodetool models download-hf` | The environment variables, then the token file. The stored secret is not read |
 | Hub search in the Model Manager | The `HF_TOKEN` or `HUGGING_FACE_HUB_TOKEN` environment variable, sent when set |
-| Downloads to an attached worker | The stored `HF_TOKEN` secret first, then the same environment and token file. The server sends it to the worker, which has no token of its own |
+| Downloads a Python node starts while it runs | The stored `HF_TOKEN` when the node declares it, otherwise the worker's environment and token file |
 
-A token pasted in Settings therefore does not authenticate local Hub downloads. For a gated repo on your own machine, set `HF_TOKEN` in the environment before starting NodeTool, or run `hf auth login`, and restart the server.
+A token pasted in Settings covers Model Manager downloads. For a gated repo, download the model in the Model Manager before you run the workflow. A Python node that downloads on its own may not receive the Settings token. In that case set `HF_TOKEN` in the environment before starting NodeTool, or run `hf auth login`.
 
 ### Gated models
 
@@ -78,15 +79,15 @@ A blocked download shows a message starting `Hugging Face blocked this download`
 
 ## Model cache
 
-Hub downloads use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. `HF_HOME` or `HF_HUB_CACHE` relocate it. The Model Manager's **Installed** source lists what is in it and can delete cached models. See [Models Manager](models-manager.md#storage-location).
+Hub downloads use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. `HF_HUB_CACHE`, `HUGGINGFACE_HUB_CACHE`, `HF_HOME`, or `XDG_CACHE_HOME` relocate it, in that order of precedence, the same as the `huggingface_hub` library. The Model Manager's **Installed** source lists what is in it and can delete cached models. See [Models Manager](models-manager.md#storage-location).
 
 ## Troubleshooting
 
 **`HF_TOKEN is not configured`.** A `huggingface.*` node ran without a token. Add `HF_TOKEN` in Settings or the environment. The token needs the Inference Providers permission.
 
-**`@huggingface/inference is required for HuggingFaceProvider`.** The optional client package is not installed. Install it with `npm install @huggingface/inference`.
+**`@huggingface/inference is required for HuggingFaceProvider`.** The client package is missing. It is a dependency of `@nodetool-ai/runtime`, so a normal install has it. Reinstall NodeTool, or run `npm install` in a source checkout.
 
-**401 or 403 on a download.** The repo is gated or private, or the token is missing. Follow [Gated models](#gated-models). Remember that local downloads read the environment or token file, not the Settings secret.
+**401 or 403 on a download.** The repo is gated or private, or the token is missing. Follow [Gated models](#gated-models). The CLI and Python nodes may not read the Settings token. See the table in [Authentication and gated models](#authentication-and-gated-models).
 
 **A `transformers.*` node fails on first run.** Install the Transformers.js runtime from the Package Manager.
 

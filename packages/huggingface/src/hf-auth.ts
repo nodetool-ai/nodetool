@@ -4,12 +4,14 @@
  * Resolves HF tokens from environment variables and token files,
  * following the same semantics as the official huggingface_hub library.
  *
- * No external dependencies -- uses only Node.js built-ins.
+ * Directory resolution comes from `@nodetool-ai/config`.
  */
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
+
+import { getHfHomeDir } from "@nodetool-ai/config";
 
 // ---------------------------------------------------------------------------
 // In-memory cache
@@ -27,22 +29,9 @@ function envBool(name: string): boolean {
   return ["1", "TRUE", "YES", "ON"].includes(v.trim().toUpperCase());
 }
 
-/**
- * Return the HF_HOME directory following the same resolution order as
- * the official hub library:
- *   1. $HF_HOME
- *   2. $XDG_CACHE_HOME/huggingface
- *   3. ~/.cache/huggingface
- */
+/** The Hugging Face home directory, resolved by `getHfHomeDir` in `@nodetool-ai/config`. */
 function hfHomeDir(): string {
-  const hfHome = process.env["HF_HOME"];
-  if (hfHome)
-    return hfHome.startsWith("~") ? hfHome.replace("~", os.homedir()) : hfHome;
-
-  const xdg = process.env["XDG_CACHE_HOME"];
-  if (xdg) return path.join(xdg, "huggingface");
-
-  return path.join(os.homedir(), ".cache", "huggingface");
+  return getHfHomeDir();
 }
 
 // ---------------------------------------------------------------------------

@@ -40,9 +40,12 @@ describe("nearestResolution", () => {
     expect(nearestResolution(1000, 1000, options)).toBe("720p");
   });
 
-  it("falls back to the smallest tier for a small or unmeasured image", () => {
+  it("falls back to the smallest tier for a small image", () => {
     expect(nearestResolution(320, 240, options)).toBe("480p");
-    expect(nearestResolution(0, 0, options)).toBe("480p");
+  });
+
+  it("picks no tier for an image whose size is unknown", () => {
+    expect(nearestResolution(0, 0, options)).toBeUndefined();
   });
 
   it("ignores tiers it cannot read", () => {
@@ -98,12 +101,33 @@ describe("imageToVideoSettings", () => {
       resolution: "1080p"
     });
   });
+
+  it("leaves the resolution unset until the image size is known", () => {
+    expect(
+      imageToVideoSettings(
+        { durationMs: 3000 },
+        { resolutions: ["480p", "720p"], aspectRatios: ["16:9"] }
+      )
+    ).toMatchObject({ resolution: undefined, aspectRatio: undefined });
+  });
 });
 
 describe("placeImageToVideoClip", () => {
   const tracks = [
-    { id: "top", type: "video" as const, index: 0, locked: false },
-    { id: "pictures", type: "video" as const, index: 1, locked: false }
+    {
+      id: "top",
+      type: "video" as const,
+      index: 0,
+      locked: false,
+      visible: true
+    },
+    {
+      id: "pictures",
+      type: "video" as const,
+      index: 1,
+      locked: false,
+      visible: true
+    }
   ];
   const image = { trackId: "pictures", startMs: 2000 };
 
@@ -134,6 +158,14 @@ describe("placeImageToVideoClip", () => {
     expect(
       placeImageToVideoClip(tracks, [], { trackId: "top", startMs: 0 }, 1000)
     ).toEqual({ kind: "insert", atIndex: 0 });
+  });
+
+  it("inserts a track instead of using a hidden track above", () => {
+    const hidden = [{ ...tracks[0], visible: false }, tracks[1]];
+    expect(placeImageToVideoClip(hidden, [], image, 4000)).toEqual({
+      kind: "insert",
+      atIndex: 1
+    });
   });
 
   it("skips a locked or non-video track above", () => {

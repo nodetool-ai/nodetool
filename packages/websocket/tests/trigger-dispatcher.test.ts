@@ -181,6 +181,7 @@ describe("trigger dispatcher", () => {
       startJob: async () => okJob("job-1")
     });
     await dispatcher.runOnce();
+    await dispatcher.drain();
 
     const reloaded = (await TriggerRegistration.get(
       registration.id
@@ -340,6 +341,69 @@ describe("trigger dispatcher", () => {
         release: (workflowId: string) => gates.get(workflowId)?.()
       };
     }
+
+    it("keeps a Stop pressed while the run was in flight", async () => {
+      const registration = await makeRegistration();
+      await storeInput(store, "in-1");
+      const { startJob, release } = hangingJobStarter();
+      const dispatcher = createTriggerDispatcher({ store, startJob });
+      await dispatcher.runOnce();
+
+      await TriggerRegistration.updateColumns(registration.id, {
+        enabled: 0,
+        disabled_reason: null
+      });
+      release("wf-1");
+      await dispatcher.drain();
+
+      const row = await TriggerRegistration.get<TriggerRegistration>(
+        registration.id
+      );
+      expect(row?.enabled).toBe(0);
+      expect(row?.disabled_reason).toBeNull();
+      expect(row?.run_count).toBe(1);
+    });
+
+    it("does not recreate a registration deleted while its run was in flight", async () => {
+      const registration = await makeRegistration();
+      await storeInput(store, "in-1");
+      const { startJob, release } = hangingJobStarter();
+      const dispatcher = createTriggerDispatcher({ store, startJob });
+      await dispatcher.runOnce();
+
+      await registration.delete();
+      release("wf-1");
+      await dispatcher.drain();
+
+      expect(await TriggerRegistration.get(registration.id)).toBeNull();
+    });
+
+    it("does not leave a failed acceptance mark unhandled", async () => {
+      await makeRegistration();
+      await storeInput(store, "in-1");
+      const { startJob, release } = hangingJobStarter();
+      const markProcessed = store.markProcessed.bind(store);
+      let failures = 1;
+      vi.spyOn(store, "markProcessed").mockImplementation(async (id) => {
+        if (failures-- > 0) throw new Error("database is locked");
+        return markProcessed(id);
+      });
+      const unhandled = vi.fn();
+      process.on("unhandledRejection", unhandled);
+      try {
+        const dispatcher = createTriggerDispatcher({ store, startJob });
+        const pass = dispatcher.runOnce();
+        await vi.waitFor(() => expect(startJob).toHaveBeenCalled());
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        release("wf-1");
+        await pass;
+        await dispatcher.drain();
+        expect(unhandled).not.toHaveBeenCalled();
+        expect(await isProcessed("in-1")).toBe(true);
+      } finally {
+        process.off("unhandledRejection", unhandled);
+      }
+    });
 
     it("does not hold one registration's dispatch behind another's in-flight run", async () => {
       await makeRegistration({ workflowId: "wf-A" });
@@ -569,6 +633,7 @@ describe("trigger dispatcher", () => {
         startJob: async () => job
       });
       await dispatcher.runOnce();
+      await dispatcher.drain();
       return (await TriggerRegistration.get(
         registration.id
       )) as TriggerRegistration;
@@ -680,6 +745,7 @@ describe("trigger dispatcher", () => {
 
       release();
       await pass;
+      await dispatcher.drain();
 
       const delivered = (await TriggerRegistration.get(
         registration.id
@@ -715,6 +781,7 @@ describe("trigger dispatcher", () => {
       for (let i = 0; i < 5; i++) {
         await storeInput(store, `in-${i}`);
         await dispatcher.runOnce();
+        await dispatcher.drain();
       }
 
       const updated = (await TriggerRegistration.get(
@@ -750,10 +817,12 @@ describe("trigger dispatcher", () => {
       await registration.save();
       await storeInput(store, "in-1");
 
-      await createTriggerDispatcher({
+      const dispatcher = createTriggerDispatcher({
         store,
         startJob: async () => okJob("job-1")
-      }).runOnce();
+      });
+      await dispatcher.runOnce();
+      await dispatcher.drain();
 
       const updated = (await TriggerRegistration.get(
         registration.id

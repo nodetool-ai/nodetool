@@ -149,7 +149,7 @@
                             "props": {
                               "id": "model-backdrop-bg-model",
                               "binding": "op:backdrop/prop:bg#model",
-                              "label": "2  Cut out model",
+                              "label": "Cut out model",
                               "modelKind": "image_model",
                               "events": []
                             }
@@ -159,7 +159,7 @@
                             "props": {
                               "id": "model-backdrop-comp-model",
                               "binding": "op:backdrop/prop:comp#model",
-                              "label": "3  Place on backdrop model",
+                              "label": "Place on backdrop model",
                               "modelKind": "image_model",
                               "events": []
                             }
@@ -169,7 +169,7 @@
                             "props": {
                               "id": "model-relight-rl-model",
                               "binding": "op:relight/prop:rl#model",
-                              "label": "2  Relight model",
+                              "label": "Relight model",
                               "modelKind": "image_model",
                               "events": []
                             }
@@ -179,7 +179,7 @@
                             "props": {
                               "id": "model-listing-ag-model",
                               "binding": "op:listing/prop:ag#model",
-                              "label": "2  Copywriter model",
+                              "label": "Copywriter model",
                               "modelKind": "language_model",
                               "events": []
                             }
@@ -395,8 +395,8 @@
                         "id": "slider-turntable-v-duration",
                         "binding": "op:turntable/prop:v#duration",
                         "label": "Seconds",
-                        "min": 4,
-                        "max": 8,
+                        "min": 6,
+                        "max": 10,
                         "step": 2,
                         "events": []
                       }
@@ -413,7 +413,7 @@
                             "props": {
                               "id": "model-turntable-v-model",
                               "binding": "op:turntable/prop:v#model",
-                              "label": "2  Animate model",
+                              "label": "Animate model",
                               "modelKind": "video_model",
                               "events": []
                             }
@@ -423,7 +423,7 @@
                             "props": {
                               "id": "model-print-up-model",
                               "binding": "op:print/prop:up#model",
-                              "label": "2  Upscale 4x model",
+                              "label": "Upscale 4x model",
                               "modelKind": "image_model",
                               "events": []
                             }
@@ -700,7 +700,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 366
               },
               "zIndex": 0,
               "width": 300,
@@ -718,8 +718,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1650,
-                "y": 120
+                "x": 2000,
+                "y": 468
               },
               "zIndex": 0,
               "width": 300,
@@ -741,8 +741,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 460
+                "x": 0,
+                "y": 590
               },
               "width": 300,
               "title": "Edge softness"
@@ -773,7 +773,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 366
               },
               "zIndex": 0,
               "width": 300,
@@ -791,8 +791,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1650,
-                "y": 120
+                "x": 2000,
+                "y": 468
               },
               "zIndex": 0,
               "width": 300,
@@ -814,8 +814,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 460
+                "x": 0,
+                "y": 590
               },
               "width": 300,
               "title": "Edge softness"
@@ -837,13 +837,16 @@
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The photo to work on"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 351
               },
               "zIndex": 0,
               "width": 300,
@@ -861,8 +864,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 359
               },
               "zIndex": 0,
               "width": 300,
@@ -886,13 +889,16 @@
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The packshot"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 351
               },
               "zIndex": 0,
               "width": 300,
@@ -910,8 +916,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 359
               },
               "zIndex": 0,
               "width": 300,
@@ -944,7 +950,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 366
               },
               "zIndex": 0,
               "width": 300,
@@ -962,8 +968,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1320,
-                "y": 120
+                "x": 1600,
+                "y": 507
               },
               "zIndex": 0,
               "width": 300,
@@ -985,8 +991,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 330,
-                "y": 440
+                "x": 0,
+                "y": 590
               },
               "width": 300,
               "title": "Sharpness"
@@ -1008,13 +1014,16 @@
             "type": "nodetool.input.ImageInput",
             "data": {
               "name": "photo",
-              "value": null,
+              "value": {
+                "type": "image",
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+              },
               "description": "The product photo"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 370
               },
               "zIndex": 0,
               "width": 300,
@@ -1032,8 +1041,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,
@@ -1060,7 +1069,7 @@
       "$demo": "image"
     },
     "op:listing/out:out": "**Aurora Trail Runner — Recycled Knit, 240g**\n\nA trail shoe built around wet rock. The knit upper drains instead of holding water, and the outsole lugs bite at an angle rather than flat.",
-    "op:turntable/prop:v#duration": 4,
+    "op:turntable/prop:v#duration": 6,
     "op:print/prop:up#scale": 4,
     "op:turntable/out:out": {
       "$demo": "video"

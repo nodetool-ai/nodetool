@@ -275,6 +275,60 @@ describe("chatProtocol", () => {
       expect(capturedState.updateThreadTitle).not.toHaveBeenCalled();
     });
 
+    it("keeps a title the user set instead of asking the server for one", async () => {
+      let capturedState: GlobalChatState = partialChatState({
+        status: "connected",
+        currentThreadId: "thread-1",
+        threads: {
+          "thread-1": { id: "thread-1", title: "Renamed by me", updated_at: new Date().toISOString() }
+        },
+        messageCache: {
+          "thread-1": [{ role: "user", type: "message", content: "Hello world" }]
+        },
+        selectedModel: { provider: "", id: "" },
+        summarizeThread: jest.fn(),
+        updateThreadTitle: jest.fn()
+      });
+      const set = jest.fn((updater) => {
+        capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
+      });
+
+      await handleChatWebSocketMessage(
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi", done: true }),
+        set,
+        () => capturedState
+      );
+
+      expect(capturedState.summarizeThread).not.toHaveBeenCalled();
+    });
+
+    it("asks the server for a title while the thread has the default one", async () => {
+      let capturedState: GlobalChatState = partialChatState({
+        status: "connected",
+        currentThreadId: "thread-1",
+        threads: {
+          "thread-1": { id: "thread-1", title: "New conversation", updated_at: new Date().toISOString() }
+        },
+        messageCache: {
+          "thread-1": [{ role: "user", type: "message", content: "Hello world" }]
+        },
+        selectedModel: { provider: "", id: "" },
+        summarizeThread: jest.fn(),
+        updateThreadTitle: jest.fn()
+      });
+      const set = jest.fn((updater) => {
+        capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
+      });
+
+      await handleChatWebSocketMessage(
+        stub<WebSocketMessage>({ type: "chunk", content: "Hi", done: true }),
+        set,
+        () => capturedState
+      );
+
+      expect(capturedState.summarizeThread).toHaveBeenCalledWith("thread-1");
+    });
+
     it("does not generate title for non-first assistant messages", async () => {
       let capturedState: GlobalChatState = partialChatState({
         status: "connected",
@@ -485,6 +539,37 @@ describe("chatProtocol", () => {
       "thread-stream",
       "Hello stream"
     );
+  });
+
+  it("keeps an assistant message's media blocks when the done chunk arrives", async () => {
+    const image = { type: "image_url", image: { type: "image", uri: "asset://abc" } };
+    let capturedState: GlobalChatState = partialChatState({
+      status: "connected",
+      currentThreadId: "thread-1",
+      threads: {
+        "thread-1": { id: "thread-1", title: "Images", updated_at: new Date().toISOString() }
+      },
+      messageCache: {
+        "thread-1": [
+          { role: "user", type: "message", content: "draw a cat" },
+          { id: "m1", role: "assistant", type: "message", content: [image] }
+        ]
+      },
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    });
+    const set = jest.fn((updater) => {
+      capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
+    });
+
+    await handleChatWebSocketMessage(
+      stub<WebSocketMessage>({ type: "chunk", thread_id: "thread-1", content: "", done: true }),
+      set,
+      () => capturedState
+    );
+
+    expect(capturedState.messageCache["thread-1"][1].content).toEqual([image]);
   });
 
   it("resets loading status when a non-stream assistant message arrives", async () => {

@@ -35,6 +35,7 @@ import {
 import { useCodeEditorActivation } from "../../hooks/editor/useCodeEditorActivation";
 import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import { useUndoGroup } from "../../hooks/useUndoGroup";
 import { useNodes } from "../../contexts/NodeContext";
 import { getCodeNodeLanguage, isCodeNode } from "../node/codeNodeUi";
 import { isString } from "../../utils/typePredicates";
@@ -123,12 +124,19 @@ const CodeProperty = ({
     completeRef.current = onChangeComplete;
   }, [onChangeComplete]);
 
+  // Typing between focus and blur undoes as one step.
+  const { begin: beginUndoGroup, end: endUndoGroup } = useUndoGroup();
+
   const handleEditorMount = useCallback(
     (editor: monaco.editor.IStandaloneCodeEditor) => {
       monacoOnMount(editor);
       attachEditor(editor);
-      const focus = editor.onDidFocusEditorText(() => setIsFocused(true));
+      const focus = editor.onDidFocusEditorText(() => {
+        setIsFocused(true);
+        beginUndoGroup();
+      });
       const blur = editor.onDidBlurEditorText(() => {
+        endUndoGroup();
         setIsFocused(false);
         completeRef.current?.();
       });
@@ -137,7 +145,7 @@ const CodeProperty = ({
         blur.dispose();
       });
     },
-    [monacoOnMount, attachEditor]
+    [monacoOnMount, attachEditor, beginUndoGroup, endUndoGroup]
   );
 
   const toggleExpand = useCallback(() => {

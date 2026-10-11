@@ -2,7 +2,9 @@ import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import {
+  clearObjectIds,
   removeStrayLightChildren,
+  restoreEditorSettings,
   restoreHiddenFlags,
   restoreNodeNames,
   type LoadedGltfNames
@@ -28,6 +30,8 @@ const toImportGroup = (gltf: GLTF, name: string): THREE.Group => {
   }
   removeStrayLightChildren(gltf.scene);
   restoreHiddenFlags(gltf.scene);
+  restoreEditorSettings(gltf.scene);
+  clearObjectIds(gltf.scene);
   const group = new THREE.Group();
   group.name = name;
   for (const child of [...gltf.scene.children]) {

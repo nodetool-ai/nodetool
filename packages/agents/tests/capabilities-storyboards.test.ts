@@ -231,7 +231,9 @@ describe("storyboards capability module", () => {
       "edit_storyboard",
       "direct_storyboard",
       "extract_script_from_storyboard",
-      "delete_storyboard"
+      "delete_storyboard",
+      "get_storyboard_one_take",
+      "update_storyboard_one_take"
     ]);
   });
 

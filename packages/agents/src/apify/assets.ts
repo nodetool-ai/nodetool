@@ -193,6 +193,8 @@ export async function importActorBytes(
 export function isBinaryContentType(contentType: string): boolean {
   const type = contentType.split(";")[0].trim().toLowerCase();
   if (type.startsWith("text/")) return false;
+  if (type.endsWith("+json") || type === "application/x-ndjson") return false;
+  if (type.endsWith("+xml")) return type.startsWith("image/");
   return !(
     type === "application/json" ||
     type === "application/xml" ||

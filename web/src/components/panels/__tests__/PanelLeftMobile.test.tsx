@@ -213,7 +213,9 @@ it("keeps the consolidated document tree and utility views in the mobile tab row
         button.getAttribute("aria-label")
       )
     )
-  ).toEqual([["Projects", "Documents", "Chats", "Library", "More"]]);
+  ).toEqual([
+    ["Projects", "Documents", "Chats", "Library", "Entities", "More"]
+  ]);
   expect(screen.queryByLabelText("Workflows")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Apps")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Sketches")).not.toBeInTheDocument();
@@ -321,6 +323,18 @@ it("scopes the document tree and workspace tree to the active project", async ()
     "data-project-id",
     "project-a"
   );
+});
+
+it("lists the active project's entities from the rail", async () => {
+  const user = userEvent.setup();
+  renderPanel();
+
+  await user.click(screen.getByLabelText("Entities"));
+  expect(screen.getByTestId("entity-list")).toHaveAttribute(
+    "data-project-id",
+    "project-a"
+  );
+  expect(screen.queryByTestId("documents-tree")).not.toBeInTheDocument();
 });
 
 it("maps a legacy document view to the document tree", () => {

@@ -540,7 +540,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 365
               },
               "zIndex": 0,
               "width": 300,
@@ -558,8 +558,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,
@@ -589,7 +589,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 365
               },
               "zIndex": 0,
               "width": 300,
@@ -607,8 +607,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,
@@ -638,7 +638,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 463
               },
               "zIndex": 0,
               "width": 300,
@@ -656,8 +656,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 990,
-                "y": 120
+                "x": 800,
+                "y": 572
               },
               "zIndex": 0,
               "width": 300,
@@ -675,8 +675,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 0,
-                "y": 330
+                "x": 1200,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,

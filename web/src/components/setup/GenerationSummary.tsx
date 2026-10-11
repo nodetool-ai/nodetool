@@ -1,4 +1,5 @@
 import { formatUsd } from "@nodetool-ai/model-pricing";
+import { isModelSelected } from "@nodetool-ai/protocol";
 import {
   Caption,
   FlexColumn,
@@ -16,6 +17,8 @@ export interface GenerationSummaryProps {
   model: GenerationModel | null;
   brief: string;
   maxOutputTokens: number;
+  /** Input the brief does not show, such as attached images. */
+  extraInputTokens?: number;
   /** Imported attributed text or a preset plan needs no model call. */
   noModelCall?: boolean;
   /** Keep a secondary action's estimate compact beside its own controls. */
@@ -39,15 +42,18 @@ export interface GenerationEstimateLineProps extends GenerationSummaryProps {
  */
 export function GenerationEstimateLine({
   result,
-  model,
+  model: rawModel,
   brief,
   maxOutputTokens,
+  extraInputTokens,
   noModelCall,
   hideModel = false
 }: GenerationEstimateLineProps) {
+  // The "empty" sentinel is no choice, whatever default id it carries.
+  const model = isModelSelected(rawModel) ? rawModel : null;
   const estimate = noModelCall
     ? null
-    : generationEstimate(model, brief, maxOutputTokens);
+    : generationEstimate(model, brief, maxOutputTokens, extraInputTokens);
   const parts = [
     hideModel || noModelCall
       ? null
@@ -90,17 +96,20 @@ export function GenerationEstimateLine({
 export default function GenerationSummary({
   result,
   next,
-  model,
+  model: rawModel,
   brief,
   maxOutputTokens,
+  extraInputTokens,
   noModelCall,
   compact = false,
   concise = false,
   hideTokenEstimate = false
 }: GenerationSummaryProps) {
+  // The "empty" sentinel is no choice, whatever default id it carries.
+  const model = isModelSelected(rawModel) ? rawModel : null;
   const estimate = noModelCall
     ? null
-    : generationEstimate(model, brief, maxOutputTokens);
+    : generationEstimate(model, brief, maxOutputTokens, extraInputTokens);
   const cost = noModelCall
     ? "$0, no model call"
     : estimate

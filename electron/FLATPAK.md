@@ -116,9 +116,11 @@ The manifest builds NodeTool from source:
 2. Installs workspace dependencies from the monorepo root (`npm ci`)
 3. Builds the backend packages (`npm run build:packages`)
 4. Builds the web frontend (`npm run build --workspace=web`)
-5. Builds the Electron main/preload bundles (`npm run vite:build --workspace=electron`)
-6. Packages everything into `/app/nodetool`
-7. Installs the launcher script, desktop entry, AppStream metadata, and icons
+5. Builds the Electron main/preload bundles, the backend bundle, the MCP bundle, and the Chrome extension, as the release workflow does
+6. Runs `electron-builder --linux dir` and copies `dist/linux-unpacked` into `/app/nodetool`, so the app carries the Electron binary, `resources/backend/server.mjs`, and the bundled Node runtime
+7. Installs the launcher script, which starts `/app/nodetool/nodetool-electron` through `zypak-wrapper`, and the desktop entry, AppStream metadata, and icons
+
+[`ai.nodetool.NodeTool.yml`](ai.nodetool.NodeTool.yml) repackages an existing local `dist/linux-unpacked` build instead of building from source.
 
 ## Configuration Files
 

@@ -74,3 +74,44 @@ describe("RUNTIME_PACKAGES", () => {
     });
   });
 });
+
+describe("transformers-js runtime versions", () => {
+  // `^x.y.z` only, which is what the ranges below use.
+  function satisfiesCaret(version: string, range: string): boolean {
+    const match = /^\^(\d+)\.(\d+)\.(\d+)$/.exec(range);
+    if (!match) {
+      throw new Error(`Unsupported range ${range}`);
+    }
+    const want = match.slice(1).map(Number);
+    const have = version.split(".").map(Number);
+    if (have[0] !== want[0]) {
+      return false;
+    }
+    for (let i = 1; i < 3; i += 1) {
+      if (have[i] !== want[i]) {
+        return have[i] > want[i];
+      }
+    }
+    return true;
+  }
+
+  const pkg = RUNTIME_PACKAGES["transformers-js"] as { npmPackages: string[] };
+  const transformersVersion = pkg.npmPackages
+    .find((spec) => spec.startsWith("@huggingface/transformers@"))
+    ?.split("@")[2];
+
+  it("installs a @huggingface/transformers that kokoro-js 1.2.1 accepts, so npm keeps one copy and one cache", () => {
+    expect(pkg.npmPackages).toContain("kokoro-js@1.2.1");
+    // kokoro-js@1.2.1 dependencies: "@huggingface/transformers": "^3.5.1"
+    expect(satisfiesCaret(transformersVersion ?? "", "^3.5.1")).toBe(true);
+  });
+
+  it("installs a version inside the range transformers-js-nodes declares", () => {
+    const nodesPackage = require("../../../packages/transformers-js-nodes/package.json") as {
+      devDependencies: Record<string, string>;
+    };
+    expect(
+      satisfiesCaret(transformersVersion ?? "", nodesPackage.devDependencies["@huggingface/transformers"])
+    ).toBe(true);
+  });
+});

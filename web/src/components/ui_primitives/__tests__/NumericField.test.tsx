@@ -35,4 +35,18 @@ describe("NumericField", () => {
     );
     expect(screen.getByRole("spinbutton", { name: "Position X" })).toHaveValue(2.5);
   });
+
+  it("commits nothing when the field loses focus without an edit", () => {
+    const onCommit = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <NumericField label="Scale X" value={0.00004} min={0.001} onCommit={onCommit} />
+      </ThemeProvider>
+    );
+
+    const field = screen.getByRole("spinbutton", { name: "Scale X" });
+    fireEvent.focus(field);
+    fireEvent.blur(field);
+    expect(onCommit).not.toHaveBeenCalled();
+  });
 });

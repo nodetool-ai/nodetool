@@ -11,7 +11,7 @@ import {
 } from "@nodetool-ai/config";
 import { createHTTPHandler } from "@trpc/server/adapters/standalone";
 import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1276,6 +1276,51 @@ function readExampleWorkflow(
   };
 }
 
+const PACKAGE_ASSET_TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".mp3": "audio/mpeg",
+  ".mp4": "video/mp4",
+  ".json": "application/json"
+};
+
+/**
+ * The file `/api/assets/packages/<package>/<path>` names inside one of
+ * `roots`, or null. Rejects traversal segments and anything outside the root.
+ */
+export function resolvePackageAsset(pathname: string, roots: string[]): string | null {
+  let segments: string[];
+  try {
+    segments = pathname
+      .slice("/api/assets/packages/".length)
+      .split("/")
+      .map(decodeURIComponent);
+  } catch {
+    return null;
+  }
+  if (
+    segments.length < 2 ||
+    segments.some((s) => s === "" || s === "." || s === ".." || s.includes("\\"))
+  ) {
+    return null;
+  }
+  for (const root of roots) {
+    const base = path.resolve(root);
+    const candidate = path.resolve(base, ...segments);
+    const rel = path.relative(base, candidate);
+    if (rel.startsWith("..") || path.isAbsolute(rel)) continue;
+    try {
+      if (statSync(candidate).isFile()) return candidate;
+    } catch {
+      // Not under this root.
+    }
+  }
+  return null;
+}
+
 export function createTestUiServer(options: TestUiServerOptions = {}) {
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? Number(process.env.PORT ?? 7777);
@@ -1477,6 +1522,17 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
         res.setHeader("content-type", "image/png");
         res.setHeader("cache-control", "no-store");
         res.end(entityPng);
+        return;
+      }
+    }
+    if (url.pathname.startsWith("/api/assets/packages/")) {
+      // Production serves `package://` assets from a Fastify route this server
+      // does not mount, so serve them from the configured roots here.
+      const file = resolvePackageAsset(url.pathname, options.packageAssetsRoots ?? []);
+      if (file) {
+        res.statusCode = 200;
+        res.setHeader("content-type", PACKAGE_ASSET_TYPES[path.extname(file).toLowerCase()] ?? "application/octet-stream");
+        res.end(readFileSync(file));
         return;
       }
     }

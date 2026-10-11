@@ -422,6 +422,37 @@ describe("timeline router", () => {
       expect(JSON.parse(savedDocumentJson).mediaTracks).toEqual([]);
     });
 
+    it("saves track folders and keeps the retarget lineage", async () => {
+      const folder = { id: "f1", name: "Titles" };
+      let savedDocumentJson = JSON.stringify({
+        tracks: [],
+        clips: [],
+        markers: [],
+        templateId: "seq-template"
+      });
+      const sequence = makeSeq({ document: savedDocumentJson });
+      TS.findById.mockResolvedValue(sequence);
+      TS.update.mockImplementation((_id, fields) => {
+        savedDocumentJson = (fields as { document: string }).document;
+        sequence.document = savedDocumentJson;
+        return Promise.resolve(sequence);
+      });
+      const caller = createCaller(makeCtx());
+
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], trackFolders: [folder], clips: [], markers: [] }
+      });
+      expect(JSON.parse(savedDocumentJson).trackFolders).toEqual([folder]);
+      expect(JSON.parse(savedDocumentJson).templateId).toBe("seq-template");
+
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [], scriptEnabled: true }
+      });
+      expect(JSON.parse(savedDocumentJson).trackFolders).toEqual([folder]);
+    });
+
     it("persists a clip's word-level caption through the round-trip", async () => {
       TS.findById.mockResolvedValue(makeSeq());
       TS.update.mockResolvedValue(makeSeq());

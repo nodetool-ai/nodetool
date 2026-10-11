@@ -134,6 +134,8 @@ The body is optional. Its fields:
 | `interactive` | Park on a failed node and hand the decision to the caller. See [Interactive Runs](api-reference.md#interactive-runs-answering-a-failed-node) |
 | `max_decisions`, `max_retries_per_node`, `decision_timeout_ms` | Bounds for an interactive run |
 | `project_id` | Must match the workflow's project, or the call is a `400` |
+| `node_ids` | Run only these nodes and what they need upstream. See [Running Part of a Workflow](#running-part-of-a-workflow) |
+| `reuse_results` | With `node_ids`: `false` runs every upstream node again instead of reusing saved generations. Default `true` |
 
 `POST /api/workflows/{id}/debug` takes the same body. It returns a debug report
 instead of the run summary: `job_id`, `workflow_id`, `status`, `outputs`, `error`,
@@ -145,8 +147,36 @@ Failures before the run starts:
 | Status | Meaning |
 |---|---|
 | `404` | The caller has no workflow with that id |
-| `400` | The workflow's `run_mode` is not `"workflow"`, a provider the graph needs has no key (the detail names the secret), or `project_id` names another project |
+| `400` | The workflow's `run_mode` is not `"workflow"`, a provider the graph needs has no key (the detail names the secret), `project_id` names another project, `node_ids` is not a non-empty list of strings or names a node the graph does not have, or `reuse_results` is not a boolean |
 | `429` | An interactive run was refused because the caller already holds the maximum of 8 live debug sessions |
+
+### Running Part of a Workflow
+
+`node_ids` is the API form of the editor's **Run Node** and **Run selected**.
+The run executes the named nodes and the upstream nodes they need. Unrelated
+branches and downstream nodes do not run and are not billed.
+
+An upstream node that saves its generations, such as an image, video, audio or
+LLM generator, does not run again when the workflow already has a generation of
+it. Its saved output is fed to the node that consumes it. The node's pinned
+generation (`selected_generation`) is used when the editor set one, otherwise
+the newest. The named nodes themselves always run. Runs from the editor and
+from this endpoint save these generations as assets.
+
+The response carries `partial_run`:
+
+```json
+{
+  "node_ids": ["caption"],
+  "ran": ["caption"],
+  "reused": [
+    { "node_id": "image", "job_id": "<job that made it>", "asset_ids": ["<asset>"] }
+  ]
+}
+```
+
+Agents pass the same `node_ids` and `reuse_results` to the `run_workflow`,
+`debug_workflow` and `start_background_job` tools.
 
 A node that fails during the run does not change the HTTP status. The response
 is `200` with `status: "failed"` and an `error` string.

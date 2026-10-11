@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Inspect a Clip",
   "tool_name": null,
-  "description": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
+  "description": "Read a clip's duration straight from its header, with dimensions, frame rate and codec one connection away. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
   "tags": [
     "video",
     "data",

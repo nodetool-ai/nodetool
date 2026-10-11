@@ -4,10 +4,15 @@ import React, { useCallback, useRef, useState } from "react";
 // reached this hook — including the inspector, which mounts with the workspace
 // — so the app downloaded the code editor on every boot.
 import type * as monaco from "monaco-editor";
+import { toggleCommandMenuFromShortcut } from "../../components/menus/commandMenuShortcut";
+import { withTypingSafeValue } from "./withTypingSafeValue";
 
 // Configure Monaco loader to use local files instead of CDN
 // This must be done before importing @monaco-editor/react
 let loaderConfigured = false;
+// One wrapper for every editor, so React never sees a new component type.
+let typingSafeEditor: ReturnType<typeof withTypingSafeValue> | null = null;
+const COMMAND_MENU_MONACO_COMMAND = "nodetool.toggleCommandMenu";
 async function configureMonacoLoader() {
   if (loaderConfigured) {
     return;
@@ -17,6 +22,15 @@ async function configureMonacoLoader() {
     import("monaco-editor")
   ]);
   loader.default.config({ monaco });
+  // Monaco handles Cmd/Ctrl+K itself and stops the event, so the app's
+  // dispatcher never sees it. Every editor binds it to the command menu instead.
+  monaco.editor.registerCommand(COMMAND_MENU_MONACO_COMMAND, () =>
+    toggleCommandMenuFromShortcut()
+  );
+  monaco.editor.addKeybindingRule({
+    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK,
+    command: COMMAND_MENU_MONACO_COMMAND
+  });
   loaderConfigured = true;
 }
 
@@ -72,10 +86,11 @@ export function useMonacoEditor(): MonacoEditorResult {
     try {
       await configureMonacoLoader();
       const mod = await import("@monaco-editor/react");
+      typingSafeEditor ??= withTypingSafeValue(mod.default);
       // SAFETY: `MonacoComponent` is the subset of `@monaco-editor/react`'s
-      // Editor props this hook renders with; the module's default export is
-      // that component, declared with a wider prop type.
-      setMonacoEditor(() => mod.default as MonacoComponent);
+      // Editor props this hook renders with, which the wrapper passes through.
+      const editor = typingSafeEditor as MonacoComponent;
+      setMonacoEditor(() => editor);
       isLoadedRef.current = true;
     } catch {
       setMonacoLoadError("Failed to load code editor");

@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Brand Asset Generator",
   "tool_name": null,
-  "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and your default language model for text.",
+  "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Each model step uses your default model for its type, and the image steps are paid.",
   "tags": [
     "brand-asset",
     "branding",
@@ -135,7 +135,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🏷️ Brand Asset Generator\n\nFrom a brand name and vibe, produces a social kit in one run: four on-brand images with text overlays and a one-page brand brief. Use it to rough out a launch kit before design work.\n\n**How it works:** The four inputs feed two branches. In the image branch, \"5 Write image prompts\" asks for four prompts (Instagram, LinkedIn, X, product launch), and \"6 Split into 4 prompts\" emits them one at a time. \"7 Render each image\" renders each at 1:1 with FLUX.1 Schnell on fal. \"8 Stamp brand name\" writes \"1 Brand name\" in \"4 Brand color\" at size 72, \"9 Overlay tagline\" adds \"3 Tagline\" in white at size 40, and \"10 Collect gallery\" gathers the four images. In the brief branch, \"5 Write brief prompt\" feeds \"6 Draft brand brief\", which writes voice, palette and tagline options. Pick a language model on \"6 Split into 4 prompts\" and \"6 Draft brand brief\". Images need a fal key.\n\n**Try this:** Change \"4 Brand color\" to a deep red such as #B3261E and see the brand name on all four images change color."
+          "comment": "# 🏷️ Brand Asset Generator\n\nFrom a brand name and vibe, produces a social kit in one run: four on-brand images with text overlays and a one-page brand brief. Use it to rough out a launch kit before design work.\n\n**How it works:** The four inputs feed two branches. In the image branch, \"5 Write image prompts\" asks for four prompts (Instagram, LinkedIn, X, product launch), and \"6 Split into 4 prompts\" emits them one at a time. \"7 Render each image\" renders each at 1:1. \"8 Stamp brand name\" writes \"1 Brand name\" in \"4 Brand color\" at size 72, \"9 Overlay tagline\" adds \"3 Tagline\" in white at size 40, and \"10 Collect gallery\" gathers the four images. In the brief branch, \"5 Write brief prompt\" feeds \"6 Draft brand brief\", which writes voice, palette and tagline options. Pick a language model on \"6 Split into 4 prompts\" and \"6 Draft brand brief\", and an image model on \"7 Render each image\". Each image is a paid generation.\n\n**Try this:** Change \"4 Brand color\" to a deep red such as #B3261E and see the brand name on all four images change color."
         },
         "ui_properties": {
           "selected": false,
@@ -301,9 +301,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

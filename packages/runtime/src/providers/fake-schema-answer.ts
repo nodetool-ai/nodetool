@@ -2,7 +2,7 @@ import type { Message } from "./types.js";
 import { messageText } from "./structured-output.js";
 
 /** A value that satisfies `schema`: its enum's first entry, else a placeholder of its type. */
-function sampleForSchema(schema: unknown, depth = 0): unknown {
+export function sampleForSchema(schema: unknown, depth = 0): unknown {
   if (!schema || typeof schema !== "object" || depth > 8) return "fake";
   const s = schema as Record<string, unknown>;
   if ("const" in s) return s["const"];

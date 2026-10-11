@@ -10,6 +10,8 @@
 import { z } from "zod";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
+import { throwApiError } from "../error-formatter.js";
+import { ApiErrorCode } from "../../error-codes.js";
 import { getPackSnapshot, reloadPacks } from "../../pack-snapshot.js";
 import {
   getSandboxCatalog,
@@ -148,6 +150,20 @@ function builtinPackDtos(): z.infer<typeof builtinPackSchema>[] {
 
 // ── Router ───────────────────────────────────────────────────────────────
 
+/**
+ * Pack trust, built-in toggles and reloads change the node registry and
+ * `packs.json` for every user of this server, so a multi-user production
+ * server keeps them to the operator's own config.
+ */
+function requireNonProduction(): void {
+  if (process.env["NODETOOL_ENV"] === "production") {
+    throwApiError(
+      ApiErrorCode.FORBIDDEN,
+      "Changing packs is disabled in production"
+    );
+  }
+}
+
 export const packsRouter = router({
   /** Startup snapshot of every discovered pack and what happened to it. */
   list: protectedProcedure.output(packsListOutput).query(() => ({
@@ -185,14 +201,14 @@ export const packsRouter = router({
     .input(trustUpdateInput)
     .output(trustSchema)
     .mutation(({ input }) => {
+      requireNonProduction();
       // Base unspecified fields on what's ON DISK, not the env/default-merged
       // effective values — otherwise a partial update bakes an ephemeral
       // NODETOOL_PACKS_ALLOWLIST env override permanently into packs.json.
       const fromFile = readPackTrustFromFile();
-      const isProd = process.env["NODETOOL_ENV"] === "production";
       const next = {
         allowlist: input.allowlist ?? fromFile.allow ?? [],
-        allowUnlisted: input.allowUnlisted ?? fromFile.allowUnlisted ?? !isProd
+        allowUnlisted: input.allowUnlisted ?? fromFile.allowUnlisted ?? true
       };
       writePackTrustConfig(next);
       // Return the effective trust (env + file + defaults) so the client sees
@@ -271,12 +287,19 @@ export const packsRouter = router({
     .input(z.object({ id: z.string(), enabled: z.boolean() }))
     .output(builtinsOutput)
     .mutation(async ({ input, ctx }) => {
+      requireNonProduction();
       const pack = BUILTIN_NODE_PACKS.find((p) => p.id === input.id);
       if (!pack) {
-        throw new Error(`Unknown built-in pack "${input.id}"`);
+        throwApiError(
+          ApiErrorCode.NOT_FOUND,
+          `Unknown built-in pack "${input.id}"`
+        );
       }
       if (pack.required && !input.enabled) {
-        throw new Error(`Built-in pack "${input.id}" cannot be disabled`);
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          `Built-in pack "${input.id}" cannot be disabled`
+        );
       }
       writeBuiltinPackOverrides({
         ...readBuiltinPackOverrides(),
@@ -297,6 +320,7 @@ export const packsRouter = router({
   reload: protectedProcedure
     .output(packsListOutput)
     .mutation(async ({ ctx }) => {
+      requireNonProduction();
       await reloadPacks(ctx.registry);
       return { packs: getPackSnapshot().map(toDto) };
     })

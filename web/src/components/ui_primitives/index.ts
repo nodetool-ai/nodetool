@@ -202,6 +202,8 @@ export type { BoxProps } from "./Box";
 export { InspectorFieldRow } from "./InspectorFieldRow";
 export { InspectorSelect } from "./InspectorSelect";
 export type { InspectorSelectProps } from "./InspectorSelect";
+export { InspectorSectionTitle, InspectorSection } from "./InspectorSection";
+export type { InspectorSectionTitleProps, InspectorSectionProps, InspectorSectionAction } from "./InspectorSection";
 export { InspectorToggleRow } from "./InspectorToggleRow";
 export type { InspectorToggleRowProps } from "./InspectorToggleRow";
 export { BatchedColorInput } from "./BatchedColorInput";
@@ -210,8 +212,6 @@ export { InspectorValueInput } from "./InspectorValueInput";
 export type { InspectorValueInputProps, InspectorValueScrub, InspectorValueGesture } from "./InspectorValueInput";
 export { NumericField } from "./NumericField";
 export type { NumericFieldProps } from "./NumericField";
-export { PropertyFieldRow } from "./PropertyFieldRow";
-export type { PropertyFieldRowProps } from "./PropertyFieldRow";
 export { TreeRow } from "./TreeRow";
 export type { TreeRowProps } from "./TreeRow";
 
@@ -233,6 +233,8 @@ export type { CardProps } from "./Card";
 
 export { Panel } from "./Panel";
 export type { PanelProps } from "./Panel";
+export { PanelHeader, PANEL_HEADER_HEIGHT } from "./PanelHeader";
+export type { PanelHeaderProps } from "./PanelHeader";
 
 // Typography primitives
 export { Text } from "./Text";
@@ -267,6 +269,7 @@ export {
   BORDER_RADIUS,
   CONTROL,
   TYPOGRAPHY,
+  EYEBROW,
   FONT_WEIGHT,
   FONT_SIZE_SANS,
   FONT_SIZE_MONO,
@@ -326,6 +329,12 @@ export type { SectionHeaderProps } from "./SectionHeader";
 
 export { ColorSwatch } from "./ColorSwatch";
 export type { ColorSwatchProps } from "./ColorSwatch";
+
+export { CurveEditor } from "./CurveEditor";
+export type { CurveEditorProps, CurveKey } from "./CurveEditor";
+
+export { GradientEditor } from "./GradientEditor";
+export type { GradientEditorProps, GradientStop } from "./GradientEditor";
 
 export { Overlay } from "./Overlay";
 export type { OverlayProps } from "./Overlay";

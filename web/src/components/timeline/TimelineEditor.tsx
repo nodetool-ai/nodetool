@@ -59,9 +59,10 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
+import MovieCreationOutlinedIcon from "@mui/icons-material/MovieCreationOutlined";
 
 import { TopBar } from "./TopBar";
-import { TopBarPrompt } from "./TopBarPrompt";
+import { TimelineGenerateDialog } from "./TimelineGenerateDialog";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { PlayheadReadout } from "./PlayheadReadout";
 import { useTimelineCostEstimate } from "../../hooks/timeline/useTimelineCostEstimate";
@@ -97,9 +98,15 @@ import TimelineAgentPanel from "./TimelineAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
+import { useTimelineMenuCommands } from "../../hooks/timeline/useTimelineMenuCommands";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
+import { useTimelineLayoutStore } from "../../stores/timeline/TimelineLayoutStore";
 import { CodePanel } from "./CodePanel";
+import TimelineShotPanel, {
+  useSelectedShotClip
+} from "./shot/TimelineShotPanel";
+import TimelineLinkedBoards from "./shot/TimelineLinkedBoards";
 import { useTimelineHasCode } from "../../serverState/useTimelineCode";
 import CodeIcon from "@mui/icons-material/Code";
 import { ActivityIndicator } from "./ActivityIndicator";
@@ -358,7 +365,7 @@ const PreviewRegion: React.FC<{
 });
 PreviewRegion.displayName = "PreviewRegion";
 
-type InspectorTab = "inspector" | "source" | "instrument" | "agent" | "history" | "script" | "code";
+type InspectorTab = "inspector" | "shot" | "source" | "instrument" | "agent" | "history" | "script" | "code";
 
 const INSPECTOR_TABS = [
   { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon fontSize="small" /> },
@@ -372,6 +379,12 @@ const SCRIPT_TAB = {
   value: "script",
   label: "Script",
   icon: <SubtitlesOutlinedIcon fontSize="small" />
+};
+
+const SHOT_TAB = {
+  value: "shot",
+  label: "Shot",
+  icon: <MovieCreationOutlinedIcon fontSize="small" />
 };
 
 const CODE_TAB = {
@@ -392,10 +405,12 @@ const useAvailableInspectorTabs = (
   const hasSourceAsset = activeExplorer === "assets"
     ? assetsAsset !== null
     : activeExplorer === "library" && libraryAsset !== null;
+  const hasShotClip = useSelectedShotClip() !== null;
   const tabs = INSPECTOR_TABS.filter((item) =>
     (item.value !== "instrument" || hasMidiTrack) &&
     (item.value !== "source" || hasSourceAsset)
   );
+  if (hasShotClip) tabs.splice(1, 0, SHOT_TAB);
   if (hasScript) tabs.push(SCRIPT_TAB);
   if (hasCode) tabs.push(CODE_TAB);
   const activeTab = tabs.some((item) => item.value === tab) ? tab : "inspector";
@@ -436,6 +451,8 @@ const InspectorRegion: React.FC<{
         <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           {activeTab === "inspector" ? (
             <TimelineInspector />
+          ) : activeTab === "shot" ? (
+            <TimelineShotPanel />
           ) : activeTab === "instrument" ? (
             <TimelineInstrumentsPanel />
           ) : activeTab === "source" ? (
@@ -520,6 +537,8 @@ const MobilePanelSheet: React.FC<{
       <FlexColumn fullWidth sx={{ height: "52vh", minHeight: 0 }}>
         {activeTab === "inspector" ? (
           <TimelineInspector />
+        ) : activeTab === "shot" ? (
+          <TimelineShotPanel />
         ) : activeTab === "instrument" ? (
           <TimelineInstrumentsPanel />
         ) : activeTab === "source" ? (
@@ -603,22 +622,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useTimelineIsMobile();
-  const composerRef = useRef<HTMLDivElement>(null);
-  const [compactComposer, setCompactComposer] = useState(false);
-  useEffect(() => {
-    const element = composerRef.current;
-    if (!element) return;
-    const update = () => {
-      if (element.clientWidth > 0) {
-        setCompactComposer(element.clientWidth < 800);
-      }
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const openGenerate = useCallback(() => setGenerateOpen(true), []);
+  const closeGenerate = useCallback(() => setGenerateOpen(false), []);
 
   // Phone panel sheet (Inspector / Assistant / History / Script).
   const [panelSheetOpen, setPanelSheetOpen] = useState(false);
@@ -636,14 +642,22 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // TopBar's Code button — shown only when this timeline embeds authoring
   // code, opens the Code tab (side panel on desktop, sheet on phone).
   const hasCode = useTimelineHasCode(sequenceId);
+  const hasScript = useHasScript();
+  const transcriptVisible = useTimelineLayoutStore((s) => s.transcriptVisible);
+  const sidePanelVisible = useTimelineLayoutStore((s) => s.sidePanelVisible);
+  const toggleTranscript = useTimelineLayoutStore((s) => s.toggleTranscript);
+  const toggleSidePanel = useTimelineLayoutStore((s) => s.toggleSidePanel);
   const handleOpenCode = useCallback(() => {
     setPanelTab("code");
     if (isMobile) setPanelSheetOpen(true);
+    // The Code tab lives in the side panel, so open it if it is hidden.
+    else useTimelineLayoutStore.getState().showSidePanel();
   }, [isMobile, setPanelTab]);
 
   // Register the ui_timeline_* agent tools against this instance, addressable
   // by sequence id whether or not this editor is the focused surface.
   useTimelineAgentBridge(sequenceId ?? null);
+  useTimelineMenuCommands();
   // Clips generated while this sequence was closed still land on it (§ 8.4).
   useReattachSequenceJobs(sequenceId ?? null);
 
@@ -764,9 +778,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       const columnHeight = column.clientHeight;
       // An unlaid-out column (hidden tab, jsdom) measures 0: keep the cap.
       if (columnHeight <= 0) return;
-      const composerHeight = composerRef.current?.offsetHeight ?? 0;
       const available =
-        columnHeight - composerHeight - MIN_PREVIEW_HEIGHT_PX - TOUCH_HANDLE_HEIGHT_PX;
+        columnHeight - MIN_PREVIEW_HEIGHT_PX - TOUCH_HANDLE_HEIGHT_PX;
       setMaxTracksHeight(
         Math.max(MIN_TRACKS_HEIGHT_PX, Math.min(MAX_TRACKS_HEIGHT_PX, available))
       );
@@ -973,9 +986,21 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         hasCode={!sequenceUnavailable && hasCode}
         onOpenCode={handleOpenCode}
         sequenceId={sequenceUnavailable ? undefined : sequenceId}
+        onToggleTranscript={
+          !isMobile && hasScript ? toggleTranscript : undefined
+        }
+        transcriptVisible={transcriptVisible}
+        onToggleSidePanel={isMobile ? undefined : toggleSidePanel}
+        sidePanelVisible={sidePanelVisible}
       />
     ),
     [
+      hasScript,
+      isMobile,
+      sidePanelVisible,
+      toggleSidePanel,
+      toggleTranscript,
+      transcriptVisible,
       activitySlot,
       handleExportBundle,
       handleExportVideo,
@@ -1072,7 +1097,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         css={middleAreaStyles(theme)}
         sx={{ flex: "1 1 0", minHeight: 0, overflow: "hidden" }}
       >
-        {!isMobile && <TranscriptRegion />}
+        {!isMobile && transcriptVisible && <TranscriptRegion />}
         <PreviewRegion
           isLoading={isLoading}
           sequenceUnavailable={sequenceUnavailable}
@@ -1084,20 +1109,6 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           createSequenceErrorMessage={createErrorMessage}
           fullWidth={isMobile}
         />
-      </FlexRow>
-
-      <FlexRow
-        ref={composerRef}
-        fullWidth
-        sx={{
-          flexShrink: 0,
-          px: SPACING.md,
-          py: SPACING.sm,
-          backgroundColor: theme.vars.palette.background.paper,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`
-        }}
-      >
-        <TopBarPrompt compact={isMobile || compactComposer} />
       </FlexRow>
 
       {/* ── Horizontal drag handle (pointer + keyboard resizable) ─── */}
@@ -1121,12 +1132,17 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       {/* ── Tracks ────────────────────────────────────────────────── */}
       {/* A phone has no room to stack a clip editor under the tracks, so the
        *  piano roll replaces them and carries a Back control of its own. */}
-      {!pianoRollFullScreen && <TracksRegion heightPx={effectiveTracksHeight} />}
+      {!pianoRollFullScreen && (
+        <TracksRegion
+          heightPx={effectiveTracksHeight}
+          onGenerate={sequenceUnavailable ? undefined : openGenerate}
+        />
+      )}
 
       {/* ── Clip editor (piano roll) ──────────────────────────────── */}
       <PianoRollPanel fullHeight={pianoRollFullScreen} />
       </FlexColumn>
-      {!isMobile && (
+      {!isMobile && sidePanelVisible && (
         <InspectorRegion
           sequenceId={sequenceId}
           panelTab={panelTab}
@@ -1164,6 +1180,12 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           onTabChange={setPanelTab}
         />
       )}
+
+      {/* ── Storyboards the cut's shot clips come from ─────────────── */}
+      <TimelineLinkedBoards />
+
+      {/* ── Generate dialog ───────────────────────────────────────── */}
+      <TimelineGenerateDialog open={generateOpen} onClose={closeGenerate} />
 
       {/* ── Unsaved Code tab confirm ──────────────────────────────── */}
       {codeTabConfirmDialog}

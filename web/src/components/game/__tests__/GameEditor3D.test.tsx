@@ -9,6 +9,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
 import { getGamePanelLayoutStore } from "../../../stores/game/useGamePanelLayoutStore";
 import useAuth from "../../../stores/useAuth";
+import { useChatDraftStore } from "../../../stores/ChatDraftStore";
 import GameEditor3D from "../GameEditor3D";
 import type GameViewport3D from "../viewport3d/GameViewport3D";
 import type GameHierarchy3D from "../panels/hierarchy/GameHierarchy3D";
@@ -83,7 +84,12 @@ jest.mock("../panels/inspector/GameInspector3D", () => ({
 }));
 jest.mock("../panels/authoring/GameAuthoringPreview", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/changes/GameChanges", () => ({ __esModule: true, default: () => null }));
-jest.mock("../panels/agent/GameAgentPanel", () => ({ __esModule: true, default: () => null }));
+jest.mock("../panels/agent/GameAgentPanel", () => ({ __esModule: true, default: function MockGameAgentPanel({ onThreadId }: { onThreadId: (threadId: string | null) => void }) {
+  const { useEffect } = jest.requireActual<typeof import("react")>("react");
+  useEffect(() => { onThreadId("game-assistant-thread"); }, [onThreadId]);
+  return null;
+} }));
+jest.mock("../panels/assets/GameAssetBrowser", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/scripts/GameScriptPane", () => ({
   __esModule: true, default: ({ entityId, behavior, onChange, onReplay }: ComponentProps<typeof GameScriptPane>) => <>
     <p>Editing {entityId}</p>
@@ -127,6 +133,21 @@ it.each(["host", "diagnostic"])("offers 3D host replay only for host failures: %
     await user.click(screen.getByRole("button", { name: "Replay displayed error" }));
     expect(mockReplay).toHaveBeenCalledWith(expect.objectContaining({ tick: 31 }));
   }
+});
+
+it("writes a host script failure to the console, links its entity and drafts it for the assistant", async () => {
+  const user = userEvent.setup();
+  mockPlayDocument = mockDocument;
+  mockHostError = `Game script ${JSON.stringify([mockDocument.entrySceneId, "player", 0])} threw: boom`;
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  act(() => { getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().dispatch({ type: "reveal", panelId: "console" }); });
+  const line = within(await screen.findByRole("list", { name: "Console lines" })).getByText(mockHostError).closest("li");
+  if (!line) { throw new Error("Console line missing"); }
+  expect(line).toHaveTextContent("Tick 31");
+  await user.click(within(line).getByRole("button", { name: /^Select / }));
+  expect(getGameDraftStore(mockDocument.id).getState().selectedIds).toEqual(["player"]);
+  await user.click(within(line).getByRole("button", { name: "Ask the assistant" }));
+  expect(useChatDraftStore.getState().drafts["game-assistant-thread"]).toContain(`Message: ${mockHostError}`);
 });
 
 type RenameOp = { op: "update_entity"; scene_id: string; entity_id: string; set: { name: string } };

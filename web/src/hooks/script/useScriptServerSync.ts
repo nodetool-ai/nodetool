@@ -34,6 +34,24 @@ import {
 } from "../../utils/saveErrors";
 
 type ScriptResponse = Awaited<ReturnType<typeof trpcClient.scripts.get.query>>;
+
+/** Every mounted sync's flush, by script id. */
+const flushers = new Map<string, Set<() => Promise<unknown>>>();
+
+/**
+ * Save whatever the mounted syncs of this script hold and resolve once the
+ * server has it. A host that hands the script to another surface awaits this
+ * first, so the next surface's load cannot read a copy older than the hand-off.
+ * Resolves at once when no sync is mounted, and never rejects.
+ */
+export async function flushScriptSync(scriptId: string): Promise<void> {
+  const pending = Array.from(flushers.get(scriptId) ?? [], (flush) =>
+    flush().catch((error: unknown) => {
+      console.error("Failed to flush script", error);
+    })
+  );
+  await Promise.all(pending);
+}
 type ScriptWireDocument = ScriptResponse["document"];
 
 /** The saved payload: the script minus identity and transient UI state. */
@@ -532,8 +550,17 @@ export const useScriptServerSync = (
       );
     });
 
+    const flush = (): Promise<unknown> => controller.flush();
+    const registered = flushers.get(scriptId) ?? new Set();
+    registered.add(flush);
+    flushers.set(scriptId, registered);
+
     return () => {
       disposed = true;
+      registered.delete(flush);
+      if (registered.size === 0 && flushers.get(scriptId) === registered) {
+        flushers.delete(scriptId);
+      }
       unwatch();
       unsubscribe();
       controller.dispose();

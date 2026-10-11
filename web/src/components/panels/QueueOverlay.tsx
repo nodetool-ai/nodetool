@@ -6,7 +6,9 @@ import {
   Box,
   FlexColumn,
   FlexRow,
+  PanelHeader,
   Text,
+  ToolbarIconButton,
   Tooltip,
   MOTION,
   reducedMotion,
@@ -315,7 +317,6 @@ const CancelledCard = memo(function CancelledCard({ job }: { job: Job }) {
 
 const SectionLabel = ({ children }: { children: string }) => (
   <Text size="smaller" color="secondary"
-  weight={600}
   sx={{
     display: "block",
     px: 0.5,
@@ -326,6 +327,8 @@ const SectionLabel = ({ children }: { children: string }) => (
   }}>{children}</Text>
 );
 
+const HEADER_COUNT_ICON_SX = { fontSize: "var(--fontSizeSmall)" };
+
 const HeaderCount = ({
   icon,
   count
@@ -333,7 +336,7 @@ const HeaderCount = ({
   icon: React.ReactNode;
   count: number;
 }) => (
-  <FlexRow align="center" gap={0.4} sx={{ color: "text.secondary" }}>
+  <FlexRow align="center" gap={SPACING.micro} sx={{ color: "text.secondary" }}>
     {icon}
     <Text size="smaller" color="secondary" family="secondary">{count}</Text>
   </FlexRow>
@@ -532,27 +535,29 @@ const QueueOverlay = memo(function QueueOverlay() {
 
   return (
     <Box css={[overlayStyles(theme), mobileOverlayStyles(theme)]} data-state={hasJobs ? "open" : "closed"}>
-      <FlexRow align="center" gap={1} sx={{ px: 2, py: 1.5, flex: "0 0 auto" }}>
-        <LayersIcon sx={{ fontSize: 17, color: "text.secondary" }} />
-        <Text size="normal" weight={600} sx={{ flex: 1 }}>
-          Queue
-        </Text>
-        <FlexRow align="center" gap={1.25}>
+      <PanelHeader
+        title="Queue"
+        icon={<LayersIcon />}
+        actions={
+          <ToolbarIconButton
+            icon={<RemoveIcon />}
+            tooltip="Collapse queue"
+            ariaLabel="Collapse queue"
+            onClick={() => setExpanded(false)}
+          />
+        }
+      >
+        <FlexRow align="center" gap={SPACING.md}>
           <HeaderCount
-            icon={<PlayArrowOutlinedIcon sx={{ fontSize: 15 }} />}
+            icon={<PlayArrowOutlinedIcon sx={HEADER_COUNT_ICON_SX} />}
             count={running.length}
           />
           <HeaderCount
-            icon={<ScheduleIcon sx={{ fontSize: 14 }} />}
+            icon={<ScheduleIcon sx={HEADER_COUNT_ICON_SX} />}
             count={queued.length}
           />
         </FlexRow>
-        <IconButton
-          icon={<RemoveIcon sx={{ fontSize: 16 }} />}
-          label="Collapse queue"
-          onClick={() => setExpanded(false)}
-        />
-      </FlexRow>
+      </PanelHeader>
 
       <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", px: 2, pb: 2 }}>
         {running.length > 0 && (

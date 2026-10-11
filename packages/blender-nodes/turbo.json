@@ -1,0 +1,13 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      // Whether Blender is installed decides whether the render suites run or
+      // skip. Without these in the hash, a cached run that skipped them
+      // replays as a pass in a run that has Blender. NODETOOL_LOG_LEVEL is
+      // the root task's entry, repeated because this list replaces it.
+      "env": ["NODETOOL_LOG_LEVEL", "BLENDER_PATH", "NODETOOL_REQUIRE_BLENDER"]
+    }
+  }
+}

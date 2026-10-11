@@ -52,7 +52,7 @@ export default function ShotGraphicsEditor({
   };
   return (
     <FlexColumn gap={SPACING.sm}>
-      <Label>Graphics and motion design</Label>
+      <Label>Graphics</Label>
       {!graphics ? (
         <EditorButton
           disabled={readOnly}
@@ -183,13 +183,6 @@ export default function ShotGraphicsEditor({
           </FlexRow>
         </>
       )}
-      <TextInput
-        label="Shot motion design notes"
-        multiline
-        value={draft.motion}
-        disabled={readOnly}
-        onChange={(event) => onChange({ ...draft, motion: event.target.value })}
-      />
     </FlexColumn>
   );
 }

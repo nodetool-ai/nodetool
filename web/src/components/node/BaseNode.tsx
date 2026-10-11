@@ -14,7 +14,6 @@ import {
   Position,
   ResizeParams
 } from "@xyflow/react";
-import isEqual from "../../utils/isEqual";
 import {
   Container,
   BORDER_RADIUS,
@@ -58,6 +57,7 @@ import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import NodeChunkDisplay from "./NodeChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
+import { baseNodePropsEqual } from "./baseNodePropsEqual";
 
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -875,13 +875,4 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 };
 
-export default memo(BaseNode, (prevProps, nextProps) => {
-  return (
-    prevProps.id === nextProps.id &&
-    prevProps.type === nextProps.type &&
-    prevProps.selected === nextProps.selected &&
-    prevProps.dragging === nextProps.dragging &&
-    prevProps.parentId === nextProps.parentId &&
-    isEqual(prevProps.data, nextProps.data)
-  );
-});
+export default memo(BaseNode, baseNodePropsEqual);

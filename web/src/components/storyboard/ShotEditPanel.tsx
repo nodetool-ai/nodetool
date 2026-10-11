@@ -11,9 +11,9 @@
  * The two rows are a **draft**. Nothing typed here reaches the board until
  * `Save`, which writes the whole shot in one `updateShot` — one store update,
  * one undo step, so a creator who changes five fields undoes five fields
- * together rather than one keystroke at a time. `Regenerate` saves and then
- * renders from what was saved, never from what is on screen. Closing dirty
- * asks.
+ * together rather than one keystroke at a time. `Regenerate` saves, then asks
+ * for the still model and renders from what was saved, never from what is on
+ * screen. Closing dirty asks.
  *
  * What is *not* draft state, because it is already a committed act: choosing a
  * version, deleting one, flipping, and uploading. Those write straight through,
@@ -65,6 +65,7 @@ import ShotStillModifyPanel from "./ShotStillModifyPanel";
 import ShotScriptPanel from "./ShotScriptPanel";
 import ShotCostLine from "./ShotCostLine";
 import ShotPromptPreview from "./ShotPromptPreview";
+import ShotRenderDialog from "./ShotRenderDialog";
 import {
   changedDraftKeys,
   conflictingDraftKeys,
@@ -219,7 +220,9 @@ const DRAFT_LABELS: Record<ShotDraftKey, string> = {
   notes: "Notes",
   renderMode: "Render mode",
   graphics: "Graphics",
-  motion: "Motion design notes"
+  motion: "Shot motion",
+  endState: "End",
+  sound: "Sound"
 };
 
 /** A render that could not start: the hook records the ones it knows about. */
@@ -300,7 +303,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
   const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const { generateKeyframe, generateClip } = useGenerateShot();
+  const { generateClip } = useGenerateShot();
   const { data: allEntities } = useEntities();
 
   const shot = shots.find((s) => s.id === shotId);
@@ -440,12 +443,18 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     commit();
   }, [commit, durationInvalid]);
 
+  // A still render asks for its model first, opened on the shot as saved.
+  const [stillRenderShot, setStillRenderShot] = useState<Shot | null>(null);
+  const closeStillRender = useCallback(() => setStillRenderShot(null), []);
   const startRender = useCallback(
     (kind: "still" | "clip", saved: Shot) => {
-      const run = kind === "still" ? generateKeyframe : generateClip;
-      void run(boardId, saved).catch(reportRenderFailure);
+      if (kind === "still") {
+        setStillRenderShot(saved);
+        return;
+      }
+      void generateClip(boardId, saved).catch(reportRenderFailure);
     },
-    [generateKeyframe, generateClip, boardId]
+    [generateClip, boardId]
   );
 
   const handleRegenerate = useCallback(() => {
@@ -912,6 +921,15 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           Move later in scene
         </EditorMenuItem>
       </EditorMenu>
+
+      {stillRenderShot && (
+        <ShotRenderDialog
+          boardId={boardId}
+          shot={stillRenderShot}
+          step="still"
+          onClose={closeStillRender}
+        />
+      )}
 
       <Dialog
         open={pending !== null}

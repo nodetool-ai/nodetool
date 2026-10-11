@@ -33,6 +33,17 @@ const VIDEO_CONFIG = {
       ]
     },
     {
+      model_req_key: "dreamina_seedance_45_pro_draft",
+      model_name: "Dreamina Seedance 2.5 (for preview)",
+      options: [
+        { key: "resolution", enum_val: { string_value: ["480p"], default_val_idx: 0 } },
+        { key: "frames", enum_val: { int_value: [96], default_val_idx: 0 } },
+        { key: "video_aspect_ratio", enum_val: { string_value: ["16:9"], default_val_idx: 0 } },
+        { key: "input_media_type", enum_val: { string_value: ["unified_edit", "prompt", "first_frame", "end_frame"], default_val_idx: 0 } },
+        { key: "unified_edit" }
+      ]
+    },
+    {
       model_req_key: "legacy_model",
       model_name: "Legacy",
       options: [
@@ -48,6 +59,10 @@ const VIDEO_CONFIG = {
 const IMAGE_MODEL: ImageModel = { id: "high_aes_general_v40", name: "Seedream 4.0", provider: "dreamina" };
 const INSTRUMENTAL: MusicModel = { id: "instrumental", name: "Dreamina Instrumental", provider: "dreamina" };
 const videoModel = (id: string): VideoModel => ({ id, name: id, provider: "dreamina" });
+
+/** A meta list as the editor shows it: `<image 0>` for a mention, the text as is. */
+const metaShape = (meta: Array<{ meta_type: string; text: string; material_ref?: { material_idx: number } }>): string =>
+  meta.map((part) => (part.meta_type === "text" ? part.text : `<${part.meta_type} ${part.material_ref!.material_idx}>`)).join("");
 
 const AUDIO_CONFIG = { song: { model_list: [{ model_req_key: "song_v1", model_name: "Song One", model_status: 0 }] } };
 
@@ -229,6 +244,69 @@ describe("DreaminaProvider", () => {
       await vi.advanceTimersByTimeAsync(10_000);
       expect(Array.from(await pending)).toEqual([5]);
     });
+
+    describe("when the Dreamina tab detaches", () => {
+      const DETACHED = "Detached while handling command.";
+
+      /**
+       * A tab that detaches once, on the first call to `detachOn`. `submitLands`
+       * says whether the generate request reached Dreamina before the tab went.
+       */
+      function detachingRunner(detachOn: string, submitLands: boolean): { paths: string[] } {
+        const paths: string[] = [];
+        let detached = false;
+        let submitted = false;
+        setDreaminaPageRunner({
+          async evaluate(expression: string) {
+            const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
+            const path = new URL(request.url).pathname;
+            paths.push(path);
+            if (!detached && path.endsWith(detachOn)) {
+              detached = true;
+              if (path.endsWith("aigc_draft/generate")) submitted = submitLands;
+              throw new Error(DETACHED);
+            }
+            if (path.includes("video_generate")) return { ret: "0", data: VIDEO_CONFIG };
+            if (path.endsWith("aigc_draft/generate")) { submitted = true; return { ret: "0", data: {} }; }
+            const submitId = JSON.parse(request.body).submit_ids[0];
+            return { ret: "0", data: submitted ? { [submitId]: videoRecord } : {} };
+          }
+        });
+        vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([7]))));
+        return { paths };
+      }
+
+      const submits = (paths: string[]) => paths.filter((p) => p.endsWith("aigc_draft/generate")).length;
+
+      it("retries a free call once on a fresh attach", async () => {
+        vi.useFakeTimers();
+        const { paths } = detachingRunner("video_generate/get_common_config", false);
+        const pending = new DreaminaProvider().textToVideo({ model: videoModel("dreamina_seedance_40_mini"), prompt: "x" });
+        await vi.advanceTimersByTimeAsync(10_000);
+        expect(Array.from(await pending)).toEqual([7]);
+        expect(paths.filter((p) => p.endsWith("get_common_config"))).toHaveLength(2);
+        expect(submits(paths)).toBe(1);
+      });
+
+      it("finds a submit that landed by its id instead of submitting again", async () => {
+        vi.useFakeTimers();
+        const { paths } = detachingRunner("aigc_draft/generate", true);
+        const pending = new DreaminaProvider().textToVideo({ model: videoModel("dreamina_seedance_40_mini"), prompt: "x" });
+        await vi.advanceTimersByTimeAsync(10_000);
+        expect(Array.from(await pending)).toEqual([7]);
+        expect(submits(paths)).toBe(1);
+      });
+
+      it("fails without resubmitting when the submit never reached Dreamina", async () => {
+        vi.useFakeTimers();
+        const { paths } = detachingRunner("aigc_draft/generate", false);
+        const pending = new DreaminaProvider().textToVideo({ model: videoModel("dreamina_seedance_40_mini"), prompt: "x" });
+        const settled = expect(pending).rejects.toThrow(/did not reach Dreamina/);
+        await vi.advanceTimersByTimeAsync(60_000);
+        await settled;
+        expect(submits(paths)).toBe(1);
+      });
+    });
   });
 
   describe("reference images", () => {
@@ -294,13 +372,11 @@ describe("DreaminaProvider", () => {
       const input = JSON.parse((generate.body as { draft_content: string }).draft_content).component_list[0].abilities.gen_video.text_to_video_params.video_gen_inputs[0];
       expect(input.prompt).toBe("");
       expect(input.unified_edit_input.material_list.map((m: { image_info: { uri: string; width: number } }) => m.image_info.width)).toEqual([1280, 1280]);
-      expect(input.unified_edit_input.meta_list).toEqual([
-        { meta_type: "text", text: "Open on " },
-        { meta_type: "image", text: "", material_ref: { material_idx: 0 } },
-        { meta_type: "text", text: " then cut to " },
-        { meta_type: "image", text: "", material_ref: { material_idx: 1 } },
-        { meta_type: "text", text: " slowly." }
-      ]);
+      // Captured from the web app: every material leads, then the prompt
+      // mentions them inline.
+      expect(metaShape(input.unified_edit_input.meta_list)).toBe(
+        "<image 0><image 1>Open on <image 0> then cut to <image 1> slowly."
+      );
     });
 
     it("leads with the images when the prompt has no markers", async () => {
@@ -310,6 +386,29 @@ describe("DreaminaProvider", () => {
       const generate = seen.find((c) => c.path.endsWith("aigc_draft/generate"))!;
       const input = JSON.parse((generate.body as { draft_content: string }).draft_content).component_list[0].abilities.gen_video.text_to_video_params.video_gen_inputs[0];
       expect(input.unified_edit_input.meta_list.map((m: { meta_type: string }) => m.meta_type)).toEqual(["image", "image", "text"]);
+    });
+
+    it("names entity references after the picked images", async () => {
+      vi.useFakeTimers();
+      const { seen } = referenceRunner();
+      const provider = new DreaminaProvider();
+      const pending = provider.referenceToVideo(
+        { images: [new Uint8Array([0, 1, 2, 3])], videos: [] },
+        {
+          model: videoModel("dreamina_seedance_40_mini"),
+          prompt: "Open on [Image 1].",
+          durationSeconds: 4,
+          references: [{ name: "Mara", image: new Uint8Array([9, 1, 2, 3]) }]
+        }
+      );
+      const settled = pending.then((v) => v, (e: unknown) => e);
+      await vi.advanceTimersByTimeAsync(10_000);
+      await settled;
+      const generate = seen.find((c) => c.path.endsWith("aigc_draft/generate"))!;
+      const input = JSON.parse((generate.body as { draft_content: string }).draft_content).component_list[0].abilities.gen_video.text_to_video_params.video_gen_inputs[0];
+      expect(metaShape(input.unified_edit_input.meta_list)).toBe(
+        "<image 0><image 1><image 1> is Mara.\n\nOpen on <image 0>."
+      );
     });
 
     it("stops when Dreamina's review rejects a reference", async () => {
@@ -428,24 +527,88 @@ describe("DreaminaProvider", () => {
       await expect(provider.imageToImage([new Uint8Array([1])], { model: { ...model, id: "edit_only" }, prompt: "x" })).rejects.toThrow("Unknown Dreamina image model");
     });
 
-    it("animates an image from its first frame, with an optional last frame", async () => {
+    it("renders a Seedance 2.x clip in omni-reference mode and names every image in the prompt", async () => {
       vi.useFakeTimers();
       const { seen } = runner(videoRecord);
       const provider = new DreaminaProvider();
       const model = videoModel("dreamina_seedance_40_mini");
-      const out = await settle(provider.imageToVideo(new Uint8Array([1]), { model, prompt: "push in", endImage: new Uint8Array([2]), durationSeconds: 4 }));
+      const out = await settle(provider.imageToVideo(new Uint8Array([1]), {
+        model,
+        prompt: "push in",
+        endImage: new Uint8Array([2]),
+        references: [{ name: "Mara", image: new Uint8Array([3]) }],
+        durationSeconds: 4
+      }));
       expect(Array.from(out as Uint8Array)).toEqual([9]);
 
       const component = draftOf(seen);
       const input = component.abilities.gen_video.text_to_video_params.video_gen_inputs[0];
-      expect(input.prompt).toBe("push in");
-      expect(input.first_frame_image).toMatchObject({ type: "image", width: 1920, height: 1080 });
-      expect(input.end_frame_image).toMatchObject({ type: "image", width: 1920 });
-      expect(input.end_frame_image.uri).not.toBe(input.first_frame_image.uri);
-      expect(input.ending_control).toBe("1.0");
+      expect(input.first_frame_image).toBeUndefined();
+      expect(input.end_frame_image).toBeUndefined();
+      expect(input.unified_edit_input.material_list).toHaveLength(3);
+      expect(metaShape(input.unified_edit_input.meta_list)).toBe(
+        "<image 0><image 1><image 2><image 0> is the first frame. <image 1> is the last frame. <image 2> is Mara.\n\npush in"
+      );
+      expect(JSON.parse(seen.find((c) => c.path.endsWith("aigc_draft/generate"))!.body.draft_content)).toMatchObject({
+        min_version: "3.3.9",
+        min_features: ["AIGC_Video_UnifiedEdit"]
+      });
+      expect(JSON.parse(component.abilities.gen_video.video_task_extra)).toMatchObject({ functionMode: "omni_reference" });
+      expect(seen.find((c) => c.path.endsWith("execute_generate_audit"))!.body.material_list).toHaveLength(3);
+    });
+
+    it("conditions a text-to-video render on named references", async () => {
+      vi.useFakeTimers();
+      const { seen } = runner(videoRecord);
+      const provider = new DreaminaProvider();
+      await settle(provider.textToVideo({
+        model: videoModel("dreamina_seedance_40_mini"),
+        prompt: "she walks in",
+        references: [{ name: "Mara", image: new Uint8Array([3]) }],
+        durationSeconds: 4
+      }));
+      const input = draftOf(seen).abilities.gen_video.text_to_video_params.video_gen_inputs[0];
+      expect(input.unified_edit_input.material_list).toHaveLength(1);
+      expect(input.unified_edit_input.meta_list.at(-1).text).toBe(" is Mara.\n\nshe walks in");
+    });
+
+    it("keeps first-frame mode and ignores references on a model without them", async () => {
+      vi.useFakeTimers();
+      const { seen } = runner(videoRecord);
+      const provider = new DreaminaProvider();
+      await settle(provider.imageToVideo(new Uint8Array([1]), {
+        model: videoModel("legacy_model"),
+        prompt: "push in",
+        references: [{ name: "Mara", image: new Uint8Array([3]) }],
+        durationSeconds: 5
+      }));
+      const input = draftOf(seen).abilities.gen_video.text_to_video_params.video_gen_inputs[0];
+      expect(input.first_frame_image).toBeDefined();
       expect(input.unified_edit_input).toBeUndefined();
-      expect(JSON.parse(component.abilities.gen_video.video_task_extra)).toMatchObject({ functionMode: "first_last_frames", generatorFeature: "firstLastFrames" });
-      expect(seen.find((c) => c.path.endsWith("execute_generate_audit"))!.body.material_list).toHaveLength(2);
+      expect(input.prompt).toBe("push in");
+    });
+
+    // Shape captured from the Dreamina web app submitting a first-frame clip on
+    // the 480p preview model. Without `is_draft_mode` it answers ret 1000.
+    it("marks a preview model's clip as a draft", async () => {
+      vi.useFakeTimers();
+      const { seen } = runner(videoRecord);
+      const provider = new DreaminaProvider();
+      await settle(provider.imageToVideo(new Uint8Array([1]), { model: videoModel("dreamina_seedance_45_pro_draft"), prompt: "push in", durationSeconds: 4 }));
+      const draft = JSON.parse(seen.find((c) => c.path.endsWith("aigc_draft/generate"))!.body.draft_content);
+      const input = draft.component_list[0].abilities.gen_video.text_to_video_params.video_gen_inputs[0];
+      expect(input).toMatchObject({ is_draft_mode: true, min_version: "3.3.28", resolution: "480p" });
+      // A preview clip goes in as a reference, so it declares unified edit too.
+      expect(draft).toMatchObject({ min_version: "3.3.28", min_features: ["AIGC_Video_UnifiedEdit", "AIGC_Video_Seedance25ResultAction"] });
+    });
+
+    it("leaves a full model's clip out of draft mode", async () => {
+      vi.useFakeTimers();
+      const { seen } = runner(videoRecord);
+      const provider = new DreaminaProvider();
+      await settle(provider.imageToVideo(new Uint8Array([1]), { model: videoModel("dreamina_seedance_40_mini"), durationSeconds: 4 }));
+      const input = draftOf(seen).abilities.gen_video.text_to_video_params.video_gen_inputs[0];
+      expect(input.is_draft_mode).toBeUndefined();
     });
 
     it("sends only a first frame when no last frame is given", async () => {
@@ -489,15 +652,9 @@ describe("DreaminaProvider", () => {
       expect(input.min_version).toBe("3.3.9");
       expect(input.unified_edit_input.material_list.map((m: { material_type: string }) => m.material_type)).toEqual(["image", "video", "video"]);
       expect(input.unified_edit_input.material_list[1].video_info).toMatchObject({ type: "video", source_from: "upload", width: 1280, height: 720, duration: 2500 });
-      expect(input.unified_edit_input.meta_list).toEqual([
-        { meta_type: "text", text: "Keep " },
-        { meta_type: "image", text: "", material_ref: { material_idx: 0 } },
-        { meta_type: "text", text: " and copy the motion of " },
-        { meta_type: "video", text: "", material_ref: { material_idx: 2 } },
-        { meta_type: "text", text: " then " },
-        { meta_type: "video", text: "", material_ref: { material_idx: 1 } },
-        { meta_type: "text", text: "." }
-      ]);
+      expect(metaShape(input.unified_edit_input.meta_list)).toBe(
+        "<image 0><video 1><video 2>Keep <image 0> and copy the motion of <video 2> then <video 1>."
+      );
     });
 
     it("uploads reference audio through VOD and places it in the prompt", async () => {
@@ -520,11 +677,9 @@ describe("DreaminaProvider", () => {
       expect(materials.map((m: { material_type: string }) => m.material_type)).toEqual(["image", "video", "audio"]);
       expect(materials[2].audio_info).toMatchObject({ type: "audio", source_from: "upload", duration: 2500 });
       expect(materials[2].audio_info.vid).toMatch(/^v-/);
-      expect(input.unified_edit_input.meta_list.filter((m: { meta_type: string }) => m.meta_type !== "text")).toEqual([
-        { meta_type: "image", text: "", material_ref: { material_idx: 0 } },
-        { meta_type: "audio", text: "", material_ref: { material_idx: 2 } },
-        { meta_type: "video", text: "", material_ref: { material_idx: 1 } }
-      ]);
+      expect(metaShape(input.unified_edit_input.meta_list.filter((m: { meta_type: string }) => m.meta_type !== "text"))).toBe(
+        "<image 0><video 1><audio 2><image 0><audio 2><video 1>"
+      );
     });
 
     it("rejects an audio marker that points past the given audios", async () => {

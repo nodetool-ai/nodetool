@@ -161,6 +161,7 @@ describe("main.ts lifecycle wiring", () => {
       await appHandlers["before-quit"](firstEvent);
       expect(firstEvent.preventDefault).toHaveBeenCalled();
       expect(stopServer).toHaveBeenCalledTimes(1);
+      expect(stopServer).toHaveBeenCalledWith({ shutdown: true });
       expect(electronMock.app.quit).not.toHaveBeenCalled();
 
       finishStop();

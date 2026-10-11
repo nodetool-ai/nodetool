@@ -31,10 +31,8 @@ export function jumpToHistoryIndex(
       return;
     }
     if (dirty) {
-      goal -= before.history.length + 1 - after.history.length;
-      if (goal < 0) {
-        return;
-      }
+      // When the target itself was trimmed, stop at the oldest entry left.
+      goal = Math.max(0, goal - (before.history.length + 1 - after.history.length));
     }
   }
 }

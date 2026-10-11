@@ -125,14 +125,32 @@ export const triggersRouter = router({
           "Trigger is not active — activate it before firing"
         );
       }
-      const inputId = input.idempotencyKey ?? createTimeOrderedUuid();
+      // Input ids share one table-wide unique index with scheduled ticks,
+      // webhooks and file events, so a caller's key is scoped to this
+      // registration. Unscoped, a key shaped like another source's id would
+      // suppress that delivery.
+      const inputId =
+        input.idempotencyKey !== undefined
+          ? `manual:${reg.id}:${input.idempotencyKey}`
+          : createTimeOrderedUuid();
       await getTriggerWakeupService().deliverTriggerInput({
         runId: reg.workflow_id,
         nodeId: reg.node_id,
         inputId,
         payload: input.payload ?? {}
       });
-      const { jobId } = await dispatchInput(inputId);
-      return { job_id: jobId };
+      try {
+        const { jobId } = await dispatchInput(inputId);
+        return { job_id: jobId };
+      } catch (err) {
+        // A retry whose key was already dispatched finds no unprocessed input.
+        if (err instanceof Error && err.message.startsWith("input not found")) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            "This idempotency key was already fired"
+          );
+        }
+        throw err;
+      }
     })
 });

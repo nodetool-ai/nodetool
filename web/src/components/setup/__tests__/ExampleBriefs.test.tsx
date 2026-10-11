@@ -118,6 +118,32 @@ it("offers no Undo when the brief was empty", () => {
   expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
 });
 
+// An example picked over another example replaced no text of the creator's,
+// so Undo would only bring back an example they never typed.
+it("offers no Undo when an example replaces an earlier example", () => {
+  const Host = () => {
+    const [brief, setBrief] = useState("");
+    return (
+      <ExampleBriefs
+        examples={["Example A", "Example B"]}
+        brief={brief}
+        onSelect={setBrief}
+      />
+    );
+  };
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <Host />
+    </ThemeProvider>
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Example A" }));
+  fireEvent.click(screen.getByRole("button", { name: "Example B" }));
+
+  expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  expect(screen.queryByText("The example replaced your text.")).toBeNull();
+});
+
 // Undo brings back what the creator wrote, however many examples were tried
 // over it.
 it("keeps the creator's own brief for Undo across a second example", () => {

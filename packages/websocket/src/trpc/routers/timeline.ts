@@ -481,6 +481,16 @@ export const timelineRouter = router({
       if (input.id) {
         fields.id = input.id;
       }
+      // Lineage names one of the caller's own sequences, by its full id.
+      if (input.templateId !== undefined) {
+        const template = await loadOwned(ctx.userId, input.templateId);
+        fields.document = JSON.stringify({
+          tracks: [],
+          clips: [],
+          markers: [],
+          templateId: template.id
+        });
+      }
       const seq = new TimelineSequence(fields);
       await seq.save();
       return seq.toTimelineSequence();
@@ -521,6 +531,7 @@ export const timelineRouter = router({
         const current = seq.toDocument();
         const merged: TimelineDocument = {
           tracks: input.document.tracks ?? current.tracks,
+          trackFolders: input.document.trackFolders ?? current.trackFolders,
           clips:
             (input.document.clips as TimelineDocument["clips"]) ??
             current.clips,
@@ -532,6 +543,8 @@ export const timelineRouter = router({
           camera2d: input.document.camera2d === undefined ? current.camera2d : input.document.camera2d,
           setup: input.document.setup ?? current.setup,
           mediaTracks: input.document.mediaTracks ?? current.mediaTracks,
+          // Lineage is set when a sequence is retargeted; a save keeps it.
+          templateId: current.templateId,
           // The authoring code and its scene hashes belong to the server. An
           // editor save never carries them, and must not remove them.
           source: current.source
@@ -548,7 +561,7 @@ export const timelineRouter = router({
       }
 
       const updated = await TimelineSequence.updateFieldsIfUnchanged(
-        input.id,
+        seq.id,
         expectedUpdatedAt,
         fields
       );
@@ -671,7 +684,7 @@ export const timelineRouter = router({
 
         const document = parseVersionDocument(version.document);
         const updated = await TimelineSequence.updateFieldsIfUnchanged(
-          input.id,
+          seq.id,
           seq.updated_at,
           {
             document: JSON.stringify(document),

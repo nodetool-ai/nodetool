@@ -11,7 +11,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     Job: {
       ...actual.Job,
       get: vi.fn(),
-      paginate: vi.fn()
+      paginate: vi.fn(),
+      markCancelledIfActive: vi.fn()
     }
   };
 });
@@ -311,7 +312,7 @@ describe("jobs router", () => {
 
   // ── cancel ──────────────────────────────────────────────────────
   describe("cancel", () => {
-    it("marks the job cancelled, saves, and returns background shape", async () => {
+    it("cancels an active job with a conditional write and returns its new state", async () => {
       const j = makeJob({
         id: "j1",
         user_id: "user-1",
@@ -319,12 +320,18 @@ describe("jobs router", () => {
         workflow_id: "wf-1",
         started_at: "2026-04-17T00:00:00Z"
       });
-      (Job.get as ReturnType<typeof vi.fn>).mockResolvedValue(j);
+      const cancelled = { ...j, status: "cancelled" };
+      (Job.get as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(j)
+        .mockResolvedValueOnce(cancelled);
+      (Job.markCancelledIfActive as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
 
       const caller = createCaller(makeCtx());
       const result = await caller.jobs.cancel({ id: "j1" });
-      expect(j.markCancelled).toHaveBeenCalled();
-      expect(j.save).toHaveBeenCalled();
+      expect(Job.markCancelledIfActive).toHaveBeenCalledWith("j1", "user-1");
+      expect(j.save).not.toHaveBeenCalled();
       expect(result).toEqual({
         job_id: "j1",
         status: "cancelled",
@@ -333,6 +340,20 @@ describe("jobs router", () => {
         is_running: false,
         is_completed: true // "cancelled" maps to is_completed
       });
+    });
+
+    it("leaves a job that already finished as it is", async () => {
+      const j = makeJob({ id: "j1", status: "completed" });
+      (Job.get as ReturnType<typeof vi.fn>).mockResolvedValue(j);
+      (Job.markCancelledIfActive as ReturnType<typeof vi.fn>).mockResolvedValue(
+        false
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.jobs.cancel({ id: "j1" });
+      expect(j.markCancelled).not.toHaveBeenCalled();
+      expect(j.save).not.toHaveBeenCalled();
+      expect(result.status).toBe("completed");
     });
 
     it("throws NOT_FOUND when the job does not exist", async () => {

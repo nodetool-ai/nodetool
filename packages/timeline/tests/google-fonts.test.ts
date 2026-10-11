@@ -208,7 +208,8 @@ describe("collectFontFaceRequests", () => {
     const requests = collectFontFaceRequests(sequence);
     expect(requests).toEqual([
       { family: "Poppins", weight: 700, style: "italic" },
-      { family: "Poppins", weight: 400, style: "normal" }
+      // A caption is drawn bold, so its face is requested at that weight.
+      { family: "Poppins", weight: 700, style: "normal" }
     ]);
     expect(collectUnresolvedFontFamilies(sequence)).toEqual(["Poppins"]);
   });

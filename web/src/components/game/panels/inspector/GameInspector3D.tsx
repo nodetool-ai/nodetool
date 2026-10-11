@@ -8,11 +8,12 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import { diffGameDocuments3D } from "../../../../stores/game/diffGameDocuments3D";
-import { Box, Caption, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorValueInput, SPACING, Text, ToolbarIconButton } from "../../../ui_primitives";
+import { Box, Caption, CONTROL, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorSection, InspectorValueInput, SPACING, Text, ToolbarIconButton } from "../../../ui_primitives";
 import ReportBugButton from "../../../support/ReportBugButton";
 import SchemaFields from "../../inspector/SchemaFields";
-import { COMPONENT_SECTION_SX } from "../../inspector/componentSection";
 import GameOverrideFields from "../../GameOverrideFields";
+import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
+import CollisionMatrixEditor from "../../inspector/editors/CollisionMatrixEditor";
 import { gameSchemaFields } from "../../inspector/schemaForm";
 
 interface GameInspector3DProps {
@@ -51,8 +52,8 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
   };
   if (!entity) {
     const { id: _sceneId, entities: _entities, ...settings } = scene ?? {};
-    return <FlexColumn sx={{ minHeight: 0 }}>
-      <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.sm }}>
+    return <FlexColumn sx={{ minHeight: 0, px: SPACING.md }}>
+      <FlexRow gap={SPACING.sm} align="center" sx={{ py: SPACING.sm }}>
         <PublicOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.title, color: "text.secondary" }} />
         <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
           <Text weight={500} truncate>{scene?.name ?? "Scene"}</Text>
@@ -64,7 +65,10 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
           const updated = gameScene3D.parse({ ...gameScene3D.omit({ id: true, entities: true }).parse(value), id: scene.id, entities: scene.entities });
           applyDocument({ ...document, scenes: document.scenes.map((item) => item.id === sceneId ? updated : item) }, "Change Scene Settings");
         }} />}
-      {validation.diagnostics.map((issue, index) => <Caption key={`${issue.code}:${index}`} color="error" sx={{ px: SPACING.md }}>{issue.path.join(".")}: {issue.message}</Caption>)}
+      <InspectorSection title="Collision layers">
+        <CollisionMatrixEditor document={document} onDocument={applyDocument} />
+      </InspectorSection>
+      {validation.diagnostics.map((issue, index) => <Caption key={`${issue.code}:${index}`} color="error">{issue.path.join(".")}: {issue.message}</Caption>)}
       {validation.diagnostics.length > 0 && <ReportBugButton context={{ source: "panel-crash", summary: "3D game validation failed",
         errorText: validation.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("\n"),
         nodeDetail: `Game: ${document.id}\nScene: ${sceneId}` }} />}
@@ -90,8 +94,8 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
       </FlexRow>)}
     </InspectorFieldRow>;
   const { id: _id, transform3d: _transform, behaviors: _behaviors, ...components } = entity;
-  return <FlexColumn sx={{ minHeight: 0 }}>
-    <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.sm }}>
+  return <FlexColumn sx={{ minHeight: 0, px: SPACING.md }}>
+    <FlexRow gap={SPACING.sm} align="center" sx={{ py: SPACING.sm }}>
       <ViewInArOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.title, color: "text.secondary" }} />
       <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
         <Text weight={500} truncate>{entity.name || entity.id}</Text>
@@ -100,16 +104,14 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
       <ToolbarIconButton icon={<DeleteOutlineIcon fontSize="small" />} tooltip="Delete entity" variant="error"
         onClick={() => onOps([{ op: "remove_entity", scene_id: sceneId, entity_id: entity.id }])} />
     </FlexRow>
-    <Box sx={{ px: SPACING.md, pb: SPACING.xs }}>
+    <Box sx={{ pb: SPACING.xs }}>
       <GameOverrideFields document={document} sceneId={sceneId} entityId={entity.id} onOps={onOps} />
     </Box>
-    <CollapsibleSection title="Transform" compact sx={COMPONENT_SECTION_SX}>
-      <FlexColumn gap={SPACING.xs} sx={{ px: SPACING.md, py: SPACING.sm }}>
-        {transformField("position", position)}
-        {transformField("rotation", rotation)}
-        {transformField("scale", scale)}
-      </FlexColumn>
-    </CollapsibleSection>
+    <InspectorSection title="Transform">
+      {transformField("position", position)}
+      {transformField("rotation", rotation)}
+      {transformField("scale", scale)}
+    </InspectorSection>
     <SchemaFields schema={ENTITY_FIELDS} value={components} path="entity" assets={document.assets} componentSections
       collisionLayers={document.collisionLayers} onChange={(value) => {
         const updated = gameEntity3D.parse({ ...gameEntity3D.omit({ id: true, transform3d: true, behaviors: true }).parse(value),
@@ -118,20 +120,23 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
           { ...item, entities: item.entities.map((candidate) => candidate.id === entity.id ? updated : candidate) } : item) },
         updated.light3d && entity.light3d?.intensity !== updated.light3d.intensity ? "Change Light Intensity" : "Change Entity Components");
       }} />
-    <CollapsibleSection title="Behaviors" compact sx={COMPONENT_SECTION_SX}>
-      <FlexColumn gap={SPACING.sm} sx={{ px: SPACING.md, py: SPACING.sm }}>
+    <InspectorSection title="Behaviors">
+      <FlexColumn gap={SPACING.sm}>
         {entity.behaviors.length === 0 && <Caption>No behaviors yet.</Caption>}
         {entity.behaviors.map((behavior, index) => <FlexColumn key={`${behavior.kind}:${index}`} gap={SPACING.xs}>
           <FlexRow gap={SPACING.xs} align="center"><Caption sx={{ flex: 1 }}>{behavior.kind}</Caption>
             {behavior.kind === "script" && <EditorButton onClick={() => onScript(index)}>Edit script</EditorButton>}
             <EditorButton onClick={() => onOps([{ op: "remove_behavior", scene_id: sceneId, entity_id: entity.id, index }])}>Remove</EditorButton>
           </FlexRow>
+          {behavior.kind === "script" && behavior.params && <ScriptParamsEditor params={behavior.params} values={behavior.values} assets={document.assets}
+            entities={scene?.entities ?? []} issues={validation.issues}
+            issuePath={["scenes", document.scenes.findIndex((item) => item.id === sceneId), "entities", scene?.entities.indexOf(entity) ?? -1, "behaviors", index]} onValues={(values) => onOps([{ op: "set_script_params", scene_id: sceneId, entity_id: entity.id, index, values }])} />}
           {behavior.kind !== "script" && <SchemaFields schema={gameSchemaFields(gameEntity3D.shape.behaviors.unwrap().element)} value={behavior}
             onChange={(value) => onOps([gameDocumentOp3D.parse({ op: "update_behavior", scene_id: sceneId, entity_id: entity.id, index, behavior: value })])} />}
         </FlexColumn>)}
         <EditorButton variant="outlined" startIcon={<AddIcon fontSize="small" />} onClick={() => onOps([{ op: "add_behavior", scene_id: sceneId, entity_id: entity.id,
           behavior: { kind: "script", source: '(input) => ({ state: input.state, commands: [] })' } }])}>Add script</EditorButton>
       </FlexColumn>
-    </CollapsibleSection>
+    </InspectorSection>
   </FlexColumn>;
 }

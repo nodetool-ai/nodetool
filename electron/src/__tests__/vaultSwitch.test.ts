@@ -7,8 +7,7 @@ jest.mock("../vaults", () => ({
 }));
 
 jest.mock("../server", () => ({
-  initializeBackendServer: jest.fn().mockResolvedValue(undefined),
-  stopServer: jest.fn().mockResolvedValue(undefined)
+  restartServer: jest.fn().mockResolvedValue(undefined)
 }));
 
 jest.mock("../shortcuts", () => ({
@@ -21,7 +20,7 @@ jest.mock("../window", () => ({
 
 import { applyVaultSwitch } from "../vaultSwitch";
 import { setActiveVaultId } from "../vaults";
-import { initializeBackendServer, stopServer } from "../server";
+import { restartServer } from "../server";
 import { setupWorkflowShortcuts } from "../shortcuts";
 import { reloadMainWindow } from "../window";
 import { logMessage } from "../logger";
@@ -29,62 +28,36 @@ import { logMessage } from "../logger";
 describe("applyVaultSwitch", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it("persists the vault id", async () => {
-    const promise = applyVaultSwitch("vault-42");
-    await jest.advanceTimersByTimeAsync(300);
-    await promise;
+    await applyVaultSwitch("vault-42");
 
     expect(setActiveVaultId).toHaveBeenCalledWith("vault-42");
   });
 
   it("logs the switch", async () => {
-    const promise = applyVaultSwitch("vault-42");
-    await jest.advanceTimersByTimeAsync(300);
-    await promise;
+    await applyVaultSwitch("vault-42");
 
     expect(logMessage).toHaveBeenCalledWith(
       expect.stringContaining("vault-42")
     );
   });
 
-  it("stops the server", async () => {
-    const promise = applyVaultSwitch("vault-42");
-    await jest.advanceTimersByTimeAsync(300);
-    await promise;
+  it("restarts the backend", async () => {
+    await applyVaultSwitch("vault-42");
 
-    expect(stopServer).toHaveBeenCalled();
-  });
-
-  it("does not restart the backend before the delay elapses", async () => {
-    const promise = applyVaultSwitch("vault-42");
-
-    expect(initializeBackendServer).not.toHaveBeenCalled();
-
-    await jest.advanceTimersByTimeAsync(300);
-    await promise;
-
-    expect(initializeBackendServer).toHaveBeenCalled();
+    expect(restartServer).toHaveBeenCalled();
   });
 
   it("re-registers workflow shortcuts", async () => {
-    const promise = applyVaultSwitch("vault-42");
-    await jest.advanceTimersByTimeAsync(300);
-    await promise;
+    await applyVaultSwitch("vault-42");
 
     expect(setupWorkflowShortcuts).toHaveBeenCalled();
   });
 
   it("reloads the main window", async () => {
-    const promise = applyVaultSwitch("vault-42");
-    await jest.advanceTimersByTimeAsync(300);
-    await promise;
+    await applyVaultSwitch("vault-42");
 
     expect(reloadMainWindow).toHaveBeenCalled();
   });
@@ -92,15 +65,14 @@ describe("applyVaultSwitch", () => {
   it("calls all steps in the correct order", async () => {
     const order: string[] = [];
     jest.mocked(setActiveVaultId).mockImplementation(() => order.push("setVault"));
-    jest.mocked(stopServer).mockImplementation(async () => order.push("stop"));
-    jest.mocked(initializeBackendServer).mockImplementation(async () => order.push("start"));
+    jest.mocked(restartServer).mockImplementation(async () => {
+      order.push("restart");
+    });
     jest.mocked(setupWorkflowShortcuts).mockImplementation(async () => order.push("shortcuts"));
     jest.mocked(reloadMainWindow).mockImplementation(() => order.push("reload"));
 
-    const promise = applyVaultSwitch("v1");
-    await jest.advanceTimersByTimeAsync(300);
-    await promise;
+    await applyVaultSwitch("v1");
 
-    expect(order).toEqual(["setVault", "stop", "start", "shortcuts", "reload"]);
+    expect(order).toEqual(["setVault", "restart", "shortcuts", "reload"]);
   });
 });

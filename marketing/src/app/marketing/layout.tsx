@@ -4,7 +4,7 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   title: "AI for Advertising | NodeTool",
   description:
-    "Put generative models into your creative and production pipeline, from the first idea through to delivery. Product videos, ad creative, social calendars, and brand assets from every major model, on your own keys. Teams move faster, pitch more ambitious work, and spend less doing it.",
+    "Put generative models into your creative and production pipeline, from the first idea through to delivery. Product videos, ad creative, thumbnails, and brand assets from every major model, on your own keys. Teams move faster, pitch more ambitious work, and spend less doing it.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/marketing",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "AI for Advertising | NodeTool",
     description:
-      "From the first idea through to delivery: product videos, ad creative, social calendars, and brand assets, from every major model, on your own keys.",
+      "From the first idea through to delivery: product videos, ad creative, thumbnails, and brand assets, from every major model, on your own keys.",
     url: "https://nodetool.ai/marketing",
     siteName: "NodeTool",
     images: [
@@ -63,7 +63,7 @@ export default function MarketingLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool for Marketing Teams",
           description:
-            "The agent-first workspace for marketing teams: hand the brief to an agent and it builds the workflow that turns out product videos, ad creative, social calendars, and brand assets from every major model, with your own keys. No marked-up credits, no lock-in, output at campaign volume.",
+            "The agent-first workspace for marketing teams: hand the brief to an agent and it builds the workflow that turns out product videos, ad creative, thumbnails, and brand assets from every major model, with your own keys. No marked-up credits, no lock-in, output at campaign volume.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux, Web browser",
           url: "https://nodetool.ai/marketing",

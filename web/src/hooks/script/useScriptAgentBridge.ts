@@ -8,7 +8,7 @@
  * has already been replaced.
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import {
@@ -25,6 +25,7 @@ import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useAssembleScriptTimeline } from "./useAssembleScriptTimeline";
 import { useDeriveStoryboard } from "./useDeriveStoryboard";
 import { useWriteScript } from "./useWriteScript";
+import { isScriptWriting } from "./scriptWrites";
 import {
   getScriptAgentHandler,
   hasScriptAgentHandler,
@@ -61,11 +62,9 @@ const toSpeakerNode = (speaker: ScriptSpeaker): ScriptSpeakerNode => ({
 export const useScriptAgentBridge = (scriptId: string): void => {
   const { assemble } = useAssembleScriptTimeline();
   const { derive } = useDeriveStoryboard();
-  const { write, error: writeError } = useWriteScript();
-  // The reason a refused write gives lands in state a render later, so the
-  // handler's own closure cannot see it. Mirror it and read the mirror.
-  const writeErrorRef = useRef<string | null>(null);
-  writeErrorRef.current = writeError;
+  // `errorRef` holds a refused write's reason by the time `write` resolves.
+  // The `error` state reaches this closure only a render later.
+  const { write, errorRef: writeErrorRef } = useWriteScript(scriptId);
 
   const handler = useMemo<ScriptAgentHandler>(() => {
     const store = () => useScriptStore.getState();
@@ -92,6 +91,18 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         if (byIndex) return byIndex;
       }
       throw new Error(`Line not found in the script: ${target}`);
+    };
+
+    /**
+     * A running write replaces the cast and the lines when it lands, so an
+     * edit made meanwhile would be reported as done and then thrown away.
+     */
+    const requireNotWriting = (): void => {
+      if (isScriptWriting(scriptId)) {
+        throw new Error(
+          "This script is being written. Edit it once the write finishes."
+        );
+      }
     };
 
     const requireSpeaker = (speakerId: string): ScriptSpeaker => {
@@ -181,6 +192,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
 
       addSpeaker(name: string, voice?: VoiceBinding, entityId?: string | null) {
         requireScript();
+        requireNotWriting();
         const id = crypto.randomUUID();
         const speaker: ScriptSpeaker = {
           id,
@@ -197,12 +209,14 @@ export const useScriptAgentBridge = (scriptId: string): void => {
 
       setSpeakerVoice(speakerId: string, voice: VoiceBinding) {
         requireSpeaker(speakerId);
+        requireNotWriting();
         store().updateSpeaker(scriptId, speakerId, { voice });
         return toSpeakerNode(requireSpeaker(speakerId));
       },
 
       addLine(input) {
         const script = requireScript();
+        requireNotWriting();
         // Insert before the line currently at `index`; append when omitted or
         // out of range. Anchor to that line's section so it lands nearby.
         const flat = flatLines(script);
@@ -234,12 +248,14 @@ export const useScriptAgentBridge = (scriptId: string): void => {
 
       setLineText(target, text) {
         const { line } = requireLine(target);
+        requireNotWriting();
         store().patchLine(scriptId, line.id, { text });
         return reReadLine(line.id);
       },
 
       setLineSpeaker(target, speakerId) {
         const { line } = requireLine(target);
+        requireNotWriting();
         if (speakerId !== null) requireSpeaker(speakerId);
         store().patchLine(scriptId, line.id, { speakerId });
         return reReadLine(line.id);
@@ -287,7 +303,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         };
       }
     };
-  }, [scriptId, assemble, derive, write]);
+  }, [scriptId, assemble, derive, write, writeErrorRef]);
 
   useEffect(() => {
     if (!scriptId) return;

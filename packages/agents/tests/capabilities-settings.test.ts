@@ -17,7 +17,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { Secret, Setting, initTestDb } from "@nodetool-ai/models";
+import { Secret, Setting, getSecret, initTestDb } from "@nodetool-ai/models";
 import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 
 import {
@@ -149,6 +149,18 @@ describe("writing settings", () => {
     ).toMatchObject({ ok: true });
     const row = await Setting.find(USER, "AUTOSAVE_ENABLED");
     expect(row?.value).toBe("false");
+  });
+
+  it("invalidates the cached value getSecret already read", async () => {
+    delete process.env["AUTOSAVE_ENABLED"];
+    await Setting.upsert({
+      userId: USER,
+      key: "AUTOSAVE_ENABLED",
+      value: "true"
+    });
+    expect(await getSecret("AUTOSAVE_ENABLED", USER)).toBe("true");
+    await call("set_setting", { key: "AUTOSAVE_ENABLED", value: "false" });
+    expect(await getSecret("AUTOSAVE_ENABLED", USER)).toBe("false");
   });
 
   it("refuses a value outside a declared enum", async () => {

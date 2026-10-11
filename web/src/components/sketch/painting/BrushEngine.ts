@@ -17,7 +17,9 @@ import type {
 import {
   drawBrushStroke as drawBrushStrokeUtil
 } from "../drawingUtils";
-import type { StrokeStampState, DirtyRectTracker } from "../drawingUtils";
+import type { StrokeStampState } from "../drawingUtils";
+import type { DirtyRectBox } from "../rendering/canvasUtils";
+import { StrokeDirtyRegion } from "./StrokeDirtyRegion";
 import { StrokeAssist } from "./StrokeAssist";
 
 export class BrushEngine implements PaintEngine {
@@ -28,7 +30,7 @@ export class BrushEngine implements PaintEngine {
   readonly dabOnDown = false;
 
   private settings: BrushSettings;
-  private dirtyRect: DirtyRectTracker = { current: null };
+  private dirty = new StrokeDirtyRegion();
   private stampStates: Map<number, StrokeStampState> = new Map();
   private stampCache: Map<string, HTMLCanvasElement> = new Map();
   private assist = new StrokeAssist();
@@ -43,7 +45,7 @@ export class BrushEngine implements PaintEngine {
   }
 
   beginStroke(): void {
-    this.dirtyRect = { current: null };
+    this.dirty.reset();
     this.stampStates.clear();
     this.assist.reset();
   }
@@ -70,25 +72,26 @@ export class BrushEngine implements PaintEngine {
       stampState = { hasStamped: false, distanceToNextDab: 0 };
       this.stampStates.set(branchIdx, stampState);
     }
-    drawBrushStrokeUtil(
-      from,
-      to,
-      this.settings,
-      ctx,
-      pressure,
-      this.dirtyRect,
-      this.stampCache,
-      stampState
+    this.dirty.track((tracker) =>
+      drawBrushStrokeUtil(
+        from,
+        to,
+        this.settings,
+        ctx,
+        pressure,
+        tracker,
+        this.stampCache,
+        stampState
+      )
     );
   }
 
-  getDirtyRect(): {
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-  } | null {
-    return this.dirtyRect.current ?? null;
+  getDirtyRect(): DirtyRectBox | null {
+    return this.dirty.strokeRect;
+  }
+
+  takeFrameDirtyRect(): DirtyRectBox | null {
+    return this.dirty.takeFrameRect();
   }
 
   getAssistMode(): EngineAssistMode {

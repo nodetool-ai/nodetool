@@ -2,7 +2,7 @@ import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { createTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import type { Asset } from "../../../stores/ApiTypes";
 import { performSourceEdit, sourceRangeFor, sourceTargetTrackId } from "../sourceEdit";
-import { makeClip } from "@nodetool-ai/timeline";
+import { DEFAULT_MEDIA_CLIP_DURATION_MS, makeClip } from "@nodetool-ai/timeline";
 
 const videoAsset = {
   id: "asset-1",
@@ -28,14 +28,43 @@ function setup() {
 describe("sourceRangeFor", () => {
   it("defaults to the whole asset and clamps a reversed range", () => {
     expect(sourceRangeFor(videoAsset, null)).toEqual({ inMs: 0, outMs: 10000 });
-    expect(sourceRangeFor(videoAsset, { inMs: 3000, outMs: 1000 })).toEqual({ inMs: 3000, outMs: 3000 });
+    expect(sourceRangeFor(videoAsset, { assetId: "asset-1", inMs: 3000, outMs: 1000 })).toEqual({ inMs: 3000, outMs: 3000 });
+  });
+});
+
+describe("sourceRangeFor ownership", () => {
+  it("ignores a range marked on another asset", () => {
+    expect(
+      sourceRangeFor(videoAsset, { assetId: "other", inMs: 2000, outMs: 3000 })
+    ).toEqual({ inMs: 0, outMs: 10000 });
   });
 });
 
 describe("performSourceEdit", () => {
+  it("an image with no marked range gets the default clip length", () => {
+    const { doc, ui } = setup();
+    const imageAsset = {
+      id: "img-1",
+      name: "still.png",
+      content_type: "image/png",
+      duration: null,
+      metadata: null
+    } as unknown as Asset;
+    const id = performSourceEdit("append", { doc: doc.getState(), ui: ui.getState(), playheadMs: 0, asset: imageAsset });
+    const clip = doc.getState().clips.find((c) => c.id === id)!;
+    expect(clip.durationMs).toBe(DEFAULT_MEDIA_CLIP_DURATION_MS);
+  });
+
+  it("does not apply another asset's marks", () => {
+    const { doc, ui } = setup();
+    ui.getState().setSourceRange({ assetId: "other", inMs: 1000, outMs: 1500 });
+    const id = performSourceEdit("append", { doc: doc.getState(), ui: ui.getState(), playheadMs: 0, asset: videoAsset });
+    expect(doc.getState().clips.find((c) => c.id === id)!.durationMs).toBe(10000);
+  });
+
   it("append lands after the last clip on the first compatible unlocked track", () => {
     const { doc, ui, v1 } = setup();
-    ui.getState().setSourceRange({ inMs: 1000, outMs: 3500 });
+    ui.getState().setSourceRange({ assetId: "asset-1", inMs: 1000, outMs: 3500 });
     const id = performSourceEdit("append", { doc: doc.getState(), ui: ui.getState(), playheadMs: 500, asset: videoAsset });
     const clip = doc.getState().clips.find((c) => c.id === id)!;
     expect(sourceTargetTrackId(doc.getState(), videoAsset)).toBe(v1);
@@ -48,7 +77,7 @@ describe("performSourceEdit", () => {
 
   it("insert at the playhead pushes later clips right", () => {
     const { doc, ui } = setup();
-    ui.getState().setSourceRange({ inMs: 0, outMs: 1000 });
+    ui.getState().setSourceRange({ assetId: "asset-1", inMs: 0, outMs: 1000 });
     const id = performSourceEdit("insert", { doc: doc.getState(), ui: ui.getState(), playheadMs: 4000, asset: videoAsset });
     const clips = doc.getState().clips;
     expect(clips.find((c) => c.id === id)!.startMs).toBe(4000);
@@ -57,7 +86,7 @@ describe("performSourceEdit", () => {
 
   it("overwrite at the playhead trims what it covers", () => {
     const { doc, ui } = setup();
-    ui.getState().setSourceRange({ inMs: 0, outMs: 1000 });
+    ui.getState().setSourceRange({ assetId: "asset-1", inMs: 0, outMs: 1000 });
     performSourceEdit("overwrite", { doc: doc.getState(), ui: ui.getState(), playheadMs: 3500, asset: videoAsset });
     const clips = doc.getState().clips.sort((a, b) => a.startMs - b.startMs);
     expect(clips.map((c) => [c.startMs, c.durationMs])).toEqual([

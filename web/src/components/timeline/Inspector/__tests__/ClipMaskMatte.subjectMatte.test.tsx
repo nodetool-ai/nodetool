@@ -291,3 +291,65 @@ describe("Subject matte — the knobs write through the store", () => {
     });
   });
 });
+
+describe("Subject matte — switching clips", () => {
+  const SelectedHarness: React.FC<{ clipId: string }> = ({ clipId }) => {
+    const clip = useTimelineStore((s) => s.clips.find((c) => c.id === clipId));
+    return clip ? <ClipMaskMatte clip={clip} /> : null;
+  };
+  const renderFor = (clipId: string) => (
+    <ThemeProvider theme={mockTheme}>
+      <TimelineProvider>
+        <SelectedHarness clipId={clipId} />
+      </TimelineProvider>
+    </ThemeProvider>
+  );
+
+  it("keeps a pending run on its own clip", async () => {
+    const user = userEvent.setup();
+    let settle: () => void = () => undefined;
+    const isolate = jest.fn(
+      () =>
+        new Promise<null>((resolve) => {
+          settle = () => resolve(null);
+        })
+    );
+    const view = render(renderFor(CLIP_ID));
+    seed();
+    const track = useTimelineStore.getState().tracks[0];
+    act(() => {
+      useTimelineStore.setState({
+        clips: [
+          ...useTimelineStore.getState().clips,
+          makeClip({
+            id: "shot-2",
+            trackId: track.id,
+            name: "Shot 2",
+            mediaType: "video",
+            startMs: 4000,
+            durationMs: 4000,
+            inPointMs: 0,
+            currentAssetId: "asset-2"
+          })
+        ],
+        isolateSubject: isolate
+      });
+    });
+    await openSubjectMatte(user);
+
+    await user.click(screen.getByTestId("isolate-subject"));
+    expect(screen.getByText(/cutting the subject out/i)).toBeInTheDocument();
+
+    view.rerender(renderFor("shot-2"));
+    expect(screen.getByTestId("isolate-subject")).toBeEnabled();
+    expect(screen.queryByText(/cutting the subject out/i)).toBeNull();
+
+    view.rerender(renderFor(CLIP_ID));
+    expect(screen.getByText(/cutting the subject out/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("isolate-subject")).toBeNull();
+    expect(isolate).toHaveBeenCalledTimes(1);
+
+    await act(async () => settle());
+    expect(screen.getByTestId("isolate-subject")).toBeEnabled();
+  });
+});

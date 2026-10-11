@@ -51,14 +51,50 @@ const COMPONENT_BYTES: Record<number, number> = {
   5126: 4
 };
 
-/** Extensions this build understands well enough to keep a document working. */
-const SUPPORTED_EXTENSIONS = new Set([LIGHTS_EXTENSION]);
+/**
+ * Required extensions a document may list and still open: the ones this
+ * package writes, and the ones the editor's GLTFLoader decodes without an
+ * extra decoder (Draco, meshopt and KTX2 need one the editor does not set).
+ */
+const SUPPORTED_EXTENSIONS = new Set([
+  LIGHTS_EXTENSION,
+  "KHR_mesh_quantization",
+  "KHR_texture_transform",
+  "KHR_materials_unlit",
+  "KHR_materials_emissive_strength",
+  "KHR_materials_clearcoat",
+  "KHR_materials_ior",
+  "KHR_materials_specular",
+  "KHR_materials_transmission",
+  "KHR_materials_volume",
+  "KHR_materials_sheen",
+  "KHR_materials_iridescence",
+  "KHR_materials_anisotropy",
+  "KHR_materials_dispersion"
+]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** Check a glTF document. Never throws: a broken file is a report, not a crash. */
 export function validateModel3D(json: GltfJson): Model3DValidation {
+  try {
+    return checkDocument(json);
+  } catch (cause) {
+    // The checks below trust the shape of each array they walk. A document
+    // malformed past that (a null node, a number where a list belongs) is
+    // reported here rather than thrown at the caller.
+    const detail = cause instanceof Error ? cause.message : String(cause);
+    return {
+      ok: false,
+      errors: [{ severity: "error", message: `The document is malformed: ${detail}.` }],
+      warnings: [],
+      objectCount: 0
+    };
+  }
+}
+
+function checkDocument(json: GltfJson): Model3DValidation {
   const errors: Model3DIssue[] = [];
   const warnings: Model3DIssue[] = [];
   const issue = (
@@ -191,6 +227,8 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
           `nodes[${child}] has more than one parent (nodes[${parentOf[child]}] and nodes[${index}]); glTF allows one.`,
           `nodes[${child}]`
         );
+      } else if (parentOf[child] === index) {
+        error(`nodes[${index}] lists child ${child} twice.`, `nodes[${index}].children`);
       } else {
         parentOf[child] = index;
       }
@@ -286,10 +324,17 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
       if (position === undefined) {
         error(`${path} has no POSITION attribute.`, path);
       }
+      // Every attribute describes the same vertices, so all share one count.
+      const counts = new Set<number>();
       for (const [name, accessor] of Object.entries(primitive.attributes ?? {})) {
         if (!inRange(accessor, accessors.length)) {
           error(`${path}.attributes.${name} reads accessor ${accessor}, which does not exist.`, path);
+        } else {
+          counts.add(accessors[accessor].count);
         }
+      }
+      if (counts.size > 1) {
+        error(`${path} has attributes of different lengths (${[...counts].join(", ")} vertices).`, path);
       }
       if (primitive.indices !== undefined && !inRange(primitive.indices, accessors.length)) {
         error(`${path}.indices reads accessor ${primitive.indices}, which does not exist.`, path);
@@ -313,6 +358,9 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
     if (componentBytes === undefined) {
       error(`${path}.componentType ${accessor.componentType} is not a glTF component type.`, path);
     }
+    if (!(accessor.count >= 1)) {
+      error(`${path}.count is ${accessor.count}; glTF requires at least 1.`, path);
+    }
     if (accessor.bufferView === undefined) {
       return;
     }
@@ -325,7 +373,7 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
     }
     // Matrices of 1- and 2-byte components pad their columns; skip those
     // rather than report a false overrun.
-    const padded = accessor.type.startsWith("MAT") && (componentBytes ?? 4) < 4;
+    const padded = typeof accessor.type === "string" && accessor.type.startsWith("MAT") && (componentBytes ?? 4) < 4;
     if (components === undefined || componentBytes === undefined || padded || accessor.count < 1) {
       return;
     }
@@ -400,9 +448,11 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
     );
   }
 
+  // Only a node's own name addresses it. The listing shows an unnamed node
+  // under its type, but that fallback is not something a target can match.
   const byName = new Map<string, number>();
-  for (const object of objects) {
-    const key = object.name.trim().toLowerCase();
+  for (const node of nodes) {
+    const key = (node.name ?? "").trim().toLowerCase();
     if (!key) {
       continue;
     }

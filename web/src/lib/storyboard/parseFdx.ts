@@ -44,6 +44,10 @@ interface DialogueBlock {
   lines: string[];
 }
 
+/** A parenthetical's words, without the brackets around them. */
+const unwrap = (parenthetical: string): string =>
+  parenthetical.replace(/^\(|\)$/g, "").trim();
+
 /** Every `<Text>` run inside a paragraph, joined — FDX splits styled runs. */
 function paragraphText(paragraph: Element): string {
   const runs = paragraph.getElementsByTagName("Text");
@@ -54,9 +58,15 @@ function paragraphText(paragraph: Element): string {
   return text.trim();
 }
 
-/** The block's text as the review shows it: speaker, parenthetical, lines. */
+/**
+ * The block's text as the review shows it: speaker, parenthetical, lines.
+ * `importedFromFdx` reads a first row as the speaker only when more rows
+ * follow, so a block with no speaker joins its lines into one row: kept
+ * apart, its first line was read back as a character name.
+ */
 function blockText(block: DialogueBlock): string {
-  return [block.character, block.parenthetical, ...block.lines]
+  const lines = block.character !== "" ? block.lines : [block.lines.join(" ")];
+  return [block.character, block.parenthetical, ...lines]
     .filter((line) => line !== "")
     .join("\n");
 }
@@ -115,6 +125,16 @@ export function parseFdx(xml: string): FdxImport {
     if (!block) {
       return;
     }
+    if (block.lines.length === 0) {
+      // A cue with nothing to say is not dialogue: written as one, the
+      // character's name became the line a voice read out. A cue with a
+      // parenthetical still describes a beat to picture.
+      if (block.parenthetical !== "") {
+        addShot(`${block.character} ${block.parenthetical}`);
+      }
+      block = null;
+      return;
+    }
     const text = blockText(block);
     if (text !== "") {
       // A dialogue shot's action names who is speaking and how, taken from the
@@ -141,7 +161,12 @@ export function parseFdx(xml: string): FdxImport {
       continue;
     }
     if (type === PARENTHETICAL && block) {
-      block.parenthetical = text;
+      // A speech can carry several. Each used to replace the last, so all but
+      // one were lost from the line and the shot.
+      block.parenthetical =
+        block.parenthetical === "" || text === ""
+          ? block.parenthetical || text
+          : `(${unwrap(block.parenthetical)}; ${unwrap(text)})`;
       continue;
     }
     if (type === DIALOGUE) {

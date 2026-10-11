@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { gameDocument } from "@nodetool-ai/protocol";
 import { createGameSession, createScriptedGameSession, createTopDownRoomGame, replayScriptedGame, validateGame } from "../src/index.js";
+import { wallScriptCallClock } from "../src/script-clock.js";
 import { prepareGameScripts, scriptSourceKey } from "../src/scripts.js";
 
 function scriptedGame(source: string) {
@@ -180,7 +181,8 @@ describe("game scripts", () => {
   });
 
   it("counts per-call serialization against maxTickMs", async () => {
-    const runner = await prepareGameScripts(scriptedGame("({state}) => ({state, commands: []})"));
+    // This test drives performance.now, so it measures the call on the wall clock that browsers use.
+    const runner = await prepareGameScripts(scriptedGame("({state}) => ({state, commands: []})"), { callClock: wallScriptCallClock });
     const sourceKey = scriptSourceKey("room", "player", 0);
     const call = { sourceKey, stateKey: sourceKey, entityId: "player", source: "player", state: null,
       x: 0, y: 0, velocityX: 0, velocityY: 0, maxCommands: 8, maxTickMs: 30 };

@@ -1,6 +1,6 @@
 import { logMessage } from "./logger";
 import { setActiveVaultId } from "./vaults";
-import { initializeBackendServer, stopServer } from "./server";
+import { restartServer } from "./server";
 import { setupWorkflowShortcuts } from "./shortcuts";
 import { reloadMainWindow } from "./window";
 
@@ -24,14 +24,7 @@ export async function applyVaultSwitch(id: string): Promise<void> {
   setActiveVaultId(id);
   logMessage(`Switching active vault to ${id}; restarting backend`);
 
-  // stopServer() handles and logs its own shutdown errors and does not throw.
-  await stopServer();
-
-  // Small delay so the OS releases the port and database file lock before
-  // the backend restarts (mirrors the manual server-restart path).
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  await initializeBackendServer();
+  await restartServer();
   await setupWorkflowShortcuts();
   reloadMainWindow();
 }

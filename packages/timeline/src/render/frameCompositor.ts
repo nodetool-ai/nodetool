@@ -417,9 +417,22 @@ export interface GpuFrameCompositorOptions<TSource> {
 export interface GpuCompositeResult {
   /** The accumulation texture holding the finished frame. */
   texture: GPUTexture;
-  /** How many of the given layers resolved to pixels. */
+  /**
+   * How many of the given layers resolved: drew pixels, or had a ready source
+   * that covers no area this frame.
+   */
   drawn: number;
 }
+
+/**
+ * A layer whose source is ready but which covers no area this frame: a
+ * zero-area placement, or a matte whose keyhole lands nowhere. It draws
+ * nothing, yet it counts as drawn, so the host presents the frame (cleared
+ * where the layer was) instead of holding the previous one. Only a source
+ * still decoding leaves the frame undrawn.
+ */
+const EMPTY_LAYER = "empty" as const;
+type LayerResolution = ResolvedLayer | typeof EMPTY_LAYER | null;
 
 export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private readonly device: GPUDevice;
@@ -676,9 +689,9 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private resolveLayer(
     layer: FrameLayer<TSource>,
     encoder: GPUCommandEncoder
-  ): ResolvedLayer | null {
+  ): LayerResolution {
     const item = this.resolvePlacedLayer(layer, encoder);
-    if (!item || !layer.matte) return item;
+    if (!item || item === EMPTY_LAYER || !layer.matte) return item;
     return this.applyMatte(layer, item, layer.matte, encoder);
   }
 
@@ -697,11 +710,12 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     item: ResolvedLayer,
     matte: FrameMatte<TSource>,
     encoder: GPUCommandEncoder
-  ): ResolvedLayer | null {
+  ): LayerResolution {
     const source = this.resolvePlacedLayer(matte.layer, encoder);
     // No matte source pixels means an empty keyhole. Drawing the layer unmatted
     // would show everything the matte was there to hide, so it draws nothing.
     if (!source) return null;
+    if (source === EMPTY_LAYER) return EMPTY_LAYER;
 
     const composed = this.composeToTexture(
       `matte:${layer.id}`,
@@ -783,13 +797,13 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
 
   /**
    * Upload a layer's pixels, run its own effect chain and shape mask, and work
-   * out where it sits. Null when the layer has no drawable source, or when
-   * its placement covers no area.
+   * out where it sits. Null when the layer has no drawable source yet, and
+   * {@link EMPTY_LAYER} when its placement covers no area.
    */
   private resolvePlacedLayer(
     layer: FrameLayer<TSource>,
     encoder: GPUCommandEncoder
-  ): ResolvedLayer | null {
+  ): LayerResolution {
     const uploaded = this.upload(layer.id, layer.source);
     if (!uploaded) return null;
     // Crop first: everything below — the effect chain, the shape mask, the
@@ -810,7 +824,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       window?.frameWidth ?? src.width,
       window?.frameHeight ?? src.height
     );
-    if (!placement) return null;
+    if (!placement) return EMPTY_LAYER;
     const invAffine = window ? shiftInverseAffine(placement, window.x, window.y) : placement;
 
     const clipEffects = layer.transition?.effect
@@ -1058,6 +1072,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         const item = this.resolveLayer(layer, encoder);
         if (!item) continue;
         drawn += 1;
+        if (item === EMPTY_LAYER) continue;
         const solid = this.dipSolidFor(layer);
         if (solid) stack.push(solid);
         stack.push(item);
@@ -1086,6 +1101,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       const item = this.resolveLayer(layer, encoder);
       if (!item) continue;
       drawn += 1;
+      if (item === EMPTY_LAYER) continue;
       // The solid shares the layer's z and is pushed first, so the stable sort
       // that orders the stack keeps it beneath the clip it dips into.
       const solid = this.dipSolidFor(layer);

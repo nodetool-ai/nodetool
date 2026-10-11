@@ -258,6 +258,17 @@ export function usePointerHandlers({
     panOffsetRef.current = pan;
   }, [pan]);
 
+  // Assigned below, once every ToolContext input is known.
+  const toolCtxRef = useRef<ToolContext>(null!);
+  const interactionToolRef = useRef(interactionTool);
+  interactionToolRef.current = interactionTool;
+
+  const handleShiftReleased = useCallback(() => {
+    getToolHandler(interactionToolRef.current).onModifiersReleased?.(
+      toolCtxRef.current
+    );
+  }, []);
+
   // ─── Keyboard modifier tracking ─────────────────────────────────────
   const { shiftHeldRef, altHeldRef, spaceHeldRef, sKeyHeldRef } =
     useKeyboardModifiers({
@@ -265,6 +276,7 @@ export function usePointerHandlers({
       isSizeDraggingRef,
       onSpaceHeldChange: setSpaceHeldUi,
       onAltHeldChange: setAltHeldUi,
+      onShiftReleased: handleShiftReleased,
       shiftHeldRef: shiftHeldRefShared,
       altHeldRef: altHeldRefShared
     });
@@ -343,7 +355,6 @@ export function usePointerHandlers({
   // Updated synchronously every render. Handlers read this ref to get
   // the latest values without needing all ToolContext properties in
   // their dependency arrays.
-  const toolCtxRef = useRef<ToolContext>(null!);
   toolCtxRef.current = buildToolContext({
     doc,
     interactionTool,

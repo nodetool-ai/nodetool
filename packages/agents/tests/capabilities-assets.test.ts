@@ -253,6 +253,45 @@ describe("assets capabilities against the database", () => {
     expect(searched.assets.map((a) => a.asset_id)).toContain(asset.id);
   });
 
+  it("moves an asset under a folder named by its short id", async () => {
+    const folder = (await Asset.create({
+      user_id: USER,
+      name: "Folder",
+      content_type: "folder"
+    })) as Asset;
+    const asset = (await Asset.create({
+      user_id: USER,
+      name: "cover.png",
+      content_type: "image/png"
+    })) as Asset;
+
+    const ctx = makeContext();
+    const result = (await asTool("update_asset", ctx).process(ctx, {
+      asset_id: asset.id,
+      parent_id: folder.id.slice(0, 12)
+    })) as Record<string, unknown>;
+    expect(result.error).toBeUndefined();
+    const stored = await Asset.find(USER, asset.id);
+    expect(stored?.parent_id).toBe(folder.id);
+  });
+
+  it("refuses to update a shipped system asset", async () => {
+    const preset = (await Asset.create({
+      user_id: USER,
+      name: "Preset",
+      content_type: "image/png",
+      metadata: { nodetool_entity: { system: true } }
+    })) as Asset;
+
+    const ctx = makeContext();
+    const result = (await asTool("update_asset", ctx).process(ctx, {
+      asset_id: preset.id,
+      name: "renamed.png"
+    })) as Record<string, unknown>;
+    expect(result.error).toContain("cannot be changed");
+    expect((await Asset.find(USER, preset.id))?.name).toBe("Preset");
+  });
+
   it("routes package assets to the injected lister", async () => {
     const ctx = makeContext();
     const lister = vi.fn(async () => [{ name: "shipped.png" }]);

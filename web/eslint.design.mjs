@@ -894,12 +894,165 @@ export const noUnresolvedMediaSrcRule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Font-family custom rule (DESIGN.md §1 — two families only).
+//
+// UI text uses var(--fontFamily1) (Inter) and code/values use
+// var(--fontFamily2) (JetBrains Mono). A literal stack such as "monospace"
+// renders the browser default (Courier, DejaVu Sans Mono), so it drifts from the
+// rest of the app. `inherit` and values routed through a CSS var are allowed.
+// ---------------------------------------------------------------------------
+
+const ALLOWED_FONT_FAMILY = /^(?:inherit|var\(\s*--)/;
+const CSS_FONT_FAMILY_DECL = /(?:^|[;{}\n])\s*font-family\s*:\s*([^;{}]*)/gi;
+
+const FONT_FAMILY_MESSAGE =
+  "Use var(--fontFamily1) for UI text or var(--fontFamily2) for code and values (or spread TYPOGRAPHY.*) instead of a literal font stack. See docs/DESIGN.md §1.";
+
+export const fontFamilyTokensRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Enforce var(--fontFamily1/2) instead of literal font stacks (DESIGN.md §1).",
+    },
+    schema: [],
+    messages: { raw: FONT_FAMILY_MESSAGE },
+  },
+  create(context) {
+    return {
+      Property(node) {
+        const key = node.key;
+        const name =
+          key?.type === "Identifier"
+            ? key.name
+            : key?.type === "Literal"
+              ? String(key.value)
+              : null;
+        if (name !== "fontFamily") return;
+        const value = node.value;
+        if (
+          value.type === "Literal" &&
+          typeof value.value === "string" &&
+          !ALLOWED_FONT_FAMILY.test(value.value.trim())
+        ) {
+          context.report({ node: value, messageId: "raw" });
+        }
+      },
+      TemplateElement(node) {
+        const raw = node.value.raw;
+        CSS_FONT_FAMILY_DECL.lastIndex = 0;
+        let m;
+        while ((m = CSS_FONT_FAMILY_DECL.exec(raw)) !== null) {
+          const value = m[1].trim();
+          // An empty value means the declaration continues in an interpolation.
+          if (value && !ALLOWED_FONT_FAMILY.test(value)) {
+            context.report({ node, messageId: "raw" });
+            return;
+          }
+        }
+      },
+    };
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Shadow custom rule (DESIGN.md §6 — SHADOW(theme) elevation scale).
+//
+// A drop shadow written as a literal hardcodes both a depth and a color, so
+// surfaces at the same elevation drift apart. Each comma-separated shadow layer
+// is checked on its own: a layer with a raw hex/rgb color is reported unless it
+// is `inset` or a zero-offset, zero-blur ring (`0 0 0 2px …`). Those are borders,
+// not elevation (DESIGN.md §6). Values built from SHADOW(theme).* or
+// var(--shadow-*) carry no raw color and pass.
+// ---------------------------------------------------------------------------
+
+const CSS_SHADOW_DECL = /(?:^|[;{}\n])\s*box-shadow\s*:\s*([^;{}]*)/gi;
+const RING_LAYER = /^0(?:px)?\s+0(?:px)?\s+0(?:px)?\s/;
+
+// Split on commas that are not inside parentheses.
+const splitShadowLayers = (value) => {
+  const layers = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < value.length; i++) {
+    const ch = value[i];
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (ch === "," && depth === 0) {
+      layers.push(value.slice(start, i));
+      start = i + 1;
+    }
+  }
+  layers.push(value.slice(start));
+  return layers.map((l) => l.trim()).filter(Boolean);
+};
+
+const hasLiteralElevation = (value) =>
+  splitShadowLayers(value).some(
+    (layer) =>
+      hasRawColor(layer) && !/\binset\b/.test(layer) && !RING_LAYER.test(layer)
+  );
+
+const SHADOW_MESSAGE =
+  "Use SHADOW(theme).sm/md/lg/xl (or var(--shadow-*) in plain CSS strings) instead of a literal drop shadow. Focus rings (0 0 0 Npx …) and inset shadows are allowed. See docs/DESIGN.md §6.";
+
+export const shadowTokensRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Enforce the SHADOW(theme) elevation scale instead of literal drop shadows (DESIGN.md §6).",
+    },
+    schema: [],
+    messages: { raw: SHADOW_MESSAGE },
+  },
+  create(context) {
+    return {
+      Property(node) {
+        const key = node.key;
+        const name =
+          key?.type === "Identifier"
+            ? key.name
+            : key?.type === "Literal"
+              ? String(key.value)
+              : null;
+        if (name !== "boxShadow") return;
+        const value = node.value;
+        let text = null;
+        if (value.type === "Literal" && typeof value.value === "string") {
+          text = value.value;
+        } else if (value.type === "TemplateLiteral") {
+          // Interpolations are token references; keep only the literal parts.
+          text = value.quasis.map((q) => q.value.raw).join("var(--x)");
+        }
+        if (text !== null && hasLiteralElevation(text)) {
+          context.report({ node: value, messageId: "raw" });
+        }
+      },
+      TemplateElement(node) {
+        const raw = node.value.raw;
+        CSS_SHADOW_DECL.lastIndex = 0;
+        let m;
+        while ((m = CSS_SHADOW_DECL.exec(raw)) !== null) {
+          if (hasLiteralElevation(m[1])) {
+            context.report({ node, messageId: "raw" });
+            return;
+          }
+        }
+      },
+    };
+  },
+};
+
 // Local plugin exposing the design-token rules for the gate config.
 export const designTokensPlugin = {
   rules: {
     "spacing-tokens": spacingTokensRule,
     "font-size-tokens": fontSizeTokensRule,
     "color-tokens": colorTokensRule,
+    "font-family-tokens": fontFamilyTokensRule,
+    "shadow-tokens": shadowTokensRule,
     "border-radius-tokens": borderRadiusTokensRule,
     "zindex-tokens": zIndexTokensRule,
     "motion-tokens": motionTokensRule,

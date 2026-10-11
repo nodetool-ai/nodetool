@@ -18,7 +18,7 @@
  * rather than pretending the button applies it (F12).
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import type { ScriptPace } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import { formatUsd } from "@nodetool-ai/model-pricing";
@@ -132,6 +132,7 @@ interface SpeakerVoiceRowProps {
   voices: readonly SetupVoice[];
   pace: ScriptPace;
   speed: number | undefined;
+  readOnly: boolean;
 }
 
 const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
@@ -140,9 +141,15 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
   line,
   voices,
   pace,
-  speed
+  speed,
+  readOnly
 }) => {
   const { sampleFor, play, spokenText } = useVoiceSamples(speed);
+  // Each press of `Hear` remounts the player with autoplay, so a sample that
+  // is already cached plays again instead of the press doing nothing.
+  const [playRequest, setPlayRequest] = useState(0);
+  // A model with no preset voices hands back no voice to bind.
+  const [noPresetVoice, setNoPresetVoice] = useState(false);
   const bound = speaker.voice;
   // A bound voice the list does not carry (still loading, or a provider that
   // dropped it) is still the speaker's voice, so it stays playable.
@@ -185,16 +192,21 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
 
   const selectModel = useCallback(
     (value: TTSModelValue) => {
-      if (!value.selected_voice) {
+      if (readOnly) {
         return;
       }
+      if (!value.selected_voice) {
+        setNoPresetVoice(true);
+        return;
+      }
+      setNoPresetVoice(false);
       getScriptAgentHandler(scriptId).setSpeakerVoice(speaker.id, {
         provider: value.provider,
         model: value.id,
         voice: value.selected_voice
       });
     },
-    [scriptId, speaker.id]
+    [readOnly, scriptId, speaker.id]
   );
 
   const spoken = spokenText(line);
@@ -245,24 +257,41 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
         ) : null}
       </FlexColumn>
       <FlexRow gap={GAP.comfortable} wrap align="flex-end">
-        <FormField label={`TTS model for ${speaker.name}`}>
-          <TTSModelSelect
-            value={modelValue}
-            onChange={selectModel}
-            voiceLabel={`Voice for ${speaker.name}`}
-          />
-        </FormField>
+        {readOnly ? (
+          <Text size="normal">
+            {selectedVoice
+              ? `Voice: ${selectedVoice.label}`
+              : "No voice chosen"}
+          </Text>
+        ) : (
+          <FormField label={`TTS model for ${speaker.name}`}>
+            <TTSModelSelect
+              value={modelValue}
+              onChange={selectModel}
+              voiceLabel={`Voice for ${speaker.name}`}
+            />
+          </FormField>
+        )}
         {hasLine ? (
           <EditorButton
             variant="outlined"
-            disabled={!selectedVoice || sample?.pending}
+            // A view-mode tab replays a sample already made but pays for
+            // no new one.
+            disabled={
+              !selectedVoice ||
+              sample?.pending ||
+              (readOnly && !sample?.assetId)
+            }
             aria-label={
               selectedVoice
                 ? `Hear ${selectedVoice.label} for ${speaker.name}`
                 : `Hear voice for ${speaker.name}`
             }
             onClick={() => {
-              if (selectedVoice) void play(selectedVoice, line);
+              if (selectedVoice) {
+                play(selectedVoice, line);
+                setPlayRequest((count) => count + 1);
+              }
             }}
           >
             {sample?.pending
@@ -273,6 +302,11 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
           </EditorButton>
         ) : null}
       </FlexRow>
+      {noPresetVoice ? (
+        <Caption color="secondary" role="status">
+          This model has no preset voices. Pick another model.
+        </Caption>
+      ) : null}
       {sample?.error && sampleErrorContext ? (
         <AlertBanner
           severity="error"
@@ -288,26 +322,35 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
       ) : null}
       {sample?.assetId ? (
         <AudioPlayback
+          key={playRequest}
           locator={`asset://${sample.assetId}`}
           label={`${selectedVoice?.label ?? "Voice"} sample`}
+          autoPlay={playRequest > 0}
         />
       ) : null}
-      <EditorButton
-        variant="text"
-        size="small"
-        onClick={() => openProviderOnboarding()}
-      >
-        Add a voice provider
-      </EditorButton>
+      {readOnly ? null : (
+        <EditorButton
+          variant="text"
+          size="small"
+          onClick={() => openProviderOnboarding()}
+        >
+          Add a voice provider
+        </EditorButton>
+      )}
     </FlexColumn>
   );
 };
 
 export interface VoicesStepProps {
   scriptId: string;
+  /** A view-mode tab: the voices show and existing samples play, nothing changes. */
+  readOnly?: boolean;
 }
 
-const VoicesStepInternal: React.FC<VoicesStepProps> = ({ scriptId }) => {
+const VoicesStepInternal: React.FC<VoicesStepProps> = ({
+  scriptId,
+  readOnly = false
+}) => {
   const script = useScriptStore((state) => state.scripts[scriptId]);
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
@@ -348,12 +391,14 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({ scriptId }) => {
             label="Language"
             value={language}
             options={LANGUAGES.map((name) => ({ value: name, label: name }))}
+            disabled={readOnly}
             onChange={setLanguage}
           />
           <SelectField
             label="Pace"
             value={pace}
             options={PACES}
+            disabled={readOnly}
             onChange={setPace}
           />
         </FlexRow>
@@ -419,6 +464,7 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({ scriptId }) => {
           voices={voices}
           pace={pace}
           speed={speed}
+          readOnly={readOnly}
         />
       ))}
     </FlexColumn>

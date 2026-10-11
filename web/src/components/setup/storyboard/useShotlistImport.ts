@@ -23,6 +23,8 @@ import type { Screenplay } from "@nodetool-ai/protocol";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { clearImport } from "../../../lib/storyboard/importSource";
 import { setShotlistImport } from "./setupChoices";
+import { storyboardCreativeContextOf } from "../../../hooks/storyboard/directionFingerprint";
+import { productionReviewFingerprint } from "../video/productionAuthoring";
 import {
   parseShotlistCsv,
   type ShotlistReportEntry
@@ -33,6 +35,27 @@ export const SHOTLIST_ACCEPT = ".csv,text/csv";
 
 /** The template `Download template` serves, from the web public folder. */
 export const SHOTLIST_TEMPLATE_URL = "/storyboard-shotlist-template.csv";
+
+/**
+ * Move to step 3. The imported rows are the plan the creator wrote, and there
+ * is no review step on this path, so the production they carry is recorded as
+ * reviewed the way the review step records it. Without that, creative context
+ * typed on step 1 held the Look button behind a review nobody can reach (F12).
+ */
+const moveToLook = (boardId: string): void => {
+  const store = useStoryboardStore.getState();
+  const board = store.getBoard(boardId);
+  store.setSetup(boardId, {
+    production_review_fingerprint: productionReviewFingerprint({
+      brief: board?.brief ?? "",
+      genre: board?.genre ?? "",
+      creativeContext:
+        board?.creativeContext ?? storyboardCreativeContextOf(board?.screenplay),
+      shots: board?.shots
+    }),
+    stage: "look"
+  });
+};
 
 export interface ShotlistImportResult {
   importing: boolean;
@@ -87,7 +110,7 @@ export function useShotlistImport(boardId: string): ShotlistImportResult {
           entries: parsed.result.report
         });
         if (parsed.result.report.length === 0) {
-          store.setSetup(boardId, { stage: "look" });
+          moveToLook(boardId);
           return;
         }
         setReport(parsed.result.report);
@@ -110,7 +133,7 @@ export function useShotlistImport(boardId: string): ShotlistImportResult {
     clearError: useCallback(() => setError(null), []),
     dismissReport: useCallback(() => {
       setReport(null);
-      useStoryboardStore.getState().setSetup(boardId, { stage: "look" });
+      moveToLook(boardId);
     }, [boardId]),
     importFile
   };

@@ -86,6 +86,8 @@ export interface DirectorModelState {
   error: string | null;
   /** No configured provider offers a language model at all. */
   noProvider: boolean;
+  /** Asks the providers for the list again after a failed read. */
+  refetch: () => void;
 }
 
 /**
@@ -100,7 +102,8 @@ export const useDirectorModel = (): DirectorModelState => {
   // into the guided flow, so nothing is stamped until a setup exists.
   const hasSetup = useTimelineStore((state) => state.setup != null);
   const setSetup = useTimelineStore((state) => state.setSetup);
-  const { models, providers, isLoading, error } = useLanguageModelsByProvider();
+  const { models, providers, isLoading, error, refetch } =
+    useLanguageModelsByProvider();
 
   const options = useMemo(() => models.map(toRef), [models]);
   // A list that has not answered yet is no reason to drop a stored pick: only
@@ -136,6 +139,7 @@ export const useDirectorModel = (): DirectorModelState => {
     select,
     loading: isLoading,
     error: error ? error.message : null,
-    noProvider: !isLoading && !error && providers.length === 0
+    noProvider: !isLoading && !error && providers.length === 0,
+    refetch: () => void refetch()
   };
 };

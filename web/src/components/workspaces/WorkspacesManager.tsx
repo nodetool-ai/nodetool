@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      fontFamily: "monospace"
+      fontFamily: "var(--fontFamily2)"
     },
     ".workspace-badges": {
       display: "flex",

@@ -7,6 +7,7 @@
  * provider onboarding. Both are what `Continue to setup` reads (criterion 4);
  * the flow's own suite pins the button.
  */
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -180,6 +181,31 @@ describe("WorkflowReviewStep", () => {
     });
   });
 
+  // The model list is still being read on a first visit. That is a wait,
+  // not a missing provider, so it says so instead of asking to connect one.
+  it("says the models are being read instead of asking to connect a provider", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <WorkflowReviewStep
+          plan={{
+            ...PLAN,
+            steps: [{ ...PLAN.steps[0], model_role: "language" }]
+          }}
+          onPlanChange={jest.fn()}
+          onReplan={jest.fn()}
+          providerConfigured={() => false}
+          roleLoading={(role) => role === "language"}
+        />
+      </ThemeProvider>
+    );
+    expect(
+      screen.getByText("Reading the language models your providers offer…")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No language provider connected")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Connect" })).toBeNull();
+    expect(screen.queryByText(/No connected provider offers/)).toBeNull();
+  });
+
   it("shows no marker when the role is covered", () => {
     renderStep({
       ...PLAN,
@@ -211,6 +237,40 @@ describe("WorkflowReviewStep", () => {
     expect(onPlanChange.mock.calls[1][0].steps.map((s: { id: string }) => s.id)).toEqual([
       "s2"
     ]);
+  });
+
+  it("moves keyboard focus to the next row when a step is removed", async () => {
+    const Stateful = () => {
+      const [plan, setPlan] = React.useState<WorkflowSetupPlan>({
+        ...PLAN,
+        steps: [
+          ...PLAN.steps,
+          {
+            id: "s2",
+            title: "Join",
+            summary: "",
+            node_type: "nodetool.text.Concat"
+          }
+        ]
+      });
+      return (
+        <ThemeProvider theme={mockTheme}>
+          <WorkflowReviewStep
+            plan={plan}
+            onPlanChange={setPlan}
+            onReplan={jest.fn()}
+            providerConfigured={() => true}
+          />
+        </ThemeProvider>
+      );
+    };
+    render(<Stateful />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove step 1" }));
+    expect(screen.getByRole("button", { name: "Remove step 1" })).toHaveFocus();
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove step 1" }));
+    expect(screen.getByRole("button", { name: "Add a step" })).toHaveFocus();
   });
 
   it("adds a step with no node type, which the red marker then blocks on", async () => {

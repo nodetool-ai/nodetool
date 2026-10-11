@@ -104,8 +104,10 @@ function auditedEndpoints(): Audited[] {
  * endpoint carrying both a duration enum and a receipted clip-length set.
  * A drop below this means the pairing stopped being found, which is the
  * failure this audit exists to catch; a rise is fine and needs no edit.
+ * It is 18 since the GenSpend sync in #6248 dropped fal's two Sora 2 video
+ * endpoints, which GenSpend marks unavailable after OpenAI withdrew Sora 2.
  */
-const MIN_AUDITED_ENDPOINTS = 20;
+const MIN_AUDITED_ENDPOINTS = 18;
 
 describe("declared durations against receipted clip lengths", () => {
   const audited = auditedEndpoints();

@@ -72,7 +72,7 @@ export const createPrimitive = (kind: PrimitiveKind): THREE.Object3D => {
       );
     case "cone":
       return new THREE.Mesh(
-        new THREE.CylinderGeometry(0, 0.5, 1, 32),
+        new THREE.ConeGeometry(0.5, 1, 32),
         standardMaterial()
       );
     case "empty":

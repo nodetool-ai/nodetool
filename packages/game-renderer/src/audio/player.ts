@@ -1,5 +1,19 @@
-import type { GameAssetBinding, GameAssetBinding3D, GameEvent, GameSnapshot } from "@nodetool-ai/protocol";
+import { gameAudioMixer, type GameAssetBinding, type GameAssetBinding3D, type GameAudioEmitter, type GameAudioMixerInput, type GameEvent, type GameEvent3D, type GameSnapshot } from "@nodetool-ai/protocol";
+import { GameAudioMixer, type GameAudioMixerState } from "./mixer.js";
+import {
+  createGameAudioPanner, gameAudioDopplerRate, gameAudioVelocity, placeGameAudioListener, placeGameAudioPanner, setGameAudioDopplerRate,
+  type GameAudioSample, type GameAudioSpatialQuality, type GameAudioSpatialView, type GameAudioVector
+} from "./spatial.js";
 import { playBuiltinGameVoice, stopGameVoice, type Voice } from "./voices.js";
+
+/** A playing voice positioned by its emitter entity. */
+interface SpatialVoice {
+  readonly emitter: GameAudioEmitter;
+  readonly panner: PannerNode;
+  /** The buffer source's playback rate, for doppler. Built-in effects have none. */
+  readonly rate?: AudioParam;
+  sample?: GameAudioSample;
+}
 
 const MAX_VOICES = 32;
 
@@ -9,16 +23,25 @@ export interface GameAudioOptions {
   readonly resolveAsset: (binding: GameAssetBinding | GameAssetBinding3D) => Promise<string | null>;
   readonly status: (message: string) => void;
   readonly context?: AudioContext;
+  /** The document's `audio.mixer`. Omitted means the default bus graph. */
+  readonly mixer?: GameAudioMixerInput;
+  /** Panning quality for spatial voices. Default `high` (HRTF). */
+  readonly spatialQuality?: GameAudioSpatialQuality;
 }
 
 /** Shares Web Audio voice, decoding, and lifecycle behavior across browser players. */
 export class GameAudioPlayer {
   private readonly context: AudioContext;
+  private readonly mixer: GameAudioMixer;
   private readonly buffers = new Map<string, Promise<AudioBuffer | null>>();
   private readonly voices = new Map<string, Voice>();
   private readonly fading = new Set<Voice>();
   private readonly pending = new Map<string, { token: symbol; assetId: string }>();
   private readonly voiceAssets = new WeakMap<Voice, string>();
+  private readonly spatialVoices = new Set<SpatialVoice>();
+  private view: GameAudioSpatialView | null = null;
+  private listenerSample: GameAudioSample | undefined;
+  private listenerVelocity: GameAudioVector = { x: 0, y: 0, z: 0 };
   private desiredMusic: GameSnapshot["music"] = null;
   private sceneId: string | null = null;
   private tick = 0;
@@ -29,6 +52,33 @@ export class GameAudioPlayer {
 
   constructor(private options: GameAudioOptions) {
     this.context = options.context ?? new AudioContext();
+    this.mixer = new GameAudioMixer(this.context, this.mixerSettings(options.mixer), options.tickRate);
+  }
+
+  private mixerSettings(settings: GameAudioMixerInput | undefined): GameAudioMixerInput | undefined {
+    const parsed = gameAudioMixer.safeParse(settings ?? {});
+    if (parsed.success) { return settings; }
+    this.options.status(`Audio mixer settings are invalid, so the default mix is used: ${parsed.error.issues[0]?.message ?? "unknown issue"}`);
+    return undefined;
+  }
+
+  /** Applies edited mixer settings. Playing voices keep playing on their buses. */
+  updateMixer(settings: GameAudioMixerInput | undefined): void {
+    if (this.disposed) return;
+    this.mixer.update(this.mixerSettings(settings));
+  }
+
+  /** Player-facing bus volume, for example from a settings screen. */
+  setBusVolume(busId: string, volume: number): void {
+    if (!this.disposed) this.mixer.setUserVolume(busId, volume);
+  }
+
+  setBusMuted(busId: string, muted: boolean): void {
+    if (!this.disposed) this.mixer.setUserMuted(busId, muted);
+  }
+
+  mixerState(): GameAudioMixerState {
+    return this.mixer.state();
   }
 
   private buffer(assetId: string): Promise<AudioBuffer | null> {
@@ -118,6 +168,7 @@ export class GameAudioPlayer {
       }
     }
     this.sceneId = snapshot.sceneId;
+    this.mixer.enterScene(snapshot.sceneId);
     const next = snapshot.music;
     if (this.desiredMusic?.voiceId !== next?.voiceId || this.desiredMusic?.startTick !== next?.startTick ||
       this.desiredMusic?.assetId !== next?.assetId || this.desiredMusic?.volume !== next?.volume ||
@@ -139,8 +190,52 @@ export class GameAudioPlayer {
       .finally(() => { if (this.pending.get(music.voiceId)?.token === token) this.pending.delete(music.voiceId); });
   }
 
-  handle(event: GameEvent): void {
-    if (this.disposed || event.kind !== "audio") return;
+  /**
+   * Moves the listener and every spatial voice to a rendered frame. Players call it once per rendered frame with the view
+   * built from the interpolated frame, so positions follow what is on screen. Emitters missing from the view keep their last position.
+   */
+  updateSpatial(view: GameAudioSpatialView): void {
+    if (this.disposed) return;
+    this.view = view;
+    const now = this.context.currentTime;
+    const listenerSample = { position: view.listener.position, time: now };
+    this.listenerVelocity = gameAudioVelocity(this.listenerSample, listenerSample) ?? this.listenerVelocity;
+    this.listenerSample = listenerSample;
+    placeGameAudioListener(this.context.listener, view.listener, now, true);
+    for (const voice of this.spatialVoices) {
+      const pose = view.emitter(voice.emitter.entityId);
+      if (!pose) continue;
+      placeGameAudioPanner(voice.panner, voice.emitter, pose, now, true);
+      const sample = { position: pose.position, time: now };
+      const velocity = gameAudioVelocity(voice.sample, sample);
+      voice.sample = sample;
+      if (voice.rate && voice.emitter.doppler > 0 && velocity) {
+        setGameAudioDopplerRate(voice.rate, gameAudioDopplerRate(view.listener.position, this.listenerVelocity, pose.position, velocity, voice.emitter.doppler), now);
+      }
+    }
+  }
+
+  /** Creates the panner for a voice and connects it to the bus. The voice connects to the returned node. */
+  private spatialOutput(emitter: GameAudioEmitter | undefined, bus: string, rate?: AudioParam): { node: AudioNode; release: () => void } {
+    const input = this.mixer.input(bus);
+    if (!emitter) return { node: input, release: () => {} };
+    const now = this.context.currentTime;
+    const panner = createGameAudioPanner(this.context, emitter, this.options.spatialQuality ?? "high", now);
+    const pose = this.view?.emitter(emitter.entityId);
+    if (pose) placeGameAudioPanner(panner, emitter, pose, now, false);
+    panner.connect(input);
+    const voice: SpatialVoice = { emitter, panner, rate, sample: pose ? { position: pose.position, time: now } : undefined };
+    this.spatialVoices.add(voice);
+    return { node: panner, release: () => { this.spatialVoices.delete(voice); panner.disconnect(); } };
+  }
+
+  /** Plays audio events and lets other simulation events drive mixer snapshot transitions. */
+  handle(event: GameEvent | GameEvent3D): void {
+    if (this.disposed) return;
+    if (event.kind !== "audio") {
+      this.mixer.observe(event);
+      return;
+    }
     if (event.action === "stop") {
       if (event.voiceId) this.stop(event.voiceId, event.fadeOutTicks);
       return;
@@ -150,17 +245,23 @@ export class GameAudioPlayer {
     if (this.pending.has(voiceId)) return;
     const token = Symbol();
     this.pending.set(voiceId, { token, assetId: event.assetId });
-    void this.start(voiceId, event.assetId, event.loop, event.volume, event.fadeInTicks, event.fadeOutTicks, token)
+    void this.start(voiceId, event.assetId, event.loop, event.volume, event.fadeInTicks, event.fadeOutTicks, token, undefined, event.emitter)
       .catch((error: unknown) => this.options.status(`Audio effect could not start: ${error instanceof Error ? error.message : String(error)}`))
       .finally(() => { if (this.pending.get(voiceId)?.token === token) this.pending.delete(voiceId); });
   }
 
-  private async start(id: string, assetId: string, loop: boolean, volume: number, fadeInTicks: number, fadeOutTicks: number, token: symbol, logicalStartTick?: number): Promise<void> {
+  private async start(id: string, assetId: string, loop: boolean, volume: number, fadeInTicks: number, fadeOutTicks: number, token: symbol,
+    logicalStartTick?: number, emitter?: GameAudioEmitter): Promise<void> {
     const generation = this.generation;
     const binding = this.options.assets[assetId];
+    const bus = this.mixer.busFor(assetId, logicalStartTick !== undefined);
     if (binding?.assetId.startsWith("builtin:")) {
       if (loop) this.options.status(`Audio ${assetId} cannot loop a built-in effect`);
-      else playBuiltinGameVoice(this.context, volume);
+      else {
+        this.mixer.voiceStarted(bus);
+        const output = this.spatialOutput(emitter, bus);
+        playBuiltinGameVoice(this.context, volume, output.node, () => { output.release(); this.mixer.voiceEnded(bus); });
+      }
       return;
     }
     const buffer = await this.buffer(assetId);
@@ -182,18 +283,26 @@ export class GameAudioPlayer {
     const gain = this.context.createGain();
     source.buffer = buffer;
     source.loop = loop;
-    source.connect(gain).connect(this.context.destination);
+    const output = this.spatialOutput(emitter, bus, source.playbackRate);
+    source.connect(gain).connect(output.node);
     const now = this.context.currentTime;
     gain.gain.setValueAtTime(fadeInTicks > 0 ? 0 : volume, now);
     if (fadeInTicks > 0) gain.gain.linearRampToValueAtTime(volume, now + fadeInTicks / this.options.tickRate);
-    const voice: Voice = { id, source, gain, loop, fadeOutTicks };
+    const voice: Voice = { id, source, gain, loop, fadeOutTicks, bus };
     this.voices.set(id, voice);
     this.voiceAssets.set(voice, assetId);
+    this.mixer.voiceStarted(bus);
+    let ended = false;
     source.onended = () => {
+      if (!ended) {
+        ended = true;
+        this.mixer.voiceEnded(bus);
+      }
       if (this.voices.get(id) === voice) this.voices.delete(id);
       this.fading.delete(voice);
       source.disconnect();
       gain.disconnect();
+      output.release();
     };
     const offset = logicalStartTick === undefined ? 0 : Math.max(0, this.tick - logicalStartTick) / this.options.tickRate;
     source.start(0, loop && buffer.duration > 0 ? offset % buffer.duration : 0);
@@ -214,6 +323,7 @@ export class GameAudioPlayer {
     for (const voice of this.fading) voice.source.stop();
     this.fading.clear();
     this.desiredMusic = null;
+    this.mixer.reset(snapshot.sceneId);
     this.sync(snapshot);
   }
 
@@ -226,6 +336,7 @@ export class GameAudioPlayer {
     for (const voice of this.fading) voice.source.stop();
     this.fading.clear();
     this.buffers.clear();
+    this.mixer.dispose();
     void this.context.close();
   }
 }

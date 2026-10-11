@@ -142,6 +142,22 @@ describe("splitClip", () => {
     expect(total).toBe(clip.caption!.words.length);
   });
 
+  it("keeps the caption style on both halves", () => {
+    const clip: TimelineClip = {
+      ...makeBaseClip(),
+      caption: {
+        words: [
+          { word: "alpha", startMs: 0, endMs: 100 },
+          { word: "gamma", startMs: 220, endMs: 380 }
+        ],
+        style: { fontSizeFrac: 0.07 }
+      }
+    };
+    const [left, right] = splitClip(clip, 250);
+    expect(left.caption?.style).toEqual({ fontSizeFrac: 0.07 });
+    expect(right.caption?.style).toEqual({ fontSizeFrac: 0.07 });
+  });
+
   it("splits the source in/out points by playback rate for unbaked speed", () => {
     // 2x speed, not baked: 400ms timeline consumes 800ms of source (50→850).
     const clip: TimelineClip = {

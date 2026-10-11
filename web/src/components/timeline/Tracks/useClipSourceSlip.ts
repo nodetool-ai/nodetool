@@ -9,10 +9,20 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-import { sourceRate, type TimelineClip } from "@nodetool-ai/timeline";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  retimeCaption,
+  sourceRate,
+  type TimelineClip
+} from "@nodetool-ai/timeline";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
-import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
+import {
+  runAsOneUndoEntry,
+  useTimelineHistoryBatch
+} from "../../../stores/timeline/useTimelineHistoryBatch";
 
 const SLIP_GESTURE_IDLE_MS = 150;
 
@@ -69,6 +79,7 @@ export function useClipSourceSlip({
   sourceDurationMs
 }: UseClipSourceSlipOptions): (element: HTMLDivElement | null) => void {
   const patchClip = useTimelineStore((state) => state.patchClip);
+  const storeApi = useTimelineStoreApi();
   const { begin, mark, end } = useTimelineHistoryBatch();
   const elementRef = useRef<HTMLDivElement | null>(null);
   const slippingRef = useRef(false);
@@ -152,18 +163,22 @@ export function useClipSourceSlip({
       const appliedTimelineMs =
         ((wantedPatch.inPointMs ?? 0) - (fresh.inPointMs ?? 0)) /
         sourceRate(fresh);
-      const patches = members.map((c) => ({
-        id: c.id,
-        patch:
+      const patches = members.map((c) => {
+        const patch: Partial<TimelineClip> =
           c.id === fresh.id
-            ? wantedPatch
-            : slipSourceWindow(
-                c,
-                appliedTimelineMs * sourceRate(c),
-                undefined
-              ),
-        wantedIn: (c.inPointMs ?? 0) + appliedTimelineMs * sourceRate(c)
-      }));
+            ? { ...wantedPatch }
+            : slipSourceWindow(c, appliedTimelineMs * sourceRate(c), undefined);
+        // Words are timed against the clip's start, so they slide back by
+        // the timeline time the media slipped.
+        if (c.caption) {
+          patch.caption = retimeCaption(c.caption, -appliedTimelineMs);
+        }
+        return {
+          id: c.id,
+          patch,
+          wantedIn: (c.inPointMs ?? 0) + appliedTimelineMs * sourceRate(c)
+        };
+      });
       // Refuse the whole slip when a member would run out of source.
       if (
         patches.some(
@@ -176,9 +191,12 @@ export function useClipSourceSlip({
         slippingRef.current = true;
         begin();
       }
-      for (const p of patches) {
-        patchClip(p.id, p.patch);
-      }
+      // The pair's patches are one undo entry, so one undo restores sync.
+      runAsOneUndoEntry(storeApi, () => {
+        for (const p of patches) {
+          patchClip(p.id, p.patch);
+        }
+      });
       mark();
       if (idleTimerRef.current !== null) {
         window.clearTimeout(idleTimerRef.current);
@@ -199,7 +217,8 @@ export function useClipSourceSlip({
     mark,
     msPerPx,
     patchClip,
-    sourceDurationMs
+    sourceDurationMs,
+    storeApi
   ]);
 
   return setElement;

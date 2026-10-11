@@ -12,7 +12,8 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "node ../../scripts/run-vitest.mjs run",
     "test:watch": "node ../../scripts/run-vitest.mjs",
-    "test:mutation": "stryker run",
+    "test:mutation": "node ../mutator/dist/cli.js --root ../.. --test-command \"npx --no-install vitest related --run --passWithNoTests --config vitest.mutation.config.ts {file}\" --coverage-command \"npx --no-install vitest run --config vitest.mutation.config.ts --coverage.enabled=true --coverage.provider=v8 --coverage.reporter=json --coverage.reportsDirectory=coverage\" src/utils/json-parser.ts src/utils/remove-base64-images.ts src/utils/wrap-generators-parallel.ts src/tools/tool-permissions.ts src/tools/control-tool.ts",
+    "test:mutation:stryker": "stryker run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit",
     "bench:sandbox": "tsx bench/sandbox-boundary.ts"
   },

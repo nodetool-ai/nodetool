@@ -2,6 +2,10 @@ import { describe, it, expect } from "@jest/globals";
 import { createTimelineStore } from "../TimelineStore";
 import { timelineTemporalOf } from "../TimelineStore";
 import { makeClip } from "@nodetool-ai/timeline";
+import {
+  recordSourceDurationMs,
+  resetVideoDurationCache
+} from "../../../components/timeline/Tracks/useClipSourceDuration";
 
 /** V1: a | b | c back to back; A1: vo under b. */
 function storeWithCut() {
@@ -93,6 +97,16 @@ describe("rollClipEdge", () => {
     const { store, c, clip } = storeWithCut();
     store.getState().rollClipEdge(c.id, "end", 250);
     expect(clip(c.id).durationMs).toBe(1000);
+  });
+
+  it("caps a start-edge roll at the left neighbour's source length", () => {
+    const { store, a, b, clip } = storeWithCut();
+    // a plays source 500..1500 of a 1600 ms source: 100 ms left to reveal.
+    store.getState().rollClipEdge(b.id, "start", 300, 1600);
+    expect(clip(a.id).durationMs).toBe(1100);
+    expect(clip(a.id).outPointMs).toBe(1600);
+    expect(clip(b.id).startMs).toBe(1100);
+    expect(clip(b.id).durationMs).toBe(900);
   });
 });
 
@@ -256,6 +270,53 @@ describe("transitions on the cut", () => {
     expect(clip(b.id).transitionIn?.durationMs).toBe(600);
     store.getState().removeTransition(b.id);
     expect(clip(b.id).transitionIn).toBeUndefined();
+  });
+});
+
+describe("transition and fade shortcuts respect locks and source (F28)", () => {
+  it("applyDefaultTransition skips a locked incoming clip", () => {
+    const { store, a, b, clip } = storeWithCut();
+    store.getState().setClipLocked(b.id, true);
+    store.getState().applyDefaultTransition(new Set([b.id]), 400);
+    expect(clip(a.id).durationMs).toBe(1000);
+    expect(clip(b.id).transitionIn).toBeUndefined();
+  });
+
+  it("does not grow a locked predecessor", () => {
+    const { store, a, b, clip } = storeWithCut();
+    store.getState().setClipLocked(a.id, true);
+    store.getState().applyDefaultTransition(new Set([b.id]), 400);
+    expect(clip(a.id).durationMs).toBe(1000);
+    expect(clip(b.id).transitionIn?.durationMs).toBe(400);
+  });
+
+  it("does not grow the predecessor past its probed source", () => {
+    const { store, a, b, clip } = storeWithCut();
+    store.setState((state) => ({
+      clips: state.clips.map((c) =>
+        c.id === a.id ? { ...c, currentAssetId: "asset-a" } : c
+      )
+    }));
+    recordSourceDurationMs("asset-a", 1600);
+    try {
+      store.getState().applyDefaultTransition(new Set([b.id]), 400);
+      expect(clip(a.id).durationMs).toBe(1000);
+      expect(clip(a.id).outPointMs).toBe(1500);
+    } finally {
+      resetVideoDurationCache();
+    }
+  });
+
+  it("applyFades, setTransitionDuration and removeTransition skip locked clips", () => {
+    const { store, a, b, clip } = storeWithCut();
+    store.getState().applyDefaultTransition(new Set([b.id]), 200);
+    store.getState().setClipLocked(b.id, true);
+    store.getState().applyFades(new Set([b.id]));
+    store.getState().setTransitionDuration(b.id, 600);
+    store.getState().removeTransition(b.id);
+    expect(clip(b.id).fadeInMs).toBeUndefined();
+    expect(clip(b.id).transitionIn?.durationMs).toBe(200);
+    expect(clip(a.id).durationMs).toBe(1200);
   });
 });
 

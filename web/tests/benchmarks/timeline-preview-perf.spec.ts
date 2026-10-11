@@ -1753,6 +1753,55 @@ test("L3 Auto uses half-size backing during 4K playback", async ({ page }) => {
   writeFileSync(join(REPORT_DIR, "timeline-preview-auto-backing-4k.json"), JSON.stringify(evidence, null, 2));
 });
 
+test("L3 fullscreen 1080p playback on a 2x display composites at sequence size", async ({ browser }) => {
+  test.setTimeout(90_000);
+  test.skip(process.env.CI === "true", "browser performance numbers are machine-specific");
+  mkdirSync(REPORT_DIR, { recursive: true });
+  const context = await browser.newContext({ viewport: { width: 1728, height: 1117 }, deviceScaleFactor: 2 });
+  try {
+    const page = await context.newPage();
+    const fixture = makeScenarioFixture("fullscreen-2x-1080p", 1920, 1080, "one-1080p.mp4");
+    await installScenarioInstrumentation(page);
+    await interceptPerfApi(page, fixture);
+    await page.goto(`/timeline/${fixture.id}`, { waitUntil: "domcontentloaded" });
+    const play = page.getByRole("button", { name: "Play" });
+    await play.waitFor({ state: "visible" });
+    await expect.poll(async () => page.locator("video").evaluateAll((videos) =>
+      videos.filter((element) => element instanceof HTMLVideoElement && element.readyState >= 2).length
+    )).toBeGreaterThanOrEqual(1);
+    await page.getByRole("button", { name: "Fullscreen" }).click();
+    const canvas = page.locator('[aria-label="Preview area"] canvas').first();
+    const dimensions = async () => canvas.evaluate((element) => {
+      const preview = element as HTMLCanvasElement;
+      const rect = preview.getBoundingClientRect();
+      return { width: preview.width, height: preview.height, cssWidth: rect.width, cssHeight: rect.height };
+    });
+    // Fullscreen fills the viewport: the frame is wider than the docked preview.
+    await expect.poll(async () => (await dimensions()).cssWidth, { timeout: 10_000 }).toBeGreaterThan(1500);
+    const size = await dimensions();
+    const before = await readRun(page);
+    await play.click();
+    await page.waitForTimeout(3_000);
+    const after = await readRun(page);
+    const pause = page.getByRole("button", { name: "Pause" });
+    if (await pause.isVisible()) await pause.click();
+    const submits = after.events.slice(before.events.length).filter((event) => event.kind === "compositor-submit");
+    const intervals = submits.slice(1).map((event, index) => event.at - submits[index].at).sort((a, b) => a - b);
+    const evidence = {
+      size,
+      compositorSubmits: submits.length,
+      submitsPerSecond: submits.length / 3,
+      medianSubmitIntervalMs: intervals.length > 0 ? intervals[Math.floor(intervals.length / 2)] : null,
+      p95SubmitIntervalMs: intervals.length > 0 ? intervals[Math.floor(intervals.length * 0.95)] : null
+    };
+    writeFileSync(join(REPORT_DIR, "timeline-preview-fullscreen-2x.json"), JSON.stringify(evidence, null, 2));
+    expect(size.width).toBeLessThanOrEqual(1920);
+    expect(size.height).toBeLessThanOrEqual(1080);
+  } finally {
+    await context.close();
+  }
+});
+
 test("L3 preview scenario matrix reports independent named runs", async ({ page }) => {
   test.setTimeout(300_000);
   test.skip(process.env.CI === "true", "browser performance numbers are machine-specific");

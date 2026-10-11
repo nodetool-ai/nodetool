@@ -1,7 +1,6 @@
 import {
   HUGGINGFACE_PACK_REPO_ID,
   ONBOARDING_MODELS,
-  ONBOARDING_ENGINES,
   ONBOARDING_NODE_PACKS,
   classifyFit,
   sortModelsByFit,
@@ -62,10 +61,16 @@ describe("onboardingCatalog data", () => {
     ).toBe(true);
   });
 
-  it("marks exactly one bundled engine (Ollama)", () => {
-    const bundled = ONBOARDING_ENGINES.filter((e) => e.bundled);
-    expect(bundled).toHaveLength(1);
-    expect(bundled[0].id).toBe("ollama");
+  it("presents Ollama as a separate install with a download link, not as bundled", () => {
+    const ollama = getEngine("ollama");
+    expect(ollama?.separateInstallUrl).toBe("https://ollama.com/download");
+    expect(ollama?.description).not.toMatch(/bundled/i);
+  });
+
+  it("offers no pack that is missing from PyPI (Ollama needs none)", () => {
+    expect(
+      ONBOARDING_NODE_PACKS.some((p) => p.repoId === "nodetool-ai/nodetool-ollama")
+    ).toBe(false);
   });
 });
 

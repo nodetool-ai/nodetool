@@ -10,7 +10,10 @@ const listCollections = vi.fn();
 const resolveCollection = vi.fn();
 const getDefaultVectorProvider = vi.fn(() => ({ listCollections }));
 
-vi.mock("@nodetool-ai/vectorstore", () => ({
+vi.mock("@nodetool-ai/vectorstore", async (orig) => ({
+  canAccessCollection: (
+    await orig<typeof import("@nodetool-ai/vectorstore")>()
+  ).canAccessCollection,
   getDefaultVectorProvider,
   resolveCollection
 }));

@@ -17,6 +17,7 @@
 import { trpcClient } from "../../trpc/client";
 import { useScriptStore, type ScriptTake } from "./ScriptStore";
 import { takeCaptionWords } from "../../components/script/assembleScriptTimeline";
+import { makeClipVersion } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import {
   ApiErrorCode,
@@ -92,9 +93,30 @@ export async function syncLineClipToTimeline(
           ) {
             return clip;
           }
+          if (clip.currentAssetId === activeTake.assetId) {
+            return { ...clip, durationMs, caption, status: "generated" as const };
+          }
+          // A new take is a fresh source: record it as the active version and
+          // reset the trim window, like a timeline-side generation does.
+          const versions = clip.versions ?? [];
+          const version =
+            versions.find((v) => v.assetId === activeTake.assetId) ??
+            makeClipVersion({
+              createdAt: activeTake.createdAt,
+              workflowUpdatedAt: activeTake.createdAt,
+              assetId: activeTake.assetId,
+              durationMs,
+              source: "generated"
+            });
           return {
             ...clip,
             currentAssetId: activeTake.assetId,
+            activeTakeId: version.id,
+            versions: versions.includes(version)
+              ? versions
+              : [...versions, version],
+            inPointMs: undefined,
+            outPointMs: undefined,
             durationMs,
             caption,
             status: "generated" as const

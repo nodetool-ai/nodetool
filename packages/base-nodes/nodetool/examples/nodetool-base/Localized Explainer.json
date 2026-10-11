@@ -20,7 +20,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Localized Explainer\n\nMakes one narrated explainer video per language from a single brief, narrator and b-roll storyboard. Each video comes with an SRT subtitle file.\n\n**How it works:** \"One run per language\" runs the graph for en, de and fr. \"Write the script in this language\" uses the \"Brief\" and \"Narrator\", and \"Voice the changed lines\" voices only edited lines. \"Script into a cut\" builds a timeline, and \"Lay the b-roll over it\" adds stills from the \"B-roll board\". \"Render\" outputs \"Videos\", and \"Subtitles\" outputs SRT files.\n\n**Try this:** Choose a narrator and board, then add \"es\" to \"One run per language\"."
+          "comment": "# Localized Explainer\n\nMakes one narrated explainer video per language from a single brief, narrator and b-roll storyboard. Each video comes with an SRT subtitle file.\n\n**How it works:** \"One run per language\" runs the graph for en, de and fr. \"Write the script in this language\" uses the \"Brief\" and \"Narrator\", and \"Voice the changed lines\" voices only edited lines. \"Script into a cut\" builds a timeline, and \"Lay the b-roll over it\" adds stills from the \"B-roll board\". \"Render\" outputs \"Videos\", and \"Build subtitles\" writes the SRT files for \"Subtitles\".\n\n**Try this:** Choose a narrator and board, then add \"es\" to \"One run per language\"."
         },
         "ui_properties": {
           "position": {
@@ -261,7 +261,7 @@
           "zIndex": 0,
           "width": 240,
           "selectable": true,
-          "title": "11  Subtitles"
+          "title": "11  Build subtitles"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}

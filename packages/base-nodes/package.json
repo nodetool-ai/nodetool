@@ -72,7 +72,8 @@
       "types": "./dist/builtin-packs.d.ts",
       "import": "./dist/builtin-packs.js",
       "default": "./dist/builtin-packs.js"
-    }
+    },
+    "./examples/*": "./nodetool/examples/*"
   },
   "license": "MIT",
   "repository": {

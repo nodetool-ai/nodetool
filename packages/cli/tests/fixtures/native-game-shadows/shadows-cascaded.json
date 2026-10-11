@@ -1,0 +1,295 @@
+{
+  "schemaVersion": 3,
+  "engineVersion": "2",
+  "dimension": "3d",
+  "id": "shadows-cascaded",
+  "revision": "r3-shadows",
+  "entrySceneId": "scene",
+  "tickRate": 60,
+  "presentation": {
+    "aspectRatio": 1.7777777777777777,
+    "hudWidth": 640,
+    "hudHeight": 360
+  },
+  "inputActions": [],
+  "assets": {},
+  "scenes": [
+    {
+      "id": "scene",
+      "name": "Avenue",
+      "activeCameraId": "camera",
+      "environment": {
+        "background": "#9fb7d1",
+        "ambient": {
+          "color": "#ffffff",
+          "intensity": 0.35
+        },
+        "shadows": {
+          "enabled": true,
+          "mapSize": 2048,
+          "extent": 30,
+          "cascades": {
+            "count": 4,
+            "split": 0.7,
+            "maxDistance": 200
+          }
+        }
+      },
+      "entities": [
+        {
+          "id": "camera",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 3,
+              "z": 0
+            },
+            "rotation": [
+              -0.059964,
+              0,
+              0,
+              0.998201
+            ]
+          },
+          "camera3d": {
+            "projection": {
+              "kind": "perspective",
+              "fov": 50,
+              "near": 0.1,
+              "far": 260
+            },
+            "behavior": {
+              "kind": "fixed"
+            }
+          }
+        },
+        {
+          "id": "ground",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": -110
+            }
+          },
+          "primitive": {
+            "kind": "plane",
+            "dimensions": {
+              "x": 260,
+              "y": 1,
+              "z": 260
+            },
+            "material": {
+              "color": "#c9c2b6",
+              "roughness": 0.95,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "sun",
+          "transform3d": {
+            "rotation": [
+              -0.302298,
+              -0.525404,
+              -0.206813,
+              0.767981
+            ]
+          },
+          "light3d": {
+            "kind": "directional",
+            "color": "#fff1dc",
+            "intensity": 2.6,
+            "castShadow": true,
+            "shadowBias": -0.0004,
+            "shadowNormalBias": 0.03
+          }
+        },
+        {
+          "id": "pillar0",
+          "transform3d": {
+            "position": {
+              "x": -3.1,
+              "y": 1.15,
+              "z": -5
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.56,
+              "y": 2.3,
+              "z": 0.56
+            },
+            "material": {
+              "color": "#5a6b80",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "pillar1",
+          "transform3d": {
+            "position": {
+              "x": -3.94,
+              "y": 1.3599999999999999,
+              "z": -12
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.644,
+              "y": 2.7199999999999998,
+              "z": 0.644
+            },
+            "material": {
+              "color": "#5a6b80",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "pillar2",
+          "transform3d": {
+            "position": {
+              "x": -5.5,
+              "y": 1.75,
+              "z": -25
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.8,
+              "y": 3.5,
+              "z": 0.8
+            },
+            "material": {
+              "color": "#5a6b80",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "pillar3",
+          "transform3d": {
+            "position": {
+              "x": -8.5,
+              "y": 2.5,
+              "z": -50
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.1,
+              "y": 5.0,
+              "z": 1.1
+            },
+            "material": {
+              "color": "#5a6b80",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "pillar4",
+          "transform3d": {
+            "position": {
+              "x": -13.299999999999999,
+              "y": 3.6999999999999997,
+              "z": -90
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1.58,
+              "y": 7.3999999999999995,
+              "z": 1.58
+            },
+            "material": {
+              "color": "#5a6b80",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "pillar5",
+          "transform3d": {
+            "position": {
+              "x": -18.1,
+              "y": 4.9,
+              "z": -130
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 2.06,
+              "y": 9.8,
+              "z": 2.06
+            },
+            "material": {
+              "color": "#5a6b80",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "pillar6",
+          "transform3d": {
+            "position": {
+              "x": -22.9,
+              "y": 6.1,
+              "z": -170
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 2.54,
+              "y": 12.2,
+              "z": 2.54
+            },
+            "material": {
+              "color": "#5a6b80",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "pillar7",
+          "transform3d": {
+            "position": {
+              "x": -25.9,
+              "y": 6.85,
+              "z": -195
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 2.84,
+              "y": 13.7,
+              "z": 2.84
+            },
+            "material": {
+              "color": "#5a6b80",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

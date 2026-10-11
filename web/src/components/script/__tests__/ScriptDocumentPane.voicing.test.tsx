@@ -7,7 +7,7 @@
  * to voice those again. A script nobody has voiced carries no record and must
  * look exactly as it did before the strip existed.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -36,9 +36,14 @@ import {
 } from "../../../stores/script/ScriptStore";
 import {
   readVoicingRun,
+  voiceAll,
   voicingPatch,
   type VoicingRun
 } from "../../../stores/script/scriptVoicing";
+import {
+  activeWrites,
+  notifyWrites
+} from "../../../hooks/script/scriptWrites";
 import ScriptDocumentPane from "../ScriptDocumentPane";
 
 const SCRIPT_ID = "script-voicing";
@@ -100,18 +105,67 @@ describe("ScriptDocumentPane voicing strip", () => {
     expect(screen.queryByText(/Voiced/)).not.toBeInTheDocument();
   });
 
-  it("distinguishes queued from running", () => {
-    seed({
-      status: "queued",
-      total: 2,
-      voiced: 0,
-      failed: [],
-      updatedAt: "2026-01-01T00:00:00.000Z"
-    });
-    const queued = renderPane();
-    expect(screen.getByText("Voicing queued for 2 lines.")).toBeInTheDocument();
-    queued.unmount();
+  it("shows a run going in this page, and offers no second Voice all", async () => {
+    seed();
+    const pending: Array<(error: Error) => void> = [];
+    rpcRequest.mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          pending.push(reject);
+        })
+    );
+    // The guided flow starts this before the editor opens.
+    const running = voiceAll(SCRIPT_ID);
+    renderPane();
 
+    expect(screen.getByText(/Voicing 0 of 2 lines/)).toBeInTheDocument();
+    expect(screen.getByText("Voicing…")).toBeInTheDocument();
+    // A second click would pay for the lines the first run is voicing.
+    expect(
+      screen.queryByRole("button", { name: /Voice all/ })
+    ).not.toBeInTheDocument();
+    await expect(voiceAll(SCRIPT_ID)).rejects.toThrow(
+      "This script is already being voiced."
+    );
+
+    await act(async () => {
+      pending.forEach((reject) => reject(new Error("offline")));
+      await running;
+    });
+    expect(
+      screen.getByRole("button", { name: /Voice all/ })
+    ).toBeInTheDocument();
+  });
+
+  it("offers no Voice all or Retry while the agent writes the script", () => {
+    seed(completedWithFailures());
+    renderPane();
+    act(() => {
+      activeWrites.set(SCRIPT_ID, {
+        controller: new AbortController(),
+        owner: Symbol("agent")
+      });
+      notifyWrites();
+    });
+
+    // The write replaces these lines: takes recorded now would be thrown away.
+    expect(screen.getByText("Writing…")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Voice all/ })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeDisabled();
+
+    act(() => {
+      activeWrites.delete(SCRIPT_ID);
+      notifyWrites();
+    });
+    expect(
+      screen.getByRole("button", { name: /Voice all/ })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
+  });
+
+  it("reads a run left by a closed page as stopped, not as running", () => {
     seed({
       status: "running",
       total: 2,
@@ -120,7 +174,32 @@ describe("ScriptDocumentPane voicing strip", () => {
       updatedAt: "2026-01-01T00:00:00.000Z"
     });
     renderPane();
-    expect(screen.getByText(/Voicing 1 of 2 lines/)).toBeInTheDocument();
+
+    expect(screen.queryByText(/Voicing 1 of 2 lines/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Voicing stopped before it finished. Voiced 1 of 2 lines. Press Voice all to voice the rest."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Voice all/ })).toBeEnabled();
+  });
+
+  it("reads a queued run nobody started as stopped", () => {
+    seed({
+      status: "queued",
+      total: 2,
+      voiced: 0,
+      failed: [],
+      updatedAt: "2026-01-01T00:00:00.000Z"
+    });
+    renderPane();
+
+    expect(
+      screen.queryByText("Voicing queued for 2 lines.")
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Voicing stopped before it finished\. Voiced 0 of 2 lines\./)
+    ).toBeInTheDocument();
   });
 
   it("names each failed line with the reason it gave", () => {

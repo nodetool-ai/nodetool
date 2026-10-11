@@ -100,6 +100,24 @@ describe("handleUpdate — WorkflowRunsStore registry population", () => {
     expect(run?.state).toBe("error");
   });
 
+  it("keeps a failed job's own error on the run", () => {
+    const runnerStore = makeRunnerStore({ job_id: "E", state: "running" });
+    const first: JobUpdate = { type: "job_update", job_id: "E", workflow_id: "wf", status: "running" };
+    const second: JobUpdate = {
+      type: "job_update",
+      job_id: "E",
+      workflow_id: "wf",
+      status: "failed",
+      error: "Worker ran out of memory"
+    };
+
+    handleUpdate(mockWorkflow, first, runnerStore as never, () => undefined);
+    handleUpdate(mockWorkflow, second, runnerStore as never, () => undefined);
+
+    const run = useWorkflowRunsStore.getState().getRuns("wf").find((r) => r.jobId === "E");
+    expect(run).toMatchObject({ state: "error", error: "Worker ran out of memory" });
+  });
+
   it("maps cancelled → cancelled RunState", () => {
     const runnerStore = makeRunnerStore({ job_id: "D", state: "running" });
     // Seed the run first.

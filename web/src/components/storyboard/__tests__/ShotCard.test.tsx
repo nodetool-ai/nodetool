@@ -30,7 +30,7 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => {
   return {
     ...actual,
     useStoryboardStore: <T,>(selector: (s: unknown) => T) =>
-      selector({ boards: { "board-1": { screenplay: null } } })
+      selector({ boards: { "board-1": { screenplay: null, shots: [] } } })
   };
 });
 
@@ -45,6 +45,12 @@ jest.mock("../../../trpc/client", () => ({
 
 // The card's cast chips read the entity library; the actions the card offers
 // are covered in ShotCardActions.test.tsx, so here it is simply empty.
+jest.mock("../ShotRenderDialog", () => ({
+  __esModule: true,
+  default: ({ step }: { step: string }) => (
+    <div data-testid="shot-render-dialog" data-step={step} />
+  )
+}));
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: [] })
 }));
@@ -130,6 +136,37 @@ describe("ShotCard retry", () => {
     expect(generateClipMock).not.toHaveBeenCalled();
     expect(generateKeyframeMock).not.toHaveBeenCalled();
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("asks for the still model on Regenerate", async () => {
+    renderCard(makeShot({ status: "keyframe_ready" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Regenerate still" })
+    );
+    expect(screen.getByTestId("shot-render-dialog")).toHaveAttribute(
+      "data-step",
+      "still"
+    );
+    expect(generateKeyframeMock).not.toHaveBeenCalled();
+  });
+
+  it("renders a single clip from the card footer", async () => {
+    renderCard(
+      makeShot({
+        status: "keyframe_ready",
+        keyframe: { type: "image", uri: "asset://still-1", asset_id: "still-1" }
+      })
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Render clip" }));
+    expect(screen.getByTestId("shot-render-dialog")).toHaveAttribute(
+      "data-step",
+      "clip"
+    );
+  });
+
+  it("disables the clip button until the shot has a still", () => {
+    renderCard(makeShot({ status: "planned" }));
+    expect(screen.getByRole("button", { name: "Render clip" })).toBeDisabled();
   });
 
   it("retries the still when no job state says which step failed", async () => {

@@ -52,6 +52,7 @@ import {
   dismissVoicingRun,
   readVoicingRun,
   retryVoicing,
+  useVoicingLive,
   voiceAll,
   type VoicingRun
 } from "../../stores/script/scriptVoicing";
@@ -62,6 +63,7 @@ import {
 } from "../../hooks/script/useVoiceCostEstimate";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
+import { useScriptWriting } from "../../hooks/script/scriptWrites";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
 import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
 import { useScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
@@ -70,10 +72,14 @@ import StoryboardLinkControl from "./StoryboardLinkControl";
 import ScriptSaveIndicator from "./ScriptSaveIndicator";
 import { scriptWorkflowMedia } from "./scriptWorkflowMedia";
 import { SendToWorkflowButton } from "../workflows/SendToWorkflowMenu";
+import { useContextCommands } from "../../hooks/useContextCommands";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
 
 interface ScriptDocumentPaneProps {
   scriptId: string;
   readOnly: boolean;
+  /** Whether the pane's tab is on screen; lists its commands in the Cmd+K menu. */
+  active?: boolean;
 }
 
 /** A pending drop position: land the dragged line before `beforeLineId` (or at
@@ -535,6 +541,10 @@ const lineLabel = (text: string): string => {
  * a count, or completed — names every line that failed with the reason it gave,
  * and retries them through the same path that voiced the rest.
  *
+ * A queued or running record with no run going in this page was left by a page
+ * that closed mid-run. No take is still coming, so it reads as stopped rather
+ * than as a spinner that never ends.
+ *
  * A script nobody has voiced carries no record, and this renders nothing.
  */
 const VoicingStrip = ({
@@ -557,6 +567,9 @@ const VoicingStrip = ({
     })
   );
   const [retrying, setRetrying] = useState<readonly string[]>([]);
+  const live = useVoicingLive(scriptId);
+  // Voicing refuses while a write replaces the lines.
+  const writing = useScriptWriting(scriptId);
 
   const run: VoicingRun | null = readVoicingRun(setup);
 
@@ -572,7 +585,9 @@ const VoicingStrip = ({
     return null;
   }
 
-  if (run.status === "queued") {
+  const stopped = run.status !== "completed" && !live;
+
+  if (run.status === "queued" && !stopped) {
     return (
       <AlertBanner severity="info" compact sx={{ marginX: SPACING.md }}>
         {`Voicing queued for ${run.total} ${run.total === 1 ? "line" : "lines"}.`}
@@ -580,7 +595,7 @@ const VoicingStrip = ({
     );
   }
 
-  if (run.status === "running") {
+  if (run.status === "running" && !stopped) {
     return (
       <AlertBanner severity="info" compact sx={{ marginX: SPACING.md }}>
         <FlexRow align="center" gap={SPACING.xs}>
@@ -595,9 +610,9 @@ const VoicingStrip = ({
     );
   }
 
-  const busy = retrying.length > 0;
+  const busy = retrying.length > 0 || live || writing;
 
-  if (run.failed.length === 0) {
+  if (run.failed.length === 0 && !stopped) {
     return (
       <AlertBanner
         severity="success"
@@ -619,39 +634,45 @@ const VoicingStrip = ({
     >
       <FlexColumn gap={SPACING.xs}>
         <Text size="smaller">
-          {`Voiced ${run.voiced} of ${run.total} lines. ${run.failed.length} ${
-            run.failed.length === 1 ? "line" : "lines"
-          } could not be voiced.`}
+          {`${stopped ? "Voicing stopped before it finished. " : ""}Voiced ${run.voiced} of ${run.total} lines.${
+            run.failed.length > 0
+              ? ` ${run.failed.length} ${
+                  run.failed.length === 1 ? "line" : "lines"
+                } could not be voiced.`
+              : ""
+          }${stopped && !readOnly ? " Press Voice all to voice the rest." : ""}`}
         </Text>
-        <FlexColumn
-          gap={SPACING.xs}
-          component="ul"
-          sx={{ margin: 0, paddingLeft: 0, listStyle: "none" }}
-        >
-          {run.failed.map((failure) => (
-            <FlexRow
-              key={failure.lineId}
-              component="li"
-              gap={SPACING.sm}
-              align="center"
-              wrap
-            >
-              <Caption>
-                {`${lineLabel(lineText[failure.lineId] ?? "")} — ${failure.error}`}
-              </Caption>
-              {readOnly ? null : (
-                <EditorButton
-                  size="small"
-                  variant="text"
-                  disabled={busy}
-                  onClick={() => retry([failure.lineId])}
-                >
-                  Retry
-                </EditorButton>
-              )}
-            </FlexRow>
-          ))}
-        </FlexColumn>
+        {run.failed.length === 0 ? null : (
+          <FlexColumn
+            gap={SPACING.xs}
+            component="ul"
+            sx={{ margin: 0, paddingLeft: 0, listStyle: "none" }}
+          >
+            {run.failed.map((failure) => (
+              <FlexRow
+                key={failure.lineId}
+                component="li"
+                gap={SPACING.sm}
+                align="center"
+                wrap
+              >
+                <Caption>
+                  {`${lineLabel(lineText[failure.lineId] ?? "")} — ${failure.error}`}
+                </Caption>
+                {readOnly ? null : (
+                  <EditorButton
+                    size="small"
+                    variant="text"
+                    disabled={busy}
+                    onClick={() => retry([failure.lineId])}
+                  >
+                    Retry
+                  </EditorButton>
+                )}
+              </FlexRow>
+            ))}
+          </FlexColumn>
+        )}
         {readOnly || run.failed.length < 2 ? null : (
           <FlexRow>
             <EditorButton
@@ -660,7 +681,9 @@ const VoicingStrip = ({
               disabled={busy}
               onClick={() => retry(run.failed.map((failure) => failure.lineId))}
             >
-              {busy ? "Retrying…" : `Retry all ${run.failed.length}`}
+              {retrying.length > 0
+                ? "Retrying…"
+                : `Retry all ${run.failed.length}`}
             </EditorButton>
           </FlexRow>
         )}
@@ -671,7 +694,8 @@ const VoicingStrip = ({
 
 const ScriptDocumentPane = ({
   scriptId,
-  readOnly
+  readOnly,
+  active = false
 }: ScriptDocumentPaneProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -699,6 +723,12 @@ const ScriptDocumentPane = ({
   const focusedLineId = useScriptLineFocus(scriptId, sections.length > 0);
   const highlightedLineId = currentLineId ?? focusedLineId;
   const [voicingAll, setVoicingAll] = useState(false);
+  // A run started elsewhere in this page, such as the guided flow's last step,
+  // is voicing these lines already: a second Voice all would pay for them twice.
+  const voicingLive = useVoicingLive(scriptId);
+  // A write the agent started replaces these lines, so voicing them now would
+  // pay for takes the write throws away. Voicing refuses it.
+  const writing = useScriptWriting(scriptId);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
@@ -868,6 +898,39 @@ const ScriptDocumentPane = ({
   const showAssemble = !readOnly && !inStudio;
   const workflowMedia = useMemo(() => scriptWorkflowMedia(sections), [sections]);
 
+  const menuCommands = useMemo<ContextCommand[]>(() => {
+    if (!hasVoicedLine) {
+      return [];
+    }
+    const commands: ContextCommand[] = [];
+    if (showAssemble && !assembling) {
+      commands.push({
+        id: "send-to-timeline",
+        label: storyboardId
+          ? "Assemble Video"
+          : timelineId
+            ? "Update Timeline"
+            : "Send to Timeline",
+        run: onSendToTimeline
+      });
+    }
+    commands.push({
+      id: "export-subtitles",
+      label: "Export Subtitles (SRT)",
+      run: onExportSubtitles
+    });
+    return commands;
+  }, [
+    hasVoicedLine,
+    showAssemble,
+    assembling,
+    storyboardId,
+    timelineId,
+    onSendToTimeline,
+    onExportSubtitles
+  ]);
+  useContextCommands("Script", menuCommands, active);
+
   return (
     <FlexColumn
       data-focus-id="script-document"
@@ -900,10 +963,12 @@ const ScriptDocumentPane = ({
           />
         )}
         {!readOnly &&
-          (voicingAll ? (
+          (voicingAll || voicingLive || writing ? (
             <FlexRow align="center" gap={SPACING.xs}>
               <LoadingSpinner size={18} />
-              <Text size="smaller">Voicing…</Text>
+              <Text size="smaller">
+                {voicingAll || voicingLive ? "Voicing…" : "Writing…"}
+              </Text>
             </FlexRow>
           ) : (
             <VoiceAllButton

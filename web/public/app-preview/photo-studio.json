@@ -266,7 +266,7 @@
                               "id": "slider-batch-color-boost",
                               "binding": "op:batch/in:12",
                               "label": "Color boost",
-                              "min": 0,
+                              "min": 0.5,
                               "max": 2,
                               "step": 0.05,
                               "events": []
@@ -398,8 +398,7 @@
             "data": {
               "value": {
                 "type": "image",
-                "asset_id": "31cadd9e065711f1818000006beef284",
-                "uri": "/api/storage/31cadd9e065711f1818000006beef284.png"
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
               },
               "name": "image",
               "description": "The photo to enhance. Ships with a demo image so Run works immediately — drop in your own JPEG or PNG to edit it."
@@ -407,8 +406,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 1,
-                "y": 71
+                "x": 0,
+                "y": 399
               },
               "zIndex": 0,
               "width": 260,
@@ -427,8 +426,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1420,
-                "y": 100
+                "x": 1720,
+                "y": 411
               },
               "selectable": true,
               "title": "Enhanced image"
@@ -449,11 +448,20 @@
             "type": "nodetool.input.ImageListInput",
             "data": {
               "name": "photos",
-              "value": [],
+              "value": [
+                {
+                  "type": "image",
+                  "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
+                }
+              ],
               "description": "Photos to enhance. Add one or more images directly — no folder path or upload step required."
             },
             "ui_properties": {
-              "title": "Photos to enhance"
+              "title": "Photos to enhance",
+              "position": {
+                "x": 0,
+                "y": 462
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -470,7 +478,11 @@
               "max": 1.5
             },
             "ui_properties": {
-              "title": "Brightness factor"
+              "title": "Brightness factor",
+              "position": {
+                "x": 0,
+                "y": 714
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -487,7 +499,11 @@
               "max": 2
             },
             "ui_properties": {
-              "title": "Color factor"
+              "title": "Color factor",
+              "position": {
+                "x": 0,
+                "y": 898
+              }
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -500,8 +516,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 320,
-                "y": 0
+                "x": 3524,
+                "y": 802
               },
               "selectable": true
             }

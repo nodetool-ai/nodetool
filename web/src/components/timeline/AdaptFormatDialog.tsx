@@ -8,6 +8,7 @@ import {
   type TimelineSequence
 } from "@nodetool-ai/timeline";
 
+import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import {
   Caption,
   Checkbox,
@@ -54,8 +55,11 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
   const { createAdaptations, isCreating, error } =
     useCreateFormatAdaptation(sequence);
 
+  // The query's sequence is the one loaded when the editor opened; the clips
+  // come from the live document so edits since then count.
+  const clips = useTimelineStore((state) => state.clips);
   const sequenceWithTracks = sequence
-    ? { ...sequence, mediaTracks: [...mediaTracks] }
+    ? { ...sequence, clips, mediaTracks: [...mediaTracks] }
     : undefined;
   const smartUnavailable = Boolean(
     sequenceWithTracks &&
@@ -71,7 +75,7 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
   }, [open, smartUnavailable]);
 
   const readyTracks = mediaTracks.filter((track) => {
-    const clip = sequence?.clips.find((candidate) => candidate.id === track.clipId);
+    const clip = clips.find((candidate) => candidate.id === track.clipId);
     return (
       mediaTrackCanDriveReframe(track) &&
       clip !== undefined &&

@@ -53,7 +53,7 @@ nodetool chat -u ws://localhost:7777/ws
 
 Providers: `anthropic`, `claude_agent_sdk`, `openai`, `codex`, `gemini`, `xai`,
 `groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `alibaba`, `gmi`,
-`together`, `openrouter`, `requesty`, `opper`, `huggingface`, `replicate`, `kie`,
+`together`, `openrouter`, `requesty`, `opper`, `api_route`, `huggingface`, `replicate`, `kie`,
 `aki`, `ollama`, `lmstudio`, `mlx`. Any other registered provider id (e.g. `vllm`) also works when
 passed explicitly.
 

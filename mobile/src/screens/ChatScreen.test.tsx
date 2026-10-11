@@ -2,11 +2,11 @@
  * Tests for ChatScreen
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
+import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 import ChatScreen from './ChatScreen';
 import { useChatStore } from '../stores/ChatStore';
-import type { RootStackParamList } from '../navigation/types';
+import type { TabScreenNavigationProp, TabScreenRouteProp } from '../navigation/types';
 import type { Message, MessageContent } from '../types/chat';
 
 /** The props the stubbed ChatView below actually reads. */
@@ -48,7 +48,10 @@ jest.mock('../stores/ChatStore', () => ({
 }));
 
 type ChatState = ReturnType<typeof useChatStore.getState>;
-type ChatScreenProps = NativeStackScreenProps<RootStackParamList, 'Chat'>;
+type ChatScreenProps = {
+  navigation: TabScreenNavigationProp<'Chat'>;
+  route: TabScreenRouteProp<'Chat'>;
+};
 
 /** The whole store these tests stand up, with the actions as spies. */
 type MockChatStore = ChatState & {
@@ -78,7 +81,7 @@ describe('ChatScreen', () => {
     messageCache: { 'thread-1': [] },
     connect: jest.fn().mockResolvedValue(undefined),
     disconnect: jest.fn(),
-    sendMessage: jest.fn().mockResolvedValue(undefined),
+    sendMessage: jest.fn().mockResolvedValue(true),
     stopGeneration: jest.fn(),
     createNewThread: jest.fn().mockResolvedValue('new-thread-id'),
     getCurrentMessages: jest.fn().mockReturnValue([]),
@@ -102,11 +105,12 @@ describe('ChatScreen', () => {
   const setOptionsMock = jest.fn();
   const partialNavigation: Pick<
     ChatScreenProps['navigation'],
-    'navigate' | 'setOptions' | 'goBack'
+    'navigate' | 'setOptions' | 'goBack' | 'setParams'
   > = {
     navigate: jest.fn(),
     setOptions: setOptionsMock,
     goBack: jest.fn(),
+    setParams: jest.fn(),
   };
   // SAFETY: ChatScreen calls only these three navigator methods.
   const mockNavigation = partialNavigation as ChatScreenProps['navigation'];
@@ -181,7 +185,78 @@ describe('ChatScreen', () => {
     });
   });
 
+  describe('Connection lifecycle', () => {
+    it('does not reconnect when the thread on screen changes', async () => {
+      const { rerender } = renderChatScreen();
+      await waitFor(() => {
+        expect(mockStore.connect).toHaveBeenCalledTimes(1);
+      });
+
+      mockStoreState({ ...mockStore, currentThreadId: 'thread-2' });
+      rerender(
+        <ChatScreen
+          navigation={mockNavigation}
+          route={{} as ChatScreenProps['route']}
+        />
+      );
+
+      expect(mockStore.connect).toHaveBeenCalledTimes(1);
+    });
+
+    it('reconnects when the network comes back', async () => {
+      renderChatScreen();
+      await waitFor(() => {
+        expect(mockStore.connect).toHaveBeenCalledTimes(1);
+      });
+
+      const listener = jest.mocked(NetInfo.addEventListener).mock.calls[0][0];
+      const offline: Pick<NetInfoState, 'isConnected' | 'isInternetReachable'> = {
+        isConnected: false,
+        isInternetReachable: false,
+      };
+      const online: Pick<NetInfoState, 'isConnected' | 'isInternetReachable'> = {
+        isConnected: true,
+        isInternetReachable: true,
+      };
+      // SAFETY: the screen reads only the two reachability fields.
+      act(() => listener(online as NetInfoState));
+      expect(mockStore.connect).toHaveBeenCalledTimes(1);
+
+      act(() => listener(offline as NetInfoState));
+      act(() => listener(online as NetInfoState));
+
+      expect(mockStore.connect).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('Header configuration', () => {
+    it('can reopen a routed thread after starting a new chat', async () => {
+      let params: ChatScreenProps['route']['params'] = { threadId: 'thread-1' };
+      const navigation = {
+        ...mockNavigation,
+        setParams: jest.fn((patch: Partial<NonNullable<ChatScreenProps['route']['params']>>) => {
+          params = { ...params, ...patch };
+        }),
+      };
+      const renderScreen = () => (
+        <ChatScreen navigation={navigation} route={{ key: 'chat', name: 'Chat', params }} />
+      );
+      const { rerender } = render(renderScreen());
+      const HeaderRight = setOptionsMock.mock.calls[0][0].headerRight;
+      const header = render(<HeaderRight />);
+      await act(async () => {
+        fireEvent.press(header.getByTestId('icon-add-circle-outline'));
+      });
+      mockStoreState({ ...mockStore, currentThreadId: 'new-thread-id' });
+      rerender(renderScreen());
+      params = { threadId: 'thread-1' };
+      rerender(renderScreen());
+
+      await waitFor(() => {
+        expect(mockStore.loadThreadFromServer).toHaveBeenCalledWith('thread-1');
+      });
+    });
+
     it('sets header right button', () => {
       renderChatScreen();
       

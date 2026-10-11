@@ -86,3 +86,29 @@ it("makes Custom exclusive even when its value equals a preset", () => {
     useScriptStore.getState().getScript("duration-test")?.setup?.length_seconds
   ).toBe(60);
 });
+
+it("refuses a custom length that is not a whole number of seconds", () => {
+  useScriptStore.getState().ensureScript("duration-fraction");
+  const onValidationChange = jest.fn();
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <FormatStep
+        scriptId="duration-fraction"
+        onValidationChange={onValidationChange}
+      />
+    </ThemeProvider>
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
+  const custom = screen.getByRole("spinbutton");
+  fireEvent.change(custom, { target: { value: "12.5" } });
+  fireEvent.blur(custom);
+  // The field said "whole number" and then quietly rounded to 13.
+  expect(screen.getByText(/whole number of seconds/)).toBeInTheDocument();
+  expect(onValidationChange).toHaveBeenLastCalledWith(
+    expect.stringMatching(/whole number/)
+  );
+  expect(
+    useScriptStore.getState().getScript("duration-fraction")?.setup
+      ?.length_seconds
+  ).toBeUndefined();
+});

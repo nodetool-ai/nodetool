@@ -33,7 +33,7 @@ export function createAssetDragImage(
     left: -9999px;
     width: 240px;
     z-index: ${DRAG_IMAGE_Z_INDEX};
-    font-family: Inter, sans-serif;
+    font-family: var(--fontFamily1);
     pointer-events: none;
   `;
 
@@ -69,7 +69,7 @@ export function createAssetDragImage(
       align-items: center;
       padding: ${getSpacingPx(SPACING.md)};
       box-sizing: border-box;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      box-shadow: var(--shadow-md);
       z-index: ${getZIndex(index, stackAssets.length)};
       transform: scale(${scale});
       transform-origin: top left;
@@ -171,7 +171,7 @@ export function createAssetDragImage(
       font-weight: ${FONT_WEIGHT.semibold};
       border: 2px solid var(--palette-background-paper);
       z-index: ${Z_INDEX.overlay};
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: var(--shadow-sm);
     `;
     container.appendChild(badge);
   }

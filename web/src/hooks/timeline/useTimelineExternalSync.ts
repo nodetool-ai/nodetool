@@ -8,7 +8,8 @@
  * `updated_at` and, when the writer attached them, the ops it was made with.
  * `documentSync` compares the token against what this editor last saved with.
  * A clean editor takes the server copy (refetch + reload the store, which
- * also re-baselines autosave); a dirty one merges the external change per
+ * also re-baselines autosave, with undo history rebased rather than cleared);
+ * a dirty one merges the external change per
  * merge unit — draft wins, refused values land in the conflict banner, and
  * no undo entry is recorded for work the user did not make (ADR 0001).
  */
@@ -31,7 +32,7 @@ import { useConflictStore } from "../../stores/ConflictStore";
 import { trpc, trpcClient } from "../../trpc/client";
 import type { DocumentOp } from "@nodetool-ai/protocol";
 import { isTimelineDocumentDirty } from "./useTimelineAutosave";
-import { applyTimelineSequenceToStore } from "./useLoadTimelineIntoStore";
+import { adoptExternalTimelineSequence } from "./useLoadTimelineIntoStore";
 import {
   applyAcceptedTimelineConflict,
   listableTimelineConflicts,
@@ -66,7 +67,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
         return;
       }
       utils.timeline.get.setData({ id: sequenceId }, sequence);
-      applyTimelineSequenceToStore(store, sequence);
+      adoptExternalTimelineSequence(store, sequence);
     };
     return registerDocumentSync("timelinesequence", sequenceId, {
       localRevision: () => {

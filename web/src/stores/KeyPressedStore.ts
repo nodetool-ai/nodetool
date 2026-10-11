@@ -590,6 +590,17 @@ const initKeyListeners = () => {
     keysToUpdate["alt"] = altKey;
     keysToUpdate["meta"] = metaKey;
 
+    // macOS sends no keyup for a key released while Meta is held, so after
+    // Cmd+V in a text field "v" would stay pressed and block every
+    // single-key shortcut. Releasing Meta releases those keys too.
+    if (!isPressed && normalizedKey === "meta") {
+      for (const pressed of useKeyPressedStore.getState().pressedKeys) {
+        if (!["shift", "control", "alt", "meta"].includes(pressed)) {
+          keysToUpdate[pressed] = false;
+        }
+      }
+    }
+
     setKeysPressed(keysToUpdate, event);
   };
 

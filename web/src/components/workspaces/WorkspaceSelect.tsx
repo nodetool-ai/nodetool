@@ -78,11 +78,11 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      fontFamily: "monospace"
+      fontFamily: "var(--fontFamily2)"
     },
     ".workspace-path-inline": {
       color: theme.vars.palette.text.disabled,
-      fontFamily: "monospace",
+      fontFamily: "var(--fontFamily2)",
       fontSize: "var(--fontSizeSmall)"
     },
     ".none-option": {
@@ -292,7 +292,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    fontFamily: "monospace"
+                    fontFamily: "var(--fontFamily2)"
                   },
                   "& .none-option": {
                     color: theme.vars.palette.text.disabled,

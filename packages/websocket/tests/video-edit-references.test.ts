@@ -170,6 +170,8 @@ describe("video edit references", () => {
         mode: "video_edit", provider: "fal_ai", model: "edit", prompt: "Keep identity",
         source_asset_id: "source", reference_asset_ids: ["reference"], entity_ids: ["entity"]
       } });
+      // generate_media answers from a detached task.
+      await session.commands.settled();
       expect(provider.calls[0]).toMatchObject({
         referenceAssetIds: ["reference", "entity"], referenceImages: [new Uint8Array([3]), new Uint8Array([2])]
       });

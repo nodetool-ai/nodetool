@@ -1172,6 +1172,11 @@ the browser. The command fails when a required effect cannot run. The JSON
 report includes effect diagnostics. GPU capture requires the local Dawn WebGPU
 adapter.
 
+A 3D capture checks the frame against the document's `performance.budgets`,
+with player defaults for any budget left out. The JSON report has
+`budget.limits` and `budget.overruns`, and `stats.culledEntities` counts the
+entities that distance culling hid. Text mode prints each overrun to stderr.
+
 `--assertions` checks selected ticks. Tick 0 is the initial state; tick 1 is
 after the first input frame. Each listed tick may check `sceneId`, entity
 `x`/`y`/`active`, and the complete ordered `events` array for that tick. Omitted

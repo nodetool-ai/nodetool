@@ -61,6 +61,7 @@ let mockCurrentTimeMs = 0;
 let mockIsPlaying = false;
 let mockDurationMs = 60_000;
 let mockClips: unknown[] = [];
+let mockTracks: unknown[] = [];
 const mockTimelineListeners = new Set<() => void>();
 
 function setMockClips(clips: unknown[]) {
@@ -100,7 +101,7 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
 jest.mock("../../../../stores/timeline/TimelineStore", () => {
   const getState = () => ({
     clips: mockClips,
-    tracks: [] as unknown[],
+    tracks: mockTracks,
     durationMs: mockDurationMs
   });
   const useTimelineStore = <T,>(
@@ -125,12 +126,27 @@ jest.mock("../../../../stores/timeline/TimelineStore", () => {
 let mockMatteViewEnabled = false;
 let mockSelectedClipIds = new Set<string>();
 const mockToggleMatteView = jest.fn();
+let mockAudition: { clipId: string; takeId: string } | null = null;
+type MockUIListener = (
+  state: { audition: typeof mockAudition },
+  previous: { audition: typeof mockAudition }
+) => void;
+const mockUIListeners = new Set<MockUIListener>();
+
+function setMockAudition(next: typeof mockAudition) {
+  const previous = { audition: mockAudition };
+  mockAudition = next;
+  for (const listener of mockUIListeners) {
+    listener({ audition: mockAudition }, previous);
+  }
+}
 
 jest.mock("../../../../stores/timeline/TimelineUIStore", () => {
   const getState = () => ({
     matteViewEnabled: mockMatteViewEnabled,
     toggleMatteView: mockToggleMatteView,
-    selectedClipIds: mockSelectedClipIds
+    selectedClipIds: mockSelectedClipIds,
+    audition: mockAudition
   });
   const useTimelineUIStore = <T,>(
     selector: (s: ReturnType<typeof getState>) => T
@@ -139,6 +155,10 @@ jest.mock("../../../../stores/timeline/TimelineUIStore", () => {
     return selector ? selector(state) : state;
   };
   useTimelineUIStore.getState = getState;
+  useTimelineUIStore.subscribe = (listener: MockUIListener) => {
+    mockUIListeners.add(listener);
+    return () => mockUIListeners.delete(listener);
+  };
   return { useTimelineUIStore };
 });
 
@@ -175,9 +195,12 @@ describe("PreviewArea", () => {
     mockIsPlaying = false;
     mockDurationMs = 60_000;
     mockClips = [];
+    mockTracks = [];
     mockTimelineListeners.clear();
     mockMatteViewEnabled = false;
     mockSelectedClipIds = new Set<string>();
+    mockAudition = null;
+    mockUIListeners.clear();
   });
 
   it("expands without the Fullscreen API and keeps the compositor mounted", async () => {
@@ -298,6 +321,26 @@ describe("PreviewArea", () => {
       expect(
         screen.getByRole("button", { name: "Pause" })
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("live position while playing", () => {
+    it("moves the timecode and the scrub bar with the playhead", () => {
+      mockIsPlaying = true;
+      mockCurrentTimeMs = 0;
+      renderPreview();
+      act(() => {
+        for (const [listener] of mockSubscribeTime.mock.calls as unknown as Array<
+          [(ms: number) => void]
+        >) {
+          listener(12_000);
+        }
+      });
+      expect(screen.getByText("00:00:12:00")).toBeInTheDocument();
+      expect(
+        screen.getByRole("slider", { name: "Scrub timeline" })
+      ).toHaveAttribute("aria-valuenow", "12000");
+      mockIsPlaying = false;
     });
   });
 
@@ -513,6 +556,159 @@ describe("PreviewArea", () => {
         expect(mockScheduleClips).toHaveBeenCalledTimes(1);
       }
     );
+
+    describe("a video clip with its own audio", () => {
+      const videoTrack = { id: "video-track", type: "video", index: 0, visible: true };
+      const shot = {
+        id: "shot",
+        trackId: "video-track",
+        name: "Shot",
+        mediaType: "video",
+        sourceType: "generated",
+        status: "generated",
+        currentAssetId: "asset-shot",
+        startMs: 0,
+        durationMs: 10_000,
+        volumeDb: -3
+      };
+
+      it("is scheduled through the audio graph when it has no audio partner", async () => {
+        jest.useFakeTimers();
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        mockTracks = [videoTrack];
+        mockClips = [shot];
+        renderPreview();
+
+        await user.click(screen.getByRole("button", { name: "Play" }));
+        await act(async () => {
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        expect(mockScheduleClips).toHaveBeenCalledTimes(1);
+        const scheduled = mockScheduleClips.mock.calls[0][0];
+        expect(scheduled.map((c: { clip: { id: string } }) => c.clip.id)).toEqual(["shot"]);
+      });
+
+      it("is not scheduled while an extracted-audio clip stands in for it", async () => {
+        jest.useFakeTimers();
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        mockTracks = [videoTrack, { id: "audio-track", type: "audio", index: 1, visible: true }];
+        mockClips = [
+          { ...shot, linkId: "L" },
+          { ...shot, id: "partner", trackId: "audio-track", mediaType: "audio", linkId: "L" }
+        ];
+        renderPreview();
+
+        await user.click(screen.getByRole("button", { name: "Play" }));
+        await act(async () => {
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        const scheduled = mockScheduleClips.mock.calls[0][0];
+        expect(scheduled.map((c: { clip: { id: string } }) => c.clip.id)).toEqual(["partner"]);
+      });
+
+      it("stops when its track is muted during playback", async () => {
+        jest.useFakeTimers();
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        mockTracks = [videoTrack];
+        mockClips = [shot];
+        renderPreview();
+
+        await user.click(screen.getByRole("button", { name: "Play" }));
+        await act(async () => {
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        mockStopClips.mockClear();
+        mockAddClips.mockClear();
+        mockTracks = [{ ...videoTrack, muted: true }];
+        await act(async () => {
+          setMockClips([shot]);
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        expect(mockStopClips).toHaveBeenCalledWith(["shot"]);
+        expect(mockAddClips).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("auditioning an audio take", () => {
+      const audioClip = {
+        id: "audio-take",
+        trackId: "audio-track",
+        name: "Voice",
+        mediaType: "audio",
+        sourceType: "imported",
+        status: "generated",
+        currentAssetId: "asset-original",
+        startMs: 0,
+        durationMs: 10_000,
+        versions: [
+          {
+            id: "take-2",
+            assetId: "asset-candidate",
+            status: "success",
+            createdAt: "2026-01-01T00:00:00Z"
+          }
+        ]
+      };
+
+      it("plays the auditioned take instead of the current one", async () => {
+        jest.useFakeTimers();
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        mockClips = [audioClip];
+        mockAudition = { clipId: "audio-take", takeId: "take-2" };
+        renderPreview();
+
+        await user.click(screen.getByRole("button", { name: "Play" }));
+        await act(async () => {
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        expect(mockScheduleClips).toHaveBeenCalledTimes(1);
+        const scheduled = mockScheduleClips.mock.calls[0][0];
+        expect(scheduled).toHaveLength(1);
+        expect(scheduled[0].clip.currentAssetId).toBe("asset-candidate");
+      });
+
+      it("reschedules the clip when an audition starts during playback", async () => {
+        jest.useFakeTimers();
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        mockClips = [audioClip];
+        renderPreview();
+
+        await user.click(screen.getByRole("button", { name: "Play" }));
+        await act(async () => {
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+        expect(
+          mockScheduleClips.mock.calls[0][0][0].clip.currentAssetId
+        ).toBe("asset-original");
+
+        mockCurrentTimeMs = 2_000;
+        mockStopClips.mockClear();
+        mockAddClips.mockClear();
+        await act(async () => {
+          setMockAudition({ clipId: "audio-take", takeId: "take-2" });
+          await Promise.resolve();
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+
+        expect(mockStopClips).toHaveBeenCalledWith(["audio-take"]);
+        expect(mockAddClips).toHaveBeenCalledTimes(1);
+        expect(mockAddClips.mock.calls[0][0][0].clip.currentAssetId).toBe(
+          "asset-candidate"
+        );
+      });
+    });
 
     it("schedules MIDI immediately when it is unmuted during playback", async () => {
       jest.useFakeTimers();

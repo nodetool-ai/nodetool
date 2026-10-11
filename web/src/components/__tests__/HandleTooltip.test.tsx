@@ -26,8 +26,11 @@ jest.mock('react-dom', () => ({
 jest.mock('../../stores/ConnectionStore');
 jest.mock('../node/KeyboardConnectionPicker', () => ({
   __esModule: true,
-  default: ({ open }: { open: boolean }) =>
-    open ? <div role="dialog">Connection picker</div> : null
+  default: ({ open }: { open: boolean }) => (
+    <div data-testid="connection-picker-mounted">
+      {open ? <div role="dialog">Connection picker</div> : null}
+    </div>
+  )
 }));
 
 const mockUseConnectionStore = asMock(useConnectionStore);
@@ -127,6 +130,11 @@ describe('HandleTooltip', () => {
           handleDirection="source"
         />
       );
+
+      // Every handle renders this tooltip, so a closed picker is not mounted.
+      expect(
+        screen.queryByTestId('connection-picker-mounted')
+      ).not.toBeInTheDocument();
 
       fireEvent.keyDown(screen.getByRole('button'), { key: 'Enter' });
 

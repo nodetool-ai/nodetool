@@ -15,6 +15,8 @@
     "scripts/resolve-tsc.mjs",
     "scripts/run-tsc.mjs",
     "scripts/copy-manifests.mjs",
+    // The runner every package `test` script goes through.
+    "scripts/run-vitest.mjs",
     // Files that package tests read from outside any package. These must live
     // here, not in a task's `inputs`: the PR gate runs `turbo run test
     // --filter="./packages/*" --affected`, and `--affected` scopes the graph by
@@ -119,7 +121,10 @@
         // `.turbo/cache` with a prefix `restore-keys`, so the stale hit
         // survives across runs and a broken example reports green.
         "$TURBO_ROOT$/examples/workflows/**",
-        "$TURBO_ROOT$/packages/base-nodes/nodetool/examples/**"
+        "$TURBO_ROOT$/packages/base-nodes/nodetool/examples/**",
+        // The sandbox guest packs. node-sdk's pack loader reads them at run
+        // time, so every package above it can observe a change.
+        "$TURBO_ROOT$/packages/sandbox-packs/**"
       ],
       "outputs": [],
       "env": ["NODETOOL_LOG_LEVEL"]

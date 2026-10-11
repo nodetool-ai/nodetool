@@ -15,9 +15,9 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  reducedMotion
+  reducedMotion,
+  PanelHeader
 } from "../ui_primitives";
-import PanelHeadline from "../ui/PanelHeadline";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -48,25 +48,6 @@ const styles = (theme: Theme, isMobile: boolean) =>
       height: "100%",
       minHeight: 0,
       overflow: "hidden"
-    },
-
-    ".nl-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(SPACING.md),
-      padding: isMobile
-        ? theme.spacing(SPACING.none, SPACING.xs, SPACING.none, SPACING.xs)
-        : theme.spacing(SPACING.none, SPACING.lg, SPACING.none, SPACING.lg)
-    },
-    ".nl-count": {
-      display: "inline-flex",
-      alignItems: "center",
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`, // was 1px 8px
-      borderRadius: BORDER_RADIUS.sm,
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmall)",
-      fontWeight: FONT_WEIGHT.medium,
-      fontVariantNumeric: "tabular-nums"
     },
 
     ".nl-search": {
@@ -423,14 +404,12 @@ const NodeLibrary = memo<NodeLibraryProps>(
 
     return (
       <div css={cssStyles} className="nl-root">
-        <div className="nl-header">
-          <PanelHeadline
-            title="Nodes"
-            docsTopic="nodes"
-            description={getTopLevelCategory("nodes").description}
-            actions={<span className="nl-count">{nodes.length}</span>}
-          />
-        </div>
+        <PanelHeader
+          title="Nodes"
+          count={nodes.length}
+          docsTopic="nodes"
+          description={getTopLevelCategory("nodes").description}
+        />
 
         <div className="nl-search">
           <SearchIcon className="nl-search-icon" />

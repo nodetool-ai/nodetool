@@ -208,10 +208,6 @@ const OutputContextMenu: React.FC = () => {
         initialPosition(anchor)
       );
 
-      if (targetHandle) {
-        newNode.data.dynamic_properties[targetHandle] = true;
-      }
-
       const extendedMetadata = metadata as NodeMetadata & { style?: unknown };
       if (extendedMetadata.style) {
         newNode.style = extendedMetadata.style;

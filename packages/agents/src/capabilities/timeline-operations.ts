@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { applyTimelineTrackOp, type TimelineTrackOp, type TimelineOpState } from "@nodetool-ai/timeline/ops";
-import { STAGGER_UNITS, ANIMATED_PROPERTIES, DEFAULT_BEAT_TOLERANCE_MS } from "@nodetool-ai/timeline";
+import {
+  ANIMATED_PROPERTIES,
+  DEFAULT_BEAT_TOLERANCE_MS,
+  STAGGER_UNITS,
+  createTimeOrderedUuid
+} from "@nodetool-ai/timeline";
 import { buildTimelineToolContracts } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
 import { resolveMoveTrackArgs, resolveDeleteTrackArgs } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
@@ -176,6 +181,28 @@ async function bakeTimelineAnimation(
 }
 
 /**
+ * A Blender bake that runs once per clip and dependency hash. `edit_timeline`
+ * re-applies its ops on every compare-and-swap retry; without this each retry
+ * would render the same picture again and store another asset.
+ */
+export function timelineModel3DBaker(run: CapabilityRun): TimelineModel3DBaker {
+  const baked = new Map<string, ReturnType<TimelineModel3DBaker>>();
+  return (request) => {
+    const key = JSON.stringify([request.clip.id, request.dependencyHash]);
+    const existing = baked.get(key);
+    if (existing) {
+      return existing;
+    }
+    const result = import("./timeline-bake.js").then(
+      ({ bakeModel3DClipOnServer }) =>
+        bakeModel3DClipOnServer(run.context, request)
+    );
+    baked.set(key, result);
+    return result;
+  };
+}
+
+/**
  * The bridge hooks that write outside the document: a Blender render of a 3D
  * clip, and the new sequence `retarget_format` creates.
  */
@@ -187,10 +214,7 @@ function writingHooks(
   retargetFormat: TimelineFormatRetargeter;
 } {
   return {
-    bakeModel3DClip: async (request) => {
-      const { bakeModel3DClipOnServer } = await import("./timeline-bake.js");
-      return bakeModel3DClipOnServer(run.context, request);
-    },
+    bakeModel3DClip: timelineModel3DBaker(run),
     retargetFormat: async (adapted) => {
       const { TimelineSequence } = await import("@nodetool-ai/models");
       const derivedDocument: TimelineDocument = {
@@ -212,6 +236,13 @@ function writingHooks(
       }
       if (adapted.mediaTracks !== undefined) {
         derivedDocument.mediaTracks = adapted.mediaTracks;
+      }
+      if (adapted.trackFolders !== undefined) {
+        derivedDocument.trackFolders = adapted.trackFolders;
+      }
+      if (adapted.storyboardMaterializations !== undefined) {
+        derivedDocument.storyboardMaterializations =
+          adapted.storyboardMaterializations;
       }
       const name = `${sequence.name} (${adapted.width}×${adapted.height})`;
       const created = await TimelineSequence.create({
@@ -253,26 +284,6 @@ function applyTrackOps(
     playheadMs: 0,
     selectedClipIds: []
   };
-  const usedIds = new Set([
-    ...[
-      ...document.tracks,
-      ...document.clips,
-      ...document.markers,
-      ...(document.mediaTracks ?? [])
-    ].map((unit) => unit.id),
-    ...document.clips.flatMap((clip) =>
-      (clip.animations ?? []).map((animation) => animation.id)
-    )
-  ]);
-  let nextId = 0;
-  const newId = (): string => {
-    let id: string;
-    do {
-      id = `track_${++nextId}`;
-    } while (usedIds.has(id));
-    usedIds.add(id);
-    return id;
-  };
   const records: OpRecord[] = [];
   for (const entry of ops) {
     try {
@@ -296,7 +307,9 @@ function applyTrackOps(
         );
         op = { op: "delete_track", ...resolveDeleteTrackArgs(args) };
       }
-      const outcome = applyTimelineTrackOp(state, op, { newId });
+      const outcome = applyTimelineTrackOp(state, op, {
+        newId: createTimeOrderedUuid
+      });
       if (outcome.error) throw new Error(outcome.error);
       state = outcome.state;
       records.push({ op: entry.op, ok: true, result: outcome.result });
@@ -369,7 +382,12 @@ export async function applyOps(
   sequence: TimelineSequence,
   document: TimelineDocument,
   ops: ParsedOp[],
-  options: { hermetic?: boolean; generateMediaEdit?: (request: MediaEditRequest, operationIndex: number) => Promise<{ generationId: string; assetId: string }> } = {}
+  options: {
+    hermetic?: boolean;
+    generateMediaEdit?: (request: MediaEditRequest, operationIndex: number) => Promise<{ generationId: string; assetId: string }>;
+    /** A baker shared across retries of one call; see {@link timelineModel3DBaker}. */
+    bakeModel3DClip?: TimelineModel3DBaker;
+  } = {}
 ): Promise<ApplyOutcome> {
   if (ops.every(({ op }) => op === "ui_timeline_add_track" || op === "ui_timeline_move_track" || op === "ui_timeline_delete_track")) {
     return applyTrackOps(sequence, document, ops);
@@ -391,6 +409,8 @@ export async function applyOps(
       transcript: document.transcript,
       scriptEnabled: document.scriptEnabled,
       templateId: document.templateId,
+      trackFolders: document.trackFolders,
+      storyboardMaterializations: document.storyboardMaterializations,
       tempo: document.tempo,
       camera2d: document.camera2d,
       setup: document.setup,
@@ -417,6 +437,9 @@ export async function applyOps(
   };
   if (!options.hermetic) {
     Object.assign(init, writingHooks(run, sequence));
+    if (options.bakeModel3DClip) {
+      init.bakeModel3DClip = options.bakeModel3DClip;
+    }
     const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
     const generate = options.generateMediaEdit ?? timelineMediaEditGenerator(run);
     init.generateMediaEdit = (request) => generate(request, operationIndex);

@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     },
     ".workspace-menu-path": {
       color: theme.vars.palette.grey[400],
-      fontFamily: "monospace",
+      fontFamily: "var(--fontFamily2)",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"

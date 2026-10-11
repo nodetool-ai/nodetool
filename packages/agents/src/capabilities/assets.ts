@@ -1096,6 +1096,9 @@ const updateAsset: CapabilityExport = {
     const assetId = String(params["asset_id"]);
     const asset = await findRunAsset(run, assetId);
     if (!asset) return { error: `Asset ${assetId} was not found.` };
+    const { Asset } = await import("@nodetool-ai/models");
+    const refusal = Asset.systemEntityRefusal(asset);
+    if (refusal) return { error: refusal };
 
     let touched = false;
     if (isString(params["name"]) && params["name"]) {
@@ -1103,20 +1106,15 @@ const updateAsset: CapabilityExport = {
       touched = true;
     }
     if (isString(params["parent_id"]) && params["parent_id"]) {
-      if (
-        params["parent_id"] !== userId &&
-        !(await findRunAsset(run, params["parent_id"]))
-      ) {
-        return { error: "Parent folder not found" };
+      let parentId = params["parent_id"];
+      if (parentId !== userId) {
+        const parent = await findRunAsset(run, parentId);
+        if (!parent) return { error: "Parent folder not found" };
+        parentId = parent.id;
       }
-      const { Asset } = await import("@nodetool-ai/models");
-      const problem = await Asset.validateParent(
-        userId,
-        asset,
-        params["parent_id"]
-      );
+      const problem = await Asset.validateParent(userId, asset, parentId);
       if (problem) return { error: problem };
-      asset.parent_id = params["parent_id"];
+      asset.parent_id = parentId;
       touched = true;
     }
     if (!touched) {

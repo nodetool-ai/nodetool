@@ -224,7 +224,7 @@ describe("assets.update parent validation", () => {
 
   it("applies the move when the model raises no objection", async () => {
     const a = makeAsset({ id: "a1" });
-    installTree([a]);
+    installTree([a, makeAsset({ id: "dest", content_type: "folder" })]);
     mocks.validateParent.mockResolvedValue(null);
 
     await createCaller(makeCtx()).assets.update({

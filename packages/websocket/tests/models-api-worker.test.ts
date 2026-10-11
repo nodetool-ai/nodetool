@@ -109,6 +109,10 @@ describe("relayWorkerDownload", () => {
       repo_id: "org/m",
       model_type: "hf.model"
     });
+    // A whole-repo download skips the exports a server-side download skips.
+    expect(downloadModel.mock.calls[0][0].ignore_patterns).toEqual(
+      expect.arrayContaining(["*.onnx", "*.h5", "*.msgpack"])
+    );
   });
 
   it("routes an image-backed model through models.prepare", async () => {

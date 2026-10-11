@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  getAssetFileName,
   storyboardRenderProvenance,
   storyboardRenderVersion
 } from "@nodetool-ai/protocol";
@@ -21,6 +22,7 @@ import {
 import type { GenerationAttachmentTransition } from "@nodetool-ai/models";
 import { recoverTimelineMediaEdit } from "./timeline-generation-recovery.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
+import { getAssetStorageKey } from "./lib/asset-paths.js";
 
 /** One attachment result, so the write path and the already-written path
  * cannot disagree about what "attached" means. */
@@ -264,12 +266,13 @@ export function createGenerationRecoveryWorker(
         content_type: contentType,
         parent_id: generation.user_id
       });
-      const extension =
-        contentType.split("/", 2)[1]?.replace(/[^a-z0-9]/giu, "") || "bin";
+      // Readers locate the bytes by this same mapping (`image/jpeg` is
+      // `.jpg`, `audio/mpeg` is `.mp3`), so deriving the extension from the
+      // MIME subtype stored files nothing could find.
       await storeAssetWithThumbnail(
         generation.user_id,
         asset.id,
-        `${assetId}.${extension}`,
+        getAssetFileName(assetId, contentType),
         bytes,
         contentType
       );
@@ -278,7 +281,11 @@ export function createGenerationRecoveryWorker(
       return {
         status: "ready",
         asset_id: asset.id,
-        storage_key: `${generation.user_id}/${assetId}.${extension}`,
+        storage_key: getAssetStorageKey(
+          generation.user_id,
+          assetId,
+          contentType
+        ),
         provider_ref: sourceUrl,
         raw_result: descriptor.rawResult
       };

@@ -41,10 +41,13 @@ import { useImageSetupFlow } from "./useImageSetupFlow";
 export interface ImageSetupOverlayProps {
   /** Runs whenever the flow hands the document back to the editor. */
   onFinish?: () => void;
+  /** Told whether the flow is covering the editor, so its shortcuts pause. */
+  onCoveringChange?: (covering: boolean) => void;
 }
 
 export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
-  onFinish
+  onFinish,
+  onCoveringChange
 }) => {
   const theme = useTheme();
   const createWorkflow = useWorkflowManager((state) => state.create);
@@ -94,10 +97,10 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
     setMakeMoreError(null);
     setMakingMore(true);
     const session = sheetSessionRef.current;
+    // The layers exist before their start requests return, so the sheet and
+    // `Pick` learn of them then: a pick made while they start must hide them.
     void look
-      .generate()
-      .then((layerIds) => {
-        // A late batch is still this session's, so a later pick hides it.
+      .generate((layerIds) => {
         setSessionLayers((current) => [...current, ...layerIds]);
         if (session === sheetSessionRef.current) {
           setBatch((current) => [...current, ...layerIds]);
@@ -168,6 +171,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
       const name = animate ? "Image to video" : "Image canvas";
       const workflow = await createWorkflow({
         name,
+        project_id: projectId,
         description: "",
         tags: [],
         access: "private",
@@ -200,6 +204,10 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
   const covering = batch.length > 0 || config.stage !== "done";
 
   useEffect(() => {
+    onCoveringChange?.(covering);
+  }, [covering, onCoveringChange]);
+
+  useEffect(() => {
     const surface = surfaceRef.current;
     const parent = surface?.parentElement;
     if (!covering || !surface || !parent) {
@@ -230,6 +238,31 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
     };
   }, [covering]);
 
+  // Generate, "Back to generation settings" and a pick from a newer batch
+  // swap the flow and the sheet. The control that was pressed goes with the
+  // view it was in, so the keyboard lands on the new view's heading instead
+  // of falling to the page.
+  const showingSheet = batch.length > 0;
+  const shownViewRef = useRef(showingSheet);
+  useEffect(() => {
+    if (shownViewRef.current === showingSheet) {
+      return;
+    }
+    shownViewRef.current = showingSheet;
+    const surface = surfaceRef.current;
+    const active = document.activeElement;
+    if (!surface || (active !== surface && surface.contains(active))) {
+      return;
+    }
+    const heading =
+      surface.querySelector<HTMLElement>("fieldset h1, fieldset h2") ??
+      surface.querySelector<HTMLElement>("h2");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  }, [showingSheet]);
+
   if (!covering) {
     return null;
   }
@@ -257,6 +290,8 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
                 siblingLayerIds={sessionLayers}
                 onPick={pickRenderedImage}
                 onMakeMore={makeMore}
+                makeMoreDetail={look.primaryDetail}
+                regenerateDetail={look.perImageDetail}
                 makeMorePending={makingMore}
                 makeMoreError={makeMoreError}
                 onBackToSettings={backToSettings}

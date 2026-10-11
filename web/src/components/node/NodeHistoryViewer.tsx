@@ -148,7 +148,7 @@ const styles = (theme: Theme) =>
       bottom: 6,
       left: 6,
       fontSize: theme.fontSizeSmaller,
-      fontFamily: "monospace",
+      fontFamily: "var(--fontFamily2)",
       color: theme.vars.palette.common.white
     },
     ".overlay-count": {

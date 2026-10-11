@@ -5,6 +5,7 @@ import type {
   GameEvent3D,
   GameHudLabel,
   GameInputFrame3D,
+  GameParticleEmission,
   GameQueryResult3D,
   GameRenderFrame3D,
   GameScene3D,
@@ -51,7 +52,7 @@ export interface GameSystemContext3D {
   music: GameSnapshot3D["music"];
   activeContacts: Map<string, Contact3D>;
   spatial: SpatialWorld3D;
-  presentationEvents: GameEvent3D[];
+  presentationEvents: (GameEvent3D | GameParticleEmission)[];
   readonly runner: GameScriptRunner3D | undefined;
   readonly rapier: Awaited<ReturnType<typeof prepareRapier3D>>;
   readonly prepared: ReadonlyMap<string, PreparedCollider3D>;

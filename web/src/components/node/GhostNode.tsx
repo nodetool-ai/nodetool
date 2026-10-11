@@ -59,7 +59,7 @@ const GhostNode = memo(function GhostNode({
         padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
         borderRadius: BORDER_RADIUS.xl,
         background: theme.labelBackground,
-        boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
+        boxShadow: "var(--shadow-lg)",
         fontSize: "var(--fontSizeSmall)",
         fontWeight: 600,
         letterSpacing: "0.02em"

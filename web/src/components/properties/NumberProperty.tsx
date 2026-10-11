@@ -2,11 +2,8 @@ import { useCallback } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import { useInputMinMax } from "../../hooks/useInputMinMax";
-import { useOptionalTemporalNodes } from "../../contexts/NodeContext";
+import { useUndoGroup } from "../../hooks/useUndoGroup";
 import { isNumber } from "../../utils/typePredicates";
-
-/** Outside the graph editor there is no undo history to pause. */
-const NO_OP = (): void => undefined;
 
 interface NumberPropertyProps extends PropertyProps<number> {
   inputType: "int" | "float";
@@ -30,11 +27,8 @@ const NumberProperty = ({ inputType, ...props }: NumberPropertyProps) => {
 
   const isValid = inputType === "int" ? Number.isInteger : isNumber;
   const value = isValid(propValue) ? propValue : 0;
-  const pauseHistory = useOptionalTemporalNodes((state) => state.pause, NO_OP);
-  const resumeHistory = useOptionalTemporalNodes(
-    (state) => state.resume,
-    NO_OP
-  );
+  // One undo entry per slider drag, ended on unmount if the drag is cut off.
+  const dragUndoGroup = useUndoGroup();
 
   const { min, max } = useInputMinMax({
     nodeType: props.nodeType,
@@ -58,14 +52,6 @@ const NumberProperty = ({ inputType, ...props }: NumberPropertyProps) => {
     [onChange]
   );
 
-  const handleDragStart = useCallback(() => {
-    pauseHistory();
-  }, [pauseHistory]);
-
-  const handleDragEnd = useCallback(() => {
-    resumeHistory();
-  }, [resumeHistory]);
-
   return (
     <NumberInput
       id={id}
@@ -85,8 +71,8 @@ const NumberProperty = ({ inputType, ...props }: NumberPropertyProps) => {
       showSlider={showSlider}
       onChange={handleChange}
       onChangeComplete={onChangeComplete}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
+      onDragStart={dragUndoGroup.begin}
+      onDragEnd={dragUndoGroup.end}
     />
   );
 };

@@ -128,7 +128,10 @@ export const ProviderCard = memo(function ProviderCard({
   // A cloud profile prunes the local and OAuth-backed providers, and a build
   // can ship without one, so a card can read "Connected" while the model menu
   // stays empty. `models.providers` is what the model menu itself reads.
-  const { providers, isLoading: providersLoading } = useProviders();
+  const { providers, isLoading, isFetching } = useProviders();
+  // A key saved a moment ago refetches the list. Until it lands, the old list
+  // lacks the provider, which is not the same as the server not offering it.
+  const providersLoading = isLoading || isFetching;
   const isUnavailable = useMemo(() => {
     if (credentialedProviderIds.size === 0) return false;
     // Unknown is not absent: while the query is in flight, say nothing.
@@ -594,17 +597,21 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     [matchedProviders]
   );
 
-  // Unconfigured providers from our meta list that aren't in secrets
+  // Unconfigured providers from our meta list that aren't in secrets. The
+  // server's placeholder rows are already in `matchedProviders`, so skip those
+  // or each one is listed twice.
   const unconfiguredMeta = useMemo(() => {
+    const listed = new Set(matchedProviders.map((p) => p.meta.key));
     return PROVIDER_META.filter(
       (p) =>
         isProviderAvailable(p) &&
+        !listed.has(p.key) &&
         !areAllFieldsConfigured(p, configuredKeys) &&
         (!lowerSearch ||
           p.name.toLowerCase().includes(lowerSearch) ||
           p.description.toLowerCase().includes(lowerSearch))
     );
-  }, [configuredKeys, lowerSearch]);
+  }, [configuredKeys, lowerSearch, matchedProviders]);
 
   const unconfiguredBySection = useMemo(() => {
     const groups: Record<string, ProviderMeta[]> = {

@@ -126,9 +126,19 @@ export class SelectTool implements ToolHandler {
     this.snapping.end();
   }
 
-  onCancel(_ctx: ToolContext): void {
+  onCancel(ctx: ToolContext): void {
     this.cancelPendingMagicWand();
     this.snapping.end();
+    // A cancelled selection move (pointercancel, pinch) must not leave the
+    // tool in move mode, or the next marquee drags the old selection.
+    if (this.isMovingSelection) {
+      ctx.setSelectionOriginOverride?.(null);
+      this.isMovingSelection = false;
+      this.moveSelectionOrigin = null;
+      this.selectionAtMoveStart = null;
+      this.moveSelectionDx = 0;
+      this.moveSelectionDy = 0;
+    }
   }
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
@@ -438,6 +448,7 @@ export class SelectTool implements ToolHandler {
             constrainSquare: this.marqueeConstrainSquareNow(ctx)
           }
         );
+        this.snapping.keepLinesThrough([start, end]);
         ctx.drawOverlaySelection(start, end);
       } else {
         ctx.drawOverlaySelection(this.selectStart, pt);

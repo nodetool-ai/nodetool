@@ -13,12 +13,16 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
 import {
+  AlertBanner,
   EditorButton,
   FlexColumn,
   FlexRow,
+  SPACING,
+  STUDIO_ASSISTANT_WIDTH,
   TabGroup,
   Tooltip
 } from "../components/ui_primitives";
+import ReportBugButton from "../components/support/ReportBugButton";
 import ScriptDocumentPane from "../components/script/ScriptDocumentPane";
 import ScriptCastPanel from "../components/script/ScriptCastPanel";
 import ScriptAgentPanel from "../components/script/ScriptAgentPanel";
@@ -36,6 +40,7 @@ import {
   useScriptSetupFlow,
   useScriptSetupStage
 } from "../components/setup/script/useScriptSetupFlow";
+import DocumentLoadStatus from "../components/workspace/DocumentLoadStatus";
 import StudioShell from "./StudioShell";
 
 type DockTab = "cast" | "assistant";
@@ -53,7 +58,7 @@ const StudioScriptPage = () => {
     ensureScript(scriptId);
   }, [ensureScript, scriptId]);
 
-  useScriptServerSync(scriptId);
+  const loadState = useScriptServerSync(scriptId);
   useScriptAgentBridge(scriptId);
 
   const { assemble, assembling, error: assembleError } =
@@ -112,6 +117,16 @@ const StudioScriptPage = () => {
     </Tooltip>
   );
 
+  // The store seeds an empty script on mount, so rendering before the server
+  // copy lands looks like a script with no lines.
+  if (loadState !== "ready") {
+    return (
+      <StudioShell title={title || "Untitled script"}>
+        <DocumentLoadStatus state={loadState} label="script" />
+      </StudioShell>
+    );
+  }
+
   if (setupStage !== "done") {
     return (
       <StudioShell title={title || "Untitled script"}>
@@ -122,12 +137,35 @@ const StudioScriptPage = () => {
 
   return (
     <StudioShell title={title || "Untitled script"} actions={createVideo}>
+      {/* The button's tooltip is out of reach for keyboard and touch, so a
+          failed Create video says why here. */}
+      {assembleError ? (
+        <AlertBanner
+          severity="error"
+          title="We couldn't create the video"
+          sx={{ margin: SPACING.md }}
+          action={
+            <ReportBugButton
+              label="Report this failure"
+              variant="outlined"
+              size="small"
+              context={{
+                source: "manual",
+                summary: "Studio script failed to create its video",
+                errorText: assembleError
+              }}
+            />
+          }
+        >
+          {assembleError}
+        </AlertBanner>
+      ) : null}
       <FlexRow fullHeight sx={{ flex: 1, minHeight: 0, position: "relative" }}>
         <ScriptDocumentPane scriptId={scriptId} readOnly={false} />
         <FlexColumn
           fullHeight
           sx={{
-            width: 320,
+            width: STUDIO_ASSISTANT_WIDTH,
             flexShrink: 0,
             minHeight: 0,
             borderLeft: `1px solid ${theme.vars.palette.divider}`

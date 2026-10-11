@@ -106,3 +106,20 @@ it("opens the estimate's details from the keyboard", async () => {
     "Write a six-shot screenplay."
   );
 });
+
+// The image flow's brief step showed "Model: gpt-oss:20b (empty)" before any
+// model was picked: the unset sentinel read as a choice.
+it("says no model is selected for the empty sentinel", () => {
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <GenerationSummary
+        result="Expand your sentence"
+        next="You read and fix the brief next"
+        model={{ id: "gpt-oss:20b", provider: "empty" }}
+        brief="test"
+        maxOutputTokens={8192}
+      />
+    </ThemeProvider>
+  );
+  expect(screen.getByText("Model: Not selected")).toBeVisible();
+});

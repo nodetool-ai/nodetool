@@ -83,8 +83,16 @@ export function hitTestCropHandles(
   return null;
 }
 
+/** Clamp a moved edge into [lo, hi] after rounding. */
+function clampEdge(value: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(Math.round(value), hi));
+}
+
 /**
  * Apply a drag delta from {@link adjustStartRect} for the given handle; result is clamped to the canvas.
+ * Only the edges the handle moves are clamped, so dragging past the canvas
+ * edge stops that edge and leaves the opposite one where it was. A move keeps
+ * the rect's size and stops at the canvas edge.
  */
 export function resizeCropRectFromDrag(
   start: CropRectDoc,
@@ -95,43 +103,35 @@ export function resizeCropRectFromDrag(
   ch: number
 ): CropRectDoc {
   const { x, y, width: w, height: h } = start;
-  switch (handle) {
-    case "move":
-      return clampCropRectToCanvas(x + dx, y + dy, w, h, cw, ch);
-    case "left": {
-      const right = x + w;
-      const nx = x + dx;
-      return clampCropRectToCanvas(nx, y, right - nx, h, cw, ch);
-    }
-    case "right":
-      return clampCropRectToCanvas(x, y, w + dx, h, cw, ch);
-    case "top": {
-      const bottom = y + h;
-      const ny = y + dy;
-      return clampCropRectToCanvas(x, ny, w, bottom - ny, cw, ch);
-    }
-    case "bottom":
-      return clampCropRectToCanvas(x, y, w, h + dy, cw, ch);
-    case "top-left": {
-      const right = x + w;
-      const bottom = y + h;
-      const nx = x + dx;
-      const ny = y + dy;
-      return clampCropRectToCanvas(nx, ny, right - nx, bottom - ny, cw, ch);
-    }
-    case "top-right": {
-      const bottom = y + h;
-      const ny = y + dy;
-      return clampCropRectToCanvas(x, ny, w + dx, bottom - ny, cw, ch);
-    }
-    case "bottom-left": {
-      const right = x + w;
-      const nx = x + dx;
-      return clampCropRectToCanvas(nx, y, right - nx, h + dy, cw, ch);
-    }
-    case "bottom-right":
-      return clampCropRectToCanvas(x, y, w + dx, h + dy, cw, ch);
-    default:
-      return clampCropRectToCanvas(x, y, w, h, cw, ch);
+  if (handle === "move") {
+    const width = Math.min(Math.round(w), cw);
+    const height = Math.min(Math.round(h), ch);
+    return {
+      x: clampEdge(x + dx, 0, cw - width),
+      y: clampEdge(y + dy, 0, ch - height),
+      width,
+      height
+    };
   }
+  const movesLeft = handle === "left" || handle === "top-left" || handle === "bottom-left";
+  const movesRight = handle === "right" || handle === "top-right" || handle === "bottom-right";
+  const movesTop = handle === "top" || handle === "top-left" || handle === "top-right";
+  const movesBottom = handle === "bottom" || handle === "bottom-left" || handle === "bottom-right";
+  let left = x;
+  let top = y;
+  let right = x + w;
+  let bottom = y + h;
+  if (movesLeft) {
+    left = clampEdge(x + dx, 0, right - MIN_CROP_SIZE);
+  }
+  if (movesRight) {
+    right = clampEdge(right + dx, left + MIN_CROP_SIZE, cw);
+  }
+  if (movesTop) {
+    top = clampEdge(y + dy, 0, bottom - MIN_CROP_SIZE);
+  }
+  if (movesBottom) {
+    bottom = clampEdge(bottom + dy, top + MIN_CROP_SIZE, ch);
+  }
+  return clampCropRectToCanvas(left, top, right - left, bottom - top, cw, ch);
 }

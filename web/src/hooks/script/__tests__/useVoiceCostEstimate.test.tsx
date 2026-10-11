@@ -82,6 +82,16 @@ describe("useVoiceCostEstimate", () => {
     expect(result.current.cost).toBeCloseTo(0.0014, 12);
   });
 
+  it("says the per-take whisper-1 transcription is not in the figure", () => {
+    loadScript([line("ln-1", "sp-1", "We are closed.")]);
+
+    const { result } = renderHook(() => useVoiceCostEstimate(SCRIPT));
+
+    expect(result.current.notes).toContain(
+      "Each take is also transcribed with whisper-1 for word timings, which this figure leaves out."
+    );
+  });
+
   it("charges two models separately when the cast reads on two", () => {
     loadScript([
       line("ln-1", "sp-1", "We are closed."),

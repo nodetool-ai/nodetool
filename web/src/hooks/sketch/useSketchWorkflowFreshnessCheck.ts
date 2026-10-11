@@ -16,6 +16,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { trpcClient } from "../../trpc/client";
 import {
   useSketchSessionStore,
+  useSketchSessionStoreApi,
   type LayerWorkflowBinding
 } from "../../stores/sketch/SketchSessionStore";
 
@@ -57,14 +58,15 @@ export function useSketchWorkflowFreshnessCheck(
     (s) => s.setBindingsOutputNode
   );
 
+  // A tab restored in the background loads its document while another tab
+  // is focused, so the bindings come from this editor's own session.
+  const session = useSketchSessionStoreApi();
   const lastCheckedDocumentId = useRef<string | null>(null);
 
   const runCheck = useCallback(async () => {
     if (!documentId) return;
 
-    const bindings = Object.values(
-      useSketchSessionStore.getState().bindings
-    );
+    const bindings = Object.values(session.getState().bindings);
 
     const workflowIds = new Set<string>();
     for (const b of bindings) {
@@ -152,6 +154,7 @@ export function useSketchWorkflowFreshnessCheck(
     );
   }, [
     documentId,
+    session,
     markStaleForWorkflow,
     applyInputDrift,
     setBindingsOutputNode

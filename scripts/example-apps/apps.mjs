@@ -15,6 +15,9 @@
 //                  outputs: { "<output name>": { to: "variable", variableId } } } ]
 //              Inputs with no mapping are driven by a widget; outputs with no
 //              mapping are displayed.
+//   modelOverrides { <bundleKey>: { <nodeId>: <model ref> } }
+//   propOverrides  { <bundleKey>: { <nodeId>: { <prop>: value } } } for a
+//              template default that suits the template but not the app
 //   sections   [ { title, op?, controls: [...], results: [...] } ]
 //   content    Optional authored widget tree, used instead of sections.
 //   steps      `true` shows one section at a time behind a Stepper. A
@@ -74,6 +77,15 @@ const ATLASCLOUD_YOUCHUAN_REMOVE_BACKGROUND = {
   supported_tasks: ["remove_background"]
 };
 
+const NANO_BANANA_EDIT = {
+  type: "image_model",
+  provider: "fal_ai",
+  id: "fal-ai/nano-banana/edit",
+  name: "Nano Banana Edit",
+  path: null,
+  supported_tasks: []
+};
+
 export const EXAMPLE_APPS = [
   {slug: "product-price-drop", name: "Product Price Drop", description: PRODUCT_PRICE_DROP_BUNDLE.description, tagline: "Exact product, editable prices, deterministic motion.", workflows: {}, featured: true, bundle: PRODUCT_PRICE_DROP_BUNDLE, debugInteractions: PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS},
   ...AD_LIBRARY_APPS,
@@ -90,6 +102,9 @@ export const EXAMPLE_APPS = [
       "A live photo editor and a batch retoucher behind one surface. The single-photo grade is pure GPU filters, so it runs with no API key at all.",
     note: "✨ `Enhance` runs locally. `Batch` adds a cloud grading pass and is billed per image.",
     workflows: { enhance: "Image Enhance", batch: "Photo Enhancement Suite" },
+    // The template's FLUX schnell is text-to-image only, so it drew a new
+    // picture instead of grading the photo it was given.
+    modelOverrides: { batch: { 3: NANO_BANANA_EDIT } },
     variables: [
       { id: "sourceImage", name: "Source photo", scope: "instance", type: "image" }
     ],
@@ -123,7 +138,7 @@ export const EXAMPLE_APPS = [
         controls: [
           { input: "photos", op: "batch", label: "Your photos" },
           { slider: "brightness_adjust", op: "batch", label: "Brightness", min: 0.5, max: 1.5, step: 0.05, pace: "release" },
-          { slider: "color_boost", op: "batch", label: "Color boost", min: 0, max: 2, step: 0.05, pace: "release" },
+          { slider: "color_boost", op: "batch", label: "Color boost", min: 0.5, max: 2, step: 0.05, pace: "release" },
           { run: ["batch"], label: "Enhance my photos" }
         ],
         results: [
@@ -184,7 +199,7 @@ export const EXAMPLE_APPS = [
             ]
           },
           { text: "mood_keywords", op: "concepts", label: "Mood keywords" },
-          { slider: "variations", op: "concepts", label: "How many variations?", min: 1, max: 8, step: 1 },
+          { slider: "variations", op: "concepts", label: "How many variations?", min: 2, max: 8, step: 1 },
           { run: ["concepts"], label: "Generate concept art" }
         ],
         results: [
@@ -395,13 +410,13 @@ export const EXAMPLE_APPS = [
           { textVar: "audience", label: "Who is it for?", multiline: true },
           { text: "product_name", op: "mockups", label: "Product name" },
           { text: "product_description", op: "mockups", label: "Describe the product", multiline: true },
-          { number: "num_scenes", op: "mockups", label: "How many scenes?", min: 1, max: 6 },
+          { number: "num_scenes", op: "mockups", label: "How many scenes?", min: 2, max: 6 },
           { run: ["mockups"], label: "Generate mockups" }
         ],
         results: [
           { progress: "mockups", label: "Staging your mockups…" },
           { show: "mockup", op: "mockups", as: "Image", label: "Mockups", demo: IMG },
-          { show: "scene", op: "mockups", as: "Markdown", label: "Shot list" }
+          { show: "scene", op: "mockups", as: "Image", label: "Scenes before the product goes in" }
         ]
       },
       {
@@ -951,6 +966,8 @@ export const EXAMPLE_APPS = [
       cutout: { bg: ATLASCLOUD_YOUCHUAN_REMOVE_BACKGROUND },
       listing: { ag: CODEX_LUNA }
     },
+    // LTX 2.3 fast takes 6 to 20 seconds, so the template's 4 is dropped.
+    propOverrides: { turntable: { v: { duration: 6 } } },
     variables: [
       { id: "packshot", name: "The packshot", scope: "instance", type: "image" }
     ],
@@ -1063,10 +1080,10 @@ export const EXAMPLE_APPS = [
             slider: { node: "v", prop: "duration" },
             op: "turntable",
             label: "Seconds",
-            min: 4,
-            max: 8,
+            min: 6,
+            max: 10,
             step: 2,
-            default: 4
+            default: 6
           },
           { run: ["turntable"], label: "Spin it" },
           {

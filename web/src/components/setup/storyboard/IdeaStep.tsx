@@ -21,7 +21,7 @@
  * Director structure it (F3).
  */
 
-import React, { memo, useCallback, useMemo, useRef } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 
 import {
   AlertBanner,
@@ -46,6 +46,7 @@ import { useExampleStoryboards } from "../../../hooks/storyboard/useStoryboards"
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import { ExampleBriefs } from "../ExampleBriefs";
+import ReportBugButton from "../../support/ReportBugButton";
 import { ShotlistReport } from "./ShotlistReport";
 import { SCRIPT_ACCEPT, useScriptImport } from "./useScriptImport";
 import {
@@ -64,13 +65,22 @@ export interface IdeaStepProps {
   /** Opens the existing tutorials entry. */
   onOpenTutorial: () => void;
   onValidationChange?: (reason: string | undefined) => void;
+  /**
+   * Reports a file being read, so the flow holds Continue until it lands. A
+   * late import that found the step moved on writes nothing (F9).
+   */
+  onImportingChange?: (importing: boolean) => void;
+  /** View mode: the step shows what was written and changes nothing. */
+  readOnly?: boolean;
 }
 
 const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   boardId,
   onStartBlank,
   onOpenTutorial,
-  onValidationChange
+  onValidationChange,
+  onImportingChange,
+  readOnly = false
 }) => {
   const brief = useStoryboardStore(
     (state) => state.boards[boardId]?.brief ?? ""
@@ -88,21 +98,37 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   const scriptInput = useRef<HTMLInputElement>(null);
   const shotlistInput = useRef<HTMLInputElement>(null);
   const briefField = useRef<HTMLElement | null>(null);
+  const importing = script.importing || shotlist.importing;
+  useEffect(() => {
+    onImportingChange?.(importing);
+  }, [importing, onImportingChange]);
+  useEffect(() => () => onImportingChange?.(false), [onImportingChange]);
   const source = useImportSource(boardId);
   const locked = source?.preserveWords === true;
 
-  const replaceSource = useCallback(() => scriptInput.current?.click(), []);
-  const editAsText = useCallback(
-    () => releaseImportedStructure(boardId),
-    [boardId]
-  );
-  const removeSource = useCallback(() => clearImport(boardId), [boardId]);
+  const replaceSource = useCallback(() => {
+    if (!readOnly) {
+      scriptInput.current?.click();
+    }
+  }, [readOnly]);
+  const editAsText = useCallback(() => {
+    if (!readOnly) {
+      releaseImportedStructure(boardId);
+    }
+  }, [boardId, readOnly]);
+  const removeSource = useCallback(() => {
+    if (!readOnly) {
+      clearImport(boardId);
+    }
+  }, [boardId, readOnly]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setSetup(boardId, { brief: event.target.value });
+      if (!readOnly) {
+        setSetup(boardId, { brief: event.target.value });
+      }
     },
-    [boardId, setSetup]
+    [boardId, readOnly, setSetup]
   );
 
   // The picked file is read once; resetting the value lets the same file be
@@ -137,22 +163,23 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         title: "Upload your file",
         description: "PDF, DOCX, FDX",
         onSelect: () => scriptInput.current?.click(),
-        disabled: script.importing,
-        disabledReason: script.importing ? "Reading your file…" : undefined
+        disabled: readOnly || importing,
+        disabledReason: importing ? "Reading your file…" : undefined
       },
       {
         id: "shotlist",
         title: "Import your shotlist",
         description: "CSV, one row per shot",
         onSelect: () => shotlistInput.current?.click(),
-        disabled: shotlist.importing,
-        disabledReason: shotlist.importing ? "Reading your file…" : undefined
+        disabled: readOnly || importing,
+        disabledReason: importing ? "Reading your file…" : undefined
       },
       {
         id: "blank",
         title: "Start with a blank storyboard",
         description: "Skip the story and go straight to the board",
-        onSelect: onStartBlank
+        onSelect: onStartBlank,
+        disabled: readOnly
       },
       {
         id: "tutorial",
@@ -161,7 +188,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         onSelect: onOpenTutorial
       }
     ],
-    [onOpenTutorial, onStartBlank, script.importing, shotlist.importing]
+    [importing, onOpenTutorial, onStartBlank, readOnly]
   );
 
   return (
@@ -189,7 +216,12 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         <CreativeContextFields
           value={creativeContext ?? storyboardCreativeContextOf(screenplay)}
           onValidationChange={onValidationChange}
-          onChange={(value) => setSetup(boardId, { creative_context: value })}
+          readOnly={readOnly}
+          onChange={(value) => {
+            if (!readOnly) {
+              setSetup(boardId, { creative_context: value });
+            }
+          }}
         />
 
         {source ? (
@@ -208,6 +240,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   variant="outlined"
                   size="small"
                   onClick={replaceSource}
+                  disabled={readOnly || importing}
                 >
                   Replace file
                 </EditorButton>
@@ -216,6 +249,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                     variant="text"
                     size="small"
                     onClick={editAsText}
+                    disabled={readOnly || importing}
                   >
                     Edit as text
                   </EditorButton>
@@ -224,6 +258,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                     variant="text"
                     size="small"
                     onClick={removeSource}
+                    disabled={readOnly || importing}
                   >
                     Remove the file
                   </EditorButton>
@@ -235,7 +270,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
 
         <TextInput
           value={brief}
-          autoFocus={!locked}
+          autoFocus={!locked && !readOnly}
           multiline
           rows={5}
           label="Your story"
@@ -243,7 +278,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           placeholder="One sentence is enough, or paste a full script."
           onChange={handleChange}
           inputRef={briefField}
-          slotProps={{ input: { readOnly: locked } }}
+          slotProps={{ input: { readOnly: locked || readOnly } }}
           helperText={
             locked
               ? "Held while your file is the script. Edit as text to change the words here."
@@ -251,23 +286,47 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           }
         />
 
+        {/* The Report control sits in the body: an `action` would replace
+            the banner's close button. */}
         {script.error ? (
           <AlertBanner severity="error" onClose={script.clearError}>
-            {script.error}
+            <FlexColumn gap={GAP.tight} align="flex-start">
+              {script.error}
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Storyboard script import failed",
+                  errorText: script.error
+                }}
+              />
+            </FlexColumn>
           </AlertBanner>
         ) : null}
         {shotlist.error ? (
           <AlertBanner severity="error" onClose={shotlist.clearError}>
-            {shotlist.error}
+            <FlexColumn gap={GAP.tight} align="flex-start">
+              {shotlist.error}
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Storyboard shotlist import failed",
+                  errorText: shotlist.error
+                }}
+              />
+            </FlexColumn>
           </AlertBanner>
         ) : null}
 
-        <ExampleBriefs
-          examples={inspirations}
-          brief={brief}
-          onSelect={(value) => setSetup(boardId, { brief: value })}
-          briefRef={briefField}
-        />
+        {/* An example would replace the held script with a line the camera
+            pass ignores, and "Edit as text" would then start from it. */}
+        {readOnly || locked ? null : (
+          <ExampleBriefs
+            examples={inspirations}
+            brief={brief}
+            onSelect={(value) => setSetup(boardId, { brief: value })}
+            briefRef={briefField}
+          />
+        )}
       </FlexColumn>
 
       {/* The other four flows put their entry paths in a column beside the

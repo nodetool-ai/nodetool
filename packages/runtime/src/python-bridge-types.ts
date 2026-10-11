@@ -475,6 +475,14 @@ export interface PythonBridgeOptions {
    * hangs mid-download cannot leak its pending entries forever. Default ~5min.
    */
   downloadIdleTimeoutMs?: number;
+  /**
+   * Extra environment for a spawned local worker, resolved each time the
+   * worker starts (stdio bridge only). The host supplies settings the worker
+   * reads from its environment at start, such as `NODETOOL_TORCH_DEVICE` and
+   * `WAN2GP_MCP_URL`, so a value saved in Settings reaches a worker the user
+   * never exported it to. Merged over the inherited environment.
+   */
+  workerEnv?: () => Promise<Record<string, string>>;
 }
 
 export type StreamCallback = (chunk: Record<string, unknown>) => void;

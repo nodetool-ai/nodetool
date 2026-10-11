@@ -8,10 +8,10 @@
  * the plan that produced it (PRD § 8.5).
  *
  * Order matters and is deliberate. The clips, the beats' `clip_id` back-links
- * and the terminal stage are all written before the first job is enqueued (D3),
- * so a creator who closes the tab while the batch is still going reopens on the
- * timeline with placeholders — not back inside the flow with a half-built
- * document behind it.
+ * and the terminal stage are all written and saved before the first job is
+ * enqueued (D3), so a creator who closes the tab while the batch is still going
+ * reopens on the timeline with placeholders — not back inside the flow with
+ * Generate offered again over a batch that is already being paid for.
  *
  * Exported as a standalone function taking the store api, like
  * {@link importVideoWithAudio}, so the counts in criterion 5 are testable
@@ -243,6 +243,53 @@ const generationPreparationFingerprint = (input: {
       production: beat.production
     }))
   });
+
+/**
+ * Imported pictures no beat uses any more (the creator removed their beat) are
+ * kept, never deleted: the group moves past the end of the re-timed cut with
+ * its linked clips, so it cannot overlap the beats laid over its old place.
+ */
+function moveUnplannedSourcesPastCut(
+  store: TimelineStoreApi,
+  beats: readonly TimelineBeat[],
+  cutEndMs: number
+): void {
+  const planned = new Set(
+    beats.flatMap((beat) => (beat.source_clip_id ? [beat.source_clip_id] : []))
+  );
+  const clips = store.getState().clips;
+  const plannedLinks = new Set(
+    clips.flatMap((clip) =>
+      planned.has(clip.id) && clip.linkId ? [clip.linkId] : []
+    )
+  );
+  const unplanned = clips.filter(
+    (clip) =>
+      clip.sourceType === "imported" &&
+      (clip.mediaType === "video" || clip.mediaType === "image") &&
+      !planned.has(clip.id) &&
+      !(clip.linkId && plannedLinks.has(clip.linkId))
+  );
+  if (unplanned.length === 0) {
+    return;
+  }
+  const unplannedLinks = new Set(
+    unplanned.flatMap((clip) => (clip.linkId ? [clip.linkId] : []))
+  );
+  const moving = clips.filter(
+    (clip) =>
+      unplanned.includes(clip) ||
+      (clip.linkId !== undefined && unplannedLinks.has(clip.linkId))
+  );
+  const earliestMs = Math.min(...moving.map((clip) => clip.startMs));
+  const offsetMs = cutEndMs - earliestMs;
+  if (offsetMs <= 0) {
+    return;
+  }
+  for (const clip of moving) {
+    store.getState().patchClip(clip.id, { startMs: clip.startMs + offsetMs });
+  }
+}
 
 export async function generateFromBeats(
   store: TimelineStoreApi,
@@ -517,6 +564,7 @@ export async function generateFromBeats(
       }
       startMs += durationMs;
     }
+    moveUnplannedSourcesPastCut(store, beats, startMs);
 
     if (musicTrack && options.musicModel) {
       musicClipId = store.getState().addDirectGenClip({
@@ -566,26 +614,33 @@ export async function generateFromBeats(
   const startJob = options.startJob;
   const startedClipIds: string[] = [];
   if (startJob) {
-    try {
-      await options.persistPreparedBatch?.();
-    } catch (cause) {
-      store.getState().setSetup({
-        stage: "look",
-        prepared_generation: {
-          ...preparedGeneration,
-          status: "unsubmitted"
-        }
-      });
-      throw new Error(
-        "Could not save the prepared video. No generation requests were submitted.",
-        { cause }
-      );
-    }
+    const persistOrRestore = async (): Promise<void> => {
+      try {
+        await options.persistPreparedBatch?.();
+      } catch (cause) {
+        store.getState().setSetup({
+          stage: "look",
+          prepared_generation: {
+            ...preparedGeneration,
+            status: "unsubmitted"
+          }
+        });
+        throw new Error(
+          "Could not save the prepared video. No generation requests were submitted.",
+          { cause }
+        );
+      }
+    };
     throwIfAborted(options.signal);
+    await persistOrRestore();
+    throwIfAborted(options.signal);
+    // The terminal stage is saved, not only written, before any paid request:
+    // a reload during submission must open the timeline, not Generate again.
     store.getState().setSetup({
       stage: "done",
       prepared_generation: preparedGeneration
     });
+    await persistOrRestore();
     // A clip that cannot start records the reason on itself, so one refusal
     // must not stop the rest of the batch.
     const outcomes = await Promise.all(

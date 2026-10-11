@@ -320,8 +320,8 @@ describe("useModelCompatibility", () => {
           "huggingface.text_to_image",
           [
             {
-              repo_id: "nunchaku-tech/nunchaku-flux.1-dev",
-              path: "svdq-int4_r32-flux.1-dev.safetensors",
+              repo_id: "black-forest-labs/FLUX.1-dev",
+              path: "flux1-dev.safetensors",
               type: "hf.flux"
             }
           ]
@@ -331,8 +331,8 @@ describe("useModelCompatibility", () => {
 
       const { result } = renderHook(() => useModelCompatibility());
       const model = createMockModel("custom-id", "hf.flux", {
-        repo_id: "nunchaku-tech/nunchaku-flux.1-dev",
-        path: "svdq-int4_r32-flux.1-dev.safetensors",
+        repo_id: "black-forest-labs/FLUX.1-dev",
+        path: "flux1-dev.safetensors",
       });
 
       const compatibility = result.current.getModelCompatibility(model);

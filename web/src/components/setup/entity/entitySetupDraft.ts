@@ -103,3 +103,39 @@ export const clearEntitySetupDraft = (projectId?: string): void => {
     // A failed cleanup must not block creating or abandoning the entity.
   }
 };
+
+// Guided tabs key their drafts by `crypto.randomUUID()`. Project ids and the
+// library's `entity-library:` keys never take this shape.
+const GUIDED_REF =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Remove drafts keyed by a guided tab that is no longer open. Such a draft
+ * can only be recovered by its tab, so it outlives the tab when the tab
+ * closed while another flow, or no app at all, was running.
+ */
+export const sweepClosedGuidedEntityDrafts = (
+  openGuidedRefs: ReadonlySet<string>
+): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    const stale: string[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key?.startsWith(STORAGE_PREFIX)) {
+        continue;
+      }
+      const ref = key.slice(STORAGE_PREFIX.length);
+      if (GUIDED_REF.test(ref) && !openGuidedRefs.has(ref)) {
+        stale.push(key);
+      }
+    }
+    for (const key of stale) {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // A failed sweep leaves the drafts for the next one.
+  }
+};

@@ -54,8 +54,7 @@ const pillStyles = (theme: Theme) =>
     border: `1px solid ${theme.vars.palette.divider}`,
     backgroundColor: theme.vars.palette.background.paper,
     color: theme.vars.palette.text.secondary,
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontFamily: "var(--fontFamily2)",
     fontSize: FONT_SIZE_MONO.caption,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0.04em",

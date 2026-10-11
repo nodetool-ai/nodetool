@@ -6,7 +6,10 @@ import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
-import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import {
+  findActiveChildTab,
+  useSubgraphTabsStore
+} from "../../stores/SubgraphTabsStore";
 import { SUBGRAPH_ACCENT_COLOR } from "../../constants/nodeTypes";
 import {
   SPACING_PX,
@@ -96,13 +99,14 @@ const SubgraphTabStrip = ({
       // The close icon sits inside the tab button; without this the click also
       // selects the tab it just removed.
       event.stopPropagation();
-      closeTab(key);
-      // Drop the synthetic workflow the subgraph canvas was registered under,
-      // so reopening the tab rebuilds it from the parent node's graph rather
-      // than resurrecting the stale store.
+      const closed = closeTab(key);
+      // Drop the synthetic workflows the closed canvases were registered
+      // under (the tab and any subgraph opened inside it), so reopening
+      // rebuilds from the parent node's graph rather than resurrecting a
+      // stale store.
       workflowManagerStore.setState((state) => {
         const nodeStores = { ...state.nodeStores };
-        delete nodeStores[key];
+        closed.forEach((closedKey) => delete nodeStores[closedKey]);
         return { nodeStores };
       });
     },
@@ -113,15 +117,18 @@ const SubgraphTabStrip = ({
   if (ownTabs.length === 0) {
     return null;
   }
+  // A tab stays marked while a subgraph opened inside it is the one shown.
+  const shownKey =
+    findActiveChildTab(tabs, activeKey, hostId)?.key ?? hostActiveKey;
 
   return (
     <div css={styles(theme)} role="tablist">
       <button
         type="button"
         role="tab"
-        aria-selected={activeKey === hostActiveKey}
+        aria-selected={shownKey === hostActiveKey}
         className={`graph-tab parent-tab ${
-          activeKey === hostActiveKey ? "active" : ""
+          shownKey === hostActiveKey ? "active" : ""
         }`}
         onClick={() => setActive(hostActiveKey)}
       >
@@ -132,9 +139,9 @@ const SubgraphTabStrip = ({
           key={tab.key}
           type="button"
           role="tab"
-          aria-selected={activeKey === tab.key}
+          aria-selected={shownKey === tab.key}
           className={`graph-tab subgraph-tab ${
-            activeKey === tab.key ? "active" : ""
+            shownKey === tab.key ? "active" : ""
           }`}
           onClick={() => setActive(tab.key)}
         >

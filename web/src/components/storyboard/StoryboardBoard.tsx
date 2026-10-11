@@ -25,6 +25,7 @@
 
 import React, {
   memo,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -35,10 +36,19 @@ import {
   shotRenderMode,
   requiredVideoTasksForShots
 } from "@nodetool-ai/protocol";
-import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
+import type {
+  SceneClipDirection,
+  Shot,
+  ShotModelRef
+} from "@nodetool-ai/protocol";
 import AddIcon from "@mui/icons-material/Add";
 import TuneIcon from "@mui/icons-material/Tune";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import SlideshowIcon from "@mui/icons-material/Slideshow";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
+import { useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 import { ASPECT_OPTIONS } from "./aspectOptions";
 import {
@@ -74,6 +84,7 @@ import {
   Skeleton,
   Text,
   TextInput,
+  ToolbarIconButton,
   Tooltip,
   UndoRedoButtons,
   BORDER_RADIUS,
@@ -106,6 +117,7 @@ import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { exportStoryboardZip } from "../../utils/storyboardZip";
 import { flushStoryboardSave } from "../../hooks/storyboard/storyboardSaveRegistry";
 import { useTimeline } from "../../hooks/useTimelineSequence";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import {
   useRenderBatchCostEstimate,
   type RenderBatchCostEstimate
@@ -118,6 +130,12 @@ import BoardStaleBanner from "./BoardStaleBanner";
 import BoardStyleDialog from "./BoardStyleDialog";
 import EntityStillModelWarning from "./EntityStillModelWarning";
 import SceneHeader from "./SceneHeader";
+import SceneClipControls from "./SceneClipControls";
+import {
+  newSceneClipShotIds,
+  sceneClipParts,
+  sceneClipsInGroup
+} from "./sceneClips";
 import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
 import { shotWorkflowMedia } from "./shotWorkflowMedia";
@@ -126,6 +144,8 @@ import BoardCardSizeSlider from "./BoardCardSizeSlider";
 import StoryboardSlideshow from "./StoryboardSlideshow";
 import { useStoryboardViewStore } from "../../stores/storyboard/StoryboardViewStore";
 import ShotEditPanel from "./ShotEditPanel";
+import OneTakePanel from "./OneTakePanel";
+const SceneClipDialog = React.lazy(() => import("./SceneClipDialog"));
 import ShotInsertPoint, { SHOT_INSERT_POINT_CLASS } from "./ShotInsertPoint";
 import ShotInspector from "./ShotInspector";
 import StoryboardEntitiesField from "./StoryboardEntitiesField";
@@ -152,6 +172,10 @@ interface StoryboardBoardProps {
   directError?: string | null;
   /** Wired by the parent to the timeline handoff. */
   onAssemble?: () => void;
+  /**
+   * Opens the linked timeline. Absent: the board opens it as a workspace tab.
+   */
+  onOpenTimeline?: (timelineId: string) => void;
   /** True while assembly is in flight. */
   assembling?: boolean;
   /** Error from the last assembly, shown under the header fields. */
@@ -209,6 +233,8 @@ const editOverlaySx = {
  * One card's cell. It hosts the trailing insert point, which is revealed by
  * hover or by a keyboard focus landing anywhere inside the cell.
  */
+const NO_SCENE_CLIPS: readonly SceneClipDirection[] = [];
+
 const shotSlotSx = {
   position: "relative",
   [`&:hover .${SHOT_INSERT_POINT_CLASS}`]: { opacity: 1 },
@@ -248,6 +274,8 @@ interface RenderBatchButtonProps {
   disabled: boolean;
   highlighted: boolean;
   onClick: () => void;
+  /** Shares a row with its sibling on a phone instead of sizing to its label. */
+  fullWidth?: boolean;
 }
 
 const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
@@ -255,7 +283,8 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
   estimate,
   disabled,
   highlighted,
-  onClick
+  onClick,
+  fullWidth
 }) => {
   const { requestCount, cost, pricedRequestCount, reasons, notes } = estimate;
   const priced = pricedRequestCount > 0 && cost > 0;
@@ -296,13 +325,17 @@ const RenderBatchButton: React.FC<RenderBatchButtonProps> = ({
       }
     >
       {/* A disabled button swallows pointer events, so the tooltip needs a host. */}
-      <FlexRow component="span">
+      <FlexRow
+        component="span"
+        sx={fullWidth ? { flex: 1, minWidth: 0 } : undefined}
+      >
         <EditorButton
           variant={highlighted ? "contained" : "outlined"}
           color="primary"
           aria-current={highlighted ? "step" : undefined}
           onClick={onClick}
           disabled={disabled}
+          fullWidth={fullWidth}
         >
           {`${label}${requestCount > 0 ? ` (${requestCount})` : ""}${
             priced ? ` · ~${formatUsd(cost)}` : ""
@@ -320,6 +353,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   directing,
   directError,
   onAssemble,
+  onOpenTimeline,
   assembling,
   assembleError,
   reviewRequest,
@@ -346,6 +380,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   useStoryboardShotFocus(boardId);
 
   const inStudio = useInStudio();
+  const theme = useTheme();
+  const compactToolbar = useMediaQuery(theme.breakpoints.down("sm"));
   const setTitle = useStoryboardStore((state) => state.setTitle);
   const setBrief = useStoryboardStore((state) => state.setBrief);
   const setStyle = useStoryboardStore((state) => state.setStyle);
@@ -471,6 +507,57 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const scenes = screenplay?.scenes;
   const sceneGroups = useMemo(() => sceneOrder(shots, scenes), [shots, scenes]);
   const captions = useMemo(() => captionsByShotId(sceneGroups), [sceneGroups]);
+  const sceneClips =
+    useStoryboardStore((state) => state.boards[boardId]?.sceneClips) ??
+    NO_SCENE_CLIPS;
+  const sceneClipTags = useMemo(() => {
+    const tags = new Map<string, string>();
+    for (const [shotId, part] of sceneClipParts(shots, sceneClips)) {
+      tags.set(shotId, `Clip ${part.position}/${part.count} \u00B7 ${part.window}`);
+    }
+    return tags;
+  }, [shots, sceneClips]);
+  const sceneClipsByGroup = useMemo(
+    () =>
+      new Map(
+        sceneGroups.map((group) => [
+          group.sceneId,
+          sceneClipsInGroup(group.shots, sceneClips)
+        ])
+      ),
+    [sceneGroups, sceneClips]
+  );
+  const [sceneClipDialog, setSceneClipDialog] = useState<{
+    sceneShots: Shot[];
+    clip: SceneClipDirection;
+    saved: boolean;
+  } | null>(null);
+  const openSceneClip = useCallback(
+    (sceneId: string | null, clip: SceneClipDirection | null) => {
+      const group = sceneGroups.find((g) => g.sceneId === sceneId);
+      if (!group) {
+        return;
+      }
+      setSceneClipDialog(
+        clip
+          ? { sceneShots: group.shots, clip, saved: true }
+          : {
+              sceneShots: group.shots,
+              clip: {
+                id: crypto.randomUUID(),
+                prompt: "",
+                shot_ids: newSceneClipShotIds(
+                  group.shots,
+                  sceneClipsByGroup.get(sceneId) ?? NO_SCENE_CLIPS
+                )
+              },
+              saved: false
+            }
+      );
+    },
+    [sceneGroups, sceneClipsByGroup]
+  );
+  const closeSceneClip = useCallback(() => setSceneClipDialog(null), []);
 
   const hasShots = shots.length > 0;
   const boardWorkflowMedia = useMemo(
@@ -486,8 +573,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     []
   );
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
-  const openSettings = useCallback(() => setSettingsOpen(true), []);
   const settingsPanelId = `storyboard-board-settings-${boardId}`;
+  const [oneTakeOpen, setOneTakeOpen] = useState(false);
+  const toggleOneTake = useCallback(() => setOneTakeOpen((open) => !open), []);
+  const closeOneTake = useCallback(() => setOneTakeOpen(false), []);
+  const oneTakePanelId = `storyboard-one-take-${boardId}`;
 
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -642,6 +732,22 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     }
     onAssemble?.();
   }, [timelineId, onAssemble]);
+  const handleOpenTimeline = useCallback(() => {
+    if (!timelineId) {
+      return;
+    }
+    if (onOpenTimeline) {
+      onOpenTimeline(timelineId);
+      return;
+    }
+    useWorkspaceTabsStore.getState().openTab({
+      type: "timeline",
+      ref: timelineId,
+      mode: "edit",
+      title: linkedTimeline.data?.name,
+      projectId: linkedTimeline.data?.projectId
+    });
+  }, [timelineId, onOpenTimeline, linkedTimeline.data]);
   const handleConfirmAssemble = useCallback(() => {
     setAssembleConfirmOpen(false);
     onAssemble?.();
@@ -974,6 +1080,52 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     [leaveRequest, selectShot, boardId, downloadZip]
   );
 
+  const undoRedo = (
+    <UndoRedoButtons
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onUndo={onUndo}
+      onRedo={onRedo}
+      undoTooltip="Undo (⌘Z)"
+      redoTooltip="Redo (⌘⇧Z)"
+    />
+  );
+  const downloadingStatus = downloading && (
+    <FlexRow align="center" gap={SPACING.xs} role="status">
+      <LoadingSpinner size={16} />
+      <Caption color="secondary">Preparing ZIP…</Caption>
+    </FlexRow>
+  );
+  const actionsMenu = (
+    <BoardActionsMenu
+      onChangeStyle={openStyle}
+      onDownloadZip={handleDownloadZip}
+      downloading={downloading}
+      hasShots={hasShots}
+      workflowMedia={boardWorkflowMedia}
+    />
+  );
+  const renderStillsButton = (
+    <RenderBatchButton
+      label="Render stills"
+      estimate={stillsCost}
+      disabled={pendingStills.length === 0 || !!directing}
+      highlighted={stillStepActive}
+      onClick={openStillRenderDialog}
+      fullWidth={compactToolbar}
+    />
+  );
+  const renderClipsButton = (
+    <RenderBatchButton
+      label="Render clips"
+      estimate={clipsCost}
+      disabled={pendingClips.length === 0 || !!directing}
+      highlighted={clipStepActive}
+      onClick={openClipRenderDialog}
+      fullWidth={compactToolbar}
+    />
+  );
+
   return (
     <Box sx={{ position: "relative", height: "100%", minHeight: 0 }}>
       <ScrollArea
@@ -995,92 +1147,145 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         >
           <FlexRow align="center" gap={SPACING.lg} wrap>
             <Text size="big">{title || "Untitled film"}</Text>
-            <BoardGenreChip boardId={boardId} genre={genre} readOnly={readOnly} />
+            <BoardGenreChip
+              boardId={boardId}
+              genre={genre}
+              readOnly={readOnly}
+            />
             <BoardLineageChip boardId={boardId} />
             <Caption color="secondary">{summary}</Caption>
-            <Box sx={{ flex: 1 }} />
-            {hasShots && (
-              <FlexRow align="center" gap={SPACING.md}>
-                <BoardCardSizeSlider />
-                <EditorButton variant="outlined" onClick={openSlideshow}>
-                  Slideshow
-                </EditorButton>
-              </FlexRow>
-            )}
-            {!readOnly && (
-              <FlexRow align="center" gap={SPACING.md} wrap>
-                <UndoRedoButtons
-                  canUndo={canUndo}
-                  canRedo={canRedo}
-                  onUndo={onUndo}
-                  onRedo={onRedo}
-                  undoTooltip="Undo (⌘Z)"
-                  redoTooltip="Redo (⌘⇧Z)"
-                />
-                <EditorButton
-                  variant="outlined"
-                  startIcon={<AddIcon fontSize="small" />}
-                  onClick={handleAddShot}
-                  disabled={directing}
-                >
-                  Add shot
-                </EditorButton>
-                <EditorButton
-                  variant="outlined"
-                  onClick={togglePreview}
-                  disabled={!hasPlayableShot}
-                >
-                  {previewOpen ? "Hide preview" : "Preview"}
-                </EditorButton>
-                <EditorButton
-                  variant={settingsVisible ? "contained" : "outlined"}
-                  startIcon={<TuneIcon fontSize="small" />}
-                  onClick={toggleSettings}
-                  aria-expanded={settingsVisible}
-                  aria-controls={settingsPanelId}
-                >
-                  Board settings
-                </EditorButton>
-                {onToggleAssistant && (
-                  <EditorButton
-                    variant={assistantOpen ? "contained" : "outlined"}
-                    startIcon={<AutoAwesomeIcon fontSize="small" />}
-                    onClick={onToggleAssistant}
-                    aria-pressed={assistantOpen}
-                  >
-                    Assistant
-                  </EditorButton>
-                )}
-                {downloading && (
-                  <FlexRow align="center" gap={SPACING.xs} role="status">
-                    <LoadingSpinner size={16} />
-                    <Caption color="secondary">Preparing ZIP…</Caption>
+            {!compactToolbar && (
+              <>
+                <Box sx={{ flex: 1 }} />
+                {hasShots && (
+                  <FlexRow align="center" gap={SPACING.md}>
+                    <BoardCardSizeSlider />
+                    <EditorButton variant="outlined" onClick={openSlideshow}>
+                      Slideshow
+                    </EditorButton>
                   </FlexRow>
                 )}
-                <BoardActionsMenu
-                  onChangeStyle={openStyle}
-                  onDownloadZip={handleDownloadZip}
-                  downloading={downloading}
-                  hasShots={hasShots}
-                  workflowMedia={boardWorkflowMedia}
-                />
-                <RenderBatchButton
-                  label="Render stills"
-                  estimate={stillsCost}
-                  disabled={pendingStills.length === 0 || !!directing}
-                  highlighted={stillStepActive}
-                  onClick={openStillRenderDialog}
-                />
-                <RenderBatchButton
-                  label="Render clips"
-                  estimate={clipsCost}
-                  disabled={pendingClips.length === 0 || !!directing}
-                  highlighted={clipStepActive}
-                  onClick={openClipRenderDialog}
-                />
-              </FlexRow>
+                {!readOnly && (
+                  <FlexRow align="center" gap={SPACING.md} wrap>
+                    {undoRedo}
+                    <EditorButton
+                      variant="outlined"
+                      startIcon={<AddIcon fontSize="small" />}
+                      onClick={handleAddShot}
+                      disabled={directing}
+                    >
+                      Add shot
+                    </EditorButton>
+                    <EditorButton
+                      variant="outlined"
+                      onClick={togglePreview}
+                      disabled={!hasPlayableShot}
+                    >
+                      {previewOpen ? "Hide preview" : "Preview"}
+                    </EditorButton>
+                    <EditorButton
+                      variant={settingsVisible ? "contained" : "outlined"}
+                      startIcon={<TuneIcon fontSize="small" />}
+                      onClick={toggleSettings}
+                      aria-expanded={settingsVisible}
+                      aria-controls={settingsPanelId}
+                    >
+                      Board settings
+                    </EditorButton>
+                    <EditorButton
+                      variant={oneTakeOpen ? "contained" : "outlined"}
+                      startIcon={<MovieOutlinedIcon fontSize="small" />}
+                      onClick={toggleOneTake}
+                      aria-expanded={oneTakeOpen}
+                      aria-controls={oneTakePanelId}
+                    >
+                      One take
+                    </EditorButton>
+                    {onToggleAssistant && (
+                      <EditorButton
+                        variant={assistantOpen ? "contained" : "outlined"}
+                        startIcon={<AutoAwesomeIcon fontSize="small" />}
+                        onClick={onToggleAssistant}
+                        aria-pressed={assistantOpen}
+                      >
+                        Assistant
+                      </EditorButton>
+                    )}
+                    {downloadingStatus}
+                    {actionsMenu}
+                    {renderStillsButton}
+                    {renderClipsButton}
+                  </FlexRow>
+                )}
+              </>
             )}
           </FlexRow>
+
+          {/* A phone has no room for a row of labelled buttons: the board's
+              tools become one row of icons, and the two render buttons, which
+              spend money, keep their labels and share the row under it. The
+              card size slider is left out, since one column fills the width
+              at any size. */}
+          {compactToolbar && (hasShots || !readOnly) && (
+            <FlexColumn gap={SPACING.sm}>
+              <FlexRow align="center" gap={SPACING.xs} wrap>
+                {!readOnly && undoRedo}
+                {!readOnly && (
+                  <ToolbarIconButton
+                    icon={<AddIcon />}
+                    tooltip="Add shot"
+                    onClick={handleAddShot}
+                    disabled={directing}
+                  />
+                )}
+                {hasShots && (
+                  <ToolbarIconButton
+                    icon={<SlideshowIcon />}
+                    tooltip="Slideshow"
+                    onClick={openSlideshow}
+                  />
+                )}
+                {!readOnly && (
+                  <ToolbarIconButton
+                    icon={<PlayCircleOutlineIcon />}
+                    tooltip={previewOpen ? "Hide preview" : "Preview"}
+                    onClick={togglePreview}
+                    disabled={!hasPlayableShot}
+                    active={previewOpen}
+                    aria-pressed={previewOpen}
+                  />
+                )}
+                {!readOnly && (
+                  <ToolbarIconButton
+                    icon={<TuneIcon />}
+                    tooltip="Board settings"
+                    onClick={toggleSettings}
+                    active={settingsVisible}
+                    aria-expanded={settingsVisible}
+                    aria-controls={settingsPanelId}
+                  />
+                )}
+                {!readOnly && (
+                  <ToolbarIconButton
+                    icon={<MovieOutlinedIcon />}
+                    tooltip="One take"
+                    onClick={toggleOneTake}
+                    active={oneTakeOpen}
+                    aria-expanded={oneTakeOpen}
+                    aria-controls={oneTakePanelId}
+                  />
+                )}
+                {!readOnly && actionsMenu}
+                {!readOnly && downloadingStatus}
+              </FlexRow>
+              {!readOnly && (
+                <FlexRow gap={SPACING.sm}>
+                  {renderStillsButton}
+                  {renderClipsButton}
+                </FlexRow>
+              )}
+            </FlexColumn>
+          )}
 
           {/* The board's own state, under the toolbar and above the settings
               form: what is stale and what failed. Both render null when they
@@ -1102,7 +1307,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 <FlexColumn gap={SPACING.xl}>
                   <SectionHeader
                     title="Board settings"
-                    size="small"
+                    size="medium"
                     action={
                       <CloseButton
                         tooltip="Close board settings"
@@ -1151,7 +1356,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                         <FormField label="Screenplay model" sx={modelFieldSx}>
                           <LanguageModelSelect
                             value={directorModel?.id ?? ""}
-                            onChange={(value) => setDirectorModel(boardId, value)}
+                            onChange={(value) =>
+                              setDirectorModel(boardId, value)
+                            }
                           />
                         </FormField>
                       )}
@@ -1183,7 +1390,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     wrap
                   >
                     <Caption
-                      color={directError || assembleError ? "error" : "secondary"}
+                      color={
+                        directError || assembleError ? "error" : "secondary"
+                      }
                     >
                       {directError ??
                         assembleError ??
@@ -1206,6 +1415,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   </FlexRow>
                 </FlexColumn>
               </Panel>
+            </Collapse>
+          )}
+
+          {!readOnly && (
+            <Collapse in={oneTakeOpen} timeout="auto" unmountOnExit>
+              <OneTakePanel
+                boardId={boardId}
+                id={oneTakePanelId}
+                onClose={closeOneTake}
+              />
             </Collapse>
           )}
 
@@ -1260,12 +1479,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 ? ` · ~${formatUsd(clipsCost.cost)}`
                 : ""
             }`}
-            confirmDisabled={clipModelTasks.some((task) => !clipSelections[task])}
+            confirmDisabled={clipModelTasks.some(
+              (task) => !clipSelections[task]
+            )}
           >
             <FlexColumn gap={SPACING.md}>
               <Caption color="secondary">
-                Pick a model for each kind of clip in this batch. Each shot keeps
-                its choice for fast re-renders.
+                Pick a model for each kind of clip in this batch. Each shot
+                keeps its choice for fast re-renders.
               </Caption>
               {clipModelTasks.map((task) => (
                 <FormField
@@ -1435,6 +1656,20 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   <SceneHeader
                     number={sceneIndex + 1}
                     slugline={group.scene?.slugline || undefined}
+                    actions={
+                      readOnly || directing ? undefined : (
+                        <SceneClipControls
+                          sceneId={group.sceneId}
+                          sceneShots={group.shots}
+                          boardShots={shots}
+                          clips={
+                            sceneClipsByGroup.get(group.sceneId) ??
+                            NO_SCENE_CLIPS
+                          }
+                          onOpen={openSceneClip}
+                        />
+                      )
+                    }
                   />
                   {group.shots.map((shot) => (
                     <Box key={shot.id} sx={shotSlotSx}>
@@ -1442,6 +1677,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                         boardId={boardId}
                         shot={shot}
                         caption={captions.get(shot.id)}
+                        sceneClipTag={sceneClipTags.get(shot.id)}
                         renderContext={renderContext}
                         selected={shot.id === activeShotId}
                         onSelect={handleSelectShot}
@@ -1487,6 +1723,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                       ? "Rebuild linked timeline…"
                       : "Create timeline"}
                 </EditorButton>
+                {timelineId && (
+                  <EditorButton
+                    variant="outlined"
+                    startIcon={<MovieOutlinedIcon />}
+                    onClick={handleOpenTimeline}
+                  >
+                    Open timeline
+                  </EditorButton>
+                )}
               </FlexRow>
               {!hasRenderedShot && (
                 <Caption color="secondary">
@@ -1517,6 +1762,18 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             open={styleOpen}
             onClose={closeStyle}
           />
+
+          {sceneClipDialog && (
+            <Suspense fallback={null}>
+              <SceneClipDialog
+                boardId={boardId}
+                sceneShots={sceneClipDialog.sceneShots}
+                clip={sceneClipDialog.clip}
+                saved={sceneClipDialog.saved}
+                onClose={closeSceneClip}
+              />
+            </Suspense>
+          )}
 
           {activeShot && (
             <Box>

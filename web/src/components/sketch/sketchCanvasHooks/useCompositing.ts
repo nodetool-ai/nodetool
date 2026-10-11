@@ -56,6 +56,7 @@ import { useTransformPreviewComposite } from "./useTransformPreviewComposite";
 import { useRedrawScheduler } from "./useRedrawScheduler";
 import { useLayerHydration } from "./useLayerHydration";
 import { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
+import { checkerboardDocumentCellPx } from "../drawingUtils";
 
 export interface UseCompositingParams {
   doc: SketchDocument;
@@ -293,9 +294,14 @@ export function useCompositing({
     }
   }, [bootstrapPhaseActive, backend, coordinatorRef]);
 
+  // Canvas2D draws the checkerboard into the composite in document pixels, so
+  // a zoom step needs a new frame only when the checkerboard cell size
+  // changes. The WebGPU frame also scales its selection ants with zoom.
+  const zoomRedrawKey =
+    backend === "webgpu" ? externalZoom : checkerboardDocumentCellPx(externalZoom);
   useEffect(() => {
     requestRedraw();
-  }, [externalZoom, requestRedraw]);
+  }, [zoomRedrawKey, requestRedraw]);
 
   // ─── Cleanup ───────────────────────────────────────────────────────
   // Cleanup rAF and dispose runtime only on **unmount**, not when `runtime`

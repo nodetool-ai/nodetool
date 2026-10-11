@@ -160,7 +160,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[50],
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       borderRadius: BORDER_RADIUS.md,
-      fontFamily: "monospace",
+      fontFamily: "var(--fontFamily2)",
       fontSize: "var(--fontSizeSmall)",
       padding: getSpacingPx(SPACING.xl),
       whiteSpace: "pre-wrap",

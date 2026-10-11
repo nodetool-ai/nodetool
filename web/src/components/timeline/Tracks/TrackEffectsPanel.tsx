@@ -1769,7 +1769,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
           css={effectHeaderStyles}
           sx={{ mb: 1, alignItems: "center" }}
         >
-          <Text size="small" weight={600}>
+          <Text size="small" weight={500}>
             {chainLabel} - {track.name}
           </Text>
           <button type="button" css={addButtonStyles(theme)} onClick={handleOpenAdd}>

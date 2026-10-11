@@ -41,7 +41,6 @@ import { useHardwareProfile } from "../onboarding/useHardwareProfile";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
-import { isElectron } from "../../../lib/env";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -510,24 +509,21 @@ const ModelListIndex: React.FC = () => {
         </Text>
         {isOllamaError && (
           <FlexColumn gap={1} sx={{ mt: 1 }}>
-            {isElectron ? (
-              <Text size="small" color="warning">
-                Ollama should be running automatically. Please try restarting
-                the application.
-              </Text>
-            ) : (
-              <Text
-                size="small"
-                component="a"
-                href="https://ollama.com/download"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ textDecoration: "underline" }}
-                color="primary"
-              >
-                Download Ollama →
-              </Text>
-            )}
+            <Text size="small" color="secondary">
+              Ollama is a separate app. Install it from ollama.com and start
+              it, then reopen this list.
+            </Text>
+            <Text
+              size="small"
+              component="a"
+              href="https://ollama.com/download"
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ textDecoration: "underline" }}
+              color="primary"
+            >
+              Download Ollama →
+            </Text>
           </FlexColumn>
         )}
       </FlexColumn>

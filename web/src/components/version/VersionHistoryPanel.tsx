@@ -10,15 +10,14 @@ import { GraphVisualDiff } from "./GraphVisualDiff";
 import { WorkflowGraphPreview } from "./WorkflowGraphPreview";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { formatDateTime } from "../../utils/formatUtils";
-import PanelToolbar from "../panels/PanelToolbar";
 import {
   Caption,
   Chip,
-  CloseButton,
   Dialog,
   EditorButton,
   FlexColumn,
@@ -29,12 +28,22 @@ import {
   ToggleOption,
   Tooltip,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  PanelHeader
 } from "../ui_primitives";
+
+/** The workflow row's concurrency tokens after a restore. */
+export interface RestoredWorkflowTokens {
+  updated_at?: string | null;
+  etag?: string | null;
+}
 
 interface VersionHistoryPanelProps {
   workflowId: string;
-  onRestore: (version: WorkflowVersion) => void;
+  onRestore: (
+    version: WorkflowVersion,
+    restored: RestoredWorkflowTokens
+  ) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -101,6 +110,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     isRestoringVersion,
     deleteVersion
   } = useWorkflowVersions(workflowId);
+  const queueWorkflowSave = useWorkflowManager(
+    (state) => state.queueWorkflowSave
+  );
 
   const [filterType, setFilterType] = useState<SaveType | "all">("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -198,14 +210,26 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   const handleRestore = useCallback(
     async (version: WorkflowVersion) => {
       try {
-        await restoreVersion(version.version);
-        onRestore(version);
+        // The restore rewrites the workflow row, so it waits for any save in
+        // flight and holds external-change notices until the editor adopts
+        // the restored row's tokens: its own echo is not a conflict.
+        await queueWorkflowSave(workflowId, async () => {
+          const restored = await restoreVersion(version.version);
+          await onRestore(version, restored);
+          return restored.etag ?? undefined;
+        });
         setHistoryPanelOpen(false);
       } catch (error) {
         console.error("Failed to restore version:", error);
       }
     },
-    [restoreVersion, onRestore, setHistoryPanelOpen]
+    [
+      queueWorkflowSave,
+      workflowId,
+      restoreVersion,
+      onRestore,
+      setHistoryPanelOpen
+    ]
   );
 
   const handleFilterChange = useCallback(
@@ -263,12 +287,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           height: "100%"
         }}
       >
-        <PanelToolbar
-          title="Version History"
-          actions={
-            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
-          }
-        />
+        <PanelHeader title="Versions" onClose={onClose} />
         <FlexColumn padding={3} gap={0.5}>
           <Text color="error">Failed to load versions</Text>
           <Text size="smaller" color="secondary">{String(error)}</Text>
@@ -288,7 +307,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         overflow: "hidden"
       }}
     >
-      <PanelToolbar
+      <PanelHeader
         title="Versions"
         count={versions.length}
         actions={
@@ -320,9 +339,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 Compare
               </EditorButton>
             </Tooltip>
-            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
           </>
         }
+        onClose={onClose}
       >
         <ToggleGroup
           value={filterType}
@@ -335,7 +354,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           <ToggleOption value="manual" aria-label="manual">Manual</ToggleOption>
           <ToggleOption value="autosave" aria-label="autosave">Auto</ToggleOption>
         </ToggleGroup>
-      </PanelToolbar>
+      </PanelHeader>
 
       {isCompareMode && !compareVersionId && (
         <div style={{

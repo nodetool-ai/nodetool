@@ -5,6 +5,7 @@
  * Pure: the host resolves the target (file, id) and writes the bundle; this
  * decides what the run means.
  */
+import { buildDocumentVerdict } from "../debug/verdict.js";
 import type { DebugVerdict } from "../debug/types.js";
 import type {
   TimelineDebugIssue,
@@ -41,9 +42,7 @@ const NOT_SIMULATED: ReadonlyArray<string> = [
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const countAndDuration = (
-  document: unknown
-) => {
+const countAndDuration = (document: unknown) => {
   if (!isRecord(document))
     return { trackCount: 0, clipCount: 0, durationMs: 0 };
   const tracks = Array.isArray(document.tracks) ? document.tracks : [];
@@ -70,40 +69,14 @@ function buildTimelineVerdict(
   interactions: ReadonlyArray<TimelineInteractionRecord>,
   finalValidation: TimelineValidation | undefined
 ): DebugVerdict {
-  const failedSteps = interactions.filter((step) => !step.ok);
-  const issues: string[] = [
-    ...validation.errors.map(describe),
-    ...failedSteps.map(
-      (step) =>
-        `Interaction \`${step.tool}\` failed${step.error ? `: ${step.error}` : ""}`
-    ),
-    ...(finalValidation?.errors ?? []).map(
-      (issue) => `After edits — ${describe(issue)}`
-    )
-  ];
-  const warnings: string[] = [
-    ...validation.warnings.map(describe),
-    ...(finalValidation?.warnings ?? []).map(
-      (issue) => `After edits — ${describe(issue)}`
-    )
-  ];
-
-  const ok = issues.length === 0;
-  const warningCount = warnings.length;
-  const headline = ok
-    ? `Timeline is sound — ${interactions.length} interaction(s) ran clean` +
-      (warningCount > 0 ? `, ${warningCount} warning(s)` : "") +
-      "."
-    : `Timeline has ${issues.length} problem(s)` +
-      (failedSteps.length > 0
-        ? `, ${failedSteps.length} failed interaction(s)`
-        : "") +
-      (warningCount > 0 ? `, ${warningCount} warning(s)` : "") +
-      ` — ${issues[0]}`;
-
-  return warningCount > 0
-    ? { ok, headline, issues, warnings }
-    : { ok, headline, issues };
+  return buildDocumentVerdict({
+    subject: "Timeline",
+    soundLabel: "Timeline is sound",
+    describe,
+    validation,
+    finalValidation,
+    interactions
+  });
 }
 
 interface TimelineDebugReportInput {

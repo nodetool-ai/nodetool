@@ -258,10 +258,17 @@ export function useCanvasOrchestration(
     });
   }, [pan.x, pan.y, runtime, zoom]);
 
+  // Pan and zoom move the CSS transform, not the composite. Only the WebGPU
+  // ants overlay is drawn in screen space, and only a live selection shows
+  // ants, so every other pan/zoom step skips the full-document composite.
+  const hasSelection = selection != null;
   useEffect(() => {
     syncSelectionAntsViewport();
-    requestRedraw();
-  }, [requestRedraw, syncSelectionAntsViewport]);
+    const rt = runtime as SelectionAntsRuntime;
+    if (rt.setSelectionAntsViewport && hasSelection) {
+      requestRedraw();
+    }
+  }, [requestRedraw, syncSelectionAntsViewport, runtime, hasSelection]);
 
   // ─── Overlay and cursor rendering ──────────────────────────────────
 

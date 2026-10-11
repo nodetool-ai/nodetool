@@ -67,3 +67,32 @@ describe("keyboard end trim source cap", () => {
     expect(durationOf(clip.id)).toBe(1000);
   });
 });
+
+describe("keyboard frame steps stay on the frame grid", () => {
+  it("trims the edit point by whole frames at 30 fps", () => {
+    const clip = setup("asset-grid");
+    expect(useTimelineStore.getState().fps).toBe(30);
+    for (let i = 0; i < 3; i++) {
+      fireEvent.keyDown(window, {
+        key: "ArrowLeft",
+        code: "ArrowLeft",
+        ctrlKey: true,
+        shiftKey: true
+      });
+    }
+    // Three frames off 1000 ms (frame 30) is frame 27: 900 ms, not 901.
+    expect(durationOf(clip.id)).toBe(900);
+  });
+
+  it("nudges the selection by whole frames at 30 fps", () => {
+    const clip = setup("asset-grid");
+    act(() => {
+      useTimelineUIStore.getState().setSelection([clip.id]);
+    });
+    for (let i = 0; i < 3; i++) {
+      fireEvent.keyDown(window, { key: "ArrowRight", code: "ArrowRight" });
+    }
+    const moved = useTimelineStore.getState().clips.find((c) => c.id === clip.id)!;
+    expect(moved.startMs).toBe(100);
+  });
+});

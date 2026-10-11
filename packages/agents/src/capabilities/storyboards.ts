@@ -37,7 +37,9 @@ import type {
   Scene,
   Screenplay,
   ScriptLinkDocument,
+  OneTakeDirection,
   Shot,
+  ShotModelRef,
   ShotCoverage,
   VideoRef
 } from "@nodetool-ai/protocol";
@@ -48,6 +50,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import {
   assertProductionGenerationAllowed,
+  compileOneTake,
   isFullResourceId,
   isShortResourceId,
   productionRequirement
@@ -77,7 +80,9 @@ import {
   editStoryboardSpec,
   directStoryboardSpec,
   extractScriptFromStoryboardSpec,
-  deleteStoryboardSpec
+  deleteStoryboardSpec,
+  getStoryboardOneTakeSpec,
+  updateStoryboardOneTakeSpec
 } from "./storyboards.specs.js";
 import { measureStoryboardSources } from "./storyboard-measured-sources.js";
 import { clampConcurrency } from "./concurrency.js";
@@ -595,6 +600,8 @@ const getStoryboard: CapabilityExport = {
           action: shot.action,
           camera: shot.camera,
           motion: shot.motion,
+          end_state: shot.end_state,
+          sound: shot.sound,
           graphics: shot.graphics,
           production: shot.production,
           duration_seconds: shot.duration_seconds,
@@ -1654,6 +1661,8 @@ const SHOT_EDIT_FIELDS = new Set([
   "slug",
   "camera",
   "motion",
+  "end_state",
+  "sound",
   "graphics",
   "production",
   "dialogue",
@@ -1821,6 +1830,15 @@ function applyShotFields(
   if (args["camera"] !== undefined)
     next.camera = args["camera"] as Shot["camera"];
   if (args["motion"] !== undefined) next.motion = String(args["motion"]);
+  for (const field of ["end_state", "sound"] as const) {
+    const value = args[field];
+    if (value === undefined) continue;
+    if (value === null || String(value).trim() === "") {
+      delete next[field];
+    } else {
+      next[field] = String(value);
+    }
+  }
   if (args["graphics"] !== undefined) {
     if (args["graphics"] === null) {
       delete next.graphics;
@@ -2964,6 +2982,269 @@ const deleteStoryboard: CapabilityExport = {
       : { error: `Storyboard ${id} was not found, or it is not yours.` };
   }
 };
+// ---------------------------------------------------------------------------
+// get_storyboard_one_take / update_storyboard_one_take
+// ---------------------------------------------------------------------------
+
+/** Above this the providers that take one continuous clip refuse or truncate. */
+const ONE_TAKE_MAX_SECONDS = 30;
+/** The most reference images a one-take provider accepts. */
+const ONE_TAKE_MAX_IMAGES = 9;
+
+/** The document's `one_take`, which the models-layer type does not name yet. */
+type OneTakeDoc = StoryboardDocument & { one_take?: OneTakeDirection };
+
+const oneTakeUpdateInput = z.object({
+  prompt: z.string().optional(),
+  duration_seconds: z.number().positive().nullable().optional(),
+  aspect_ratio: z.string().trim().min(1).nullable().optional(),
+  resolution: z.string().trim().min(1).nullable().optional(),
+  model: z
+    .object({
+      provider: z.string().trim().min(1),
+      id: z.string().trim().min(1),
+      name: z.string().optional()
+    })
+    .nullable()
+    .optional(),
+  shots: z
+    .array(
+      z.object({
+        shot_id: z.string().trim().min(1),
+        end_state: z.string().nullable().optional(),
+        sound: z.string().nullable().optional()
+      })
+    )
+    .optional()
+});
+
+/** The one-take render settings a call may set; null clears one. */
+const ONE_TAKE_SETTINGS = [
+  "duration_seconds",
+  "aspect_ratio",
+  "resolution",
+  "model"
+] as const;
+
+/** The board's `videoModel` as a model ref, or null when it names none. */
+function boardVideoModel(value: unknown): ShotModelRef | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const id = record["id"];
+  const provider = record["provider"];
+  if (typeof id !== "string" || id === "" || typeof provider !== "string" || provider === "") {
+    return null;
+  }
+  const model: ShotModelRef = {
+    id,
+    provider: provider as ShotModelRef["provider"]
+  };
+  const name = record["name"];
+  if (typeof name === "string") {
+    model.name = name;
+  }
+  return model;
+}
+
+/** The shape both one-take capabilities return. */
+function oneTakeSummary(row: Storyboard, doc: OneTakeDoc) {
+  const compiled = compileOneTake({
+    shots: doc.shots,
+    oneTake: doc.one_take
+  });
+  const direction = doc.one_take;
+  const settings = {
+    duration_seconds: direction?.duration_seconds ?? null,
+    aspect_ratio: direction?.aspect_ratio ?? null,
+    resolution: direction?.resolution ?? null,
+    model: direction?.model ?? null
+  };
+  const effective = {
+    duration_seconds: compiled.duration_seconds,
+    shot_total_seconds: compiled.shot_total_seconds,
+    aspect_ratio: settings.aspect_ratio ?? doc.aspectRatio ?? null,
+    resolution: settings.resolution,
+    model: settings.model ?? boardVideoModel(doc.videoModel)
+  };
+  const warnings: string[] = [];
+  if (!effective.model) {
+    warnings.push(
+      "No video model is chosen: set `model` here or the board's video model."
+    );
+  }
+  if (compiled.duration_seconds > ONE_TAKE_MAX_SECONDS) {
+    warnings.push(
+      `The take runs ${compiled.duration_seconds}s, over the ${ONE_TAKE_MAX_SECONDS}s one-take limit.`
+    );
+  }
+  if (compiled.references.length > ONE_TAKE_MAX_IMAGES) {
+    warnings.push(
+      `${compiled.references.length} reference images; one-take models accept at most ${ONE_TAKE_MAX_IMAGES}.`
+    );
+  }
+  const byId = new Map(doc.shots.map((shot) => [shot.id, shot]));
+  const withoutStill = compiled.steps
+    .map((step) => byId.get(step.shot_id))
+    .filter((shot): shot is Shot => !!shot && !shot.keyframe?.asset_id);
+  if (withoutStill.length > 0) {
+    warnings.push(
+      `Shots without a still send no image: ${withoutStill
+        .map((shot) => shot.slug?.trim() || shot.id)
+        .join(", ")}.`
+    );
+  }
+  return {
+    storyboard_id: row.id,
+    revision: row.revision,
+    updated_at: row.updated_at,
+    stored: doc.one_take !== undefined,
+    prompt: doc.one_take?.prompt ?? "",
+    compiled: compiled.compiled,
+    full_prompt: compiled.prompt,
+    references: compiled.references.map((reference, index) => ({
+      image_number: index + 1,
+      marker: `[Image ${index + 1}]`,
+      ...reference
+    })),
+    steps: compiled.steps.map((step) => {
+      const shot = byId.get(step.shot_id);
+      return {
+        shot_id: step.shot_id,
+        index: shot?.index,
+        slug: shot?.slug,
+        start_seconds: step.start_seconds,
+        end_seconds: step.end_seconds,
+        end_state: shot?.end_state ?? null,
+        sound: shot?.sound ?? null
+      };
+    }),
+    duration_seconds: compiled.duration_seconds,
+    settings,
+    effective,
+    warnings
+  };
+}
+
+const getStoryboardOneTake: CapabilityExport = {
+  spec: getStoryboardOneTakeSpec,
+  impl: async (run, params) => {
+    const board = await loadBoard(run, params["storyboard_id"]);
+    if (isError(board)) return board;
+    return oneTakeSummary(board.row, board.doc);
+  }
+};
+
+const updateStoryboardOneTake: CapabilityExport = {
+  spec: updateStoryboardOneTakeSpec,
+  impl: async (run, params) => {
+    const parsed = oneTakeUpdateInput.safeParse({
+      prompt: params["prompt"],
+      duration_seconds: params["duration_seconds"],
+      aspect_ratio: params["aspect_ratio"],
+      resolution: params["resolution"],
+      model: params["model"],
+      shots: params["shots"]
+    });
+    if (!parsed.success) {
+      return {
+        error: parsed.error.issues
+          .map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`)
+          .join("; ")
+      };
+    }
+    const { prompt, shots: shotPatches } = parsed.data;
+    const settingsGiven = ONE_TAKE_SETTINGS.filter(
+      (key) => parsed.data[key] !== undefined
+    );
+    if (prompt === undefined && settingsGiven.length === 0 && !shotPatches) {
+      return {
+        error:
+          "Pass prompt, duration_seconds, aspect_ratio, resolution, model or shots to update."
+      };
+    }
+
+    const { Storyboard } = await import("@nodetool-ai/models");
+
+    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+      const board = await loadBoard(run, params["storyboard_id"]);
+      if (isError(board)) return board;
+      const { row } = board;
+      const doc: OneTakeDoc = board.doc;
+      if (
+        params["expected_revision"] !== undefined &&
+        params["expected_revision"] !== row.revision
+      ) {
+        return {
+          error: "Storyboard revision conflict. Refresh the board before editing."
+        };
+      }
+
+      const ops: { tool: string; input: Record<string, unknown> }[] = [];
+      if (prompt !== undefined || settingsGiven.length > 0) {
+        const next: OneTakeDirection = {
+          ...doc.one_take,
+          prompt: prompt ?? doc.one_take?.prompt ?? ""
+        };
+        const { duration_seconds, aspect_ratio, resolution, model } = parsed.data;
+        if (duration_seconds !== undefined) next.duration_seconds = duration_seconds;
+        if (aspect_ratio !== undefined) next.aspect_ratio = aspect_ratio;
+        if (resolution !== undefined) next.resolution = resolution;
+        if (model !== undefined) {
+          next.model = model && {
+            ...model,
+            provider: model.provider as ShotModelRef["provider"]
+          };
+        }
+        // A null clears the setting: store it absent, not null.
+        for (const key of ONE_TAKE_SETTINGS) {
+          if (next[key] === null) delete next[key];
+        }
+        doc.one_take = next;
+        // Field-level, the way set_board is: an open editor takes the
+        // direction whole.
+        ops.push({ tool: "set_board", input: { one_take: doc.one_take } });
+      }
+
+      for (const patch of shotPatches ?? []) {
+        const shot = findShot(doc.shots, patch.shot_id);
+        if (!shot) {
+          return {
+            error: `No shot matches "${patch.shot_id}". Call get_storyboard for shot ids.`
+          };
+        }
+        const next: Shot = { ...shot };
+        for (const field of ["end_state", "sound"] as const) {
+          const value = patch[field];
+          if (value === undefined) continue;
+          if (value === null || value.trim() === "") {
+            delete next[field];
+          } else {
+            next[field] = value;
+          }
+        }
+        doc.shots = doc.shots.map((s) => (s.id === shot.id ? next : s));
+        ops.push({
+          tool: "update_shot",
+          input: { id: shot.id, target: shot.id }
+        });
+      }
+
+      if (doc.screenplay) doc.screenplay.shots = doc.shots;
+      const saved = await Storyboard.updateFieldsIfUnchanged(
+        row.id,
+        row.updated_at,
+        { document: JSON.stringify(doc) },
+        { ops }
+      );
+      if (!saved) continue;
+      return oneTakeSummary(saved, doc);
+    }
+    return {
+      error: `Storyboard ${String(params["storyboard_id"])} is being modified concurrently; nothing was saved. Retry the call.`
+    };
+  }
+};
+
 export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
   finishStoryboard,
   layoutStoryboard,
@@ -2978,7 +3259,9 @@ export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
   editStoryboard,
   directStoryboard,
   extractScriptFromStoryboard,
-  deleteStoryboard
+  deleteStoryboard,
+  getStoryboardOneTake,
+  updateStoryboardOneTake
 ];
 
 export const module: CapabilityModule = {
@@ -3000,5 +3283,7 @@ export {
   editStoryboard,
   directStoryboard,
   extractScriptFromStoryboard,
-  deleteStoryboard
+  deleteStoryboard,
+  getStoryboardOneTake,
+  updateStoryboardOneTake
 };

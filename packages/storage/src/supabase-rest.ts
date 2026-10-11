@@ -149,13 +149,62 @@ async function readError(response: Response): Promise<SupabaseError> {
   };
 }
 
+export interface SupabaseStorageClientOptions {
+  /** Attempts per request, the first included. Default 4. */
+  maxAttempts?: number;
+  /** Injected wait between attempts (tests pass a no-op). */
+  sleep?: (ms: number) => Promise<void>;
+}
+
+const DEFAULT_MAX_ATTEMPTS = 4;
+const BACKOFF_BASE_MS = 250;
+const BACKOFF_CAP_MS = 4_000;
+
+const defaultSleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Full-jitter exponential backoff: a burst of uploads that all hit an
+ * exhausted pool must not retry in lockstep and exhaust it again.
+ */
+function backoffMs(attempt: number): number {
+  const ceiling = Math.min(BACKOFF_BASE_MS * 2 ** (attempt - 1), BACKOFF_CAP_MS);
+  return Math.round(ceiling * (0.5 + Math.random() / 2));
+}
+
 /**
  * Create a fetch-backed Supabase Storage client.
+ *
+ * Every request retries a thrown network error, a 429 and a 5xx. The Storage
+ * service answers 5xx when its own database pool is exhausted ("Too many
+ * connections issued to the database"), which clears within seconds. Every
+ * operation here is safe to repeat: uploads from this package always upsert,
+ * sign calls mint a fresh token, and the rest read or delete.
  */
 export function createSupabaseStorageClient(
   supabaseUrl: string,
-  supabaseKey: string
+  supabaseKey: string,
+  options: SupabaseStorageClientOptions = {}
 ): SupabaseStorageApi {
+  const maxAttempts = Math.max(1, options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
+  const sleep = options.sleep ?? defaultSleep;
+  const send = async (url: string, init: RequestInit): Promise<Response> => {
+    for (let attempt = 1; ; attempt++) {
+      let response: Response;
+      try {
+        response = await fetch(url, init);
+      } catch (error) {
+        if (attempt >= maxAttempts) throw error;
+        await sleep(backoffMs(attempt));
+        continue;
+      }
+      const transient = response.status === 429 || response.status >= 500;
+      if (!transient || attempt >= maxAttempts) return response;
+      // Drain the discarded body so the keep-alive connection is reusable.
+      await response.arrayBuffer().catch(() => undefined);
+      await sleep(backoffMs(attempt));
+    }
+  };
   let base = supabaseUrl;
   while (base.endsWith("/")) base = base.slice(0, -1);
   const authHeaders = {
@@ -178,7 +227,7 @@ export function createSupabaseStorageClient(
             if (options.upsert) {
               headers["x-upsert"] = "true";
             }
-            const response = await fetch(objectUrl(key), {
+            const response = await send(objectUrl(key), {
               method: "POST",
               headers,
               // SAFETY: `BodyInit` names `ArrayBufferView<ArrayBuffer>`, while
@@ -193,7 +242,7 @@ export function createSupabaseStorageClient(
           },
 
           async download(key) {
-            const response = await fetch(objectUrl(key), {
+            const response = await send(objectUrl(key), {
               method: "GET",
               headers: authHeaders
             });
@@ -208,7 +257,7 @@ export function createSupabaseStorageClient(
           },
 
           async info(key) {
-            const response = await fetch(objectUrl(key), {
+            const response = await send(objectUrl(key), {
               method: "HEAD",
               headers: authHeaders
             });
@@ -228,7 +277,7 @@ export function createSupabaseStorageClient(
           },
 
           async remove(keys) {
-            const response = await fetch(
+            const response = await send(
               `${base}/storage/v1/object/${bucket}`,
               {
                 method: "DELETE",
@@ -259,7 +308,7 @@ export function createSupabaseStorageClient(
             if (options.search) {
               listBody.search = options.search;
             }
-            const response = await fetch(
+            const response = await send(
               `${base}/storage/v1/object/list/${bucket}`,
               {
                 method: "POST",
@@ -275,7 +324,7 @@ export function createSupabaseStorageClient(
           },
 
           async createSignedUrl(key, expiresIn) {
-            const response = await fetch(
+            const response = await send(
               `${base}/storage/v1/object/sign/${bucket}/${encodeKey(key)}`,
               {
                 method: "POST",
@@ -300,7 +349,7 @@ export function createSupabaseStorageClient(
           },
 
           async createSignedUploadUrl(key) {
-            const response = await fetch(
+            const response = await send(
               `${base}/storage/v1/object/upload/sign/${bucket}/${encodeKey(key)}`,
               { method: "POST", headers: authHeaders }
             );

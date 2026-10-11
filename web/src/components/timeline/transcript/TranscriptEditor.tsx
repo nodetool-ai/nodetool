@@ -64,7 +64,9 @@ import {
   applyEditorEdits,
   buildTranscriptDoc,
   isTranscriptClip,
-  type EditorEdits
+  snapshotSeededTranscript,
+  type EditorEdits,
+  type SeededTranscript
 } from "../../../stores/timeline/transcriptOps";
 import {
   lockedUserTargetIds,
@@ -342,6 +344,10 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
   const focusedRef = useRef(false);
   const seededSigRef = useRef<string>("");
   const seededMarkerSigRef = useRef<string>("");
+  // The words and drafts the editor tree was seeded with. Clips that change
+  // while the editor is focused are not in the tree, so blur may only cut
+  // what this snapshot holds.
+  const seededRef = useRef<SeededTranscript | undefined>(undefined);
   const hasSeededRef = useRef(false);
   // A "cooldown" window after each applied check: a change that lands inside
   // it is remembered as `pendingCheckRef` instead of reseeding immediately, and
@@ -357,6 +363,7 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
         { discrete: true }
       );
       seededSigRef.current = transcriptSignature(nextClips);
+      seededRef.current = snapshotSeededTranscript(nextClips);
       seededMarkerSigRef.current = markerSignature(nextMarkers);
       // `discrete: true` flushes the reconciliation synchronously, so the DOM
       // already reflects the new words — rebuild the shared index right away
@@ -458,10 +465,21 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
             docApi.getState().clips,
             docApi.getState().tracks
           )
-        }
+        },
+        seededRef.current
       );
       if (transcriptSignature(nextClips) !== transcriptSignature(base)) {
         setTranscriptAndClips({ clips: nextClips, durationMs });
+      }
+      // Changes that landed while focused skipped the reseed check. Catch up
+      // now so the tree (and the seeded snapshot) match the clips again.
+      const latest = docApi.getState();
+      const latestClips = latest.clips.filter(isTranscriptClip);
+      if (
+        transcriptSignature(latestClips) !== seededSigRef.current ||
+        markerSignature(latest.markers) !== seededMarkerSigRef.current
+      ) {
+        reseed(latestClips, latest.markers);
       }
     };
 
@@ -471,7 +489,7 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
       root.removeEventListener("focus", onFocus);
       root.removeEventListener("blur", onBlur);
     };
-  }, [editor, docApi, setTranscriptAndClips]);
+  }, [editor, docApi, setTranscriptAndClips, reseed]);
 
   return null;
 };
@@ -859,8 +877,15 @@ const EditorBody: React.FC<{
     },
     [playbackApi, wordIndex]
   );
-  useGlobalCombo("arrowright", () => stepWord("forward"), scriptMode);
-  useGlobalCombo("arrowleft", () => stepWord("back"), scriptMode);
+  // The arrows step words only while focus is in the transcript. Elsewhere
+  // they belong to the timeline, which skips keys this combo prevented.
+  const focusedSurfaceTarget = useCallback(() => {
+    const surface = surfaceRef.current;
+    return surface?.contains(document.activeElement) ? surface : null;
+  }, []);
+  const scriptArrows = { active: !writing, target: focusedSurfaceTarget } as const;
+  useGlobalCombo("arrowright", () => stepWord("forward"), scriptArrows);
+  useGlobalCombo("arrowleft", () => stepWord("back"), scriptArrows);
 
   // Write-mode keys ride the editor (it holds focus): ⌘S plays, Esc finishes,
   // and "/" at the start of a block opens the command menu (mid-text "/" stays
@@ -908,6 +933,9 @@ const EditorBody: React.FC<{
   return (
     <EditorSurface
       ref={surfaceRef}
+      // Focusable by click (not Tab) so Script mode, whose editor is not
+      // editable, can still hold focus for the word-step arrows.
+      tabIndex={-1}
       className={writing ? "is-writing" : undefined}
       onKeyDown={onKeyDown}
       onClick={onClick}

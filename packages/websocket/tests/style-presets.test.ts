@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Asset, ModelObserver, initTestDb } from "@nodetool-ai/models";
 import {
   ENTITY_METADATA_KEY,
+  GAME_STYLE_PRESETS,
   STYLE_PRESETS,
   isSystemEntityMetadata
 } from "@nodetool-ai/protocol";
@@ -181,6 +182,21 @@ describe("style presets", () => {
       const again = await caller.storyboards.stylePresets();
       expect(again).toEqual(presets);
       expect(await entityRows(USER_ID)).toHaveLength(STYLE_PRESETS.length);
+    });
+
+    it("seeds the game set when the game look step asks for it", async () => {
+      const caller = createCaller(makeCtx(USER_ID));
+
+      const presets = await caller.storyboards.stylePresets({ set: "game" });
+      expect(presets.map((p) => p.presetId)).toEqual(
+        GAME_STYLE_PRESETS.map((p) => p.id)
+      );
+      for (const preset of presets) {
+        expect(preset.entityId).toBe(
+          stylePresetAssetId(USER_ID, preset.presetId)
+        );
+      }
+      expect(await entityRows(USER_ID)).toHaveLength(GAME_STYLE_PRESETS.length);
     });
   });
 });

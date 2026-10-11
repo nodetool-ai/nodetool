@@ -9,24 +9,37 @@
 
 import React, { memo } from "react";
 
-import { Caption } from "../../ui_primitives";
+import { Caption, EditorButton, FlexRow, GAP } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
+import ReportBugButton from "../../support/ReportBugButton";
 import { SetupFooterField } from "../SetupFooterField";
 import { directorModelKey, useDirectorModel } from "./directorModel";
 
 const DirectorModelPickerInternal: React.FC<{ readOnly?: boolean }> = ({
   readOnly = false
 }) => {
-  const { model, options, select, loading, error, noProvider } =
+  const { model, options, select, loading, error, noProvider, refetch } =
     useDirectorModel();
 
   // The footer has one line to spare, so a list that cannot be offered says
   // why in that line rather than in a banner.
   if (error) {
     return (
-      <Caption color="error" role="alert">
-        {`The model list could not be read: ${error}`}
-      </Caption>
+      <FlexRow gap={GAP.tight} align="center" wrap>
+        <Caption color="error" role="alert">
+          {`The model list could not be read: ${error}`}
+        </Caption>
+        <EditorButton size="small" variant="text" onClick={refetch}>
+          Try again
+        </EditorButton>
+        <ReportBugButton
+          context={{
+            source: "provider-call",
+            summary: "Director model list could not be read",
+            errorText: error
+          }}
+        />
+      </FlexRow>
     );
   }
   if (noProvider) {

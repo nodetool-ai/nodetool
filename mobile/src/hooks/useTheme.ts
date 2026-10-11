@@ -9,8 +9,10 @@ export const useTheme = () => {
   const setTheme = useThemeStore((state) => state.setTheme);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
 
+  // Matches ThemeStore: an unknown system scheme (common in simulators)
+  // resolves to dark, so `isDark` always agrees with the palette in `colors`.
   const isDark = mode === 'system'
-    ? Appearance.getColorScheme() === 'dark'
+    ? Appearance.getColorScheme() !== 'light'
     : mode === 'dark';
 
   const shadows = useMemo(() => getShadows(isDark), [isDark]);

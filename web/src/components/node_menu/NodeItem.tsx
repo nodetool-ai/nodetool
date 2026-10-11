@@ -404,7 +404,7 @@ const NodeItem = memo(function NodeItem({
             sx={{
               fontSize: "var(--fontSizeSmaller)",
               fontWeight: FONT_WEIGHT.semibold,
-              fontFamily: "monospace",
+              fontFamily: "var(--fontFamily2)",
               letterSpacing: "0.03em",
               bgcolor: `color-mix(in srgb, ${theme.vars.palette.info.main} 18%, transparent)`,
               color: theme.vars.palette.info.main,

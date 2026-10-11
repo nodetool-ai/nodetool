@@ -4,8 +4,8 @@
  * Module-level buffer (not per-instance) so clips can be copied between
  * timeline tabs. Pasted clips get fresh ids; the earliest copied clip lands
  * at the paste time and the others keep their relative offsets. Clips whose
- * source track no longer exists fall back to the first compatible track and
- * are skipped when none exists.
+ * source track no longer exists or is locked fall back to the first
+ * compatible unlocked track and are skipped when none exists.
  */
 
 import {
@@ -43,12 +43,16 @@ export function buildPastedClips(
     return [];
   }
   const minStartMs = Math.min(...clipboard.map((c) => c.startMs));
-  const trackIds = new Set(tracks.map((t) => t.id));
+  const writableTrackIds = new Set(
+    tracks.filter((t) => !t.locked).map((t) => t.id)
+  );
   const pasted: TimelineClip[] = [];
   for (const c of clipboard) {
     let trackId = c.trackId;
-    if (!trackIds.has(trackId)) {
-      const fallback = tracks.find((t) => clipFitsTrack(c.mediaType, t.type));
+    if (!writableTrackIds.has(trackId)) {
+      const fallback = tracks.find(
+        (t) => !t.locked && clipFitsTrack(c.mediaType, t.type)
+      );
       if (!fallback) {
         continue;
       }

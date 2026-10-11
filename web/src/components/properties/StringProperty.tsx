@@ -26,6 +26,7 @@ import {
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
+import { useUndoGroup } from "../../hooks/useUndoGroup";
 import { getCodeNodeLanguage } from "../node/codeNodeUi";
 import { isString } from "../../utils/typePredicates";
 
@@ -82,6 +83,8 @@ const StringProperty = ({
   const [isEditing, setIsEditing] = useState(false);
   const caretRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Typing between focus and blur undoes as one step.
+  const typingUndoGroup = useUndoGroup();
 
   const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
   const isConnected = useNodes(isConnectedSelector);
@@ -206,8 +209,10 @@ const StringProperty = ({
               onFocus={(e) => {
                 e.preventDefault();
                 setIsFocused(true);
+                typingUndoGroup.begin();
               }}
               onBlur={() => {
+                typingUndoGroup.end();
                 setIsFocused(false);
                 setIsEditing(false);
               }}

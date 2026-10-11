@@ -585,6 +585,15 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     return this.wsManager?.isConnected() ?? false;
   }
 
+  /**
+   * False until something first needs the live connection. The app opens it
+   * lazily, so a fresh session with nothing running has not started one, and
+   * that is not the same as having lost it.
+   */
+  hasConnectionStarted(): boolean {
+    return this.wsManager !== null || this.isConnecting;
+  }
+
   subscribeEvent<K extends GlobalWebSocketEvent>(
     event: K,
     listener: GlobalWebSocketEvents[K]

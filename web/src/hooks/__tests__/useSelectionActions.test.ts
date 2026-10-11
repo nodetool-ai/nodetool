@@ -98,6 +98,66 @@ describe("useSelectionActions", () => {
     });
   });
 
+  describe("group children", () => {
+    // Group at (1000, 1000) holding A at relative (20, 40); B on the canvas.
+    const groupNodes = [
+      { id: "group", position: { x: 1000, y: 1000 }, selected: false },
+      {
+        id: "A",
+        parentId: "group",
+        position: { x: 20, y: 40 },
+        selected: true,
+        measured: { width: 100, height: 50 }
+      },
+      {
+        id: "B",
+        position: { x: 500, y: 0 },
+        selected: true,
+        measured: { width: 100, height: 50 }
+      }
+    ];
+
+    const useGraph = (nodes: Array<PositionedNode & { parentId?: string }>) => {
+      asMock(useNodes).mockImplementation(
+        selectorOver({
+          setNodes: mockSetNodes,
+          getSelectedNodes: () => nodes.filter((n) => n.selected)
+        })
+      );
+      asMock(useNodeStoreRef).mockReturnValue({
+        getState: () => ({ nodes, edges: [] })
+      });
+    };
+
+    it("aligns in canvas coordinates and writes a child back relative to its group", () => {
+      useGraph(groupNodes);
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.alignLeft();
+
+      const written = new Map(
+        mockSetNodes.mock.calls[0][0].map((n) => [n.id, n.position])
+      );
+      expect(written.get("B")).toEqual({ x: 500, y: 0 });
+      expect(written.get("A")).toEqual({ x: -500, y: 40 });
+      expect(written.get("group")).toEqual({ x: 1000, y: 1000 });
+    });
+
+    it("leaves a child of a selected group where the group puts it", () => {
+      useGraph(
+        groupNodes.map((n) => (n.id === "group" ? { ...n, selected: true } : n))
+      );
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.alignTop();
+
+      const written = new Map(
+        mockSetNodes.mock.calls[0][0].map((n) => [n.id, n.position])
+      );
+      expect(written.get("group")).toEqual({ x: 1000, y: 0 });
+      expect(written.get("A")).toEqual({ x: 20, y: 40 });
+      expect(written.get("B")).toEqual({ x: 500, y: 0 });
+    });
+  });
+
   describe("alignCenter", () => {
     it("aligns selected nodes by their horizontal centers", () => {
       const testNodes = [

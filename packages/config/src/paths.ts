@@ -174,6 +174,82 @@ export function getDefaultTransformersJsCacheDir(): string {
   );
 }
 
+/** Expand a leading `~` (alone or followed by a separator) to the home directory. */
+function expandHome(value: string): string {
+  if (value === "~") return homedir();
+  if (value.startsWith("~/") || value.startsWith("~\\")) {
+    return join(homedir(), value.slice(2));
+  }
+  return value;
+}
+
+/** The value of an environment variable, or undefined when unset or blank. */
+function envValue(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
+/**
+ * Hugging Face Hub cache root (the directory holding `models--org--name`).
+ *
+ * Resolves the variables in the order Python `huggingface_hub` does
+ * (`huggingface_hub/constants.py`), so the TypeScript server, the desktop
+ * app and the Python worker read and write one cache:
+ *
+ *   1. `$HF_HUB_CACHE`
+ *   2. `$HUGGINGFACE_HUB_CACHE` (legacy name)
+ *   3. `$HF_HOME/hub`
+ *   4. `$XDG_CACHE_HOME/huggingface/hub`
+ *   5. `~/.cache/huggingface/hub`
+ *
+ * Blank values count as unset. A leading `~` is expanded.
+ */
+export function getHfHubCacheDir(): string {
+  if (!IS_NODE) return notOnNode("getHfHubCacheDir");
+  const hubCache = envValue("HF_HUB_CACHE") ?? envValue("HUGGINGFACE_HUB_CACHE");
+  if (hubCache) return expandHome(hubCache);
+  return join(getHfHomeDir(), "hub");
+}
+
+/**
+ * Hugging Face home directory (`$HF_HOME`, else `$XDG_CACHE_HOME/huggingface`,
+ * else `~/.cache/huggingface`), as Python `huggingface_hub` resolves it. The
+ * token file lives here.
+ */
+export function getHfHomeDir(): string {
+  if (!IS_NODE) return notOnNode("getHfHomeDir");
+  const hfHome = envValue("HF_HOME");
+  if (hfHome) return expandHome(hfHome);
+  const xdgCache = envValue("XDG_CACHE_HOME");
+  return join(xdgCache ? expandHome(xdgCache) : join(homedir(), ".cache"), "huggingface");
+}
+
+/**
+ * Directory llama.cpp caches GGUF downloads in, resolved the way llama.cpp's
+ * `fs_get_cache_directory` does:
+ *
+ * - `$LLAMA_CACHE` when set, on every platform.
+ * - macOS:   `~/Library/Caches/llama.cpp`
+ * - Windows: `%LOCALAPPDATA%\llama.cpp` (fallback `~/AppData/Local/llama.cpp`)
+ * - Linux:   `$XDG_CACHE_HOME/llama.cpp` (fallback `~/.cache/llama.cpp`)
+ */
+export function getLlamaCppCacheDir(): string {
+  if (!IS_NODE) return notOnNode("getLlamaCppCacheDir");
+  const override = envValue("LLAMA_CACHE");
+  if (override) return expandHome(override);
+  if (process.platform === "darwin") {
+    return join(homedir(), "Library", "Caches", "llama.cpp");
+  }
+  if (process.platform === "win32") {
+    return join(
+      envValue("LOCALAPPDATA") ?? join(homedir(), "AppData", "Local"),
+      "llama.cpp"
+    );
+  }
+  const xdgCache = envValue("XDG_CACHE_HOME");
+  return join(xdgCache ? expandHome(xdgCache) : join(homedir(), ".cache"), "llama.cpp");
+}
+
 /**
  * Per-user cache root for derived artifacts NodeTool can always rebuild.
  *

@@ -369,9 +369,8 @@ describe("Directed Campaign Kit bundle", () => {
       for (const node of workflow.graph.nodes) {
         const model = node.data?.model;
         if (typeof model !== "object" || model === null) continue;
-        expect(String((model as { id?: unknown }).id)).not.toBe("");
-        expect(String((model as { provider?: unknown }).provider)).not.toBe("");
-        expect(String((model as { name?: unknown }).name)).not.toBe("");
+        // Shipped models are unselected so the user's defaults fill them.
+        expect(model).toMatchObject({ provider: "", id: "", name: "" });
       }
     }
   });

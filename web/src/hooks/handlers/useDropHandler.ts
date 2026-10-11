@@ -280,7 +280,15 @@ export const useDropHandler = (): UseDropHandlerResult => {
           count: files.length,
           names: files.map((file) => file.name)
         });
-        for (const file of files) {
+        for (const [index, file] of files.entries()) {
+          // Offset each file's node like an asset multi-drop, so several
+          // files do not stack at one point.
+          const filePosition = {
+            x: position.x + (index % NODES_PER_ROW) * MULTI_NODE_HORIZONTAL_SPACING,
+            y:
+              position.y +
+              Math.floor(index / NODES_PER_ROW) * MULTI_NODE_VERTICAL_SPACING
+          };
           const fileType = detectFileType(file);
           console.info("[drop] Processing file", {
             name: file.name,
@@ -291,21 +299,21 @@ export const useDropHandler = (): UseDropHandlerResult => {
 
           switch (fileType) {
             case "png":
-              result = await handlePngFile(file, position);
+              result = await handlePngFile(file, filePosition);
               break;
             case "json":
-              result = await handleJsonFile(file, position);
+              result = await handleJsonFile(file, filePosition);
               break;
             case "csv":
-              result = await handleCsvFile(file, position);
+              result = await handleCsvFile(file, filePosition);
               break;
             default:
-              result = await handleGenericFile(file, position);
+              result = await handleGenericFile(file, filePosition);
           }
 
           if (result.success) {
             if (isAssetResult(result.data)) {
-              addNodeFromAsset(result.data, position);
+              addNodeFromAsset(result.data, filePosition);
             }
           } else {
               addNotification({

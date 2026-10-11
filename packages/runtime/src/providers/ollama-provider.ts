@@ -170,19 +170,25 @@ export class OllamaProvider extends BaseProvider {
   readonly contextLength: number | null;
 
   constructor(
-    secrets: { OLLAMA_API_URL?: string; OLLAMA_CONTEXT_LENGTH?: string },
+    secrets: {
+      OLLAMA_API_URL?: string;
+      OLLAMA_CONTEXT_LENGTH?: string;
+      OLLAMA_KEEP_ALIVE?: string;
+    },
     options: OllamaProviderOptions = {}
   ) {
     super("ollama");
-    const apiUrl = secrets.OLLAMA_API_URL ?? process.env.OLLAMA_API_URL;
+    const apiUrl = secrets.OLLAMA_API_URL || process.env.OLLAMA_API_URL;
     if (!apiUrl || !apiUrl.trim()) {
       throw new Error("OLLAMA_API_URL is required");
     }
     this.apiUrl = trimTrailingSlashes(apiUrl);
-    const keepAlive = process.env.OLLAMA_KEEP_ALIVE?.trim();
+    const keepAlive = (
+      secrets.OLLAMA_KEEP_ALIVE || process.env.OLLAMA_KEEP_ALIVE
+    )?.trim();
     this.keepAlive = keepAlive && keepAlive.length > 0 ? keepAlive : "10m";
     this.contextLength = positiveInt(
-      secrets.OLLAMA_CONTEXT_LENGTH ?? process.env.OLLAMA_CONTEXT_LENGTH
+      secrets.OLLAMA_CONTEXT_LENGTH || process.env.OLLAMA_CONTEXT_LENGTH
     );
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }

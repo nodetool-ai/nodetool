@@ -93,6 +93,16 @@ const stub = (name: string) => ({
   __esModule: true,
   default: () => <div data-testid={name} />
 });
+jest.mock("../ShotRenderDialog", () => ({
+  __esModule: true,
+  default: ({ step, shot }: { step: string; shot: { action?: string } }) => (
+    <div
+      data-testid="shot-render-dialog"
+      data-step={step}
+      data-action={shot.action}
+    />
+  )
+}));
 jest.mock("../ShotEditViewer", () => stub("shot-edit-viewer"));
 jest.mock("../ShotTakesGallery", () => stub("takes-gallery"));
 jest.mock("../ShotScriptPanel", () => stub("script-panel"));
@@ -265,6 +275,9 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
+    await typeInto("Shot motion", "Slow push-in");
+    await typeInto("End", "The lamp fills the frame");
+    await typeInto("Sound", "Gulls and surf");
     await typeInto("Dialogue", "We are open.");
     await typeInto("Estimated running time in seconds", "7");
     await choose("Size", "wide");
@@ -284,6 +297,9 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     expect(storedShot()).toMatchObject({
       slug: "Dawn",
       action: "A lighthouse at dawn",
+      motion: "Slow push-in",
+      end_state: "The lamp fills the frame",
+      sound: "Gulls and surf",
       dialogue: "We are open.",
       notes: "Keep the gulls",
       duration_seconds: 7,
@@ -433,7 +449,7 @@ describe("ShotEditPanel save semantics", () => {
     expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();
   });
 
-  it("renders from the saved values, not the ones on screen before Save", async () => {
+  it("asks for the still model with the saved values, not the ones on screen before Save", async () => {
     seed([baseShot()]);
     renderPanel();
 
@@ -441,10 +457,11 @@ describe("ShotEditPanel save semantics", () => {
     await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
 
     expect(storedShot().action).toBe("A lighthouse at dawn");
-    expect(generateKeyframeMock).toHaveBeenCalledWith(
-      BOARD,
-      expect.objectContaining({ action: "A lighthouse at dawn" })
+    expect(screen.getByTestId("shot-render-dialog")).toHaveAttribute(
+      "data-action",
+      "A lighthouse at dawn"
     );
+    expect(generateKeyframeMock).not.toHaveBeenCalled();
   });
 });
 

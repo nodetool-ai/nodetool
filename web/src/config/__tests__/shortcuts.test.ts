@@ -68,15 +68,18 @@ describe("NODE_EDITOR_SHORTCUTS", () => {
     });
   });
 
-  describe("skipInElectron", () => {
-    it("clipboard shortcuts (copy, cut, paste) should have skipInElectron set", () => {
-      const clipboardSlugs = ["copy", "cut", "paste"];
-      clipboardSlugs.forEach((slug) => {
+  describe("clipboard shortcuts", () => {
+    it("register copy, cut and paste on every platform", () => {
+      // The desktop Edit menu uses plain roles that never reach the renderer,
+      // so a canvas combo is the only way nodes get copied there.
+      ["copy", "cut", "paste"].forEach((slug) => {
         const shortcut = NODE_EDITOR_SHORTCUTS.find(
           (s: Shortcut) => s.slug === slug
         );
         expect(shortcut).toBeDefined();
-        expect(shortcut?.skipInElectron).toBe(true);
+        expect(shortcut?.registerCombo).toBe(true);
+        expect(shortcut?.electronOnly).toBeFalsy();
+        expect(shortcut).not.toHaveProperty("skipInElectron");
       });
     });
   });

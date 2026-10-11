@@ -295,6 +295,12 @@ export interface ToolHandler {
   onDeactivate?(ctx: ToolContext): void;
 
   /**
+   * Called when Shift is released or the window loses focus. Paint tools
+   * merge a Shift-line buffer they kept open for the next segment.
+   */
+  onModifiersReleased?(ctx: ToolContext): void;
+
+  /**
    * Called when the viewport (zoom / pan) changes while the tool is active.
    * Allows tools to update overlays that depend on screen-space coordinates.
    */

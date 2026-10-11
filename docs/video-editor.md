@@ -213,7 +213,7 @@ changing the original edit. See [AI Timeline Editing](ai-timeline-editing.md).
 | `Space`                  | Play / pause                       |
 | `V` / `C`                | Select tool / cut tool             |
 | `S`                      | Split clip at playhead             |
-| `Ctrl/⌘ + K`             | Cut all tracks at playhead         |
+| `Ctrl/⌘ + Shift + K`     | Cut all tracks at playhead         |
 | `Delete` / `Backspace`   | Delete selected clip(s)            |
 | `Shift + Delete`         | Ripple delete                      |
 | `Ctrl/⌘ + C` / `X` / `V` | Copy / cut / paste clips           |

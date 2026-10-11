@@ -96,6 +96,9 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
 
   const getWorkflowById = useWorkflowManager((state) => state.getWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
+  const queueWorkflowSave = useWorkflowManager(
+    (state) => state.queueWorkflowSave
+  );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -137,9 +140,14 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     const doRun = async () => {
       // Create a checkpoint version before execution if enabled
       if (autosave?.saveBeforeRun) {
-        const w = getWorkflowById(workflow.id);
-        if (w?.graph?.nodes && w.graph.nodes.length > 0) {
-          const updatedAt = await triggerAutosaveForWorkflow(
+        // Queued behind any save in flight, so the checkpoint sends the
+        // token that save leaves and its own echo is not taken for a conflict.
+        await queueWorkflowSave(workflow.id, async () => {
+          const w = getWorkflowById(workflow.id);
+          if (!w?.graph?.nodes || w.graph.nodes.length === 0) {
+            return undefined;
+          }
+          const result = await triggerAutosaveForWorkflow(
             workflow.id,
             w.graph,
             "checkpoint",
@@ -150,10 +158,14 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
               expectedUpdatedAt: w.updated_at ?? undefined
             }
           );
-          if (updatedAt) {
-            nodeStore.getState().setWorkflowUpdatedAt(updatedAt);
+          if (!result || result.skipped) {
+            return undefined;
           }
-        }
+          nodeStore
+            .getState()
+            .setWorkflowUpdatedAt(result.updatedAt, result.etag);
+          return result.etag;
+        });
       }
 
       // Access current state directly to avoid re-renders on every node drag
@@ -162,7 +174,14 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       setTimeout(() => {
         const w = getWorkflowById(workflow.id);
         if (w) {
-          saveWorkflow(w);
+          saveWorkflow(w).catch((error: unknown) => {
+            console.error("Failed to save workflow after run:", error);
+            addNotification({
+              content: `Failed to save workflow: ${error instanceof Error ? error.message : "Server unreachable"}`,
+              type: "error",
+              alert: true
+            });
+          });
         }
       }, 100);
     };
@@ -272,6 +291,8 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     nodeStore,
     getWorkflowById,
     saveWorkflow,
+    queueWorkflowSave,
+    addNotification,
     autosave,
     confirmLargeRun,
     largeRunThreshold,

@@ -30,6 +30,8 @@ export interface RunpodPodSpec {
   // GPU pods
   gpuTypeIds?: string[];
   gpuCount?: number;
+  /** CUDA versions the host driver must support (GPU pods only). */
+  allowedCudaVersions?: string[];
   // Common
   ports?: string[]; // e.g. ["7777/http"] or ["7777/tcp"]
   env?: Record<string, string>;
@@ -199,6 +201,15 @@ export const DEFAULT_GPU_VCPU_COUNT = 8;
 /** Default vCPUs for a CPU pod. */
 export const DEFAULT_CPU_VCPU_COUNT = 4;
 
+/**
+ * CUDA versions a GPU worker host must support. The worker image installs
+ * PyPI's Linux torch, which is a CUDA 13.0 build and needs an NVIDIA driver
+ * of 580 or newer. Without the filter RunPod may place the pod on an older
+ * driver, where torch cannot use the GPU. RunPod's API lists 13.0 as its
+ * newest value; add newer ones here as RunPod adds them.
+ */
+export const WORKER_CUDA_VERSIONS: readonly string[] = ["13.0"];
+
 export interface DeployWorkerPodOptions {
   /** Pod name. */
   name: string;
@@ -215,6 +226,11 @@ export interface DeployWorkerPodOptions {
   gpuTypeIds?: string[];
   /** GPUs per pod (GPU pods only). Defaults to {@link DEFAULT_GPU_COUNT}. */
   gpuCount?: number;
+  /**
+   * CUDA versions the host must support (GPU pods only). Defaults to
+   * {@link WORKER_CUDA_VERSIONS}.
+   */
+  allowedCudaVersions?: readonly string[];
   containerDiskInGb?: number;
   /** Persistent volume size in GB (mounted at `volumeMountPath`). */
   volumeInGb?: number;
@@ -281,6 +297,7 @@ export async function deployWorkerPod(
   // zero GPUs while still reporting the pod as running.
   if (isGpu) {
     spec.gpuCount = opts.gpuCount ?? DEFAULT_GPU_COUNT;
+    spec.allowedCudaVersions = [...(opts.allowedCudaVersions ?? WORKER_CUDA_VERSIONS)];
   }
   // Persistent volume — survives stop/resume, holds the HF model cache.
   if (opts.volumeInGb) {

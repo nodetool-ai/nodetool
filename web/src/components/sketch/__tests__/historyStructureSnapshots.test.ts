@@ -11,6 +11,9 @@ import { useSketchStore } from "../state/useSketchStore";
 beforeEach(() => {
   act(() => {
     useSketchStore.getState().resetDocument();
+    // Index the entries these cases push from 0, without the "Open"
+    // checkpoint a loaded document starts with.
+    useSketchStore.setState({ history: [], historyIndex: -1 });
   });
 });
 

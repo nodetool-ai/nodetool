@@ -2,13 +2,14 @@ import { stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import mockTheme from "../../../__mocks__/themeMock";
 import TutorialsPage from "../TutorialsPage";
 import { TUTORIALS } from "../tutorialsData";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 
 const MAX_WIDTH_QUERY = /max-width/;
-const mockStartGuidedFlow = jest.fn().mockResolvedValue(undefined);
+const mockStartGuidedFlow = jest.fn().mockResolvedValue(true);
 const mockCreateNewThread = jest.fn().mockResolvedValue("thread-new");
 const mockOpenTab = jest.fn();
 
@@ -106,6 +107,69 @@ describe("TutorialsPage video loading", () => {
     await userEvent.click(screen.getByRole("button", { name: "Open task" }));
 
     expect(mockStartGuidedFlow).toHaveBeenCalledWith("project-1");
+  });
+
+  // A failed start has already shown its toast. Moving on would leave the
+  // creator in a workspace with nothing opened.
+  it("stays on the tutorial when the guided flow fails to start", async () => {
+    setViewport(false);
+    mockStartGuidedFlow.mockResolvedValueOnce(false);
+    render(
+      <MemoryRouter initialEntries={["/tutorials"]}>
+        <ThemeProvider theme={mockTheme}>
+          <Routes>
+            <Route path="/tutorials" element={<TutorialsPage />} />
+            <Route path="/workspace" element={<p>workspace</p>} />
+          </Routes>
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Open task" }));
+
+    expect(mockStartGuidedFlow).toHaveBeenCalledWith("project-1");
+    expect(screen.queryByText("workspace")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open task" })).toBeInTheDocument();
+  });
+});
+
+// The chat task had no catch: a thread that could not be created left the
+// button spinning back to "Open task" with no word of what went wrong.
+describe("TutorialsPage task failures", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+    jest.clearAllMocks();
+    useNotificationStore.setState({ notifications: [] });
+  });
+
+  it("says so when the chat task cannot be opened", async () => {
+    setViewport(false);
+    mockCreateNewThread.mockRejectedValueOnce(new Error("offline"));
+    render(
+      <MemoryRouter initialEntries={["/tutorials?id=chat-agent-qa"]}>
+        <ThemeProvider theme={mockTheme}>
+          <Routes>
+            <Route path="/tutorials" element={<TutorialsPage />} />
+            <Route path="/workspace" element={<p>workspace</p>} />
+          </Routes>
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Open task" }));
+
+    expect(mockCreateNewThread).toHaveBeenCalled();
+    expect(screen.queryByText("workspace")).not.toBeInTheDocument();
+    expect(useNotificationStore.getState().notifications).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "error",
+          content: "Could not open the task: offline"
+        })
+      ])
+    );
   });
 });
 

@@ -67,7 +67,9 @@ jest.mock("../../../properties/TTSModelSelect", () => {
   const picks = [
     ["Eleven v3", "elevenlabs", "eleven_v3", "rachel"],
     ["Adam", "elevenlabs", "eleven_v3", "adam"],
-    ["GPT-4o mini TTS", "openai", "gpt-4o-mini-tts", "alloy"]
+    ["GPT-4o mini TTS", "openai", "gpt-4o-mini-tts", "alloy"],
+    // A model that publishes no preset voices hands back an empty voice.
+    ["Custom TTS", "fal", "custom-tts", ""]
   ];
   return {
     __esModule: true,
@@ -100,7 +102,7 @@ jest.mock("../../../properties/TTSModelSelect", () => {
                   id,
                   provider,
                   name: label,
-                  voices: [voice],
+                  voices: voice === "" ? [] : [voice],
                   selected_voice: voice
                 })
             },
@@ -286,6 +288,100 @@ describe("VoicesStep", () => {
     // The lookup keys the same normalized words the call sent, so the player
     // appears without asking for the sample again.
     expect(await screen.findByLabelText("Rachel sample")).toBeInTheDocument();
+    expect(rpcRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("plays a cached sample again on every Hear (F10)", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(
+      screen.getByRole("button", { name: "Eleven v3 for Voice for Host" })
+    );
+    const hear = screen.getByRole("button", { name: "Hear Rachel for Host" });
+    await user.click(hear);
+    const first = (await screen.findByLabelText(
+      "Rachel sample"
+    )) as HTMLAudioElement;
+    expect(first.autoplay).toBe(true);
+
+    await user.click(hear);
+
+    const again = screen.getByLabelText("Rachel sample") as HTMLAudioElement;
+    expect(again).not.toBe(first);
+    expect(again.autoplay).toBe(true);
+    expect(rpcRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("says when a picked model has no preset voices (F9)", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(
+      screen.getByRole("button", { name: "Custom TTS for Voice for Host" })
+    );
+
+    expect(setSpeakerVoice).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("This model has no preset voices. Pick another model.")
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Eleven v3 for Voice for Host" })
+    );
+    expect(
+      screen.queryByText("This model has no preset voices. Pick another model.")
+    ).not.toBeInTheDocument();
+  });
+
+  it("changes nothing and pays for no sample in a view-mode tab (F14)", () => {
+    useScriptStore.getState().updateSpeaker(SCRIPT_ID, "spk_host", {
+      voice: { provider: "elevenlabs", model: "eleven_v3", voice: "rachel" }
+    });
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <VoicesStep scriptId={SCRIPT_ID} readOnly />
+      </ThemeProvider>
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /for Voice for Host/ })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Voice: Rachel")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Pace" })).toHaveAttribute(
+      "aria-disabled",
+      "true"
+    );
+    const hear = screen.getByRole("button", { name: "Hear Rachel for Host" });
+    expect(hear).toBeDisabled();
+    expect(rpcRequest).not.toHaveBeenCalled();
+  });
+
+  it("still plays a sample already made in a view-mode tab (F14)", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <ThemeProvider theme={mockTheme}>
+        <VoicesStep scriptId={SCRIPT_ID} />
+      </ThemeProvider>
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Eleven v3 for Voice for Host" })
+    );
+    await user.click(screen.getByRole("button", { name: "Hear Rachel for Host" }));
+    await screen.findByLabelText("Rachel sample");
+    unmount();
+
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <VoicesStep scriptId={SCRIPT_ID} readOnly />
+      </ThemeProvider>
+    );
+    const hear = screen.getByRole("button", { name: "Hear Rachel for Host" });
+    expect(hear).toBeEnabled();
+    await user.click(hear);
+    expect(
+      (screen.getByLabelText("Rachel sample") as HTMLAudioElement).autoplay
+    ).toBe(true);
     expect(rpcRequest).toHaveBeenCalledTimes(1);
   });
 

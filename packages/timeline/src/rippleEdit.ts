@@ -50,6 +50,15 @@ function linkGroupIds(
  * `excludeIds` and clips on locked tracks. A negative delta never pushes a
  * clip before zero. Children of a group carry their own `startMs`, so a
  * group and its children each shift on their own start.
+ *
+ * Link groups move whole: a clip linked to one that moves moves too, even
+ * when it starts before `fromMs`. A negative delta leaves a track untouched
+ * when a clip on it that stays put reaches past `fromMs + deltaMs`, since the
+ * clips behind it would slide under it. When the shift cannot keep a link
+ * group whole (a member is locked, sits on such a track or would cross zero)
+ * this falls back to moving each clip on its own start, which callers such as
+ * the extension planner detect and refuse. The ripple edits here refuse
+ * instead, through {@link planShift}.
  */
 export function shiftClipsFrom(
   clips: readonly TimelineClip[],
@@ -58,20 +67,89 @@ export function shiftClipsFrom(
   excludeIds: ReadonlySet<string> = new Set(),
   options: RippleOptions = {}
 ): TimelineClip[] {
+  return (
+    planShift(clips, fromMs, deltaMs, excludeIds, options) ??
+    clips.map((c) =>
+      isPinned(c, excludeIds, options) || c.startMs < fromMs
+        ? c
+        : { ...c, startMs: Math.max(0, c.startMs + deltaMs) }
+    )
+  );
+}
+
+function isPinned(
+  c: TimelineClip,
+  excludeIds: ReadonlySet<string>,
+  options: RippleOptions
+): boolean {
+  return (
+    excludeIds.has(c.id) ||
+    options.lockedTrackIds?.has(c.trackId) === true ||
+    options.lockedClipIds?.has(c.id) === true
+  );
+}
+
+/**
+ * The shift {@link shiftClipsFrom} describes, or null when it would separate
+ * a link group.
+ */
+export function planShift(
+  clips: readonly TimelineClip[],
+  fromMs: number,
+  deltaMs: number,
+  excludeIds: ReadonlySet<string> = new Set(),
+  options: RippleOptions = {}
+): TimelineClip[] | null {
   if (deltaMs === 0) return [...clips];
-  const locked = options.lockedTrackIds;
-  const lockedClips = options.lockedClipIds;
-  return clips.map((c) => {
+  const moving = new Set<string>();
+  const movingLinks = new Set<string>();
+  for (const c of clips) {
+    if (isPinned(c, excludeIds, options) || c.startMs < fromMs) continue;
+    moving.add(c.id);
+    if (c.linkId !== undefined) movingLinks.add(c.linkId);
+  }
+  for (const c of clips) {
     if (
-      excludeIds.has(c.id) ||
-      locked?.has(c.trackId) ||
-      lockedClips?.has(c.id)
+      c.linkId === undefined ||
+      !movingLinks.has(c.linkId) ||
+      excludeIds.has(c.id)
     ) {
-      return c;
+      continue;
     }
-    if (c.startMs < fromMs) return c;
-    return { ...c, startMs: Math.max(0, c.startMs + deltaMs) };
-  });
+    if (isPinned(c, excludeIds, options)) return null;
+    moving.add(c.id);
+  }
+
+  if (deltaMs < 0) {
+    const landingMs = fromMs + deltaMs;
+    const frozenTracks = new Set<string>();
+    for (const c of clips) {
+      if (
+        !moving.has(c.id) &&
+        c.startMs < fromMs &&
+        c.startMs + c.durationMs > landingMs
+      ) {
+        frozenTracks.add(c.trackId);
+      }
+    }
+    for (const c of clips) {
+      if (!moving.has(c.id) || !frozenTracks.has(c.trackId)) continue;
+      if (c.linkId !== undefined && movingLinks.has(c.linkId)) return null;
+      moving.delete(c.id);
+    }
+  }
+
+  const out: TimelineClip[] = [];
+  for (const c of clips) {
+    if (!moving.has(c.id)) {
+      out.push(c);
+      continue;
+    }
+    const startMs = c.startMs + deltaMs;
+    if (startMs < 0 && c.linkId !== undefined) return null;
+    out.push({ ...c, startMs: Math.max(0, startMs) });
+  }
+  return out;
 }
 
 /**
@@ -80,7 +158,8 @@ export function shiftClipsFrom(
  * end moves by the change in its duration. Trimming the start edge keeps the
  * clip parked at its `startMs` (the in-point moves, the picture on the
  * timeline does not), which is what ripple-trimming a head means in every
- * editor. Throws when the trim itself is invalid.
+ * editor. Throws when the trim itself is invalid or the ripple would
+ * separate a link group.
  */
 export function rippleTrim(
   clips: readonly TimelineClip[],
@@ -111,7 +190,9 @@ export function rippleTrim(
 
   const applied = trimmed.get(clipId)!.durationMs - clip.durationMs;
   const withTrim = clips.map((c) => trimmed.get(c.id) ?? c);
-  return shiftClipsFrom(withTrim, oldEndMs, applied, group, options);
+  const out = planShift(withTrim, oldEndMs, applied, group, options);
+  if (!out) throw new Error("rippleTrim: the ripple would separate linked clips");
+  return out;
 }
 
 /**
@@ -188,7 +269,8 @@ function mergeRanges(
  * clips occupied (overlapping spans merged), every remaining clip that started
  * at or after the span's end moves left by its length. Spans are closed from
  * the right so an earlier shift never changes what a later one measures.
- * A surviving clip that straddles a span is left alone.
+ * A surviving clip that straddles a span is left alone. When closing a span
+ * would separate a link group, the clips are removed and no gap is closed.
  */
 export function rippleDelete(
   clips: readonly TimelineClip[],
@@ -201,14 +283,17 @@ export function rippleDelete(
   const spans = mergeRanges(
     removed.map((c) => ({ startMs: c.startMs, endMs: clipEndMs(c) }))
   ).reverse();
+  const remaining = next;
   for (const span of spans) {
-    next = shiftClipsFrom(
+    const shifted = planShift(
       next,
       span.endMs,
       span.startMs - span.endMs,
       new Set(),
       options
     );
+    if (!shifted) return remaining;
+    next = shifted;
   }
   return next;
 }
@@ -240,7 +325,8 @@ export function findGap(
 /**
  * Close the gap on `trackId` at `atMs`: everything on an unlocked track that
  * starts at or after the gap's end moves left by the gap's length. Returns the
- * input array unchanged when there is no gap there.
+ * input array unchanged when there is no gap there or closing it would
+ * separate a link group.
  */
 export function closeGap(
   clips: readonly TimelineClip[],
@@ -250,11 +336,8 @@ export function closeGap(
 ): TimelineClip[] {
   const gap = findGap(clips, trackId, atMs);
   if (!gap) return [...clips];
-  return shiftClipsFrom(
-    clips,
-    gap.endMs,
-    gap.startMs - gap.endMs,
-    new Set(),
-    options
+  return (
+    planShift(clips, gap.endMs, gap.startMs - gap.endMs, new Set(), options) ??
+    [...clips]
   );
 }

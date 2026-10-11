@@ -27,6 +27,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
 });
 
 import { Thread, Message, Memory } from "@nodetool-ai/models";
+import { chatTurnRegistry } from "../src/chat-turn-registry.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -228,6 +229,22 @@ describe("threads router", () => {
       expect(Memory.deleteByThread).toHaveBeenCalledWith("user-1", "t1");
       expect(t.delete).toHaveBeenCalled();
       expect(result).toEqual({ ok: true });
+    });
+
+    it("stops a turn still running in the thread before deleting it", async () => {
+      const t = makeThread({ id: "t1" });
+      (Thread.find as ReturnType<typeof vi.fn>).mockResolvedValue(t);
+      const abort = vi.spyOn(chatTurnRegistry, "abortThreads");
+
+      const caller = createCaller(makeCtx());
+      await caller.threads.delete({ id: "t1" });
+
+      expect(abort).toHaveBeenCalledWith("user-1", new Set(["t1"]));
+      expect(abort.mock.invocationCallOrder[0]).toBeLessThan(
+        (Message.deleteByThread as ReturnType<typeof vi.fn>).mock
+          .invocationCallOrder.at(-1) ?? 0
+      );
+      abort.mockRestore();
     });
 
     it("throws NOT_FOUND when thread does not exist", async () => {

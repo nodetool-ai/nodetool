@@ -25,7 +25,9 @@ import type {
 import {
   drawEraserStroke as drawEraserStrokeUtil
 } from "../drawingUtils";
-import type { StrokeStampState, DirtyRectTracker } from "../drawingUtils";
+import type { StrokeStampState } from "../drawingUtils";
+import type { DirtyRectBox } from "../rendering/canvasUtils";
+import { StrokeDirtyRegion } from "./StrokeDirtyRegion";
 import { StrokeAssist } from "./StrokeAssist";
 
 export class EraserEngine implements PaintEngine {
@@ -38,7 +40,7 @@ export class EraserEngine implements PaintEngine {
   private eraser: EraserSettings;
   private brushTemplate: BrushSettings;
   private pencilTemplate: PencilSettings;
-  private dirtyRect: DirtyRectTracker = { current: null };
+  private dirty = new StrokeDirtyRegion();
   private stampStates: Map<number, StrokeStampState> = new Map();
   private stampCache: Map<string, HTMLCanvasElement> = new Map();
   private assist = new StrokeAssist();
@@ -64,7 +66,7 @@ export class EraserEngine implements PaintEngine {
   }
 
   beginStroke(): void {
-    this.dirtyRect = { current: null };
+    this.dirty.reset();
     this.stampStates.clear();
     this.assist.reset();
   }
@@ -91,27 +93,28 @@ export class EraserEngine implements PaintEngine {
       stampState = { hasStamped: false, distanceToNextDab: 0 };
       this.stampStates.set(branchIdx, stampState);
     }
-    drawEraserStrokeUtil(
-      from,
-      to,
-      this.eraser,
-      this.brushTemplate,
-      this.pencilTemplate,
-      ctx,
-      pressure,
-      this.dirtyRect,
-      this.stampCache,
-      stampState
+    this.dirty.track((tracker) =>
+      drawEraserStrokeUtil(
+        from,
+        to,
+        this.eraser,
+        this.brushTemplate,
+        this.pencilTemplate,
+        ctx,
+        pressure,
+        tracker,
+        this.stampCache,
+        stampState
+      )
     );
   }
 
-  getDirtyRect(): {
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-  } | null {
-    return this.dirtyRect.current ?? null;
+  getDirtyRect(): DirtyRectBox | null {
+    return this.dirty.strokeRect;
+  }
+
+  takeFrameDirtyRect(): DirtyRectBox | null {
+    return this.dirty.takeFrameRect();
   }
 
   getAssistMode(): EngineAssistMode {

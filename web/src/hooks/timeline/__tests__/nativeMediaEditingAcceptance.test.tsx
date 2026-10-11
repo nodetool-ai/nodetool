@@ -96,27 +96,6 @@ const mockFakeModelValue = {
   supported_tasks: ["video_to_video"]
 };
 
-jest.mock("../../../components/properties/VideoModelSelect", () => {
-  const FakeVideoModelSelect = ({
-    value,
-    onChange
-  }: {
-    value: string;
-    onChange: (next: typeof mockFakeModelValue) => void;
-  }) => {
-    return (
-      <button
-        type="button"
-        aria-label="Select video edit model"
-        onClick={() => onChange(mockFakeModelValue)}
-      >
-        {value || "Select Fake video edit"}
-      </button>
-    );
-  };
-  return { __esModule: true, default: FakeVideoModelSelect };
-});
-
 jest.mock("../../../components/properties/curated/CuratedModelSelect", () => {
   const FakeCuratedModelSelect = ({
     value,
@@ -310,8 +289,11 @@ describe("native media editing P0 acceptance journey", () => {
       firstView.getByRole("textbox", { name: "Edit instruction" }),
       "Make the station deserted at night"
     );
-    await user.click(
-      firstView.getByRole("button", { name: "Select video edit model" })
+    // The only compatible model is preselected in the Model field.
+    await waitFor(() =>
+      expect(
+        firstView.getByRole("combobox", { name: "Model" })
+      ).toHaveTextContent("Fake video edit")
     );
     const editButton = firstView.getByRole("button", { name: "Edit video" });
     await waitFor(() => expect(editButton).toBeEnabled());

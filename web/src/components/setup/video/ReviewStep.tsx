@@ -19,6 +19,10 @@ import type { TimelineBeat } from "@nodetool-ai/timeline";
 
 import { FlexColumn, FlexRow, GAP, Text } from "../../ui_primitives";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import ReportBugButton from "../../support/ReportBugButton";
+import GenerationSummary, {
+  type GenerationSummaryProps
+} from "../GenerationSummary";
 import { PlanReview } from "../PlanReview";
 import type { PlanReviewSection } from "../PlanReview";
 import { videoFormatById } from "./formats";
@@ -69,6 +73,8 @@ export interface ReviewStepProps {
   /** Why the last plan or re-plan failed, shown under the plan. */
   error?: string | null;
   onValidationChange?: (reason: string | undefined) => void;
+  /** What `Re-plan` costs, beside it: it is a paid Director run. */
+  generation?: GenerationSummaryProps;
 }
 
 /**
@@ -86,7 +92,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onReplan,
   replanPending,
   error,
-  onValidationChange
+  onValidationChange,
+  generation
 }) => {
   const beats = useTimelineStore((state) => state.setup?.beats);
   const formatId = useTimelineStore((state) => state.setup?.format);
@@ -105,10 +112,25 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   // What is in the length fields, as typed. The document takes an entry only
   // once it reads as a length, so a half-typed "1." or a cleared field stays
   // on screen as typed instead of snapping back to the stored value (F21).
-  const [lengths, setLengths] = useState<Record<string, string>>({});
+  // Each entry keeps the length the beat had when it was typed: a change from
+  // elsewhere (the agent's `ui_timeline_update_beat`) outdates it, and the
+  // field then shows the length the beat now has.
+  const [drafts, setDrafts] = useState<
+    Record<string, { value: string; base: number }>
+  >({});
+  const lengths = useMemo(() => {
+    const live: Record<string, string> = {};
+    for (const beat of beats ?? []) {
+      const draft = drafts[beat.id];
+      if (draft && draft.base === beat.duration_ms) {
+        live[beat.id] = draft.value;
+      }
+    }
+    return live;
+  }, [beats, drafts]);
   const handleLength = useCallback(
-    (beatId: string, value: string) =>
-      setLengths((current) => ({ ...current, [beatId]: value })),
+    (beatId: string, value: string, base: number) =>
+      setDrafts((current) => ({ ...current, [beatId]: { value, base } })),
     []
   );
 
@@ -127,6 +149,10 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         });
       }
       updateBeat(beatId, patch);
+      // The typed text now matches the plan, so it stays as typed.
+      setDrafts((current) =>
+        current[beatId] ? { ...current, [beatId]: { value, base: ms } } : current
+      );
     }
   };
 
@@ -164,7 +190,8 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         value: lengths[beat.id] ?? secondsText(beat.duration_ms),
         placeholder: rangeText,
         compact: true,
-        onChange: (value: string) => handleLength(beat.id, value),
+        onChange: (value: string) =>
+          handleLength(beat.id, value, beat.duration_ms),
         onCommit: (value: string) => commitLength(beat.id, value)
       },
       {
@@ -257,10 +284,20 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         onRemoveSection={removeBeat}
         sectionNoun="beat"
       />
+      {generation ? <GenerationSummary {...generation} compact /> : null}
       {error ? (
-        <Text size="small" color="error" role="alert">
-          {error}
-        </Text>
+        <FlexRow gap={GAP.normal} align="center" wrap>
+          <Text size="small" color="error" role="alert">
+            {error}
+          </Text>
+          <ReportBugButton
+            context={{
+              source: "provider-call",
+              summary: "Video beat re-plan failed",
+              errorText: error
+            }}
+          />
+        </FlexRow>
       ) : null}
     </FlexColumn>
   );

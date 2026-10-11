@@ -7,9 +7,6 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
-jest.mock("../TopBarPrompt", () => ({
-  TopBarPrompt: () => <div data-testid="top-bar-prompt" />
-}));
 
 import { TopBar } from "../TopBar";
 import { useDocumentDraftStore } from "../../../stores/DocumentDraftStore";
@@ -101,5 +98,37 @@ describe("TopBar save state", () => {
 
     act(() => useDocumentDraftStore.getState().setSaving("timeline:seq-1", true));
     expect(screen.getByRole("status")).toHaveTextContent("Saving…");
+  });
+});
+
+describe("TopBar panel toggles", () => {
+  it("offers no panel toggles without handlers", () => {
+    renderTopBar({});
+    expect(
+      screen.queryByRole("button", { name: /transcript/ })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /side panel/ })
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the transcript and the side panel", async () => {
+    const onToggleTranscript = jest.fn();
+    const onToggleSidePanel = jest.fn();
+    renderTopBar({
+      onToggleTranscript,
+      transcriptVisible: true,
+      onToggleSidePanel,
+      sidePanelVisible: false
+    });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Hide transcript" })
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show side panel" })
+    );
+    expect(onToggleTranscript).toHaveBeenCalledTimes(1);
+    expect(onToggleSidePanel).toHaveBeenCalledTimes(1);
   });
 });

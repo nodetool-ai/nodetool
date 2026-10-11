@@ -47,7 +47,7 @@ export default function DocumentStatusBanner({
           accessibilityLabel={`Reload ${reloadNoun}`}
           style={[styles.bannerButton, { backgroundColor: colors.warning }]}
         >
-          <Text style={styles.bannerButtonText}>Reload</Text>
+          <Text style={[styles.bannerButtonText, { color: colors.textOnWarning }]}>Reload</Text>
         </TouchableOpacity>
       </View>
     );
@@ -75,5 +75,5 @@ const styles = StyleSheet.create({
   },
   bannerText: { flex: 1, fontSize: 13 },
   bannerButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  bannerButtonText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  bannerButtonText: { fontSize: 13, fontWeight: '600' },
 });

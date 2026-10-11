@@ -56,7 +56,12 @@ const campaignFormats = [
 
 const campaignModels = ["Flux", "Veo", "Kling", "Seedance", "Suno", "ElevenLabs"];
 
-const upcomingWorkflows = [
+const moreWorkflows: {
+  title: string;
+  description: string;
+  icon: typeof Calendar;
+  href?: string;
+}[] = [
   {
     title: "Social Media Calendar Filler",
     description:
@@ -68,18 +73,21 @@ const upcomingWorkflows = [
     description:
       "Generate a consistent set of logos, color variants, and marketing assets from one brand brief.",
     icon: Palette,
+    href: "/templates/brand-asset-generator",
   },
   {
     title: "Cold Outreach Co-Pilot",
     description:
       "Research a list of prospects and draft personalized outreach at volume, while it still reads as though a person wrote it.",
     icon: Mail,
+    href: "/templates/cold-outreach-co-pilot",
   },
   {
     title: "Hook & Thumbnail Factory",
     description:
       "Generate video hooks and thumbnail ideas in batches from a title and description, then test them against each other.",
     icon: Youtube,
+    href: "/templates/hook-and-thumbnail-factory",
   },
 ];
 
@@ -404,7 +412,7 @@ export default function MarketingSegmentPage() {
           </div>
         </section>
 
-        {/* More marketing workflows on the way */}
+        {/* More marketing workflows */}
         <section className="py-20 relative">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <motion.div
@@ -414,17 +422,17 @@ export default function MarketingSegmentPage() {
               className="text-center mb-12 max-w-2xl mx-auto"
             >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                More marketing workflows on the way
+                More marketing workflows
               </h2>
               <p className="text-lg text-slate-400 leading-relaxed">
-                The Product Video Generator is available today. These are next,
-                and they follow the same pattern: a brief goes in, a campaign
-                comes out.
+                Three of these ship as templates today, and the Social Media
+                Calendar Filler is next. They follow the same pattern as the
+                Product Video Generator: a brief goes in, a campaign comes out.
               </p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {upcomingWorkflows.map((wf, index) => (
+              {moreWorkflows.map((wf, index) => (
                 <motion.div
                   key={wf.title}
                   initial={false}
@@ -438,7 +446,21 @@ export default function MarketingSegmentPage() {
                   </div>
                   <div>
                     <h3 className="text-base font-semibold text-white mb-1.5">
-                      {wf.title}
+                      {wf.href ? (
+                        <a
+                          href={wf.href}
+                          className="hover:text-emerald-300 focus-ring rounded"
+                        >
+                          {wf.title}
+                        </a>
+                      ) : (
+                        <>
+                          {wf.title}{" "}
+                          <span className="text-xs font-medium text-slate-400">
+                            (coming next)
+                          </span>
+                        </>
+                      )}
                     </h3>
                     <p className="text-sm text-slate-400 leading-relaxed">
                       {wf.description}

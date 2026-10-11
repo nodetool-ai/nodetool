@@ -17,7 +17,7 @@ export const useInputMinMax = ({
   propertyName,
   propertyMin,
   propertyMax,
-}: UseInputMinMaxOptions) => {
+}: UseInputMinMaxOptions): { min?: number; max?: number } => {
   const shouldLookupBounds =
     nodeType &&
     (nodeType === "nodetool.input.FloatInput" ||
@@ -55,18 +55,10 @@ export const useInputMinMax = ({
 
   const nodeBounds = useOptionalNodes(selector, undefined);
 
-  const min =
-    nodeBounds?.min != null
-      ? nodeBounds.min
-      : propertyMin != null
-        ? propertyMin
-        : 0;
-  const max =
-    nodeBounds?.max != null
-      ? nodeBounds.max
-      : propertyMax != null
-        ? propertyMax
-        : 99999;
+  // Undeclared bounds stay undefined: a default range would clamp sentinel
+  // values such as `-1` ("no limit") on every commit.
+  const min = nodeBounds?.min ?? propertyMin ?? undefined;
+  const max = nodeBounds?.max ?? propertyMax ?? undefined;
 
   return { min, max };
 };

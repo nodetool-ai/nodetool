@@ -20,7 +20,8 @@
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
-import * as os from "node:os";
+
+import { getLlamaCppCacheDir } from "@nodetool-ai/config";
 
 import { HfFastCache } from "./hf-cache.js";
 import { inspectPaths } from "./artifact-inspector.js";
@@ -75,8 +76,7 @@ export const SINGLE_FILE_DIFFUSION_EXTENSIONS: readonly string[] = [
   ".ckpt",
   ".bin",
   ".pt",
-  ".pth",
-  ".svdq"
+  ".pth"
 ];
 
 /**
@@ -97,8 +97,7 @@ export const HF_DEFAULT_FILE_PATTERNS: readonly string[] = [
   "*.safetensors",
   "*.ckpt",
   "*.gguf",
-  "*.bin",
-  "*.svdq"
+  "*.bin"
 ];
 
 /** Extra globs for torch weights common in control/adapters. */
@@ -116,22 +115,18 @@ export const KNOWN_REPO_PATTERNS = {
     "black-forest-labs/FLUX.1-schnell"
   ],
   flux_kontext: [
-    "black-forest-labs/FLUX.1-Kontext-dev",
-    "nunchaku-tech/nunchaku-flux-kontext"
+    "black-forest-labs/FLUX.1-Kontext-dev"
   ],
   flux_canny: [
-    "black-forest-labs/FLUX.1-Canny-dev",
-    "nunchaku-tech/nunchaku-flux.1-canny-dev"
+    "black-forest-labs/FLUX.1-Canny-dev"
   ],
   flux_depth: [
-    "black-forest-labs/FLUX.1-Depth-dev",
-    "nunchaku-tech/nunchaku-flux.1-depth-dev"
+    "black-forest-labs/FLUX.1-Depth-dev"
   ],
   flux_vae: ["ffxvs/vae-flux"],
   qwen_image: [
     "Comfy-Org/Qwen-Image_ComfyUI",
-    "city96/Qwen-Image-gguf",
-    "nunchaku-tech/nunchaku-qwen-image"
+    "city96/Qwen-Image-gguf"
   ],
   qwen_image_edit: ["Comfy-Org/Qwen-Image-Edit_ComfyUI"],
   sd35: ["Comfy-Org/stable-diffusion-3.5-fp8"]
@@ -204,10 +199,10 @@ const HF_TYPE_KEYWORD_MATCHERS_BASE = {
   "hf.stable_diffusion_3": ["sd3", "stable-diffusion-3"],
   "hf.flux": ["flux"],
   "hf.flux_fp8": ["flux", "fp8"],
-  "hf.flux_kontext": ["flux", "kontext", "nunchaku"],
-  "hf.flux_canny": ["flux", "canny", "nunchaku"],
-  "hf.flux_depth": ["flux", "depth", "nunchaku"],
-  "hf.qwen_image": ["qwen", "nunchaku"],
+  "hf.flux_kontext": ["flux", "kontext"],
+  "hf.flux_canny": ["flux", "canny"],
+  "hf.flux_depth": ["flux", "depth"],
+  "hf.qwen_image": ["qwen"],
   "hf.qwen_image_edit": ["qwen"],
   "hf.qwen_vl": ["vl", "text_encoder", "text-encoder", "qwen"],
   "hf.controlnet": ["control"],
@@ -397,8 +392,7 @@ export const CLASSNAME_TO_MODEL_TYPE = {
   FluxReduxPipeline: "hf.flux_redux",
   FluxFillPipeline: "hf.inpainting",
   QwenImagePipeline: "hf.qwen_image",
-  QwenImageEditPlusPipeline: "hf.qwen_image_edit",
-  NunchakuQwenImageTransformer2DModel: "hf.qwen_image"
+  QwenImageEditPlusPipeline: "hf.qwen_image_edit"
 } satisfies Readonly<Record<string, string>>;
 
 // ---------------------------------------------------------------------------
@@ -431,8 +425,7 @@ export const _WEIGHT_EXTENSIONS: readonly string[] = [
   ".pth",
   ".gguf",
   ".ggml",
-  ".onnx",
-  ".svdq"
+  ".onnx"
 ];
 
 export const _INDEX_FILENAMES: ReadonlySet<string> = new Set([
@@ -455,8 +448,7 @@ export const _QUANT_MARKERS: readonly string[] = [
   "q4",
   "q5",
   "q6",
-  "q8",
-  "svdq"
+  "q8"
 ];
 
 export const _ADAPTER_MARKERS: readonly string[] = [
@@ -511,7 +503,6 @@ const HF_SEARCH_TYPE_CONFIG_BASE = {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
     repo_pattern: [
       ...KNOWN_REPO_PATTERNS.flux_kontext,
-      "*nunchaku*flux*",
       "*flux*kontext*"
     ]
   },
@@ -519,7 +510,6 @@ const HF_SEARCH_TYPE_CONFIG_BASE = {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
     repo_pattern: [
       ...KNOWN_REPO_PATTERNS.flux_canny,
-      "*nunchaku*flux*canny*",
       "*flux*canny*"
     ]
   },
@@ -527,7 +517,6 @@ const HF_SEARCH_TYPE_CONFIG_BASE = {
     filename_pattern: [...HF_DEFAULT_FILE_PATTERNS],
     repo_pattern: [
       ...KNOWN_REPO_PATTERNS.flux_depth,
-      "*nunchaku*flux*depth*",
       "*flux*depth*"
     ]
   },
@@ -1651,23 +1640,6 @@ export async function deleteCachedHfModel(modelId: string): Promise<boolean> {
 // Llama.cpp cache helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Resolve the llama.cpp native cache directory.
- */
-function _getLlamaCppCacheDir(): string {
-  const platform = os.platform();
-  if (platform === "darwin") {
-    return path.join(os.homedir(), "Library", "Caches", "llama.cpp");
-  }
-  if (platform === "win32") {
-    const localAppData =
-      process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local");
-    return path.join(localAppData, "llama.cpp");
-  }
-  // Linux and others
-  return path.join(os.homedir(), ".cache", "llama.cpp");
-}
-
 /** Build a lookup from flat GGUF filename to (repo_id, original_filename). */
 export function _buildManifestLookup(
   cacheDir: string
@@ -1757,7 +1729,7 @@ export function _parseGgufFlatFilename(
  * - manifest={org}={repo}={tag}.json
  */
 export async function getLlamaCppModelsFromCache(): Promise<UnifiedModel[]> {
-  const cacheDir = _getLlamaCppCacheDir();
+  const cacheDir = getLlamaCppCacheDir();
 
   try {
     const stat = await fsp.stat(cacheDir);

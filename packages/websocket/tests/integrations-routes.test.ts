@@ -77,8 +77,9 @@ describe("integration routes", () => {
     await app?.close();
   });
 
-  it("links an account and mints a token the delegated provider accepts", async () => {
-    app = await buildApp();
+  it("mints a bridge code the browser redeems, not the bridge", async () => {
+    const linkCodes = new LinkCodeStore();
+    app = await buildApp({ linkCodes });
 
     const start = await app.inject({
       method: "POST",
@@ -98,11 +99,37 @@ describe("integration routes", () => {
     );
     expect(Date.parse(started.expires_at)).toBeGreaterThan(Date.now());
 
+    // The bridge cannot name the user, with or without a user_id.
+    for (const payload of [
+      { external_id: "tg-1", code: started.code, user_id: "user-a" },
+      { external_id: "tg-1", code: started.code }
+    ]) {
+      const complete = await app.inject({
+        method: "POST",
+        url: "/api/integrations/telegram/link/complete",
+        headers: auth(),
+        payload
+      });
+      expect(complete.statusCode).toBe(400);
+    }
+    expect(await ExternalIdentity.findByExternal("telegram", "tg-1")).toBeNull();
+    // The refused calls did not spend the code the user's browser will need.
+    expect(linkCodes.peek(started.code)).toMatchObject({
+      kind: "external",
+      externalId: "tg-1"
+    });
+  });
+
+  it("links an account and mints a token the delegated provider accepts", async () => {
+    const linkCodes = new LinkCodeStore();
+    app = await buildApp({ linkCodes });
+    const { code } = linkCodes.mintForUser("telegram", "user-a");
+
     const complete = await app.inject({
       method: "POST",
       url: "/api/integrations/telegram/link/complete",
       headers: auth(),
-      payload: { external_id: "tg-1", code: started.code, user_id: "user-a" }
+      payload: { external_id: "tg-1", code }
     });
     expect(complete.statusCode).toBe(200);
     expect(complete.json()).toEqual({ linked: true });
@@ -167,74 +194,20 @@ describe("integration routes", () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it("consumes a link code once — the second use is 410", async () => {
-    app = await buildApp();
-    const start = await app.inject({
-      method: "POST",
-      url: "/api/integrations/telegram/link/start",
-      headers: auth(),
-      payload: { external_id: "tg-1" }
-    });
-    const { code } = start.json() as { code: string };
-
-    const first = await app.inject({
-      method: "POST",
-      url: "/api/integrations/telegram/link/complete",
-      headers: auth(),
-      payload: { external_id: "tg-1", code, user_id: "user-a" }
-    });
-    expect(first.statusCode).toBe(200);
-
-    const second = await app.inject({
-      method: "POST",
-      url: "/api/integrations/telegram/link/complete",
-      headers: auth(),
-      payload: { external_id: "tg-1", code, user_id: "user-b" }
-    });
-    expect(second.statusCode).toBe(410);
-    const stored = await ExternalIdentity.findByExternal("telegram", "tg-1");
-    expect(stored!.user_id).toBe("user-a");
-  });
-
   it("expires a link code after its TTL", async () => {
     let clock = Date.now();
-    app = await buildApp({ now: () => clock });
-    const start = await app.inject({
-      method: "POST",
-      url: "/api/integrations/telegram/link/start",
-      headers: auth(),
-      payload: { external_id: "tg-1" }
-    });
-    const { code } = start.json() as { code: string };
+    const linkCodes = new LinkCodeStore({ now: () => clock });
+    app = await buildApp({ linkCodes });
+    const { code } = linkCodes.mintForUser("telegram", "user-a");
 
     clock += 11 * 60 * 1000;
     const late = await app.inject({
       method: "POST",
       url: "/api/integrations/telegram/link/complete",
       headers: auth(),
-      payload: { external_id: "tg-1", code, user_id: "user-a" }
+      payload: { external_id: "tg-1", code }
     });
     expect(late.statusCode).toBe(410);
-  });
-
-  it("refuses a code minted for a different account", async () => {
-    app = await buildApp();
-    const start = await app.inject({
-      method: "POST",
-      url: "/api/integrations/telegram/link/start",
-      headers: auth(),
-      payload: { external_id: "tg-1" }
-    });
-    const { code } = start.json() as { code: string };
-
-    const wrongAccount = await app.inject({
-      method: "POST",
-      url: "/api/integrations/telegram/link/complete",
-      headers: auth(),
-      payload: { external_id: "tg-2", code, user_id: "user-a" }
-    });
-    expect(wrongAccount.statusCode).toBe(400);
-    expect(await ExternalIdentity.findByExternal("telegram", "tg-2")).toBeNull();
   });
 
   it("unlinks an account so no further token mints", async () => {
@@ -407,26 +380,6 @@ describe("integration routes", () => {
       });
       expect(complete.statusCode).toBe(400);
       expect(await ExternalIdentity.findByExternal("telegram", "tg-9")).toBeNull();
-    });
-
-    it("still requires user_id when the code came from the bridge", async () => {
-      app = await buildApp();
-      const start = await app.inject({
-        method: "POST",
-        url: "/api/integrations/telegram/link/start",
-        headers: auth(),
-        payload: { external_id: "tg-1" }
-      });
-      const { code } = start.json() as { code: string };
-
-      const complete = await app.inject({
-        method: "POST",
-        url: "/api/integrations/telegram/link/complete",
-        headers: auth(),
-        payload: { external_id: "tg-1", code }
-      });
-      expect(complete.statusCode).toBe(400);
-      expect(await ExternalIdentity.findByExternal("telegram", "tg-1")).toBeNull();
     });
   });
 

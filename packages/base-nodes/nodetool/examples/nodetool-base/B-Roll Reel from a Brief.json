@@ -19,7 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# B-Roll Reel from a Brief\n\nTurns one line of direction into a cut b-roll reel: a wide establishing shot, then a detail shot of the same scene. Use it for quick cutaway footage that matches in look.\n\n**How it works:** \"1 Subject\" and \"2 Look\" feed both \"Shot 1 brief\" and \"Shot 2 brief\". The shared look line stops the two clips from feeling unrelated. \"3 Render wide\" and \"4 Render detail\" each render a 6 second, 16:9, 1080p clip with LTX-2.3 Text to Video Fast on fal. \"5 Crossfade\" joins them with a 0.6 s fade, and \"6 B-roll reel\" shows the result. Each run makes two paid video generations and needs a fal key.\n\n**Try this:** Change \"2 Look\" to \"locked-off tripod, cool overcast light, 50mm\" and see both shots shift to the new look together."
+          "comment": "# B-Roll Reel from a Brief\n\nTurns one line of direction into a cut b-roll reel: a wide establishing shot, then a detail shot of the same scene. Use it for quick cutaway footage that matches in look.\n\n**How it works:** \"1 Subject\" and \"2 Look\" feed both \"Shot 1 brief\" and \"Shot 2 brief\". The shared look line stops the two clips from feeling unrelated. \"3 Render wide\" and \"4 Render detail\" each render a 6 second, 16:9, 1080p clip. \"5 Crossfade\" joins them with a 0.6 s fade, and \"6 B-roll reel\" shows the result. Each run makes two paid video generations. Each model step uses your default model for its type, or the one you pick on the node.\n\n**Try this:** Change \"2 Look\" to \"locked-off tripod, cool overcast light, 50mm\" and see both shots shift to the new look together."
         },
         "ui_properties": {
           "position": {
@@ -120,9 +120,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/ltx-2.3/text-to-video/fast",
-            "name": "LTX-2.3 Text to Video Fast",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -151,9 +151,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/ltx-2.3/text-to-video/fast",
-            "name": "LTX-2.3 Text to Video Fast",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

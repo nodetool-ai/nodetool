@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 3,
+  "engineVersion": "2",
+  "dimension": "3d",
+  "id": "shadows-local",
+  "revision": "r3-shadows",
+  "entrySceneId": "scene",
+  "tickRate": 60,
+  "presentation": {
+    "aspectRatio": 1.7777777777777777,
+    "hudWidth": 640,
+    "hudHeight": 360
+  },
+  "inputActions": [],
+  "assets": {},
+  "scenes": [
+    {
+      "id": "scene",
+      "name": "Lamps",
+      "activeCameraId": "camera",
+      "environment": {
+        "background": "#101418",
+        "ambient": {
+          "color": "#ffffff",
+          "intensity": 0.08
+        },
+        "shadows": {
+          "enabled": true,
+          "mapSize": 1024,
+          "extent": 12
+        }
+      },
+      "entities": [
+        {
+          "id": "camera",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 4,
+              "z": 7
+            },
+            "rotation": [
+              -0.223106,
+              0,
+              0,
+              0.974794
+            ]
+          },
+          "camera3d": {
+            "projection": {
+              "kind": "perspective",
+              "fov": 55,
+              "near": 0.1,
+              "far": 60
+            },
+            "behavior": {
+              "kind": "fixed"
+            }
+          }
+        },
+        {
+          "id": "floor",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "primitive": {
+            "kind": "plane",
+            "dimensions": {
+              "x": 16,
+              "y": 1,
+              "z": 16
+            },
+            "material": {
+              "color": "#b8b0a4",
+              "roughness": 0.9,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "lamp",
+          "transform3d": {
+            "position": {
+              "x": -2.5,
+              "y": 2.2,
+              "z": 0
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffb36b",
+            "intensity": 18,
+            "range": 12,
+            "castShadow": true,
+            "shadowBias": -0.002,
+            "shadowNormalBias": 0.02
+          }
+        },
+        {
+          "id": "spot",
+          "transform3d": {
+            "position": {
+              "x": 3,
+              "y": 5,
+              "z": 1
+            },
+            "rotation": [
+              -0.526928,
+              0.207619,
+              0.134547,
+              0.813104
+            ]
+          },
+          "light3d": {
+            "kind": "spot",
+            "color": "#9ec8ff",
+            "intensity": 40,
+            "range": 14,
+            "angle": 0.6,
+            "penumbra": 0.2,
+            "castShadow": true,
+            "shadowBias": -0.0005
+          }
+        },
+        {
+          "id": "crate",
+          "transform3d": {
+            "position": {
+              "x": -1,
+              "y": 0.5,
+              "z": 0
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "material": {
+              "color": "#b5643c",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        },
+        {
+          "id": "tower",
+          "transform3d": {
+            "position": {
+              "x": 1.4,
+              "y": 1,
+              "z": -0.6
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 0.6,
+              "y": 2,
+              "z": 0.6
+            },
+            "material": {
+              "color": "#3c6fb5",
+              "roughness": 0.8,
+              "metalness": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

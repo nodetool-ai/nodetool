@@ -25,6 +25,24 @@ describe("clipboardOps", () => {
     expect(hasClipboardClips()).toBe(true);
   });
 
+  it("sends clips copied from a locked track to the first unlocked compatible track (F33)", () => {
+    const locked = { ...makeTrack({ type: "video", name: "V1" }), locked: true };
+    const open = makeTrack({ type: "video", name: "V2" });
+    copyClipsToClipboard([
+      makeClip({ trackId: locked.id, name: "a", startMs: 0, durationMs: 1000 })
+    ]);
+    const pasted = buildPastedClips([locked, open], 0);
+    expect(pasted.map((c) => c.trackId)).toEqual([open.id]);
+  });
+
+  it("skips clips with no unlocked compatible track (F33)", () => {
+    const locked = { ...makeTrack({ type: "video", name: "V1" }), locked: true };
+    copyClipsToClipboard([
+      makeClip({ trackId: locked.id, name: "a", startMs: 0, durationMs: 1000 })
+    ]);
+    expect(buildPastedClips([locked], 0)).toEqual([]);
+  });
+
   it("pastes the earliest clip at the anchor and keeps relative offsets", () => {
     const track = makeTrack({ type: "video", name: "V1" });
     const a = makeClip({

@@ -13,8 +13,9 @@ import {
   saveApiHost as saveSharedApiHost,
   setCachedApiHost
 } from "./apiHost";
+import { DEFAULT_FETCH_TIMEOUT_MS, fetchWithTimeout } from "./fetchWithTimeout";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS;
 const UPLOAD_TIMEOUT_MS = 60_000;
 const MAX_RETRIES = 2;
 
@@ -27,21 +28,6 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.status = status;
     this.body = body;
-  }
-}
-
-/** `fetch` with an abort-based timeout so requests can't hang forever on a flaky network. */
-async function fetchWithTimeout(
-  url: string,
-  init: RequestInit,
-  timeoutMs: number
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
   }
 }
 
@@ -157,6 +143,7 @@ class ApiService {
     const maxAttempts = retriable ? MAX_RETRIES + 1 : 1;
 
     let lastError: unknown;
+    let refreshed = false;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const response = await fetchWithTimeout(
@@ -172,11 +159,22 @@ class ApiService {
       } catch (error) {
         lastError = error;
         const status = error instanceof ApiError ? error.status : undefined;
-        // An expired/invalid session won't recover by retrying — drop it and
-        // route back to login.
-        if (status === 401 || status === 403) {
-          useAuthStore.getState().handleSessionExpired();
-          throw error;
+        // A 401 usually means the access token lapsed. Refresh it once and
+        // resend; `refreshSession` signs out when the refresh itself fails.
+        // The server rejected the request before acting on it, so resending
+        // is safe for any method. A 403 is a permission error on this one
+        // resource, not a dead session, so it fails like any other 4xx.
+        if (status === 401) {
+          if (refreshed || !(await useAuthStore.getState().refreshSession())) {
+            throw error;
+          }
+          refreshed = true;
+          const token = useAuthStore.getState().session?.access_token;
+          if (token) {
+            headers.set("Authorization", `Bearer ${token}`);
+          }
+          attempt--;
+          continue;
         }
         // Retry network errors / aborts (no status) and 5xx; never other 4xx.
         const transient = status === undefined || status >= 500;

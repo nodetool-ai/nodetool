@@ -16,6 +16,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { MediaPlayerView } from '../media/MediaPlayerView';
 import { MessageContent } from '../../types/ApiTypes';
 import { useTheme } from '../../hooks/useTheme';
+import type { ThemeColors } from '../../utils/theme';
 import { useResolvedMediaUri } from '../../hooks/useResolvedMediaUri';
 
 /**
@@ -168,7 +169,7 @@ const MessageImage: React.FC<{ uri: string; maxWidth: number }> = ({ uri, maxWid
  */
 interface AudioPlayerProps {
   uri: string;
-  colors: { text: string; textSecondary: string; surface: string; primary: string };
+  colors: Pick<ThemeColors, 'text' | 'textSecondary' | 'surface' | 'primary' | 'border'>;
 }
 
 const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
@@ -211,7 +212,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, colors }) => {
         </Text>
       </TouchableOpacity>
       <View style={styles.audioInfo}>
-        <View style={styles.progressBar}>
+        <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
           <View
             style={[
               styles.progressFill,
@@ -272,7 +273,6 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 4,
-    backgroundColor: 'rgba(128, 128, 128, 0.3)',
     borderRadius: 2,
     marginBottom: 4,
   },

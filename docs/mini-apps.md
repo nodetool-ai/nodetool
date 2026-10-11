@@ -292,6 +292,8 @@ Run history is scoped to the instance. Selecting a run shows read-only inputs,
 outputs, stored agent activity, and links to its trace and documents. Document
 links open the current document. Historical inspection changes no working
 values and starts no execution. Expired or limited content is labelled.
+Each run also has **View trace** and **Ask the agent**. **Ask the agent** opens a chat tab
+titled "Inspect run" with the run id attached, and the first failed span when there is one.
 Deleting an instance removes its history and attachments while retaining
 generated library media.
 

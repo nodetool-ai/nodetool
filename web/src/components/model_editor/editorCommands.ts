@@ -176,29 +176,6 @@ export const reparentObject = (
   };
 };
 
-/** Bundles several commands into one undo step. */
-export const compositeCommand = (
-  label: string,
-  commands: EditorCommand[]
-): EditorCommand => ({
-  label,
-  undo: () => {
-    for (let i = commands.length - 1; i >= 0; i -= 1) {
-      commands[i].undo();
-    }
-  },
-  redo: () => {
-    for (const command of commands) {
-      command.redo();
-    }
-  },
-  dispose: (undone) => {
-    for (const command of commands) {
-      command.dispose?.(undone);
-    }
-  }
-});
-
 export interface ValueEdit<T> {
   label: string;
   /** Edits sharing a key within the merge window undo as one step. */

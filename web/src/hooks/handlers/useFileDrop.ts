@@ -5,7 +5,8 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import {
   deserializeDragData,
   hasExternalFiles,
-  extractFiles
+  extractFiles,
+  resolveAssetsMultiple
 } from "../../lib/dragdrop";
 import { isString } from "../../utils/typePredicates";
 
@@ -80,9 +81,26 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
 
       const dragData = deserializeDragData(event.dataTransfer);
 
-      if (dragData?.type === "asset") {
-        const asset = dragData.payload;
-        if (!acceptsAsset(asset.content_type, props.type)) {
+      // A multi-selection drag onto this single-value field uses the first
+      // selected asset of an accepted type.
+      const droppedAssets =
+        dragData?.type === "asset"
+          ? [dragData.payload]
+          : dragData?.type === "assets-multiple"
+            ? resolveAssetsMultiple(
+                dragData.payload,
+                dragData.metadata?.assets,
+                []
+              )
+            : null;
+      if (droppedAssets) {
+        if (droppedAssets.length === 0) {
+          return;
+        }
+        const asset = droppedAssets.find((candidate) =>
+          acceptsAsset(candidate.content_type, props.type)
+        );
+        if (!asset) {
           addNotification(invalidTypeNotification(props.type));
           return;
         }

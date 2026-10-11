@@ -37,18 +37,18 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
-import { useRightPanelStore } from "../../stores/RightPanelStore";
-import { usePanelStore } from "../../stores/PanelStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
-import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, LEFT_PANEL_MIN_DRAWER_WIDTH } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { runControlTooltip } from "./runControlTooltip";
 import { cn } from "../editor_ui/editorUtils";
 import { MenuItemPrimitive } from "../ui_primitives";
 import { useDraggable } from "../../hooks/useDraggable";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
+import { useCanvasSideInsets } from "../../hooks/useCanvasSideInsets";
 import { useWorkflowApp } from "../../hooks/useWorkflowApp";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
@@ -70,7 +70,7 @@ const MOBILE_DOCK_LAYER_STYLE: React.CSSProperties = {
 
 const RUNNING_TIME_STYLE: React.CSSProperties = {
   fontWeight: 600,
-  fontFamily: "monospace",
+  fontFamily: "var(--fontFamily2)",
   letterSpacing: "-0.5px"
 };
 
@@ -448,13 +448,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     bottomPanelVisible,
     bottomPanelSize
   );
-  const inspectorWidth = useRightPanelStore((state) =>
-    state.panel.isVisible ? state.panel.panelSize : 0
-  );
-  const leftPanelWidth = usePanelStore((state) => state.panel.isVisible
-    ? Math.max(state.panel.panelSize, TOOLBAR_WIDTH + LEFT_PANEL_MIN_DRAWER_WIDTH)
-    : TOOLBAR_WIDTH
-  );
+  const { left: leftPanelWidth, right: inspectorWidth } = useCanvasSideInsets();
 
   const { instantUpdate, setInstantUpdate, editorViewMode, setEditorViewMode } =
     useSettingsStore(
@@ -738,17 +732,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     return null;
   }
 
-  const runTooltip = isStopping
-    ? "Stopping workflow"
-    : runControlLabel.startsWith("Error")
-      ? `${runControlDetail ?? "Workflow failed to start"}. Click to retry the entire workflow.`
-      : queuePosition != null
-        ? `Queued (#${queuePosition})`
-        : pendingRunCount > 0
-          ? `Running — ${pendingRunCount} queued (click to queue another)`
-        : isWorkflowActive
-          ? `${runControlLabel} (click to queue another entire workflow run)`
-          : `${getShortcutTooltip("runWorkflow")} — runs the entire workflow`;
+  const runTooltip = runControlTooltip({
+    isStopping,
+    isWorkflowActive,
+    runControlLabel,
+    runControlDetail,
+    queuePosition,
+    pendingRunCount
+  });
 
   const runAriaLabel = isStopping
     ? "Stopping workflow"

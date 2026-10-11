@@ -1,5 +1,6 @@
 import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
+import { isNodeToolBackendProcess } from "./processIdentity";
 import {
   getOptionalNodeModulesPath,
   getPythonPath,
@@ -38,6 +39,7 @@ import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
+import { runExclusive } from "./exclusive";
 import { probeHttpOk, waitForHttpOk } from "./httpProbe";
 import {
   ensureActiveVaultDirs,
@@ -46,6 +48,15 @@ import {
 } from "./vaults";
 
 let backendWatchdog: Watchdog | null = null;
+let shutdownRequested = false;
+
+/** How long the backend lets in-flight runs finish after SIGTERM. */
+const BACKEND_SHUTDOWN_GRACE_MS = 5000;
+/**
+ * How long stopping waits before SIGKILL. Kept under the 10 s quit cap in
+ * main.ts, so a backend that ignores SIGTERM is killed, not left running.
+ */
+const BACKEND_STOP_TIMEOUT_MS = 8000;
 
 /**
  * Set when the backend subprocess emits a `KeychainAccessError` marker on its
@@ -130,6 +141,16 @@ function findPidListeningOnPort(port: number): number | null {
   }
 }
 
+async function removePidFile(): Promise<void> {
+  try {
+    await fs.unlink(PID_FILE_PATH);
+  } catch (error) {
+    if (!isErrnoException(error) || error.code !== "ENOENT") {
+      logMessage(`Failed to remove PID file: ${errorMessage(error)}`, "warn");
+    }
+  }
+}
+
 /**
  * Checks if there's an existing NodeTool server process from a PID file
  * @returns Promise resolving to the PID if a running server is found, null otherwise
@@ -143,13 +164,25 @@ async function findExistingServerPid(): Promise<number | null> {
       return null;
     }
     
-    if (isProcessRunning(pid)) {
-      logMessage(`Found existing NodeTool server process with PID ${pid}`);
-      return pid;
+    if (!isProcessRunning(pid)) {
+      logMessage(`PID file exists but process ${pid} is not running, will clean up`);
+      await removePidFile();
+      return null;
     }
-    
-    logMessage(`PID file exists but process ${pid} is not running, will clean up`);
-    return null;
+
+    if (!(await isNodeToolBackendProcess(pid))) {
+      // The backend that wrote this file is gone and the PID now belongs to
+      // another program. Killing it would take down whatever reused the PID.
+      logMessage(
+        `PID file names process ${pid}, which is not a NodeTool backend; ignoring the stale PID file`,
+        "warn"
+      );
+      await removePidFile();
+      return null;
+    }
+
+    logMessage(`Found existing NodeTool server process with PID ${pid}`);
+    return pid;
   } catch (error) {
     if (isErrnoException(error) && error.code === "ENOENT") {
       logMessage("No PID file found, no existing server process");
@@ -206,6 +239,11 @@ async function killExistingServer(): Promise<void> {
   try {
     const pidContent = await fs.readFile(PID_FILE_PATH, "utf8");
     const pid = parseInt(pidContent, 10);
+
+    if (pid && !(await isNodeToolBackendProcess(pid))) {
+      await removePidFile();
+      return;
+    }
 
     if (pid) {
       try {
@@ -333,14 +371,19 @@ async function startServer(): Promise<void> {
   // In dev mode, preload tsx/esm as a Node.js startup hook via --import so that
   // TypeScript files can be loaded inside the utilityProcess without calling
   // register() at runtime (which spawns a worker thread and fails in utility processes).
-  const nodeOptionsParts = [process.env.NODE_OPTIONS, "--conditions=nodetool-dev"];
+  // `nodetool-dev` resolves workspace packages to their `src/*.ts`. Published
+  // @nodetool-ai packages ship only `dist`, so the packaged backend must not
+  // set it: a node pack installed from npm would fail to import them.
+  const nodeOptionsParts = [process.env.NODE_OPTIONS];
   if (isDevMode()) {
+    nodeOptionsParts.push("--conditions=nodetool-dev");
     const tsxEsmHook = path.join(rootDir, "node_modules", "tsx", "dist", "esm", "index.mjs");
     nodeOptionsParts.push(`--import=${pathToFileURL(tsxEsmHook).href}`);
   }
 
+  const processEnv = getProcessEnv();
   const backendEnv: Record<string, string> = {
-    ...getProcessEnv(),
+    ...processEnv,
     PORT: String(selectedPort),
     HOST: "127.0.0.1",
     STATIC_FOLDER: webPath,
@@ -358,17 +401,21 @@ async function startServer(): Promise<void> {
     // llama.cpp, vLLM, the Claude subscription) — the desktop app is the one
     // surface where they are the point. Set `NODETOOL_NODE_PROFILE=cloud` in
     // the launching environment to opt into the curated cloud catalog.
-    NODETOOL_NODE_PROFILE: getProcessEnv()["NODETOOL_NODE_PROFILE"] ?? "full",
+    NODETOOL_NODE_PROFILE: processEnv["NODETOOL_NODE_PROFILE"] ?? "full",
     // Preview any file the user drags onto the canvas, wherever it lives.
     NODETOOL_LOCAL_FILE_ROOTS: getLocalFileRootsEnv(),
     NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
     // V8 code cache for the backend's modules. Compiling the bundled
     // server.mjs costs most of a second on every launch without it.
     NODE_COMPILE_CACHE:
-      getProcessEnv()["NODE_COMPILE_CACHE"] ??
+      processEnv["NODE_COMPILE_CACHE"] ??
       path.join(app.getPath("userData"), "backend-compile-cache"),
     NODE_PATH: backendNodePath,
     NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,
+    // The server waits this long for in-flight runs after SIGTERM. Its own
+    // default (four minutes) suits a cloud drain, not quitting the app.
+    NODETOOL_SHUTDOWN_GRACE_MS:
+      processEnv["NODETOOL_SHUTDOWN_GRACE_MS"] ?? String(BACKEND_SHUTDOWN_GRACE_MS),
   };
 
   // Point the backend at the active vault's database/assets/vector store.
@@ -420,6 +467,7 @@ async function startServer(): Promise<void> {
         cwd: rootDir,
         pidFilePath: PID_FILE_PATH,
         healthUrl: `http://127.0.0.1:${selectedPort}/health`,
+        gracefulStopTimeoutMs: BACKEND_STOP_TIMEOUT_MS,
         onOutput: (line) => handleServerOutput(Buffer.from(line)),
         logOutput: false,
       }
@@ -440,10 +488,14 @@ async function startServer(): Promise<void> {
         cwd: path.dirname(backendEntryPoint),
         pidFilePath: PID_FILE_PATH,
         healthUrl: `http://127.0.0.1:${selectedPort}/health`,
+        gracefulStopTimeoutMs: BACKEND_STOP_TIMEOUT_MS,
         onOutput: (line) => handleServerOutput(Buffer.from(line)),
         logOutput: false,
       };
 
+  if (shutdownRequested) {
+    return;
+  }
   backendWatchdog = new Watchdog(watchdogOpts);
 
   try {
@@ -451,6 +503,9 @@ async function startServer(): Promise<void> {
     await backendWatchdog.start();
     logMessage("Watchdog.start() completed - server is healthy");
   } catch (error) {
+    if (shutdownRequested) {
+      return;
+    }
     const errMsg = errorMessage(error);
     logMessage(
       `Watchdog failed to start server: ${errMsg}`,
@@ -517,7 +572,10 @@ async function isServerRunning(): Promise<boolean> {
  * Initializes the backend server, performing necessary checks and startup procedures
  * Handles server health checks, port availability, and process management
  */
-async function initializeBackendServer(): Promise<void> {
+async function initializeBackendServerNow(): Promise<void> {
+  if (shutdownRequested) {
+    return;
+  }
   logMessage("Initializing backend server");
   backendKeychainErrorSeen = false;
   try {
@@ -526,6 +584,9 @@ async function initializeBackendServer(): Promise<void> {
     
     // Check if there's an existing NodeTool server process from PID file
     let existingPid = await findExistingServerPid();
+    if (shutdownRequested) {
+      return;
+    }
     const pidFromPidFile = existingPid !== null;
 
     // The PID file misses servers this app did not start (an `npm run dev`
@@ -564,6 +625,9 @@ async function initializeBackendServer(): Promise<void> {
           
           // Prompt the user
           const shouldKillExisting = await promptUserAboutExistingServer(existingPid);
+          if (shutdownRequested) {
+            return;
+          }
           
           if (shouldKillExisting) {
             // User wants to kill the existing server
@@ -684,13 +748,22 @@ async function initializeBackendServer(): Promise<void> {
     }
 
     logMessage("No existing server found, starting new server...");
+    if (shutdownRequested) {
+      return;
+    }
     await killExistingServer();
     logMessage("Starting server process...");
     await startServer();
+    if (shutdownRequested) {
+      return;
+    }
     logMessage("Server process started, waiting for health check...");
     await waitForServer();
     logMessage("Backend server initialization complete");
   } catch (error) {
+    if (shutdownRequested) {
+      return;
+    }
     logMessage(
       `Critical error starting server: ${errorMessage(error)}`,
       "error"
@@ -710,6 +783,9 @@ async function initializeBackendServer(): Promise<void> {
  * @throws Error if server doesn't become available within timeout period
  */
 async function waitForServer(timeout: number = 60000): Promise<void> {
+  if (shutdownRequested) {
+    return;
+  }
   const readyUrl = getServerUrl("/ready");
   await waitForHttpOk(readyUrl, {
     timeoutMs: timeout,
@@ -717,6 +793,9 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
     pollIntervalMs: 250,
     errorMessage: "Server failed to become available",
   });
+  if (shutdownRequested) {
+    return;
+  }
   logMessage(`Server endpoint is available at ${readyUrl}`);
   emitServerStarted();
 }
@@ -725,7 +804,7 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
  * Gracefully stops the backend server process
  * Attempts SIGTERM first, followed by SIGKILL if necessary
  */
-async function stopServer(): Promise<void> {
+async function stopServerNow(): Promise<void> {
   logMessage("Initiating graceful shutdown");
 
   try {
@@ -775,9 +854,44 @@ export async function runApp(workflowId: string) {
   createWorkflowWindow(workflowId);
 }
 
+/**
+ * Start, stop and restart share one queue. Pack installs, vault switches and
+ * the tray can each restart the backend. Without the queue a second start sees
+ * the first one's PID before /health answers and kills it as unresponsive, or
+ * replaces `backendWatchdog` so the first backend is never stopped.
+ */
+const BACKEND_LIFECYCLE_KEY = "backend-lifecycle";
+
+function initializeBackendServer(): Promise<void> {
+  return runExclusive(BACKEND_LIFECYCLE_KEY, initializeBackendServerNow);
+}
+
+function stopServer(options: { shutdown?: boolean } = {}): Promise<void> {
+  if (options.shutdown) {
+    // Quit cannot wait behind startup's readiness polling. Prevent queued
+    // starts from spawning a replacement after this watchdog has stopped.
+    shutdownRequested = true;
+    return stopServerNow();
+  }
+  return runExclusive(BACKEND_LIFECYCLE_KEY, stopServerNow);
+}
+
+/** Stop the backend, give the OS a moment to release the port and database, then start it. */
+function restartServer(): Promise<void> {
+  return runExclusive(BACKEND_LIFECYCLE_KEY, async () => {
+    if (shutdownRequested) {
+      return;
+    }
+    await stopServerNow();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await initializeBackendServerNow();
+  });
+}
+
 export {
   serverState,
   initializeBackendServer,
+  restartServer,
   stopServer,
   isServerRunning,
 };

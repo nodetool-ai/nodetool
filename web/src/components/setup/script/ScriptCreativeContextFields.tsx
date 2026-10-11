@@ -13,6 +13,8 @@ import {
 export interface ScriptCreativeContextFieldsProps {
   value?: CreativeContext;
   onChange: (value: CreativeContext | undefined) => void;
+  /** Show the context without letting it change. */
+  readOnly?: boolean;
 }
 
 const listValue = (values: readonly string[] | undefined): string =>
@@ -31,6 +33,7 @@ interface ClaimsTextProps {
   readonly helperText: string;
   readonly value: string;
   readonly onCommit: (value: string) => void;
+  readonly disabled: boolean;
 }
 
 // Parsing each keystroke would trim away spaces and new lines as they are
@@ -39,7 +42,8 @@ const ClaimsText: React.FC<ClaimsTextProps> = ({
   label,
   helperText,
   value,
-  onCommit
+  onCommit,
+  disabled
 }) => {
   const [draft, setDraft] = useState(value);
   const pendingRef = useRef({ draft, value, onCommit });
@@ -62,6 +66,7 @@ const ClaimsText: React.FC<ClaimsTextProps> = ({
         multiline
         rows={3}
         value={draft}
+        disabled={disabled}
         helperText={helperText}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={() => {
@@ -90,7 +95,7 @@ const TEXT_FIELDS = [
 
 export const ScriptCreativeContextFields: React.FC<
   ScriptCreativeContextFieldsProps
-> = ({ value, onChange }) => {
+> = ({ value, onChange, readOnly = false }) => {
   const context = useMemo<CreativeContext>(
     () => value ?? ({ schema_version: 1 } as CreativeContext),
     [value]
@@ -124,6 +129,7 @@ export const ScriptCreativeContextFields: React.FC<
           key={key}
           label={label}
           value={typeof context[key] === "string" ? context[key] : ""}
+          disabled={readOnly}
           helperText={helperText}
           onChange={(event) =>
             update({
@@ -140,6 +146,7 @@ export const ScriptCreativeContextFields: React.FC<
         label="Approved claims"
         helperText="One approved fact per line."
         value={listValue(context.approved_claims)}
+        disabled={readOnly}
         onCommit={(text) => update({ approved_claims: listFromValue(text) })}
       />
       <ClaimsText
@@ -147,6 +154,7 @@ export const ScriptCreativeContextFields: React.FC<
         label="Prohibited claims"
         helperText="One claim to avoid per line."
         value={listValue(context.prohibited_claims)}
+        disabled={readOnly}
         onCommit={(text) => update({ prohibited_claims: listFromValue(text) })}
       />
     </FlexColumn>

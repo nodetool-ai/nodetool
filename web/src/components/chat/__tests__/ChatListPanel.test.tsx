@@ -26,7 +26,8 @@ const chatState = {
   },
   messageCache: {},
   isLoadingThreads: false,
-  error: null,
+  error: null as string | null,
+  threadsError: null as string | null,
   createNewThread,
   deleteThread
 };
@@ -71,6 +72,31 @@ describe("ChatListPanel", () => {
     renderPanel(<ChatListPanel projectId="default" />);
     expect(screen.getByText("Fixing the encoder")).toBeInTheDocument();
     expect(screen.getByText("Storyboard ideas")).toBeInTheDocument();
+  });
+
+  it("keeps listing threads when a send fails", () => {
+    chatState.error = "No model selected";
+    try {
+      renderPanel(<ChatListPanel projectId="default" />);
+      expect(screen.getByText("Fixing the encoder")).toBeInTheDocument();
+      expect(
+        screen.queryByText("Could not load conversations")
+      ).not.toBeInTheDocument();
+    } finally {
+      chatState.error = null;
+    }
+  });
+
+  it("shows the error when the thread list fails to load", () => {
+    chatState.threadsError = "Network down";
+    try {
+      renderPanel(<ChatListPanel projectId="default" />);
+      expect(
+        screen.getByText("Could not load conversations")
+      ).toBeInTheDocument();
+    } finally {
+      chatState.threadsError = null;
+    }
   });
 
   it("opens the selected thread as a chat tab", async () => {

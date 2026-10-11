@@ -19,7 +19,7 @@ const ArrayView: React.FC<ArrayViewProps> = ({ array }) => {
   }, [value]);
 
   return (
-    <Surface sx={{ p: 2, my: 1, fontFamily: "monospace" }}>
+    <Surface sx={{ p: 2, my: 1, fontFamily: "var(--fontFamily2)" }}>
       <Text size="normal" weight={600} gutterBottom>
         Array ({dtype})
       </Text>

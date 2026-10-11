@@ -16,6 +16,12 @@ const nodeId = "node-1";
 // straight through the buffer so we don't need a running graph.
 let mockStreamBuffer: string[] | undefined;
 
+// The model chip reads the node store, which this suite does not provide.
+jest.mock("../../../node/NodeModelChips", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 jest.mock("../../../../stores/WorkflowRunsStore", () => ({
   __esModule: true,
   default: <T,>(selector: (s: { focusedJob: Record<string, string> }) => T) =>

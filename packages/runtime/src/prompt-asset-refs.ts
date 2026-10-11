@@ -632,7 +632,9 @@ export interface EntityRefResolver {
 export async function expandEntityRefs(
   text: string,
   context: EntityRefResolver | undefined,
-  includeImageRefs: boolean
+  includeImageRefs: boolean,
+  /** Receives each appended image ref with its entity's name, in order. */
+  imageOwners?: Array<{ name: string; uri: string }>
 ): Promise<string> {
   if (!text.includes("entity://")) return text;
 
@@ -699,6 +701,7 @@ export async function expandEntityRefs(
     }
     if (includeImageRefs && entity.imageToken) {
       imageTokens.push(entity.imageToken);
+      imageOwners?.push({ name: entity.marker.name, uri: entity.imageToken });
     }
   }
   result += text.slice(cursor);
@@ -724,6 +727,12 @@ export interface ExpandedEntityPrompt {
    * has already been folded into `prompt`).
    */
   referenceImages: PromptAssetRef[];
+  /**
+   * The name of the entity each reference image belongs to, aligned with
+   * `referenceImages`. Providers that can mention images in the prompt name
+   * them with it.
+   */
+  referenceNames: string[];
 }
 
 /**
@@ -743,9 +752,10 @@ export async function expandEntitiesForGeneration(
   resolver: EntityRefResolver
 ): Promise<ExpandedEntityPrompt> {
   const preExisting = new Set(findImageAssetRefs(prompt).map((r) => r.uri));
-  const expanded = await expandEntityRefs(prompt, resolver, true);
+  const owners: Array<{ name: string; uri: string }> = [];
+  const expanded = await expandEntityRefs(prompt, resolver, true, owners);
   if (expanded === prompt) {
-    return { prompt, referenceImages: [] };
+    return { prompt, referenceImages: [], referenceNames: [] };
   }
   const referenceImages = findImageAssetRefs(expanded).filter(
     (ref) => !preExisting.has(ref.uri)
@@ -755,7 +765,10 @@ export async function expandEntitiesForGeneration(
       referenceImages.length > 0
         ? stripAssetRefs(expanded, referenceImages).trimEnd()
         : expanded,
-    referenceImages
+    referenceImages,
+    referenceNames: referenceImages.map(
+      (ref) => owners.find((owner) => owner.uri === ref.uri)?.name ?? ""
+    )
   };
 }
 

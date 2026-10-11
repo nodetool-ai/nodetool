@@ -271,6 +271,7 @@ describe("buildLinkedTimeline", () => {
     expect(music?.startMs).toBe(0);
     expect(music?.durationMs).toBe(1000);
     expect(music?.status).toBe("draft");
+    expect(music?.bindingKind).toBe("text-to-music");
   });
 
   it("reports skipped shots and the lines they carried", () => {
@@ -508,7 +509,7 @@ describe("unlinked assembly is unchanged", () => {
         durationMs: 6000,
         mediaType: "audio",
         sourceType: "generated",
-        bindingKind: "text-to-audio",
+        bindingKind: "text-to-music",
         prompt: "low strings",
         status: "draft",
         locked: false,

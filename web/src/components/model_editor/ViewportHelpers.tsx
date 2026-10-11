@@ -243,6 +243,7 @@ interface LightIconProps {
 
 const LightIcon = memo(({ light, selected, palette, onSelect }: LightIconProps) => {
   const group = useRef<THREE.Group>(null);
+  const icon = useRef<HTMLDivElement>(null);
   const line = useMemo(() => {
     const geometry = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(),
@@ -280,7 +281,20 @@ const LightIcon = memo(({ light, selected, palette, onSelect }: LightIconProps) 
     }
     light.getWorldPosition(worldPos);
     group.current.position.copy(worldPos);
-    group.current.visible = light.visible && isInScene(light);
+    const shown = isVisibleInTree(light) && isInScene(light);
+    group.current.visible = shown;
+    // drei's <Html> ignores the visibility of its parent group, so the icon
+    // of a hidden light would stay on screen and clickable.
+    if (icon.current) {
+      icon.current.style.visibility = shown ? "visible" : "hidden";
+      // The icon is memoized on the light object, so a color edit or its
+      // undo does not re-render it. Follow the color here.
+      const hex = `#${light.color.getHexString()}`;
+      if (icon.current.dataset.color !== hex) {
+        icon.current.dataset.color = hex;
+        icon.current.style.color = hex;
+      }
+    }
     if (aims) {
       const aimed = light as THREE.DirectionalLight | THREE.SpotLight;
       aimed.target.getWorldPosition(targetPos);
@@ -310,6 +324,7 @@ const LightIcon = memo(({ light, selected, palette, onSelect }: LightIconProps) 
       {aims && <primitive object={line} />}
       <Html zIndexRange={[Z_INDEX.raised, Z_INDEX.base]} style={{ pointerEvents: "none" }}>
         <div
+          ref={icon}
           role="button"
           tabIndex={-1}
           aria-label={`Select ${light.name || light.type}`}
@@ -389,6 +404,18 @@ interface WireframeOverlayProps {
 
 /** Draws every mesh's triangle edges on top of the shaded view. */
 export const WireframeOverlay = memo(({ root, tick, color }: WireframeOverlayProps) => {
+  // `tick` changes on every gizmo drag frame. Rebuild the edge geometry only
+  // when a mesh or its geometry changed, not on every move.
+  const meshSignature = useMemo(() => {
+    void tick;
+    const parts: string[] = [];
+    root.traverse((node) => {
+      if (node instanceof THREE.Mesh) {
+        parts.push(`${node.id}:${node.geometry.id}`);
+      }
+    });
+    return parts.join(",");
+  }, [root, tick]);
   const group = useMemo(() => new THREE.Group(), []);
   const pairs = useRef<{ mesh: THREE.Mesh; lines: THREE.LineSegments }[]>([]);
   const material = useMemo(
@@ -403,7 +430,7 @@ export const WireframeOverlay = memo(({ root, tick, color }: WireframeOverlayPro
   );
 
   useEffect(() => {
-    void tick;
+    void meshSignature;
     const next: { mesh: THREE.Mesh; lines: THREE.LineSegments }[] = [];
     root.traverse((node) => {
       if (node instanceof THREE.Mesh) {
@@ -424,7 +451,7 @@ export const WireframeOverlay = memo(({ root, tick, color }: WireframeOverlayPro
         lines.geometry.dispose();
       }
     };
-  }, [root, tick, group, material]);
+  }, [root, meshSignature, group, material]);
 
   useEffect(() => () => material.dispose(), [material]);
 
@@ -440,7 +467,8 @@ export const WireframeOverlay = memo(({ root, tick, color }: WireframeOverlayPro
 });
 WireframeOverlay.displayName = "WireframeOverlay";
 
-const isVisibleInTree = (object: THREE.Object3D): boolean => {
+/** Whether the object and every ancestor are visible. */
+export const isVisibleInTree = (object: THREE.Object3D): boolean => {
   let node: THREE.Object3D | null = object;
   while (node) {
     if (!node.visible) {

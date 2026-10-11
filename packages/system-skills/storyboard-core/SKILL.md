@@ -251,6 +251,8 @@ Work with no editor open. Shot `target` = shot id, 0-based index as a string, or
 | `assemble_storyboard_timeline` | `storyboard_id`, `name?`, `fps?` (default 30) |
 | `extract_script_from_storyboard` | `storyboard_id`, `name?`, `relink?` |
 | `delete_storyboard` | `storyboard_id` |
+| `get_storyboard_one_take` | `storyboard_id` → `prompt` (the creator's), `compiled` (REFS, STEPS, AUDIO from the board), `full_prompt`, references with `[Image N]` (the shot stills, in shot order), shot windows, duration, `settings` (stored `duration_seconds`, `aspect_ratio`, `resolution`, `model`), `effective` (after board fallbacks), warnings |
+| `update_storyboard_one_take` | `storyboard_id`, `prompt?`, `duration_seconds?`, `aspect_ratio?`, `resolution?`, `model?` `{provider, id, name?}` (null clears one), `shots?` `[{shot_id, end_state?, sound?}]`, `expected_revision?` |
 
 Render limits: **24 shots per call**, `concurrency` default 3, max 8.
 

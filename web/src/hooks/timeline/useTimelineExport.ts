@@ -192,7 +192,12 @@ export function useTimelineExport(): UseTimelineExportResult {
           (max, clip) => Math.max(max, clipEndMs(clip)),
           0
         );
-        const exportDurationMs = Math.max(state.durationMs, clipsDurationMs);
+        // The export ends where the content ends, as the preview's scrubber
+        // does. The stored `durationMs` is only set on load, so after the
+        // sequence shrinks it would append black and silence. It is kept only
+        // for an empty sequence.
+        const exportDurationMs =
+          state.clips.length > 0 ? clipsDurationMs : state.durationMs;
         if (exportDurationMs <= 0) {
           throw new Error("Add a clip before exporting.");
         }

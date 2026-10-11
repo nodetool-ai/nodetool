@@ -22,7 +22,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📚 Chat With Your Documents (RAG)\n\nAnswers questions from your own documents instead of the model's memory, citing the source of every claim. Use it as a starting point for retrieval-augmented Q&A over a small knowledge base.\n\n**How it works:** \"Vector collection\" creates the \"aurora_docs\" collection with Ollama nomic-embed-text embeddings. The three \"Doc\" inputs go into \"Index: Specifications\", \"Index: Charging\" and \"Index: Warranty\", each tagged with a source name. \"3 Retrieve passages\" queries the collection with \"2 Search keyword\" for up to 5 passages. \"Merge passages\" joins them, and \"Retrieved Passages\" shows exactly what was used. \"4 Build grounded prompt\" combines them with \"1 Question\", and \"5 Cited answer\" answers only from that context or says it could not find the answer. Embeddings run locally through Ollama. Pick a language model on \"5 Cited answer\".\n\n**Try this:** Change \"2 Search keyword\" from \"Aurora\" to \"warranty\" and check \"Retrieved Passages\" to see retrieval narrow to fewer passages."
+          "comment": "# 📚 Chat With Your Documents (RAG)\n\nAnswers questions from your own documents instead of the model's memory, citing the source of every claim. Use it as a starting point for retrieval-augmented Q&A over a small knowledge base.\n\n**How it works:** \"Vector collection\" creates the \"aurora_docs\" collection with Ollama nomic-embed-text embeddings. The three \"Doc\" inputs go into \"Index: Specifications\", \"Index: Charging\" and \"Index: Warranty\", each tagged with a source name. \"3 Retrieve passages\" queries the collection with \"2 Search keyword\" for the 2 closest passages. \"Merge passages\" joins them, and \"Retrieved Passages\" shows exactly what was used. \"4 Build grounded prompt\" combines them with \"1 Question\", and \"5 Cited answer\" answers only from that context or says it could not find the answer. Embeddings run locally through Ollama. Pick a language model on \"5 Cited answer\".\n\n**Try this:** Change \"2 Search keyword\" from \"Aurora\" to \"warranty\" and check \"Retrieved Passages\" to see the warranty document move to the top."
         },
         "ui_properties": {
           "selected": false,
@@ -68,7 +68,7 @@
         "data": {
           "name": "search",
           "value": "Aurora",
-          "description": "Keyword used to pull matching documents from your knowledge base. 'Aurora' appears in every document, so it retrieves the whole corpus; narrow it (e.g. 'warranty') to scope retrieval to one topic."
+          "description": "Search text matched by meaning against your knowledge base. The 2 closest documents are retrieved, so a topic such as 'warranty' brings that document to the top."
         },
         "ui_properties": {
           "selected": false,
@@ -262,7 +262,7 @@
         "parent_id": null,
         "type": "vector.QueryText",
         "data": {
-          "n_results": 5
+          "n_results": 2
         },
         "ui_properties": {
           "selected": false,

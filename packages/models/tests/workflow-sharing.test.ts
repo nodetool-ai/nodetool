@@ -241,4 +241,21 @@ describe("Workflow.find with collaborator grants", () => {
     const found = await Workflow.find("stranger", wf.id);
     expect(found?.id).toBe(wf.id);
   });
+
+  it("grants a collaborator access by the workflow's short id", async () => {
+    const wf = await Workflow.create<Workflow>({
+      user_id: "owner",
+      name: "Private WF",
+      access: "private",
+      graph: { nodes: [], edges: [] }
+    });
+    await WorkflowCollaborator.upsert({
+      workflowId: wf.id,
+      userId: "stranger",
+      role: "viewer",
+      invitedBy: "owner"
+    });
+    const found = await Workflow.find("stranger", wf.id.slice(0, 12));
+    expect(found?.id).toBe(wf.id);
+  });
 });

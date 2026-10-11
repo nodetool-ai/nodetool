@@ -27,6 +27,7 @@ import type {
   InpaintingParams,
   Message as ProviderMessage,
   MessageContent,
+  NamedReferenceImage,
   PromptAssetRef,
   ProviderTool,
   TextToImageParams,
@@ -99,6 +100,11 @@ export interface DirectMediaGenerationRequest {
    * a frame that was already delivered to a dead socket.
    */
   requestId?: string;
+  /**
+   * Aborts the provider call. The `cancel_generation` command fires it, so a
+   * render the creator cancelled stops instead of finishing and billing.
+   */
+  signal?: AbortSignal;
   /** Submission-time timeline mapping for a native video edit. */
   sourceContext?: DirectMediaSourceContext;
   timelineContext?: { sequenceId: string; sourceClipId?: string; targetClipId?: string };
@@ -325,6 +331,25 @@ export function entityRefResolver(userId: string): {
  * whose asset is gone (or reads back empty) contributes nothing — the same
  * drop rule as an unresolvable mention.
  */
+/**
+ * Resolve entity reference images with their entity names. An image that can
+ * no longer be read drops, together with its name.
+ */
+export async function resolveNamedEntityReferences(
+  userId: string,
+  refs: PromptAssetRef[],
+  names: readonly string[]
+): Promise<NamedReferenceImage[]> {
+  const out: NamedReferenceImage[] = [];
+  for (const [index, ref] of refs.entries()) {
+    const [image] = await resolveEntityReferenceImages(userId, [ref]);
+    if (image) {
+      out.push({ name: names[index] ?? "", image });
+    }
+  }
+  return out;
+}
+
 export async function resolveEntityReferenceImages(
   userId: string,
   refs: PromptAssetRef[]
@@ -955,9 +980,11 @@ export class DirectInferenceHandler {
     const userId = this.session.requireUserId();
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
+    req.signal?.throwIfAborted();
     const { generate, seamAssetId, storeAsset } = createGenerationRun({
       userId,
       providerId: req.provider,
+      signal: req.signal,
       modelId: req.model,
       provider,
       origin: { surface: "rpc", request_id: req.requestId ?? null },
@@ -988,13 +1015,27 @@ export class DirectInferenceHandler {
     // a Consistency references block, reference image routed into the
     // generation inputs below — the same rule node prompts get through
     // mapPromptAssetsToInputs. A mention that resolves to no entity drops.
-    const { prompt, referenceImages } = videoEditReferences
-      ? { prompt: videoEditReferences.prompt, referenceImages: [] }
+    const { prompt, referenceImages, referenceNames } = videoEditReferences
+      ? {
+          prompt: videoEditReferences.prompt,
+          referenceImages: [],
+          referenceNames: []
+        }
       : await expandEntitiesForGeneration(req.prompt, entityRefResolver(userId));
-    const entityImageBytes = await resolveEntityReferenceImages(
-      userId,
-      referenceImages
-    );
+    // A video call takes the images named, so a provider with a reference
+    // mode can mention each one in its prompt. Image modes take bare bytes.
+    const videoReferences =
+      req.mode === "video"
+        ? await resolveNamedEntityReferences(
+            userId,
+            referenceImages,
+            referenceNames
+          )
+        : [];
+    const entityImageBytes =
+      req.mode === "video"
+        ? []
+        : await resolveEntityReferenceImages(userId, referenceImages);
 
     // Image modes are pixel-addressed on several providers (GPT Image's
     // `size`): derive explicit dimensions from the resolution tier + aspect
@@ -1046,6 +1087,8 @@ export class DirectInferenceHandler {
               {
                 model: videoModel,
                 prompt,
+                // Entity images follow the picked ones, each with its name.
+                references: videoReferences,
                 durationSeconds: req.durationSeconds ?? null,
                 aspectRatio: req.aspectRatio ?? null,
                 resolution: req.resolution ?? null,
@@ -1064,6 +1107,7 @@ export class DirectInferenceHandler {
         const i2vParams: ImageToVideoParams = {
           model: videoModel,
           prompt,
+          references: videoReferences,
           aspectRatio: req.aspectRatio ?? null,
           resolution: req.resolution ?? null,
           durationSeconds: req.durationSeconds ?? null
@@ -1079,6 +1123,7 @@ export class DirectInferenceHandler {
         const params: TextToVideoParams = {
           model: videoModel,
           prompt,
+          references: videoReferences,
           durationSeconds: req.durationSeconds ?? null
         };
         generated = await generate(

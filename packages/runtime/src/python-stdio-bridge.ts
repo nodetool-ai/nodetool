@@ -130,10 +130,11 @@ export class PythonStdioBridge extends PythonBridgeBase {
   protected override async _openTransport(): Promise<void> {
     const candidates = this._getPythonLaunchCandidates();
     let lastError: Error | null = null;
+    const settingsEnv = await this._resolveSettingsEnv();
 
     for (const candidate of candidates) {
       try {
-        await this._spawnCandidate(candidate);
+        await this._spawnCandidate(candidate, settingsEnv);
         return;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -150,8 +151,28 @@ export class PythonStdioBridge extends PythonBridgeBase {
     );
   }
 
+  /**
+   * Environment from the host's `workerEnv` hook (settings the worker reads
+   * at start, such as NODETOOL_TORCH_DEVICE). A failing hook is logged and
+   * ignored: the worker then starts with the inherited environment only.
+   */
+  private async _resolveSettingsEnv(): Promise<Record<string, string>> {
+    if (!this._options.workerEnv) {
+      return {};
+    }
+    try {
+      return await this._options.workerEnv();
+    } catch (error) {
+      log.warn("Could not resolve worker environment from settings", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return {};
+    }
+  }
+
   private async _spawnCandidate(
-    candidate: PythonLaunchCandidate
+    candidate: PythonLaunchCandidate,
+    settingsEnv: Record<string, string> = {}
   ): Promise<void> {
     const args = [
       ...(candidate.argsPrefix ?? []),
@@ -175,6 +196,9 @@ export class PythonStdioBridge extends PythonBridgeBase {
           // of the `notOnNode("node:child_process.spawn")` this file goes out
           // of its way to raise.
           ...safeProcessEnv(),
+          // Values saved in Settings win over the inherited environment, the
+          // order provider settings resolve in (`getSecret`).
+          ...settingsEnv,
           TQDM_DISABLE: "1",
           HF_HUB_DISABLE_PROGRESS_BARS: "1",
           TRANSFORMERS_VERBOSITY: "error"

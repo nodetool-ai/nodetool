@@ -978,6 +978,8 @@ result as an asset, and write it back onto the persisted board.
 | `render_storyboard_clips` | the shot's clip: `image_to_video` seeded by the keyframe, or `text_to_video` from the prompt |
 | `revise_storyboard_clip` | `video_to_video` revision of one shot's clip |
 | `assemble_storyboard_timeline` | Rendered clips → a saved `timeline_sequences` row |
+| `get_storyboard_one_take` | The creator's one-take prompt, the block compiled from the board, the full prompt, `[Image N]` references and warnings |
+| `update_storyboard_one_take` | Sets the creator's one-take prompt and shots' `end_state` / `sound` |
 
 `edit_storyboard` is the document half: beside the shot ops it carries the
 guided flow's `set_setup`, the scene ops (`move_shot`, `duplicate_shot`,

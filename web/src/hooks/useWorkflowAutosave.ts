@@ -10,20 +10,19 @@ import { triggerAutosaveForWorkflow } from "./useAutosave";
 /**
  * Persist the workflow's graph as an autosave version when it has unsaved
  * changes. Skips workflows that were never saved (the first save creates them)
- * and workflows with a manual save in flight. Clears the dirty flag only when
- * the graph did not change while the request ran.
+ * and runs after any save already in flight. Clears the dirty flag only when
+ * the server wrote the graph and it did not change while the request ran.
  */
 export async function autosaveIfDirty(
   nodeStore: NodeStore,
   manager: WorkflowManagerStore,
   maxVersions: number
 ): Promise<void> {
-  const before = nodeStore.getState();
-  if (!before.workflowIsDirty) {
+  const initial = nodeStore.getState();
+  if (!initial.workflowIsDirty) {
     return;
   }
-  const { nodes, edges } = before;
-  const workflowId = before.workflow.id;
+  const workflowId = initial.workflow.id;
   const managerState = manager.getState();
   if (
     managerState.unsavedWorkflowIds[workflowId] ||
@@ -32,22 +31,30 @@ export async function autosaveIfDirty(
     return;
   }
 
-  const workflow = before.getWorkflow();
-  const updatedAt = await triggerAutosaveForWorkflow(
-    workflowId,
-    workflow.graph ?? { nodes: [], edges: [] },
-    "autosave",
-    { maxVersions, expectedUpdatedAt: workflow.updated_at ?? undefined }
-  );
-  if (!updatedAt) {
-    return;
-  }
+  await managerState.queueWorkflowSave(workflowId, async () => {
+    const before = nodeStore.getState();
+    if (!before.workflowIsDirty) {
+      return undefined;
+    }
+    const { nodes, edges } = before;
+    const workflow = before.getWorkflow();
+    const result = await triggerAutosaveForWorkflow(
+      workflowId,
+      workflow.graph ?? { nodes: [], edges: [] },
+      "autosave",
+      { maxVersions, expectedUpdatedAt: workflow.updated_at ?? undefined }
+    );
+    if (!result || result.skipped) {
+      return undefined;
+    }
 
-  const after = nodeStore.getState();
-  after.setWorkflowUpdatedAt(updatedAt);
-  if (after.nodes === nodes && after.edges === edges) {
-    after.setWorkflowDirty(false);
-  }
+    const after = nodeStore.getState();
+    after.setWorkflowUpdatedAt(result.updatedAt, result.etag);
+    if (after.nodes === nodes && after.edges === edges) {
+      after.setWorkflowDirty(false);
+    }
+    return result.etag;
+  });
 }
 
 /**

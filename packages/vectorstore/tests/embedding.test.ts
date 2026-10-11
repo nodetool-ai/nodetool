@@ -70,9 +70,11 @@ describe("getProviderEmbeddingFunction", () => {
     expect(ef).toBeInstanceOf(OllamaEmbeddingFunction);
   });
 
-  it("returns null when provider cannot be determined and no Ollama URL", () => {
+  it("defaults a local model to Ollama without OLLAMA_API_URL in the environment", () => {
+    // The URL resolves at call time from Settings, the environment or the
+    // localhost default, like every other Ollama path.
     const ef = getProviderEmbeddingFunction("unknown-model");
-    expect(ef).toBeNull();
+    expect(ef).toBeInstanceOf(OllamaEmbeddingFunction);
   });
 
   it("returns CohereEmbeddingFunction for embed-* models", () => {

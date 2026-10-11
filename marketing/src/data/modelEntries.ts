@@ -122,7 +122,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["veo-3", "veo3", "veo-3-fast", "veo3-fast"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "sora",
@@ -158,7 +158,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["sora", "sora-2", "sora2", "sora-2-pro"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "kling",
@@ -194,7 +194,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["kling", "kling-2", "kling-pro", "kling-o3"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "seedance",
@@ -230,7 +230,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["seedance", "seedance-pro", "seedance-lite", "seedance-1"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "hailuo",
@@ -266,7 +266,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["hailuo", "hailuo-2", "hailuo-02", "minimax-hailuo"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "wan",
@@ -302,7 +302,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["wan", "wan-2", "wan-22", "wan2"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "flux",

@@ -114,11 +114,10 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
+  // No title or description here: Next.js fills them from each page's
+  // openGraph, which a root value would override on every child route.
   twitter: {
     card: "summary_large_image",
-    title: "NodeTool | Open-source agent-first creative workspace",
-    description:
-      "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
     images: ["/preview.png"],
   },
 };

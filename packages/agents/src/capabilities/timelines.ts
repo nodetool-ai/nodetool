@@ -25,7 +25,7 @@ import type {
 } from "@nodetool-ai/models";
 import type { TimelineValidation } from "@nodetool-ai/execution/timeline-debug";
 import type { TimelineBridgeFinalState } from "./timeline-bridge.js";
-import { parseOps, applyOps, TOOL_PREFIX, READ_ONLY_OPS } from "./timeline-operations.js";
+import { parseOps, applyOps, TOOL_PREFIX, READ_ONLY_OPS, timelineModel3DBaker } from "./timeline-operations.js";
 export { parseOps, applyOps } from "./timeline-operations.js";
 export type { ParsedOp, OpRecord, ApplyOutcome } from "./timeline-operations.js";
 import type { IsolateSubjectInput } from "./timeline-isolate-subject.js";
@@ -619,6 +619,9 @@ const editTimeline: CapabilityExport = {
     const { TimelineSequence, TimelineSequenceVersion } = await import("@nodetool-ai/models");
     const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
     const generateMediaEdit = timelineMediaEditGenerator(run);
+    // Shared across retries, like the media edit generator: a retry re-applies
+    // every op, and a 3D bake already rendered must not render again.
+    const bakeModel3DClip = timelineModel3DBaker(run);
     for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
       const sequence = await TimelineSequence.findById(timelineId);
       // A sequence owned by someone else reads as missing — the rule the tRPC
@@ -627,7 +630,7 @@ const editTimeline: CapabilityExport = {
         return { error: `Timeline ${timelineId} was not found.` };
       }
       const document: TimelineDocument = sequence.toDocument();
-      const { records, state } = await applyOps(run, sequence, document, ops, { generateMediaEdit });
+      const { records, state } = await applyOps(run, sequence, document, ops, { generateMediaEdit, bakeModel3DClip });
 
       // The transcript rides along untouched — no timeline operation edits it,
       // so the stored copy stays authoritative. Markers come back from the
@@ -902,8 +905,22 @@ const validateTimeline: CapabilityExport = {
 function documentToStore(raw: Record<string, unknown>): {
   document: Record<string, unknown>;
   settings: AuthoredRenderSettings;
+  name: string | undefined;
 } {
-  return normalizeAuthoredDocument(raw);
+  const {
+    name,
+    id: _id,
+    projectId: _projectId,
+    workflowId: _workflowId,
+    durationMs: _durationMs,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...document
+  } = raw;
+  return {
+    ...normalizeAuthoredDocument(document),
+    name: isString(name) && name.trim() ? name.trim() : undefined
+  };
 }
 
 /** The end of the last clip — what the sequence's stored duration means. */
@@ -973,7 +990,11 @@ const setTimelineDocument: CapabilityExport = {
       }
     }
 
-    const { document, settings } = documentToStore(raw);
+    // `get_timeline` returns the sequence row's fields beside the document.
+    // A caller that sends that object back renames the sequence with `name`.
+    // The other row fields are owned by the row, so they are dropped rather
+    // than reported as stripped document fields.
+    const { document, settings, name } = documentToStore(raw);
 
     // Document-level fps/width/height are sequence settings, so opts win and a
     // document that carries them configures the sequence instead of having
@@ -1027,19 +1048,22 @@ const setTimelineDocument: CapabilityExport = {
       name: snapshotName
     });
 
-    const durationMs = documentDurationMs(document);
+    const fields: Parameters<typeof TimelineSequence.updateFieldsIfUnchanged>[2] = {
+      document: JSON.stringify(document),
+      fps,
+      width,
+      height,
+      duration_ms: documentDurationMs(document)
+    };
+    if (name !== undefined) {
+      fields.name = name;
+    }
     let saved: TimelineSequence | null;
     try {
       saved = await TimelineSequence.updateFieldsIfUnchanged(
         sequence.id,
         sequence.updated_at,
-        {
-          document: JSON.stringify(document),
-          fps,
-          width,
-          height,
-          duration_ms: durationMs
-        }
+        fields
       );
     } catch (error) {
       // The model rejects a document without tracks/clips/markers arrays. The
@@ -1072,6 +1096,7 @@ const setTimelineDocument: CapabilityExport = {
       ok: true,
       written: true,
       timeline_id: saved.id,
+      name: saved.name,
       updated_at: saved.updated_at,
       undo_version: undo.version,
       fps: saved.fps,
@@ -2289,7 +2314,7 @@ const isolateSubject: CapabilityExport = {
     const persist = async (next: TimelineClipShape): Promise<boolean> => {
       const clips = document.clips.map((c) => (c.id === next.id ? next : c));
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
-        timelineId,
+        sequence.id,
         expectedUpdatedAt,
         { ...document, clips },
         {
@@ -2423,7 +2448,7 @@ const trackObject: CapabilityExport = {
     let mediaTracks: MediaTrack[] = document.mediaTracks ?? [];
     const persist = async (next: MediaTrack[]): Promise<boolean> => {
       const saved = await TimelineSequence.updateDocumentIfUnchanged(
-        timelineId,
+        sequence.id,
         expectedUpdatedAt,
         { ...document, mediaTracks: next },
         { ops: [{ tool: "track_object", input: { clip_id: clip.id, track_id: trackId } }] }

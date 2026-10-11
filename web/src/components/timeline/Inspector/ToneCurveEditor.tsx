@@ -381,7 +381,7 @@ const ToneCurveEditorInner: React.FC<ToneCurveEditorProps> = ({
         />
         {points.map((point, index) => (
           <circle
-            key={`${index}-${point.x}-${point.y}`}
+            key={index}
             cx={point.x * VIEW_SIZE}
             cy={(1 - point.y) * VIEW_SIZE}
             r={3}

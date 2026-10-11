@@ -12,6 +12,11 @@ import {
   timelineTemporalOf
 } from "../../stores/timeline/TimelineStore";
 import { markTimelineLoadMigrated } from "./useTimelineAutosave";
+import {
+  rebaseTimelineSnapshots,
+  timelineMergeDocumentOf,
+  withHistoryPaused
+} from "./timelineExternalMerge";
 
 import type { TimelineSequence } from "@nodetool-ai/timeline";
 import type { RouterOutputs } from "../../trpc/client";
@@ -45,6 +50,35 @@ export function applyTimelineSequenceToStore(
   }
   store.getState().loadSequence(sequence as TimelineSequence);
   timelineTemporalOf(store).clear();
+}
+
+/**
+ * Take an externally written copy of the open sequence while the editor has
+ * no unsaved edits, keeping the undo history.
+ *
+ * The load runs with recording paused, so it adds no undo entry, and every
+ * past and future snapshot is rebased onto the adopted document the way an
+ * external merge rebases them (ADR 0001). Undo then steps back through the
+ * user's own edits without removing the external change. `loadSequence`
+ * re-baselines autosave exactly as a first load does.
+ */
+export function adoptExternalTimelineSequence(
+  store: TimelineStoreApi,
+  sequence: WireSequence
+): void {
+  if ((sequence.transcript?.length ?? 0) > 0) {
+    markTimelineLoadMigrated(sequence.id);
+  }
+  const before = timelineMergeDocumentOf(store.getState());
+  withHistoryPaused(store, () => {
+    store.getState().loadSequence(sequence as TimelineSequence);
+  });
+  const after = timelineMergeDocumentOf(store.getState());
+  const temporal = timelineTemporalOf(store);
+  store.temporal.setState({
+    pastStates: rebaseTimelineSnapshots(temporal.pastStates, before, after),
+    futureStates: rebaseTimelineSnapshots(temporal.futureStates, before, after)
+  });
 }
 
 export function useLoadTimelineIntoStore(

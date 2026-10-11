@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
+import { Handle, NodeProps, Position } from "@xyflow/react";
 import { getCopySource, getOutputFromResult } from "../outputResult";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
@@ -63,7 +63,7 @@ const styles = (theme: Theme) =>
       // (nodes.base.css) resets it at equal specificity, so the class is
       // doubled to outrank it.
       ".react-flow__node &&": {
-        "--node-body-padding": "8px",
+        "--node-body-padding": getSpacingPx(SPACING.md),
         padding: "var(--node-body-padding)"
       },
       "&.preview-node": {
@@ -230,15 +230,17 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const [isContentFocused, setIsContentFocused] = useState(false);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
-  const { getEdges } = useReactFlow();
-
-  const incomingValueEdge = useMemo(
-    () =>
-      getEdges().find(
-        (edge) => edge.target === props.id && edge.targetHandle === "value"
-      ),
-    [getEdges, props.id]
-  );
+  // Subscribed through the node store so an edge connected or replaced after
+  // mount updates the preview source. Shallow equality keeps unrelated edge
+  // changes from re-rendering.
+  const incomingValueEdge = useNodes((state) => {
+    const edge = state.edges.find(
+      (e) => e.target === props.id && e.targetHandle === "value"
+    );
+    return edge
+      ? { source: edge.source, sourceHandle: edge.sourceHandle ?? null }
+      : undefined;
+  });
 
   // Live display reads this Preview node's OWN stream buffer (outputResults),
   // which `output_update` appends to per chunk during a run, scoped to the

@@ -2,7 +2,7 @@
  * Tests for ChatStore
  */
 
-import { useChatStore } from './ChatStore';
+import { useChatStore, STREAM_LOST_ERROR } from './ChatStore';
 import { WebSocketManager } from '../services/WebSocketManager';
 import { apiService } from '../services/api';
 import type { WebSocketMessageData } from '../types/chat';
@@ -135,13 +135,46 @@ describe('ChatStore', () => {
 
     it('destroys existing connection before creating new one', async () => {
       const destroy = jest.fn();
-      const oldManager: Pick<WebSocketManager, 'destroy'> = { destroy };
-      // SAFETY: `connect()` only calls `destroy()` on the previous manager.
+      const oldManager: Pick<WebSocketManager, 'destroy' | 'getState'> = {
+        destroy,
+        getState: () => 'failed',
+      };
+      // SAFETY: `connect()` only reads the previous manager's state and destroys it.
       useChatStore.setState({ wsManager: oldManager as WebSocketManager });
       
       await useChatStore.getState().connect();
       
       expect(destroy).toHaveBeenCalled();
+    });
+
+    it('keeps a live socket to the same server instead of recreating it', async () => {
+      await useChatStore.getState().connect();
+      useChatStore.setState({ status: 'streaming' });
+
+      await useChatStore.getState().connect();
+
+      expect(WebSocketManager).toHaveBeenCalledTimes(1);
+      expect(mockWsManager.destroy).not.toHaveBeenCalled();
+      expect(useChatStore.getState().status).toBe('streaming');
+    });
+
+    it('keeps a socket that is still connecting', async () => {
+      await useChatStore.getState().connect();
+      mockWsManager.getState.mockReturnValue('reconnecting');
+
+      await useChatStore.getState().connect();
+
+      expect(WebSocketManager).toHaveBeenCalledTimes(1);
+    });
+
+    it('replaces a socket that gave up', async () => {
+      await useChatStore.getState().connect();
+      mockWsManager.getState.mockReturnValue('failed');
+
+      await useChatStore.getState().connect();
+
+      expect(mockWsManager.destroy).toHaveBeenCalledTimes(1);
+      expect(WebSocketManager).toHaveBeenCalledTimes(2);
     });
 
     it('throws error on connection failure', async () => {
@@ -235,12 +268,22 @@ describe('ChatStore', () => {
     it('sets error if not connected', async () => {
       mockWsManager.isConnected.mockReturnValue(false);
       
-      await useChatStore.getState().sendMessage(
+      const sent = await useChatStore.getState().sendMessage(
         [{ type: 'text', text: 'Hello' }],
         'Hello'
       );
       
+      expect(sent).toBe(false);
       expect(useChatStore.getState().error).toBe('Not connected to chat service');
+    });
+
+    it('resolves true once the message is sent', async () => {
+      const sent = await useChatStore.getState().sendMessage(
+        [{ type: 'text', text: 'Hello' }],
+        'Hello'
+      );
+
+      expect(sent).toBe(true);
     });
 
     it('updates thread title on first message', async () => {
@@ -276,12 +319,17 @@ describe('ChatStore', () => {
         throw new Error('Send failed');
       });
       
-      await expect(
-        useChatStore.getState().sendMessage(
-          [{ type: 'text', text: 'Hello' }],
-          'Hello'
-        )
-      ).rejects.toThrow('Send failed');
+      const sent = await useChatStore.getState().sendMessage(
+        [{ type: 'text', text: 'Hello' }],
+        'Hello'
+      );
+
+      expect(sent).toBe(false);
+      const state = useChatStore.getState();
+      expect(state.error).toBe('Send failed');
+      expect(state.status).toBe('connected');
+      // The composer keeps the draft, so no orphan bubble for the failed send.
+      expect(state.messageCache[state.currentThreadId!]).toHaveLength(0);
     });
   });
 
@@ -448,6 +496,42 @@ describe('ChatStore', () => {
 
         expect(useChatStore.getState().status).toBe('loading');
       });
+
+      it('reports a reply cut off by a dropped socket', () => {
+        useChatStore.setState({ status: 'streaming' });
+
+        callbacks.onStateChange('disconnected', 'connected');
+
+        expect(useChatStore.getState().status).toBe('disconnected');
+        expect(useChatStore.getState().error).toBe(STREAM_LOST_ERROR);
+      });
+
+      it('keeps the cut-off notice after the socket reconnects', () => {
+        useChatStore.setState({ status: 'streaming' });
+        callbacks.onStateChange('disconnected', 'connected');
+
+        callbacks.onStateChange('connected', 'reconnecting');
+
+        expect(useChatStore.getState().status).toBe('connected');
+        expect(useChatStore.getState().error).toBe(STREAM_LOST_ERROR);
+      });
+
+      it('keeps a socket error through later transitions', () => {
+        callbacks.onError(new Error('Connection closed (code 1011)'));
+
+        callbacks.onStateChange('failed', 'disconnected');
+
+        expect(useChatStore.getState().status).toBe('failed');
+        expect(useChatStore.getState().error).toBe('Connection closed (code 1011)');
+      });
+
+      it('clears socket errors once connected again', () => {
+        callbacks.onError(new Error('WebSocket error occurred'));
+
+        callbacks.onStateChange('connected', 'reconnecting');
+
+        expect(useChatStore.getState().error).toBeNull();
+      });
     });
 
     describe('onError', () => {
@@ -513,6 +597,27 @@ describe('ChatStore', () => {
         
         const messages = (useChatStore.getState().messageCache[useChatStore.getState().currentThreadId!] || []);
         expect(messages[0].content).toBe('Hello World');
+      });
+
+      it('routes a chunk to the thread it names, not the one on screen', () => {
+        const streamingThread = 'thread-streaming';
+        const newThread = 'thread-on-screen';
+        useChatStore.setState({
+          currentThreadId: newThread,
+          messageCache: { [streamingThread]: [], [newThread]: [] },
+        });
+
+        callbacks.onMessage({
+          type: 'chunk',
+          content: 'Hello',
+          done: false,
+          thread_id: streamingThread,
+        });
+
+        const cache = useChatStore.getState().messageCache;
+        expect(cache[streamingThread]).toHaveLength(1);
+        expect(cache[streamingThread][0].content).toBe('Hello');
+        expect(cache[newThread]).toHaveLength(0);
       });
 
       it('handles chunk done', () => {

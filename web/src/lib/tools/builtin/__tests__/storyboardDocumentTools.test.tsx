@@ -214,7 +214,7 @@ describe("ui_storyboard_direct", () => {
     expect(board().shots).toHaveLength(2);
   });
 
-  it("fails the call when the Director run produces nothing", async () => {
+  it("fails the call with the provider's reason when the Director run fails", async () => {
     seed([], []);
     useStoryboardStore.getState().applyMerged(BOARD, {
       ...board(),
@@ -225,7 +225,7 @@ describe("ui_storyboard_direct", () => {
 
     await expect(
       call("ui_storyboard_direct", { redirect: false, shotCount: 2 })
-    ).rejects.toThrow(/produced no screenplay/);
+    ).rejects.toThrow(/provider is down/);
     expect(board().shots).toEqual([]);
   });
 

@@ -10,7 +10,13 @@
  * and cleared together on gesture end.
  */
 
-import { buildSnapPoints, resolveSnap, resolveTempo } from "@nodetool-ai/timeline";
+import {
+  buildSnapPoints,
+  groupDescendantIds,
+  isGroupClip,
+  resolveSnap,
+  resolveTempo
+} from "@nodetool-ai/timeline";
 import type {
   TempoGridDivision,
   TimelineClip,
@@ -90,9 +96,10 @@ export function gridSnapApplies(grid: SnapGridSpec): boolean {
  * The candidate set for one gesture, snapshotted at pointerdown: the
  * playhead, every second gridline across the document, every clip edge
  * except those of `excludeClipIds`, and — on a document with a tempo grid in
- * play — that grid across the visible range. Linked siblings of the excluded
- * clips are excluded too — they move with the gesture and share its edges, so
- * keeping them would glue the clip to where it started.
+ * play — that grid across the visible range. Linked siblings and group
+ * descendants of the excluded clips are excluded too — they move with the
+ * gesture and share its edges, so keeping them would glue the clip to where
+ * it started.
  */
 export function collectSnapCandidates(
   clips: readonly TimelineClip[],
@@ -101,18 +108,22 @@ export function collectSnapCandidates(
   excludeClipIds: ReadonlySet<string>,
   grid?: SnapGridSpec
 ): number[] {
+  const byId = new Map(clips.map((c) => [c.id, c]));
+  const exclude = new Set<string>();
+  const pending = [...excludeClipIds];
   const linkIds = new Set<string>();
-  for (const c of clips) {
-    if (excludeClipIds.has(c.id) && c.linkId !== undefined) {
-      linkIds.add(c.linkId);
+  while (pending.length > 0) {
+    const id = pending.pop()!;
+    if (exclude.has(id)) continue;
+    exclude.add(id);
+    const clip = byId.get(id);
+    if (clip && isGroupClip(clip)) {
+      pending.push(...groupDescendantIds(clips, id));
     }
-  }
-  const exclude = new Set(excludeClipIds);
-  if (linkIds.size > 0) {
+    if (clip?.linkId === undefined || linkIds.has(clip.linkId)) continue;
+    linkIds.add(clip.linkId);
     for (const c of clips) {
-      if (c.linkId !== undefined && linkIds.has(c.linkId)) {
-        exclude.add(c.id);
-      }
+      if (c.linkId === clip.linkId) pending.push(c.id);
     }
   }
   const points = buildSnapPoints({

@@ -169,7 +169,7 @@ const seeds: FaqSeed[] = [
     slug: "how-is-nodetool-different-from-comfyui",
     question: "How is NodeTool different from ComfyUI?",
     answerMd:
-      "ComfyUI is an editor for image models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away, and editing tools such as masks, inpaint, relight, and layers built in. Both are open source and both work by connecting blocks on a canvas.",
+      "ComfyUI is a node editor for image and video generation. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away, and editing tools such as masks, inpaint, relight, and layers built in. Both are open source and both work by connecting blocks on a canvas.",
     category: "comparison",
     relatedRoute: "/alternatives/comfyui",
     surfaces: ["comparison"],

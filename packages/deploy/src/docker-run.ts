@@ -209,9 +209,10 @@ export class DockerRunGenerator {
     // it is HF_HUB_CACHE. HF_HOME would make the server look in /hf-cache/hub.
     env["HF_HUB_CACHE"] = HF_HUB_CACHE_MOUNT;
 
-    // Keep every store on the /workspace mount. The server reads ASSET_FOLDER
-    // and VECTORSTORE_DB_PATH; without them assets and the vector store land
-    // in the container's home directory and vanish when it is recreated.
+    // Keep every store on the /workspace mount. The server reads ASSET_FOLDER,
+    // VECTORSTORE_DB_PATH and USERS_FILE; without them assets, the vector
+    // store and API users land in the container's home directory and vanish
+    // when it is recreated.
     const persistentPaths = this.deployment.persistentPaths;
     if (persistentPaths) {
       env["USERS_FILE"] = persistentPaths.usersFile;
@@ -223,6 +224,7 @@ export class DockerRunGenerator {
       env["DB_PATH"] = "/workspace/nodetool.db";
       env["VECTORSTORE_DB_PATH"] = "/workspace/vectorstore.db";
       env["ASSET_FOLDER"] = "/workspace/assets";
+      env["USERS_FILE"] = "/workspace/users.json";
     }
 
     if (this.deployment.serverAuthToken) {

@@ -89,7 +89,6 @@ export function useRedrawScheduler({
         if (w <= 0 || h <= 0) {
           coord.requestFrame(reason, "immediate");
         } else {
-          coord.setHasLiveBufferedStroke(activeStrokeRef.current != null);
           coord.requestFrame(reason, "immediate", { x, y, w, h });
         }
         return;
@@ -104,19 +103,14 @@ export function useRedrawScheduler({
         cancelAnimationFrame(redrawRequestRef.current);
         redrawRequestRef.current = null;
       }
+      // This frame replaces the scheduled one, so it also covers its region.
+      const pendingFull = isFullRedrawRef.current;
+      const merged = mergePendingDirtyRect(x, y, w, h);
       pendingDirtyRef.current = null;
       isFullRedrawRef.current = false;
-      // Brush/eraser use a stroke buffer (activeStrokeRef). Clipped composites
-      // only repaint a sub-rect; merging layer+buffer for the active layer then
-      // stacks incorrectly with the rest of the frame and reads as washed-out /
-      // wrong layer opacity. Pencil is "direct" and keeps dirty redraws.
-      if (activeStrokeRef.current != null) {
-        compositeToDisplay(null);
-        return;
-      }
-      compositeToDisplay({ x, y, w, h });
+      compositeToDisplay(pendingFull ? null : merged);
     },
-    [compositeToDisplay, activeStrokeRef, coordinatorRef]
+    [compositeToDisplay, coordinatorRef, mergePendingDirtyRect]
   );
 
   const drainPendingStrokeCommit = useCallback(() => {
@@ -168,7 +162,6 @@ export function useRedrawScheduler({
     (x: number, y: number, w: number, h: number, reason: RedrawReason = "external") => {
       const coord = coordinatorRef?.current;
       if (coord) {
-        coord.setHasLiveBufferedStroke(activeStrokeRef.current != null);
         coord.requestFrame(reason, "raf", { x, y, w, h });
         return;
       }
@@ -191,8 +184,7 @@ export function useRedrawScheduler({
           // Drain pending stroke buffer merge before compositing.
           drainPendingStrokeCommit();
 
-          const liveBufferedStroke = activeStrokeRef.current != null;
-          if (isFull || !dirty || liveBufferedStroke) {
+          if (isFull || !dirty) {
             compositeToDisplayRef.current(null);
           } else {
             compositeToDisplayRef.current(dirty);
@@ -202,7 +194,6 @@ export function useRedrawScheduler({
     },
     [
       mergePendingDirtyRect,
-      activeStrokeRef,
       drainPendingStrokeCommit,
       compositeToDisplayRef,
       coordinatorRef

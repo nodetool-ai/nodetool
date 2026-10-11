@@ -271,7 +271,7 @@ describe('StoryboardEditorScreen', () => {
 
     fireEvent.press(screen.getByLabelText('Ask the assistant'));
 
-    expect(navigation.navigate).toHaveBeenCalledWith('Chat');
+    expect(navigation.navigate).toHaveBeenCalledWith('Main', { screen: 'Chat' });
   });
 
   describe('agent handler', () => {

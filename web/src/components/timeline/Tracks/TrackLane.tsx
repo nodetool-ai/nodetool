@@ -80,6 +80,8 @@ const DEFAULT_TRACK_HEIGHT_PX = 64;
 const NO_CLIP_IDS: string[] = [];
 /** Duration (ms) the mismatch warning banner remains visible. */
 const WARNING_DISMISS_MS = 3000;
+/** A touch that travels further than this is a swipe, not a tap-to-seek. */
+const TAP_SLOP_PX = 8;
 
 const laneStyles = (
   theme: Theme,
@@ -246,6 +248,14 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
    *  move during a captured rubber-band gesture, so pointermove reuses this
    *  instead of calling getBoundingClientRect() (forces layout) per move. */
   const rbContainerRectRef = useRef<DOMRect | null>(null);
+  /** A touch on empty lane that may still be a tap. It seeks on release only
+   *  if it neither travelled (a swipe scrolls) nor was cancelled or held into
+   *  the lane menu. */
+  const touchTapRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+  } | null>(null);
   /** True while this lane owns a band gesture — drives the lane cursor only,
    *  the band rect itself lives in the UI store so the overlay can draw it
    *  across lanes. */
@@ -448,7 +458,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
           return;
         }
         // The hold became a menu, not a band — drop the gesture pointerdown
-        // started so releasing doesn't re-select.
+        // started so releasing doesn't re-select or seek.
+        touchTapRef.current = null;
         isRubberBandingRef.current = false;
         setIsRubberBanding(false);
         setRubberBand(null);
@@ -471,12 +482,15 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       // Touch: a drag across empty lane means "scroll the timeline", so the
       // gesture is left to the scroller. Rubber-band marquee needs a second
       // pointer to hold a modifier and has no equivalent on a phone; only the
-      // seek and the long-press menu below apply. (Capturing the pointer here
-      // would also suppress the native scroll outright.)
+      // seek (on a tap's release) and the long-press menu below apply.
+      // (Capturing the pointer here would also suppress the native scroll.)
       if (e.pointerType === "touch") {
         laneLongPress.start(e);
-        const touchRect = e.currentTarget.getBoundingClientRect();
-        seek(Math.round((e.clientX - touchRect.left) * msPerPx));
+        touchTapRef.current = {
+          pointerId: e.pointerId,
+          x: e.clientX,
+          y: e.clientY
+        };
         return;
       }
 
@@ -615,6 +629,14 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
   const handleLanePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       laneLongPress.move(e);
+      const tap = touchTapRef.current;
+      if (
+        tap &&
+        tap.pointerId === e.pointerId &&
+        Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > TAP_SLOP_PX
+      ) {
+        touchTapRef.current = null;
+      }
       if (!isRubberBandingRef.current || e.buttons !== 1) {
         return;
       }
@@ -647,8 +669,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
     [laneLongPress, msPerPx, applyRubberBandSelection, setRubberBand]
   );
 
-  const handleLanePointerUp = useCallback(() => {
+  const endLaneGesture = useCallback(() => {
     laneLongPress.cancel();
+    touchTapRef.current = null;
     isRubberBandingRef.current = false;
     rbBaseSelectionRef.current = null;
     rbLastAppliedRef.current = null;
@@ -658,6 +681,22 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
     setIsRubberBanding(false);
     setRubberBand(null);
   }, [laneLongPress, setRubberBand]);
+
+  const handleLanePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const tap = touchTapRef.current;
+      if (
+        tap &&
+        tap.pointerId === e.pointerId &&
+        Math.hypot(e.clientX - tap.x, e.clientY - tap.y) <= TAP_SLOP_PX
+      ) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        seek(Math.max(0, Math.round((e.clientX - rect.left) * msPerPx)));
+      }
+      endLaneGesture();
+    },
+    [endLaneGesture, msPerPx, seek]
+  );
 
   const handleLaneContextMenu = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -777,7 +816,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       onPointerDown={handleLanePointerDown}
       onPointerMove={handleLanePointerMove}
       onPointerUp={handleLanePointerUp}
-      onPointerCancel={handleLanePointerUp}
+      onPointerCancel={endLaneGesture}
       onDragOver={handleAssetDragOver}
       onDragLeave={handleAssetDragLeave}
       onDrop={handleAssetDrop}

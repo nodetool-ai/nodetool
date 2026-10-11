@@ -15,14 +15,16 @@ export interface GenerationModel {
 export function generationEstimate(
   model: GenerationModel | null,
   brief: string,
-  maxOutputTokens: number
+  maxOutputTokens: number,
+  /** Input the brief does not show, such as attached images. */
+  extraInputTokens = 0
 ): { low: number; high: number; inputTokens: number } | null {
   if (!model?.id) return null;
   const delegate =
     model.provider === "nodetool" ? resolveNodetoolDelegate(model.id) : null;
   const provider = delegate?.provider ?? model.provider;
   const id = delegate?.model ?? model.id;
-  const inputTokens = Math.ceil(brief.length / 4) + 3000;
+  const inputTokens = Math.ceil(brief.length / 4) + 3000 + extraInputTokens;
   // The provider tables are shared with the server-side CostCalculator, so an
   // estimate here and the charge there cannot disagree about which provider a
   // model belongs to, or which ones are free.
@@ -41,3 +43,9 @@ export function generationEstimate(
     return null;
   }
 }
+
+/**
+ * Input allowance for one attached image. Vision models bill a picture as
+ * input tokens, roughly this many for a 1K image.
+ */
+export const IMAGE_INPUT_TOKENS = 1600;

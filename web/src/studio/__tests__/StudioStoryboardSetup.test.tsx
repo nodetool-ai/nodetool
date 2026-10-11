@@ -2,7 +2,7 @@
  * Resume by stage on the Studio board page (PRD § 6.4, D3) — the same rule the
  * workspace tab follows: the stage on the document decides, and nothing else.
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../__mocks__/themeMock";
@@ -219,5 +219,32 @@ describe("StudioStoryboardPage setup stages", () => {
     renderPage();
 
     expect(screen.getByTestId("board")).toBeInTheDocument();
+  });
+
+  // Leaving review again (Entities, Back, Set up entities) must re-project the
+  // script the first pass made. Without `relink` the second extraction throws
+  // "already links script", and review can never be left.
+  it("re-projects the linked script each time review is left", async () => {
+    useStoryboardStore.getState().ensureBoard(BOARD_ID);
+    useStoryboardStore.getState().setScreenplay(BOARD_ID, {
+      type: "screenplay",
+      id: "sp1",
+      title: "",
+      shots: [
+        { type: "shot", id: "s1", index: 0, action: "a lamp", status: "planned" }
+      ]
+    });
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "review" });
+    renderPage();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set up entities" })
+    );
+
+    await waitFor(() => expect(extract).toHaveBeenCalled());
+    expect(extract).toHaveBeenCalledWith(BOARD_ID, {
+      open: false,
+      relink: true
+    });
   });
 });

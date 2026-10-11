@@ -14,6 +14,13 @@
 import type { ResolvedCaption } from "@nodetool-ai/timeline/render";
 import { captionSignature, drawCaption } from "@nodetool-ai/timeline/render";
 import { BitmapFrameScope, bitmapByteSize } from "./BitmapFrameScope";
+import {
+  bundledFontsReady,
+  ensureBundledFontsLoaded,
+  ensureGoogleFontLoaded,
+  googleFontFamilyReady
+} from "./fontLoading";
+import { CAPTION_FONT_WEIGHT } from "@nodetool-ai/timeline";
 
 /** Resident-bitmap budget, the same 64 MB `textRender` keeps. A caption bitmap
  *  is a full frame, so an entry count alone would hold 530 MB at 1080p. */
@@ -30,6 +37,12 @@ export { captionSignature };
  */
 export class CaptionRasterizer {
   private cache = new Map<string, ImageBitmap>();
+  /**
+   * Bitmaps drawn while a face was still loading, one per signature. They are
+   * not cached, since the cache key does not say which face drew them, and
+   * each is retired when the same caption is drawn again.
+   */
+  private provisional = new Map<string, ImageBitmap>();
   private pins = new Map<ImageBitmap, number>();
   private deferredClose = new Set<ImageBitmap>();
 
@@ -97,8 +110,23 @@ export class CaptionRasterizer {
     if (typeof OffscreenCanvas === "undefined") return null;
     if (width <= 0 || height <= 0) return null;
 
+    // As in `TextRasterizer`: kick the loads on the first raster and cache
+    // nothing drawn before the face is ready, or the fallback glyphs would
+    // stay on screen for as long as the entry lives.
+    const fontsReady = bundledFontsReady();
+    if (!fontsReady) void ensureBundledFontsLoaded();
+    const family = caption.style?.fontFamily;
+    const familyReady = googleFontFamilyReady(family);
+    if (!familyReady) ensureGoogleFontLoaded(family, CAPTION_FONT_WEIGHT);
+    const cacheable = fontsReady && familyReady;
+
     const key = this.signatureFor(caption, width, height);
-    const hit = this.cache.get(key);
+    const previous = this.provisional.get(key);
+    if (previous) {
+      this.provisional.delete(key);
+      this.retire(previous);
+    }
+    const hit = cacheable ? this.cache.get(key) : undefined;
     if (hit) {
       this.pin(hit, frameScope);
       return hit;
@@ -112,6 +140,10 @@ export class CaptionRasterizer {
     this.pin(bitmap, frameScope);
 
     this.ownedBytes += bitmapByteSize(bitmap);
+    if (!cacheable) {
+      this.provisional.set(key, bitmap);
+      return bitmap;
+    }
     this.cache.set(key, bitmap);
     // Evict oldest first, but never the bitmap just drawn.
     while (
@@ -130,5 +162,7 @@ export class CaptionRasterizer {
   dispose(): void {
     for (const bitmap of this.cache.values()) this.retire(bitmap);
     this.cache.clear();
+    for (const bitmap of this.provisional.values()) this.retire(bitmap);
+    this.provisional.clear();
   }
 }

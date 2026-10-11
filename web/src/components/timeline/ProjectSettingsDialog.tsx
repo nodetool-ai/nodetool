@@ -11,7 +11,7 @@
  * this dialog PATCHes, while `tempo` rides in the document slice the autosave
  * hook already carries, so applying it is one `setTempo` call on the store.
  */
-import React, { memo, useEffect, useMemo, useState } from "react";
+import React, { memo, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { resolveTempo } from "@nodetool-ai/timeline";
@@ -131,8 +131,11 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
   );
   const [offsetText, setOffsetText] = useState(String(tempo.offsetMs));
 
-  // Re-seed the draft from the store each time the dialog opens.
-  useEffect(() => {
+  // Re-seed the draft from the store each time the dialog opens. Store
+  // changes while it is open (a failed save's rollback) keep the typed draft.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) {
       setWidthText(String(width));
       setHeightText(String(height));
@@ -142,7 +145,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
       setBeatUnit(String(tempo.timeSignature.beatUnit));
       setOffsetText(String(tempo.offsetMs));
     }
-  }, [open, width, height, fps, tempo]);
+  }
 
   const widthNum = Number(widthText);
   const heightNum = Number(heightText);

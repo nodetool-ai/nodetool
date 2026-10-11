@@ -347,5 +347,7 @@ Over HTTP, `packages/websocket/src/oauth-api.ts` exposes
 `/api/oauth/claude/{start,complete,tokens,disconnect}`. `start` binds the
 loopback listener and returns both URLs plus the state; `complete` takes a pasted
 code; `tokens` reports connection status in the shape the shared
-`useOAuthConnection` hook expects. The **Models & Providers** settings page
+`useOAuthConnection` hook expects. The login is shared by every user of the
+server, so `start`, `complete` and `disconnect` are admin-only, and `tokens`
+hides the plan details from other users. The **Models & Providers** settings page
 renders a sign-in card for it.

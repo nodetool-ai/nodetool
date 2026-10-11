@@ -340,4 +340,37 @@ describe("useDropHandler", () => {
         content: expect.stringContaining("Failed to load 1 asset. Check console for details.")
     }));
   });
+
+  it("places each dropped external file at its own position", async () => {
+    const { result } = renderHook(() => useDropHandler());
+    const { onDrop } = result.current;
+    mockHandleGenericFile.mockResolvedValue({ success: true });
+
+    const files = [
+      new File(["a"], "a.txt", { type: "text/plain" }),
+      new File(["b"], "b.txt", { type: "text/plain" })
+    ];
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
+      preventDefault: jest.fn(),
+      target: paneTarget(true),
+      clientX: 100,
+      clientY: 100,
+      dataTransfer: {
+        getData: jest.fn().mockReturnValue(""),
+        types: ["Files"],
+        items: [{ kind: "file" }, { kind: "file" }] as unknown as DataTransferItemList,
+        files
+      }
+    });
+
+    await act(async () => {
+      await onDrop(dropEvent);
+    });
+
+    expect(mockHandleGenericFile).toHaveBeenCalledTimes(2);
+    const [, firstPosition] = mockHandleGenericFile.mock.calls[0];
+    const [, secondPosition] = mockHandleGenericFile.mock.calls[1];
+    expect(firstPosition).toEqual({ x: 0, y: 0 });
+    expect(secondPosition).not.toEqual(firstPosition);
+  });
 });

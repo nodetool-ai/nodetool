@@ -47,6 +47,7 @@ import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { RequestyProvider } from "./requesty-provider.js";
 import { OpperProvider } from "./opper-provider.js";
+import { APIRouteProvider } from "./api-route-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import {
   ALIBABA_DEFAULT_BASE_URL,
@@ -242,6 +243,7 @@ export { MoonshotProvider };
 export { OpenRouterProvider };
 export { RequestyProvider };
 export { OpperProvider };
+export { APIRouteProvider };
 export { TogetherProvider };
 export { AlibabaProvider };
 export { CerebrasProvider };
@@ -335,6 +337,7 @@ export type {
   TaskPlanSpec,
   MultiTaskPlanSpec
 } from "./scripted-provider.js";
+export { sampleForSchema } from "./fake-schema-answer.js";
 export {
   registerProvider,
   getRegisteredProvider,
@@ -370,6 +373,7 @@ export {
 export {
   checkCredential,
   isCredentialVerifiable,
+  setCredentialCheckOverride,
   verifiableCredentialKeys
 } from "./credential-check.js";
 export type {
@@ -456,6 +460,7 @@ export type {
   ReferenceToVideoInputs,
   ReferenceToVideoParams,
   EntityReference,
+  NamedReferenceImage,
   ProviderStreamItem,
   ProviderSession,
   ProviderSessionUpdate,
@@ -582,6 +587,9 @@ registerBuiltinProvider(PROVIDER_IDS.REQUESTY, RequestyProvider, {
 registerBuiltinProvider(PROVIDER_IDS.OPPER, OpperProvider, {
   OPPER_API_KEY: ""
 });
+registerBuiltinProvider(PROVIDER_IDS.API_ROUTE, APIRouteProvider, {
+  API_ROUTE_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, {
   TOGETHER_API_KEY: ""
 });
@@ -630,18 +638,23 @@ if (!_cloudProfile) {
   // Ollama defaults to the standard local daemon port so the provider is
   // usable out-of-the-box. The URL is registered as an optionalKwarg so it
   // re-resolves from the secret store / env on every getProvider() call —
-  // users changing OLLAMA_API_URL via Settings → API Keys see the change
-  // take effect without a restart. Empty kwargs keep isProviderConfigured()
-  // returning true for the zero-config localhost case.
+  // users changing OLLAMA_API_URL (or the context length and keep-alive) in
+  // Settings → Integrations → Local Model Servers see the change take effect
+  // without a restart. Empty kwargs keep isProviderConfigured() returning
+  // true for the zero-config localhost case.
   registerBuiltinProvider(
     PROVIDER_IDS.OLLAMA,
     OllamaProvider,
     {},
-    { OLLAMA_API_URL: OLLAMA_DEFAULT_URL },
+    {
+      OLLAMA_API_URL: OLLAMA_DEFAULT_URL,
+      OLLAMA_CONTEXT_LENGTH: "",
+      OLLAMA_KEEP_ALIVE: ""
+    },
     { access: "local_service", displayName: "Ollama" }
   );
-  // LM Studio: URL (and optional API key) are user-configurable via the
-  // Settings → API Keys panel. Register them as optionalKwargs so the
+  // LM Studio: URL (and optional API key) are user-configurable in
+  // Settings → Integrations → Local Model Servers. Register them as optionalKwargs so the
   // registry resolves them from the secret store / env on every
   // getProvider() call — that way changing the port in settings takes
   // effect immediately without forcing isProviderConfigured() to return
@@ -663,7 +676,7 @@ if (!_cloudProfile) {
     PROVIDER_IDS.LLAMA_CPP,
     LlamaProvider,
     { LLAMA_CPP_URL: "" },
-    { LLAMA_API_KEY: "" },
+    { LLAMA_API_KEY: "", LLAMA_CPP_CONTEXT_LENGTH: "" },
     { access: "local_service", displayName: "llama.cpp server" }
   );
   // In-process llama.cpp via the native node-llama-cpp binding. No secret

@@ -30,18 +30,21 @@ import {
   TimelineSequence,
   Storyboard,
   secrets,
-  closeDb
+  closeDb,
+  clearAllSecretCache
 } from "@nodetool-ai/models";
 import {
   initMasterKey,
   encryptFernet,
   getMasterKey
 } from "@nodetool-ai/security";
+import { setCredentialCheckOverride } from "@nodetool-ai/runtime";
 import { createTestUiServer } from "./test-ui-server.js";
 import { seedProjects } from "./screenshot-projects.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   createFakeExecutorResolver,
+  acceptCredential,
   fakeAllProviders,
   resolveFakeProvider
 } from "./fake-runtime.js";
@@ -1575,11 +1578,26 @@ async function seedDatabase(): Promise<void> {
   );
 }
 
+// `NODETOOL_QA_STATE=empty` starts with no workflows, threads, assets, or
+// secrets, as a new account does. First-time-user QA (agentic-qa) uses it.
+const EMPTY_ACCOUNT = process.env.NODETOOL_QA_STATE === "empty";
+
+async function seedForState(): Promise<void> {
+  if (EMPTY_ACCOUNT) {
+    console.log("[screenshot-server] Empty account: nothing seeded");
+    return;
+  }
+  await seedDatabase();
+}
+
 /** Recreate the seeded in-memory database between independent journey tests. */
 async function resetSeededDatabase(): Promise<void> {
   await closeDb();
+  // Resolved secrets are cached in memory, so a key stored by one session
+  // would otherwise outlive the database it was stored in.
+  clearAllSecretCache();
   initTestDb();
-  await seedDatabase();
+  await seedForState();
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -1591,7 +1609,7 @@ initTestDb();
 await initMasterKey();
 
 // Seed mock data
-await seedDatabase();
+await seedForState();
 
 // Resolve the example workflows directory from the repo (no Python needed).
 // This file is compiled to packages/websocket/dist/screenshot-server.js, so
@@ -1617,7 +1635,10 @@ const HERMETIC = process.env.NODETOOL_FAKE_PROVIDERS === "1";
 let registry: NodeRegistry | null = null;
 
 if (HERMETIC) {
-  fakeAllProviders();
+  // An empty account starts with no provider connected, so its fakes wait
+  // for a key. Any key passes the onboarding check without a network call.
+  fakeAllProviders({ requireCredentials: EMPTY_ACCOUNT });
+  setCredentialCheckOverride(acceptCredential);
 }
 
 // Start the actual backend server
@@ -1630,11 +1651,18 @@ if (existsSync(EXAMPLES_DIR)) {
   serverOptions.examplesDir = EXAMPLES_DIR;
 }
 if (HERMETIC) {
+  // Serve `package://` assets (guided-flow previews, setup art) as the real
+  // server does. The visual suites run without HERMETIC, so their baselines
+  // keep the empty frames they were captured with.
+  const packageAssetsRoot = resolve(REPO_ROOT, "packages", "base-nodes", "nodetool", "assets");
+  if (existsSync(packageAssetsRoot)) {
+    serverOptions.packageAssetsRoots = [packageAssetsRoot];
+  }
   serverOptions.configureRegistry = (r: NodeRegistry) => {
     registry = r;
     // Providers self-register on import, so re-fake once node packages
     // have finished registering.
-    fakeAllProviders();
+    fakeAllProviders({ requireCredentials: EMPTY_ACCOUNT });
   };
   serverOptions.resolveExecutor = createFakeExecutorResolver(() => registry);
   serverOptions.resolveProvider = resolveFakeProvider;

@@ -68,7 +68,7 @@ export const PODCAST_PRODUCTION_DESK_APP = {
         { model: { node: "quotes_list", prop: "model" }, op: "publish", modelKind: "language_model", label: "Quote selector" },
         { model: { node: "quote_card", prop: "model" }, op: "publish", modelKind: "image_model", label: "Quote card image model" },
         { text: "show_context", op: "publish", label: "Show, audience, and call to action", multiline: true },
-        { number: "quote_count", op: "publish", label: "Quote cards", min: 1, max: 8 },
+        { number: "quote_count", op: "publish", label: "Quote cards", min: 2, max: 8 },
         { run: ["publish"], label: "Create the content pack", disabledWhen: "publish" }
       ],
       results: [

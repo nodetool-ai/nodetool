@@ -6,7 +6,8 @@
  */
 
 import { makeClipVersion } from "./defaults.js";
-import type { TimelineClip } from "./types.js";
+import { sourceRate } from "./sourceRate.js";
+import type { TimelineClip, ClipVersion } from "./types.js";
 
 /**
  * The take actually playing, derived rather than trusted from the stored
@@ -66,6 +67,22 @@ export function ensureBaselineTake(
   };
 }
 
+/**
+ * Whether a take's recorded source window still fits this clip's length. A
+ * split or trim after the take was recorded changes the length; putting the
+ * old in/out points on the new window would show other footage.
+ */
+function mappingFitsClip(
+  clip: TimelineClip,
+  mapped: NonNullable<ClipVersion["sourceMapping"]>
+): boolean {
+  if (mapped.inPointMs === undefined || mapped.outPointMs === undefined) {
+    return true;
+  }
+  const spanMs = clip.durationMs * sourceRate(mapped);
+  return Math.abs(mapped.outPointMs - mapped.inPointMs - spanMs) < 1;
+}
+
 /** Return a preview-only clip projection for a successful take. */
 export function previewTake(
   clip: TimelineClip,
@@ -91,7 +108,7 @@ export function previewTake(
     ...clip,
     currentAssetId: take.assetId
   };
-  if (take.sourceMapping) {
+  if (take.sourceMapping && mappingFitsClip(clip, take.sourceMapping)) {
     preview.inPointMs = take.sourceMapping.inPointMs;
     preview.outPointMs = take.sourceMapping.outPointMs;
     preview.speedMultiplier = take.sourceMapping.speedMultiplier;
@@ -210,7 +227,7 @@ export function selectTake(clip: TimelineClip, takeId: string): TimelineClip {
     lastGeneratedHash: restoredHash,
     status
   };
-  if (mapped) {
+  if (mapped && mappingFitsClip(clip, mapped)) {
     next.inPointMs = mapped.inPointMs;
     next.outPointMs = mapped.outPointMs;
     next.speedMultiplier = mapped.speedMultiplier;

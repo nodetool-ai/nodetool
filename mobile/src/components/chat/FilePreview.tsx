@@ -75,7 +75,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => {
         // 20pt icon + 12pt slop on each side = a 44pt effective touch target.
         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       >
-        <Ionicons name="close-circle" size={20} color="#FF453A" />
+        <Ionicons name="close-circle" size={20} color={colors.error} />
       </TouchableOpacity>
     </View>
   );

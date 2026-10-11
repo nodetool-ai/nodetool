@@ -15,8 +15,9 @@
  * button without a reload.
  */
 
-import { createElement, useCallback, useMemo, useState } from "react";
+import { createElement, useCallback, useMemo, useRef, useState } from "react";
 import {
+  planInputSample,
   resolveWorkflowPlan,
   WORKFLOW_INSPIRATION_CHIPS,
   WORKFLOW_PLAN_MAX_ROUNDS
@@ -46,7 +47,9 @@ import {
   planSourceMatches,
   readPlanSource,
   readRoleModels,
-  ROLE_MODELS_KEY
+  readRoleVoices,
+  ROLE_MODELS_KEY,
+  ROLE_VOICES_KEY
 } from "./setupExtras";
 import {
   PlannerModelFooterField,
@@ -64,6 +67,12 @@ const PLANNER_MAX_OUTPUT_TOKENS = 4096;
 
 /** An empty plan, so the review step renders before a planner ever ran. */
 const EMPTY_PLAN: WorkflowSetupPlan = { inputs: [], steps: [], outputs: [] };
+
+/** A voice model's ref with the voice picked for it, when one was. */
+const withVoice = (model: unknown, voice: string | null | undefined): unknown =>
+  voice && typeof model === "object" && model !== null
+    ? { ...model, selected_voice: voice }
+    : model;
 
 export interface WorkflowSetupFlowOptions {
   workflowId: string;
@@ -129,7 +138,6 @@ export const useWorkflowSetupFlow = ({
     cancelPlanning,
     planning,
     planningPhase,
-    planningStatus,
     error: planError
   } = usePlanWorkflow(workflowId);
   const {
@@ -139,6 +147,11 @@ export const useWorkflowSetupFlow = ({
     result: buildResult
   } = useBuildFromPlan(workflowId);
   const [importError, setImportError] = useState<string | null>(null);
+  // A file being read onto this workflow. It finishes the flow when it lands,
+  // so the step holds Continue and the shell's navigation until then.
+  const [importing, setImporting] = useState(false);
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
   // Step 1's inline examples browser: which example is being copied, why the
   // last copy failed, and whether the browser is open at all. It replaces the
   // step's body, so the shell's own primary button is held while it is up.
@@ -211,11 +224,17 @@ export const useWorkflowSetupFlow = ({
   const handleImport = useCallback(
     async (file: File) => {
       setImportError(null);
+      setImporting(true);
       try {
         await onImport(file);
-        finish();
+        // A creator who moved on while the file was read keeps their place.
+        if (stageRef.current === "idea") {
+          finish();
+        }
       } catch (cause) {
         setImportError(cause instanceof Error ? cause.message : String(cause));
+      } finally {
+        setImporting(false);
       }
     },
     [finish, onImport]
@@ -235,12 +254,20 @@ export const useWorkflowSetupFlow = ({
   // decides what the build places and what the test run spends, so a remount
   // must not quietly swap it for whatever sorts first.
   const roleModels = useMemo(() => readRoleModels(setup), [setup]);
+  const roleVoices = useMemo(() => readRoleVoices(setup), [setup]);
 
   const onRoleModelChange = useCallback(
-    (role: string, tileId: string) => {
-      setSetup({ [ROLE_MODELS_KEY]: { ...roleModels, [role]: tileId } });
+    (role: string, tileId: string, voice?: string) => {
+      setSetup(
+        voice === undefined
+          ? { [ROLE_MODELS_KEY]: { ...roleModels, [role]: tileId } }
+          : {
+              [ROLE_MODELS_KEY]: { ...roleModels, [role]: tileId },
+              [ROLE_VOICES_KEY]: { ...roleVoices, [role]: voice }
+            }
+      );
     },
-    [roleModels, setSetup]
+    [roleModels, roleVoices, setSetup]
   );
 
   // F20: the review advertises editing, so it can be left holding an empty
@@ -263,7 +290,10 @@ export const useWorkflowSetupFlow = ({
           selectedId: offered
             ? (remembered ?? null)
             : (available.tiles[0]?.id ?? null),
-          onSelect: (id: string) => onRoleModelChange(role, id),
+          // A voice belongs to the model it was picked for.
+          selectedVoice: offered ? (roleVoices[role] ?? null) : null,
+          onSelect: (id: string, voice?: string) =>
+            onRoleModelChange(role, id, voice),
           unavailableSelection:
             remembered !== undefined &&
             !offered &&
@@ -272,7 +302,12 @@ export const useWorkflowSetupFlow = ({
               : null
         };
       }),
-    [modelChoices, onRoleModelChange, review.roles, roleModels]
+    [modelChoices, onRoleModelChange, review.roles, roleModels, roleVoices]
+  );
+
+  const roleLoading = useCallback(
+    (role: string) => modelChoices(role).status === "loading",
+    [modelChoices]
   );
 
   // A role whose model list has not answered yet reads as uncovered, which is
@@ -297,9 +332,13 @@ export const useWorkflowSetupFlow = ({
         // pending operation: that would offer a Cancel that hides the picker
         // and leaves only a Retry the open picker keeps disabled. The picker
         // shows the copy and holds "Back to your idea" until it lands.
-        canAdvance: !browsingExamples && brief.trim().length > 0,
-        blockedReason:
-          pickingExampleId !== null
+        canAdvance: !importing && !browsingExamples && brief.trim().length > 0,
+        // A copy or an import lands by leaving this flow, so the shell's Back
+        // and Change flow stay off until it has.
+        holdNavigation: pickingExampleId !== null || importing,
+        blockedReason: importing
+          ? "Reading your file"
+          : pickingExampleId !== null
             ? "Copying the example"
             : browsingExamples
               ? "Pick an example, or go back to your idea"
@@ -322,6 +361,7 @@ export const useWorkflowSetupFlow = ({
             pickingExampleId,
             exampleError,
             onImport: handleImport,
+            importing,
             onStartBlank: finish,
             importError,
             onDismissImportError: () => setImportError(null)
@@ -406,8 +446,9 @@ export const useWorkflowSetupFlow = ({
             throw new Error(refusal);
           }
         },
-        onCancel: cancelPlanning,
-        canceled: planningStatus === "canceled"
+        // The shell owns the canceled state, so Cancel offers "Back to this
+        // step" with the category picker, not a paid Retry of the old choice.
+        onCancel: cancelPlanning
       },
       {
         stage: "review",
@@ -423,6 +464,8 @@ export const useWorkflowSetupFlow = ({
         // a canceled screen whose Retry re-planned, so the plan the creator
         // kept was out of reach (F6). The review stops its own re-plan and
         // keeps the plan on screen.
+        // A re-plan answers onto this step, so Back is held until it lands.
+        holdNavigation: planning,
         canAdvance:
           !planning &&
           review.canContinue &&
@@ -452,6 +495,7 @@ export const useWorkflowSetupFlow = ({
             replanPending: planning,
             onCancelReplan: cancelPlanning,
             providerConfigured,
+            roleLoading,
             error: planError
           })
       },
@@ -502,13 +546,19 @@ export const useWorkflowSetupFlow = ({
             models: Object.fromEntries(
               roleChoices.map((role) => [
                 role.role,
-                chosenModel(role.role, role.selectedId)
+                withVoice(
+                  chosenModel(role.role, role.selectedId),
+                  role.selectedVoice
+                )
               ])
             ),
+            // The same converted value the input node carries, so a number
+            // input runs with a number and a media input sends no text.
             sampleInputs: Object.fromEntries(
-              plan.inputs
-                .filter((input) => input.sample !== undefined)
-                .map((input) => [input.name, input.sample])
+              plan.inputs.flatMap((input) => {
+                const sample = planInputSample(input);
+                return sample === undefined ? [] : [[input.name, sample]];
+              })
             )
           }, context?.signal);
           onFinish?.(built);
@@ -533,6 +583,7 @@ export const useWorkflowSetupFlow = ({
       finish,
       handleImport,
       importError,
+      importing,
       onFinish,
       onPlannerModelChange,
       plan,
@@ -543,10 +594,10 @@ export const useWorkflowSetupFlow = ({
       plannerModel,
       planning,
       planningPhase,
-      planningStatus,
       providerConfigured,
       review.canContinue,
       roleChoices,
+      roleLoading,
       rolesAssigned,
       rolesFailed,
       rolesLoading,

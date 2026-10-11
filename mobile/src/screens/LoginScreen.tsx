@@ -11,6 +11,8 @@ import { useAuthStore } from '../stores/AuthStore';
 import { useTheme } from '../hooks/useTheme';
 import { isSupabaseConfigured } from '../services/supabase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BrandMark } from '../components/BrandMark';
+import { FONT_SIZE, FONT_WEIGHT, MIN_TOUCH_TARGET, RADIUS, SPACING } from '../utils/tokens';
 
 export default function LoginScreen() {
   const { colors, shadows } = useTheme();
@@ -34,28 +36,22 @@ export default function LoginScreen() {
         styles.container,
         {
           backgroundColor: colors.background,
-          paddingTop: insets.top + 40,
-          paddingBottom: insets.bottom + 24,
+          paddingTop: insets.top + SPACING.xxl,
+          paddingBottom: insets.bottom + SPACING.xl,
         },
       ]}
     >
       <View style={styles.header}>
-        <View style={[styles.logoWrap, { backgroundColor: colors.primaryMuted }]}>
-          <Ionicons name="cube-outline" size={32} color={colors.primary} />
-        </View>
-        <Text style={[styles.title, { color: colors.text }]}>NodeTool</Text>
+        <BrandMark size={80} style={styles.logo} />
+        <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
+          NodeTool
+        </Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Sign in to continue
+          Run your apps, brief the agent, and follow jobs from your phone.
         </Text>
       </View>
 
-      <View
-        style={[
-          styles.card,
-          shadows.small,
-          { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
-        ]}
-      >
+      <View style={styles.actions}>
         {!isSupabaseConfigured && (
           <View
             style={[
@@ -86,9 +82,10 @@ export default function LoginScreen() {
         <TouchableOpacity
           style={[
             styles.googleButton,
+            shadows.small,
             {
-              backgroundColor: colors.inputBg,
-              borderColor: colors.borderLight,
+              backgroundColor: colors.surfaceElevated,
+              borderColor: colors.border,
             },
             isLoading && styles.buttonDisabled,
           ]}
@@ -113,6 +110,9 @@ export default function LoginScreen() {
             </>
           )}
         </TouchableOpacity>
+        <Text style={[styles.footnote, { color: colors.textTertiary }]}>
+          Signing in connects this phone to your NodeTool account.
+        </Text>
       </View>
     </View>
   );
@@ -121,34 +121,35 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
+    paddingHorizontal: SPACING.xl,
+    justifyContent: 'space-between',
   },
   header: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 28,
-  },
-  logoWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 14,
+  },
+  logo: {
+    marginBottom: SPACING.xl,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    marginBottom: 6,
+    fontSize: 30,
+    fontWeight: FONT_WEIGHT.bold,
+    letterSpacing: -0.6,
+    marginBottom: SPACING.sm,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: FONT_SIZE.body,
+    lineHeight: 21,
+    textAlign: 'center',
+    maxWidth: 300,
   },
-  card: {
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: StyleSheet.hairlineWidth,
+  actions: {
+    gap: SPACING.md,
+  },
+  footnote: {
+    fontSize: FONT_SIZE.caption,
+    textAlign: 'center',
   },
   banner: {
     flexDirection: 'row',
@@ -157,7 +158,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 14,
   },
   bannerText: {
     flex: 1,
@@ -171,7 +171,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 14,
   },
   errorText: {
     flex: 1,
@@ -182,8 +181,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 14,
-    borderRadius: 12,
+    minHeight: MIN_TOUCH_TARGET + SPACING.sm,
+    borderRadius: RADIUS.md,
     borderWidth: StyleSheet.hairlineWidth,
   },
   googleIcon: {

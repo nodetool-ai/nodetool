@@ -9,13 +9,11 @@
  * streams the bytes off disk with HTTP Range support (needed for audio/video
  * seeking) — no reading in Electron, no data URIs.
  */
+import { createReadStream } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import {
-  corsHeaders,
-  nodeStreamToWebStream,
-  parseRangeHeader
-} from "./storage-api.js";
+import { corsHeaders, parseRangeHeader } from "./storage-api.js";
+import { streamedResponse } from "./lib/bridge.js";
 import {
   localPathDenialMessage,
   resolveLocalPath
@@ -107,9 +105,7 @@ async function handleLocalFileStream(
   }
 
   const rangeHeader = request.headers.get("Range");
-  const range = rangeHeader
-    ? parseRangeHeader(rangeHeader, fileSize)
-    : null;
+  const range = rangeHeader ? parseRangeHeader(rangeHeader, fileSize) : null;
   // "unsatisfiable" → 416; an unparseable/unsupported header (null with a header
   // present) is ignored and the full file served with 200, per RFC 7233.
   if (range === "unsatisfiable") {
@@ -124,8 +120,7 @@ async function handleLocalFileStream(
   }
   if (range) {
     const { start, end } = range;
-    const body = nodeStreamToWebStream(resolved, { start, end });
-    return new Response(body, {
+    return streamedResponse(createReadStream(resolved, { start, end }), {
       status: 206,
       headers: {
         ...cors,
@@ -138,8 +133,7 @@ async function handleLocalFileStream(
     });
   }
 
-  const body = nodeStreamToWebStream(resolved);
-  return new Response(body, {
+  return streamedResponse(createReadStream(resolved), {
     status: 200,
     headers: {
       ...cors,

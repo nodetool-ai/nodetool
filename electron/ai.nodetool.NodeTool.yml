@@ -32,10 +32,13 @@ finish-args:
   - --env=ELECTRON_TRASH=gio
 
 modules:
+  # Repackages a local `electron-builder --linux dir` build. Run
+  # `npm run build` in electron/ first so dist/linux-unpacked exists.
+  # ai.nodetool.NodeTool.flatpak.yml builds from source instead.
   - name: nodetool
     buildsystem: simple
     build-commands:
-      - install -Dm755 nodetool.sh /app/bin/nodetool
+      - install -Dm755 flatpak-wrapper.sh /app/bin/nodetool
       - install -Dm644 ai.nodetool.NodeTool.desktop /app/share/applications/ai.nodetool.NodeTool.desktop
       - install -Dm644 ai.nodetool.NodeTool.metainfo.xml /app/share/metainfo/ai.nodetool.NodeTool.metainfo.xml
       - |
@@ -44,19 +47,18 @@ modules:
             install -Dm644 "icons/icon_${size}x${size}.png" "/app/share/icons/hicolor/${size}x${size}/apps/ai.nodetool.NodeTool.png"
           fi
         done
-      - install -Dm644 nodetool-app/* /app/nodetool/ -t
+      - mkdir -p /app/nodetool
+      - cp -a nodetool-app/. /app/nodetool/
     sources:
       - type: file
-        path: ai.nodetool.NodeTool.desktop
+        path: resources/ai.nodetool.NodeTool.desktop
       - type: file
-        path: ai.nodetool.NodeTool.metainfo.xml
+        path: resources/ai.nodetool.NodeTool.metainfo.xml
       - type: dir
-        path: linux_icons
+        path: resources/linux_icons
         dest: icons
-      - type: script
-        dest-filename: nodetool.sh
-        commands:
-          - exec /app/nodetool/nodetool "$@"
+      - type: file
+        path: flatpak-wrapper.sh
       - type: dir
         path: dist/linux-unpacked
         dest: nodetool-app

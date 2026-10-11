@@ -617,6 +617,63 @@ describe("runDirectMediaGeneration", () => {
     }
   });
 
+  it("hands a clip's mentioned entities to imageToVideo as named references", async () => {
+    const sourceId = await createStoredAsset("1", "image/png", PNG_1x1);
+    const entityAsset = new Asset({
+      user_id: "1",
+      workflow_id: null,
+      name: "mara-entity",
+      content_type: "image/png",
+      parent_id: null
+    });
+    entityAsset.metadata = {
+      nodetool_entity: { name: "Mara", descriptor: "a woman in a dark coat" }
+    };
+    await storeAssetWithThumbnail(
+      "1",
+      entityAsset.id,
+      getAssetFileName(entityAsset.id, "image/png"),
+      PNG_1x1,
+      "image/png"
+    );
+    await entityAsset.save();
+
+    let seen: {
+      prompt: string;
+      references: Array<{ name: string; image: Uint8Array }>;
+    } | null = null;
+    const provider = asProvider({
+      getTotalCost: () => 0,
+      async imageToVideo(
+        _image: Uint8Array,
+        params: {
+          prompt: string;
+          references?: Array<{ name: string; image: Uint8Array }>;
+        }
+      ) {
+        seen = { prompt: params.prompt, references: params.references ?? [] };
+        return new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]);
+      }
+    });
+    const { handler } = makeHandler(provider);
+    await handler.runDirectMediaGeneration(
+      mediaReq({
+        mode: "video",
+        sourceAssetId: sourceId,
+        prompt: `she lifts the cup entity://${entityAsset.id}`
+      })
+    );
+
+    const call = seen as unknown as NonNullable<typeof seen>;
+    expect(call.references.map((reference) => reference.name)).toEqual([
+      "Mara"
+    ]);
+    expect(Array.from(call.references[0].image)).toEqual(Array.from(PNG_1x1));
+    expect(call.prompt).toContain("Mara");
+    expect(call.prompt).not.toContain("entity://");
+    expect(call.prompt).not.toContain("asset://");
+  });
+
   it("routes ordered owned reference images without requiring a keyframe", async () => {
     const first = await createStoredAsset("1", "image/png", new Uint8Array([1, 2]));
     const second = await createStoredAsset("1", "image/png", new Uint8Array([3, 4]));

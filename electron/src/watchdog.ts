@@ -98,6 +98,9 @@ export class Watchdog {
     await this.spawnProcess();
     logMessage(`${this.opts.name} watchdog: process spawned, waiting for health check...`);
     await this.waitUntilHealthy();
+    if (this.stopped) {
+      throw new Error(`${this.opts.name} watchdog: startup stopped`);
+    }
     logMessage(`${this.opts.name} watchdog: health check passed, starting monitor loop...`);
     this.startMonitorLoop();
     logMessage(`${this.opts.name} watchdog: started successfully`);
@@ -136,7 +139,9 @@ export class Watchdog {
       await new Promise((r) => setTimeout(r, 100));
     }
 
-    if (this.childProcess && !this.childProcess.killed) {
+    // `killed` turns true as soon as SIGTERM is delivered, so it cannot tell
+    // whether the process is still running. Ask the OS instead.
+    if (this.childProcess && (await this.isPidAlive())) {
       try {
         this.childProcess.kill("SIGKILL");
       } catch (error) {
@@ -171,6 +176,9 @@ export class Watchdog {
 
     // Phase 1: Wait for TCP connectivity (server is starting to listen)
     while (Date.now() - start < timeoutMs) {
+      if (this.stopped) {
+        throw new Error(`${this.opts.name} watchdog: startup stopped`);
+      }
       reachableCheckCount++;
       const reachable = await this.isReachable();
       if (reachable) {
@@ -219,11 +227,13 @@ export class Watchdog {
     //
     // Probe /ready (accepting requests), not /health: /health also pings the
     // database and answers 503 when degraded — a reason to surface a warning,
-    // not to kill the process at startup. Ongoing monitoring stays on
-    // healthUrl.
+    // not to kill the process. The monitor loop probes /ready too.
     const phase2Start = Date.now();
     lastLogTime = phase2Start;
     while (Date.now() - phase2Start < timeoutMs) {
+      if (this.stopped) {
+        throw new Error(`${this.opts.name} watchdog: startup stopped`);
+      }
       checkCount++;
       const healthy = await this.isReady();
       if (healthy) {
@@ -447,48 +457,57 @@ export class Watchdog {
 
   private startMonitorLoop() {
     if (this.intervalId) clearInterval(this.intervalId);
-    this.intervalId = setInterval(async () => {
-      if (this.stopped || this._checkInProgress) return;
-      this._checkInProgress = true;
-      try {
-        const pidAlive = await this.isPidAlive();
-        const healthy = await this.isHealthy();
-
-        if (!pidAlive) {
-          this._consecutiveFailures = 0;
-          logMessage(
-            `${this.opts.name} watchdog: process died (pidAlive=false), restarting...`
-          );
-        } else if (!healthy) {
-          this._consecutiveFailures++;
-          if (this._consecutiveFailures < Watchdog.MAX_CONSECUTIVE_FAILURES) {
-            logMessage(
-              `${this.opts.name} watchdog: health check failed (${this._consecutiveFailures}/${Watchdog.MAX_CONSECUTIVE_FAILURES}), will retry...`
-            );
-            return;
-          }
-          logMessage(
-            `${this.opts.name} watchdog: detected unhealthy state after ${this._consecutiveFailures} consecutive failures, restarting...`
-          );
-        }
-
-        if (pidAlive && healthy) {
-          this._consecutiveFailures = 0;
-        } else if (!pidAlive || (this._consecutiveFailures >= Watchdog.MAX_CONSECUTIVE_FAILURES)) {
-          this._consecutiveFailures = 0;
-          try {
-            await this.restart();
-          } catch (error) {
-            logMessage(
-              `${this.opts.name} watchdog: restart failed: ${errorMessage(error)}`,
-              "error"
-            );
-          }
-        }
-      } finally {
-        this._checkInProgress = false;
-      }
+    this.intervalId = setInterval(() => {
+      void this.monitorTick();
     }, this.opts.healthCheckIntervalMs);
+  }
+
+  /**
+   * One supervision check. Liveness is /ready, as at startup: /health answers
+   * 503 while the database is unreachable or locked, and restarting a live
+   * server for that only kills its running jobs without fixing anything.
+   */
+  private async monitorTick(): Promise<void> {
+    if (this.stopped || this._checkInProgress) return;
+    this._checkInProgress = true;
+    try {
+      const pidAlive = await this.isPidAlive();
+      const healthy = await this.isReady();
+
+      if (!pidAlive) {
+        this._consecutiveFailures = 0;
+        logMessage(
+          `${this.opts.name} watchdog: process died (pidAlive=false), restarting...`
+        );
+      } else if (!healthy) {
+        this._consecutiveFailures++;
+        if (this._consecutiveFailures < Watchdog.MAX_CONSECUTIVE_FAILURES) {
+          logMessage(
+            `${this.opts.name} watchdog: liveness check failed (${this._consecutiveFailures}/${Watchdog.MAX_CONSECUTIVE_FAILURES}), will retry...`
+          );
+          return;
+        }
+        logMessage(
+          `${this.opts.name} watchdog: detected unresponsive process after ${this._consecutiveFailures} consecutive failures, restarting...`
+        );
+      }
+
+      if (pidAlive && healthy) {
+        this._consecutiveFailures = 0;
+      } else if (!pidAlive || (this._consecutiveFailures >= Watchdog.MAX_CONSECUTIVE_FAILURES)) {
+        this._consecutiveFailures = 0;
+        try {
+          await this.restart();
+        } catch (error) {
+          logMessage(
+            `${this.opts.name} watchdog: restart failed: ${errorMessage(error)}`,
+            "error"
+          );
+        }
+      }
+    } finally {
+      this._checkInProgress = false;
+    }
   }
 
   private async isPidAlive(): Promise<boolean> {
@@ -540,17 +559,9 @@ export class Watchdog {
   }
 
   /**
-   * Checks HTTP health endpoint to verify the server is fully operational.
-   * Used for ongoing health monitoring.
-   */
-  private async isHealthy(): Promise<boolean> {
-    return probeHttpOk(this.opts.healthUrl, { timeoutMs: 15000 });
-  }
-
-  /**
    * Checks the liveness endpoint (/ready) used during startup: "accepting
    * requests" is the readiness bar, while /health also pings the database
-   * and reports degraded states that are not startup failures.
+   * and reports degraded states that are not a reason to kill the process.
    */
   private async isReady(): Promise<boolean> {
     const readyUrl = new URL(this.opts.healthUrl);

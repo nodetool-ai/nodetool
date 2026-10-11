@@ -17,6 +17,8 @@ import {
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
+import { useContextCommands } from "../../hooks/useContextCommands";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
 import DocumentLoadStatus from "./DocumentLoadStatus";
 import { buildUiContext, type BuildUiContextOptions } from "../../lib/chat/uiContext";
 
@@ -252,6 +254,18 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
       console.error("Failed to create new chat thread:", error);
     }
   }, [createNewThread, openTab]);
+
+  const busy = runtime.status === "loading" || runtime.status === "streaming";
+  const menuCommands = useMemo<ContextCommand[]>(() => {
+    const commands: ContextCommand[] = [
+      { id: "new-chat", label: "New Chat", run: handleNewChat }
+    ];
+    if (busy) {
+      commands.push({ id: "stop", label: "Stop Generating", run: handleStop });
+    }
+    return commands;
+  }, [busy, handleNewChat, handleStop]);
+  useContextCommands("Chat", menuCommands, active);
 
   return (
     <FlexColumn fullWidth fullHeight sx={{ minHeight: 0, overflow: "hidden" }}>

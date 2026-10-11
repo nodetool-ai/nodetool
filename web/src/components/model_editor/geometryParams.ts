@@ -22,24 +22,31 @@ interface GeometryParamSpec {
   /** float: plain number; int: rounded, min 1+; angle: stored radians, edited in degrees. */
   kind: "float" | "int" | "angle";
   min?: number;
+  max?: number;
   step?: number;
 }
 
 const TAU = Math.PI * 2;
+
+/**
+ * Upper bound for every segment count. A box at 2000 segments per side has
+ * about 24 million vertices and freezes the tab while it builds.
+ */
+export const MAX_SEGMENTS = 512;
 
 export const GEOMETRY_PARAM_SPECS = {
   BoxGeometry: [
     { key: "width", label: "Width", kind: "float", min: 0.001, step: 0.1 },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
     { key: "depth", label: "Depth", kind: "float", min: 0.001, step: 0.1 },
-    { key: "widthSegments", label: "W Segs", kind: "int", min: 1 },
-    { key: "heightSegments", label: "H Segs", kind: "int", min: 1 },
-    { key: "depthSegments", label: "D Segs", kind: "int", min: 1 }
+    { key: "widthSegments", label: "W Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "H Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
+    { key: "depthSegments", label: "D Segs", kind: "int", min: 1, max: MAX_SEGMENTS }
   ],
   SphereGeometry: [
     { key: "radius", label: "Radius", kind: "float", min: 0.001, step: 0.1 },
-    { key: "widthSegments", label: "W Segs", kind: "int", min: 3 },
-    { key: "heightSegments", label: "H Segs", kind: "int", min: 2 },
+    { key: "widthSegments", label: "W Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "H Segs", kind: "int", min: 2, max: MAX_SEGMENTS },
     { key: "phiStart", label: "Phi Start", kind: "angle" },
     { key: "phiLength", label: "Phi Len", kind: "angle" },
     { key: "thetaStart", label: "Theta Start", kind: "angle" },
@@ -48,8 +55,8 @@ export const GEOMETRY_PARAM_SPECS = {
   PlaneGeometry: [
     { key: "width", label: "Width", kind: "float", min: 0.001, step: 0.1 },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
-    { key: "widthSegments", label: "W Segs", kind: "int", min: 1 },
-    { key: "heightSegments", label: "H Segs", kind: "int", min: 1 }
+    { key: "widthSegments", label: "W Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "H Segs", kind: "int", min: 1, max: MAX_SEGMENTS }
   ],
   CylinderGeometry: [
     { key: "radiusTop", label: "Radius Top", kind: "float", min: 0, step: 0.1 },
@@ -61,24 +68,24 @@ export const GEOMETRY_PARAM_SPECS = {
       step: 0.1
     },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
-    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3 },
-    { key: "heightSegments", label: "Height Segs", kind: "int", min: 1 },
+    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "Height Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
     { key: "thetaStart", label: "Theta Start", kind: "angle" },
     { key: "thetaLength", label: "Theta Len", kind: "angle" }
   ],
   ConeGeometry: [
     { key: "radius", label: "Radius", kind: "float", min: 0.001, step: 0.1 },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
-    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3 },
-    { key: "heightSegments", label: "Height Segs", kind: "int", min: 1 },
+    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
+    { key: "heightSegments", label: "Height Segs", kind: "int", min: 1, max: MAX_SEGMENTS },
     { key: "thetaStart", label: "Theta Start", kind: "angle" },
     { key: "thetaLength", label: "Theta Len", kind: "angle" }
   ],
   TorusGeometry: [
     { key: "radius", label: "Radius", kind: "float", min: 0.001, step: 0.1 },
     { key: "tube", label: "Tube", kind: "float", min: 0.001, step: 0.05 },
-    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3 },
-    { key: "tubularSegments", label: "Tubular Segs", kind: "int", min: 3 },
+    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
+    { key: "tubularSegments", label: "Tubular Segs", kind: "int", min: 3, max: MAX_SEGMENTS },
     { key: "arc", label: "Arc", kind: "angle" }
   ]
 } satisfies Record<EditableGeometryType, readonly GeometryParamSpec[]>;
@@ -104,7 +111,7 @@ const num = (params: GeometryParams, key: string, fallback: number): number => {
 };
 
 /**
- * Round `int` params and raise every param to its spec minimum. The numeric
+ * Round `int` params and keep every param inside its spec bounds. The numeric
  * field commits on each keystroke and clamps only on blur, so a value typed
  * on the way to another (a 0 before 05) must not reach the constructor:
  * BoxGeometry with 0 segments divides by zero and fills the mesh with NaN.
@@ -122,8 +129,11 @@ const clampToSpecs = (
       continue;
     }
     const rounded = spec.kind === "int" ? Math.round(value) : value;
-    clamped[spec.key] =
-      spec.min === undefined ? rounded : Math.max(spec.min, rounded);
+    clamped[spec.key] = THREE.MathUtils.clamp(
+      rounded,
+      spec.min ?? -Infinity,
+      spec.max ?? Infinity
+    );
   }
   return clamped;
 };
@@ -132,7 +142,7 @@ const clampToSpecs = (
  * Construct a fresh geometry from a (possibly edited) parameter object. The
  * caller disposes the previous geometry and assigns the result. Unedited keys
  * fall back to the geometry's defaults so partial parameter objects are safe,
- * and values below a param's minimum are raised to it.
+ * and values outside a param's bounds are clamped to them.
  */
 export const buildGeometry = (
   type: EditableGeometryType,

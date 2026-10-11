@@ -353,7 +353,8 @@ class FalArgsBuilder {
    * type doesn't match the field — notably numeric `duration`/`seed`/
    * `num_frames` sent to fields the endpoint declares as `enum`/`str` (e.g.
    * `duration` enums are `"5"`/`"10"`, not `5`). Enum values that aren't in
-   * the field's vocabulary are dropped rather than sent.
+   * the field's vocabulary are dropped rather than sent; a match is sent
+   * with the declared value's type, so numeric enums stay numbers.
    */
   set(apiName: string, value: unknown): this {
     if (value == null) return this;
@@ -591,7 +592,7 @@ class FalArgsBuilder {
   private acceptedEnumValue(
     apiName: string,
     value: string | null | undefined
-  ): string | undefined {
+  ): string | number | undefined {
     if (!value) return undefined;
     if (!this.known) return value;
     const field = this.accepted.get(apiName);
@@ -599,7 +600,11 @@ class FalArgsBuilder {
     if (field.propType.toLowerCase() !== "enum") return value;
     const enumValues = field.enumValues;
     if (!enumValues || enumValues.length === 0) return value;
-    return enumValues.includes(value) ? value : undefined;
+    // Some endpoints declare numeric vocabularies (`duration: [6, 8, 10]`).
+    // Match on the string form and send the declared value with its type.
+    return (enumValues as Array<string | number>).find(
+      (accepted) => String(accepted) === value
+    );
   }
 
   private field(apiName: string): FalManifestField | undefined {

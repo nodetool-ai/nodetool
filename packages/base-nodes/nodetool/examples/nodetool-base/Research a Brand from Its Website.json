@@ -5,7 +5,7 @@
   "updated_at": "2026-10-03T00:00:00.000000",
   "name": "Research a Brand from Its Website",
   "tool_name": null,
-  "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses Claude Sonnet 5 with browser and web search tools. Pick any language model for the extractor.",
+  "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses browser and web search tools. Pick a language model for the researcher and the extractor.",
   "tags": [
     "brand-asset",
     "branding",
@@ -21,7 +21,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🔎 Research a Brand from Its Website\n\nPaste a website and get research notes plus the five fields a brand kit needs: name, audience, voice, one-line description and tagline. Use it to start a brand kit from a site you do not know well.\n\n**How it works:** \"Website\" fills the \"Research brief\" prompt. \"Research agent (browser + web search)\" runs Claude Sonnet 5 with the browser and web_search tools, capped at 12 turns and $1.00. It opens the site, searches for what the site leaves out, and writes notes with sources that go to \"Research notes\". \"Brand profile fields\", an Extractor, reads the notes and fills \"Brand name\", \"Audience\", \"Voice\", \"Brand description\" and \"Tagline\", leaving a field empty when the notes mark it unconfirmed. The agent needs an Anthropic key, and you pick a model on the extractor.\n\n**Try this:** Point \"Website\" at your own site, then edit any field before you generate assets from it."
+          "comment": "# 🔎 Research a Brand from Its Website\n\nPaste a website and get research notes plus the five fields a brand kit needs: name, audience, voice, one-line description and tagline. Use it to start a brand kit from a site you do not know well.\n\n**How it works:** \"Website\" fills the \"Research brief\" prompt. \"Research agent (browser + web search)\" runs with the browser and web_search tools, capped at 12 turns and $1.00. It opens the site, searches for what the site leaves out, and writes notes with sources that go to \"Research notes\". \"Brand profile fields\", an Extractor, reads the notes and fills \"Brand name\", \"Audience\", \"Voice\", \"Brand description\" and \"Tagline\", leaving a field empty when the notes mark it unconfirmed. Each model step uses your default language model, or the one you pick on the node.\n\n**Try this:** Point \"Website\" at your own site, then edit any field before you generate assets from it."
         },
         "ui_properties": {
           "position": {
@@ -88,9 +88,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "anthropic",
-            "id": "claude-sonnet-5",
-            "name": "Claude Sonnet 5",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

@@ -448,9 +448,11 @@ from `packages/agents/src/tools/mcp-tools.ts` over shell commands.
 | [Build and verify a mini app](docs/harnesses.md#nodetool-app-build-mini-app-build-harness) | `nodetool app build "<prompt>" -p <provider> -m <model>` / `debug_app` |
 | [Execute a workflow](docs/harnesses.md#nodetool-run-dsl-workflows) | `nodetool run <file>` / `run_workflow` / `start_background_job` |
 | [Inspect changed workspaces](docs/harnesses.md#nodetool-affected-changed-file--workspace-mapping) | `nodetool affected` |
+| [Find complex, under-tested functions](docs/harnesses.md#npm-run-crap-crap-scores-for-typescript) | `npm run crap -- --changed --run-coverage` |
 | [Check capability coverage](docs/harnesses.md#nodetool-harness-registry-coverage-audit-and-the-gate) | `nodetool harness capabilities` / `npm run capabilities:check` |
 | [Probe provider contracts](docs/harnesses.md#npm-run-probeproviders-provider-contract-probes) | `npm run probe:providers` |
 | [Measure agent task completion](docs/harnesses.md#nodetool-jtbd-jobs-to-be-done--the-optimization-loop) | `nodetool jtbd run` / `jtbd optimize` |
+| [Find mutants the tests miss](docs/harnesses.md#npm-run-mutate-mutation-testing-for-typescript) | `npm run mutate -- --base origin/main packages/<name>/src` |
 | [Run shipped resource fixtures](docs/harnesses.md#graph-resource-fixtures) | `npm run fixtures:graph-resources` |
 | [Inspect generation status, cost, and assets](docs/harnesses.md#nodetool-generations) | `nodetool generations list\|get\|await\|cancel\|reconcile\|sweep` |
 
@@ -495,7 +497,8 @@ Follow [Security](docs/DEVELOPMENT_STANDARDS.md#16-security) and
   checking the initial URL does not validate redirects. Maintain the
   [URL Egress Inventory](docs/url-egress-inventory.md). Its audit is
   `packages/runtime/tests/url-egress-audit.test.ts`.
-- Code scanning uses GitHub default setup. `.github/codeql/*.yml` does not
-  configure it. Dismiss false positives in the Security UI and test the premise
-  that makes them false, as in `packages/models/tests/access-token.test.ts`.
-  Custom exclusions require advanced setup with an explicit `config-file:`.
+- Code scanning uses advanced setup in `.github/workflows/codeql.yml`.
+  Default setup must stay off, or GitHub rejects its uploads. Dismiss false
+  positives in the Security UI and test the premise that makes them false, as
+  in `packages/models/tests/access-token.test.ts`. Custom exclusions need an
+  explicit `config-file:` in that workflow.

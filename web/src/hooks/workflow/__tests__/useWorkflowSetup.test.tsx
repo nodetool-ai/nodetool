@@ -11,7 +11,10 @@ let inFlight = 0;
 let maxInFlight = 0;
 const releases: Array<(error?: Error) => void> = [];
 const saveWorkflow = jest.fn(
-  (_workflow: { settings: Record<string, unknown> }) =>
+  (
+    _workflow: { settings: Record<string, unknown> },
+    _options?: { snapshot?: boolean }
+  ) =>
     new Promise<void>((resolve, reject) => {
       inFlight += 1;
       maxInFlight = Math.max(maxInFlight, inFlight);
@@ -99,6 +102,7 @@ describe("useWorkflowSetupWriter", () => {
     await settle();
     expect(saveWorkflow).toHaveBeenCalledTimes(1);
     expect(saveWorkflow.mock.calls[0][0].settings).toEqual(settings);
+    expect(saveWorkflow.mock.calls[0][1]).toEqual({ snapshot: false });
     await finishSave();
   });
 
@@ -134,6 +138,36 @@ describe("useWorkflowSetupWriter", () => {
       await Promise.all([second, third]);
     });
     expect(maxInFlight).toBe(1);
+  });
+
+  it("adds a version row only when a write it carries asked for one", async () => {
+    const { result } = renderHook(() => useWorkflowSetupWriter("w1"));
+    let first: Promise<void> = Promise.resolve();
+    let second: Promise<void> = Promise.resolve();
+    let third: Promise<void> = Promise.resolve();
+    act(() => {
+      first = result.current.setSetup({ stage: "category" });
+    });
+    await settle();
+    // A setup answer changes no graph, so it adds no version row.
+    expect(saveWorkflow.mock.calls[0][1]).toEqual({ snapshot: false });
+
+    // Two writes share the next save. One asked for a version row.
+    act(() => {
+      second = result.current.setSetup({ run_mode: "app" });
+      third = result.current.setSetup({ stage: "done" }, { snapshot: true });
+    });
+    await finishSave();
+    await act(async () => {
+      await first;
+    });
+    await settle();
+    expect(saveWorkflow).toHaveBeenCalledTimes(2);
+    expect(saveWorkflow.mock.calls[1][1]).toEqual({ snapshot: true });
+    await finishSave();
+    await act(async () => {
+      await Promise.all([second, third]);
+    });
   });
 
   it("saves a waiting edit with the next explicit write, at once", async () => {

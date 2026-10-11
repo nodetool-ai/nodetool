@@ -64,13 +64,9 @@ describe("Shot graphics authoring", () => {
     fireEvent.change(screen.getByLabelText("Graphic direction"), {
       target: { value: "quiet premium composition" }
     });
-    fireEvent.change(screen.getByLabelText("Shot motion design notes"), {
-      target: { value: "Logo continues across the cut" }
-    });
     expect(save).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("Save"));
     expect(save.mock.calls[0][0]).toEqual({
-      motion: "Logo continues across the cut",
       graphics: {
         ...shot.graphics,
         direction: "quiet premium composition",
@@ -92,7 +88,6 @@ describe("Shot graphics authoring", () => {
   it("disabled semantic controls cannot change a read-only shot", () => {
     render(<Editor readOnly />);
     expect(screen.getByLabelText("Graphic direction")).toBeDisabled();
-    expect(screen.getByLabelText("Shot motion design notes")).toBeDisabled();
     expect(screen.getByText("Add text")).toBeDisabled();
     fireEvent.click(screen.getByText("Add text"));
     fireEvent.click(screen.getByText("Save"));

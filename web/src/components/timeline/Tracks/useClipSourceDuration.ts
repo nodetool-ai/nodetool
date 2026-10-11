@@ -9,14 +9,20 @@
  * URL), which carry the decoded length, so the cap reflects the actual audio
  * rather than asset metadata, which can be null. Video is probed through a
  * detached media element, cached at module level per URL so hundreds of clips
- * on one asset probe it once.
+ * on one asset probe it once. A failed probe is not cached, so the next
+ * mount tries again.
+ *
+ * Until the real length is known (probe pending or failed, no peaks), an
+ * audio or video clip is capped at the furthest out-point seen on its asset:
+ * the source is at least that long, and growing past it could run off the
+ * end. The pointer trim, the inspector and the keyboard trims share this cap.
  * Image, text, shape and group clips have no source length and return
  * undefined.
  */
 
 import { useEffect, useState } from "react";
 
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import { sourceRate, type TimelineClip } from "@nodetool-ai/timeline";
 import { probeMediaDurationMs } from "../../../utils/probeMediaDuration";
 import { useAssetUrl } from "./useAssetUrl";
 import { useAudioPeaks } from "./useAudioPeaks";
@@ -34,7 +40,10 @@ function probeVideoDuration(url: string): Promise<number | null> {
     return pending;
   }
   const probe = probeMediaDurationMs(url, "video").then((ms) => {
-    videoDurationCache.set(url, ms);
+    // A failure (null) stays uncached so a later mount probes again.
+    if (ms !== null) {
+      videoDurationCache.set(url, ms);
+    }
     videoProbesInFlight.delete(url);
     return ms;
   });
@@ -54,11 +63,63 @@ export function getKnownSourceDurationMs(
   return assetId ? knownSourceDurations.get(assetId) : undefined;
 }
 
+/** The furthest source out-point seen per asset id: a lower bound on the
+ *  source length that survives a clip being trimmed shorter. */
+const observedSourceEnds = new Map<string, number>();
+
+/**
+ * The cap for an audio or video clip whose source length is unknown: its
+ * current out-point, or a later one already seen on the same asset. Undefined
+ * for clips without a finite source, including a media clip with no asset
+ * yet (a draft awaiting generation can be sized freely).
+ */
+export function fallbackSourceDurationMs(
+  clip: Pick<
+    TimelineClip,
+    | "mediaType"
+    | "currentAssetId"
+    | "inPointMs"
+    | "outPointMs"
+    | "durationMs"
+    | "speedBaked"
+    | "speedMultiplier"
+  >
+): number | undefined {
+  const assetId = clip.currentAssetId;
+  if (
+    !assetId ||
+    (clip.mediaType !== "audio" && clip.mediaType !== "video")
+  ) {
+    return undefined;
+  }
+  const outPointMs =
+    clip.outPointMs ??
+    (clip.inPointMs ?? 0) + clip.durationMs * sourceRate(clip);
+  const seen = Math.max(outPointMs, observedSourceEnds.get(assetId) ?? 0);
+  observedSourceEnds.set(assetId, seen);
+  return seen;
+}
+
+/**
+ * The source cap for code outside React (keyboard trims, a roll's
+ * neighbour): the resolved length when a mounted clip has resolved it, else
+ * the fallback above.
+ */
+export function getSourceCapMs(
+  clip: Parameters<typeof fallbackSourceDurationMs>[0]
+): number | undefined {
+  return (
+    getKnownSourceDurationMs(clip.currentAssetId) ??
+    fallbackSourceDurationMs(clip)
+  );
+}
+
 /** Test seam: forget every probed duration. */
 export function resetVideoDurationCache(): void {
   videoDurationCache.clear();
   videoProbesInFlight.clear();
   knownSourceDurations.clear();
+  observedSourceEnds.clear();
 }
 
 /** Seed the synchronous registry (also used by tests). */
@@ -116,11 +177,8 @@ export function useClipSourceDuration(
     }
   }, [assetId, resolved]);
 
-  if (mediaType === "audio") {
-    return audioMs && audioMs > 0 ? audioMs : undefined;
+  if (!clip || (mediaType !== "audio" && mediaType !== "video")) {
+    return undefined;
   }
-  if (mediaType === "video") {
-    return videoMs && videoMs > 0 ? videoMs : undefined;
-  }
-  return undefined;
+  return resolved && resolved > 0 ? resolved : fallbackSourceDurationMs(clip);
 }

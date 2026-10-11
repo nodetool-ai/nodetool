@@ -73,11 +73,17 @@ const setMenuSnapToGrid = (enabled: boolean) => {
   buildMenu();
 };
 
-const buildMenu = () => {
+// Resolve the window at click time: the menu outlives the window it was built
+// with, and macOS recreates the main window on Dock activation.
+const sendMenuEvent = (event: { type: string }) => {
   const mainWindow = getMainWindow();
-  if (!mainWindow) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
     return;
   }
+  mainWindow.webContents.send(IpcChannels.MENU_EVENT, event);
+};
+
+const buildMenu = () => {
   const menu = Menu.buildFromTemplate([
     {
       label: process.platform === "darwin" ? "NodeTool" : "",
@@ -100,7 +106,7 @@ const buildMenu = () => {
           label: "Save",
           accelerator: "CmdOrCtrl+S",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "saveWorkflow",
             });
           },
@@ -114,7 +120,7 @@ const buildMenu = () => {
           label: "New Workflow",
           accelerator: "CmdOrCtrl+T",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "newTab",
             });
           },
@@ -123,7 +129,7 @@ const buildMenu = () => {
           label: "Close Tab",
           accelerator: "CmdOrCtrl+W",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "close",
             });
           },
@@ -151,7 +157,7 @@ const buildMenu = () => {
           label: "Duplicate",
           accelerator: "CmdOrCtrl+D",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "duplicate",
             });
           },
@@ -160,7 +166,7 @@ const buildMenu = () => {
           label: "Duplicate Vertical",
           accelerator: "CmdOrCtrl+Shift+D",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "duplicateVertical",
             });
           },
@@ -169,7 +175,7 @@ const buildMenu = () => {
           label: "Group",
           accelerator: "CmdOrCtrl+G",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "group",
             });
           },
@@ -180,7 +186,7 @@ const buildMenu = () => {
           // already owns. The duplicate never fired.
           label: "Align",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "align",
             });
           },
@@ -189,7 +195,7 @@ const buildMenu = () => {
           label: "Align with Spacing",
           accelerator: "Shift+CmdOrCtrl+A",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "alignWithSpacing",
             });
           },
@@ -206,7 +212,7 @@ const buildMenu = () => {
           label: "Fit View",
           accelerator: "CmdOrCtrl+0",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "fitView",
             });
           },
@@ -230,7 +236,7 @@ const buildMenu = () => {
           type: "checkbox",
           checked: snapToGridChecked,
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "toggleSnapToGrid",
             });
           },
@@ -257,7 +263,7 @@ const buildMenu = () => {
         {
           label: "Model Manager",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "openModelManager",
             });
           },
@@ -265,7 +271,7 @@ const buildMenu = () => {
         {
           label: "Package Manager",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "openPackageManager",
             });
           },
@@ -273,7 +279,7 @@ const buildMenu = () => {
         {
           label: "Help",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "openHelp",
             });
           },
@@ -281,7 +287,7 @@ const buildMenu = () => {
         {
           label: "Downloads",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "openDownloads",
             });
           },
@@ -309,7 +315,7 @@ const buildMenu = () => {
           label: "Keyboard Shortcuts",
           accelerator: "CmdOrCtrl+/",
           click: () => {
-            mainWindow.webContents.send(IpcChannels.MENU_EVENT, {
+            sendMenuEvent({
               type: "showKeyboardShortcuts",
             });
           },
@@ -364,7 +370,7 @@ Features & Versions
       buttons: ["OK", "Copy to Clipboard"],
     };
 
-    const showDialog = mainWindow 
+    const showDialog = mainWindow && !mainWindow.isDestroyed()
       ? dialog.showMessageBox(mainWindow, dialogOptions)
       : dialog.showMessageBox(dialogOptions);
     

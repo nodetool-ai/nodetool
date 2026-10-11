@@ -132,10 +132,14 @@ describe("buildTimelineDocument", () => {
       "Music"
     ]);
 
-    const audioClips = doc.clips.filter((c) => c.bindingKind === "text-to-audio");
-    expect(audioClips).toHaveLength(2);
+    const audioClips = doc.clips.filter(
+      (c) => c.bindingKind === "text-to-audio" || c.bindingKind === "text-to-music"
+    );
+    expect(audioClips.map((c) => c.bindingKind)).toEqual([
+      "text-to-audio",
+      "text-to-music"
+    ]);
     for (const clip of audioClips) {
-      expect(clip.bindingKind).toBe("text-to-audio");
       expect(clip.status).toBe("draft");
       expect(clip.startMs).toBe(0);
       expect(clip.durationMs).toBe(4000);

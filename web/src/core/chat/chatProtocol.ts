@@ -437,6 +437,33 @@ const applyNodeUpdate = (
   };
 };
 
+/**
+ * Append streamed text to an assistant message's content. Content can already
+ * be an array (an image, audio or video block, or a workflow's response), and
+ * `array + string` would coerce it to "[object Object]", so text goes into a
+ * trailing text block there. Empty text, as on a done chunk, changes nothing.
+ */
+const appendTextContent = (
+  existing: Message["content"],
+  text: string
+): Message["content"] => {
+  if (Array.isArray(existing)) {
+    if (text.length === 0) {
+      return existing;
+    }
+    const lastBlock = existing[existing.length - 1];
+    return lastBlock && lastBlock.type === "text"
+      ? [...existing.slice(0, -1), { type: "text", text: lastBlock.text + text }]
+      : [...existing, { type: "text", text }];
+  }
+  if (isString(existing) || existing == null) {
+    return (existing ?? "") + text;
+  }
+  // Record-shaped content shouldn't occur for a streaming assistant text
+  // message; leave it untouched rather than coerce it into a string.
+  return existing;
+};
+
 const applyChunk = (
   state: GlobalChatState,
   chunk: Chunk,
@@ -481,10 +508,9 @@ const applyChunk = (
   let updatedMessages: Message[];
 
   if (lastMessage && lastMessage.role === "assistant") {
-    const newContent = (lastMessage.content || "") + chunkText;
     const updatedMessage: Message = {
       ...lastMessage,
-      content: newContent
+      content: appendTextContent(lastMessage.content, chunkText)
     };
     updatedMessages = [...messages.slice(0, -1), updatedMessage];
   } else {
@@ -533,6 +559,10 @@ const applyChunk = (
 
   const postAction = (get: ChatStateGetter) => {
     const { summarizeThread, updateThreadTitle } = get();
+    // The server titles a thread from its first message, so only an untitled
+    // thread needs it. Asking again would overwrite a title the user set.
+    const currentTitle = get().threads[threadId]?.title;
+    const needsTitle = !currentTitle || currentTitle === "New conversation";
     const messagesAfterUpdate = get().messageCache[threadId] || [];
     const assistantMessages = messagesAfterUpdate.filter(
       (msg) => msg.role === "assistant"
@@ -544,7 +574,9 @@ const applyChunk = (
       }
     }
 
-    summarizeThread(threadId);
+    if (needsTitle) {
+      summarizeThread(threadId);
+    }
   };
 
   return {
@@ -578,35 +610,9 @@ const applyOutputUpdate = (
       if (update.value === "<nodetool_end_of_stream>") {
         return noopUpdate;
       }
-      // When the assistant's last message already holds array content (an
-      // image/audio/video block from the media branch below), a string output
-      // must be appended as a text block: `array + string` coerces the array to
-      // "[object Object],…". Merge into a trailing text block when one exists;
-      // otherwise keep the original string-concat behavior.
-      const existingContent = lastMessage.content;
-      let nextContent: Message["content"];
-      if (Array.isArray(existingContent)) {
-        const lastBlock = existingContent[existingContent.length - 1];
-        nextContent =
-          lastBlock && lastBlock.type === "text"
-            ? [
-                ...existingContent.slice(0, -1),
-                { type: "text", text: lastBlock.text + update.value }
-              ]
-            : [...existingContent, { type: "text", text: update.value }];
-      } else if (
-        isString(existingContent) ||
-        existingContent == null
-      ) {
-        nextContent = (existingContent ?? "") + update.value;
-      } else {
-        // Record-shaped content shouldn't occur for a streaming assistant text
-        // message; leave it untouched rather than coerce it into a string.
-        nextContent = existingContent;
-      }
       const updatedMessage: Message = {
         ...lastMessage,
-        content: nextContent
+        content: appendTextContent(lastMessage.content, update.value)
       };
       return {
         update: {

@@ -897,10 +897,6 @@ export const recipeEntries: RecipeEntry[] = [
         "env": "OPENAI_API_KEY"
       },
       {
-        "provider": "anthropic",
-        "env": "ANTHROPIC_API_KEY"
-      },
-      {
         "provider": "fal_ai",
         "env": "FAL_API_KEY"
       }
@@ -930,12 +926,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Choose a target language. The translation stays close to the source length, and you can edit it before it is voiced.",
         "thumbnail": null,
         "nodeCount": 6,
-        "models": [
-          {
-            "provider": "anthropic",
-            "model": "claude-sonnet-5"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -962,12 +953,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Break the translated script into numbered subtitle lines.",
         "thumbnail": null,
         "nodeCount": 4,
-        "models": [
-          {
-            "provider": "anthropic",
-            "model": "claude-sonnet-5"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {

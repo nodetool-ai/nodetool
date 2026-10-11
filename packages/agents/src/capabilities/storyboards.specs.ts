@@ -190,7 +190,7 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
         "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
         "duration_seconds?, duration_source?, render_mode?, entity_ids?, " +
-        "location_id?, covered_by?, notes?, index?}, " +
+        "location_id?, covered_by?, notes?, end_state?, sound?, index?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
         "reorder_shot {target, index}, move_shot {target, scene_id?, " +
         "position}, duplicate_shot {target}, set_board {brief?, style?, " +
@@ -269,6 +269,77 @@ export const EXTRACT_SCRIPT_SCHEMA: JsonSchema = {
         "Re-project onto the script the board already links, instead of " +
         "failing. Rewrites that script's lines and the board's line " +
         "references; every take voiced from a changed line becomes stale."
+    }
+  },
+  required: ["storyboard_id"]
+};
+
+export const GET_STORYBOARD_ONE_TAKE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    storyboard_id: { type: "string", description: "Storyboard id." }
+  },
+  required: ["storyboard_id"]
+};
+
+export const UPDATE_STORYBOARD_ONE_TAKE_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    storyboard_id: { type: "string", description: "Storyboard id." },
+    expected_revision: {
+      type: "integer",
+      minimum: 0,
+      description: "Reject if the Storyboard changed since it was read."
+    },
+    prompt: {
+      type: "string",
+      description:
+        "The creator's own prompt (brand, rules, light). Replaces the stored " +
+        "one. It is sent before the block compiled from the board, and may " +
+        "refer to the board's images as [Image N]."
+    },
+    duration_seconds: {
+      type: ["number", "null"],
+      description:
+        "The clip's length in seconds, above 0. Every shot window scales to fit it. " +
+        "null clears it: the clip then runs the sum of the shot durations."
+    },
+    aspect_ratio: {
+      type: ["string", "null"],
+      description: "For example 16:9. null clears it: the board's aspect ratio applies."
+    },
+    resolution: {
+      type: ["string", "null"],
+      description:
+        "For example 720p or 1080p. null clears it: the render picks 1080p " +
+        "when the model offers it."
+    },
+    model: {
+      type: ["object", "null"],
+      description:
+        "The video model for the one take. null clears it: the board's " +
+        "video model applies.",
+      properties: {
+        provider: { type: "string" },
+        id: { type: "string" },
+        name: { type: "string" }
+      },
+      required: ["provider", "id"]
+    },
+    shots: {
+      type: "array",
+      description:
+        "Per-shot patches. `shot_id` is an id, index or slug. An empty " +
+        "string or null clears end_state or sound.",
+      items: {
+        type: "object",
+        properties: {
+          shot_id: { type: "string" },
+          end_state: { type: ["string", "null"] },
+          sound: { type: ["string", "null"] }
+        },
+        required: ["shot_id"]
+      }
     }
   },
   required: ["storyboard_id"]
@@ -497,6 +568,37 @@ export const previewStoryboardDesignSpec: CapabilitySpec = {
     storyboardId: { type: "string" }, expectedStoryboardRevision: { type: "integer", minimum: 0 }
   }, required: ["storyboardId", "expectedStoryboardRevision"], additionalProperties: false }
 };
+export const getStoryboardOneTakeSpec: CapabilitySpec = {
+  name: "get_storyboard_one_take",
+  description:
+    "Read a storyboard's one-take direction: the creator's prompt, the " +
+    "block compiled from the board (REFS, STEPS, AUDIO), the full prompt a " +
+    "render sends, the [Image N] references (the shot stills, in shot " +
+    "order), each shot's window, the total duration, the stored render " +
+    "`settings` (duration_seconds, aspect_ratio, resolution, model; null " +
+    "when unset), the `effective` values after the board's fallbacks, and " +
+    "warnings.",
+  inputSchema: GET_STORYBOARD_ONE_TAKE_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    `Reading one-take direction of storyboard ${String(params["storyboard_id"])}`
+};
+
+export const updateStoryboardOneTakeSpec: CapabilitySpec = {
+  name: "update_storyboard_one_take",
+  description:
+    "Write a storyboard's one-take direction. `prompt` replaces the " +
+    "creator's prompt. `duration_seconds`, `aspect_ratio`, `resolution` " +
+    "and `model` set the render settings and keep the others. null clears " +
+    "one. `shots` sets each shot's end_state and sound. " +
+    "References, steps and audio are compiled from the board. Renders " +
+    "nothing. Returns what get_storyboard_one_take returns.",
+  inputSchema: UPDATE_STORYBOARD_ONE_TAKE_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    `Updating one-take direction of storyboard ${String(params["storyboard_id"])}`
+};
+
 
 /** Every spec this module declares, in declaration order. */
 export const storyboardsSpecs: readonly CapabilitySpec[] = [
@@ -513,5 +615,7 @@ export const storyboardsSpecs: readonly CapabilitySpec[] = [
   editStoryboardSpec,
   directStoryboardSpec,
   extractScriptFromStoryboardSpec,
-  deleteStoryboardSpec
+  deleteStoryboardSpec,
+  getStoryboardOneTakeSpec,
+  updateStoryboardOneTakeSpec
 ];

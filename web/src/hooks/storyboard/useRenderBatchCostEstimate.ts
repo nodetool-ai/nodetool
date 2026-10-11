@@ -58,7 +58,8 @@ export function useRenderBatchCostEstimate(
   boardId: string,
   shots: Shot[],
   step: RenderStep,
-  modelForShot?: (shot: Shot) => ShotModelRef | null
+  modelForShot?: (shot: Shot) => ShotModelRef | null,
+  clipResolution: string = CLIP_RESOLUTION
 ): RenderBatchCostEstimate {
   const imageModel = useBoardImageModel(boardId);
   const videoModel = useBoardVideoModel(boardId);
@@ -79,7 +80,7 @@ export function useRenderBatchCostEstimate(
     const isStill = step === "still";
     const label = isStill ? "Still" : "Clip";
     const pickerLabel = isStill ? "still model" : "clip model";
-    const resolution = isStill ? STILL_RESOLUTION : CLIP_RESOLUTION;
+    const resolution = isStill ? STILL_RESOLUTION : clipResolution;
 
     const plan = compileRenderBatchRequestPlan({
       shots,
@@ -125,7 +126,15 @@ export function useRenderBatchCostEstimate(
       reasons: Array.from(new Set(reasons)),
       notes: Array.from(new Set(notes))
     };
-  }, [shots, step, imageModel, videoModel, linesById, modelForShot]);
+  }, [
+    shots,
+    step,
+    imageModel,
+    videoModel,
+    linesById,
+    modelForShot,
+    clipResolution
+  ]);
 }
 
 export default useRenderBatchCostEstimate;

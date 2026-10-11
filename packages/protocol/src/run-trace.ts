@@ -109,10 +109,37 @@ const SAFE_TRACE_ATTRIBUTES = new Set([
   "error.type", "exception.type", "log.level", "log.source", "source", "level", "service.name", "service.version",
   "telemetry.sdk.name", "telemetry.sdk.language", "telemetry.sdk.version", "run.id", "run.kind", "run.origin",
   "nodetool.trace.source", "nodetool.trace.content_suppressed", "nodetool.trace.dropped_browser_spans",
-  "ui.widget.id", "ui.component", "ui.message.type", "ui.variable.id", "ui.input.source", "ui.input.missing", "app.execution.location"
+  "ui.widget.id", "ui.component", "ui.message.type", "ui.variable.id", "ui.input.source", "ui.input.missing", "app.execution.location",
+  "gen_ai.operation.name", "gen_ai.usage.cached_input_tokens", "rpc.system", "rpc.method",
+  "process.executable.name", "process.exit_code", "nodetool.subprocess.concurrency_class", "nodetool.subprocess.queued_ms",
+  "nodetool.workspace.bytes", "nodetool.workspace.recursive", "nodetool.storage.backend", "nodetool.storage.bytes",
+  "nodetool.storage.entry_count", "nodetool.image.width", "nodetool.image.height", "nodetool.image.input_bytes",
+  "nodetool.video.input_bytes", "nodetool.video.codec", "nodetool.audio.peak_count", "media.byte_length",
+  "blender.version", "blender.op", "blender.engine", "blender.runner", "blender.exit_code", "blender.queued_ms",
+  "blender.render_seconds", "agent.action.index", "agent.action.code_length",
+  "app.build.id", "app.build.model", "app.build.provider", "app.build.round", "app.build.judge.model"
 ]);
-const SAFE_SPAN_NAMES = /^(?:ui\.(?:action|resolve_params|fold|widget_error)|app\.run|chat\.turn|script\.run|workflow\.run|node\.process|capability\.call|generation|render|agent\.(?:loop|round|execute|plan|step)|tool\.call|llm\.(?:chat|stream)(?: [a-zA-Z0-9_./:-]+)?|HTTP (?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)|(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)(?: \/[a-zA-Z0-9_/:.-]*)?)$/;
+const SAFE_SPAN_NAMES = new RegExp("^(?:" + [
+  String.raw`ui\.(?:action|resolve_params|fold|widget_error)`,
+  String.raw`app\.run|chat\.turn|script\.run|workflow\.run|node\.process|capability\.call|generation|render|tool\.call`,
+  String.raw`agent\.(?:loop|round|execute|plan|step|action)`,
+  String.raw`llm\.(?:chat|stream)(?: [a-zA-Z0-9_./:-]+)?`,
+  String.raw`provider\.[a-zA-Z0-9]+`,
+  String.raw`python\.(?:execute|execute_stream)|ws\.command`,
+  String.raw`storage\.(?:store|retrieve|delete|list)`,
+  String.raw`workspace\.(?:read|write|list|materialize|absorb)|subprocess\.run`,
+  String.raw`image\.(?:encode_png|rasterize_svg|extract_region|thumbnail)|audio\.peaks|video\.encode_proxy`,
+  String.raw`ffmpeg\.trim_video_window|media\.probe_video_duration|sdcpp\.http|blender\.(?:run|worker\.status)`,
+  String.raw`app\.build(?:\.(?:spec|plan|author|check|run|judge))?`,
+  String.raw`HTTP (?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)`,
+  String.raw`(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)(?: \/[a-zA-Z0-9_/:.-]*)?`
+].join("|") + ")$");
 const SAFE_EVENT_NAMES = new Set(["content.event", "log", "console", "agent.activity", "tool.result", "exception", "ui.resolve_params", "ui.fold"]);
+
+/** Whether a span name is declared metadata. Any other name is stored as owner content. */
+export function isMetadataTraceSpanName(name: string): boolean {
+  return SAFE_SPAN_NAMES.test(name);
+}
 
 /** Unknown attributes are content until their metadata purpose is declared here. */
 export function isTraceContentKey(key: string): boolean {
@@ -141,7 +168,7 @@ export function splitTraceRecord(record: TraceRecord): { record: TraceRecord; co
   const [attributes, contentAttributes] = splitAttributes(record.attributes);
   const [resource, contentResource] = splitAttributes(record.resource);
   const content: TraceContent = {};
-  if (record.name !== "content.span" && !SAFE_SPAN_NAMES.test(record.name)) { content.name = record.name; }
+  if (record.name !== "content.span" && !isMetadataTraceSpanName(record.name)) { content.name = record.name; }
   if (Object.keys(contentAttributes).length > 0) { content.attributes = contentAttributes; }
   if (Object.keys(contentResource).length > 0) { content.resource = contentResource; }
   if (record.status.message !== undefined) { content.status_message = record.status.message; }

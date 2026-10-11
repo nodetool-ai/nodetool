@@ -48,9 +48,9 @@ function createSketchDragImage(name: string): HTMLElement {
     gap: ${getSpacingPx(SPACING.lg)};
     padding: ${getSpacingPx(SPACING.md)};
     box-sizing: border-box;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    box-shadow: var(--shadow-md);
     color: var(--palette-text-primary);
-    font-family: Inter, sans-serif;
+    font-family: var(--fontFamily1);
     pointer-events: none;
     z-index: ${DRAG_IMAGE_Z_INDEX};
   `;

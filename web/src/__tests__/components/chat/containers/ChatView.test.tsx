@@ -785,6 +785,34 @@ describe("ChatView", () => {
       expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
     });
 
+    it("keeps the documents rail out of the phone layout", () => {
+      setViewport("narrow");
+
+      renderWithProviders(
+        <ChatView
+          {...baseProps}
+          messages={[
+            {
+              id: "1",
+              type: "message",
+              role: "user",
+              content: [{ type: "text", text: "Go" }]
+            }
+          ]}
+          projectDocumentsSidebar={<div data-testid="project-documents" />}
+        />
+      );
+
+      expect(
+        screen.queryByRole("button", { name: "Chat" })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Documents" })
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("project-documents")).not.toBeInTheDocument();
+      expect(screen.getByTestId("chat-thread-view")).toBeInTheDocument();
+    });
+
     it("leaves the desktop layout without the tabs", () => {
       setViewport("desktop");
       seedTodos();

@@ -12,6 +12,7 @@ import {
 } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
@@ -75,11 +76,12 @@ function fireSpeechEvent(name: string, payload?: unknown): void {
 }
 
 describe('ChatComposer', () => {
-  const mockOnSendMessage = jest.fn();
+  const mockOnSendMessage = jest.fn<Promise<boolean>, unknown[]>();
   const mockOnStop = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOnSendMessage.mockResolvedValue(true);
     speechListeners = {};
     eventHook.mockImplementation((name, listener) => {
       // SAFETY: `listener` is the hook's handler for the single event `name`,
@@ -99,6 +101,17 @@ describe('ChatComposer', () => {
 
       const container = screen.getByTestId('composer-container');
       expect(StyleSheet.flatten(container.props.style).paddingBottom).toBe(34 + 8);
+    });
+
+    it('leaves the safe-area inset to the tab bar when it sits above one', () => {
+      render(
+        <BottomTabBarHeightContext.Provider value={83}>
+          <ChatComposer status="connected" onSendMessage={mockOnSendMessage} />
+        </BottomTabBarHeightContext.Provider>
+      );
+
+      const container = screen.getByTestId('composer-container');
+      expect(StyleSheet.flatten(container.props.style).paddingBottom).toBe(8);
     });
 
     it('renders input field', () => {
@@ -179,7 +192,7 @@ describe('ChatComposer', () => {
       );
     });
 
-    it('clears input after sending', () => {
+    it('clears input after sending', async () => {
       render(
         <ChatComposer
           status="connected"
@@ -193,7 +206,70 @@ describe('ChatComposer', () => {
       const sendButton = screen.getByTestId('send-button');
       fireEvent.press(sendButton);
       
-      expect(input.props.value).toBe('');
+      await waitFor(() => expect(input.props.value).toBe(''));
+    });
+
+    it('keeps the draft when the message could not be sent', async () => {
+      mockOnSendMessage.mockResolvedValue(false);
+      render(<ChatComposer status="disconnected" onSendMessage={mockOnSendMessage} />);
+
+      const input = screen.getByPlaceholderText('Type a message...');
+      fireEvent.changeText(input, 'Hello');
+      fireEvent.press(screen.getByRole('button', { name: 'Send message' }));
+
+      await waitFor(() => expect(mockOnSendMessage).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Send message' }).props.accessibilityState).toMatchObject({ busy: false })
+      );
+      expect(input.props.value).toBe('Hello');
+    });
+
+    it('keeps the draft and does not throw when the send rejects', async () => {
+      mockOnSendMessage.mockRejectedValue(new Error('Send failed'));
+      render(<ChatComposer status="connected" onSendMessage={mockOnSendMessage} />);
+
+      const input = screen.getByPlaceholderText('Type a message...');
+      fireEvent.changeText(input, 'Hello');
+      fireEvent.press(screen.getByTestId('send-button'));
+
+      await waitFor(() =>
+        expect(screen.getByTestId('send-button').props.accessibilityState).toMatchObject({ busy: false })
+      );
+      expect(input.props.value).toBe('Hello');
+    });
+
+    it('ignores a second tap while a send is in flight', async () => {
+      let finish: (sent: boolean) => void = () => {};
+      mockOnSendMessage.mockReturnValue(
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        })
+      );
+      render(<ChatComposer status="connected" onSendMessage={mockOnSendMessage} />);
+
+      fireEvent.changeText(screen.getByPlaceholderText('Type a message...'), 'Hello');
+      fireEvent.press(screen.getByTestId('send-button'));
+      fireEvent.press(screen.getByTestId('send-button'));
+
+      expect(mockOnSendMessage).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        finish(true);
+      });
+    });
+
+    it('does not send while a reply is streaming', () => {
+      render(<ChatComposer status="streaming" onSendMessage={mockOnSendMessage} />);
+
+      fireEvent.changeText(screen.getByPlaceholderText('Type a message...'), 'Hello');
+      fireEvent.press(screen.getByTestId('send-button'));
+
+      expect(mockOnSendMessage).not.toHaveBeenCalled();
+    });
+
+    it('labels the send button for screen readers', () => {
+      render(<ChatComposer status="connected" onSendMessage={mockOnSendMessage} />);
+
+      expect(screen.getByRole('button', { name: 'Send message' })).toBeTruthy();
     });
 
     it('dismisses keyboard after sending', () => {
@@ -264,7 +340,7 @@ describe('ChatComposer', () => {
         />
       );
       
-      const stopButton = screen.getByTestId('stop-button');
+      const stopButton = screen.getByRole('button', { name: 'Stop generating' });
       fireEvent.press(stopButton);
       
       expect(mockOnStop).toHaveBeenCalledTimes(1);
