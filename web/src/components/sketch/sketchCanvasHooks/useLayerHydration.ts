@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useRef } from "react";
-import type { SketchDocument } from "../types";
+import type { LayerImageObjectFit, SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
 import type { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 
@@ -158,6 +158,7 @@ export function useLayerHydration({
       hydrationKey: string;
       source: string | null;
       defaultBounds: { x: number; y: number; width: number; height: number };
+      imageFit: LayerImageObjectFit | undefined;
     }> = [];
 
     for (const layer of doc.layers) {
@@ -211,7 +212,10 @@ export function useLayerHydration({
         layerId: layer.id,
         hydrationKey,
         source: resolveLayerHydrationSource(layer.data, layer.imageReference?.uri),
-        defaultBounds
+        defaultBounds,
+        // A layer's own raster is drawn as stored; only a bare image
+        // reference is fitted into the layer.
+        imageFit: layer.data ? undefined : layer.imageReference?.objectFit
       });
     }
 
@@ -256,7 +260,8 @@ export function useLayerHydration({
           if (pendingHydrationLayerIds.size === 0) {
             coordinatorRef?.current?.markHydrationComplete();
           }
-        }
+        },
+        job.imageFit
       );
     }
     // Intentionally omit doc.canvas.width/height: canvas resize must not

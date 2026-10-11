@@ -33,6 +33,7 @@ import {
   isLayerCompositeVisible,
   type Layer,
   type LayerContentBounds,
+  type LayerImageObjectFit,
   type Selection,
   type SketchDocument
 } from "../types";
@@ -1642,12 +1643,19 @@ export class WebGPURuntime implements SketchRuntime {
     layerId: string,
     data: string | null,
     bounds: LayerContentBounds,
-    onComplete?: () => void
+    onComplete?: () => void,
+    imageFit?: LayerImageObjectFit
   ): void {
-    this.cpuRuntime.setLayerData(layerId, data, bounds, () => {
-      this.markLayerDirty(layerId);
-      onComplete?.();
-    });
+    this.cpuRuntime.setLayerData(
+      layerId,
+      data,
+      bounds,
+      () => {
+        this.markLayerDirty(layerId);
+        onComplete?.();
+      },
+      imageFit
+    );
   }
 
   restoreLayerCanvas(layerId: string, source: HTMLCanvasElement): void {
