@@ -59,7 +59,9 @@ export function removeGraphLink(
 ): LinkResult<GraphLink[]> {
   let target = links.find((l) => l.id === linkId);
   if (!target && isShortResourceId(linkId)) {
-    const matches = links.filter((l) => l.id.startsWith(linkId));
+    // isShortResourceId fixes the prefix to exactly 12 hex characters, and
+    // more than one match is refused below.
+    const matches = links.filter((l) => l.id.startsWith(linkId)); // key-boundary-ok
     if (matches.length > 1) {
       return {
         ok: false,
