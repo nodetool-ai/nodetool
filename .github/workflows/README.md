@@ -30,8 +30,7 @@ diff outside its paths and blocks the merge.
 
 The browser suites in `user-journeys.yml`, `page-load-smoke.yml`, and
 `e2e-runner.yml` run nightly and on dispatch, and on a pull request only when
-the `browser-suites` label is added. The `journeys` job in `user-journeys.yml`
-also runs on every push to `main`. The other two do not run on push. Their pull-request
+the `browser-suites` label is added. None of them runs on a push to `main`. Their pull-request
 trigger is `labeled` alone, so a PR without the label starts no run of them.
 A new push to a labeled PR does not rerun them. Remove and re-add the label,
 or dispatch the workflow on the PR branch. On pull requests they are advisory
@@ -49,7 +48,7 @@ below.
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
 | `fly-deploy.yml` | **Deploy to Docker**: release the GHCR image to the production host over restricted SSH, gated on Docker + User Journeys succeeding for the same commit | 1 | Required |
 | `web-deploy.yml` | Build the web app and deploy to Cloudflare Pages | 1 | Required |
-| `user-journeys.yml` | `journeys`: Playwright journey suite on push to `main`, nightly, dispatch, and pull requests with the `browser-suites` label (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | `reliability-ring1` gates deploy; `journeys` advisory on labeled PRs |
+| `user-journeys.yml` | `journeys`: Playwright journey suite nightly, on dispatch, and on pull requests with the `browser-suites` label (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | `reliability-ring1` gates deploy; `journeys` advisory on labeled PRs |
 | `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, a packed-backend reliability journey per OS, updater assets | 2 | Required |
 | `example-smoke-debug.yml` | Nightly + manual real-provider smoke via `nodetool debug` | 2 | Nightly (spend-capped), also dispatch-only |
 | `codeql.yml` | CodeQL advanced setup: TypeScript and workflow files on pull requests, all three languages nightly on `main`. Replaces GitHub default setup, which must stay off | none/maintenance | Advisory |
