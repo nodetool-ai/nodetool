@@ -3,7 +3,6 @@ import { memo, useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
-import LockIcon from "@mui/icons-material/Lock";
 import LoginIcon from "@mui/icons-material/Login";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -948,29 +947,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
               open={dialogOpen}
               onClose={handleCloseDialog}
               fullWidth
-              title={
-                <FlexRow align="center" gap={1}>
-                  <LockIcon
-                    sx={{
-                      color: "var(--palette-primary-main)",
-                      fontSize: "1.2em"
-                    }}
-                  />
-                  <Text size="big">
-                    {editingSecret?.is_configured ? "Update" : "Connect"}{" "}
-                    {meta?.name || editingSecret.key}
-                  </Text>
-                </FlexRow>
-              }
+              title={`${editingSecret?.is_configured ? "Update" : "Connect"} ${
+                meta?.name || editingSecret.key
+              }`}
               onConfirm={handleSave}
-              onCancel={handleCloseDialog}
               confirmText={editingSecret?.is_configured ? "Update" : "Connect"}
-              cancelText="Cancel"
               confirmDisabled={!allFieldsFilled}
             >
-              <FlexColumn
-                sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}
-              >
+              <FlexColumn gap={SPACING.lg}>
                 {meta?.combinedCredential ? (
                   <>
                     <TextInput
@@ -1010,7 +994,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
                         size="small"
                       />
                     ))}
-                    <Caption sx={{}}>
+                    <Caption>
                       All fields will be encrypted and stored securely. Never
                       share them publicly.
                     </Caption>
@@ -1018,7 +1002,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
                 ) : (
                   <>
                     <TextInput
-                      label="API Key"
+                      label="API key"
                       type="password"
                       value={formValue}
                       onChange={(e) => setFormValue(e.target.value)}
@@ -1028,7 +1012,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
                       variant="outlined"
                       size="small"
                     />
-                    <Caption sx={{}}>
+                    <Caption>
                       Your key will be encrypted and stored securely. Never
                       share it publicly.
                     </Caption>
@@ -1044,10 +1028,11 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         open={deleteDialogOpen}
         onClose={handleCloseDelete}
         onConfirm={confirmDelete}
-        title="Delete API Key"
-        content={`Are you sure you want to delete the ${secretToDelete ? getParentProviderMeta(secretToDelete.key)?.name || secretToDelete.key : ""} API key?`}
+        title="Delete API key?"
+        content={`The ${secretToDelete ? getParentProviderMeta(secretToDelete.key)?.name || secretToDelete.key : ""} API key will be removed and its models will stop working until you add a key again.`}
         confirmText="Delete"
         cancelText="Cancel"
+        destructive
       />
     </FlexColumn>
   );

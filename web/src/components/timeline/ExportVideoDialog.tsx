@@ -11,15 +11,14 @@
  * `useTimelineExport`.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 
 import {
+  Caption,
   Dialog,
-  EditorButton,
   FlexColumn,
   LabeledSwitch,
   SelectField,
-  Text,
   SPACING,
   type SelectOption
 } from "../ui_primitives";
@@ -87,37 +86,24 @@ export const ExportVideoDialog: React.FC<ExportVideoDialogProps> = ({
     onClose();
   }, [format, alpha, onExport, onClose]);
 
-  const actions = useMemo(
-    () => (
-      <>
-        <EditorButton variant="outlined" size="small" onClick={onClose}>
-          Cancel
-        </EditorButton>
-        <EditorButton variant="contained" size="small" onClick={handleExport}>
-          Export
-        </EditorButton>
-      </>
-    ),
-    [onClose, handleExport]
-  );
-
   return (
     <Dialog
       open={open}
       onClose={onClose}
       title="Export timeline"
-      actions={actions}
+      onConfirm={handleExport}
+      confirmText="Export"
     >
-      <FlexColumn gap={SPACING.md} sx={{ py: SPACING.xs }}>
+      <FlexColumn gap={SPACING.md}>
         <SelectField
           label="Format"
           value={format}
           onChange={handleFormatChange}
           options={FORMAT_OPTIONS}
         />
-        <Text size="small" sx={{ color: "text.secondary" }}>
+        <Caption size="small" color="secondary">
           {FORMAT_NOTE[format]}
-        </Text>
+        </Caption>
         <LabeledSwitch
           id="timeline-export-alpha"
           size="small"

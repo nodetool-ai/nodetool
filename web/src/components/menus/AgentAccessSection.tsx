@@ -357,11 +357,9 @@ const AgentAccessSection = () => {
         open={grantToRevoke !== null}
         onClose={() => setGrantToRevoke(null)}
         title="Disconnect this client?"
-        showActions
         confirmText="Disconnect"
-        cancelText="Cancel"
+        destructive
         isLoading={revokeGrant.isPending}
-        onCancel={() => setGrantToRevoke(null)}
         onConfirm={() => {
           if (grantToRevoke) revokeGrant.mutate(grantToRevoke.id);
         }}

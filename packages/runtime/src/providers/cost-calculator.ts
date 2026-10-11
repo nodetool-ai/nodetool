@@ -66,6 +66,12 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
   // Whisper / Speech-to-Text — per minute.
   whisperStandard: { costType: CostType.DURATION_BASED, perMinute: 0.006 },
   whisperLowCost: { costType: CostType.DURATION_BASED, perMinute: 0.003 },
+  // Meta Muse Voice Transcribe — $0.18 per hour of audio.
+  // Source: https://dev.meta.ai/docs/speech-to-text
+  museVoiceTranscribe: { costType: CostType.DURATION_BASED, perMinute: 0.003 },
+  // Meta Muse Image — $0.01 per generated image.
+  // Source: https://dev.meta.ai/docs/image-generation
+  museImage: { costType: CostType.IMAGE_BASED, perImage: 0.01 },
   // TTS / Text-to-Speech — per 1000 characters.
   // tts-1 = $15/1M chars ($0.015/1k); tts-1-hd = $30/1M chars ($0.03/1k).
   ttsHd: { costType: CostType.CHARACTER_BASED, per1kChars: 0.015 },
@@ -101,6 +107,9 @@ export const MODEL_TO_TIER: Record<string, string> = {
   "openai:whisper-1": "whisperStandard",
   "openai:gpt-4o-transcribe": "whisperStandard",
   "openai:gpt-4o-mini-transcribe": "whisperLowCost",
+  "meta:muse-voice-transcribe-1.0": "museVoiceTranscribe",
+  // Meta Muse Image
+  "meta:muse-image-1.0": "museImage",
   // TTS / Text-to-Speech
   "openai:gpt-4o-mini-tts": "ttsGpt4oMini",
   "openai:tts-1": "ttsHd",

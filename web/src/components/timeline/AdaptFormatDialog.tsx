@@ -10,11 +10,13 @@ import {
 
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import {
+  AlertBanner,
   Caption,
   Checkbox,
   Dialog,
   FlexColumn,
   FlexRow,
+  FormField,
   Label,
   Radio,
   RadioSet,
@@ -141,52 +143,51 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
       onClose={onClose}
       title="Adapt format"
       onConfirm={() => void handleCreate()}
-      onCancel={onClose}
       confirmText={
         formats.size > 1 ? "Create adaptations" : "Create adaptation"
       }
-      cancelText="Cancel"
       confirmDisabled={cannotCreate}
       isLoading={isCreating}
     >
-      <FlexColumn gap={SPACING.lg} sx={{ py: SPACING.md }}>
-        <FlexColumn gap={SPACING.xs}>
-          <Label>Original</Label>
+      <FlexColumn gap={SPACING.lg}>
+        <FormField label="Original">
           <Text size="small">
             {sequence ? `${sequence.width} × ${sequence.height}` : "—"}
           </Text>
-        </FlexColumn>
+        </FormField>
+
+        <FormField label="Target formats">
+          <FlexColumn gap={SPACING.xs}>
+            {FORMAT_OPTIONS.map((format) => (
+              <Checkbox
+                key={format.value}
+                size="small"
+                checked={formats.has(format.value)}
+                onChange={() => toggleFormat(format.value)}
+                label={`${format.label} — ${format.dimensions}`}
+              />
+            ))}
+          </FlexColumn>
+        </FormField>
 
         <FlexColumn gap={SPACING.xs}>
-          <Label>Target formats</Label>
-          {FORMAT_OPTIONS.map((format) => (
-            <Checkbox
-              key={format.value}
-              size="small"
-              checked={formats.has(format.value)}
-              onChange={() => toggleFormat(format.value)}
-              label={`${format.label} — ${format.dimensions}`}
-            />
-          ))}
-        </FlexColumn>
-
-        <FlexColumn gap={SPACING.xs}>
-          <Label>Strategy</Label>
-          <RadioSet value={strategy} onChange={handleStrategyChange}>
-            <Radio value="center" label="Center" size="small" />
-            <Radio
-              value="smart"
-              label="Smart reframe"
-              size="small"
-              disabled={smartUnavailable}
-            />
-            <Radio
-              value="track"
-              label="Follow selected object"
-              size="small"
-              disabled={readyTracks.length === 0}
-            />
-          </RadioSet>
+          <FormField label="Strategy">
+            <RadioSet value={strategy} onChange={handleStrategyChange}>
+              <Radio value="center" label="Center" size="small" />
+              <Radio
+                value="smart"
+                label="Smart reframe"
+                size="small"
+                disabled={smartUnavailable}
+              />
+              <Radio
+                value="track"
+                label="Follow selected object"
+                size="small"
+                disabled={readyTracks.length === 0}
+              />
+            </RadioSet>
+          </FormField>
           {strategy === "track" && (
             <SelectField
               label="Reframe subject"
@@ -226,7 +227,7 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
           />
         </FlexColumn>
 
-        {error && <Caption color="error">{error}</Caption>}
+        {error && <AlertBanner severity="error">{error}</AlertBanner>}
         <Caption color="muted">
           New sequences share the source media. The original edit is not resized
           or changed.

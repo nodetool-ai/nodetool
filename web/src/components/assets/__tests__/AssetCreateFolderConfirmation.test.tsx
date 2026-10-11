@@ -1,13 +1,10 @@
 /**
- * The dialog is anchored to the cursor, and the cursor is on the New Folder
- * button — which sits near the top of the Library panel. A fixed upward offset
- * therefore put the name field above the viewport, leaving only Cancel and
- * Create Folder on screen (#5004).
+ * The create-folder dialog is a centered Dialog: name field, validation
+ * banner, Cancel / Create footer.
  */
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-import { installGlobal } from "../../../test-utils/doubles";
 import AssetCreateFolderConfirmation from "../AssetCreateFolderConfirmation";
 
 const mockGridState = {
@@ -48,81 +45,49 @@ jest.mock("../../../serverState/useAssets", () => ({
   })
 }));
 
-const DIALOG_WIDTH = 400;
-const DIALOG_HEIGHT = 220;
-const VIEWPORT_WIDTH = 1200;
-const VIEWPORT_HEIGHT = 800;
-
-const openAt = (clientX: number, clientY: number): HTMLElement => {
-  document.dispatchEvent(new MouseEvent("mousemove", { clientX, clientY }));
-
-  // jsdom lays nothing out, so the measurement the placement reads has to be
-  // supplied — reading the real height is the whole point of the fix.
-  jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
-    width: DIALOG_WIDTH,
-    height: DIALOG_HEIGHT,
-    x: 0,
-    y: 0,
-    top: 0,
-    left: 0,
-    right: DIALOG_WIDTH,
-    bottom: DIALOG_HEIGHT,
-    toJSON: () => ({})
-  });
-
+const renderDialog = () =>
   render(
     <ThemeProvider theme={mockTheme}>
       <AssetCreateFolderConfirmation />
     </ThemeProvider>
   );
 
-  const dialog = document.querySelector(".asset-create-folder-dialog");
-  if (!(dialog instanceof HTMLElement)) {
-    throw new Error("expected the create-folder dialog to render");
-  }
-  return dialog;
-};
-
-describe("AssetCreateFolderConfirmation placement", () => {
-  beforeEach(() => {
-    installGlobal("innerWidth", VIEWPORT_WIDTH);
-    installGlobal("innerHeight", VIEWPORT_HEIGHT);
-  });
-
+describe("AssetCreateFolderConfirmation", () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
-  it("keeps the name field on screen when opened near the top of the window", () => {
-    const dialog = openAt(990, 100);
+  it("opens as a centered dialog with the name field and footer", () => {
+    renderDialog();
 
-    expect(parseFloat(dialog.style.top)).toBeGreaterThanOrEqual(0);
-    expect(dialog.style.visibility).toBe("visible");
-    expect(screen.getByDisplayValue("New Folder")).toBeVisible();
-  });
-
-  it("stays on screen when the cursor was never tracked", () => {
-    const dialog = openAt(0, 0);
-
-    expect(parseFloat(dialog.style.top)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(dialog.style.left)).toBeGreaterThanOrEqual(0);
-  });
-
-  it("keeps the dialog inside the bottom-right corner", () => {
-    const dialog = openAt(1190, 795);
-
-    expect(parseFloat(dialog.style.left) + DIALOG_WIDTH).toBeLessThanOrEqual(
-      VIEWPORT_WIDTH
+    expect(screen.getByRole("dialog")).toHaveAccessibleName(/Create folder/);
+    expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue(
+      "New Folder"
     );
-    expect(parseFloat(dialog.style.top) + DIALOG_HEIGHT).toBeLessThanOrEqual(
-      VIEWPORT_HEIGHT
-    );
+    expect(screen.getByRole("button", { name: "Create" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
   });
 
-  it("sits above and left of the cursor when there is room", () => {
-    const dialog = openAt(900, 600);
+  it("closes through the cancel button", () => {
+    renderDialog();
 
-    expect(parseFloat(dialog.style.top)).toBe(600 - DIALOG_HEIGHT);
-    expect(parseFloat(dialog.style.left)).toBe(900 - DIALOG_WIDTH);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(mockGridState.setCreateFolderDialogOpen).toHaveBeenCalledWith(false);
+  });
+
+  it("shows a validation error without closing", () => {
+    renderDialog();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
+      target: { value: ".hidden" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(
+      screen.getByText("Name cannot start with a special character.")
+    ).toBeInTheDocument();
+    expect(mockGridState.setCreateFolderDialogOpen).not.toHaveBeenCalled();
+    expect(mockAssetState.createFolder).not.toHaveBeenCalled();
   });
 });

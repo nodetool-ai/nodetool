@@ -309,7 +309,10 @@ const ThemeNodetool = createTheme({
           fontFamily: theme.fontFamily1,
           fontSize: theme.fontSizeBig, // 18px — title
           fontWeight: 600,
-          letterSpacing: "-0.01em"
+          letterSpacing: "-0.01em",
+          // DialogTitle renders the h6 variant, which is an uppercase eyebrow;
+          // dialog titles are sentence case.
+          textTransform: "none"
         })
       }
     },

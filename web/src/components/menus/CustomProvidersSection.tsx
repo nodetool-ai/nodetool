@@ -22,7 +22,8 @@ import {
   FlexRow,
   Text,
   TextInput,
-  MOTION
+  MOTION,
+  SPACING
 } from "../ui_primitives";
 import { ConfirmDialog } from "../ui_primitives";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -452,22 +453,14 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
         open={dialogOpen}
         onClose={handleClose}
         fullWidth
-        title={
-          <Text size="normal" weight={600}>
-            {editingSlug ? "Edit endpoint" : "Add OpenAI-compatible endpoint"}
-          </Text>
-        }
+        title={editingSlug ? "Edit endpoint" : "Add OpenAI-compatible endpoint"}
         onConfirm={handleSave}
-        onCancel={handleClose}
         confirmText={editingSlug ? "Save" : "Add"}
-        cancelText="Cancel"
         confirmDisabled={
           Boolean(slugError) || Boolean(urlError) || duplicateSlug
         }
       >
-        <FlexColumn
-          sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}
-        >
+        <FlexColumn gap={SPACING.lg}>
           <TextInput
             label="Name"
             value={draft.name}
@@ -547,7 +540,7 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
             size="small"
             helperText="Detected from the model list. Add ids that Test misses. Calls go to /videos."
           />
-          <Caption sx={{ opacity: 0.6 }}>
+          <Caption color="secondary">
             The URL and key are encrypted and stored per account. The same
             values can come from the environment instead, as CUSTOM_
             {(draft.slug || "SLUG").toUpperCase()}_BASE_URL and CUSTOM_
@@ -558,10 +551,11 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
-        title="Remove endpoint"
+        title="Remove endpoint?"
         content={`Remove ${pendingDelete?.name ?? ""}? Workflows that reference its models stop resolving.`}
         confirmText="Remove"
         cancelText="Cancel"
+        destructive
         onConfirm={confirmDelete}
         onClose={handleCancelDelete}
       />

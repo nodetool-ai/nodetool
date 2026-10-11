@@ -19,6 +19,7 @@ import {
   Text,
   Caption,
   ScrollArea,
+  AlertBanner,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
@@ -237,16 +238,14 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
         <Dialog
           open={open}
           onClose={() => setOpen(false)}
-          title="Load ComfyUI Workflow"
+          title="Load ComfyUI workflow"
           maxWidth="sm"
           fullWidth
-          showActions
           confirmText="Apply"
           confirmDisabled={!schema}
           onConfirm={handleApply}
-          onCancel={() => setOpen(false)}
         >
-          <FlexColumn gap={1.5} sx={{ minWidth: 0 }}>
+          <FlexColumn gap={SPACING.sm} sx={{ minWidth: 0 }}>
             <Caption>
               Paste a workflow in API (prompt) format — use “Save (API Format)”
               in ComfyUI — or drop a .json/.png file exported by ComfyUI.
@@ -258,7 +257,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
                 border: "1px dashed",
                 borderColor: "divider",
                 borderRadius: BORDER_RADIUS.xs,
-                p: 1
+                p: SPACING.xs
               }}
             >
               <TextInput
@@ -270,7 +269,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
                 compact
                 placeholder='{ "3": { "class_type": "KSampler", "inputs": { ... } } }'
               />
-              <FlexRow gap={1} align="center" sx={{ mt: 1 }}>
+              <FlexRow gap={SPACING.xs} align="center" sx={{ mt: SPACING.xs }}>
                 <ToolbarIconButton
                   title="Choose file"
                   size="small"
@@ -294,19 +293,19 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
             </Box>
 
             {error && (
-              <Caption color="error" role="alert">
+              <AlertBanner severity="error" compact>
                 {error}
-              </Caption>
+              </AlertBanner>
             )}
 
             {schema && (
-              <FlexColumn gap={0.5}>
+              <FlexColumn gap={SPACING.micro}>
                 <Text size="small">{summary}</Text>
                 {schema.available_params.length > 0 && (
                   <>
                     <Caption>Expose additional parameters as inputs:</Caption>
                     <ScrollArea style={{ maxHeight: 180 }}>
-                      <FlexColumn gap={0}>
+                      <FlexColumn gap={SPACING.none}>
                         {schema.available_params.map((param) => (
                           <Checkbox
                             key={param.handle}

@@ -1,27 +1,20 @@
-/** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
-import { css } from "@emotion/react";
 
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import {
   Dialog,
-  CloseButton,
-  Text,
-  FlexColumn,
   Divider,
   EditorButton,
-  Box,
+  EmptyState,
+  FlexColumn,
+  FlexRow,
   SPACING,
-  getSpacingPx,
-  DialogTitle,
-  DialogContent,
-  DialogActions
+  Text
 } from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useShallow } from "zustand/react/shallow";
 import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
-import { type Theme } from "@mui/material/styles";
 
 import isEqual from "../../utils/isEqual";
 import FolderOutlined from "@mui/icons-material/FolderOutlined";
@@ -33,32 +26,6 @@ import {
 } from "../../utils/fileExplorer";
 import { isLocalhost, isProduction } from "../../lib/env";
 import { isElectron } from "../../utils/browser";
-
-const styles = (theme: Theme) =>
-  css({
-    ".download-actions": {
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)}`,
-      justifyContent: "space-between",
-      alignItems: "center",
-      color: "inherit",
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`
-    },
-    ".title-close": {
-      position: "absolute",
-      right: theme.spacing(1),
-      top: theme.spacing(1)
-    },
-    ".downloads-list": {
-      display: "flex",
-      flexDirection: "column",
-      gap: theme.spacing(2)
-    },
-    ".folders-row": {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: theme.spacing(1.5)
-    }
-  });
 
 const DownloadManagerDialog: React.FC = () => {
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore(
@@ -77,7 +44,7 @@ const DownloadManagerDialog: React.FC = () => {
   const infoMessage = hasActiveDownloads ? (
     "Downloads continue in the background. Access them anytime from the toolbar download icon."
   ) : (
-    <FlexColumn gap={1}>
+    <FlexColumn gap={SPACING.xs}>
       <span>
         Download models using the <strong>Recommended Models</strong> button
         inside nodes.
@@ -91,54 +58,34 @@ const DownloadManagerDialog: React.FC = () => {
 
   return (
     <Dialog
-      css={styles(theme)}
       className="download-dialog"
       open={isDialogOpen}
       onClose={closeDialog}
+      title="Downloads"
       maxWidth="md"
       fullWidth
     >
-      <DialogTitle sx={{ color: "inherit", position: "relative" }}>
-        {hasActiveDownloads ? "Download Progress" : "Model Downloads"}
-        <CloseButton
-          onClick={closeDialog}
-          className="title-close"
-          nodrag={false}
-        />
-      </DialogTitle>
-      <DialogContent className="download-dialog-content">
-        <Box mt={1} className="downloads-list">
-          {hasActiveDownloads ? (
-            downloadNames.map((name) => (
+      <FlexColumn className="download-dialog-content" gap={SPACING.md}>
+        {hasActiveDownloads ? (
+          <FlexColumn className="downloads-list" gap={SPACING.md}>
+            {downloadNames.map((name) => (
               <DownloadProgress key={name} name={name} />
-            ))
-          ) : (
-            <FlexColumn
-              gap={1.5}
-              align="center"
-              sx={{
-                padding: `${getSpacingPx(SPACING.xxxl)} 0`
-              }}
-            >
-              <DownloadingIcon sx={{ opacity: 0.8 }} />
-              <Text size="normal" weight={600}>No active downloads</Text>
-              <Text
-                size="small"
-                sx={{ opacity: 0.8, textAlign: "center" }}
-              >
-                Start a model download from the Recommended Models dialog or
-                Model Manager.
-              </Text>
-            </FlexColumn>
-          )}
-        </Box>
+            ))}
+          </FlexColumn>
+        ) : (
+          <EmptyState
+            icon={<DownloadingIcon />}
+            title="No active downloads"
+            description="Start a model download from the Recommended Models dialog or Model Manager."
+          />
+        )}
         {isLocalhost &&
           isFileExplorerAvailable() &&
           !isProduction &&
           isElectron && (
             <>
-              <Divider sx={{ my: 2 }} />
-              <Box className="folders-row">
+              <Divider />
+              <FlexRow className="folders-row" gap={SPACING.sm} wrap>
                 <EditorButton
                   variant="outlined"
                   startIcon={<FolderOutlined />}
@@ -153,32 +100,20 @@ const DownloadManagerDialog: React.FC = () => {
                 >
                   Open Ollama folder
                 </EditorButton>
-              </Box>
+              </FlexRow>
             </>
           )}
-      </DialogContent>
-      <DialogActions className="download-actions">
-        <Text
-          component="div"
-          sx={{
-            padding: `0 ${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
-            fontWeight: 400,
-            color: "inherit",
-            display: "flex",
-            alignItems: "center",
-            gap: getSpacingPx(SPACING.md)
-          }}
-        >
+        <Divider />
+        <FlexRow className="download-info" gap={SPACING.md} align="center">
           <AnnouncementIcon
             fontSize="small"
             sx={{ color: theme.vars.palette.warning.main }}
           />
-          {infoMessage}
-        </Text>
-        <EditorButton onClick={closeDialog} variant="contained">
-          Close
-        </EditorButton>
-      </DialogActions>
+          <Text component="div" size="small" color="secondary">
+            {infoMessage}
+          </Text>
+        </FlexRow>
+      </FlexColumn>
     </Dialog>
   );
 };

@@ -554,7 +554,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         onClose={handleCloseDeleteDialog}
         title="Delete this version?"
         onConfirm={handleConfirmDelete}
-        onCancel={handleCloseDeleteDialog}
         confirmText="Delete"
         destructive
       >

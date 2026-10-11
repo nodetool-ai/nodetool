@@ -1645,7 +1645,7 @@ if (process.env.JEST_WORKER_ID) {
         filename: "download-manager.png",
         ready: async (p) => {
           await p
-            .getByText(/Model Downloads|Download Progress|Recommended Models/i)
+            .getByText(/Downloads|Recommended Models/i)
             .first()
             .waitFor({ state: "visible", timeout: 8000 });
         }

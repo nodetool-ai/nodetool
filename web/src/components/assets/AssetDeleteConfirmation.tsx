@@ -1,6 +1,3 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
 import React, { useState, useCallback, useEffect } from "react";
 import InsertDriveFile from "@mui/icons-material/InsertDriveFile";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,23 +9,16 @@ import { Asset } from "../../stores/ApiTypes";
 import { useAuth } from "../../stores/useAuth";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
+  AlertBanner,
   Dialog,
-  DialogActionButtons,
+  FlexColumn,
   LoadingSpinner,
   ListGroup,
   ListItemRow,
-  Text, getSpacingPx, SPACING
+  SPACING,
+  Text
 } from "../ui_primitives";
 import { isObjectLike } from "../../utils/typePredicates";
-
-const styles = css({
-  ".asset-delete-confirmation-content": {
-    position: "relative",
-    minWidth: "600px",
-    minHeight: "200px",
-    maxHeight: "60vh"
-  }
-});
 
 interface AssetDeleteConfirmationProps {
   assets: string[];
@@ -57,7 +47,9 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   );
 
   useEffect(() => {
-    if (!dialogOpen) {return;} // Only process when dialog is actually open
+    if (!dialogOpen) {
+      return;
+    } // Only process when dialog is actually open
 
     const countAssetTypes = () => {
       setIsPreparingDelete(true);
@@ -114,7 +106,10 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       if (response === undefined) {
         console.error("Received undefined response from server");
       } else if (isObjectLike(response)) {
-        console.info("Deleted asset IDs:", (response as { deleted_asset_ids?: string[] }).deleted_asset_ids);
+        console.info(
+          "Deleted asset IDs:",
+          (response as { deleted_asset_ids?: string[] }).deleted_asset_ids
+        );
       }
       // Blur focused element to prevent aria-hidden focus warning
       if (document.activeElement instanceof HTMLElement) {
@@ -157,42 +152,49 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     fileCount
   ]);
 
-  const getDialogTitle = () => {
-    if (isAssetTreeLoading && folderCount > 0) {
-      return "Preparing to delete...";
-    } else if (showRootFolderWarning) {
-      return "Warning: The root folder cannot be deleted.";
-    } else if (folderCount === 1 && fileCount === 0) {
-      return `Delete folder containing ${totalAssets - 1} file${
-        totalAssets - 1 !== 1 ? "s" : ""
-      }?`;
-    } else if (folderCount > 0) {
-      return `Delete ${folderCount} folder${
-        folderCount !== 1 ? "s" : ""
-      } and ${fileCount} file${
-        fileCount !== 1 ? "s" : ""
-      } containing ${totalAssets} item${totalAssets !== 1 ? "s" : ""}?`;
-    } else {
-      return `Delete ${fileCount} file${fileCount !== 1 ? "s" : ""}?`;
-    }
-  };
+  const itemCount = folderCount + fileCount || assets.length;
+  const plural = (count: number, word: string) =>
+    `${count} ${word}${count !== 1 ? "s" : ""}`;
+  const folderSummary =
+    folderCount === 0 || isAssetTreeLoading
+      ? null
+      : folderCount === 1 && fileCount === 0
+        ? `The folder contains ${plural(totalAssets - 1, "file")}.`
+        : `${plural(folderCount, "folder")} and ${plural(
+            fileCount,
+            "file"
+          )} containing ${plural(totalAssets, "item")}.`;
 
   return (
     <Dialog
-      css={styles}
       className="asset-delete-confirmation"
       open={dialogOpen}
       onClose={handleClose}
       disableRestoreFocus
-      title={getDialogTitle()}
+      maxWidth="sm"
+      fullWidth
+      title={`Delete ${plural(itemCount, "item")}?`}
+      onConfirm={executeDeletion}
+      confirmText="Delete"
+      destructive
+      isLoading={isLoading}
+      confirmDisabled={isAssetTreeLoading || showRootFolderWarning}
     >
-      <div className="asset-delete-confirmation-content">
-        <Text
-          color="secondary"
-          style={{ marginBottom: getSpacingPx(SPACING.xl) }}
-        >
+      <FlexColumn
+        className="asset-delete-confirmation-content"
+        gap={SPACING.xl}
+      >
+        {showRootFolderWarning ? (
+          <AlertBanner severity="warning">
+            The root folder cannot be deleted.
+          </AlertBanner>
+        ) : null}
+        <Text color="secondary">
           You can right click selected assets and download them before deleting.
         </Text>
+        {folderSummary && !showRootFolderWarning ? (
+          <Text>{folderSummary}</Text>
+        ) : null}
         {isPreparingDelete ? (
           <LoadingSpinner size="small" />
         ) : (
@@ -223,16 +225,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
             )}
           </>
         )}
-      </div>
-      <DialogActionButtons
-        onConfirm={executeDeletion}
-        onCancel={handleClose}
-        confirmText="Delete"
-        cancelText="Cancel"
-        isLoading={isLoading}
-        confirmDisabled={isAssetTreeLoading || showRootFolderWarning}
-        destructive={true}
-      />
+      </FlexColumn>
     </Dialog>
   );
 };

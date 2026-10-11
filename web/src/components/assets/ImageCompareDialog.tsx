@@ -7,30 +7,9 @@ import type { Theme } from "@mui/material/styles";
 
 import { ImageComparer } from "../widgets";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import { useCombo } from "../../stores/KeyPressedStore";
 
 const styles = (theme: Theme) =>
   css({
-    "&": {
-      margin: 0,
-      height: "100%",
-      width: "100%",
-      top: 0,
-      display: "block"
-    },
-    ".MuiModal-root": {
-      zIndex: theme.zIndex.floating
-    },
-    ".MuiPaper-root": {
-      overflow: "hidden",
-      height: "100%",
-      backgroundColor: theme.vars.palette.grey[900],
-      width: "100%",
-      maxWidth: "100%",
-      maxHeight: "100%",
-      zIndex: theme.zIndex.floating,
-      margin: 0
-    },
     ".compare-container": {
       width: "100%",
       height: "100%",
@@ -66,16 +45,6 @@ const ImageCompareDialog: React.FC = () => {
   const compareAssets = useAssetGridStore((state) => state.compareAssets);
   const closeCompareView = useAssetGridStore((state) => state.closeCompareView);
 
-  // Only handle Escape when dialog is open
-  useCombo(
-    ["Escape"],
-    React.useCallback(() => {
-      if (compareAssets) {
-        closeCompareView();
-      }
-    }, [compareAssets, closeCompareView])
-  );
-
   if (!compareAssets) {
     return null;
   }
@@ -91,8 +60,11 @@ const ImageCompareDialog: React.FC = () => {
   return (
     <Dialog
       css={styles(theme)}
-      maxWidth={false}
-      fullWidth
+      variant="fullscreen"
+      slotProps={{
+        // Media sits on a dark surface rather than the paper color.
+        paper: { style: { background: theme.vars.palette.grey[900] } }
+      }}
       open={compareAssets !== null}
       onClose={closeCompareView}
       aria-label="Compare images"

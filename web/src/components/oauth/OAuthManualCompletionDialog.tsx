@@ -19,6 +19,7 @@ import {
   Caption,
   Dialog,
   FlexColumn,
+  SPACING,
   Text,
   TextInput,
   TextLink
@@ -63,15 +64,14 @@ export const OAuthManualCompletionDialog = ({
       open
       onClose={handleCancel}
       title={`Finish signing in with ${label}`}
-      showActions
       onConfirm={handleConfirm}
-      onCancel={handleCancel}
       confirmText={isSubmitting ? "Connecting…" : "Connect"}
       confirmDisabled={value.trim().length === 0 || isSubmitting}
       isLoading={isSubmitting}
-      minWidth="520px"
+      maxWidth="sm"
+      fullWidth
     >
-      <FlexColumn gap={2}>
+      <FlexColumn gap={SPACING.md}>
         {prompt.input === "code" ? (
           <Text size="small">
             This server cannot receive the sign-in callback, so {label} shows
@@ -100,7 +100,7 @@ export const OAuthManualCompletionDialog = ({
           rows={3}
           autoFocus
         />
-        <Caption sx={{ opacity: 0.6 }}>
+        <Caption color="secondary">
           Sign-in window closed?{" "}
           <TextLink href={prompt.authUrl} external>
             Open it again

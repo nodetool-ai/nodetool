@@ -11,6 +11,7 @@ import React, { useCallback, useMemo } from "react";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
+  AlertBanner,
   Caption,
   Dialog,
   FlexColumn,
@@ -107,13 +108,11 @@ const OneTakeRenderDialog: React.FC<OneTakeRenderDialogProps> = ({
           </Text>
         </FlexColumn>
         {blockers.length > 0 && (
-          <FlexColumn gap={SPACING.micro} role="alert">
+          <AlertBanner severity="error">
             {blockers.map((blocker) => (
-              <Caption key={blocker} sx={{ color: "error.main" }}>
-                {blocker}
-              </Caption>
+              <div key={blocker}>{blocker}</div>
             ))}
-          </FlexColumn>
+          </AlertBanner>
         )}
       </FlexColumn>
     </Dialog>
