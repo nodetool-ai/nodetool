@@ -49,29 +49,104 @@ interface FakeGpu {
   canvas: HTMLCanvasElement;
   configure: jest.Mock<(configuration: GPUCanvasConfiguration) => undefined>;
   copyExternalImageToTexture: jest.Mock<GPUQueue["copyExternalImageToTexture"]>;
+  importExternalTexture: jest.Mock<GPUDevice["importExternalTexture"]>;
+  submit: jest.Mock<GPUQueue["submit"]>;
+}
+
+interface FakeGpuOptions {
+  lost?: Promise<GPUDeviceLostInfo>;
+  /** Give the device `importExternalTexture`, as every shipping WebGPU has. */
+  externalTextures?: boolean;
+}
+
+/** The shape a fake `VideoFrame` reports, taken from `new VideoFrame(video)` too. */
+interface FrameShape {
+  timestamp?: number;
+  codedWidth: number;
+  codedHeight: number;
+  displayWidth: number;
+  displayHeight: number;
+  rotation?: number;
+}
+
+/** What `new VideoFrame(video)` reports for the element under test. */
+let elementFrame: FrameShape = {
+  codedWidth: 64,
+  codedHeight: 32,
+  displayWidth: 64,
+  displayHeight: 32,
+  rotation: 0
+};
+
+/** jsdom has no WebCodecs; this stands in for the constructor and its frames. */
+class FakeVideoFrame {
+  timestamp = 0;
+  codedWidth = 0;
+  codedHeight = 0;
+  displayWidth = 0;
+  displayHeight = 0;
+  rotation?: number;
+  closed = false;
+  constructor(source: HTMLVideoElement | FrameShape) {
+    Object.assign(this, source instanceof HTMLVideoElement ? elementFrame : source);
+  }
+  close(): void {
+    this.closed = true;
+  }
+}
+
+function videoFrame(shape: FrameShape): VideoFrame {
+  // SAFETY: the compositor reads only the members FakeVideoFrame carries.
+  return new FakeVideoFrame(shape) as unknown as VideoFrame;
 }
 
 /**
  * A WebGPU surface that records `configure` calls and hands out devices in
  * order, so a test can tell which device claimed the canvas and when.
  */
-function fakeGpu(
-  lost: Promise<GPUDeviceLostInfo> = new Promise(() => {})
-): FakeGpu {
+function fakeGpu(options: FakeGpuOptions = {}): FakeGpu {
+  const lost = options.lost ?? new Promise<GPUDeviceLostInfo>(() => {});
   const configure =
     jest.fn<(configuration: GPUCanvasConfiguration) => undefined>();
   const copyExternalImageToTexture =
     jest.fn<GPUQueue["copyExternalImageToTexture"]>();
+  const importExternalTexture = jest.fn<GPUDevice["importExternalTexture"]>(
+    () => stub<GPUExternalTexture>({})
+  );
+  const submit = jest.fn<GPUQueue["submit"]>();
   const events = new EventTarget();
+  const externalTextureMembers = options.externalTextures
+    ? {
+        importExternalTexture,
+        createShaderModule: () => stub<GPUShaderModule>({}),
+        createRenderPipeline: () =>
+          stub<GPURenderPipeline>({
+            getBindGroupLayout: () => stub<GPUBindGroupLayout>({})
+          }),
+        createSampler: () => stub<GPUSampler>({}),
+        createBindGroup: () => stub<GPUBindGroup>({})
+      }
+    : {};
   const device = stub<GPUDevice>({
     lost,
     addEventListener: events.addEventListener.bind(events),
     removeEventListener: events.removeEventListener.bind(events),
     createCommandEncoder: () =>
-      stub<GPUCommandEncoder>({ finish: () => stub<GPUCommandBuffer>({}) }),
-    createTexture: () => stub<GPUTexture>({ destroy() {} }),
-    queue: stub<GPUQueue>({ submit() {}, copyExternalImageToTexture }),
-    destroy() {}
+      stub<GPUCommandEncoder>({
+        finish: () => stub<GPUCommandBuffer>({}),
+        beginRenderPass: () =>
+          stub<GPURenderPassEncoder>({
+            setPipeline() {},
+            setBindGroup() {},
+            draw() {},
+            end() {}
+          })
+      }),
+    createTexture: () =>
+      stub<GPUTexture>({ destroy() {}, createView: () => stub<GPUTextureView>({}) }),
+    queue: stub<GPUQueue>({ submit, copyExternalImageToTexture }),
+    destroy() {},
+    ...externalTextureMembers
   });
   const context = stub<GPUCanvasContext>({
     configure,
@@ -110,7 +185,9 @@ function fakeGpu(
     context,
     canvas,
     configure,
-    copyExternalImageToTexture
+    copyExternalImageToTexture,
+    importExternalTexture,
+    submit
   };
 }
 
@@ -130,6 +207,7 @@ describe("WebGPUCompositor", () => {
     });
     delete window.__nodetoolTimelinePerf;
     Reflect.deleteProperty(globalThis, "GPUTextureUsage");
+    Reflect.deleteProperty(globalThis, "VideoFrame");
   });
 
   it("claims the canvas on the first present, not in init", async () => {
@@ -454,6 +532,130 @@ describe("WebGPUCompositor", () => {
     compositor.dispose();
   });
 
+  describe("video uploads through external textures", () => {
+    // Safari's copyExternalImageToTexture reads every video frame back to the
+    // CPU, which held phone playback far below real time. Video now draws
+    // from an external texture on the GPU and keeps the copy only as a
+    // fallback.
+    beforeEach(() => {
+      Object.defineProperty(globalThis, "VideoFrame", {
+        configurable: true,
+        value: FakeVideoFrame
+      });
+      elementFrame = {
+        codedWidth: 64,
+        codedHeight: 32,
+        displayWidth: 64,
+        displayHeight: 32,
+        rotation: 0
+      };
+    });
+
+    function readyVideo(src: string): HTMLVideoElement {
+      const video = document.createElement("video");
+      Object.defineProperties(video, {
+        readyState: { configurable: true, value: 2 },
+        videoWidth: { configurable: true, value: 64 },
+        videoHeight: { configurable: true, value: 32 }
+      });
+      video.src = src;
+      return video;
+    }
+
+    it("imports a decoded VideoFrame instead of copying it", async () => {
+      const gpu = fakeGpu({ externalTextures: true });
+      const compositor = new WebGPUCompositor();
+      await compositor.init(gpu.canvas);
+      const frame = videoFrame({
+        timestamp: 1_000,
+        codedWidth: 64,
+        codedHeight: 32,
+        displayWidth: 64,
+        displayHeight: 32
+      });
+
+      expect(lastUpload()("d:clip", frame)).not.toBeNull();
+      expect(gpu.importExternalTexture).toHaveBeenCalledWith({ source: frame });
+      expect(gpu.submit).toHaveBeenCalledTimes(1);
+      expect(gpu.copyExternalImageToTexture).not.toHaveBeenCalled();
+      compositor.dispose();
+    });
+
+    it("imports an unrotated video element", async () => {
+      const gpu = fakeGpu({ externalTextures: true });
+      const compositor = new WebGPUCompositor();
+      await compositor.init(gpu.canvas);
+      const video = readyVideo("https://example.test/landscape.mp4");
+
+      expect(lastUpload()("v:clip", video)).not.toBeNull();
+      expect(gpu.importExternalTexture).toHaveBeenCalledWith({ source: video });
+      expect(gpu.copyExternalImageToTexture).not.toHaveBeenCalled();
+      compositor.dispose();
+    });
+
+    it("copies a rotated video element, whose external texture is unrotated in Safari", async () => {
+      const gpu = fakeGpu({ externalTextures: true });
+      const compositor = new WebGPUCompositor();
+      await compositor.init(gpu.canvas);
+      // A portrait phone clip: coded landscape, displayed portrait.
+      elementFrame = {
+        codedWidth: 32,
+        codedHeight: 64,
+        displayWidth: 32,
+        displayHeight: 64
+      };
+      const video = readyVideo("https://example.test/portrait.mov");
+
+      lastUpload()("v:clip", video);
+      expect(gpu.importExternalTexture).not.toHaveBeenCalled();
+      expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+      compositor.dispose();
+    });
+
+    it("copies a VideoFrame that carries a rotation", async () => {
+      const gpu = fakeGpu({ externalTextures: true });
+      const compositor = new WebGPUCompositor();
+      await compositor.init(gpu.canvas);
+      const frame = videoFrame({
+        codedWidth: 64,
+        codedHeight: 64,
+        displayWidth: 64,
+        displayHeight: 64,
+        rotation: 180
+      });
+
+      lastUpload()("d:clip", frame);
+      expect(gpu.importExternalTexture).not.toHaveBeenCalled();
+      expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+      compositor.dispose();
+    });
+
+    it("falls back to the copy when the import fails", async () => {
+      const gpu = fakeGpu({ externalTextures: true });
+      const compositor = new WebGPUCompositor();
+      await compositor.init(gpu.canvas);
+      gpu.importExternalTexture.mockImplementation(() => {
+        throw new DOMException("Unable to import texture.", "InvalidStateError");
+      });
+      const video = readyVideo("https://example.test/landscape.mp4");
+
+      expect(lastUpload()("v:clip", video)).not.toBeNull();
+      expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+      compositor.dispose();
+    });
+
+    it("keeps copying images and bitmaps", async () => {
+      const gpu = fakeGpu({ externalTextures: true });
+      const compositor = new WebGPUCompositor();
+      await compositor.init(gpu.canvas);
+
+      lastUpload()("t:clip", stub<ImageBitmap>({ width: 64, height: 32 }));
+      expect(gpu.importExternalTexture).not.toHaveBeenCalled();
+      expect(gpu.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
+      compositor.dispose();
+    });
+  });
+
   it("reconfigures after a resize", async () => {
     const gpu = fakeGpu();
     const compositor = new WebGPUCompositor();
@@ -481,11 +683,11 @@ describe("WebGPUCompositor", () => {
 
   it("reports asynchronous device loss and validation errors", async () => {
     let lose: (info: GPUDeviceLostInfo) => void = () => {};
-    const gpu = fakeGpu(
-      new Promise((resolve) => {
+    const gpu = fakeGpu({
+      lost: new Promise((resolve) => {
         lose = resolve;
       })
-    );
+    });
     const failure = jest.fn();
     const compositor = new WebGPUCompositor(failure);
     await compositor.init(gpu.canvas);
@@ -510,11 +712,11 @@ describe("WebGPUCompositor", () => {
 
   it("ignores deliberate device destruction and detaches the validation listener", async () => {
     let lose: (info: GPUDeviceLostInfo) => void = () => {};
-    const gpu = fakeGpu(
-      new Promise((resolve) => {
+    const gpu = fakeGpu({
+      lost: new Promise((resolve) => {
         lose = resolve;
       })
-    );
+    });
     const failure = jest.fn();
     const compositor = new WebGPUCompositor(failure);
     await compositor.init(gpu.canvas);
