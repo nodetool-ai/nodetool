@@ -85,6 +85,9 @@ function loadImageSize(
   });
 }
 
+/** First-use creations still in flight, by asset id. */
+const pendingCreations = new Map<string, Promise<string>>();
+
 /**
  * Return the sketch document that backs an image asset, creating one on first
  * use. A new document is sized to the image and seeded with it as the base
@@ -92,13 +95,28 @@ function loadImageSize(
  * `sketch_document_id`, sketch → asset via `thumbnailAssetId`) so the document
  * can later be reopened and saving renders back into this asset.
  */
-export async function ensureSketchDocumentForAsset(
+export function ensureSketchDocumentForAsset(
   asset: Asset,
   updateAsset: (update: AssetUpdate) => Promise<Asset>
 ): Promise<string> {
   const existing = readSketchDocumentId(asset);
-  if (existing) return existing;
+  if (existing) return Promise.resolve(existing);
+  // A second call while the first is still creating joins it. The editor's
+  // effect runs twice on mount under StrictMode, and each run made its own
+  // document, so one "New sketch" listed two "Untitled.png" documents.
+  const pending = pendingCreations.get(asset.id);
+  if (pending) return pending;
+  const creation = createSketchDocumentForAsset(asset, updateAsset).finally(
+    () => pendingCreations.delete(asset.id)
+  );
+  pendingCreations.set(asset.id, creation);
+  return creation;
+}
 
+async function createSketchDocumentForAsset(
+  asset: Asset,
+  updateAsset: (update: AssetUpdate) => Promise<Asset>
+): Promise<string> {
   const { width, height } = await loadImageSize(assetImageUrl(asset));
 
   const created = await trpcClient.sketch.create.mutate({

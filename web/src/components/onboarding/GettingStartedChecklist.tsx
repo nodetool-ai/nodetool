@@ -57,6 +57,11 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.disabled,
         textDecoration: "line-through",
         "&:hover": { borderColor: theme.vars.palette.divider }
+      },
+      // A finished step that still opens its place, such as the provider
+      // dialog where a key is replaced.
+      "&.reopens": {
+        color: theme.vars.palette.text.disabled
       }
     },
     ".checklist-check": {
@@ -112,7 +117,7 @@ const styles = (theme: Theme) =>
         height: CONTROL.height.xl,
         padding: `0 ${getSpacingPx(SPACING.lg)}`,
         borderRadius: BORDER_RADIUS.lg,
-        "&:disabled": { display: "none" }
+        "&:disabled, &.reopens": { display: "none" }
       }
     }
   });
@@ -121,6 +126,8 @@ interface ChecklistStep {
   id: OnboardingStepId | "connect-provider";
   label: string;
   done: boolean;
+  /** Stays clickable once done, under this label. */
+  doneLabel?: string;
   onClick: () => void;
 }
 
@@ -162,6 +169,9 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
       id: "connect-provider",
       label: "Connect an AI provider",
       done: hasConfiguredProvider,
+      // The dialog is where a key is replaced or another provider added, and
+      // a disabled pill left people hunting for another way back to it.
+      doneLabel: "AI provider connected",
       onClick: onConnectProvider
     },
     {
@@ -204,9 +214,11 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
             <button
               key={step.id}
               type="button"
-              className="checklist-step"
+              className={`checklist-step${
+                step.done && step.doneLabel ? " reopens" : ""
+              }`}
               onClick={step.onClick}
-              disabled={step.done}
+              disabled={step.done && !step.doneLabel}
             >
               <span className={`checklist-check${step.done ? " done" : ""}`}>
                 {step.done && (
@@ -222,7 +234,7 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
                   </svg>
                 )}
               </span>
-              {step.label}
+              {step.done && step.doneLabel ? step.doneLabel : step.label}
             </button>
           ))}
           <button

@@ -102,7 +102,10 @@ import {
   useExampleStoryboards
 } from "../../hooks/storyboard/useStoryboards";
 import { useLanguageProviderReadiness } from "../../hooks/useHasConfiguredProvider";
-import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
+import {
+  openProviderOnboarding,
+  useProviderOnboardingStore
+} from "../../stores/ProviderOnboardingStore";
 import useOnboardingStore, {
   isOnboardingFinished
 } from "../../stores/OnboardingStore";
@@ -708,13 +711,26 @@ const NewProjectSurface = ({
   const handleRefImages = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files ?? []);
-      if (files.length > 0) {
-        uploadFiles(files);
+      // The picker's image filter is a default a person can switch off, and a
+      // text file taken as a reference showed as a broken picture.
+      const images = files.filter((file) => file.type.startsWith("image/"));
+      const skipped = files.filter((file) => !file.type.startsWith("image/"));
+      if (skipped.length > 0) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: `Reference images take pictures only. ${skipped
+            .map((file) => file.name)
+            .join(", ")} ${skipped.length === 1 ? "was" : "were"} not added.`
+        });
+      }
+      if (images.length > 0) {
+        uploadFiles(images);
       }
       // Clear the input so picking the same file twice still registers.
       event.target.value = "";
     },
-    [uploadFiles]
+    [addNotification, uploadFiles]
   );
 
   const handleStart = useCallback(async () => {
@@ -1761,7 +1777,9 @@ const NewProjectSurface = ({
   );
 
   // A start that was parked on provider onboarding resumes on its own once a
-  // provider is connected, so the user finishes the thing they asked for.
+  // provider is connected, so the user finishes the thing they asked for. The
+  // dialog has done its job then: left open, it covered the model menu the
+  // resumed start opens and then the chat that start opened.
   const resumeProject = useRef(handleStart);
   resumeProject.current = handleStart;
   useEffect(() => {
@@ -1769,6 +1787,7 @@ const NewProjectSurface = ({
       return;
     }
     setPendingStart(false);
+    useProviderOnboardingStore.getState().dismiss();
     void resumeProject.current();
   }, [pendingStart, hasConfiguredProvider]);
 

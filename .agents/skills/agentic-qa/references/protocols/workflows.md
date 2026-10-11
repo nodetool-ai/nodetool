@@ -157,19 +157,17 @@ and Logs after a reload for an app run.
 |---|---|
 | Kind | `task` |
 | Limits | 50 actions, 10 minutes |
-| State | Needs a fixture that `serveApp.ts` does not provide yet |
+| State | `--state failing-run` |
 | Credentials | One OpenAI test key |
 
 **Goal.** "Someone set up a document in this app for you, and it stops with a
 problem when you run it. Find out what is wrong, fix it, and get it to give a
 result."
 
-**Fixture.** The empty state has no document to fail, and the seeded demo
-state has none that fails on purpose. Add a seed to `screenshot-server.ts`
-that stores one workflow in the empty account whose run fails for a reason a
-user can fix in the editor, such as a required property left empty or a
-missing connection. Until it exists, mark the session `not run` and record
-any failure met in other sessions against the checks below.
+**Fixture.** `--state failing-run` stores "Trip summary": a String Input with
+trip notes, an Agent with no model, and an Output. A run stops with "Pick a
+model here before running this workflow." on the Agent. Picking "Test Chat
+Model" fixes it.
 
 **Pass.** A run of the same document completed with a visible output after
 the participant changed it.

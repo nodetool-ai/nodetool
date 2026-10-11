@@ -3,6 +3,7 @@ import { trpcClient } from "../trpc/client";
 import { createErrorMessage } from "../utils/errorHandling";
 import { SecretResponse } from "./ApiTypes";
 import { queryClient } from "../queryClient";
+import useRemoteSettingsStore from "./RemoteSettingStore";
 import { isString } from "../utils/typePredicates";
 
 /**
@@ -51,6 +52,14 @@ const invalidateProviderDependentCaches = (): void => {
   queryClient.invalidateQueries({ queryKey: ["video-models"] });
   queryClient.invalidateQueries({ queryKey: ["music-models"] });
   queryClient.invalidateQueries({ queryKey: ["3d-models"] });
+  // A node's "Required setting … is not configured" warning reads this list,
+  // which otherwise stays as it was when the app started.
+  useRemoteSettingsStore
+    .getState()
+    .fetchSettings()
+    .catch(() => {
+      // The store records the error. The secret itself was saved.
+    });
 };
 
 const useSecretsStore = create<SecretsStore>((set, get) => ({

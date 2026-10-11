@@ -1578,11 +1578,74 @@ async function seedDatabase(): Promise<void> {
   );
 }
 
+/**
+ * The one document of the `failing-run` state: its Agent step has no model
+ * picked, so a run stops at pre-flight validation until the user connects a
+ * provider and picks one. Agentic QA's `run-failure` journey starts here.
+ */
+const FAILING_RUN_WORKFLOW = makeWorkflow(
+  "wf-trip-summary",
+  "Trip summary",
+  "Turns trip notes into a short summary",
+  [],
+  "2026-01-05T09:00:00Z",
+  "private",
+  {
+    nodes: [
+      {
+        id: "input-notes",
+        type: "nodetool.input.StringInput",
+        data: {
+          name: "notes",
+          label: "Trip notes",
+          value: "Lisbon, 14 to 21 May. Hotel near Alfama. Tram 28 and Belem tower."
+        },
+        ui_properties: { position: { x: 0, y: 0 }, width: 320 }
+      },
+      {
+        id: "agent-summary",
+        type: "nodetool.agents.Agent",
+        data: {},
+        ui_properties: { position: { x: 420, y: 0 }, width: 360 }
+      },
+      {
+        id: "output-summary",
+        type: "nodetool.output.Output",
+        data: { name: "summary", description: "The summary" },
+        ui_properties: { position: { x: 860, y: 0 }, width: 280 }
+      }
+    ],
+    edges: [
+      {
+        id: "edge-notes",
+        source: "input-notes",
+        sourceHandle: "output",
+        target: "agent-summary",
+        targetHandle: "prompt"
+      },
+      {
+        id: "edge-summary",
+        source: "agent-summary",
+        sourceHandle: "text",
+        target: "output-summary",
+        targetHandle: "value"
+      }
+    ]
+  }
+);
+
 // `NODETOOL_QA_STATE=empty` starts with no workflows, threads, assets, or
 // secrets, as a new account does. First-time-user QA (agentic-qa) uses it.
-const EMPTY_ACCOUNT = process.env.NODETOOL_QA_STATE === "empty";
+// `failing-run` is that account plus one workflow that fails until fixed.
+const QA_STATE = process.env.NODETOOL_QA_STATE;
+const EMPTY_ACCOUNT = QA_STATE === "empty" || QA_STATE === "failing-run";
 
 async function seedForState(): Promise<void> {
+  if (QA_STATE === "failing-run") {
+    await Workflow.create(FAILING_RUN_WORKFLOW);
+    console.log("[screenshot-server] Empty account with one failing workflow");
+    return;
+  }
   if (EMPTY_ACCOUNT) {
     console.log("[screenshot-server] Empty account: nothing seeded");
     return;

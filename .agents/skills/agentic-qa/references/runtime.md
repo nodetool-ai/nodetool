@@ -142,7 +142,7 @@ overhead, not human think time.
 
 ```bash
 cd web
-npx tsx tests/agentic-qa/serveApp.ts [--state empty|seeded-demo] \
+npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|seeded-demo] \
   [--backend-port 7790] [--web-port 3010]
 ```
 
@@ -164,6 +164,7 @@ Choose the data state per campaign and label it in the report:
 | `--state` | Data | Providers | Use for |
 |---|---|---|---|
 | `empty` | Nothing: no workflows, threads, assets, or keys | Unconnected until the participant pastes a key from `credentials` | First-time-user sessions (`empty-new-account`) |
+| `failing-run` | The empty account plus one workflow, "Trip summary", whose Agent node has no model, so a run stops on validation | As `empty` | The `run-failure` journey |
 | `seeded-demo` (default) | Example workflows, threads, assets, and seven provider keys | Every provider connected | Returning-user or feature sessions |
 
 Nothing seeds the browser in either state, so onboarding, the model picker,
@@ -215,6 +216,9 @@ goal completable, with placeholder content:
 - Generated images, and edits of an uploaded image, are a 256 × 256 colour
   gradient. "Test Image Model" is listed for both text-to-image and
   image-to-image.
+- "Test Voice Model" (voices `alloy` and `verse`) reads text as silence,
+  a quarter second per word and at least one second, so a voiced line shows
+  a clip with a duration.
 - Any key passes the onboarding key check without a network call, and the
   Settings "Test" button answers "The key was accepted.", as a real check
   that passes does. Text that a participant can see must read like the real

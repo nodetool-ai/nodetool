@@ -8,6 +8,8 @@ import {
 import { queryClient } from "../../queryClient";
 import { ResourceChangeUpdate } from "../ApiTypes";
 import { loadMetadata } from "../../serverState/useMetadata";
+import { noteWorkflowCreatedHere } from "../workflowsCreatedHere";
+import { resolveDocumentProject } from "../../lib/resolveDocumentProject";
 
 const isFunction = (
   value: unknown
@@ -138,6 +140,43 @@ describe("handleResourceChange", () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
     mockTabs.length = 0;
+
+    expect(mockOpenTab).not.toHaveBeenCalled();
+  });
+
+  it("does not open a tab for a workflow this page created", async () => {
+    // The guided Workflow flow creates its draft and shows it in a guided
+    // flow tab. Its created event used to open a second, "Untitled" tab.
+    noteWorkflowCreatedHere("wf-guided");
+    handleResourceChange({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-guided" }
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockOpenTab).not.toHaveBeenCalled();
+  });
+
+  it("does not open a tab when this page's create returns after the event", async () => {
+    let resolveProject: (value: { id: string; projectId: string }) => void =
+      () => undefined;
+    (resolveDocumentProject as jest.Mock).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveProject = resolve;
+        })
+    );
+    handleResourceChange({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-late" }
+    });
+    noteWorkflowCreatedHere("wf-late");
+    resolveProject({ id: "wf-late", projectId: "proj-1" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(mockOpenTab).not.toHaveBeenCalled();
   });
