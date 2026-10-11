@@ -30,9 +30,12 @@ diff outside its paths and blocks the merge.
 
 The browser suites in `user-journeys.yml`, `page-load-smoke.yml`, and
 `e2e-runner.yml` run on pushes to `main`, nightly or on dispatch, and on a pull
-request only when it carries the `browser-suites` label. On pull requests they
-are advisory and have no retry or `continue-on-error` escape hatch. Add the
-label to a PR that changes those suites or the flows they drive. The same workflow's **`reliability-ring1`**
+request only when the `browser-suites` label is added. Their pull-request
+trigger is `labeled` alone, so a PR without the label starts no run of them.
+A new push to a labeled PR does not rerun them. Remove and re-add the label,
+or dispatch the workflow on the PR branch. On pull requests they are advisory
+and have no retry or `continue-on-error` escape hatch. Add the label to a PR
+that changes those suites or the flows they drive. The same workflow's **`reliability-ring1`**
 job runs on every push to `main` and remains the merge-to-main gate described
 below.
 
