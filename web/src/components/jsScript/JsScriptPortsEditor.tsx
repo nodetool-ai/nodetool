@@ -13,7 +13,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  Label,
+  SectionHeader,
   SelectField,
   Text,
   TextInput,
@@ -74,18 +74,21 @@ const JsScriptPortsEditor = ({
 
   return (
     <FlexColumn gap={SPACING.sm}>
-      <FlexRow align="center" justify="space-between">
-        <Label>{label}</Label>
-        {!readOnly && (
-          <EditorButton
-            density="compact"
-            startIcon={<AddIcon fontSize="small" />}
-            onClick={add}
-          >
-            Add
-          </EditorButton>
-        )}
-      </FlexRow>
+      <SectionHeader
+        size="small"
+        title={label}
+        action={
+          readOnly ? undefined : (
+            <EditorButton
+              density="compact"
+              startIcon={<AddIcon fontSize="small" />}
+              onClick={add}
+            >
+              Add
+            </EditorButton>
+          )
+        }
+      />
       {ports.length === 0 ? (
         <Text size="small" color="secondary">
           None declared.

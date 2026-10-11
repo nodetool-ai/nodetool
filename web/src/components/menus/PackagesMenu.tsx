@@ -16,6 +16,7 @@ import {
   FlexColumn,
   FlexRow,
   LabeledSwitch,
+  SectionHeader,
   Text,
   TextInput,
   BORDER_RADIUS,
@@ -260,9 +261,10 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
 
   return (
     <FlexColumn gap={SPACING.md}>
-      <Text size="normal" weight={600}>
-        Installed by NodeTool ({packs.length})
-      </Text>
+      <SectionHeader
+        size="small"
+        title={`Installed by NodeTool (${packs.length})`}
+      />
       <FlexColumn gap={SPACING.sm}>
         {packs.map((pack) => {
           const status = pack.installation;
@@ -396,35 +398,35 @@ const InstallPanel = memo(function InstallPanel({
   }, [spec, onInstalled]);
 
   return (
-    <FlexColumn gap={1}>
-      <Text size="normal" weight={600}>
-        Install a pack
-      </Text>
-      <Text size="small" color="secondary">
-        Paste an npm package name, e.g. <code>@acme/cool-nodes</code> or{" "}
-        <code>cool-nodes@1.2.3</code>. The server must be restarted to load the
-        new pack.
-      </Text>
+    <FlexColumn gap={SPACING.lg}>
+      <SectionHeader size="small" title="Install a pack" />
       <Text size="small" color="secondary">
         Installing runs no pack code. A pack that ships sandbox modules is
         active right away, and those modules run inside your workflows with the
         node&apos;s capabilities once a node imports one. A pack that registers
         host nodes stays inactive until you approve trust.
       </Text>
+      <TextInput
+        label="Package to install"
+        helperText={
+          <>
+            Paste an npm package name, e.g. <code>@acme/cool-nodes</code> or{" "}
+            <code>cool-nodes@1.2.3</code>. The server must be restarted to
+            load the new pack.
+          </>
+        }
+        value={spec}
+        onChange={(e) => setSpec(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && spec.trim() && status.kind !== "installing") {
+            handleInstall();
+          }
+        }}
+        placeholder="@scope/package or package@version"
+        fullWidth
+        disabled={status.kind === "installing"}
+      />
       <FlexRow gap={1} align="center">
-        <TextInput
-          value={spec}
-          onChange={(e) => setSpec(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && spec.trim() && status.kind !== "installing") {
-              handleInstall();
-            }
-          }}
-          placeholder="@scope/package or package@version"
-          slotProps={{ htmlInput: { "aria-label": "Package to install" } }}
-          fullWidth
-          disabled={status.kind === "installing"}
-        />
         <EditorButton
           variant="contained"
           onClick={handleInstall}
@@ -502,35 +504,13 @@ function PackagesMenu() {
   return (
     <FlexColumn gap={SPACING.xl} sx={{ maxWidth: 880 }}>
       <FlexColumn gap={SPACING.md}>
-        <Text size="normal" weight={600}>
-          Trust defaults
-        </Text>
-        <FlexRow
-          gap={3}
-          align="center"
-          sx={(theme) => ({
-            px: SPACING.md,
-            py: 2,
-            borderRadius: BORDER_RADIUS.xl,
-            border: `1px solid rgba(${theme.vars.palette.warning.mainChannel} / 0.18)`,
-            backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.04)`
-          })}
-        >
-          <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
-            <Text size="normal" weight={500}>
-              Load packs that are not on the allowlist
-            </Text>
-            <Text size="small" color="secondary">
-              Off in production by default. When off, only packs you&apos;ve
-              explicitly trusted will load.
-            </Text>
-          </FlexColumn>
-          <LabeledSwitch
-            label=""
-            checked={trust.allowUnlisted}
-            onChange={(v) => void setAllowUnlisted(v)}
-          />
-        </FlexRow>
+        <SectionHeader size="small" title="Trust defaults" />
+        <LabeledSwitch
+          label="Load packs that are not on the allowlist"
+          description="Off in production by default. When off, only packs you've explicitly trusted will load."
+          checked={trust.allowUnlisted}
+          onChange={(v) => void setAllowUnlisted(v)}
+        />
       </FlexColumn>
 
       {isElectron && (
@@ -553,19 +533,20 @@ function PackagesMenu() {
       )}
 
       <FlexColumn gap={SPACING.md}>
-        <FlexRow gap={1} align="center" justify="space-between">
-          <Text size="normal" weight={600}>
-            Discovered packs ({packs.length})
-          </Text>
-          <EditorButton
-            variant="outlined"
-            density="compact"
-            onClick={() => void reload()}
-            disabled={isLoading}
-          >
-            {isLoading ? "Reloading…" : "Reload"}
-          </EditorButton>
-        </FlexRow>
+        <SectionHeader
+          size="small"
+          title={`Discovered packs (${packs.length})`}
+          action={
+            <EditorButton
+              variant="outlined"
+              density="compact"
+              onClick={() => void reload()}
+              disabled={isLoading}
+            >
+              {isLoading ? "Reloading…" : "Reload"}
+            </EditorButton>
+          }
+        />
 
         {error && (
           <AlertBanner severity="error" compact>

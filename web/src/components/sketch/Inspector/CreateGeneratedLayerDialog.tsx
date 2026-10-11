@@ -25,9 +25,9 @@ import {
   FlexRow,
   Label,
   LoadingSpinner,
+  SearchInput,
   SPACING,
-  Text,
-  TextInput
+  Text
 } from "../../ui_primitives";
 import { useCreateGeneratedLayer } from "../../../hooks/sketch/useCreateGeneratedLayer";
 import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
@@ -240,13 +240,12 @@ const CreateGeneratedLayerDialogBody: React.FC<{
 
           {/* autoFocus is skipped on touch, where the virtual keyboard
               would cover the workflow list below. */}
-          <TextInput
+          <SearchInput
             autoFocus={autoFocusEnabled}
-            compact
-            size="small"
             placeholder="Search workflows…"
+            ariaLabel="Search workflows"
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={setFilter}
             fullWidth
           />
 

@@ -17,6 +17,7 @@ import {
   Box,
   Caption,
   FlexColumn,
+  FormField,
   GAP,
   Text,
   TextInput
@@ -86,10 +87,7 @@ const LookStepInternal: React.FC<GameLookStepProps> = ({
         />
       </Box>
 
-      <FlexColumn gap={GAP.normal}>
-        <Text size="small" component="h3">
-          Art style
-        </Text>
+      <FormField label="Art style">
         {presetsLoading && presets.length === 0 ? (
           <Caption color="secondary">Loading the styles</Caption>
         ) : (
@@ -105,7 +103,7 @@ const LookStepInternal: React.FC<GameLookStepProps> = ({
             addOwnDisabled={readOnly}
           />
         )}
-      </FlexColumn>
+      </FormField>
 
       <FlexColumn gap={GAP.tight}>
         <Text size="small" component="h3">

@@ -25,6 +25,7 @@ import {
   FlexRow,
   Label,
   LoadingSpinner,
+  SectionHeader,
   SPACING,
   Text,
   TYPOGRAPHY
@@ -256,7 +257,7 @@ const CodeAssistantDialogInner = ({
       >
         <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0 }}>
           <FlexRow gap={SPACING.md} align="center" sx={{ flexWrap: "wrap" }}>
-            <Label>{nodeTitle}</Label>
+            <SectionHeader size="small" title={nodeTitle} />
             <PortChips label="Inputs" ports={draftInputs} />
             <PortChips label="Outputs" ports={draftOutputs} />
           </FlexRow>

@@ -301,21 +301,23 @@ const GenerateReferenceDialog = ({
         <Caption color="secondary">
           Choose a view, then edit the prompt to refine the image.
         </Caption>
-        <FlexRow gap={GAP.tight} wrap>
-          {options.map((option) => (
-            <Chip
-              key={option.id}
-              label={option.label}
-              active={selectedOption === option.id}
-              aria-pressed={selectedOption === option.id}
-              onClick={() => {
-                setSelectedOption(option.id);
-                setPrompt(referencePrompt(name, kind, descriptor, option));
-              }}
-              disabled={generating}
-            />
-          ))}
-        </FlexRow>
+        <FormField label="View">
+          <FlexRow gap={GAP.tight} wrap role="group" aria-label="View">
+            {options.map((option) => (
+              <Chip
+                key={option.id}
+                label={option.label}
+                active={selectedOption === option.id}
+                aria-pressed={selectedOption === option.id}
+                onClick={() => {
+                  setSelectedOption(option.id);
+                  setPrompt(referencePrompt(name, kind, descriptor, option));
+                }}
+                disabled={generating}
+              />
+            ))}
+          </FlexRow>
+        </FormField>
         <TextInput
           label="Prompt"
           value={prompt}

@@ -60,36 +60,6 @@ export const REVIEW_SELECT_WIDTH = 360;
 export const REVIEW_FLEX_MIN_WIDTH = 220;
 
 /**
- * A field that shows it is a field. Spread it on a wrapper around the control,
- * not on the control.
- */
-export const EDITABLE_FIELD = {
-  "& .MuiOutlinedInput-root.MuiOutlinedInput-root": {
-    backgroundColor: "background.paper",
-    transition: MOTION.background,
-    ...reducedMotion({ transition: MOTION.none })
-  },
-  "& .MuiOutlinedInput-notchedOutline": {
-    borderColor: "divider",
-    transition: MOTION.border,
-    ...reducedMotion({ transition: MOTION.none })
-  },
-  "&:hover .MuiOutlinedInput-root.MuiOutlinedInput-root": {
-    backgroundColor: "action.hover"
-  },
-  "&:hover .MuiOutlinedInput-notchedOutline": {
-    borderColor: "divider"
-  },
-  "& .Mui-focused.MuiOutlinedInput-root.MuiOutlinedInput-root": {
-    backgroundColor: "action.hover"
-  },
-  "& .Mui-focused .MuiOutlinedInput-notchedOutline": {
-    borderWidth: 1,
-    borderColor: "primary.main"
-  }
-} as const;
-
-/**
  * One item of the plan — a shot of a scene, a step of a workflow. The card is
  * what says where the item starts and stops; a numbered heading alone left the
  * items reading as one long column of fields.

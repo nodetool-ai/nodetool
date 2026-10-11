@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useId, useMemo } from "react";
 
 import {
   Text,
@@ -8,8 +8,8 @@ import {
   FlexRow,
   Box,
   Divider,
+  FormField,
   LoadingSpinner,
-  MOTION,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
@@ -34,30 +34,6 @@ import StarIcon from "@mui/icons-material/Star";
 
 const styles = (theme: Theme) =>
   css({
-    ".workspace-select": {
-      backgroundColor: "transparent",
-      borderRadius: BORDER_RADIUS.md,
-      "& .MuiSelect-select": {
-        display: "flex",
-        alignItems: "center",
-        gap: theme.spacing(1.5),
-        padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`
-      },
-      "&.compact .MuiSelect-select": {
-        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`
-      },
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.divider,
-        transition: MOTION.border
-      },
-      "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.grey[600]
-      },
-      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.grey[600],
-        borderWidth: "1px"
-      }
-    },
     ".workspace-option": {
       display: "flex",
       alignItems: "center",
@@ -124,6 +100,9 @@ interface WorkspaceSelectProps {
   readonly value: string | undefined;
   readonly onChange: (workspaceId: string | undefined) => void;
   readonly projectId?: string;
+  /** Visible field label. Without it the select is named "Workspace" for
+   *  assistive tech only (toolbar use). */
+  readonly label?: string;
   readonly helperText?: string;
   readonly fullWidth?: boolean;
   readonly disabled?: boolean;
@@ -137,12 +116,14 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     value,
     onChange,
     projectId,
+    label,
     helperText,
     fullWidth = true,
     disabled = false,
     compact = false
   }) {
     const theme = useTheme();
+    const fieldId = useId();
     const cssStyles = useMemo(() => styles(theme), [theme]);
     const writeWorkspaceToCache = useWorkspaceCacheWriter(projectId);
     const addNotification = useNotificationStore(
@@ -252,144 +233,158 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
       );
     };
 
-    return (
-      <>
-        <FormControl fullWidth={fullWidth} css={cssStyles}>
-          <Select
-            className={`workspace-select${compact ? " compact" : ""}`}
-            aria-label="Workspace"
-            value={value || ""}
-            onChange={handleChange}
-            disabled={disabled || createMutation.isPending}
-            displayEmpty
-            size="small"
-            renderValue={renderSelectedValue}
-            MenuProps={{
-              PaperProps: {
-                sx: {
-                  maxWidth: "min(600px, calc(100vw - 32px))",
-                  backgroundColor: theme.vars.palette.background.paper,
-                  border: `1px solid ${theme.vars.palette.divider}`,
-                  borderRadius: BORDER_RADIUS.md,
-                  mt: 0.5,
-                  "& .workspace-option": {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: getSpacingPx(SPACING.lg),
-                    width: "100%",
-                    overflow: "hidden"
+    const labeled = Boolean(label) || Boolean(helperText);
+    const visibleLabel = labeled ? label ?? "Workspace" : undefined;
+
+    const select = (
+      <FormControl fullWidth={fullWidth} css={cssStyles}>
+        <Select
+          className={`workspace-select${compact ? " compact" : ""}`}
+          id={labeled ? fieldId : undefined}
+          labelId={labeled ? `${fieldId}-label` : undefined}
+          aria-label={labeled ? undefined : "Workspace"}
+          value={value || ""}
+          onChange={handleChange}
+          disabled={disabled || createMutation.isPending}
+          displayEmpty
+          size="small"
+          renderValue={renderSelectedValue}
+          MenuProps={{
+            PaperProps: {
+              sx: {
+                maxWidth: "min(600px, calc(100vw - 32px))",
+                backgroundColor: theme.vars.palette.background.paper,
+                border: `1px solid ${theme.vars.palette.divider}`,
+                borderRadius: BORDER_RADIUS.md,
+                mt: 0.5,
+                "& .workspace-option": {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: getSpacingPx(SPACING.lg),
+                  width: "100%",
+                  overflow: "hidden"
+                },
+                "& .workspace-icon": {
+                  color: theme.vars.palette.text.secondary,
+                  fontSize: "var(--fontSizeBig)",
+                  flexShrink: 0,
+                  opacity: 0.7
+                },
+                "& .workspace-path": {
+                  fontSize: "var(--fontSizeNormal)",
+                  fontWeight: 400,
+                  color: theme.vars.palette.text.secondary,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  fontFamily: "var(--fontFamily2)"
+                },
+                "& .none-option": {
+                  color: theme.vars.palette.text.disabled,
+                  fontStyle: "italic",
+                  fontSize: "var(--fontSizeNormal)"
+                },
+                "& .create-option": {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: getSpacingPx(SPACING.md),
+                  color: theme.vars.palette.text.secondary,
+                  fontSize: "var(--fontSizeNormal)",
+                  fontWeight: 400
+                },
+                "& .default-badge": {
+                  color: theme.vars.palette.text.disabled,
+                  fontSize: "var(--fontSizeNormal)",
+                  marginLeft: getSpacingPx(SPACING.xs),
+                  verticalAlign: "middle",
+                  opacity: 0.6
+                },
+                "& .MuiMenuItem-root": {
+                  padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
+                  borderRadius: BORDER_RADIUS.sm,
+                  margin: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
+                  "&:hover": {
+                    backgroundColor: theme.vars.palette.action.hover
                   },
-                  "& .workspace-icon": {
-                    color: theme.vars.palette.text.secondary,
-                    fontSize: "var(--fontSizeBig)",
-                    flexShrink: 0,
-                    opacity: 0.7
-                  },
-                  "& .workspace-path": {
-                    fontSize: "var(--fontSizeNormal)",
-                    fontWeight: 400,
-                    color: theme.vars.palette.text.secondary,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    fontFamily: "var(--fontFamily2)"
-                  },
-                  "& .none-option": {
-                    color: theme.vars.palette.text.disabled,
-                    fontStyle: "italic",
-                    fontSize: "var(--fontSizeNormal)"
-                  },
-                  "& .create-option": {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: getSpacingPx(SPACING.md),
-                    color: theme.vars.palette.text.secondary,
-                    fontSize: "var(--fontSizeNormal)",
-                    fontWeight: 400
-                  },
-                  "& .default-badge": {
-                    color: theme.vars.palette.text.disabled,
-                    fontSize: "var(--fontSizeNormal)",
-                    marginLeft: getSpacingPx(SPACING.xs),
-                    verticalAlign: "middle",
-                    opacity: 0.6
-                  },
-                  "& .MuiMenuItem-root": {
-                    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
-                    borderRadius: BORDER_RADIUS.sm,
-                    margin: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
+                  "&.Mui-selected": {
+                    backgroundColor: theme.vars.palette.action.selected,
                     "&:hover": {
                       backgroundColor: theme.vars.palette.action.hover
-                    },
-                    "&.Mui-selected": {
-                      backgroundColor: theme.vars.palette.action.selected,
-                      "&:hover": {
-                        backgroundColor: theme.vars.palette.action.hover
-                      }
                     }
                   }
                 }
               }
+            }
+          }}
+        >
+          <Box
+            role="note"
+            sx={{
+              px: 2,
+              pt: 1,
+              pb: 1,
+              pointerEvents: "none"
             }}
           >
-            <Box
-              role="note"
+            <Caption
+              size="smaller"
+              color="muted"
               sx={{
-                px: 2,
-                pt: 1,
-                pb: 1,
-                pointerEvents: "none"
+                display: "block",
+                lineHeight: 1.5,
+                whiteSpace: "normal",
+                wordBreak: "break-word"
               }}
             >
-              <Caption
-                size="smaller"
-                color="muted"
-                sx={{
-                  display: "block",
-                  lineHeight: 1.5,
-                  whiteSpace: "normal",
-                  wordBreak: "break-word"
-                }}
-              >
-                Agents read and write files here during execution - saved images,
-                text, data, and other outputs. Browse the results in the Workspace
-                panel. Agents can only access files inside this folder. A workflow
-                left on Default uses your default workspace.
-              </Caption>
-            </Box>
-            <Divider sx={{ mb: 0.5 }} />
-            <MenuItem value="">
-              <span className="none-option">Default workspace</span>
-            </MenuItem>
-            {workspaces.map((workspace) => (
-              <MenuItem key={workspace.id} value={workspace.id}>
-                <div className="workspace-option">
-                  <FolderIcon className="workspace-icon" />
-                  <span className="workspace-path" title={workspace.path}>
-                    {workspace.path}
-                    {workspace.is_default && (
-                      <StarIcon className="default-badge" />
-                    )}
-                  </span>
-                </div>
-              </MenuItem>
-            ))}
-            {canManage && <Divider sx={{ my: 0.5 }} />}
-            {canManage && (
-              <MenuItem value={CREATE_NEW_VALUE}>
-                <span className="create-option">
-                  <AddIcon fontSize="small" />
-                  Create New Workspace
-                </span>
-              </MenuItem>
-            )}
-          </Select>
-          {helperText && (
-            <Caption color="secondary" sx={{ mt: 0.5, ml: 0.5 }}>
-              {helperText}
+              Agents read and write files here during execution - saved images,
+              text, data, and other outputs. Browse the results in the Workspace
+              panel. Agents can only access files inside this folder. A workflow
+              left on Default uses your default workspace.
             </Caption>
+          </Box>
+          <Divider sx={{ mb: 0.5 }} />
+          <MenuItem value="">
+            <span className="none-option">Default workspace</span>
+          </MenuItem>
+          {workspaces.map((workspace) => (
+            <MenuItem key={workspace.id} value={workspace.id}>
+              <div className="workspace-option">
+                <FolderIcon className="workspace-icon" />
+                <span className="workspace-path" title={workspace.path}>
+                  {workspace.path}
+                  {workspace.is_default && (
+                    <StarIcon className="default-badge" />
+                  )}
+                </span>
+              </div>
+            </MenuItem>
+          ))}
+          {canManage && <Divider sx={{ my: 0.5 }} />}
+          {canManage && (
+            <MenuItem value={CREATE_NEW_VALUE}>
+              <span className="create-option">
+                <AddIcon fontSize="small" />
+                Create new workspace
+              </span>
+            </MenuItem>
           )}
-        </FormControl>
+        </Select>
+      </FormControl>
+    );
+
+    return (
+      <>
+        {labeled ? (
+          <FormField
+            label={visibleLabel}
+            helperText={helperText}
+            htmlFor={fieldId}
+          >
+            {select}
+          </FormField>
+        ) : (
+          select
+        )}
         {folderPickerDialog}
       </>
     );

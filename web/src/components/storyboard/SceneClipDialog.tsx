@@ -32,7 +32,7 @@ import {
   FlexColumn,
   FlexRow,
   FormField,
-  Label,
+  FormSection,
   ResponsiveImage,
   SelectField,
   Text,
@@ -278,7 +278,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
           keeps its order.
         </Caption>
 
-        <FlexRow gap={SPACING.md} wrap>
+        <FlexRow gap={SPACING.lg} wrap>
           <Box sx={settingSx}>
             <SelectField
               label="From"
@@ -341,8 +341,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
           onChange={handlePromptChange}
         />
 
-        <FlexColumn gap={SPACING.sm}>
-          <Label>Render settings</Label>
+        <FormSection label="Render settings">
           <FormField label="Video model" sx={modelFieldSx}>
             <VideoModelSelect
               value={model?.id ?? ""}
@@ -351,7 +350,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
               onChange={handleModelChange}
             />
           </FormField>
-          <FlexRow gap={SPACING.md} wrap>
+          <FlexRow gap={SPACING.lg} wrap>
             <Box sx={settingSx}>
               <SelectField
                 label="Duration"
@@ -381,7 +380,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
               ? `Estimated cost: about ${formatUsd(cost)}`
               : "Select a priced model to see the estimate."}
           </Text>
-        </FlexColumn>
+        </FormSection>
 
         {blockers.length > 0 && (
           <AlertBanner severity="error">
