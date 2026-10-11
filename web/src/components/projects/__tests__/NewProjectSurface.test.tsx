@@ -306,6 +306,9 @@ jest.mock("../../setup/workflow/WorkflowSetupHost", () => ({
       >
         Copy the example
       </button>
+      <button type="button" onClick={() => onFinish(null)}>
+        Build
+      </button>
     </div>
   )
 }));
@@ -1764,6 +1767,29 @@ describe("NewProjectSurface", () => {
         openTab.mock.calls.some(([input]) => input.type === "workflow")
       ).toBe(true)
     );
+  });
+
+  // The build opens the flow's own workflow so its node tools can reach the
+  // canvas. The creator is then looking at the document the flow made, so the
+  // hand-off goes ahead and the guided tab closes instead of staying beside it.
+  it("finishes while the flow's own workflow tab is in front", async () => {
+    const user = userEvent.setup();
+    const view = renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await screen.findByTestId("setup-flow");
+    const guidedTab = mockActiveTabId;
+    mockActiveTabId = "workflow:wf-new";
+    view.refresh();
+
+    await user.click(screen.getByRole("button", { name: "Build" }));
+
+    await waitFor(() => expect(closeTab).toHaveBeenCalledWith(guidedTab));
+    expect(
+      openTab.mock.calls.some(([input]) => input.type === "workflow")
+    ).toBe(true);
   });
 
   // The document is done, so the flow has no step left: a failed project
