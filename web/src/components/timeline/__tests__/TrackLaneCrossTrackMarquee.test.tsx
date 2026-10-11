@@ -21,47 +21,48 @@ if (typeof window !== "undefined" && !window.PointerEvent) {
       readonly pointerType: string;
       readonly isPrimary: boolean;
 
-      constructor(type: string, params: PointerEventInit & MouseEventInit = {}) {
+      constructor(
+        type: string,
+        params: PointerEventInit & MouseEventInit = {}
+      ) {
         super(type, params);
         this.pointerId = params.pointerId ?? 0;
         this.pointerType = params.pointerType ?? "";
         this.isPrimary = params.isPrimary ?? false;
       }
-    });
+    }
+  );
 }
 
 // ── Heavy media hooks → no-op mocks ─────────────────────────────────────────
 
-jest.mock("../Tracks/useClipThumbnails", () => ({
-  useClipThumbnails: () => null
-}));
-jest.mock("../Tracks/useAudioPeaks", () => ({
-  useAudioPeaks: () => ({ peaks: null, durationMs: null })
-}));
+jest.mock("../Tracks/useClipThumbnails", () =>
+  jest
+    .requireActual("../../../test-utils/timelineClipMocks")
+    .clipThumbnailsMock()
+);
+jest.mock("../Tracks/useAudioPeaks", () =>
+  jest.requireActual("../../../test-utils/timelineClipMocks").audioPeaksMock()
+);
 
 // ── Stores that pull in network/api dependencies → light mocks ─────────────
 
-jest.mock("../../../stores/AssetStore", () => ({
-  useAssetStore: <T,>(sel: (s: { get: () => Promise<null> }) => T) =>
-    sel({ get: () => Promise.resolve(null) })
-}));
-jest.mock("../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { focusedJob: Record<string, string> }) => T) =>
-    sel({ focusedJob: {} })
-}));
-jest.mock("../../../stores/ErrorStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { errors: Record<string, unknown> }) => T) =>
-    sel({ errors: {} }),
-  hasNodeError: () => false,
-  nodeErrorToDisplayString: () => ""
-}));
-jest.mock("../../../stores/timeline/TimelineGenerationStore", () => ({
-  useTimelineGenerationStore: <T,>(
-    sel: (s: { clipJobs: Record<string, unknown> }) => T
-  ) => sel({ clipJobs: {} })
-}));
+jest.mock("../../../stores/AssetStore", () =>
+  jest.requireActual("../../../test-utils/timelineClipMocks").assetStoreMock()
+);
+jest.mock("../../../stores/WorkflowRunsStore", () =>
+  jest
+    .requireActual("../../../test-utils/timelineClipMocks")
+    .workflowRunsStoreMock()
+);
+jest.mock("../../../stores/ErrorStore", () =>
+  jest.requireActual("../../../test-utils/timelineClipMocks").errorStoreMock()
+);
+jest.mock("../../../stores/timeline/TimelineGenerationStore", () =>
+  jest
+    .requireActual("../../../test-utils/timelineClipMocks")
+    .timelineGenerationStoreMock()
+);
 
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import { TrackLane } from "../Tracks/TrackLane";
