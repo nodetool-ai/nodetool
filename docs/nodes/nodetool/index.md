@@ -19,6 +19,7 @@ This namespace contains 327 node(s).
 - **[generators](generators/)** - 5 node(s)
 - **[image](image/)** - 26 node(s)
 - **[input](input/)** - 33 node(s)
+- **[manimgx](manimgx/)** - 3 node(s)
 - **[model3d](model3d/)** - 17 node(s)
 - **[output](output/)** - 1 node(s)
 - **[sketch](sketch/)** - 3 node(s)

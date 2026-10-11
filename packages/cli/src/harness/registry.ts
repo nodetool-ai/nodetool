@@ -304,6 +304,23 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "manimgx",
+    title: "ManimGX scene inspection and render (nodetool.manimgx.* nodes)",
+    command:
+      "npm run test:real --workspace=packages/manimgx-nodes",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "packages/manimgx-nodes/README.md",
+    selfcheck: {
+      // Renders and inspects real scenes through the nodes, with an image
+      // input. It needs manimgx installed (Python 3.13+, GPU or lavapipe),
+      // so the default gate skips it without --expensive.
+      command:
+        "npm run test:real --workspace=packages/manimgx-nodes",
+      cost: "expensive"
+    }
+  },
+  {
     id: "dsl-native-flow",
     title:
       "Native flow (call a node as a function, host backend + guest surface)",
@@ -1693,6 +1710,12 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Blender headless render (op scripts, runner, blender nodes)",
     harnesses: ["blender"],
     paths: ["packages/blender-nodes/"]
+  },
+  {
+    id: "manimgx",
+    title: "ManimGX scenes (runner, nodes, authoring skill)",
+    harnesses: ["manimgx"],
+    paths: ["packages/manimgx-nodes/"]
   },
   {
     id: "entities",

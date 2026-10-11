@@ -258,6 +258,11 @@
         "file": "sandbox/generated/nodetool.input.js"
       },
       {
+        "name": "nodetool.manimgx",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.manimgx.js"
+      },
+      {
         "name": "nodetool.model3d",
         "kind": "js",
         "file": "sandbox/generated/nodetool.model3d.js"

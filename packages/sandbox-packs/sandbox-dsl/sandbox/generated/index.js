@@ -48,6 +48,7 @@ import * as game from "./nodetool.game.js";
 import * as generators from "./nodetool.generators.js";
 import * as image from "./nodetool.image.js";
 import * as input from "./nodetool.input.js";
+import * as manimgx from "./nodetool.manimgx.js";
 import * as model3d from "./nodetool.model3d.js";
 import * as output from "./nodetool.output.js";
 import * as script from "./nodetool.script.js";
@@ -116,6 +117,7 @@ export {
   libStable_diffusion_cpp,
   libSvg,
   libVideoDownload,
+  manimgx,
   messagingDiscord,
   messagingTelegram,
   mistralEmbeddings,
