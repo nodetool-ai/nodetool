@@ -547,7 +547,7 @@ app.on("before-quit", (event) => {
   const timeout = new Promise<void>((resolve) => {
     timer = setTimeout(resolve, QUIT_SERVER_STOP_TIMEOUT_MS);
   });
-  void Promise.race([stopServer(), timeout]).finally(() => {
+  void Promise.race([stopServer({ shutdown: true }), timeout]).finally(() => {
     clearTimeout(timer);
     app.quit();
   });

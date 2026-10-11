@@ -190,6 +190,32 @@ describe("planPartialRun", () => {
     ]);
   });
 
+  it.each([false, true])("retains every contributor when a list input mixes cached and live edges (reversed: %s)", async (reverse) => {
+    const edges = [edge("a", "collage", "images"), edge("b", "collage", "images")];
+    const mixed: GraphData = {
+      nodes: [
+        { id: "prompt", type: "test.Text", properties: {} },
+        { id: "a", type: "test.Gen", properties: {} },
+        { id: "b", type: "test.Gen", properties: {} },
+        { id: "collage", type: "test.Collage", properties: {} }
+      ],
+      edges: [edge("prompt", "a", "prompt"), ...(reverse ? edges.reverse() : edges)]
+    };
+    const plan = await planPartialRun(mixed, ["collage"], {
+      getMetadata: (type) => type === "test.Collage"
+        ? metadata({ properties: [{ name: "images", type: { type: "list", type_args: [{ type: "image", type_args: [] }] } }] })
+        : getMetadata(type),
+      loadPreviousGeneration: async (node) => node.id === "a"
+        ? { outputs: { output: "saved-a" }, jobId: null, assetIds: [] }
+        : null
+    });
+    if (plan.kind !== "graph") throw new Error("expected a graph");
+    expect(ids(plan.graph)).toEqual(["a", "b", "collage", "prompt"]);
+    expect(plan.graph.edges).toEqual(mixed.edges);
+    expect(plan.graph.nodes.find((node) => node.id === "collage")?.properties).toEqual({});
+    expect(plan.reused).toEqual([]);
+  });
+
   it("writes into dynamic_properties when the input is dynamic", async () => {
     const dynamicGraph: GraphData = {
       nodes: [

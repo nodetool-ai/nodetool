@@ -98,6 +98,9 @@ export class Watchdog {
     await this.spawnProcess();
     logMessage(`${this.opts.name} watchdog: process spawned, waiting for health check...`);
     await this.waitUntilHealthy();
+    if (this.stopped) {
+      throw new Error(`${this.opts.name} watchdog: startup stopped`);
+    }
     logMessage(`${this.opts.name} watchdog: health check passed, starting monitor loop...`);
     this.startMonitorLoop();
     logMessage(`${this.opts.name} watchdog: started successfully`);
@@ -173,6 +176,9 @@ export class Watchdog {
 
     // Phase 1: Wait for TCP connectivity (server is starting to listen)
     while (Date.now() - start < timeoutMs) {
+      if (this.stopped) {
+        throw new Error(`${this.opts.name} watchdog: startup stopped`);
+      }
       reachableCheckCount++;
       const reachable = await this.isReachable();
       if (reachable) {
@@ -225,6 +231,9 @@ export class Watchdog {
     const phase2Start = Date.now();
     lastLogTime = phase2Start;
     while (Date.now() - phase2Start < timeoutMs) {
+      if (this.stopped) {
+        throw new Error(`${this.opts.name} watchdog: startup stopped`);
+      }
       checkCount++;
       const healthy = await this.isReady();
       if (healthy) {

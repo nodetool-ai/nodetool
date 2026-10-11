@@ -136,6 +136,7 @@ export const gameRenderFrame = z.object({
   height: positive,
   pixelsPerUnit: positive,
   camera: z.object({ x: finite, y: finite, previousX: finite.optional(), previousY: finite.optional(), zoom: positive }),
+  audioEmitters: z.array(z.object({ entityId: z.string(), x: finite, y: finite, previousX: finite, previousY: finite })).optional(),
   sprites: z.array(z.object({ entityId: z.string(), assetId: z.string(), x: finite, y: finite, previousX: finite, previousY: finite, rotation: finite, previousRotation: finite.optional(), scaleX: positive, scaleY: positive, previousScaleX: positive.optional(), previousScaleY: positive.optional(), width: positive, height: positive, frame: frame.optional(), layer: z.number().int(), tint: z.string().optional(), previousTint: z.string().optional(), opacity: finite.min(0).max(1).optional(), previousOpacity: finite.min(0).max(1).optional(), blend: z.enum(["normal", "additive"]).optional(), sampling: z.enum(["nearest", "linear"]).optional(), unlit: z.boolean().optional(), flipX: z.boolean().optional() })),
   backgrounds: z.array(gameBackgroundLayer).optional(),
   lighting: gameScene.shape.lighting,

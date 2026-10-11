@@ -80,7 +80,7 @@ export function gameAudioSpatialView3D(frame: GameRenderFrame3D, alpha: number):
 
 /**
  * Builds a view from a 2D frame. The listener sits at the camera on the z = 0 plane, facing -z with +y up,
- * so +x is to the right. Emitters are positioned by their sprite or particle emitter and have no facing.
+ * so +x is to the right. Spatial sources carry their simulation positions and have no facing.
  */
 export function gameAudioSpatialView2D(frame: GameRenderFrame, alpha: number): GameAudioSpatialView {
   const amount = Math.max(0, Math.min(1, alpha));
@@ -96,6 +96,9 @@ export function gameAudioSpatialView2D(frame: GameRenderFrame, alpha: number): G
         for (const particles of frame.particles ?? []) { positions.set(particles.entityId, { x: particles.x, y: particles.y, z: 0 }); }
         for (const sprite of frame.sprites) {
           positions.set(sprite.entityId, { x: lerp(sprite.previousX, sprite.x, amount), y: lerp(sprite.previousY, sprite.y, amount), z: 0 });
+        }
+        for (const emitter of frame.audioEmitters ?? []) {
+          positions.set(emitter.entityId, { x: lerp(emitter.previousX, emitter.x, amount), y: lerp(emitter.previousY, emitter.y, amount), z: 0 });
         }
       }
       const position = positions.get(entityId);

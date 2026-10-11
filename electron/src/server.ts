@@ -48,6 +48,7 @@ import {
 } from "./vaults";
 
 let backendWatchdog: Watchdog | null = null;
+let shutdownRequested = false;
 
 /** How long the backend lets in-flight runs finish after SIGTERM. */
 const BACKEND_SHUTDOWN_GRACE_MS = 5000;
@@ -492,6 +493,9 @@ async function startServer(): Promise<void> {
         logOutput: false,
       };
 
+  if (shutdownRequested) {
+    return;
+  }
   backendWatchdog = new Watchdog(watchdogOpts);
 
   try {
@@ -499,6 +503,9 @@ async function startServer(): Promise<void> {
     await backendWatchdog.start();
     logMessage("Watchdog.start() completed - server is healthy");
   } catch (error) {
+    if (shutdownRequested) {
+      return;
+    }
     const errMsg = errorMessage(error);
     logMessage(
       `Watchdog failed to start server: ${errMsg}`,
@@ -566,6 +573,9 @@ async function isServerRunning(): Promise<boolean> {
  * Handles server health checks, port availability, and process management
  */
 async function initializeBackendServerNow(): Promise<void> {
+  if (shutdownRequested) {
+    return;
+  }
   logMessage("Initializing backend server");
   backendKeychainErrorSeen = false;
   try {
@@ -574,6 +584,9 @@ async function initializeBackendServerNow(): Promise<void> {
     
     // Check if there's an existing NodeTool server process from PID file
     let existingPid = await findExistingServerPid();
+    if (shutdownRequested) {
+      return;
+    }
     const pidFromPidFile = existingPid !== null;
 
     // The PID file misses servers this app did not start (an `npm run dev`
@@ -612,6 +625,9 @@ async function initializeBackendServerNow(): Promise<void> {
           
           // Prompt the user
           const shouldKillExisting = await promptUserAboutExistingServer(existingPid);
+          if (shutdownRequested) {
+            return;
+          }
           
           if (shouldKillExisting) {
             // User wants to kill the existing server
@@ -732,13 +748,22 @@ async function initializeBackendServerNow(): Promise<void> {
     }
 
     logMessage("No existing server found, starting new server...");
+    if (shutdownRequested) {
+      return;
+    }
     await killExistingServer();
     logMessage("Starting server process...");
     await startServer();
+    if (shutdownRequested) {
+      return;
+    }
     logMessage("Server process started, waiting for health check...");
     await waitForServer();
     logMessage("Backend server initialization complete");
   } catch (error) {
+    if (shutdownRequested) {
+      return;
+    }
     logMessage(
       `Critical error starting server: ${errorMessage(error)}`,
       "error"
@@ -758,6 +783,9 @@ async function initializeBackendServerNow(): Promise<void> {
  * @throws Error if server doesn't become available within timeout period
  */
 async function waitForServer(timeout: number = 60000): Promise<void> {
+  if (shutdownRequested) {
+    return;
+  }
   const readyUrl = getServerUrl("/ready");
   await waitForHttpOk(readyUrl, {
     timeoutMs: timeout,
@@ -765,6 +793,9 @@ async function waitForServer(timeout: number = 60000): Promise<void> {
     pollIntervalMs: 250,
     errorMessage: "Server failed to become available",
   });
+  if (shutdownRequested) {
+    return;
+  }
   logMessage(`Server endpoint is available at ${readyUrl}`);
   emitServerStarted();
 }
@@ -835,13 +866,22 @@ function initializeBackendServer(): Promise<void> {
   return runExclusive(BACKEND_LIFECYCLE_KEY, initializeBackendServerNow);
 }
 
-function stopServer(): Promise<void> {
+function stopServer(options: { shutdown?: boolean } = {}): Promise<void> {
+  if (options.shutdown) {
+    // Quit cannot wait behind startup's readiness polling. Prevent queued
+    // starts from spawning a replacement after this watchdog has stopped.
+    shutdownRequested = true;
+    return stopServerNow();
+  }
   return runExclusive(BACKEND_LIFECYCLE_KEY, stopServerNow);
 }
 
 /** Stop the backend, give the OS a moment to release the port and database, then start it. */
 function restartServer(): Promise<void> {
   return runExclusive(BACKEND_LIFECYCLE_KEY, async () => {
+    if (shutdownRequested) {
+      return;
+    }
     await stopServerNow();
     await new Promise((resolve) => setTimeout(resolve, 300));
     await initializeBackendServerNow();
