@@ -55,3 +55,14 @@ export const MEDIA_ONLY_EXEMPTIONS: Record<string, string> = {
   voyage: "Embeddings provider; generateMessage(s) always throws.",
   jina: "Embeddings/rerank provider; generateMessage(s) always throws."
 };
+
+/**
+ * Providers whose chat runs inside the user's own logged-in browser tab,
+ * reached through the NodeTool extension. They make no HTTP calls of their
+ * own, so `CassetteProvider` has nothing to record. Their unit tests drive a
+ * fake tab instead (`tests/providers/<id>-provider.test.ts`). The contract
+ * suite checks that each one needs no secrets and stays off the cloud profile.
+ */
+export const BROWSER_TAB_EXEMPTIONS: Record<string, string> = {
+  chatgpt: "Chat runs in the user's chatgpt.com tab; covered by chatgpt-provider.test.ts."
+};
