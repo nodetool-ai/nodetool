@@ -24,7 +24,7 @@ details, cookies, or browser storage are used for this context.
 | `Recipe Step` | A step selected in the [recipe guide](src/components/RecipeGuide.tsx) | Manual engagement with a guided step. Includes the recipe and 1-based `step`. Autoplay does not emit this event. |
 | `Copy Brief` | Successful copy of a recipe's example brief or script | The visitor took the example text to try. Includes the recipe. |
 | `Copy Install Command` | Successful copy of the [MCP install command](src/components/agents/McpInstallCommand.tsx) | Agent-integration intent. Includes placement. |
-| `Star GitHub`, `Open Docs`, `Join Discord` | Header, footer, community section, and closing actions on the agents, developers, template, and solution pages | Opens the repository, documentation, or Discord. Includes placement where the link sets one. |
+| `Star GitHub`, `Open Docs`, `Join Discord` | Header, footer, community section, and closing actions on the agents, developers, library, template, and solution pages | Opens the repository, documentation, or Discord. Includes placement where the link sets one. |
 | `404` | The [not-found page](src/app/not-found.tsx) | A missing path was requested. Includes the requested `path` only, for broken-link triage in A4. |
 
 `landing_page` describes the source carried by a starter download link, or the
