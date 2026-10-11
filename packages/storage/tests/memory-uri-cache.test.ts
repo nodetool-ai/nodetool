@@ -56,6 +56,19 @@ describe("MemoryUriCache", () => {
       expect(cache.get("key1")).toBe("url1");
     });
 
+    it("keeps an entry with a zero custom TTL until the default TTL passes", () => {
+      cache.set("key1", "url1", 0);
+      vi.advanceTimersByTime(3_599_999);
+      expect(cache.get("key1")).toBe("url1");
+    });
+
+    it("honors a one-millisecond custom TTL", () => {
+      cache.set("key1", "url1", 1);
+      expect(cache.get("key1")).toBe("url1");
+      vi.advanceTimersByTime(1);
+      expect(cache.get("key1")).toBeNull();
+    });
+
     it("uses default TTL when custom TTL is 0 or negative", () => {
       cache.set("key1", "url1", 0);
       vi.advanceTimersByTime(3_600_001);
@@ -73,6 +86,21 @@ describe("MemoryUriCache", () => {
 
       vi.advanceTimersByTime(2);
       expect(shortCache.get("key1")).toBeNull();
+    });
+
+    it("accepts a one-millisecond default TTL", () => {
+      const tinyCache = new MemoryUriCache(1);
+      tinyCache.set("key1", "url1");
+      expect(tinyCache.get("key1")).toBe("url1");
+      vi.advanceTimersByTime(1);
+      expect(tinyCache.get("key1")).toBeNull();
+    });
+
+    it("falls back to 1 hour for a zero constructor TTL", () => {
+      const zeroCache = new MemoryUriCache(0);
+      zeroCache.set("key1", "url1");
+      vi.advanceTimersByTime(3_599_999);
+      expect(zeroCache.get("key1")).toBe("url1");
     });
 
     it("falls back to 1 hour for invalid constructor TTL", () => {

@@ -91,6 +91,31 @@ describe("DelegatedTokenProvider", () => {
     expect(result.error).toMatch(/expired/i);
   });
 
+  it("treats the expiry second itself as expired", async () => {
+    const at = Date.parse("2026-01-01T00:00:00.000Z");
+    const { token } = mintDelegatedToken(KEY, "user-a", 60, () => at);
+
+    const justBefore = new DelegatedTokenProvider(KEY, {
+      now: () => at + 59_999
+    });
+    expect((await justBefore.verifyToken(token)).ok).toBe(true);
+
+    const atExpiry = new DelegatedTokenProvider(KEY, { now: () => at + 60_000 });
+    expect(await atExpiry.verifyToken(token)).toEqual({
+      ok: false,
+      error: "Delegated token expired"
+    });
+  });
+
+  it("names a token without the delegated prefix as not delegated", async () => {
+    // A non-empty token with the wrong prefix must stop at the prefix check,
+    // not reach signature verification.
+    const result = await new DelegatedTokenProvider(KEY).verifyToken(
+      "garbage.signature"
+    );
+    expect(result).toEqual({ ok: false, error: "Not a delegated token" });
+  });
+
   it("falls through on anything that is not a delegated token", async () => {
     const provider = new DelegatedTokenProvider(KEY);
     for (const token of [

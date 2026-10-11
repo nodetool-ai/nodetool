@@ -32,6 +32,19 @@ describe("creditModelAllowlist", () => {
   });
 });
 
+describe("creditModelAllowlist with one entry", () => {
+  it("restricts to a single configured model", () => {
+    // One id is still a whitelist. Reading it as "nothing configured" would
+    // open the whole catalog to managed credits.
+    const allowed = creditModelAllowlist(env({ [CREDIT_MODELS_ENV]: "m" }));
+    expect(allowed).not.toBeNull();
+    expect([...allowed!]).toEqual(["m"]);
+    expect(
+      isCreditModelAllowed("nodetool/seedream", env({ [CREDIT_MODELS_ENV]: "m" }))
+    ).toBe(false);
+  });
+});
+
 describe("isCreditModelAllowed", () => {
   it("allows everything when nothing is whitelisted", () => {
     expect(isCreditModelAllowed("nodetool/seedream", {})).toBe(true);
@@ -57,6 +70,10 @@ describe("signupGrantCredits", () => {
   it("reads a configured amount, floored to whole credits", () => {
     expect(signupGrantCredits(env({ [SIGNUP_CREDITS_ENV]: "1200" }))).toBe(1200);
     expect(signupGrantCredits(env({ [SIGNUP_CREDITS_ENV]: "12.9" }))).toBe(12);
+  });
+
+  it("grants a single credit when configured to 1", () => {
+    expect(signupGrantCredits(env({ [SIGNUP_CREDITS_ENV]: "1" }))).toBe(1);
   });
 
   it("treats zero, negatives, and junk as no welcome grant", () => {

@@ -60,6 +60,11 @@ function recorder(): { executor: NodeExecutor; seen: unknown[] } {
   };
 }
 
+const loopWarnings = (messages: ProcessingMessage[]) =>
+  messages.filter(
+    (m) => m.type === "node_update" && m.node_id === "loop" && m.status === "warning"
+  );
+
 describe("Loop runtime", () => {
   it("iterates until the condition turns false and emits done", async () => {
     const bodySeen: Array<[unknown, unknown]> = [];
@@ -80,7 +85,7 @@ describe("Loop runtime", () => {
       edge("less", "output", "loop", "condition"),
       edge("loop", "done", "out", "input")
     ];
-    const { result } = await run(nodes, edges, {
+    const { result, messages } = await run(nodes, edges, {
       start: exec(() => ({ output: 0 })),
       inc: exec((i) => {
         bodySeen.push([i.input, i.index]);
@@ -98,6 +103,7 @@ describe("Loop runtime", () => {
       [4, 4]
     ]);
     expect(out.seen).toEqual([5]);
+    expect(loopWarnings(messages)).toEqual([]);
   });
 
   it("stops at max_iterations and warns when the condition is still true", async () => {
@@ -139,12 +145,14 @@ describe("Loop runtime", () => {
       edge("grow", "output", "loop", "next"),
       edge("loop", "done", "out", "input")
     ];
-    const { result } = await run(nodes, edges, {
+    const { result, messages } = await run(nodes, edges, {
       grow: exec((i) => ({ output: `${String(i.input)}a` })),
       out: out.executor
     });
     expect(result.status).toBe("completed");
     expect(out.seen).toEqual(["aaaa"]);
+    // Without a condition, reaching max_iterations is the normal end.
+    expect(loopWarnings(messages)).toEqual([]);
   });
 
   it("ends without done when the body stops feeding back (exit through an If)", async () => {
