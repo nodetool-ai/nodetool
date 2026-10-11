@@ -17,7 +17,7 @@ function renderDialog(onConfirm = jest.fn()) {
         open
         onClose={jest.fn()}
         onConfirm={onConfirm}
-        title="Select Workspace Folder"
+        title="Select workspace folder"
         initialPath="/home/me"
         selectionMode="directory"
       />

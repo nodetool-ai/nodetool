@@ -114,12 +114,9 @@ const SketchAIToolbarInner: React.FC = () => {
         onClose={() => setConfirmRegenOpen(false)}
         title="Re-generate stale layers?"
         onConfirm={() => void handleConfirmRegen()}
-        onCancel={() => setConfirmRegenOpen(false)}
         confirmText="Re-generate"
-        cancelText="Cancel"
-        showActions
       >
-        <Text size="small" sx={{ mb: 1 }}>
+        <Text size="small">
           {staleCount} stale layer{staleCount === 1 ? " is" : "s are"} ready to
           run.
           {lockedCount > 0 && (

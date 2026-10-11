@@ -430,6 +430,7 @@ const PreviewConfirmDialog: React.FC = () => (
         content="This action cannot be undone. The workflow and its run history will be removed from the workspace."
         confirmText="Delete"
         cancelText="Cancel"
+        destructive
       />
     </Suspense>
   </Box>

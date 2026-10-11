@@ -6,7 +6,7 @@ import { memo, useCallback, useMemo, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { DragEvent as ReactDragEvent } from "react";
-import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { ConfirmDialog, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -16,7 +16,6 @@ import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
-import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles.constants";
 import { colorForType } from "../../config/data_types";
 import { IconForType } from "../../config/IconForType";
@@ -381,6 +380,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
         title="Clear recent nodes?"
         content="This clears your recently used nodes list. This cannot be undone."
         confirmText="Clear recent"
+        destructive
         cancelText="Cancel"
         notificationMessage="Recent nodes cleared"
         notificationType="success"

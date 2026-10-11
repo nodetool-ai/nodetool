@@ -20,7 +20,7 @@ export function useFolderPicker() {
     if (hasNativeDialog() && window.api?.dialog) {
       try {
         const result = await window.api.dialog.openFolder({
-          title: "Select Workspace Folder"
+          title: "Select workspace folder"
         });
         if (!result.canceled && result.filePaths.length > 0) {
           return result.filePaths[0];
@@ -56,7 +56,7 @@ export function useFolderPicker() {
       open={isOpen}
       onClose={handleCancel}
       onConfirm={handleConfirm}
-      title="Select Workspace Folder"
+      title="Select workspace folder"
       initialPath="~"
       selectionMode="directory"
     />

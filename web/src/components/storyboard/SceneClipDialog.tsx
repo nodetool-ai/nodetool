@@ -24,10 +24,11 @@ import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import VideoModelSelect from "../properties/VideoModelSelect";
 import {
+  AlertBanner,
   Box,
+  Button,
   Caption,
   Dialog,
-  EditorButton,
   FlexColumn,
   FlexRow,
   FormField,
@@ -236,11 +237,39 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
       open
       onClose={onClose}
       title="Render scene clip"
-      onConfirm={handleConfirm}
-      confirmText={`Render scene clip${priced ? ` · ~${formatUsd(cost)}` : ""}`}
-      confirmDisabled={blockers.length > 0}
       fullWidth
       maxWidth="sm"
+      actions={
+        <>
+          {saved && (
+            <Button
+              variant="text"
+              color="error"
+              onClick={handleRemove}
+              sx={{ mr: "auto" }}
+            >
+              Remove scene clip
+            </Button>
+          )}
+          <Button
+            className="button-cancel"
+            variant="text"
+            color="inherit"
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="button-confirm"
+            variant="contained"
+            onClick={handleConfirm}
+            disabled={blockers.length > 0}
+            autoFocus
+          >
+            {`Render scene clip${priced ? ` · ~${formatUsd(cost)}` : ""}`}
+          </Button>
+        </>
+      }
     >
       <FlexColumn gap={SPACING.lg} data-testid="scene-clip-dialog">
         <Caption color="secondary">
@@ -313,7 +342,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
         />
 
         <FlexColumn gap={SPACING.sm}>
-          <Label sx={{ color: "text.secondary" }}>Render settings</Label>
+          <Label>Render settings</Label>
           <FormField label="Video model" sx={modelFieldSx}>
             <VideoModelSelect
               value={model?.id ?? ""}
@@ -355,21 +384,11 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
         </FlexColumn>
 
         {blockers.length > 0 && (
-          <FlexColumn gap={SPACING.micro} role="alert">
+          <AlertBanner severity="error">
             {blockers.map((blocker) => (
-              <Caption key={blocker} sx={{ color: "error.main" }}>
-                {blocker}
-              </Caption>
+              <div key={blocker}>{blocker}</div>
             ))}
-          </FlexColumn>
-        )}
-
-        {saved && (
-          <FlexRow>
-            <EditorButton variant="text" color="error" onClick={handleRemove}>
-              Remove scene clip
-            </EditorButton>
-          </FlexRow>
+          </AlertBanner>
         )}
       </FlexColumn>
     </Dialog>

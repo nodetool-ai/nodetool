@@ -817,23 +817,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         open={open}
         onClose={handleClose}
         aria-label="Asset viewer"
+        variant="fullscreen"
         slotProps={{
-          // Override the primitive's default glass/rounded/bordered paper so the
-          // viewer is a true edge-to-edge fullscreen surface with no top gap.
+          // Media sits on a dark surface rather than the paper color.
           paper: {
-            style: {
-              borderRadius: 0,
-              border: "none",
-              margin: 0,
-              width: "100vw",
-              maxWidth: "100vw",
-              height: "100vh",
-              maxHeight: "100vh",
-              overflow: "hidden",
-              position: "relative",
-              background: theme.vars.palette.grey[900],
-              backdropFilter: "none"
-            }
+            style: { background: theme.vars.palette.grey[900] }
           },
           backdrop: {
             style: {

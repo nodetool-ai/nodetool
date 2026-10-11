@@ -34,6 +34,7 @@ import { useDragDropStore } from "../../lib/dragdrop/store";
 import {
   CopyButton,
   Dialog,
+  ScrollArea,
   StatusIndicator,
   ToolbarIconButton,
   MOTION,
@@ -961,15 +962,13 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           open={viewerOpen}
           onClose={handleCloseViewer}
           title="Generated text"
-          minWidth="min(720px, 90vw)"
+          maxWidth="md"
+          fullWidth
           titleActions={<CopyButton value={currentText} tooltip="Copy text" />}
         >
-          <div
-            className="text-popup nowheel"
-            style={{ maxHeight: "70vh", overflow: "auto" }}
-          >
+          <ScrollArea className="text-popup nowheel" maxHeight="70vh">
             <TextRenderer text={currentText} showActions={false} />
-          </div>
+          </ScrollArea>
         </Dialog>
       ) : null}
     </div>

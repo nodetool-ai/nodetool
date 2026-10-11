@@ -1,6 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useState } from "react";
-import { Text, TextInput, EditorButton, FlexColumn, FlexRow } from "../ui_primitives";
+import {
+  Text,
+  TextInput,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  Dialog,
+  ConfirmDialog
+} from "../ui_primitives";
 
 const DEFAULT_VAULT_ID = "default";
 
@@ -29,6 +37,9 @@ const VaultsSettings: React.FC = () => {
   const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<VaultInfo | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<VaultInfo | null>(null);
 
   const apply = useCallback((result: VaultListResult) => {
     setVaults(result.vaults);
@@ -75,19 +86,25 @@ const VaultsSettings: React.FC = () => {
     void run(() => vaultsApi.switch(id));
   };
 
-  const handleRename = (id: string, currentName: string) => {
-    const next = window.prompt("Rename vault", currentName);
-    if (next === null) return;
-    const name = next.trim();
+  const handleRename = (vault: VaultInfo) => {
+    setRenameValue(vault.name);
+    setRenameTarget(vault);
+  };
+
+  const closeRename = () => setRenameTarget(null);
+
+  const confirmRename = () => {
+    if (!renameTarget) return;
+    const name = renameValue.trim();
+    const { id, name: currentName } = renameTarget;
+    setRenameTarget(null);
     if (!name || name === currentName) return;
     void run(() => vaultsApi.rename(id, name));
   };
 
-  const handleDelete = (id: string, name: string) => {
-    const confirmed = window.confirm(
-      `Remove the vault "${name}" from the list?\n\nIts database files are left on disk and can be re-added or deleted manually.`
-    );
-    if (!confirmed) return;
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    const { id } = deleteTarget;
     void run(() => vaultsApi.delete(id));
   };
 
@@ -134,7 +151,7 @@ const VaultsSettings: React.FC = () => {
                   variant="outlined"
                   size="small"
                   disabled={busy || isDefault}
-                  onClick={() => handleRename(vault.id, vault.name)}
+                  onClick={() => handleRename(vault)}
                 >
                   Rename
                 </EditorButton>
@@ -143,7 +160,7 @@ const VaultsSettings: React.FC = () => {
                   size="small"
                   color="error"
                   disabled={busy || isDefault || isActive}
-                  onClick={() => handleDelete(vault.id, vault.name)}
+                  onClick={() => setDeleteTarget(vault)}
                 >
                   Delete
                 </EditorButton>
@@ -181,6 +198,43 @@ const VaultsSettings: React.FC = () => {
           {error}
         </Text>
       )}
+
+      <Dialog
+        open={renameTarget !== null}
+        onClose={closeRename}
+        title="Rename vault"
+        onConfirm={confirmRename}
+        confirmText="Rename"
+        confirmDisabled={renameValue.trim().length === 0}
+        maxWidth="xs"
+        fullWidth
+      >
+        <TextInput
+          label="Vault name"
+          value={renameValue}
+          autoComplete="off"
+          autoFocus
+          fullWidth
+          onChange={(e) => setRenameValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              confirmRename();
+            }
+          }}
+        />
+      </Dialog>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Remove vault?"
+        content={`"${deleteTarget?.name ?? ""}" is removed from the list. Its database files stay on disk and can be re-added or deleted manually.`}
+        confirmText="Remove"
+        cancelText="Cancel"
+        destructive
+      />
     </div>
   );
 };

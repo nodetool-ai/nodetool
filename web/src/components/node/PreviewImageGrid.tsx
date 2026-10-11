@@ -298,13 +298,6 @@ const styles = (theme: Theme, gap: number) =>
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)`
       }
-    },
-    ".compare-dialog .MuiPaper-root": {
-      maxWidth: "90vw",
-      maxHeight: "90vh",
-      width: "90vw",
-      height: "90vh",
-      overflow: "hidden"
     }
   });
 
@@ -586,25 +579,11 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           className="compare-dialog"
           open={compareDialogOpen}
           onClose={handleCloseCompare}
-          maxWidth={false}
-          aria-label="Compare outputs"
+          title="Compare images"
+          maxWidth="xl"
+          fullWidth
         >
-          <Box sx={{ width: "90vw", height: "90vh", position: "relative" }}>
-            <ToolbarIconButton
-              title="Close image comparison dialog"
-              onClick={handleCloseCompare}
-              sx={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                zIndex: Z_INDEX.dropdown,
-                backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
-                color: theme.vars.palette.common.white,
-                "&:hover": { backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)` }
-              }}
-            >
-              <ClearIcon />
-            </ToolbarIconButton>
+          <Box sx={{ height: "75vh", position: "relative" }}>
             <ImageComparer
               imageA={compareImages[0]}
               imageB={compareImages[1]}

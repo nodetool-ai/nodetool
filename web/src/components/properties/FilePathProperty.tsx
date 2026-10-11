@@ -9,7 +9,7 @@ const FilePathProperty = (props: PropertyProps) => (
   <BasePathProperty
     {...props}
     pathType="file_path"
-    dialogTitle="Select File"
+    dialogTitle="Select file"
     onlyDirs={false}
   />
 );

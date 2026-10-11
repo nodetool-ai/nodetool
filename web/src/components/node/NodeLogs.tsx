@@ -2,30 +2,21 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  memo,
-  useRef,
-  useEffect,
-  useCallback,
-  useState,
-  useMemo,
-  useId
-} from "react";
+import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
 
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import isEqual from "../../utils/isEqual";
 import {
   CopyButton,
-  Text,
   Chip,
   EditorButton,
   Dialog,
+  FlexColumn,
   FlexRow,
   BORDER_RADIUS,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Z_INDEX, getSpacingPx, SPACING
+  Z_INDEX,
+  getSpacingPx,
+  SPACING
 } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
@@ -63,8 +54,6 @@ const styles = (theme: Theme) =>
 
 export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
-    const theme = useTheme();
-    const titleId = useId();
     const logsRef = useRef<HTMLDivElement>(null);
     // O(1) lookup via pre-keyed map instead of filtering the full logs array.
     const logs = useLogsStore(
@@ -116,16 +105,13 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       }
     }, [logs, open]);
 
-    const toggleSeverity = useCallback(
-      (severity: Severity) => () => {
-        setSelectedSeverities((prev) =>
-          prev.includes(severity)
-            ? prev.filter((s) => s !== severity)
-            : [...prev, severity]
-        );
-      },
-      []
-    );
+    const toggleSeverity = useCallback((severity: Severity) => {
+      setSelectedSeverities((prev) =>
+        prev.includes(severity)
+          ? prev.filter((s) => s !== severity)
+          : [...prev, severity]
+      );
+    }, []);
 
     const toggleInfoSeverity = useCallback(
       () => toggleSeverity("info"),
@@ -144,45 +130,21 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       <Dialog
         open={open}
         onClose={onClose}
-        aria-labelledby={titleId}
         fullWidth
         maxWidth="md"
-        slotProps={{
-          backdrop: {
-            style: {
-              backdropFilter: theme.vars.palette.glass.blur,
-              backgroundColor: theme.vars.palette.glass.backgroundDialog
-            }
-          },
-          paper: {
-            style: {
-              maxWidth: "950px",
-              width: "950px",
-              border: `1px solid ${theme.vars.palette.grey[700]}`,
-              borderRadius: theme.vars.rounded.dialog,
-              background: theme.vars.palette.glass.backgroundDialogContent
-            }
-          }
-        }}
-      >
-        <DialogTitle className="dialog-title" id={titleId}>
-          <FlexRow gap={1} align="center">
-            <Text size="normal" weight={600} component="h6">
-              Node Logs
-            </Text>
+        title="Node logs"
+        titleActions={
+          <>
             <Chip size="small" label={`${count}`} />
-            <CopyButton
-              value={logText}
-              tooltip="Copy logs"
-              nodrag={false}
-            />
-          </FlexRow>
-        </DialogTitle>
-        <DialogContent dividers sx={{ p: 0 }}>
-          <div style={{ padding: 8 }}>
+            <CopyButton value={logText} tooltip="Copy logs" nodrag={false} />
+          </>
+        }
+      >
+        <FlexColumn gap={SPACING.md}>
+          <FlexRow gap={SPACING.xs} align="center">
             <Chip
               size="small"
-              label={`Info`}
+              label="Info"
               variant={
                 selectedSeverities.includes("info") ? "filled" : "outlined"
               }
@@ -190,7 +152,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
             />
             <Chip
               size="small"
-              label={`Warnings`}
+              label="Warnings"
               color="warning"
               variant={
                 selectedSeverities.includes("warning") ? "filled" : "outlined"
@@ -199,43 +161,22 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
             />
             <Chip
               size="small"
-              label={`Errors`}
+              label="Errors"
               color="error"
               variant={
                 selectedSeverities.includes("error") ? "filled" : "outlined"
               }
               onClick={toggleErrorSeverity}
             />
-            <Chip
-              size="small"
-              label={`Warnings`}
-              color="warning"
-              variant={
-                selectedSeverities.includes("warning") ? "filled" : "outlined"
-              }
-              onClick={toggleWarningSeverity}
-            />
-            <Chip
-              size="small"
-              label={`Errors`}
-              color="error"
-              variant={
-                selectedSeverities.includes("error") ? "filled" : "outlined"
-              }
-              onClick={toggleErrorSeverity}
-            />
-          </div>
-          <div style={{ padding: 8 }} ref={logsRef}>
+          </FlexRow>
+          <div ref={logsRef}>
             <LogsTable
               rows={logRows}
               height={400}
               severities={selectedSeverities}
             />
           </div>
-        </DialogContent>
-        <DialogActions>
-          <EditorButton onClick={onClose}>Close</EditorButton>
-        </DialogActions>
+        </FlexColumn>
       </Dialog>
     );
   },

@@ -5,7 +5,13 @@ import { useShallow } from "zustand/react/shallow";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { Dialog } from "../ui_primitives";
+import {
+  Dialog,
+  FlexColumn,
+  ScrollArea,
+  SPACING,
+  Text
+} from "../ui_primitives";
 
 interface WorkflowDeleteDialogProps {
   open: boolean;
@@ -97,28 +103,38 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
     addNotification
   ]);
 
+  const single = workflowsToDelete.length === 1;
+
   return (
     <Dialog
       open={open}
       onClose={handleClose}
-      onCancel={handleClose}
       isLoading={isDeleting}
       cancelDisabled={isDeleting}
       showCloseButton={!isDeleting}
       destructive
       onConfirm={handleDelete}
       confirmText="Delete"
-      cancelText="Cancel"
-      title="Delete Workflows"
+      title={single ? "Delete workflow?" : "Delete workflows?"}
+      maxWidth="xs"
+      fullWidth
       content={
-        <>
-          <p>Are you sure you want to delete the following workflows?</p>
-          <ul className="asset-names">
-            {pendingWorkflows.map((workflow) => (
-              <li key={workflow.id}>{workflow.name}</li>
-            ))}
-          </ul>
-        </>
+        <FlexColumn gap={SPACING.md}>
+          <Text color="secondary">
+            {single
+              ? "This workflow and its graph are permanently deleted. This cannot be undone."
+              : "These workflows and their graphs are permanently deleted. This cannot be undone."}
+          </Text>
+          <ScrollArea maxHeight="40vh">
+            <FlexColumn gap={SPACING.xs}>
+              {pendingWorkflows.map((workflow) => (
+                <Text key={workflow.id} size="small">
+                  {workflow.name}
+                </Text>
+              ))}
+            </FlexColumn>
+          </ScrollArea>
+        </FlexColumn>
       }
     />
   );
