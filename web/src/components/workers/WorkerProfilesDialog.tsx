@@ -16,6 +16,7 @@ import {
   SelectField,
   CollapsibleSection,
   AlertBanner,
+  InspectorSectionTitle,
   WarningBanner
 } from "../ui_primitives";
 import type {
@@ -465,7 +466,10 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             compact
           />
 
-          <CollapsibleSection title="Advanced" defaultOpen={false}>
+          <CollapsibleSection
+            title={<InspectorSectionTitle title="Advanced" />}
+            defaultOpen={false}
+          >
             <FlexColumn gap={SPACING.lg} sx={{ pt: SPACING.xs }}>
               <SelectField
                 label="Worker image preset"
