@@ -206,7 +206,33 @@ function isRenderableComment(comment: unknown): boolean {
   );
 }
 
+// A preset model strands every user without that provider's key. The editor
+// fills an empty model when the graph loads (web/src/utils/applyDefaultModels.ts).
+// `llama_model` is exempt: it names a local Ollama model by `repo_id`, and no
+// user default exists for it.
+function presetModelFields(data: WorkflowFile["data"]): string[] {
+  const preset: string[] = [];
+  for (const node of data.graph.nodes) {
+    const props = (node.data ?? {}) as Record<string, unknown>;
+    for (const [name, value] of Object.entries(props)) {
+      if (typeof value !== "object" || value === null) continue;
+      const ref = value as Record<string, unknown>;
+      const type = String(ref.type ?? "");
+      if (!type.endsWith("_model") || type === "llama_model") continue;
+      const provider = String(ref.provider ?? "");
+      if (String(ref.id ?? "") !== "" || (provider !== "" && provider !== "empty")) {
+        preset.push(`${node.id}.${name} = ${provider}/${String(ref.id ?? "")}`);
+      }
+    }
+  }
+  return preset;
+}
+
 describe.each(baseWorkflows)("example $fileName", ({ data }) => {
+  it("ships every model empty", () => {
+    expect(presetModelFields(data)).toEqual([]);
+  });
+
   it("has an intro comment the canvas can render", () => {
     const comments = data.graph.nodes.filter(
       (node) => node.type === "nodetool.workflows.base_node.Comment"

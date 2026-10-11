@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { useStore } from "zustand";
 import { gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
-import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
+import { validateGame3D, type AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { trpc, trpcClient } from "../../trpc/client";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
 import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutStore";
 import { anyGameMergeAdapter } from "../../stores/game/anyMerge";
-import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
+import { absorbServerGameDraft, captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
@@ -23,6 +23,7 @@ import GameHierarchy3D from "./panels/hierarchy/GameHierarchy3D";
 import GameInspector3D from "./panels/inspector/GameInspector3D";
 import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
+import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
 import GameEditorShell from "./shell/GameEditorShell";
 import GameRevisions from "./panels/revisions/GameRevisions";
 import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
@@ -30,6 +31,9 @@ import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnost
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
 import { openGameDiagnosticSession3D } from "./viewport3d/gameSessionAssets3D";
 import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
+import GameConsolePanel from "./panels/console/GameConsolePanel";
+import { gameValidationConsoleEntries } from "./panels/console/gameConsoleModel";
+import { useGameConsoleFeed } from "./panels/console/useGameConsoleFeed";
 import { gamePlaytestPrompt, gameScriptErrorPrompt, gameSelectionPrompt } from "./gameAssistantPrompt";
 import GameViewport3D from "./viewport3d/GameViewport3D";
 import { scriptFailure } from "./useGamePlaySession";
@@ -73,6 +77,8 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const diagnostics = useGameScriptDiagnostics(document, openDiagnosticSession);
   const hostScriptError = host.error?.includes("Game script") ? scriptFailure(host.error, (host.inspection?.tick ?? 0) + 1) : null;
   const scriptError = diagnostics.error ?? hostScriptError;
+  useGameConsoleFeed(refId, { runtimeError: host.error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: host.inspection?.tick ?? 0 });
+  const consoleValidation = useMemo(() => gameValidationConsoleEntries(validateGame3D(document).diagnostics, document), [document]);
   const conflicts = useDocumentConflicts("game", refId);
   const queries = trpc.useUtils();
   const { data: revisions } = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
@@ -239,10 +245,19 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     } catch (cause) { setOperationError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setRestoring(false); }
   };
+  // A generation runs for minutes while the user keeps editing and autosave keeps saving, so the
+  // server binds onto whatever draft is current and the result is merged in, never loaded over.
+  const serverAssetEdit = async (edit: () => Promise<unknown>): Promise<void> => {
+    await edit();
+    await pullGameDraft(savingRef, async () => {
+      absorbServerGameDraft(refId, await trpcClient.games.getDraft.query({ id: refId }));
+    });
+    await queries.games.draftChanges.invalidate({ id: refId });
+  };
   const restart = useMemo(() => host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document),
     [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
-  return <GameEditorShell layoutStore={layoutStore} dimension="3d"
+  return <GameEditorShell layoutStore={layoutStore} dimension="3d" active={active}
     toolbar={{ name: name,
         playing: host.playing,
         playSession: Boolean(host.playDocument),
@@ -321,6 +336,12 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary} runEntityStats={diagnostics.byEntity}
           onChange={(source) => onOps([{ op: "set_script", scene_id: scriptKey.sceneId, entity_id: activeScript.id, index: scriptKey.index, source }])}
           onClose={() => { setScriptKey(null); layoutStore.getState().dispatch({ type: "hide", panelId: "scripts" }); }} /> : null },
+      { id: "assets",
+        node: <GameAssetBrowser gameId={refId} document={document} runServerEdit={serverAssetEdit} onOps={onOps}
+          onSelectEntity={(entitySceneId, entityId) => { setSceneId(entitySceneId); select(entityId); }} onAskAssistant={assistant.draft} /> },
+      { id: "console",
+        node: <GameConsolePanel gameId={refId} document={document} liveEntries={consoleValidation}
+          onSelectEntity={(entitySceneId, entityId) => { setSceneId(entitySceneId); select(entityId); }} onAskAssistant={assistant.draft} /> },
       { id: "inspector",
         node: <>
         <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />

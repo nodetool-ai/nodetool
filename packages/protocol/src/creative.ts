@@ -526,6 +526,10 @@ export interface Shot {
   camera?: CameraDirection;
   /** What moves in the shot (and how the camera moves). */
   motion?: string;
+  /** The picture the shot ends on; a one-take step's "End:". */
+  end_state?: string;
+  /** What is heard in the shot; a one-take audio cue. */
+  sound?: string;
   /** Exact graphic elements and semantic motion-design intent for this shot. */
   graphics?: ShotGraphics;
   /** Spoken line delivered in-shot, if any. */

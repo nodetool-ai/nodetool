@@ -141,6 +141,21 @@ async function pinCurrentVersion(script: JsScript): Promise<number> {
   return created.version;
 }
 
+/** Refuse an invalid document as the caller's error, not a server fault. */
+function assertValidDocument(document: unknown): void {
+  const errors = validateJsScriptDocument(document).filter(
+    (issue) => issue.severity === "error"
+  );
+  if (errors.length > 0) {
+    throwApiError(
+      ApiErrorCode.INVALID_INPUT,
+      `invalid js script document: ${errors
+        .map((issue) => issue.message)
+        .join("; ")}`
+    );
+  }
+}
+
 async function loadOwned(
   ctxUserId: string | null,
   id: string
@@ -215,6 +230,9 @@ export const jsScriptsRouter = router({
           return jsScriptResponse.parse(existing.toResponse());
         }
       }
+      if (input.document !== undefined) {
+        assertValidDocument(input.document);
+      }
       const fields: ConstructorParameters<typeof JsScript>[0] = {
         user_id: ctx.userId,
         project_id: input.projectId,
@@ -250,11 +268,15 @@ export const jsScriptsRouter = router({
 
       const fields: Parameters<typeof JsScript.updateFieldsIfUnchanged>[2] = {};
       if (input.name !== undefined) fields.name = input.name;
-      if (input.document !== undefined)
+      if (input.document !== undefined) {
+        assertValidDocument(input.document);
         fields.document = JSON.stringify(input.document);
+      }
 
+      // The loaded row's id: `input.id` may be a 12-character prefix, which
+      // the conditional write would never match.
       const updated = await JsScript.updateFieldsIfUnchanged(
-        input.id,
+        script.id,
         expectedUpdatedAt,
         fields
       );

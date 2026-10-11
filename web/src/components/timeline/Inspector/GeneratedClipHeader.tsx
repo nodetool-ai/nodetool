@@ -89,6 +89,7 @@ export const GeneratedClipHeader: React.FC<GeneratedClipHeaderProps> = memo(
       <FlexColumn gap={0.5} sx={{ px: 1, pt: 1, pb: 0.5 }}>
         <FlexRow align="center" gap={1}>
           <Text
+            size="small"
             sx={{
               flex: 1,
               fontWeight: FONT_WEIGHT.medium,

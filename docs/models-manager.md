@@ -29,7 +29,7 @@ On an empty local install the Manager opens on **Get Started** once, so you do n
 
 ### Get Started
 
-The hardware card shows what NodeTool detected and a memory budget, which you can leave on **Auto-detect** or set from 4 GB to 48 GB. The engine guide covers Ollama (bundled with the desktop app), llama.cpp, Transformers.js, Hugging Face / Diffusers, and MLX (Apple Silicon only), and shows which ones you still need to install from the Package Manager. The model list below it can be filtered by capability: chat, vision, image generation, speech to text, text to speech, and embeddings. Entries that fit your budget sort first. Sizes and memory figures are approximate.
+The hardware card shows what NodeTool detected and a memory budget, which you can leave on **Auto-detect** or set from 4 GB to 48 GB. The engine guide covers Ollama, llama.cpp, Transformers.js, Hugging Face / Diffusers, and MLX (Apple Silicon only), and shows which ones you still need to install. Ollama is a separate download from [ollama.com](https://ollama.com) that must be running. The others install from the Package Manager. The model list below it can be filtered by capability: chat, vision, image generation, speech to text, text to speech, and embeddings. Entries that fit your budget sort first. Sizes and memory figures are approximate.
 
 ### Local and worker scope
 
@@ -91,7 +91,7 @@ Each row can show these badges.
 
 ### Storage location
 
-Hugging Face models use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. `HF_HOME` or `HF_HUB_CACHE` move it. Ollama keeps its models in its own directory. Transformers.js models download to `<data-dir>/transformers-js-cache`, or to `TRANSFORMERS_JS_CACHE_DIR` if set. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
+Hugging Face models use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. NodeTool resolves it the way the `huggingface_hub` library does: `HF_HUB_CACHE`, then `HUGGINGFACE_HUB_CACHE`, then `$HF_HOME/hub`, then `$XDG_CACHE_HOME/huggingface/hub`. Downloads, the **Installed** list, the downloaded badges, llama.cpp, whisper.cpp, and the Python worker all read the same directory. On Linux with `XDG_CACHE_HOME` set, as in the Flatpak build, the desktop app keeps using `~/.cache/huggingface/hub` when it already holds models. The full rule is under [`HF_HUB_CACHE`](configuration.md#environment-variables-index). Ollama keeps its models in its own directory. Transformers.js models download to `<data-dir>/transformers-js-cache`, or to `TRANSFORMERS_JS_CACHE_DIR` if set. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
 
 ---
 

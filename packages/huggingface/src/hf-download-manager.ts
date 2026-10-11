@@ -125,7 +125,7 @@ function globToRegex(pattern: string): RegExp {
 
 function matchesAnyPattern(
   filepath: string,
-  patterns: string[] | null | undefined
+  patterns: readonly string[] | null | undefined
 ): boolean {
   if (!patterns || patterns.length === 0) return false;
   return patterns.some((p) => globToRegex(p).test(filepath));
@@ -137,7 +137,7 @@ function matchesAnyPattern(
  * always skip them to avoid wasteful double-downloads (TF `.h5`, Flax
  * `.msgpack`, ONNX, TFLite, Rust `.ot`, …).
  */
-const ALWAYS_IGNORE_PATTERNS: string[] = [
+export const ALWAYS_IGNORE_PATTERNS: readonly string[] = [
   "*.onnx",
   "*.onnx_data",
   "*.h5",
@@ -183,6 +183,43 @@ function filterFiles(
   }
 
   return result;
+}
+
+/**
+ * Files of one repo downloaded at once. The Python worker uses the same cap
+ * and variable (`NODETOOL_HF_DOWNLOAD_CONCURRENCY`, default 8): a repo with
+ * dozens of shards otherwise opens dozens of Hub connections and invites
+ * HTTP 429.
+ */
+export function hfDownloadConcurrency(): number {
+  const value = Number(process.env["NODETOOL_HF_DOWNLOAD_CONCURRENCY"]);
+  return Number.isInteger(value) && value > 0 ? value : 8;
+}
+
+/** Run `task` over `items` with at most `limit` in flight; settles like `Promise.allSettled`. */
+async function settleWithLimit<T>(
+  items: readonly T[],
+  limit: number,
+  task: (item: T) => Promise<void>
+): Promise<PromiseSettledResult<void>[]> {
+  const results: PromiseSettledResult<void>[] = new Array(items.length);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      try {
+        await task(items[index]);
+        results[index] = { status: "fulfilled", value: undefined };
+      } catch (reason) {
+        results[index] = { status: "rejected", reason };
+      }
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker())
+  );
+  return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -346,8 +383,8 @@ export class DownloadManager {
       state.status = "progress";
       emitProgress();
 
-      // Download each file
-      const downloadPromises = filesToDownload.map(async (file) => {
+      // Download the files, a bounded number at a time.
+      const downloadFile = async (file: HfTreeEntry): Promise<void> => {
         if (abortController.signal.aborted) return;
 
         state.currentFiles.push(file.path);
@@ -377,9 +414,13 @@ export class DownloadManager {
 
         state.downloadedFiles.push(file.path);
         state.currentFiles = state.currentFiles.filter((f) => f !== file.path);
-      });
+      };
 
-      const results = await Promise.allSettled(downloadPromises);
+      const results = await settleWithLimit(
+        filesToDownload,
+        hfDownloadConcurrency(),
+        downloadFile
+      );
 
       // Check for cancellation
       if (abortController.signal.aborted) {

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
+import { usePanelStore } from "../../../stores/PanelStore";
 import FirstWorkflowGuide from "../FirstWorkflowGuide";
 
 const renderGuide = (
@@ -83,5 +84,18 @@ describe("FirstWorkflowGuide", () => {
     expect(
       screen.getByRole("button", { name: "Close guide" })
     ).toBeInTheDocument();
+  });
+
+  it("centers in the canvas the open left panel leaves visible", () => {
+    usePanelStore.setState((state) => ({
+      panel: { ...state.panel, isVisible: true, panelSize: 450 }
+    }));
+
+    renderGuide();
+
+    // Centered on the whole canvas, an open Library panel covered the
+    // guide's title and its starter button.
+    const guide = screen.getByLabelText("First workflow guide");
+    expect(getComputedStyle(guide).left).toContain("450px");
   });
 });

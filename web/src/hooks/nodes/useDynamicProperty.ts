@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import type { TypeMetadata } from "../../stores/ApiTypes";
 import type { DynamicSlotDeclaration } from "../../stores/NodeData";
 import {
@@ -7,6 +7,7 @@ import {
   normalizeDynamicSlots,
   valueFitsType
 } from "../../utils/dynamicSlots";
+import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 
 interface UseDynamicPropertyResult {
   handleDeleteProperty: (propertyName: string) => void;
@@ -25,8 +26,9 @@ interface UseDynamicPropertyResult {
  *
  * Every mutation writes the value map (`dynamic_properties`) and the
  * declaration map (`dynamic_inputs`) in a single `updateNodeData` call, so
- * undo/redo can never strand a type under a dead name. Rename additionally
- * moves connected edges onto the new handle.
+ * undo/redo can never strand a type under a dead name. Delete also removes
+ * the edges into the slot, and rename moves them onto the new handle, in the
+ * same undo step. Rename onto a name the node already has is ignored.
  */
 export const useDynamicProperty = (
   nodeId: string,
@@ -34,7 +36,9 @@ export const useDynamicProperty = (
 ): UseDynamicPropertyResult => {
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const updateEdgeHandle = useNodes((state) => state.updateEdgeHandle);
+  const deleteEdges = useNodes((state) => state.deleteEdges);
   const findNode = useNodes((state) => state.findNode);
+  const nodeStore = useNodeStoreRef();
 
   const currentSlots = useCallback(
     (): Record<string, DynamicSlotDeclaration> =>
@@ -50,12 +54,31 @@ export const useDynamicProperty = (
       const updatedSlots = currentSlots();
       delete updatedSlots[propertyName];
 
-      updateNodeData(nodeId, {
-        dynamic_properties: updatedDynamicProperties,
-        dynamic_inputs: updatedSlots
+      // An edge left on the removed handle is saved with the workflow and
+      // recreates the input on the next load.
+      const connectedEdgeIds = nodeStore
+        .getState()
+        .edges.filter(
+          (edge) => edge.target === nodeId && edge.targetHandle === propertyName
+        )
+        .map((edge) => edge.id);
+
+      runAsOneUndoEntry(nodeStore, () => {
+        updateNodeData(nodeId, {
+          dynamic_properties: updatedDynamicProperties,
+          dynamic_inputs: updatedSlots
+        });
+        deleteEdges(connectedEdgeIds);
       });
     },
-    [currentSlots, dynamicProperties, nodeId, updateNodeData]
+    [
+      currentSlots,
+      deleteEdges,
+      dynamicProperties,
+      nodeId,
+      nodeStore,
+      updateNodeData
+    ]
   );
 
   const handleAddProperty = useCallback(
@@ -80,6 +103,12 @@ export const useDynamicProperty = (
 
   const handleUpdatePropertyName = useCallback(
     (oldPropertyName: string, newPropertyName: string) => {
+      if (
+        oldPropertyName === newPropertyName ||
+        Object.hasOwn(dynamicProperties, newPropertyName)
+      ) {
+        return;
+      }
       const updatedDynamicProperties = { ...dynamicProperties };
       updatedDynamicProperties[newPropertyName] =
         dynamicProperties[oldPropertyName];
@@ -92,13 +121,22 @@ export const useDynamicProperty = (
         delete updatedSlots[oldPropertyName];
       }
 
-      updateNodeData(nodeId, {
-        dynamic_properties: updatedDynamicProperties,
-        dynamic_inputs: updatedSlots
+      runAsOneUndoEntry(nodeStore, () => {
+        updateNodeData(nodeId, {
+          dynamic_properties: updatedDynamicProperties,
+          dynamic_inputs: updatedSlots
+        });
+        updateEdgeHandle(nodeId, oldPropertyName, newPropertyName);
       });
-      updateEdgeHandle(nodeId, oldPropertyName, newPropertyName);
     },
-    [currentSlots, dynamicProperties, nodeId, updateEdgeHandle, updateNodeData]
+    [
+      currentSlots,
+      dynamicProperties,
+      nodeId,
+      nodeStore,
+      updateEdgeHandle,
+      updateNodeData
+    ]
   );
 
   const handleUpdatePropertyType = useCallback(

@@ -76,6 +76,11 @@ export interface QuantizeOptions {
   strength?: number;
   /** Default `"start"`. */
   target?: QuantizeTarget;
+  /**
+   * Content tick a grid line passes through. Default 0. The editor anchors
+   * its grid at `tempo.offsetMs`, so it passes that instant as a tick here.
+   */
+  phaseTick?: number;
 }
 
 /**
@@ -97,9 +102,11 @@ export function quantizeNotes(
     throw new Error(`strength must be between 0 and 1; got ${String(strength)}.`);
   }
   const target = options.target ?? "start";
+  const phase = options.phaseTick ?? 0;
 
   return notes.map((note) => {
-    const startTarget = Math.round(note.startTick / grid) * grid;
+    const startTarget =
+      phase + Math.round((note.startTick - phase) / grid) * grid;
     const startTick = Math.max(
       0,
       Math.round(note.startTick + (startTarget - note.startTick) * strength)

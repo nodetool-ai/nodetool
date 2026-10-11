@@ -12,6 +12,7 @@ import type { Entity } from "@nodetool-ai/protocol";
 import { useDeleteEntity, useEntities } from "../../serverState/useEntities";
 import {
   AutoGrid,
+  EditorButton,
   EmptyState,
   FlexRow,
   LoadingSpinner,
@@ -29,10 +30,16 @@ import { creationProjectId } from "../../stores/WorkspaceTabsStore";
 /** Picks an image asset, then opens the editor to describe it. */
 interface CreateEntityButtonProps {
   readonly projectId?: string;
+  /** Shows a text button with this label instead of the icon button. */
+  readonly label?: string;
+  /** Receives the entity once it is saved. */
+  readonly onCreated?: (entity: Entity) => void;
 }
 
 export const CreateEntityButton = memo(function CreateEntityButton({
-  projectId
+  projectId,
+  label,
+  onCreated
 }: CreateEntityButtonProps) {
   const scopedProjectId = projectId ?? creationProjectId();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -43,28 +50,52 @@ export const CreateEntityButton = memo(function CreateEntityButton({
     setAssetId(picked);
   }, []);
 
+  const handleSaved = useCallback(
+    (entity: Entity | null) => {
+      if (entity) {
+        onCreated?.(entity);
+      }
+    },
+    [onCreated]
+  );
+
   return (
     <>
-      <Tooltip title="New entity" placement="right-start">
-        <ToolbarIconButton
-          ariaLabel="New entity"
+      {label ? (
+        <EditorButton
+          variant="outlined"
+          startIcon={<AddIcon />}
           onClick={() => setPickerOpen(true)}
-          tabIndex={-1}
-          icon={<AddIcon />}
+          sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+        >
+          {label}
+        </EditorButton>
+      ) : (
+        <Tooltip title="New entity" placement="right-start">
+          <ToolbarIconButton
+            ariaLabel="New entity"
+            onClick={() => setPickerOpen(true)}
+            tabIndex={-1}
+            icon={<AddIcon />}
+          />
+        </Tooltip>
+      )}
+      {/* Mounted only while open: it queries the project's images. */}
+      {pickerOpen && (
+        <EntityAssetPickerDialog
+          open
+          onClose={() => setPickerOpen(false)}
+          onPick={handlePick}
+          projectId={scopedProjectId}
         />
-      </Tooltip>
-      <EntityAssetPickerDialog
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onPick={handlePick}
-        projectId={scopedProjectId}
-      />
+      )}
       {assetId && (
         <EntityEditorDialog
           open
           onClose={() => setAssetId(null)}
           assetId={assetId}
           projectId={scopedProjectId}
+          onSaved={handleSaved}
         />
       )}
     </>

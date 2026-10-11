@@ -3,6 +3,7 @@ jest.mock("../../../components/node_types/PlaceholderNode", () => () => null);
 import type { Workflow } from "../../../stores/ApiTypes";
 import { createNodeStore } from "../../../stores/NodeStore";
 import { importWorkflowGraph } from "../importWorkflowFile";
+import { queueWorkflowSave } from "../useWorkflowSetup";
 
 const workflow = {
   id: "wf-import",
@@ -63,6 +64,66 @@ describe("importWorkflowGraph", () => {
     const onCanvas = nodeStore.getState().getWorkflow().graph;
     expect(onCanvas.nodes.map((node) => node.id)).toEqual(["n1", "n2"]);
     const saved = (saveWorkflow.mock.calls[0] as unknown as [Workflow])[0];
+    expect(saved.graph.nodes.map((node) => node.id)).toEqual(["n1", "n2"]);
+  });
+
+  it("takes the graph back off when its save is refused", async () => {
+    const nodeStore = createNodeStore(workflow);
+    let current: Workflow = workflow;
+    const saveWorkflow = jest.fn(async () => {
+      throw new Error("Failed to save workflow");
+    });
+    await expect(
+      importWorkflowGraph(
+        {
+          getWorkflow: () => current,
+          updateWorkflow: (next) => {
+            current = next as Workflow;
+          },
+          getNodeStore: () => nodeStore,
+          saveWorkflow
+        },
+        workflow.id,
+        imported
+      )
+    ).rejects.toThrow("Failed to save workflow");
+
+    // The next stage save must not carry the refused import.
+    expect(current.graph.nodes).toEqual([]);
+    expect(nodeStore.getState().getWorkflow().graph.nodes).toEqual([]);
+  });
+
+  // A typed brief's save can still be on the wire when the file lands. Both
+  // carry the same `expected_updated_at`, so the import waits its turn.
+  it("saves after a setup save already on the wire", async () => {
+    const nodeStore = createNodeStore(workflow);
+    let landFirst: () => void = () => undefined;
+    const saveWorkflow = jest
+      .fn<Promise<void>, [Workflow]>()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            landFirst = resolve;
+          })
+      )
+      .mockResolvedValue(undefined);
+    const state = {
+      getWorkflow: () => workflow,
+      updateWorkflow: jest.fn(),
+      getNodeStore: () => nodeStore,
+      saveWorkflow
+    };
+    const flowSave = queueWorkflowSave(state, workflow.id);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(saveWorkflow).toHaveBeenCalledTimes(1);
+    const importing = importWorkflowGraph(state, workflow.id, imported);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(saveWorkflow).toHaveBeenCalledTimes(1);
+    landFirst();
+    await flowSave;
+    await importing;
+    expect(saveWorkflow).toHaveBeenCalledTimes(2);
+    const saved = saveWorkflow.mock.calls[1][0];
     expect(saved.graph.nodes.map((node) => node.id)).toEqual(["n1", "n2"]);
   });
 });

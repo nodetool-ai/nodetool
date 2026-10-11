@@ -1,11 +1,17 @@
-import { setupWorkflowShortcuts, registerWorkflowShortcut } from '../shortcuts';
+import {
+  setupWorkflowShortcuts,
+  registerWorkflowShortcut,
+  unregisterWorkflowShortcut,
+} from '../shortcuts';
 import { globalShortcut } from 'electron';
 import { fetchWorkflows } from '../api';
 import { runWorkflow } from '../workflowExecution';
+import { logMessage } from '../logger';
 
 // Mock dependencies
 jest.mock('../api');
 jest.mock('../workflowExecution');
+jest.mock('../logger');
 jest.mock('electron', () => ({
   app: {
     isPackaged: false,
@@ -28,6 +34,7 @@ describe('Shortcuts', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRunWorkflow.mockResolvedValue(undefined);
   });
 
   describe('registerWorkflowShortcut', () => {
@@ -70,7 +77,7 @@ describe('Shortcuts', () => {
 
     it('should not register shortcut if workflow has no shortcut setting', async () => {
       const workflowWithoutShortcut = {
-        id: '1',
+        id: 'never-registered',
         name: 'Test Workflow',
         settings: {}
       };
@@ -83,7 +90,7 @@ describe('Shortcuts', () => {
 
     it('should not register shortcut if workflow has no settings', async () => {
       const workflowWithoutSettings = {
-        id: '1',
+        id: 'never-registered',
         name: 'Test Workflow'
       };
 
@@ -111,6 +118,77 @@ describe('Shortcuts', () => {
 
       // Should not throw, returns false on error
       await expect(registerWorkflowShortcut(mockWorkflow)).resolves.toBe(false);
+    });
+  });
+
+  describe('shortcut ownership', () => {
+    const workflow = (id: string, shortcut?: string) => ({
+      id,
+      name: `Workflow ${id}`,
+      settings: shortcut ? { shortcut } : {},
+    });
+
+    beforeEach(() => {
+      mockGlobalShortcut.register.mockReturnValue(true);
+      jest.mocked(mockGlobalShortcut.isRegistered).mockReturnValue(false);
+    });
+
+    it('releases the old accelerator when a workflow changes its shortcut', async () => {
+      await registerWorkflowShortcut(workflow('change', 'Alt+A'));
+      mockGlobalShortcut.unregister.mockClear();
+
+      await registerWorkflowShortcut(workflow('change', 'Alt+B'));
+
+      expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith('Alt+A');
+      expect(mockGlobalShortcut.register).toHaveBeenLastCalledWith('Alt+B', expect.any(Function));
+    });
+
+    it('releases the accelerator when a workflow clears its shortcut', async () => {
+      await registerWorkflowShortcut(workflow('clear', 'Alt+C'));
+      mockGlobalShortcut.unregister.mockClear();
+
+      await registerWorkflowShortcut(workflow('clear'));
+
+      expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith('Alt+C');
+    });
+
+    it('releases the accelerator of a deleted workflow by id', async () => {
+      await registerWorkflowShortcut(workflow('deleted', 'Alt+D'));
+      mockGlobalShortcut.unregister.mockClear();
+
+      unregisterWorkflowShortcut('deleted');
+      unregisterWorkflowShortcut('deleted');
+
+      expect(mockGlobalShortcut.unregister).toHaveBeenCalledTimes(1);
+      expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith('Alt+D');
+    });
+
+    it('releases the previous vault\'s shortcuts before registering the new ones', async () => {
+      await registerWorkflowShortcut(workflow('old-vault', 'Alt+V'));
+      mockGlobalShortcut.unregister.mockClear();
+      mockFetchWorkflows.mockResolvedValue([]);
+
+      await setupWorkflowShortcuts();
+
+      expect(mockGlobalShortcut.unregister).toHaveBeenCalledWith('Alt+V');
+    });
+
+    it('logs a failed shortcut run instead of leaving the rejection unhandled', async () => {
+      let shortcutCallback: () => void = () => {};
+      mockGlobalShortcut.register.mockImplementation((_shortcut, callback) => {
+        shortcutCallback = callback;
+        return true;
+      });
+      mockRunWorkflow.mockRejectedValue(new Error('backend stopped'));
+
+      await registerWorkflowShortcut(workflow('failing', 'Alt+F'));
+      shortcutCallback();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(jest.mocked(logMessage)).toHaveBeenCalledWith(
+        expect.stringContaining('backend stopped'),
+        'error',
+      );
     });
   });
 

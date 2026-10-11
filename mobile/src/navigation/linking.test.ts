@@ -3,7 +3,7 @@ import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import { getStateFromPath } from '@react-navigation/native';
 import { linking } from './linking';
-import { RootStackParamList } from './types';
+import type { MainTabParamList, RootStackParamList } from './types';
 
 type Screens = NonNullable<NonNullable<typeof linking.config>['screens']>;
 
@@ -72,8 +72,16 @@ describe('linking', () => {
   });
 
   it('maps every route in the param list', () => {
+    // Tab routes live one level down, under `Main`.
+    const leafNames = (screens: Screens): string[] =>
+      Object.entries(screens).flatMap(([name, entry]) =>
+        typeof entry === 'object' && entry !== null && 'screens' in entry && entry.screens
+          ? leafNames(entry.screens as Screens)
+          : [name]
+      );
     const screens = linking.config?.screens as Screens;
-    const expected: (keyof RootStackParamList)[] = [
+    // A folder is only ever pushed from the Assets tab, so it has no path.
+    const expected: (Exclude<keyof RootStackParamList, 'Main' | 'AssetFolder'> | keyof MainTabParamList)[] = [
       'Login',
       'Chat',
       'Threads',
@@ -90,7 +98,7 @@ describe('linking', () => {
       'Settings',
       'LanguageModelSelection',
     ];
-    expect(Object.keys(screens).sort()).toEqual([...expected].sort());
+    expect(leafNames(screens).sort()).toEqual([...expected].sort());
   });
 
   describe('path resolution', () => {
@@ -99,6 +107,18 @@ describe('linking', () => {
         name: 'JobDetail',
         params: { jobId: 'job-42' },
       });
+    });
+
+    it('keeps the tabs under a pushed screen so Back has somewhere to go', () => {
+      const state = getStateFromPath('/job/job-42', linking.config);
+      expect(state?.routes.map((route) => route.name)).toEqual(['Main', 'JobDetail']);
+    });
+
+    it('routes the tab paths into the tab navigator', () => {
+      const state = getStateFromPath('/jobs', linking.config);
+      expect(state?.routes[0].name).toBe('Main');
+      expect(routeForPath('/jobs').name).toBe('Jobs');
+      expect(routeForPath('/documents').name).toBe('Documents');
     });
 
     it('routes asset/:assetId to AssetViewer', () => {

@@ -4,13 +4,17 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { gameDesign } from "../src/api-schemas/workflows.js";
-import { gameAssetManifest } from "../src/game-assets.js";
+import { gameAssetManifest, type GameAssetManifest } from "../src/game-assets.js";
+import { findNativeGameTemplate } from "../src/native-game-templates.js";
 import {
   GAME_DESIGNER_SYSTEM_PROMPT,
   GAME_DESIGN_TOOL_DESCRIPTION,
   GAME_DESIGN_TOOL_NAME,
   GAME_INSPIRATION_CHIPS,
+  NATIVE_GAME_INSPIRATION_CHIPS,
   buildGameDesignSchema,
+  pinnedGameInspirationChip,
+  type GameInspirationChip,
   designSourceOf,
   parseGameDesign
 } from "../src/game-design.js";
@@ -202,78 +206,121 @@ describe("GAME_INSPIRATION_CHIPS", () => {
   });
 
   for (const chip of GAME_INSPIRATION_CHIPS) {
-    const manifest = manifestOf(chip.template);
-
-    it(`${chip.id}: the pinned design parses`, () => {
-      expect(gameDesign.safeParse(chip.design).success).toBe(true);
-    });
-
-    it(`${chip.id}: covers its manifest completely with nothing to fill`, () => {
-      const parsed = parseGameDesign(chip.design, manifest);
-      expect(parsed).not.toBeNull();
-      expect(parsed!.filled).toEqual([]);
-    });
-
-    it(`${chip.id}: one prompt per slot, one cast entry per spritesheet slot, one enemy per enemy slot`, () => {
-      expect(chip.design.slot_prompts.map((entry) => entry.slot_id).sort()).toEqual(
-        manifest.slots.map((slot) => slot.id).sort()
-      );
-      expect(chip.design.cast.map((entry) => entry.slot_id).sort()).toEqual(
-        manifest.slots
-          .filter((slot) => slot.kind === "spritesheet")
-          .map((slot) => slot.id)
-          .sort()
-      );
-      expect(chip.design.enemies.map((entry) => entry.slot_id).sort()).toEqual(
-        manifest.slots
-          .filter((slot) => slot.id.startsWith("enemy"))
-          .map((slot) => slot.id)
-          .sort()
-      );
-    });
-
-    it(`${chip.id}: every field a creator reads is written, not blank`, () => {
-      for (const value of [
-        chip.brief,
-        chip.design.title,
-        chip.design.premise,
-        chip.design.core_loop,
-        chip.design.level,
-        chip.design.win,
-        chip.design.lose
-      ]) {
-        expect(value.trim().length).toBeGreaterThan(0);
-      }
-      expect(chip.design.player_verbs.length).toBeGreaterThan(0);
-      for (const entry of chip.design.slot_prompts) {
-        expect(entry.prompt.trim().length).toBeGreaterThan(0);
-      }
-      for (const entry of chip.design.cast) {
-        expect(entry.name.trim().length).toBeGreaterThan(0);
-        expect(entry.descriptor.trim().length).toBeGreaterThan(0);
-      }
-    });
-
-    it(`${chip.id}: no slot prompt carries style or sheet boilerplate`, () => {
-      const banned = [
-        "sprite sheet",
-        "spritesheet",
-        "tileset",
-        "pixel art",
-        "8-bit",
-        "16-bit",
-        "seamless",
-        "transparent background"
-      ];
-      for (const entry of chip.design.slot_prompts) {
-        const prompt = entry.prompt.toLowerCase();
-        for (const word of banned) {
-          expect(
-            prompt.includes(word),
-            `${chip.id}/${entry.slot_id} contains "${word}"`
-          ).toBe(false);
-        }
-      }
-    });
+    describeChip(chip, manifestOf(chip.template));
   }
 });
+
+describe("NATIVE_GAME_INSPIRATION_CHIPS", () => {
+  const topdown = findNativeGameTemplate("topdown")!;
+
+  it("offers three chips for the built-in top-down template, with unique ids", () => {
+    expect(NATIVE_GAME_INSPIRATION_CHIPS.map((chip) => chip.template)).toEqual([
+      "topdown",
+      "topdown",
+      "topdown"
+    ]);
+    expect(new Set(NATIVE_GAME_INSPIRATION_CHIPS.map((chip) => chip.id)).size).toBe(3);
+  });
+
+  for (const chip of NATIVE_GAME_INSPIRATION_CHIPS) {
+    describeChip(chip, topdown.manifest);
+  }
+});
+
+describe("pinnedGameInspirationChip", () => {
+  it("finds a native chip by its brief, ignoring case and surrounding spaces", () => {
+    const chip = NATIVE_GAME_INSPIRATION_CHIPS[0]!;
+    expect(
+      pinnedGameInspirationChip("topdown", `  ${chip.brief.toUpperCase()} `)
+    ).toBe(chip);
+  });
+
+  it("still finds the legacy chips the headless capability accepted", () => {
+    const legacy = GAME_INSPIRATION_CHIPS.find((chip) => chip.template === "topdown")!;
+    expect(pinnedGameInspirationChip("topdown", legacy.brief)).toBe(legacy);
+  });
+
+  it("returns null for a brief no chip carries, or for another template", () => {
+    expect(pinnedGameInspirationChip("topdown", "a game nobody shipped")).toBeNull();
+    expect(
+      pinnedGameInspirationChip("platformer", NATIVE_GAME_INSPIRATION_CHIPS[0]!.brief)
+    ).toBeNull();
+  });
+});
+
+function describeChip(
+  chip: GameInspirationChip,
+  manifest: GameAssetManifest
+): void {
+  it(`${chip.id}: the pinned design parses`, () => {
+    expect(gameDesign.safeParse(chip.design).success).toBe(true);
+  });
+
+  it(`${chip.id}: covers its manifest completely with nothing to fill`, () => {
+    const parsed = parseGameDesign(chip.design, manifest);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.filled).toEqual([]);
+  });
+
+  it(`${chip.id}: one prompt per slot, one cast entry per spritesheet slot, one enemy per enemy slot`, () => {
+    expect(chip.design.slot_prompts.map((entry) => entry.slot_id).sort()).toEqual(
+      manifest.slots.map((slot) => slot.id).sort()
+    );
+    expect(chip.design.cast.map((entry) => entry.slot_id).sort()).toEqual(
+      manifest.slots
+        .filter((slot) => slot.kind === "spritesheet")
+        .map((slot) => slot.id)
+        .sort()
+    );
+    expect(chip.design.enemies.map((entry) => entry.slot_id).sort()).toEqual(
+      manifest.slots
+        .filter((slot) => slot.id.startsWith("enemy"))
+        .map((slot) => slot.id)
+        .sort()
+    );
+  });
+
+  it(`${chip.id}: every field a creator reads is written, not blank`, () => {
+    for (const value of [
+      chip.brief,
+      chip.design.title,
+      chip.design.premise,
+      chip.design.core_loop,
+      chip.design.level,
+      chip.design.win,
+      chip.design.lose
+    ]) {
+      expect(value.trim().length).toBeGreaterThan(0);
+    }
+    expect(chip.design.player_verbs.length).toBeGreaterThan(0);
+    for (const entry of chip.design.slot_prompts) {
+      expect(entry.prompt.trim().length).toBeGreaterThan(0);
+    }
+    for (const entry of chip.design.cast) {
+      expect(entry.name.trim().length).toBeGreaterThan(0);
+      expect(entry.descriptor.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it(`${chip.id}: no slot prompt carries style or sheet boilerplate`, () => {
+    const banned = [
+      "sprite sheet",
+      "spritesheet",
+      "tileset",
+      "pixel art",
+      "8-bit",
+      "16-bit",
+      "seamless",
+      "transparent background"
+    ];
+    for (const entry of chip.design.slot_prompts) {
+      const prompt = entry.prompt.toLowerCase();
+      for (const word of banned) {
+        expect(
+          prompt.includes(word),
+          `${chip.id}/${entry.slot_id} contains "${word}"`
+        ).toBe(false);
+      }
+    }
+  });
+}

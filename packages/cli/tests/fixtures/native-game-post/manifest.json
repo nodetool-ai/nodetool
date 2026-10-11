@@ -1,0 +1,18 @@
+{
+  "tick": 60,
+  "seed": 1,
+  "channelTolerance": 16,
+  "changedFractionTolerance": 0.005,
+  "fixtures": [
+    "post-agx",
+    "post-bloom",
+    "post-exposure",
+    "post-fxaa",
+    "post-linear",
+    "post-neutral",
+    "post-smaa",
+    "post-stack",
+    "post-vignette"
+  ],
+  "backend": "webgl2"
+}

@@ -85,3 +85,30 @@ describe("Job.cancelledAmong", () => {
     expect(await Job.cancelledAmong([])).toEqual([]);
   });
 });
+
+describe("Job.markCancelledIfQueued", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  it("cancels a run still waiting for a slot", async () => {
+    await create("waiting", "queued");
+
+    expect(await Job.markCancelledIfQueued("waiting", "1")).toBe(true);
+    expect((await Job.get<Job>("waiting"))?.status).toBe("cancelled");
+  });
+
+  it("leaves a run a dequeue already started", async () => {
+    await create("started", "running");
+
+    expect(await Job.markCancelledIfQueued("started", "1")).toBe(false);
+    expect((await Job.get<Job>("started"))?.status).toBe("running");
+  });
+
+  it("ignores another user's run", async () => {
+    await create("theirs", "queued", "2");
+
+    expect(await Job.markCancelledIfQueued("theirs", "1")).toBe(false);
+    expect((await Job.get<Job>("theirs"))?.status).toBe("queued");
+  });
+});

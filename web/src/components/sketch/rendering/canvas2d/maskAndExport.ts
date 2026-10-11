@@ -13,6 +13,7 @@ import {
   getCanvasRasterBounds,
   setCanvasRasterBounds
 } from "../../transform/geometry/layerGeometry";
+import { blendModeToComposite } from "../../drawingUtils";
 import { serializeLayerData } from "./layerIO";
 import type { ActiveStrokeInfo } from "../types";
 
@@ -477,11 +478,21 @@ export function mergeLayerDown(
     layerCanvases.delete(upperLayerId);
     return;
   }
+  // The lower layer keeps its opacity, blend mode and group, so bake only its
+  // pixels and enabled effects. The upper layer's own opacity and blend mode
+  // go into the pixels. Both share a parent, so the group opacity stays on
+  // the survivor and must not be baked as well.
   if (lowerLayer) {
-    drawLayerToContext(mergedCtx, doc, lowerLayerId);
+    drawLayerToContext(mergedCtx, doc, lowerLayerId, false);
   }
   if (upperLayer) {
-    drawLayerToContext(mergedCtx, doc, upperLayerId);
+    mergedCtx.save();
+    mergedCtx.globalAlpha = upperLayer.opacity;
+    mergedCtx.globalCompositeOperation = blendModeToComposite(
+      upperLayer.blendMode || "normal"
+    );
+    drawLayerToContext(mergedCtx, doc, upperLayerId, false);
+    mergedCtx.restore();
   }
 
   // The merged result is full-document-sized. The original lowerCanvas

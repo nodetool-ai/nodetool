@@ -9,7 +9,10 @@
  * context. It reads that address from the account record in the Claude config
  * directory. When `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or
  * `ANTHROPIC_API_KEY` is set, the session runs with an empty config directory,
- * which removes the address. Otherwise it runs on the shared login and reports
+ * which removes the address. A Claude Code cloud session
+ * (`CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST=1`) authenticates through the host's
+ * proxy, not the config directory, so it is isolated the same way. Otherwise
+ * the session runs on the shared login and reports
  * `accountContext: "account-email-visible"`.
  */
 
@@ -70,7 +73,8 @@ export async function isolatedSessionOptions(
   env.ENABLE_CLAUDEAI_MCP_SERVERS = "false";
 
   let accountContext: AccountContext = "account-email-visible";
-  if (env.CLAUDE_CODE_OAUTH_TOKEN || env.ANTHROPIC_API_KEY) {
+  const hostManagedAuth = process.env.CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST === "1";
+  if (env.CLAUDE_CODE_OAUTH_TOKEN || env.ANTHROPIC_API_KEY || hostManagedAuth) {
     env.CLAUDE_CONFIG_DIR = await mkdtemp(join(tmpdir(), "agentic-qa-config-"));
     accountContext = "isolated";
   }

@@ -3,7 +3,7 @@
  * controls offered for a video model.
  *
  * One source of truth for both the media chat composer ({@link MediaChatComposer})
- * and the timeline quick-generate header (`TopBarPrompt`), so the two surfaces
+ * and the timeline Generate dialog (`TimelineGeneratePanel`), so the two surfaces
  * present identical, model-constrained options and can't drift apart.
  */
 

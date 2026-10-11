@@ -19,7 +19,9 @@ import {
   marqueeRectFromDocPoints,
   invertMaskInPlace,
   trimSelectionMask,
-  MAX_SELECTION_FEATHER_RADIUS
+  MAX_SELECTION_FEATHER_RADIUS,
+  magicWandFromRgba,
+  magicWandNonContiguousFromRgba
 } from "../selectionMask";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -553,5 +555,28 @@ describe("trimSelectionMask", () => {
 describe("MAX_SELECTION_FEATHER_RADIUS", () => {
   it("is exported as 32", () => {
     expect(MAX_SELECTION_FEATHER_RADIUS).toBe(32);
+  });
+});
+
+describe("magic wand seed pixel", () => {
+  // 4×1 image: two black pixels, then two white pixels.
+  const width = 4;
+  const height = 1;
+  const data = new Uint8ClampedArray([
+    0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255
+  ]);
+  const image = { width, height, data } as unknown as ImageData;
+
+  it("seeds from the pixel under the pointer, not the nearest pixel edge", () => {
+    // x = 1.6 lies inside pixel 1 (black), not pixel 2 (white).
+    const contiguous = magicWandFromRgba(image, 1.6, 0.5, 0);
+    expect(Array.from(contiguous)).toEqual([255, 255, 0, 0]);
+    const global = magicWandNonContiguousFromRgba(image, 1.6, 0.5, 0);
+    expect(Array.from(global)).toEqual([255, 255, 0, 0]);
+  });
+
+  it("selects when clicking the right half of the last pixel column", () => {
+    const mask = magicWandFromRgba(image, 3.7, 0.7, 0);
+    expect(Array.from(mask)).toEqual([0, 0, 255, 255]);
   });
 });

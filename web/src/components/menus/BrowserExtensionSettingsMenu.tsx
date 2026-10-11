@@ -169,7 +169,7 @@ const BrowserExtensionSettingsMenu = () => {
             size="small"
             sx={{
               mt: 1,
-              fontFamily: "monospace",
+              fontFamily: "var(--fontFamily2)",
               opacity: 0.7,
               wordBreak: "break-all"
             }}

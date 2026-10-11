@@ -8,7 +8,7 @@
  * document with no `setup` at all opens as the editor and always has.
  */
 
-import { createElement, useCallback, useMemo } from "react";
+import { createElement, useCallback, useMemo, useState } from "react";
 import {
   composeImagePrompt,
   type SketchSetupStage
@@ -22,12 +22,14 @@ import {
 } from "../../../hooks/sketch/useRefineBrief";
 import { useUploadFirstLayer } from "../../../hooks/sketch/useUploadFirstLayer";
 import type { GenerationSummaryProps } from "../GenerationSummary";
+import { IMAGE_INPUT_TOKENS } from "../generationEstimate";
 import type {
   SetupFlowConfig,
   SetupOperationContext,
   SetupStep
 } from "../types";
 import { IdeaStep } from "./IdeaStep";
+import { imageReferences, readReferences } from "./setupContext";
 import {
   ImageModelFooterField,
   LookStep,
@@ -74,6 +76,10 @@ export const useImageSetupFlow = ({
   const brief = useSketchStore((state) => state.document.setup?.brief ?? "");
   const useCase = useSketchStore((state) => state.document.setup?.use_case);
   const refined = useSketchStore((state) => state.document.setup?.refined);
+  // The refinement sends up to this many attached images, each billed as input.
+  const referenceCount = useSketchStore(
+    (state) => imageReferences(readReferences(state.document.setup)).length
+  );
   const refinedFrom = useSketchStore((state) =>
     typeof state.document.setup?.refined_from === "string"
       ? state.document.setup.refined_from
@@ -83,14 +89,22 @@ export const useImageSetupFlow = ({
     expandBrief,
     cancel,
     refining,
-    error: refineError,
     model: refineModel
   } = useRefineBrief();
+  // Only a failed `Re-refine` belongs on the review. A use-case refinement
+  // reports on the shell's button, and its failure must not greet a creator
+  // who reaches the review with the brief they already had.
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const upload = useUploadFirstLayer(onFinish);
   const look = useLookStep();
 
+  // A failed Re-refine belongs to the visit that asked for it. Coming back to
+  // the review later must not show it, with a paid "Try again", again.
   const onStageChange = useCallback(
-    (next: SketchSetupStage) => setSetup({ stage: next }),
+    (next: SketchSetupStage) => {
+      setReviewError(null);
+      setSetup({ stage: next });
+    },
     [setSetup]
   );
 
@@ -101,6 +115,7 @@ export const useImageSetupFlow = ({
 
   const refine = useCallback(
     async (context?: SetupOperationContext) => {
+      setReviewError(null);
       const outcome = await expandBrief(context?.signal);
       if (!outcome.ok) {
         throw new Error(outcome.error ?? "The model did not return a brief.");
@@ -112,7 +127,12 @@ export const useImageSetupFlow = ({
   // The review's fields are the creator's draft, so another pass polishes
   // them rather than replacing them with a fresh expansion (O4).
   const reRefine = useCallback(() => {
-    void expandBrief(undefined, { keepEdits: true });
+    setReviewError(null);
+    void expandBrief(undefined, { keepEdits: true }).then((outcome) => {
+      if (!outcome.ok) {
+        setReviewError(outcome.error);
+      }
+    });
   }, [expandBrief]);
 
   // Coming back to the use case and pressing its button again must not pay for
@@ -134,10 +154,22 @@ export const useImageSetupFlow = ({
             next: "You read and fix the brief next. No layer is added and no image is rendered here.",
             model: refineModel,
             brief,
-            maxOutputTokens: REFINE_BRIEF_MAX_TOKENS
+            maxOutputTokens: REFINE_BRIEF_MAX_TOKENS,
+            extraInputTokens: referenceCount * IMAGE_INPUT_TOKENS
           }
         : undefined,
-    [brief, refineModel]
+    [brief, referenceCount, refineModel]
+  );
+  // Re-refine also sends the five edited fields back as context.
+  const reRefineSummary = useMemo<GenerationSummaryProps | undefined>(
+    () =>
+      refineSummary && refined
+        ? {
+            ...refineSummary,
+            brief: `${brief}\n${Object.values(refined).join("\n")}`
+          }
+        : refineSummary,
+    [brief, refineSummary, refined]
   );
 
   // PRD § 10.3 renders `composeImagePrompt`, so an empty one is an empty
@@ -202,8 +234,8 @@ export const useImageSetupFlow = ({
             refining,
             // The failure belongs beside the control that asked for it, with
             // the edited brief still in the boxes (F9).
-            error: refineError,
-            generation: refineSummary
+            error: reviewError,
+            generation: reRefineSummary
           })
       },
       {
@@ -237,9 +269,10 @@ export const useImageSetupFlow = ({
       promptIsWritable,
       reRefine,
       refine,
-      refineError,
       refineSummary,
+      reRefineSummary,
       refining,
+      reviewError,
       startBlank,
       upload,
       useCase

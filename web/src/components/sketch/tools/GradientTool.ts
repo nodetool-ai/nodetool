@@ -74,7 +74,6 @@ export class GradientTool implements ToolHandler {
 
   private gradientStart: Point | null = null;
   private gradientEnd: Point | null = null;
-  private mapper: CoordinateMapper | null = null;
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
     const activeLayer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
@@ -90,11 +89,6 @@ export class GradientTool implements ToolHandler {
     ) {
       return false;
     }
-
-    this.mapper = new CoordinateMapper({
-      layerTransform: activeLayer.transform,
-      rasterBounds: activeLayer.contentBounds
-    });
 
     this.gradientStart = event.point;
     this.gradientEnd = event.point;
@@ -119,31 +113,23 @@ export class GradientTool implements ToolHandler {
     if (!activeLayer) {
       this.gradientStart = null;
       this.gradientEnd = null;
-      this.mapper = null;
       return;
     }
 
     const start = this.gradientStart;
     const end = this.gradientEnd ?? start;
-    let mapper = this.mapper ?? new CoordinateMapper({
-      layerTransform: activeLayer.transform,
-      rasterBounds: activeLayer.contentBounds
-    });
     const { selection } = ctx;
     const hasSelection = selection && selectionHasAnyPixels(selection);
 
-    // When a selection is active, expand the layer canvas to cover the full
-    // document viewport so that all selection areas (including those outside
-    // the current contentBounds) receive the gradient.
-    if (hasSelection) {
-      const viewportBounds = getDocumentViewportInLayerSpace(activeLayer, doc);
-      const rasterBounds = ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
-      // Recreate mapper after canvas expansion — origin may have shifted.
-      mapper = new CoordinateMapper({
-        layerTransform: activeLayer.transform,
-        rasterBounds
-      });
-    }
+    // Expand the layer canvas to cover the full document viewport so the
+    // gradient reaches every visible pixel, not only the layer's current
+    // raster (a trimmed layer would otherwise get a gradient-filled box).
+    const viewportBounds = getDocumentViewportInLayerSpace(activeLayer, doc);
+    const rasterBounds = ensureLayerRasterBounds(ctx, activeLayer, viewportBounds);
+    const mapper = new CoordinateMapper({
+      layerTransform: activeLayer.transform,
+      rasterBounds
+    });
 
     const localStart = mapper.docToLayer(start);
     const localEnd = mapper.docToLayer(end);
@@ -191,7 +177,6 @@ export class GradientTool implements ToolHandler {
     }
     this.gradientStart = null;
     this.gradientEnd = null;
-    this.mapper = null;
   }
 }
 

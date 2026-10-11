@@ -88,15 +88,17 @@ export const createEditorHistory = (
         now - last.at <= MERGE_WINDOW_MS
       ) {
         const first = last.command;
+        // The state between the two edits (first's result, the new command's
+        // start) can no longer be reached by undo or redo. Release it now, or
+        // a slider drag keeps every intermediate geometry until eviction.
+        first.dispose?.(true);
         last.command = {
           label: first.label,
           mergeKey: first.mergeKey,
           undo: first.undo,
           redo: command.redo,
-          dispose: (undone) => {
-            first.dispose?.(undone);
-            command.dispose?.(undone);
-          }
+          dispose: (undone) =>
+            undone ? command.dispose?.(true) : first.dispose?.(false)
         };
         last.at = now;
         revisions[cursor - 1] = nextRevision++;

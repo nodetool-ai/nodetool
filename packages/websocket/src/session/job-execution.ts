@@ -1966,6 +1966,10 @@ export class JobExecutionManager {
       // the client UI spinning, and the app ledger holding the estimate.
       const message = error instanceof Error ? error.message : String(error);
       this.session.logError("job message streaming failed", error);
+      // The run is reported failed below, so stop the kernel too: otherwise
+      // it keeps executing (and spending) with nobody reading its output,
+      // and cancel_job can no longer reach it once the session finishes.
+      active.session?.cancel();
       active.finished = true;
       active.status = "failed";
       active.error = message;
@@ -2680,11 +2684,7 @@ export class JobExecutionManager {
         ).persistence === "job"
       ) {
         try {
-          const job = await Job.get(jobId);
-          if (job) {
-            job.markCancelled();
-            await job.save();
-          }
+          await Job.markCancelledIfActive(jobId, this.session.requireUserId());
         } catch (err) {
           this.session.logError("cancel persistence failed", err);
         }
@@ -2717,11 +2717,7 @@ export class JobExecutionManager {
       if (registered && registered.status === "running") {
         registered.cancel();
         try {
-          const job = await Job.get(jobId);
-          if (job && job.status !== "cancelled") {
-            job.markCancelled();
-            await job.save();
-          }
+          await Job.markCancelledIfActive(jobId, this.session.requireUserId());
         } catch (err) {
           this.session.logError("cancel persistence failed", err);
         }
@@ -2777,11 +2773,7 @@ export class JobExecutionManager {
         DEFAULT_RUN_JOB_EXECUTION_OPTIONS.persistence) === "job"
     ) {
       try {
-        const job = await Job.get(jobId);
-        if (job && job.status !== "cancelled") {
-          job.markCancelled();
-          await job.save();
-        }
+        await Job.markCancelledIfActive(jobId, this.session.requireUserId());
       } catch (err) {
         this.session.logError("cancel persistence failed", err);
       }
@@ -2984,11 +2976,11 @@ export class JobExecutionManager {
             status: "cancelled"
           });
         }
-        const job = await Job.get(queuedId);
-        if (job) {
-          job.markCancelled();
-          await job.save();
-        }
+        releaseSpend(this.session.requireUserId(), queuedId);
+        await Job.markCancelledIfActive(
+          queuedId,
+          this.session.requireUserId()
+        );
       } catch (err) {
         this.session.logError("disconnect queue cancellation failed", err);
       }
@@ -3005,11 +2997,10 @@ export class JobExecutionManager {
             status: "cancelled"
           });
         }
-        const job = await Job.get(dequeuedId);
-        if (job) {
-          job.markCancelled();
-          await job.save();
-        }
+        await Job.markCancelledIfActive(
+          dequeuedId,
+          this.session.requireUserId()
+        );
       } catch (err) {
         this.session.logError(
           "disconnect dequeued-job cancellation failed",

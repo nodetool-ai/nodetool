@@ -1195,6 +1195,64 @@ describe("createNodeStore Type Compatibility", () => {
     );
   });
 
+  test("adopting a save's tokens records no step and survives undo and redo", () => {
+    const store = createNodeStore();
+    const workflowId = store.getState().workflow.id;
+    store.getState().addNode(makeNode("n1", workflowId));
+    const pastBefore = store.temporal.getState().pastStates.length;
+
+    store.getState().adoptSavedWorkflow({
+      ...store.getState().workflow,
+      updated_at: "2026-01-01T00:00:05.000Z",
+      etag: "etag-saved"
+    });
+    expect(store.temporal.getState().pastStates.length).toBe(pastBefore);
+
+    store.getState().addNode(makeNode("n2", workflowId));
+    store.getState().setWorkflowUpdatedAt("2026-01-01T00:00:06.000Z", "etag-6");
+
+    store.temporal.getState().undo();
+    expect(store.getState().nodes.map((n) => n.id)).toEqual(["n1"]);
+    expect(store.getState().workflow.updated_at).toBe(
+      "2026-01-01T00:00:06.000Z"
+    );
+    expect(store.getState().workflow.etag).toBe("etag-6");
+
+    store.temporal.getState().undo();
+    expect(store.getState().nodes).toEqual([]);
+    expect(store.getState().workflow.etag).toBe("etag-6");
+
+    store.temporal.getState().redo();
+    expect(store.getState().workflow.updated_at).toBe(
+      "2026-01-01T00:00:06.000Z"
+    );
+  });
+
+  test("undo and redo mark the workflow dirty", () => {
+    const store = createNodeStore();
+    store.getState().addNode(makeNode("n1", store.getState().workflow.id));
+    store.getState().setWorkflowDirty(false);
+
+    store.temporal.getState().undo();
+    expect(store.getState().workflowIsDirty).toBe(true);
+
+    store.getState().setWorkflowDirty(false);
+    store.temporal.getState().redo();
+    expect(store.getState().workflowIsDirty).toBe(true);
+  });
+
+  test("applyExternalGraph keeps history paused when it arrives mid-drag", () => {
+    const store = createNodeStore();
+    store.temporal.getState().pause();
+    store
+      .getState()
+      .applyExternalGraph([makeNode("n1", store.getState().workflow.id)], [], {
+        etag: "etag-4"
+      });
+    expect(store.temporal.getState().isTracking).toBe(false);
+    store.temporal.getState().resume();
+  });
+
   test("filters a historical dangling edge after an external node deletion", () => {
     const store = createNodeStore();
     const n1 = makeNode("n1", store.getState().workflow.id);

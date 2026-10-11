@@ -71,6 +71,15 @@ describe("checkerboardDocumentCellPx", () => {
     expect(checkerboardDocumentCellPx(-1)).toBe(8);
   });
 
+  it("keeps one cell size between doublings so zoom steps skip re-compositing", () => {
+    const sizes = new Set(
+      [0.75, 0.85, 1, 1.15, 1.35].map((z) => checkerboardDocumentCellPx(z))
+    );
+    expect([...sizes]).toEqual([8]);
+    expect(checkerboardDocumentCellPx(0.6)).toBe(16);
+    expect(checkerboardDocumentCellPx(1.5)).toBe(4);
+  });
+
   it("always returns an integer", () => {
     for (const z of [0.3, 0.7, 1.5, 3.3, 7.7]) {
       expect(Number.isInteger(checkerboardDocumentCellPx(z))).toBe(true);

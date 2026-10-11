@@ -4,6 +4,7 @@ import {
   timelineTemporalOf
 } from "../../../stores/timeline/TimelineStore";
 import {
+  applyAcceptedTimelineConflict,
   rebaseTimelineSnapshots,
   timelineMergeDocumentOf
 } from "../timelineExternalMerge";
@@ -58,4 +59,36 @@ it("keeps a setup undo snapshot when the server changes only a clip", () => {
   );
   expect(snapshots[0].setup).toEqual({ stage: "idea", brief: "Saved" });
   expect(snapshots[0].markers).toEqual(after.markers);
+});
+
+describe("accepting a server field conflict", () => {
+  it("applies a server tempo", () => {
+    const store = createTimelineStore();
+    store.setState({
+      tempo: { bpm: 120, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } }
+    });
+    const tempo = {
+      bpm: 90,
+      offsetMs: 50,
+      timeSignature: { beatsPerBar: 3, beatUnit: 4 }
+    };
+    applyAcceptedTimelineConflict(store.getState(), {
+      unit: { kind: "field", id: "tempo", label: "Tempo" },
+      reason: "edited",
+      external: tempo
+    });
+    expect(store.getState().tempo).toEqual(tempo);
+  });
+
+  it("applies a server setup", () => {
+    const store = createTimelineStore();
+    store.setState({ setup: { stage: "idea", brief: "Local" } });
+    const setup = { stage: "review" as const, brief: "Server plan" };
+    applyAcceptedTimelineConflict(store.getState(), {
+      unit: { kind: "field", id: "setup", label: "Setup" },
+      reason: "edited",
+      external: setup
+    });
+    expect(store.getState().setup).toEqual(setup);
+  });
 });

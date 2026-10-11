@@ -33,8 +33,8 @@ On macOS and Linux, NodeTool shows a one-time dialog explaining that it will use
 
 What is optional:
 
-- **A Python environment.** Only nodes written in Python need it, such as HuggingFace and MLX nodes. NodeTool sets it up on demand, from **Tools → Package Manager** or when you run a workflow that needs it. See [What downloads later](installation.md#what-downloads-later).
-- **Local model runners and models.** Ollama, llama.cpp, and model files download only when you install them. A cloud provider needs none of this.
+- **A Python environment.** Only nodes written in Python need it, such as HuggingFace and MLX nodes, and those nodes also need their pack from **Package Manager → Python packs**. NodeTool sets the environment up on demand, from **Tools → Package Manager** or when you run a workflow that needs it. See [What downloads later](installation.md#what-downloads-later).
+- **Local model runners and models.** llama.cpp, whisper.cpp, and model files download only when you install them. Ollama is a separate download from [ollama.com](https://ollama.com). A cloud provider needs none of this.
 - **A provider.** You do need one model source to run agents or generate media. See [Connect an AI provider](installation.md#connect-an-ai-provider).
 
 ---

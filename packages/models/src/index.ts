@@ -316,6 +316,7 @@ export type {
   ProjectDocumentStatus,
   ProjectDocumentSummary,
   ProjectDocumentType,
+  ProjectSummaryDocumentType,
   ProjectSpend,
   ProjectSummary,
   ProjectThumbnail,

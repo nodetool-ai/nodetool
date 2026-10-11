@@ -3,21 +3,24 @@
  * standard HuggingFace cache layout (blobs + snapshots with symlinks).
  *
  * Adds NodeTool-specific niceties on top of the upstream library:
- *  - tilde expansion in `HF_HUB_CACHE` / `HF_HOME`
+ *  - one cache root shared with every other reader (`getHfHubCacheDir`)
  *  - progress and abort support via a wrapped `fetch` function
+ *  - no duplicate blob when Windows cannot create the snapshot symlink
  */
 
 import {
   downloadFileToCacheDir,
-  getHFHubCachePath,
-  getRepoFolderName
+  getRepoFolderName,
+  pathsInfo
 } from "@huggingface/hub";
 import type { RepoType } from "@huggingface/hub";
 
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
+import { getHfHubCacheDir } from "@nodetool-ai/config";
+
 import { resolveHfToken } from "./hf-auth.js";
-import { expandLeadingTildePath } from "./hf-expand-path.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -45,13 +48,12 @@ interface AsyncHfDownloadOptions {
 // ---------------------------------------------------------------------------
 
 /**
- * Resolve the HuggingFace hub cache root directory.
- *
- * Wraps {@link getHFHubCachePath} from `@huggingface/hub`, additionally
- * expanding a leading `~` (which the upstream library does not do).
+ * Resolve the HuggingFace hub cache root directory. Delegates to
+ * `getHfHubCacheDir` in `@nodetool-ai/config`, which follows Python
+ * `huggingface_hub`'s variable order and expands a leading `~`.
  */
 export function hfCacheRoot(): string {
-  return expandLeadingTildePath(getHFHubCachePath());
+  return getHfHubCacheDir();
 }
 
 /**
@@ -198,7 +200,7 @@ export async function asyncHfDownload(
         })
       : undefined;
 
-  const args: Parameters<typeof downloadFileToCacheDir>[0] = {
+  const args: SnapshotDownloadArgs = {
     repo: { name: repoId, type: repoType },
     path: filename,
     revision,
@@ -210,5 +212,61 @@ export async function asyncHfDownload(
   if (wrappedFetch) {
     args.fetch = wrappedFetch;
   }
-  return await downloadFileToCacheDir(args);
+  const pointerPath = await downloadFileToCacheDir(args);
+  if (process.platform === "win32") {
+    await dropBlobCopiedToSnapshot(args, pointerPath);
+  }
+  return pointerPath;
+}
+
+/** Download arguments with the repo as `{ name, type }`, never a string. */
+type SnapshotDownloadArgs = Parameters<typeof downloadFileToCacheDir>[0] & {
+  repo: { name: string; type: RepoType };
+};
+
+/**
+ * Remove the blob that a symlink-less download duplicated into the snapshot.
+ *
+ * `@huggingface/hub` links `snapshots/<rev>/<file>` to `blobs/<etag>`. When
+ * `fs.symlink` fails, which it does on Windows without Developer Mode or admin
+ * rights, it copies the blob instead and keeps both, so the file occupies
+ * twice its size. Python `huggingface_hub` moves the blob in that case. This
+ * matches it: when the snapshot entry is a regular file of the blob's size,
+ * the blob goes. Readers only use the snapshot path, and the library returns
+ * an existing snapshot entry without looking at `blobs/`.
+ */
+export async function dropBlobCopiedToSnapshot(
+  args: SnapshotDownloadArgs,
+  pointerPath: string
+): Promise<void> {
+  try {
+    const pointer = await fs.lstat(pointerPath);
+    if (pointer.isSymbolicLink() || !pointer.isFile()) {
+      return;
+    }
+    const [info] = await pathsInfo({
+      repo: args.repo,
+      paths: [args.path],
+      revision: args.revision,
+      expand: true,
+      accessToken: args.accessToken,
+      fetch: args.fetch
+    });
+    const etag = info?.lfs?.oid ?? info?.xetHash ?? info?.oid;
+    if (!etag) {
+      return;
+    }
+    const blobPath = path.join(
+      args.cacheDir ?? hfCacheRoot(),
+      getRepoFolderName(args.repo),
+      "blobs",
+      etag
+    );
+    const blob = await fs.stat(blobPath).catch(() => null);
+    if (blob && blob.size === pointer.size) {
+      await fs.rm(blobPath, { force: true });
+    }
+  } catch {
+    // Best effort: the download succeeded, a leftover blob only costs space.
+  }
 }

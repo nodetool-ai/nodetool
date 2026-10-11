@@ -177,18 +177,21 @@ export default function useDragHandlers() {
 
       // Clear potential parent from previous drag
       setLastParentNode(undefined);
-      pause(); // pause history
       draggedNodesRef.current = new Set(nodes);
       resetWiggleDetection();
       lastIntersectionCheckRef.current = 0;
       lastHoveredIdsRef.current = "";
     },
-    [pause]
+    []
   );
 
   /* SELECTION DRAG */
   const onSelectionDrag = useCallback(
     (event: ReactMouseEvent, nodes: Node<NodeData>[]) => {
+      // xyflow applies the first move before this callback, so that move
+      // records the pre-drag undo step. Pausing here (as onNodeDrag does)
+      // keeps the rest of the drag out of history until drag stop.
+      pause();
       // Add movement to wiggle detection
       addWiggleMovement(event.clientX, event.clientY);
 
@@ -249,6 +252,7 @@ export default function useDragHandlers() {
       }
     },
     [
+      pause,
       reactFlow,
       setHoveredNodes,
       isGroup,

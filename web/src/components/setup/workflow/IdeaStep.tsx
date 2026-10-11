@@ -32,6 +32,7 @@ import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import { useWorkflowSetupDocument } from "../../../hooks/workflow/useWorkflowSetup";
 import type { Workflow } from "../../../stores/ApiTypes";
+import ReportBugButton from "../../support/ReportBugButton";
 import { WorkflowExamplePicker } from "./ExamplePicker";
 
 export interface WorkflowIdeaStepProps {
@@ -50,6 +51,8 @@ export interface WorkflowIdeaStepProps {
   exampleError?: string | null;
   /** Reads a picked workflow JSON file onto this workflow. */
   onImport: (file: File) => void | Promise<void>;
+  /** True while a picked file is being read onto this workflow. */
+  importing?: boolean;
   /** Leaves the flow for an empty canvas. */
   onStartBlank: () => void;
   /** An import that was refused, shown above the alternatives. */
@@ -72,6 +75,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
   pickingExampleId = null,
   exampleError = null,
   onImport,
+  importing = false,
   onStartBlank,
   importError = null,
   onDismissImportError
@@ -107,22 +111,30 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
         id: "example",
         title: "Start from an example",
         description: "Browse the shipped workflows and copy one",
-        onSelect: () => onBrowseExamples(true)
+        onSelect: () => onBrowseExamples(true),
+        // A file being read lands on this workflow and opens it, so a second
+        // way in started meanwhile would be overwritten by it, or overwrite it.
+        disabled: importing,
+        disabledReason: "Reading your file"
       },
       {
         id: "import",
         title: "Import a workflow",
-        description: "A workflow JSON file",
-        onSelect: () => importInput.current?.click()
+        description: importing ? "Reading your file" : "A workflow JSON file",
+        onSelect: () => importInput.current?.click(),
+        disabled: importing,
+        disabledReason: "Reading your file"
       },
       {
         id: "blank",
         title: "Start with a blank canvas",
         description: "Skip the plan and place nodes yourself",
-        onSelect: onStartBlank
+        onSelect: onStartBlank,
+        disabled: importing,
+        disabledReason: "Reading your file"
       }
     ],
-    [onBrowseExamples, onStartBlank]
+    [importing, onBrowseExamples, onStartBlank]
   );
 
   if (browsingExamples) {
@@ -173,7 +185,20 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
         />
 
         {importError ? (
-          <AlertBanner severity="error" onClose={onDismissImportError}>
+          <AlertBanner
+            severity="error"
+            onClose={onDismissImportError}
+            action={
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Workflow import failed",
+                  errorText: importError,
+                  workflowId
+                }}
+              />
+            }
+          >
             {importError}
           </AlertBanner>
         ) : null}

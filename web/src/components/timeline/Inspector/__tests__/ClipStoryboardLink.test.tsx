@@ -74,9 +74,21 @@ describe("ClipStoryboardLink", () => {
     useDocumentFocusStore.setState({ pending: null });
   });
 
-  it("shows nothing for a clip that came from no shot", () => {
-    const { container } = renderLink(clip());
-    expect(container).toBeEmptyDOMElement();
+  it("offers Link to shot on a video clip that came from no shot", () => {
+    renderLink(clip());
+    expect(screen.getByRole("button", { name: /Link to shot/ })).toBeTruthy();
+  });
+
+  it("shows nothing for an unlinked audio, locked or voiceover clip", () => {
+    for (const overrides of [
+      { mediaType: "audio" as const },
+      { locked: true },
+      { scriptLineId: "line-1" }
+    ]) {
+      const { container, unmount } = renderLink(clip(overrides));
+      expect(container).toBeEmptyDOMElement();
+      unmount();
+    }
   });
 
   it("names the shot and opens the board on it", async () => {

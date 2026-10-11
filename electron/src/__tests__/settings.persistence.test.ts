@@ -281,6 +281,28 @@ describe("readSettingsAsync", () => {
 // ---------------------------------------------------------------------------
 
 describe("writeSettings (via updateSetting / updateSettings)", () => {
+  test("keeps the previous file when the write fails partway", async () => {
+    const configDir = path.join(tempDir, ".config", "nodetool");
+    const settingsPath = path.join(configDir, "settings.yaml");
+    fs.mkdirSync(configDir, { recursive: true });
+    fs.writeFileSync(settingsPath, yaml.dump({ kept: true }), "utf8");
+
+    const { updateSetting } = await import("../settings");
+    const realWrite = fs.writeFileSync;
+    const write = jest.spyOn(fs, "writeFileSync").mockImplementation((file, data, options) => {
+      // Simulate a crash after half the bytes reach the disk.
+      realWrite(file, String(data).slice(0, 3), options);
+      throw new Error("disk full");
+    });
+    try {
+      expect(() => updateSetting("added", "value")).toThrow("disk full");
+    } finally {
+      write.mockRestore();
+    }
+
+    expect(yaml.load(fs.readFileSync(settingsPath, "utf8"))).toEqual({ kept: true });
+  });
+
   test("creates settings file when it does not exist", async () => {
     const settingsPath = path.join(
       tempDir,

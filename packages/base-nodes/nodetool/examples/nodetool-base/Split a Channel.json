@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Split a Channel\n\nPulls one colour channel out of an image as its own greyscale picture. Use it to find which channel holds an artefact or to build a mask. It runs locally with no model, key, or cost.\n\n**How it works:** \"Image\" takes your picture. \"Split\" extracts the red channel, and \"Result\" returns it.\n\n**Try this:** Change the channel on \"Split\" from R to B, since compression noise often shows most clearly in the blue channel."
+          "comment": "# Split a Channel\n\nPulls one colour channel out of an image as its own greyscale picture. Use it to find which channel holds an artefact or to build a mask. It runs locally with no model, key, or cost.\n\n**How it works:** \"Image\" takes your picture. \"Split\" extracts the red channel, and \"Result\" returns it.\n\n**Try this:** Change the channel on \"Split\" from red to blue, since compression noise often shows most clearly in the blue channel."
         },
         "ui_properties": {
           "position": {
@@ -62,7 +62,7 @@
         "id": "op",
         "type": "nodetool.image.Channels",
         "data": {
-          "channel": "R"
+          "channel": "red"
         },
         "ui_properties": {
           "position": {

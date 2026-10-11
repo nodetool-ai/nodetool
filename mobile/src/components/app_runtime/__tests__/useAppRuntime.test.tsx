@@ -361,6 +361,28 @@ describe("timeoutMs", () => {
   });
 });
 
+describe("cancel while offline", () => {
+  it("settles the invocation instead of leaving it live", async () => {
+    const { result } = renderRuntime("wf-cancel-offline", doc());
+    await startRun(result.current, "main", "job-1");
+    mockCancel.mockRejectedValueOnce(new Error("WebSocket not connected"));
+
+    await act(async () => {
+      result.current.dispatch({
+        kind: "cancel",
+        operationId: "main",
+        invocationId: "job-1",
+      });
+    });
+
+    await waitFor(() => {
+      const invocation = result.current.store.getState().invocations["job-1"];
+      expect(invocation.status).toBe("failed");
+      expect(invocation.error).toContain("Could not reach the server");
+    });
+  });
+});
+
 describe("multiple operations", () => {
   const multiDoc = doc({
     operations: [

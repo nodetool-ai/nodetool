@@ -3,7 +3,7 @@
 This page is for the coordinator. Never give it to a participant.
 
 Write `report.md` in the run directory
-(`web/test-results/agentic-qa/<run>/report.md`). Refer only to files that exist.
+(`web/agentic-qa-runs/<run>/report.md`). Refer only to files that exist.
 
 ## 1. Run contract
 

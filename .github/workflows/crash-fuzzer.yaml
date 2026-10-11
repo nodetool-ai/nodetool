@@ -9,19 +9,20 @@ name: Crash Fuzzer
 # exception in the editor, the CLI, or the server. The oracle is therefore the
 # *shape* of the failure, never a non-zero exit code.
 #
-# The fuzzer runs in two legs, both built on the repo's Stryker setup:
+# The fuzzer runs in two legs:
 #
 #   sweep   — the crash corpus at a rotating seed. Finds crashes on inputs no
 #             previous run has produced. Fast (seconds), and it is the same
 #             suite that runs on every PR at the pinned seed.
-#   mutants — Stryker mutates the parser sources and runs the crash corpus as
-#             its only test suite. A surviving mutant is a branch no fuzzed
+#   mutants — nodetool-mutator (packages/mutator) mutates the parser sources
+#             and runs the crash corpus as its only test suite. A surviving mutant is a branch no fuzzed
 #             document distinguishes: the corpus never reaches it, or reaching
 #             it changes nothing the oracle asserts. Either way it is a hole,
 #             and it is where the next crash will come from.
 #
-# Corpus and oracle live in `packages/node-sdk/tests/fuzz/`; the Stryker leg is
-# `packages/node-sdk/stryker.crash.config.json`.
+# Corpus and oracle live in `packages/node-sdk/tests/fuzz/`; the mutation leg is
+# the `test:mutation:crash` script in `packages/node-sdk/package.json`, and it
+# writes its snapshots to `.metrics/mutate-crash/`.
 
 on:
   schedule:
@@ -36,7 +37,7 @@ on:
         description: "Mutants to generate per seed document in the sweep"
         required: false
         default: "40"
-      skip_stryker:
+      skip_mutants:
         description: "Run the sweep only (skip the mutation-testing leg)"
         type: boolean
         required: false
@@ -111,22 +112,30 @@ jobs:
             echo "FUZZ_CRASHED=1" >> "$GITHUB_ENV"
           fi
 
+      - name: Build nodetool-mutator
+        if: github.event.inputs.skip_mutants != 'true'
+        working-directory: .
+        run: npm run build --workspace=packages/mutator
+
+      # Exits 3 when a mutant survives, which the report below expects. The
+      # sweep exported its rotating seed; the mutation leg scores against the
+      # pinned corpus, so it drops that seed.
       - name: Mutation-test the parsers against the crash corpus
-        if: github.event.inputs.skip_stryker != 'true'
+        if: github.event.inputs.skip_mutants != 'true'
         continue-on-error: true
-        run: npm run test:mutation:crash
+        run: env -u FUZZ_SEED -u FUZZ_COUNT npm run test:mutation:crash
 
       - name: Report the mutation score
-        if: always() && github.event.inputs.skip_stryker != 'true'
+        if: always() && github.event.inputs.skip_mutants != 'true'
         working-directory: .
         run: |
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "### 🧬 Parser mutants killed by the crash corpus" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          node scripts/mutation-score.mjs --report-dir reports/crash-fuzz node-sdk >> "$GITHUB_STEP_SUMMARY"
+          node scripts/mutation-score.mjs --metrics-dir .metrics/mutate-crash node-sdk >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          node scripts/crash-fuzz-survivors.mjs --limit 40 >> "$GITHUB_STEP_SUMMARY"
-          node scripts/crash-fuzz-survivors.mjs --json > crash-survivors.json
+          node scripts/mutation-score.mjs --metrics-dir .metrics/mutate-crash --survivors --limit 40 >> "$GITHUB_STEP_SUMMARY"
+          node scripts/mutation-score.mjs --metrics-dir .metrics/mutate-crash --survivors --json > crash-survivors.json
           SURVIVORS=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("crash-survivors.json","utf8")).length)')
           echo "FUZZ_SURVIVORS=$SURVIVORS" >> "$GITHUB_ENV"
 
@@ -139,7 +148,8 @@ jobs:
             crash-sweep.log
             crash-sweep.json
             crash-survivors.json
-            packages/node-sdk/reports/crash-fuzz/mutation.json
+            .metrics/mutate-crash/
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
 
@@ -172,7 +182,8 @@ jobs:
             The crash fuzzer runs a mutated-document corpus
             (`packages/node-sdk/tests/fuzz/`) against `validateGraph`, the
             Code-node analyzer, and the node property validator, then uses that
-            corpus as Stryker's test oracle over the parser sources.
+            corpus as the only test suite while nodetool-mutator mutates the
+            parser sources.
 
             This run: sweep crashed = `${{ env.FUZZ_CRASHED }}` at seed
             `${{ env.FUZZ_SEED }}` (`${{ env.FUZZ_COUNT }}` mutants per seed
@@ -207,17 +218,16 @@ jobs:
             ## Priority 2 — surviving mutants
 
             `crash-survivors.json` lists parser mutants the corpus failed to
-            kill, each with file, line, mutator, and replacement. Each one is a
+            kill, each with file, line, function, and mutation. Each one is a
             branch the corpus does not distinguish. For the ones that matter:
 
             - Add a seed document or a mutation operator that reaches the branch
               and makes the mutant observable. New operators go in
               `tests/fuzz/corpus.ts`; new documents in `tests/fuzz/seeds.ts`.
             - A mutant that is genuinely equivalent (no input can tell the two
-              versions apart) gets a `// Stryker disable next-line <Mutator>:
-              <why>` comment naming the reason — the same convention
-              `src/validation.ts` already uses. Do not disable one you merely
-              found hard to kill.
+              versions apart) cannot be killed. List it in the PR description
+              with the reason. Do not call one equivalent because it was
+              merely hard to kill.
             - Prefer widening the corpus over adding hand-written unit tests:
               the point is that fuzzed input reaches the branch.
 
@@ -225,8 +235,8 @@ jobs:
             - One concern per commit. Maximum 6 fixes per PR — several
               survivors usually share one root cause, so group them.
             - Do not touch the CI workflow files.
-            - Do not lower `stryker.crash.config.json` thresholds or narrow its
-              `mutate` list to make the number look better.
+            - Do not narrow the file list in `test:mutation:crash` to make the
+              number look better.
             - Check `gh pr list --state open --limit 20` first and skip anything
               an open fuzzer PR already covers.
 

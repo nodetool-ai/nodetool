@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, TextLink, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx, VirtualList } from "../ui_primitives";
+import { Text, TextLink, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx, VirtualList, SHADOW } from "../ui_primitives";
 import type { VirtualListHandle } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -196,7 +196,7 @@ const tableStyles = (theme: Theme) =>
       zIndex: Z_INDEX.dropdown,
       backgroundColor: theme.vars.palette.grey[800],
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+      boxShadow: SHADOW(theme).md,
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[700]
       }
@@ -374,7 +374,7 @@ const RowItem = memo(({
                 maxHeight={300}
               >
                 <FlexColumn gap={0} sx={{ p: 2 }}>
-                  <pre style={{ margin: 0, fontSize: "var(--fontSizeSmall)", fontFamily: "monospace" }}>
+                  <pre style={{ margin: 0, fontSize: "var(--fontSizeSmall)", fontFamily: "var(--fontFamily2)" }}>
                     {JSON.stringify(row.data, null, 2)}
                   </pre>
                   <FlexRow justify="flex-end" sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}>

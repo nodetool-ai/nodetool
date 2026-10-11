@@ -48,20 +48,68 @@ export function groupDescendantIds(
 }
 
 /**
+ * Every clip that moves when `rootIds` move: the roots, each group's
+ * descendants and, with `followLinks`, every clip sharing a link with any of
+ * them. Expansion repeats until nothing new joins, so a group child's linked
+ * audio comes along, and so does a linked clip that is itself a group.
+ */
+export function moveUnitIds(
+  clips: readonly TimelineClip[],
+  rootIds: Iterable<string>,
+  options: { followLinks: boolean }
+): Set<string> {
+  const byId = new Map<string, TimelineClip>();
+  const byLink = new Map<string, TimelineClip[]>();
+  const childrenByParent = new Map<string, TimelineClip[]>();
+  for (const clip of clips) {
+    byId.set(clip.id, clip);
+    if (clip.linkId !== undefined) {
+      const linked = byLink.get(clip.linkId);
+      if (linked) linked.push(clip);
+      else byLink.set(clip.linkId, [clip]);
+    }
+    if (clip.parentId) {
+      const children = childrenByParent.get(clip.parentId);
+      if (children) children.push(clip);
+      else childrenByParent.set(clip.parentId, [clip]);
+    }
+  }
+
+  const found = new Set<string>();
+  const pending = [...rootIds];
+  while (pending.length > 0) {
+    const id = pending.pop()!;
+    const clip = byId.get(id);
+    if (!clip || found.has(id)) continue;
+    found.add(id);
+    for (const child of childrenByParent.get(id) ?? []) pending.push(child.id);
+    if (options.followLinks && clip.linkId !== undefined) {
+      for (const linked of byLink.get(clip.linkId) ?? []) {
+        pending.push(linked.id);
+      }
+    }
+  }
+  return found;
+}
+
+/**
  * Shift a group and everything under it by `deltaMs`. Tracks are untouched: a
  * child keeps its own track (and with it its z-order, I9) the way a linked
- * sibling does. Clips clamp at the timeline origin individually, so dragging a
- * group against zero can compress it — the same thing the store's own move does
- * to a lone clip.
+ * sibling does. With `followLinks`, the children's linked partners move too,
+ * so a grouped video keeps its audio in sync. Clips clamp at the timeline
+ * origin individually, so dragging a group against zero can compress it —
+ * callers that must keep offsets clamp `deltaMs` first.
  */
 export function moveGroup(
   clips: readonly TimelineClip[],
   groupId: string,
-  deltaMs: number
+  deltaMs: number,
+  options: { followLinks?: boolean } = {}
 ): TimelineClip[] {
   if (deltaMs === 0) return [...clips];
-  const moving = groupDescendantIds(clips, groupId);
-  moving.add(groupId);
+  const moving = moveUnitIds(clips, [groupId], {
+    followLinks: options.followLinks === true
+  });
   return clips.map((clip) =>
     moving.has(clip.id)
       ? { ...clip, startMs: Math.max(0, clip.startMs + deltaMs) }

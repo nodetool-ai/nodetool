@@ -239,21 +239,25 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
 });
 
 describe("ShotCard edit affordances", () => {
-  it("keeps shot actions away from the video playback controls", () => {
+  it("keeps every shot action in one top-left row, away from the video controls", () => {
     renderCard(seedShot());
 
-    expect(screen.getByTestId("shot-card-footer")).toHaveStyle({
-      top: "1px",
-      bottom: "auto",
-      right: "auto"
-    });
+    const toolbar = screen.getByTestId("shot-hover-toolbar");
+    expect(toolbar).toHaveStyle({ top: "1px", left: "1px" });
+    expect(screen.queryByTestId("shot-card-footer")).not.toBeInTheDocument();
+    for (const name of ["Edit shot", "Regenerate still", "Render clip"]) {
+      expect(toolbar).toContainElement(screen.getByRole("button", { name }));
+    }
+    expect(
+      screen.queryByRole("button", { name: "Iterate" })
+    ).not.toBeInTheDocument();
   });
 
   it("asks for the fields from Edit, without selecting the card", async () => {
     const onSelect = jest.fn();
     renderCard(seedShot(), { onSelect });
 
-    await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit shot" }));
     expect(onEdit).toHaveBeenCalledWith("shot-1", "fields");
     expect(onSelect).not.toHaveBeenCalled();
   });
@@ -261,7 +265,7 @@ describe("ShotCard edit affordances", () => {
   it("hides Edit when the board offers no editor", () => {
     renderCard(seedShot({ dialogue: "Keep it lit." }), { onEdit: undefined });
     expect(
-      screen.queryByRole("button", { name: "Edit" })
+      screen.queryByRole("button", { name: "Edit shot" })
     ).not.toBeInTheDocument();
   });
 

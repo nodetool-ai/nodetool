@@ -30,9 +30,18 @@ export class LlamaProvider extends OpenAICompatProvider {
   private readonly _llamaFetch: typeof fetch;
   /** Bearer token for a llama-server started with `--api-key`. */
   private readonly _llamaApiKey: string | undefined;
+  /**
+   * The server's context size from LLAMA_CPP_CONTEXT_LENGTH. llama-server
+   * fixes it at launch (`-c`), and its OpenAI API does not report it.
+   */
+  readonly contextLength: number | null;
 
   constructor(
-    secrets: { LLAMA_CPP_URL?: string; LLAMA_API_KEY?: string },
+    secrets: {
+      LLAMA_CPP_URL?: string;
+      LLAMA_API_KEY?: string;
+      LLAMA_CPP_CONTEXT_LENGTH?: string;
+    },
     options: LlamaProviderOptions = {}
   ) {
     const raw =
@@ -56,6 +65,16 @@ export class LlamaProvider extends OpenAICompatProvider {
     this.baseUrl = baseURL;
     this._llamaFetch = fetchFn;
     this._llamaApiKey = llamaApiKey;
+    const contextLength = Number(
+      (secrets.LLAMA_CPP_CONTEXT_LENGTH || process.env.LLAMA_CPP_CONTEXT_LENGTH || "").trim()
+    );
+    this.contextLength =
+      Number.isInteger(contextLength) && contextLength > 0 ? contextLength : null;
+  }
+
+  /** The configured server context size; null leaves it to models.dev. */
+  override async getContextWindow(_model: string): Promise<number | null> {
+    return this.contextLength;
   }
 
   override getContainerEnv(): Record<string, string> {

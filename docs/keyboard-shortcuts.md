@@ -99,7 +99,7 @@ This page lists the shortcuts in each part of NodeTool. In the app, press `Ctrl 
 | `O` | `O` | Show or hide the Operator panel |
 | `L` | `L` | Toggle the Logs panel (not while editing a timeline) |
 | `Ctrl + Shift + T` | `⌘ + Shift + T` | Toggle the Trace panel |
-| `Ctrl + K` | `⌘ + K` | Open the command menu |
+| `Ctrl + K` | `⌘ + K` | Open the command menu (works on every view) |
 | `Ctrl + ,` | `⌘ + ,` | Open Settings in a workspace tab |
 | `Ctrl + /` or `?` | `⌘ + /` or `?` | Open the keyboard shortcuts panel |
 
@@ -135,7 +135,7 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 | Tools | `N` | Toggle snapping |
 | Tools | `Esc` | Clear selection and return to Select |
 | Editing | `S` | Split selected clips at the playhead |
-| Editing | `Ctrl + K` | Cut all tracks at the playhead |
+| Editing | `Ctrl + Shift + K` | Cut all tracks at the playhead |
 | Editing | `Delete` or `Backspace` | Delete selected clips |
 | Editing | `Shift + Delete` | Ripple delete (closes the gap) |
 | Editing | `Ctrl + D` | Duplicate |
@@ -176,7 +176,7 @@ Premiere Pro and Final Cut Pro layouts change these keys:
 |--------|--------------|---------------|
 | Select tool | `V` | `A` |
 | Cut tool | `C` | `B` |
-| Split at playhead | `Ctrl + K` | `Ctrl + B` |
+| Split at playhead | `Ctrl + Alt + K` | `Ctrl + B` |
 | Cut all tracks | `Ctrl + Shift + K` | `Ctrl + Shift + B` |
 | Delete | `Delete` | `Shift + Delete` |
 | Ripple delete | `Shift + Delete` | `Delete` |

@@ -51,6 +51,23 @@ const zoomButtonSx = {
   "& svg": { fontSize: 14 }
 } as const;
 
+/**
+ * The cursor position changes on every pointer move, so it subscribes on its
+ * own: the rest of the bar (and its cost estimate) re-renders only when what
+ * it shows changes.
+ */
+const StatusCursorReadout = memo(function StatusCursorReadout() {
+  const cursorDocPos = useSketchStore((s) => s.cursorDocPos);
+  if (!cursorDocPos) {
+    return null;
+  }
+  return (
+    <span style={{ minWidth: 96 }}>
+      x {cursorDocPos.x}, y {cursorDocPos.y}
+    </span>
+  );
+});
+
 const ConnectedStatusBarInner: React.FC = () => {
   const theme = useTheme();
   const documentId = useSketchSessionStore((s) => s.documentId);
@@ -60,7 +77,6 @@ const ConnectedStatusBarInner: React.FC = () => {
   const zoom = useSketchStore((s) => s.zoom);
   const layerCount = useSketchStore((s) => s.document.layers.length);
   const foregroundColor = useSketchStore((s) => s.foregroundColor) || "#ffffff";
-  const cursorDocPos = useSketchStore((s) => s.cursorDocPos);
   const selection = useSketchStore((s) => s.selection);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const fitViewToScreen = useSketchCanvasRefStore((s) => s.fitViewToScreen);
@@ -151,11 +167,7 @@ const ConnectedStatusBarInner: React.FC = () => {
         <span>{fgHex}</span>
       </FlexRow>
 
-      {cursorDocPos && (
-        <span style={{ minWidth: 96 }}>
-          x {cursorDocPos.x}, y {cursorDocPos.y}
-        </span>
-      )}
+      <StatusCursorReadout />
 
       {selBounds && (
         <span>

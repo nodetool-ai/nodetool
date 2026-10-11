@@ -29,6 +29,7 @@ import {
   styleTrackValue
 } from "../animation/index.js";
 import { flattenNormalizedPath, pointAtPathFraction } from "../pathSampling.js";
+import { CAPTION_FONT_WEIGHT } from "../fonts/google-fonts.js";
 import type { MeasureTextWidth } from "./textLayout.js";
 import { parseSvgPath, tracePath, type PathSegment } from "./svgPath.js";
 import {
@@ -184,7 +185,6 @@ type BlockScrim = NonNullable<CaptionStyle["background"]>;
 const CAPTION_INACTIVE_COLOR = "#FFFFFF";
 const CAPTION_ACTIVE_COLOR = "#FFD60A";
 const CAPTION_OUTLINE_COLOR = "rgba(0, 0, 0, 0.85)";
-const CAPTION_FONT_WEIGHT = 700;
 /** Font size as a fraction of frame height, and the floor it never goes under. */
 const CAPTION_FONT_SIZE_FRAC = 0.05;
 const CAPTION_MIN_FONT_SIZE_PX = 24;
@@ -382,6 +382,8 @@ export function drawCaption(
   width: number,
   height: number
 ): void {
+  // Between cues there is nothing to say, and no scrim to draw behind it.
+  if (caption.words.length === 0) return;
   const style = resolveCaptionStyle(caption.style, height);
   ctx.font = style.font;
   ctx.fontVariationSettings = style.fontVariationSettings;

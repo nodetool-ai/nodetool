@@ -272,8 +272,9 @@ export function computeTransformedExtents(
   if (transform.rotation === 0) {
     const cx = transform.x + rasterBounds.x + rasterBounds.width / 2;
     const cy = transform.y + rasterBounds.y + rasterBounds.height / 2;
-    const hw = (rasterBounds.width * transform.scaleX) / 2;
-    const hh = (rasterBounds.height * transform.scaleY) / 2;
+    // Flipped layers have negative scale; the box must stay non-negative.
+    const hw = Math.abs(rasterBounds.width * transform.scaleX) / 2;
+    const hh = Math.abs(rasterBounds.height * transform.scaleY) / 2;
     return { x: cx - hw, y: cy - hh, width: hw * 2, height: hh * 2 };
   }
   return aabbOfQuad(computeTransformedCorners(transform, rasterBounds));

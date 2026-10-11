@@ -4,6 +4,7 @@ import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternate
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
 import { rpcRequest } from "../../../lib/websocket/rpcRequest";
+import { estimateGenerationCost } from "../../../utils/generationCostEstimate";
 import {
   getRememberedModel,
   useLastModelStore
@@ -11,6 +12,7 @@ import {
 import type { ImageModelValue } from "../../../stores/ApiTypes";
 import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import ImageModelSelect from "../../properties/ImageModelSelect";
+import ReportBugButton from "../../support/ReportBugButton";
 import {
   AlertBanner,
   BORDER_RADIUS,
@@ -227,9 +229,7 @@ const GenerateReferenceDialog = ({
           provider,
           model,
           prompt: trimmedPrompt,
-          aspect_ratio:
-            options.find((option) => option.id === selectedOption)
-              ?.aspectRatio ?? "1:1",
+          aspect_ratio: aspectRatio,
           resolution: "1K",
           variations: 1
         },
@@ -264,6 +264,27 @@ const GenerateReferenceDialog = ({
       }
     }
   }, [model, onClose, onPick, options, prompt, provider, selectedOption]);
+
+  const aspectRatio =
+    options.find((option) => option.id === selectedOption)?.aspectRatio ??
+    "1:1";
+  // The dialog's button spends money, so its price and its reason for being
+  // off sit under the model it depends on.
+  const estimate = model
+    ? estimateGenerationCost({
+        kind: "image",
+        provider: provider || null,
+        model,
+        aspectRatio,
+        resolution: "1K",
+        quantity: 1
+      })
+    : null;
+  const modelHelper = !model
+    ? "Pick an image model to generate the reference."
+    : estimate
+      ? `Used to create the reference image. About ${estimate.label}.`
+      : "Used to create the reference image.";
 
   return (
     <Dialog
@@ -305,7 +326,7 @@ const GenerateReferenceDialog = ({
         />
         <FormField
           label="Image model"
-          helperText="Used to create the reference image."
+          helperText={modelHelper}
         >
           <ImageModelSelect
             value={model}
@@ -314,7 +335,22 @@ const GenerateReferenceDialog = ({
             onChange={handleModelChange}
           />
         </FormField>
-        {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}
+        {error ? (
+          <AlertBanner
+            severity="error"
+            action={
+              <ReportBugButton
+                context={{
+                  source: "provider-call",
+                  summary: "Entity reference image failed to generate",
+                  errorText: error
+                }}
+              />
+            }
+          >
+            {error}
+          </AlertBanner>
+        ) : null}
         {generating ? (
           <FlexRow gap={GAP.tight} align="center">
             <LoadingSpinner inline size="small" />

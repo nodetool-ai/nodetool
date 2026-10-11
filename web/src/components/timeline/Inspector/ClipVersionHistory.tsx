@@ -332,6 +332,9 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
   ({ clipId }) => {
     const theme = useTheme();
     const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
+    const trackLocked = useTimelineStore(
+      (s) => s.tracks.find((t) => t.id === clip?.trackId)?.locked === true
+    );
     const applyTake = useTimelineStore((s) => s.applyTake);
     const audition = useTimelineUIStore((s) => s.audition);
     const setAudition = useTimelineUIStore((s) => s.setAudition);
@@ -404,7 +407,7 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
 
     if (successVersions.length === 0) return null;
 
-    const interactive = !clip.locked;
+    const interactive = !clip.locked && !trackLocked;
     const editingVersion = editingVersionId
       ? successVersions.find((v) => v.id === editingVersionId)
       : undefined;

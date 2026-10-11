@@ -177,7 +177,6 @@ export function useEditorSession({
     commitLayerTransform: layerStore.commitLayerTransform,
     setLayerTransform: layerStore.setLayerTransform,
     setLayerContentBounds: layerStore.setLayerContentBounds,
-    setDocument: sessionStore.setDocument,
     setZoom: canvasStore.setZoom,
     setPan: canvasStore.setPan,
     resizeCanvas: canvasStore.resizeCanvas,

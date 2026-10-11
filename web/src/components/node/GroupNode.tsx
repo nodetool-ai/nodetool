@@ -44,7 +44,7 @@ import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX, SHADOW } from "../ui_primitives";
 
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
@@ -182,7 +182,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       ".run-button": {
         width: "28px !important",
         height: "28px !important",
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
+        boxShadow: SHADOW(theme).sm,
         "& svg": {
           fontSize: "var(--fontSizeBig) !important"
         }

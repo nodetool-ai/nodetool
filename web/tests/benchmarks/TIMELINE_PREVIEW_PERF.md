@@ -14,6 +14,8 @@ under a temporary name and renamed only after FFmpeg finishes. This prevents
 parallel browser fixtures from reading a partially written clip. Set
 `TIMELINE_PERF_FIXTURE_DIR` to choose another media directory and
 `TIMELINE_PERF_REPORT_DIR` to choose the JSON output directory.
+Set `TIMELINE_PERF_CODEC=vp9` on an open-source Chromium build, which cannot
+decode H.264. The files keep their `.mp4` names.
 For the standalone server-export baseline, use the same output directory that
 contains `timeline-preview-cold.json` and pass the generated media directory:
 

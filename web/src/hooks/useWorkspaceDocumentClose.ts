@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useWorkflowManagerStore } from "../contexts/WorkflowManagerContext";
 import {
   useWorkspaceTabsStore,
@@ -16,15 +16,20 @@ interface WorkspaceDocumentClose {
 
 export function useWorkspaceDocumentClose(): WorkspaceDocumentClose {
   const manager = useWorkflowManagerStore();
-  const hasUnsavedChanges = (tab: WorkspaceTab): boolean =>
-    Boolean(
-      useDocumentDraftStore.getState().dirtyTabs[tab.id] ||
-      useDocumentDraftStore.getState().savingTabs[tab.id] ||
-      (tab.type === "workflow" &&
-        (manager.getState().isSavingWorkflow?.(tab.ref) ||
-          manager.getState().unsavedWorkflowIds[tab.ref] ||
-          manager.getState().getNodeStore(tab.ref)?.getState().workflowIsDirty))
-    );
+  const hasUnsavedChanges = useMemo(
+    () =>
+      (tab: WorkspaceTab): boolean =>
+        Boolean(
+          useDocumentDraftStore.getState().dirtyTabs[tab.id] ||
+          useDocumentDraftStore.getState().savingTabs[tab.id] ||
+          (tab.type === "workflow" &&
+            (manager.getState().isSavingWorkflow?.(tab.ref) ||
+              manager.getState().unsavedWorkflowIds[tab.ref] ||
+              manager.getState().getNodeStore(tab.ref)?.getState()
+                .workflowIsDirty))
+        ),
+    [manager]
+  );
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent): void => {
       if (useWorkspaceTabsStore.getState().tabs.some(hasUnsavedChanges)) {
@@ -34,35 +39,39 @@ export function useWorkspaceDocumentClose(): WorkspaceDocumentClose {
     };
     window.addEventListener("beforeunload", beforeUnload);
     return () => window.removeEventListener("beforeunload", beforeUnload);
-  });
-  const close = (tabs: readonly WorkspaceTab[]): boolean => {
-    return closeWorkspaceDocuments(tabs, {
-      isDirty: hasUnsavedChanges,
-      confirmDiscard: (dirty) =>
-        window.confirm(
-          `Unsaved changes or saves in progress may be lost. Close ${dirty.map((tab) => `“${tab.title}”`).join(", ")}?`
-        ),
-      cleanup: (tab) => {
-        useDocumentDraftStore.getState().discardDraft(tab.id);
-        if (tab.type === "workflow") {
-          manager.getState().removeWorkflow(tab.ref);
+  }, [hasUnsavedChanges]);
+  return useMemo(() => {
+    const close = (tabs: readonly WorkspaceTab[]): boolean => {
+      return closeWorkspaceDocuments(tabs, {
+        isDirty: hasUnsavedChanges,
+        confirmDiscard: (dirty) =>
+          window.confirm(
+            `Unsaved changes or saves in progress may be lost. Close ${dirty.map((tab) => `“${tab.title}”`).join(", ")}?`
+          ),
+        cleanup: (tab) => {
+          useDocumentDraftStore.getState().discardDraft(tab.id);
+          if (tab.type === "workflow") {
+            manager.getState().removeWorkflow(tab.ref);
+          }
         }
+      });
+    };
+    return {
+      closeDocument: (tab) => {
+        close([tab]);
+      },
+      closeOtherDocuments: (tab) => {
+        if (
+          close(
+            tabsToCloseOthers(useWorkspaceTabsStore.getState().tabs, tab.id)
+          )
+        ) {
+          useWorkspaceTabsStore.getState().setActiveTab(tab.id);
+        }
+      },
+      closeAllDocuments: () => {
+        close(useWorkspaceTabsStore.getState().tabs);
       }
-    });
-  };
-  return {
-    closeDocument: (tab) => {
-      close([tab]);
-    },
-    closeOtherDocuments: (tab) => {
-      if (
-        close(tabsToCloseOthers(useWorkspaceTabsStore.getState().tabs, tab.id))
-      ) {
-        useWorkspaceTabsStore.getState().setActiveTab(tab.id);
-      }
-    },
-    closeAllDocuments: () => {
-      close(useWorkspaceTabsStore.getState().tabs);
-    }
-  };
+    };
+  }, [hasUnsavedChanges, manager]);
 }

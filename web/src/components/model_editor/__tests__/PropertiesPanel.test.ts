@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { applyOpacity, toOpaqueHex } from "../PropertiesPanel";
+import { applyOpacity, colorEdit, toOpaqueHex } from "../PropertiesPanel";
 
 describe("toOpaqueHex", () => {
   it("drops the alpha byte the color picker adds for translucent picks", () => {
@@ -26,5 +26,24 @@ describe("applyOpacity", () => {
     applyOpacity(material, 0.5);
     applyOpacity(material, 1);
     expect(material.transparent).toBe(true);
+  });
+});
+
+describe("colorEdit", () => {
+  it("restores the exact original color on undo, not its rounded hex", () => {
+    const color = new THREE.Color(0.8, 0.8, 0.8);
+    const original = color.clone();
+    const edit = colorEdit("Color", color, "#ff0000", "k");
+    const before = edit.get();
+    edit.set(edit.value);
+    expect(color.getHexString()).toBe("ff0000");
+    edit.set(before);
+    expect(color.equals(original)).toBe(true);
+  });
+
+  it("treats a pick of the displayed color as no change", () => {
+    const color = new THREE.Color(0.8, 0.8, 0.8);
+    const edit = colorEdit("Color", color, `#${color.getHexString()}`, "k");
+    expect(edit.equals?.(edit.get(), edit.value)).toBe(true);
   });
 });

@@ -3,6 +3,7 @@
  */
 
 import { createVectorLayer } from "../../vectorLayer";
+import { initialHistory } from "./historySlice";
 
 import type { StateCreator } from "zustand";
 import type { SketchStore } from "../useSketchStore";
@@ -151,7 +152,13 @@ export interface DocumentSlice {
   document: SketchDocument;
 
   // Document actions
+  /** Load a document: resets undo history to a single "Open" checkpoint. */
   setDocument: (doc: SketchDocument) => void;
+  /**
+   * Swap in an edited copy of the open document. Unlike `setDocument`, undo
+   * history is kept, so the caller records the edit with `pushHistory`.
+   */
+  replaceDocument: (doc: SketchDocument) => void;
   resetDocument: (width?: number, height?: number) => void;
   /**
    * Patch the guided-setup block (PRD § 10.5). The image flow is a function of
@@ -214,6 +221,8 @@ export interface DocumentSlice {
   setCanvasBackgroundColor: (color: string) => void;
   resizeCanvas: (width: number, height: number) => void;
   offsetAllPaintLayersTransform: (dx: number, dy: number) => void;
+  /** Shift every guide with the content when the canvas origin moves. Records no history. */
+  offsetGuides: (dx: number, dy: number) => void;
 }
 
 // ─── Slice creator ──────────────────────────────────────────────────────────
@@ -233,12 +242,15 @@ export const createDocumentSlice: StateCreator<
       // Hydrate the separate toolSettings slice from the loaded document so
       // the runtime source of truth (store.toolSettings) matches what was saved.
       toolSettings: normalized.toolSettings,
-      history: [],
-      historyIndex: -1,
+      ...initialHistory(normalized, get().selection),
       selectedLayerIds: [],
       layerShiftRangeAnchorId: null,
       transientMoveModifierHeld: false
     });
+  },
+
+  replaceDocument: (doc: SketchDocument) => {
+    set({ document: doc });
   },
 
   addVectorLayer: (name, source) => {
@@ -300,47 +312,49 @@ export const createDocumentSlice: StateCreator<
         ]
       }
     }));
+    get().pushHistory("new guide", undefined, { selectionOnly: true });
     return id;
   },
 
-  moveGuide: (guideId, position) =>
-    set((state) => {
-      const guides = state.document.guides ?? [];
-      const rounded = Math.round(position);
-      const target = guides.find((g) => g.id === guideId);
-      if (!target || target.position === rounded) {
-        return state;
+  moveGuide: (guideId, position) => {
+    const guides = get().document.guides ?? [];
+    const rounded = Math.round(position);
+    const target = guides.find((g) => g.id === guideId);
+    if (!target || target.position === rounded) {
+      return;
+    }
+    set((state) => ({
+      document: {
+        ...state.document,
+        guides: guides.map((g) =>
+          g.id === guideId ? { ...g, position: rounded } : g
+        )
       }
-      return {
-        document: {
-          ...state.document,
-          guides: guides.map((g) =>
-            g.id === guideId ? { ...g, position: rounded } : g
-          )
-        }
-      };
-    }),
+    }));
+    get().pushHistory("move guide", undefined, { selectionOnly: true });
+  },
 
-  removeGuide: (guideId) =>
-    set((state) => {
-      const guides = state.document.guides ?? [];
-      if (!guides.some((g) => g.id === guideId)) {
-        return state;
+  removeGuide: (guideId) => {
+    const guides = get().document.guides ?? [];
+    if (!guides.some((g) => g.id === guideId)) {
+      return;
+    }
+    set((state) => ({
+      document: {
+        ...state.document,
+        guides: guides.filter((g) => g.id !== guideId)
       }
-      return {
-        document: {
-          ...state.document,
-          guides: guides.filter((g) => g.id !== guideId)
-        }
-      };
-    }),
+    }));
+    get().pushHistory("delete guide", undefined, { selectionOnly: true });
+  },
 
-  clearGuides: () =>
-    set((state) =>
-      (state.document.guides?.length ?? 0) === 0
-        ? state
-        : { document: { ...state.document, guides: [] } }
-    ),
+  clearGuides: () => {
+    if ((get().document.guides?.length ?? 0) === 0) {
+      return;
+    }
+    set((state) => ({ document: { ...state.document, guides: [] } }));
+    get().pushHistory("clear guides", undefined, { selectionOnly: true });
+  },
 
   setSetup: (patch: Partial<SketchSetup>) =>
     set((state) => ({
@@ -360,8 +374,7 @@ export const createDocumentSlice: StateCreator<
       zoom: 1,
       pan: { x: 0, y: 0 },
       isDrawing: false,
-      history: [],
-      historyIndex: -1,
+      ...initialHistory(defaultDoc, get().selection),
       selectedLayerIds: [],
       layerShiftRangeAnchorId: null
     });
@@ -482,7 +495,9 @@ export const createDocumentSlice: StateCreator<
         locked: layer.type === "vector",
         exposedAsInput: true,
         exposedAsOutput: true,
-        imageReference: undefined
+        // A generated or placed image keeps its pixels only in the reference
+        // until it is edited, so a copy without data needs it to load.
+        imageReference: layer.data ? undefined : layer.imageReference
       };
       const idx = state.document.layers.findIndex((l) => l.id === layerId);
       const newLayers = [...state.document.layers];
@@ -720,6 +735,8 @@ export const createDocumentSlice: StateCreator<
                 // the lower layer happened to be invisible going in) makes
                 // the operation look destructive even though the data is fine.
                 visible: true,
+                // Enabled effects are baked into the merged pixels.
+                effects: l.effects.filter((effect) => !effect.enabled),
                 transform: { ...IDENTITY_AFFINE },
                 contentBounds: {
                   x: 0,
@@ -790,13 +807,16 @@ export const createDocumentSlice: StateCreator<
     );
     set((state) => {
       const layers = state.document.layers;
-      const activeIdx = layers.findIndex(
-        (l) => l.id === state.document.activeLayerId
+      // Same placement as a new layer: above the active layer in its parent,
+      // so the new group never splits another group's children apart.
+      const { insertAt, parentId } = computeNewLayerInsertion(
+        layers,
+        state.document.activeLayerId
       );
-      const insertAt = activeIdx >= 0 ? activeIdx + 1 : layers.length;
+      const placed: Layer = parentId ? { ...group, parentId } : group;
       const newLayers = [
         ...layers.slice(0, insertAt),
-        group,
+        placed,
         ...layers.slice(insertAt)
       ];
       return {
@@ -991,6 +1011,22 @@ export const createDocumentSlice: StateCreator<
             : layer
         )
       })
+    }));
+  },
+
+  offsetGuides: (dx: number, dy: number) => {
+    const guides = get().document.guides;
+    if ((!dx && !dy) || !guides || guides.length === 0) {
+      return;
+    }
+    set((state) => ({
+      document: {
+        ...state.document,
+        guides: guides.map((guide) => ({
+          ...guide,
+          position: guide.position + (guide.orientation === "horizontal" ? dy : dx)
+        }))
+      }
     }));
   }
 });

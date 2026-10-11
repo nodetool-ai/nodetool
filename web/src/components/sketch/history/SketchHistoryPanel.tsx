@@ -6,7 +6,7 @@
  * until the next edit replaces them.
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useSketchStore } from "../state/useSketchStore";
 import { hasUncommittedHistoryTip } from "../state/slices/historySlice";

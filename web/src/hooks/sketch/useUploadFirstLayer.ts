@@ -11,7 +11,7 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import { useSketchStore } from "../../components/sketch/state/useSketchStore";
+import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 
@@ -57,6 +57,10 @@ export function useUploadFirstLayer(
   // Which upload is still wanted. Cancel and a newer upload both move it on,
   // so a late answer places nothing.
   const uploadRef = useRef(0);
+  // The document the upload was started on. `useSketchStore.getState()`
+  // follows the focused tab, so a file that lands after a tab switch would be
+  // checked against, and placed on, another document.
+  const editor = useSketchInstance().editor;
   const cancel = useCallback(() => {
     uploadRef.current += 1;
     setUploading(false);
@@ -65,7 +69,7 @@ export function useUploadFirstLayer(
   const uploadFirstLayer = useCallback(
     async (file: File): Promise<boolean> => {
       const token = (uploadRef.current += 1);
-      const originStage = useSketchStore.getState().document.setup?.stage;
+      const originStage = editor.getState().document.setup?.stage;
       setError(null);
       setUploading(true);
       try {
@@ -77,20 +81,20 @@ export function useUploadFirstLayer(
         // from, so it must not finish the flow under them (F17).
         if (
           token !== uploadRef.current ||
-          useSketchStore.getState().document.setup?.stage !== originStage
+          editor.getState().document.setup?.stage !== originStage
         ) {
           return false;
         }
         const uri = getAssetUrl(asset) ?? `asset://${asset.id}`;
-        const sketch = useSketchStore.getState();
+        const sketch = editor.getState();
         const first = sketch.document.layers[0];
         if (!first) {
           setError("This document has no layer to place the image on.");
           return false;
         }
         sketch.resizeCanvas(size.width, size.height);
-        const withImage = useSketchStore.getState().document;
-        useSketchStore.getState().setDocument({
+        const withImage = editor.getState().document;
+        editor.getState().setDocument({
           ...withImage,
           // Stage only: whatever they typed before choosing to upload stays on
           // the document, so a later flow (or the agent) still has the words.
@@ -124,7 +128,7 @@ export function useUploadFirstLayer(
         }
       }
     },
-    [onFinish]
+    [editor, onFinish]
   );
 
   return { uploadFirstLayer, cancel, uploading, error, clearError };

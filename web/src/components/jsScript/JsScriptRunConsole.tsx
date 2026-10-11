@@ -7,7 +7,7 @@
  * console says so when a save is still pending rather than letting the user
  * read a stale result as a fresh one.
  */
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { usesStreamInputContract } from "@nodetool-ai/node-sdk/code-body";
@@ -36,6 +36,8 @@ import {
   useJsScriptTests,
   type JsScriptTestCaseReport
 } from "../../stores/jsScript/JsScriptStore";
+import { useContextCommands } from "../../hooks/useContextCommands";
+import type { ContextCommand } from "../../stores/CommandMenuStore";
 import JsScriptRunDialog, {
   type JsScriptRunRequest
 } from "./JsScriptRunDialog";
@@ -43,6 +45,8 @@ import JsScriptRunDialog, {
 interface JsScriptRunConsoleProps {
   scriptId: string;
   readOnly?: boolean;
+  /** Whether the console's tab is on screen; lists Run and Test in the Cmd+K menu. */
+  active?: boolean;
   onRun: (request: JsScriptRunRequest) => void;
   onTest: () => void;
 }
@@ -101,6 +105,7 @@ const CaseReport = ({ report }: { report: JsScriptTestCaseReport }) => (
 const JsScriptRunConsole = ({
   scriptId,
   readOnly = false,
+  active = false,
   onRun,
   onTest
 }: JsScriptRunConsoleProps) => {
@@ -120,6 +125,20 @@ const JsScriptRunConsole = ({
     },
     [onRun]
   );
+
+  const menuCommands = useMemo<ContextCommand[]>(() => {
+    if (running || readOnly) {
+      return [];
+    }
+    const commands: ContextCommand[] = [
+      { id: "run", label: "Run Script…", run: () => setDialogOpen(true) }
+    ];
+    if (tests.length > 0) {
+      commands.push({ id: "test", label: "Run Tests", run: onTest });
+    }
+    return commands;
+  }, [running, readOnly, tests.length, onTest]);
+  useContextCommands("JS Script", menuCommands, active);
 
   return (
     <FlexColumn fullWidth gap={SPACING.sm} sx={{ minHeight: 0, flex: 1 }}>

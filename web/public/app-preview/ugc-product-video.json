@@ -772,7 +772,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 120
+                "y": 365
               },
               "zIndex": 0,
               "width": 300,
@@ -790,8 +790,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 660,
-                "y": 120
+                "x": 800,
+                "y": 378
               },
               "zIndex": 0,
               "width": 300,
@@ -821,7 +821,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 100
+                "y": 385
               },
               "zIndex": 0,
               "width": 280,
@@ -842,7 +842,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 330
+                "y": 601
               },
               "zIndex": 0,
               "width": 280,
@@ -863,7 +863,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 560
+                "y": 817
               },
               "zIndex": 0,
               "width": 280,
@@ -884,7 +884,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 770
+                "y": 1042
               },
               "zIndex": 0,
               "width": 280,
@@ -903,7 +903,7 @@
             "ui_properties": {
               "position": {
                 "x": 1240,
-                "y": 220
+                "y": 722
               },
               "zIndex": 0,
               "width": 260,
@@ -927,13 +927,16 @@
             "type": "nodetool.input.VideoInput",
             "data": {
               "name": "creator_clip",
-              "value": null,
+              "value": {
+                "type": "video",
+                "uri": "package://nodetool-base/recipe-inputs/presenter.mp4"
+              },
               "description": "One continuous 9:16 creator clip with its native audio"
             },
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 40
+                "y": 288
               },
               "zIndex": 0,
               "width": 280,
@@ -954,7 +957,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 250
+                "y": 504
               },
               "zIndex": 0,
               "width": 280,
@@ -975,7 +978,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 450
+                "y": 729
               },
               "zIndex": 0,
               "width": 280,
@@ -1001,7 +1004,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 650
+                "y": 954
               },
               "zIndex": 0,
               "width": 280,
@@ -1025,7 +1028,7 @@
             "ui_properties": {
               "position": {
                 "x": 0,
-                "y": 850
+                "y": 1142
               },
               "zIndex": 0,
               "width": 280,
@@ -1044,8 +1047,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1910,
-                "y": 390
+                "x": 2060,
+                "y": 863
               },
               "zIndex": 0,
               "width": 260,

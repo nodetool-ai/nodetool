@@ -299,7 +299,11 @@ const FramedTile: React.FC<{
   const theme = useTheme();
   const handleFrameClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
-      if (preset.disabled !== true && !isNestedControlClick(event)) {
+      // The frame is a div, which a disabled fieldset does not disable, so a
+      // locked step body has to be checked for here.
+      const locked =
+        event.currentTarget.closest("fieldset:disabled") !== null;
+      if (preset.disabled !== true && !locked && !isNestedControlClick(event)) {
         onSelect(preset.id);
       }
     },

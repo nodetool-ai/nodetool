@@ -5,6 +5,7 @@
  */
 
 import { apiService, ApiError } from './api';
+import { useAuthStore } from '../stores/AuthStore';
 
 // apiHost is consulted for the base URL; pin it so URLs are deterministic.
 jest.mock('./apiHost', () => ({
@@ -117,6 +118,68 @@ describe('ApiService request (via listApplications)', () => {
     await expect(apiService.listApplications()).rejects.toBeInstanceOf(ApiError);
     // initial attempt + MAX_RETRIES (2) = 3 calls
     expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('ApiService request auth failures', () => {
+  const getState = useAuthStore.getState as jest.Mock;
+  const refreshSession = jest.fn();
+  const handleSessionExpired = jest.fn();
+  let token = 'old';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    global.fetch = mockFetch;
+    token = 'old';
+    getState.mockImplementation(() => ({
+      session: { access_token: token },
+      refreshSession,
+      handleSessionExpired,
+    }));
+  });
+
+  afterEach(() => {
+    getState.mockReturnValue({ session: null });
+  });
+
+  it('does not touch the session on a 403', async () => {
+    mockFetch.mockResolvedValueOnce(mockResponse({ ok: false, status: 403, text: 'denied' }));
+
+    await expect(apiService.listApplications()).rejects.toMatchObject({ status: 403 });
+    expect(refreshSession).not.toHaveBeenCalled();
+    expect(handleSessionExpired).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the token once on a 401 and resends with the new token', async () => {
+    refreshSession.mockImplementation(async () => {
+      token = 'new';
+      return true;
+    });
+    mockFetch
+      .mockResolvedValueOnce(mockResponse({ ok: false, status: 401, text: 'expired' }))
+      .mockResolvedValueOnce(mockResponse({ ok: true, status: 200, json: [] }));
+
+    await expect(apiService.listApplications()).resolves.toEqual([]);
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+    const retried = mockFetch.mock.calls[1][1] as RequestInit;
+    expect(new Headers(retried.headers).get('Authorization')).toBe('Bearer new');
+  });
+
+  it('gives up when the refresh fails', async () => {
+    refreshSession.mockResolvedValue(false);
+    mockFetch.mockResolvedValue(mockResponse({ ok: false, status: 401, text: 'expired' }));
+
+    await expect(apiService.listApplications()).rejects.toMatchObject({ status: 401 });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refresh twice when the resent request also gets a 401', async () => {
+    refreshSession.mockResolvedValue(true);
+    mockFetch.mockResolvedValue(mockResponse({ ok: false, status: 401, text: 'expired' }));
+
+    await expect(apiService.listApplications()).rejects.toMatchObject({ status: 401 });
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 });
 

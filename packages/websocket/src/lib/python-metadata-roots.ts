@@ -11,6 +11,10 @@
 
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import { resolvePythonBin } from "@nodetool-ai/node-sdk";
+
+/** A scan that has not answered by now is abandoned, not awaited. */
+const SCAN_TIMEOUT_MS = 30_000;
 
 const SCRIPT = `
 import json, pathlib, sys
@@ -39,7 +43,10 @@ print(json.dumps(sorted(roots)))
 `;
 
 interface DetectOptions {
-  /** Interpreters tried in order. Default: `python3`, then `python`. */
+  /**
+   * Interpreters tried in order. Default: the interpreter the Python bridge
+   * runs (`resolvePythonBin`), then `python3` and `python` on PATH.
+   */
   pythons?: readonly string[];
   env?: NodeJS.ProcessEnv;
 }
@@ -55,6 +62,7 @@ function runScript(
       child = spawn(python, ["-c", SCRIPT], {
         env: env ?? process.env,
         stdio: ["ignore", "pipe", "ignore"],
+        timeout: SCAN_TIMEOUT_MS,
         windowsHide: true
       });
     } catch {
@@ -79,7 +87,10 @@ function runScript(
 export async function detectPipMetadataRoots(
   options: DetectOptions = {}
 ): Promise<string[]> {
-  for (const python of options.pythons ?? ["python3", "python"]) {
+  const pythons = options.pythons ?? [
+    ...new Set([resolvePythonBin(), "python3", "python"])
+  ];
+  for (const python of pythons) {
     const stdout = await runScript(python, options.env);
     if (stdout === null) {
       continue;

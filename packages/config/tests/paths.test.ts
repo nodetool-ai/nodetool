@@ -8,6 +8,8 @@ import {
   getPostgresDatabaseUrl,
   getDefaultVectorstoreDbPath,
   getDefaultAssetsPath,
+  getHfHubCacheDir,
+  getLlamaCppCacheDir,
   buildAssetUrl
 } from "../src/paths.js";
 
@@ -247,5 +249,67 @@ describe("buildAssetUrl", () => {
       .map(decodeURIComponent)
       .join("/");
     expect(decoded).toBe(key);
+  });
+});
+
+describe("getHfHubCacheDir", () => {
+  const KEYS = ["HF_HUB_CACHE", "HUGGINGFACE_HUB_CACHE", "HF_HOME", "XDG_CACHE_HOME"];
+  const saved: Record<string, string | undefined> = {};
+
+  afterEach(() => {
+    for (const key of KEYS) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
+  function withEnv(env: Record<string, string>): string {
+    for (const key of KEYS) {
+      saved[key] = process.env[key];
+      delete process.env[key];
+    }
+    Object.assign(process.env, env);
+    return getHfHubCacheDir();
+  }
+
+  // The order Python huggingface_hub uses (huggingface_hub/constants.py).
+  it.each([
+    [{}, join(homedir(), ".cache", "huggingface", "hub")],
+    [{ HF_HOME: "/x" }, join("/x", "hub")],
+    [{ HF_HUB_CACHE: "/h" }, "/h"],
+    [{ HUGGINGFACE_HUB_CACHE: "/h" }, "/h"],
+    [{ XDG_CACHE_HOME: "/c" }, join("/c", "huggingface", "hub")],
+    [{ HF_HUB_CACHE: "/a", HUGGINGFACE_HUB_CACHE: "/b", HF_HOME: "/x" }, "/a"],
+    [{ HUGGINGFACE_HUB_CACHE: "/b", HF_HOME: "/x" }, "/b"],
+    [{ HF_HOME: "/x", XDG_CACHE_HOME: "/c" }, join("/x", "hub")],
+    [{ HF_HUB_CACHE: "  " }, join(homedir(), ".cache", "huggingface", "hub")],
+    [{ HF_HUB_CACHE: "~/models" }, join(homedir(), "models")]
+  ])("resolves %o to %s", (env, expected) => {
+    expect(withEnv(env)).toBe(expected);
+  });
+});
+
+describe("getLlamaCppCacheDir", () => {
+  const saved: Record<string, string | undefined> = {};
+  afterEach(() => {
+    for (const [key, val] of Object.entries(saved)) {
+      if (val === undefined) delete process.env[key];
+      else process.env[key] = val;
+    }
+  });
+
+  it("honours LLAMA_CACHE on every platform", () => {
+    saved.LLAMA_CACHE = process.env.LLAMA_CACHE;
+    process.env.LLAMA_CACHE = "/models/llama";
+    expect(getLlamaCppCacheDir()).toBe("/models/llama");
+  });
+
+  it("uses XDG_CACHE_HOME on Linux", () => {
+    if (process.platform !== "linux") return;
+    saved.LLAMA_CACHE = process.env.LLAMA_CACHE;
+    saved.XDG_CACHE_HOME = process.env.XDG_CACHE_HOME;
+    delete process.env.LLAMA_CACHE;
+    process.env.XDG_CACHE_HOME = "/c";
+    expect(getLlamaCppCacheDir()).toBe(join("/c", "llama.cpp"));
   });
 });

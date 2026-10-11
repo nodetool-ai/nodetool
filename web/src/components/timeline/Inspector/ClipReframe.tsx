@@ -65,6 +65,9 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
   const [focusX, setFocusX] = useState(0.5);
   const [focusY, setFocusY] = useState(0.5);
   const [zoom, setZoom] = useState(1);
+  const playheadInClip =
+    currentTimeMs >= activeClip.startMs &&
+    currentTimeMs <= activeClip.startMs + activeClip.durationMs;
 
   const subjectValue =
     reframe?.mode === "track" && reframe.trackId
@@ -90,6 +93,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
   );
 
   const handleAddKeyframe = useCallback(() => {
+    if (!playheadInClip) return;
     addKeyframe(
       clip.id,
       clipSourceMsAt(activeClip, currentTimeMs),
@@ -97,7 +101,16 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
       focusY,
       zoom
     );
-  }, [activeClip, addKeyframe, clip.id, currentTimeMs, focusX, focusY, zoom]);
+  }, [
+    activeClip,
+    addKeyframe,
+    clip.id,
+    currentTimeMs,
+    focusX,
+    focusY,
+    playheadInClip,
+    zoom
+  ]);
 
   const handleClear = useCallback(
     () => clearReframe(clip.id),
@@ -179,9 +192,15 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
             fullWidth
             variant="contained"
             onClick={handleAddKeyframe}
+            disabled={!playheadInClip}
           >
             Add framing keyframe
           </EditorButton>
+          {!playheadInClip && (
+            <Caption color="muted">
+              Move the playhead over this clip to add a framing keyframe.
+            </Caption>
+          )}
           {reframe && (
             <EditorButton
               fullWidth
@@ -198,5 +217,8 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
   );
 };
 
-export const ClipReframe = memo(ClipReframeInternal);
+// Keyed by clip so the focus and zoom draft start fresh on each clip.
+export const ClipReframe = memo(({ clip }: ClipReframeProps) => (
+  <ClipReframeInternal key={clip.id} clip={clip} />
+));
 ClipReframe.displayName = "ClipReframe";

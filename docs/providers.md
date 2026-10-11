@@ -29,6 +29,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | OpenRouter | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Requesty | ✅ | | | | | | |
 | Opper | ✅ | | | | | | |
+| API Route | ✅ | | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
 | Meta AI | ✅ | | | | | | |
@@ -118,6 +119,10 @@ OpenRouter proxies 300+ chat models, image generation, Gemini image editing, and
 
 Requesty routes chat models from OpenAI, Anthropic, Google, DeepSeek, xAI and others through one OpenAI-compatible endpoint, `https://router.requesty.ai/v1`. Text only. Cloud only, keyed by `REQUESTY_API_KEY`. The model picker lists the managed models from `/v1/models/managed` (short ids such as `gpt-5.4-mini`) followed by the full `vendor/model` catalog from `/v1/models` (for example `openai/gpt-4o-mini`). Get a key at [Requesty](https://app.requesty.ai/api-keys). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
+## API Route
+
+API Route serves hosted chat models through `https://global.api-route.com/v1`. Set `API_ROUTE_API_KEY` in Settings > API Keys or the environment. The model picker reads `/v1/models`, keeps OpenAI-compatible routes, and uses the shared model classifier to exclude image/video entries by metadata or model ID. Chat IDs without endpoint metadata remain available for older catalogs. This integration exposes text chat and tool calls. Get a key at [API Route](https://www.api-route.com/api-keys), then select a model available to that key. API Route is a paid service. See its [setup guide](https://www.api-route.com/docs/quickstart) and [pricing](https://www.api-route.com/pricing).
+
 ## Opper
 
 Opper is an EU-hosted AI gateway that routes chat models from 50+ providers, including OpenAI, Anthropic, Google, DeepSeek and Moonshot, through one OpenAI-compatible endpoint, `https://api.opper.ai/v3/compat`. Text only. Cloud only, keyed by `OPPER_API_KEY`. The model picker lists Opper's pools from `/v3/compat/models?type=pool` (bare ids such as `claude-sonnet-4-6`, routed across providers) followed by the full catalog from `/v3/compat/models`, which adds `provider/model` ids that pin one route. Get a key at [Opper](https://platform.opper.ai). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
@@ -184,7 +189,7 @@ HuggingFace routes chat, image, text-to-video, TTS, ASR, and embeddings to Huggi
 
 ## Ollama
 
-Ollama runs chat and embedding models locally, with no API key and no per-token cost. Pull a model with `ollama pull <model>` and it appears in NodeTool automatically. The server URL comes from `OLLAMA_API_URL` (default `http://127.0.0.1:11434`). See the [Ollama provider guide](developer/providers/ollama.md).
+Ollama runs chat and embedding models locally, with no API key and no per-token cost. It is a separate program: install it from [ollama.com](https://ollama.com) and keep it running, because NodeTool does not ship or start it. Pull a model with `ollama pull <model>` and it appears in NodeTool. The server URL comes from `OLLAMA_API_URL` (default `http://127.0.0.1:11434`), set in **Settings → Integrations → Local Model Servers** or the environment. `OLLAMA_CONTEXT_LENGTH` and `OLLAMA_KEEP_ALIVE` are in [Configuration](configuration.md#environment-variables-index). See the [Ollama provider guide](developer/providers/ollama.md).
 
 ## vLLM
 
@@ -220,7 +225,7 @@ Transformers.js (provider id `transformers_js`) runs small ONNX models in-proces
 
 ## Local Python providers
 
-When the Python worker is installed, it registers its own providers over the stdio bridge, such as MLX on Apple Silicon and local Hugging Face execution. The worker's `huggingface` provider appears as `huggingface-local` because the TypeScript runtime already owns the `huggingface` id for the hosted API. These providers offer image, video, TTS, music, ASR, and embedding models from the worker's pack.
+When the Python worker runs with the matching pack installed, it registers its own providers over the stdio bridge, such as MLX on Apple Silicon and local Hugging Face execution. Install the packs from **Package Manager → Python packs**, or see [Python nodes without the desktop app](installation.md#python-nodes-without-the-desktop-app). With `NODETOOL_PYTHON_ON_DEMAND=true`, these providers appear only after a workflow has started the worker. The worker's `huggingface` provider appears as `huggingface-local` because the TypeScript runtime already owns the `huggingface` id for the hosted API. These providers offer image, video, TTS, music, ASR, and embedding models from the worker's pack.
 
 ## NodeTool managed models
 

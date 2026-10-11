@@ -141,7 +141,7 @@ export const selectStyles = (theme: Theme) =>
       color: "var(--text-primary)",
       fontSize: theme.fontSizeSmall,
       outline: "none",
-      boxShadow: "0 0 0 2px rgba(33, 150, 243, 0.2)"
+      boxShadow: "0 0 0 2px rgba(var(--palette-primary-mainChannel) / 0.2)"
     }
   });
 

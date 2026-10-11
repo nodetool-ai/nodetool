@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Inspect a Clip's Audio",
   "tool_name": null,
-  "description": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
+  "description": "Read the sample rate of a clip's audio track, with channel count and duration one connection away. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
   "tags": [
     "audio",
     "data",

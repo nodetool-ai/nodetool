@@ -22,7 +22,9 @@ import {
   useState
 } from "react";
 import {
+  DEFAULT_NATIVE_GAME_TEMPLATE,
   isModelSelected,
+  type CreativeContext,
   type Entity,
   type ProductionReferenceBinding
 } from "@nodetool-ai/protocol";
@@ -34,6 +36,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 
 import {
   BORDER_RADIUS,
+  AlertBanner,
   Box,
   Caption,
   Chip,
@@ -49,6 +52,7 @@ import {
   Popover,
   ResponsiveImage,
   ScrollArea,
+  CONTROL,
   SPACING,
   SPACING_PX,
   Text,
@@ -106,6 +110,7 @@ import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
 import StartExamples from "./StartExamples";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
+import ReportBugButton from "../support/ReportBugButton";
 import { openPageTab } from "../workspace/openPageTab";
 import {
   OPTION_CARD_CLASS,
@@ -117,6 +122,9 @@ import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
 import ScriptSetupHost from "../setup/script/ScriptSetupHost";
 import WorkflowSetupHost from "../setup/workflow/WorkflowSetupHost";
+import GameSetupHost from "../setup/game/GameSetupHost";
+import type { GameStartAlternative } from "../setup/game/IdeaStep";
+import type { BuildGameResult } from "../../hooks/game/useBuildGame";
 import EntitySetupHost from "../setup/entity/EntitySetupHost";
 import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
@@ -130,7 +138,10 @@ import {
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
-import { writeWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  writeGameSetup,
+  writeWorkflowSetup
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { newDocumentId } from "../../lib/newDocumentId";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { stageChatTurn } from "../chat/pendingChatTurn";
@@ -165,6 +176,13 @@ const ENTRY_BACKGROUNDS: Partial<Record<EntryFlowId, string>> = {
 
 /** Width of the centered column, per the new-project mockup. */
 const COLUMN_WIDTH = 860;
+/** The measure of a centered line of intro copy, in px. */
+const INTRO_TEXT_WIDTH = 640;
+/** A dropped reference image's thumbnail, in px. */
+const REFERENCE_THUMB_SIZE = 48;
+/** The blank-document submenu's column, and the popover's room around it. */
+const SUBMENU_WIDTH = 320;
+const SUBMENU_MAX_WIDTH = 340;
 
 /** A starter pill at rest: outlined, quiet, the project's colour on hover. */
 const starterPillSx = {
@@ -290,6 +308,16 @@ const SETUP_TAB_TYPE = {
   game: "game"
 } as const;
 
+/** What a flow makes, in the creator's words. */
+const SETUP_KIND_NOUN: Record<SetupTarget["kind"], string> = {
+  entity: "entity",
+  storyboard: "storyboard",
+  video: "video",
+  script: "script",
+  workflow: "workflow",
+  game: "game"
+};
+
 /**
  * One composer attachment, as a setup document may hold it.
  *
@@ -383,14 +411,42 @@ const buildFailures = (result: BuildFromPlanResult): string[] => {
   return lines;
 };
 
+/** What a game build could not draw, one line. Empty when every slot drew. */
+const gameBuildFailures = (game: BuildGameResult): string[] =>
+  game.failures.length === 0
+    ? []
+    : [
+        `${game.failures.length} piece${
+          game.failures.length === 1 ? "" : "s"
+        } of art kept the placeholder (${game.failures
+          .map((failure) => failure.slot)
+          .join(", ")}): ${game.failures[0]?.reason ?? ""}`
+      ];
+
+/**
+ * Remove the workflow row that carried a finished Game flow. The game is the
+ * document from here on, and the row would otherwise sit in the workflow list
+ * as an empty "game" workflow. Best effort: the game is already open.
+ */
+const discardGameSetupWorkflow = async (workflowId: string): Promise<void> => {
+  try {
+    await trpcClient.workflows.delete.mutate({ id: workflowId });
+  } catch {
+    // The game opened; an orphaned setup row is harmless.
+  }
+};
+
 interface NewProjectSurfaceProps {
   flowRef?: string;
   initialSetupTarget?: SetupTarget | null;
+  /** False while this workspace tab is hidden behind another one. */
+  active?: boolean;
 }
 
 const NewProjectSurface = ({
   flowRef,
-  initialSetupTarget
+  initialSetupTarget,
+  active = true
 }: NewProjectSurfaceProps) => {
   const [prompt, setPrompt] = useState("");
   const [showMoreFlows, setShowMoreFlows] = useState(false);
@@ -413,10 +469,26 @@ const NewProjectSurface = ({
   const [modelAnchor, setModelAnchor] = useState<HTMLElement | null>(null);
   // A start requested before a provider was configured, resumed once one is.
   const [pendingStart, setPendingStart] = useState(false);
+  // A start parked on the model menu, resumed once a model is picked.
+  const [pendingModelStart, setPendingModelStart] = useState(false);
   // The flow can swap its own target and finish in the same tick — the example
   // route replaces the placeholder workflow with the copy, then finishes — so
   // the handlers read this rather than the render's copy of the state.
   const setupTargetRef = useRef<SetupTarget | null>(setupTarget);
+  // Whether this guided tab is the one on screen. The New Project tab itself
+  // (no `flowRef`) only finishes from a click, so it always is.
+  const guidedTabActive = useWorkspaceTabsStore(
+    (state) => !flowRef || state.activeTabId === tabId("guided-flow", flowRef)
+  );
+  const guidedTabActiveRef = useRef(guidedTabActive);
+  guidedTabActiveRef.current = guidedTabActive;
+  // A finish that could not hand off yet: held while this tab is hidden, or
+  // after its project failed to open.
+  const [heldFinish, setHeldFinish] = useState<{
+    result?: BuildFromPlanResult | null;
+    game?: BuildGameResult;
+  } | null>(null);
+  const [finishError, setFinishError] = useState<string | null>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -665,14 +737,14 @@ const NewProjectSurface = ({
     // A configured provider is not a picked model: the chat's model selection
     // starts on the "empty" sentinel, and a send with it never leaves the
     // client. Open this surface's own model menu rather than point at a
-    // composer that is not on this screen.
+    // composer that is not on this screen, and start once a model is picked.
     if (!isModelSelected(selectedModel)) {
+      setPendingModelStart(true);
       setModelAnchor(modelButtonRef.current);
       addNotification({
-        type: "error",
+        type: "info",
         alert: true,
-        content:
-          "No model selected. Pick a language model here before opening chat."
+        content: "Pick a language model and the chat starts."
       });
       return;
     }
@@ -1170,11 +1242,38 @@ const NewProjectSurface = ({
         text.length > 0 ? projectNameFromPrompt(text, null) : "New game";
       setStarting(true);
       try {
+        // A 2D game is designed first: the flow's document is a workflow row
+        // carrying `settings.game`, the record the headless game tools share.
+        if (gameDimension === "2d") {
+          const setup = await createWorkflow({
+            name,
+            description: "",
+            tags: [],
+            access: "private",
+            project_id: projectId,
+            settings: writeGameSetup(
+              {},
+              { stage: "idea", brief: text, template: DEFAULT_NATIVE_GAME_TEMPLATE }
+            )
+          });
+          noteUncarriedContext("game", {
+            entities: false,
+            references: false
+          });
+          applySetupTarget({
+            kind: "game",
+            id: setup.id,
+            projectId,
+            name,
+            ownsProject: false
+          });
+          return;
+        }
         const created = await trpcClient.games.create.mutate({
           projectId,
           name,
-          dimension: gameDimension,
-          document: gameDimension === "3d" ? createNative3DGame(newDocumentId()) : createTopDownRoomGame(newDocumentId())
+          dimension: "3d",
+          document: createNative3DGame(newDocumentId())
         });
         noteUncarriedContext("game", {
           entities: false,
@@ -1197,7 +1296,9 @@ const NewProjectSurface = ({
       }
     },
     [
+      applySetupTarget,
       closeTab,
+      createWorkflow,
       flowRef,
       gameDimension,
       noteUncarriedContext,
@@ -1331,7 +1432,8 @@ const NewProjectSurface = ({
             ...card,
             meta: "Creating…",
             disabled: true,
-            disabledReason: "Creating your project…"
+            // Every card files a draft into the open project and makes none.
+            disabledReason: "Creating your draft…"
           }
         : {
             ...card,
@@ -1350,29 +1452,56 @@ const NewProjectSurface = ({
    * here, because this tab is the last place that holds them.
    */
   const handleSetupFinished = useCallback(
-    async (result?: BuildFromPlanResult | null) => {
+    async (result?: BuildFromPlanResult | null, game?: BuildGameResult) => {
       const target = setupTargetRef.current;
       if (!target || target.kind === "entity") {
         return;
       }
-      if (!(await showDocumentProject(target.projectId, target.name))) {
+      // The Game flow's document is the workflow that carried the setup; the
+      // tab it opens is the game the build made.
+      if (target.kind === "game" && !game) {
         return;
       }
-      const failures = result ? buildFailures(result) : [];
+      // Every tab stays mounted, so a flow can finish (or load as finished)
+      // while the creator works in another tab or project. Opening its
+      // project then would pull them away, so the hand-off waits until this
+      // tab is in view again.
+      if (!guidedTabActiveRef.current) {
+        setHeldFinish({ result, game });
+        return;
+      }
+      if (!(await showDocumentProject(target.projectId, target.name))) {
+        // The document is done, so the flow has no step left to show. The
+        // hand-off is kept with a way to try it again.
+        setHeldFinish({ result, game });
+        setFinishError(
+          `Your ${SETUP_KIND_NOUN[target.kind]} is ready, but its project did not open.`
+        );
+        return;
+      }
+      setFinishError(null);
+      const failures = game
+        ? gameBuildFailures(game)
+        : result
+          ? buildFailures(result)
+          : [];
       if (failures.length > 0) {
         addNotification({
           type: "warning",
           alert: true,
-          content: `Opened your workflow, but ${failures.join(" ")}`
+          content: `Opened your ${SETUP_KIND_NOUN[target.kind]}, but ${failures.join(" ")}`
         });
       }
       openTab({
         type: SETUP_TAB_TYPE[target.kind],
-        ref: target.id,
+        ref: game ? game.gameId : target.id,
         mode: "edit",
-        title: target.name,
+        title: game ? game.name : target.name,
         projectId: target.projectId
       });
+      if (game) {
+        await discardGameSetupWorkflow(target.id);
+      }
       if (failures.length === 0) {
         useOnboardingStore.getState().markStep("start-guided-flow");
       }
@@ -1380,6 +1509,57 @@ const NewProjectSurface = ({
       if (flowRef) closeTab(tabId("guided-flow", flowRef));
     },
     [addNotification, applySetupTarget, closeTab, flowRef, openTab, showDocumentProject]
+  );
+
+  useEffect(() => {
+    if (heldFinish && guidedTabActive && finishError === null) {
+      setHeldFinish(null);
+      void handleSetupFinished(heldFinish.result, heldFinish.game);
+    }
+  }, [finishError, guidedTabActive, handleSetupFinished, heldFinish]);
+
+  const retryFinish = useCallback(() => {
+    const held = heldFinish;
+    setHeldFinish(null);
+    setFinishError(null);
+    void handleSetupFinished(held?.result, held?.game);
+  }, [handleSetupFinished, heldFinish]);
+
+  const handleGameFinished = useCallback(
+    (game: BuildGameResult) => {
+      void handleSetupFinished(null, game);
+    },
+    [handleSetupFinished]
+  );
+
+  /**
+   * A blank game from the Game flow's first step: the flow's workflow row is
+   * dropped, and the game opens in the project the flow was filed under.
+   */
+  const startBlankGame = useCallback(
+    async (kind: GameStartAlternative) => {
+      const target = setupTargetRef.current;
+      if (!target || target.kind !== "game") {
+        return;
+      }
+      const dimension = kind === "blank-3d" ? "3d" : "2d";
+      const created = await trpcClient.games.create.mutate({
+        projectId: target.projectId,
+        name: target.name,
+        dimension,
+        document:
+          dimension === "3d"
+            ? createNative3DGame(newDocumentId())
+            : createTopDownRoomGame(newDocumentId())
+      });
+      await handleSetupFinished(null, {
+        gameId: created.game.id,
+        name: created.game.name || target.name,
+        projectId: target.projectId,
+        failures: []
+      });
+    },
+    [handleSetupFinished]
   );
 
   const handleEntityFinished = useCallback(() => {
@@ -1527,7 +1707,7 @@ const NewProjectSurface = ({
    * and the script's `Send to timeline` makes a sequence of its own.
    */
   const startScriptFromVideo = useCallback(
-    async (brief: string) => {
+    async (brief: string, creativeContext?: CreativeContext) => {
       const target = setupTargetRef.current;
       if (!target || starting) {
         return;
@@ -1550,7 +1730,8 @@ const NewProjectSurface = ({
                 contentType: type
               })
             ),
-            entityIds: target.carried?.entityIds ?? []
+            entityIds: target.carried?.entityIds ?? [],
+            creativeContext
           })
         });
         applySetupTarget({
@@ -1583,6 +1764,14 @@ const NewProjectSurface = ({
     setPendingStart(false);
     void resumeProject.current();
   }, [pendingStart, hasConfiguredProvider]);
+
+  useEffect(() => {
+    if (!pendingModelStart || !isModelSelected(selectedModel)) {
+      return;
+    }
+    setPendingModelStart(false);
+    void resumeProject.current();
+  }, [pendingModelStart, selectedModel]);
 
   // The handler rides the field wrapper, where MUI puts unknown props, and the
   // keydown reaches it by bubbling from the textarea. Both pickers only read
@@ -1640,6 +1829,53 @@ const NewProjectSurface = ({
     openPageTab("tutorials");
   }, []);
 
+  // The flow's last button unmounts with the flow, so focus would drop to the
+  // page. It goes to the control that retries the hand-off, unless the creator
+  // has already put it somewhere else.
+  const retryFinishRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (finishError === null) {
+      return;
+    }
+    const focused = document.activeElement;
+    if (focused === null || focused === document.body) {
+      retryFinishRef.current?.focus();
+    }
+  }, [finishError]);
+
+  if (setupTarget && finishError) {
+    return (
+      <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl, maxWidth: COLUMN_WIDTH }}>
+        <AlertBanner
+          severity="error"
+          title="Could not open it yet"
+          action={
+            <ReportBugButton
+              label="Report this failure"
+              variant="outlined"
+              size="small"
+              context={{
+                source: "manual",
+                summary: `Guided ${SETUP_KIND_NOUN[setupTarget.kind]} flow could not open its project`,
+                errorText: finishError
+              }}
+            />
+          }
+        >
+          {finishError}
+        </AlertBanner>
+        <EditorButton
+          ref={retryFinishRef}
+          variant="contained"
+          onClick={retryFinish}
+          sx={{ alignSelf: "flex-start" }}
+        >
+          {`Open your ${SETUP_KIND_NOUN[setupTarget.kind]}`}
+        </EditorButton>
+      </FlexColumn>
+    );
+  }
+
   // An entry card was clicked: this tab is the flow now (PRD § 6.1).
   if (setupTarget) {
     if (setupTarget.kind === "entity") {
@@ -1669,8 +1905,11 @@ const NewProjectSurface = ({
       return (
         <VideoSetupHost
           sequenceId={setupTarget.id}
+          active={active}
           onFinish={handleSetupFinished}
-          onStartFromScript={(brief) => void startScriptFromVideo(brief)}
+          onStartFromScript={(brief, creativeContext) =>
+            void startScriptFromVideo(brief, creativeContext)
+          }
           onChangeFlow={handleChangeFlow}
         />
       );
@@ -1686,15 +1925,13 @@ const NewProjectSurface = ({
     }
     if (setupTarget.kind === "game") {
       return (
-        <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl }}>
-          <Text size="big">Legacy game setup</Text>
-          <Caption>
-            This setup used the removed Godot workflow. Its source files and generated assets remain available. Create a native game to rebuild its gameplay.
-          </Caption>
-          <EditorButton onClick={() => void startGameFlow(setupTarget.projectId)}>
-            Create native game
-          </EditorButton>
-        </FlexColumn>
+        <GameSetupHost
+          workflowId={setupTarget.id}
+          projectId={setupTarget.projectId}
+          onStartAlternative={startBlankGame}
+          onFinish={handleGameFinished}
+          onChangeFlow={handleChangeFlow}
+        />
       );
     }
     if (setupTarget.kind === "workflow") {
@@ -1758,7 +1995,7 @@ const NewProjectSurface = ({
               </Text>
               <Text
                 color="secondary"
-                sx={{ maxWidth: "640px", textAlign: "center" }}
+                sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
               >
                 An agent plans the documents and builds them while you watch.
                 Everything it makes stays editable.
@@ -1805,7 +2042,7 @@ const NewProjectSurface = ({
                         fit="cover"
                         borderRadius={BORDER_RADIUS.sm}
                         showErrorFallback
-                        sx={{ width: "48px", height: "48px" }}
+                        sx={{ width: REFERENCE_THUMB_SIZE, height: REFERENCE_THUMB_SIZE }}
                       />
                       <CloseButton
                         onClick={() => removeFile(file.id)}
@@ -1965,7 +2202,7 @@ const NewProjectSurface = ({
                 {starter ? (
                   <Caption
                     color="secondary"
-                    sx={{ maxWidth: "620px", textAlign: "center" }}
+                    sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
                   >
                     {starter.description}
                   </Caption>
@@ -2126,7 +2363,7 @@ const NewProjectSurface = ({
                   display: "flex",
                   alignItems: "center",
                   gap: (theme) => theme.spacing(SPACING.md),
-                  height: "32px",
+                  height: CONTROL.height.md,
                   px: SPACING.md,
                   cursor: "pointer",
                   border: "none",
@@ -2165,7 +2402,10 @@ const NewProjectSurface = ({
       <LanguageModelMenuDialog
         open={modelAnchor !== null}
         anchorEl={modelAnchor}
-        onClose={() => setModelAnchor(null)}
+        onClose={() => {
+          setModelAnchor(null);
+          setPendingModelStart(false);
+        }}
         onModelChange={(model) => {
           setSelectedModel(model);
           setModelAnchor(null);
@@ -2178,10 +2418,10 @@ const NewProjectSurface = ({
         anchorEl={submenu?.element ?? null}
         onClose={() => setSubmenu(null)}
         placement="top-left"
-        maxWidth={340}
+        maxWidth={SUBMENU_MAX_WIDTH}
         maxHeight="50vh"
       >
-        <FlexColumn sx={{ width: 320, py: SPACING.micro }}>
+        <FlexColumn sx={{ width: SUBMENU_WIDTH, py: SPACING.micro }}>
           {submenu?.kind === "texts" &&
             TEXT_FILE_TEMPLATES.map((template) => (
               <MenuItemPrimitive

@@ -109,6 +109,8 @@ interface ApplicationApp {
   application: ApplicationRunIdentity | null;
   isLoading: boolean;
   error: Error | null;
+  /** Re-requests whatever failed or is stale. */
+  refetch: () => void;
 }
 
 /**
@@ -196,5 +198,12 @@ export function useApplicationApp(id: string | undefined): ApplicationApp {
       release.isLoading ||
       (Boolean(workflowId) && !pinned && liveWorkflow.isLoading),
     error: application.error ?? release.error ?? toError(liveWorkflow.error),
+    refetch: () => {
+      void application.refetch();
+      void release.refetch();
+      if (workflowId && !pinned) {
+        void liveWorkflow.refetch();
+      }
+    },
   };
 }

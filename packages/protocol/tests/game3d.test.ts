@@ -22,7 +22,7 @@ describe("3D game protocol", () => {
   });
 
   it("reports unsupported versions before partial parsing", () => {
-    expect(parseGameDocument({ schemaVersion: 5, engineVersion: "4" })).toMatchObject({ ok: false,
+    expect(parseGameDocument({ schemaVersion: 6, engineVersion: "5" })).toMatchObject({ ok: false,
       diagnostics: [{ code: "unsupported_schema_version", path: ["schemaVersion"] }] });
     expect(parseGameDocument({ ...base, engineVersion: "1" })).toMatchObject({ ok: false,
       diagnostics: [{ code: "unsupported_engine_version", path: ["engineVersion"] }] });

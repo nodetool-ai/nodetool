@@ -219,6 +219,21 @@ describe("fileExplorer", () => {
       fs.rmdirSync(tmpDir);
     });
 
+    it("refuses to launch a script inside an allowed directory", async () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "ollama-test-"));
+      const script = path.join(tmpDir, "run.bat");
+      fs.writeFileSync(script, "echo hi");
+      process.env.OLLAMA_MODELS = tmpDir;
+      mockShell.openPath.mockClear();
+
+      const result = await openPathInExplorer(script);
+
+      expect(result.status).toBe("error");
+      expect(mockShell.openPath).not.toHaveBeenCalled();
+
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
     it("should handle shell.openPath errors", async () => {
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "ollama-test-"));
       process.env.OLLAMA_MODELS = tmpDir;

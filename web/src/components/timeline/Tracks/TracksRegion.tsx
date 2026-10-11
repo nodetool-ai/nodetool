@@ -60,11 +60,12 @@ import type { Theme } from "@mui/material/styles";
 import { useStore } from "zustand";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import {
+  lockedUserTargetIds,
   useTimelineStore,
-  useTimelineStoreApi,
-  getTimelineTemporal
+  useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import {
   useTimelineUIStore,
@@ -113,6 +114,7 @@ import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
 import {
   Caption,
+  EditorButton,
   FlexRow,
   HelpButton,
   ResizeHandle,
@@ -131,7 +133,7 @@ import { useTimelineIsMobile } from "../../../hooks/timeline/useTimelineIsMobile
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
-import { getKnownSourceDurationMs } from "./useClipSourceDuration";
+import { getSourceCapMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
 import {
@@ -141,14 +143,12 @@ import {
 } from "./timelineGesture";
 import { resolveTimelineAction } from "../timelineKeymap";
 import { performSourceEdit } from "../sourceEdit";
-import {
-  getSelectedAssetForExplorer,
-  useAssetsSelectedAsset,
-  useLibrarySelectedAsset
-} from "../../../stores/AssetGridStore";
+import { getSelectedAssetForExplorer } from "../../../stores/AssetGridStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import {
+  groupDescendantIds,
   hasKeyframeAt,
+  isGroupClip,
   keyframeTimesMs,
   keyframeValueAt
 } from "@nodetool-ai/timeline";
@@ -266,10 +266,12 @@ const lanesContainerStyles = css({
 interface TracksRegionProps {
   /** Height of the tracks area in pixels. */
   heightPx: number;
+  /** Opens the Generate dialog. The toolbar offers no Generate without it. */
+  onGenerate?: () => void;
 }
 
 export const TracksRegion: React.FC<TracksRegionProps> = memo(
-  ({ heightPx }) => {
+  ({ heightPx, onGenerate }) => {
     const theme = useTheme();
     const isMobile = useTimelineIsMobile();
     const isActive = useTimelineIsActive();
@@ -278,14 +280,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         ? s.panel.activeView
         : null
     );
-    const assetsAsset = useAssetsSelectedAsset();
-    const libraryAsset = useLibrarySelectedAsset();
-    const activeAssetId =
-      activeExplorer === "library"
-        ? (libraryAsset?.id ?? null)
-        : activeExplorer === "assets"
-          ? (assetsAsset?.id ?? null)
-          : null;
     const storedHeaderWidthPx = useTimelineUIStore((s) => s.trackHeaderWidthPx);
     const setTrackHeaderWidthPx = useTimelineUIStore(
       (s) => s.setTrackHeaderWidthPx
@@ -365,13 +359,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const docStore = useTimelineStoreApi();
     const playbackStore = useTimelinePlaybackStoreApi();
     const uiStoreApi = useTimelineUIStoreApi();
-    const previousSourceAssetId = useRef<string | null>(null);
-    useEffect(() => {
-      if (previousSourceAssetId.current !== activeAssetId) {
-        uiStoreApi.getState().setSourceRange(null);
-        previousSourceAssetId.current = activeAssetId;
-      }
-    }, [activeAssetId, uiStoreApi]);
 
     const addTrack = useTimelineStore((s) => s.addTrack);
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
@@ -890,7 +877,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       const isTextEditingTarget = (target: EventTarget | null): boolean => {
         if (
           target instanceof HTMLTextAreaElement ||
-          (target instanceof HTMLElement && target.isContentEditable)
+          (target instanceof HTMLElement &&
+            (target.isContentEditable ||
+              target.closest(".monaco-editor") !== null))
         ) {
           return true;
         }
@@ -979,22 +968,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           } else {
             const delta = edgeTargetMs - (target.startMs + target.durationMs);
             // Same cap as the pointer trim. Without a known source length a
-            // finite-source clip may not grow past its current out-point.
-            const known = getKnownSourceDurationMs(target.currentAssetId);
-            const finiteSource =
-              target.mediaType === "audio" || target.mediaType === "video";
-            const sourceMs =
-              known ??
-              (finiteSource
-                ? (target.outPointMs ??
-                  (target.inPointMs ?? 0) + target.durationMs)
-                : undefined);
+            // finite-source clip may not grow past its furthest out-point.
+            const sourceMs = getSourceCapMs(target);
             if (ui.rippleMode) doc.rippleTrimClipEnd(target.id, delta, sourceMs);
             else doc.trimClipEnd(target.id, delta, sourceMs);
           }
           return true;
         };
-        const trimEditBy = (deltaMs: number): boolean => {
+        // The ms of the frame `frames` away from `ms`'s nearest frame, so
+        // repeated steps land on the frame grid instead of drifting by the
+        // rounding of a fractional frame length.
+        const frameStepMs = (ms: number, frames: number): number =>
+          Math.round(Math.round(ms / frameMs + frames) * frameMs);
+        const trimEditByFrames = (frames: number): boolean => {
           const edit = ui.selectedEdit;
           const target = edit
             ? doc.clips.find((c) => c.id === edit.clipId)
@@ -1004,7 +990,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             edit.edge === "start"
               ? target.startMs
               : target.startMs + target.durationMs;
-          return batchHeldKeyEdit(() => trimEdit(edgeMs + deltaMs));
+          return batchHeldKeyEdit(() =>
+            trimEdit(frameStepMs(edgeMs, frames))
+          );
         };
         // Runs one keyboard edit inside the held-key undo batch.
         const batchHeldKeyEdit = <T,>(edit: () => T): T => {
@@ -1067,10 +1055,25 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             }
             return;
 
-          case "splitAtPlayhead":
+          case "splitAtPlayhead": {
             e.preventDefault();
-            splitSelectedAtPlayhead(liveMs, selectedClipIds);
+            const rightHalves = splitSelectedAtPlayhead(
+              liveMs,
+              selectedClipIds
+            );
+            // The halves have new ids. Selecting the right ones keeps the next
+            // S on the same clips instead of cutting every track.
+            if (selectedClipIds.size > 0 && rightHalves.length > 0) {
+              const live = new Set(
+                docStore.getState().clips.map((c) => c.id)
+              );
+              setSelection([
+                ...[...selectedClipIds].filter((id) => live.has(id)),
+                ...rightHalves
+              ]);
+            }
             return;
+          }
 
           case "cutAllTracks":
             e.preventDefault();
@@ -1081,16 +1084,16 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             if (trimEdit(liveMs)) e.preventDefault();
             return;
           case "trimEditLeft":
-            if (trimEditBy(-Math.round(frameMs))) e.preventDefault();
+            if (trimEditByFrames(-1)) e.preventDefault();
             return;
           case "trimEditRight":
-            if (trimEditBy(Math.round(frameMs))) e.preventDefault();
+            if (trimEditByFrames(1)) e.preventDefault();
             return;
           case "trimEditLeftLarge":
-            if (trimEditBy(-Math.round(frameMs * 10))) e.preventDefault();
+            if (trimEditByFrames(-10)) e.preventDefault();
             return;
           case "trimEditRightLarge":
-            if (trimEditBy(Math.round(frameMs * 10))) e.preventDefault();
+            if (trimEditByFrames(10)) e.preventDefault();
             return;
 
           case "stepFrameBack":
@@ -1185,9 +1188,18 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           case "nudgeRightLarge": {
             if (selectedClipIds.size === 0) return;
             e.preventDefault();
-            const large = action.endsWith("Large");
-            const stepMs = large ? 1000 : Math.round(frameMs);
-            nudge(action.startsWith("nudgeLeft") ? -stepMs : stepMs);
+            const direction = action.startsWith("nudgeLeft") ? -1 : 1;
+            if (action.endsWith("Large")) {
+              nudge(direction * 1000);
+              return;
+            }
+            // A one-frame nudge moves the primary clip to the next frame on
+            // the grid; the rest of the selection follows by the same delta.
+            const primary = doc.clips.find(
+              (c) => c.id === selectedClipIds.values().next().value
+            );
+            if (!primary) return;
+            nudge(frameStepMs(primary.startMs, direction) - primary.startMs);
             return;
           }
 
@@ -1195,8 +1207,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           case "cut": {
             if (selectedClipIds.size === 0) return;
             e.preventDefault();
+            // A cut copies only what it can delete, so a locked clip left in
+            // place is not pasted a second time.
+            const locked =
+              action === "cut"
+                ? lockedUserTargetIds(doc.clips, doc.tracks)
+                : undefined;
+            // A selected group brings its children, or the copy is empty.
+            const copied = new Set(selectedClipIds);
+            for (const c of doc.clips) {
+              if (selectedClipIds.has(c.id) && isGroupClip(c)) {
+                for (const id of groupDescendantIds(doc.clips, c.id)) {
+                  copied.add(id);
+                }
+              }
+            }
             copyClipsToClipboard(
-              doc.clips.filter((c) => selectedClipIds.has(c.id))
+              doc.clips.filter((c) => copied.has(c.id) && !locked?.has(c.id))
             );
             if (action === "cut") {
               deleteSelected(selectedClipIds);
@@ -1211,8 +1238,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             // relative offsets.
             const pasted = buildPastedClips(doc.tracks, liveMs);
             if (pasted.length > 0) {
-              addClips(pasted);
-              setSelection(pasted.map((c) => c.id));
+              const pastedIds = new Set(pasted.map((c) => c.id));
+              runAsOneUndoEntry(docStore, () => {
+                addClips(pasted);
+                docStore.getState().resolveDrop(pastedIds, ui.dropMode);
+              });
+              setSelection([...pastedIds]);
             }
             return;
           }
@@ -1257,13 +1288,15 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             zoomToFit();
             return;
 
+          // This editor's history, as the toolbar buttons use: the active
+          // instance can be another mounted timeline.
           case "undo":
             e.preventDefault();
-            getTimelineTemporal().undo();
+            docStore.temporal.getState().undo();
             return;
           case "redo":
             e.preventDefault();
-            getTimelineTemporal().redo();
+            docStore.temporal.getState().redo();
             return;
 
           case "applyDefaultTransition":
@@ -1517,6 +1550,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               />
             </span>
           </Tooltip>
+          {onGenerate && (
+            <EditorButton
+              variant="contained"
+              size="small"
+              startIcon={<AutoAwesomeIcon fontSize="small" />}
+              onClick={onGenerate}
+              aria-label="Generate"
+              data-testid="timeline-generate"
+              sx={{
+                ml: SPACING.xs,
+                flexShrink: 0,
+                ...(toolbarCompact && {
+                  minWidth: 0,
+                  "& .MuiButton-startIcon": { m: 0 }
+                })
+              }}
+            >
+              {toolbarCompact ? null : "Generate"}
+            </EditorButton>
+          )}
           <div style={{ flex: "1 1 auto" }} />
           <ScriptToggleButton compact={toolbarCompact} />
           <AddTrackButton compact={toolbarCompact} />

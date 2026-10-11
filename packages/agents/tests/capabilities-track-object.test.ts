@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TimelineSequence, initTestDb } from "@nodetool-ai/models";
 import {
   makeClip,
   type MediaTrack,
@@ -12,6 +13,8 @@ import {
   type TrackObjectOutcome,
   type TrackObjectRunResult
 } from "../src/capabilities/timeline-track-object.js";
+import { module as timelines } from "../src/capabilities/timelines.js";
+import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import {
   BaseProvider,
   ProcessingContext,
@@ -420,5 +423,64 @@ describe("track_object", () => {
     expect(result).toHaveProperty("error");
     expect((result as { error: string }).error).toMatch(/concurrently/i);
     expect(h.runner).not.toHaveBeenCalled();
+  });
+});
+
+describe("track_object capability", () => {
+  beforeEach(() => initTestDb());
+
+  it("saves to the timeline named by its short id", async () => {
+    const id = "0123456789abcdef0123456789abcdef";
+    await TimelineSequence.create<TimelineSequence>({
+      id,
+      user_id: "u1",
+      project_id: "default",
+      name: "Cut",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      duration_ms: 4000,
+      document: JSON.stringify({
+        tracks: [
+          {
+            id: "track_a",
+            name: "Video 1",
+            type: "video",
+            index: 0,
+            visible: true,
+            locked: false
+          }
+        ],
+        clips: [videoClip()],
+        markers: []
+      })
+    });
+    const context = new ProcessingContext({ userId: "u1" });
+    context.registerProvider("fake", new ExecutableTrackingProvider());
+    vi.spyOn(context, "runGeneration").mockResolvedValue({
+      id: "gen-tracking",
+      assets: [],
+      receipt: null,
+      duration_ms: 1,
+      output: {
+        samples: [{ sourceMs: 0, x: 0.1, y: 0.1, width: 0.2, height: 0.2 }]
+      }
+    });
+    const entry = timelines.exports.find((e) => e.spec.name === "track_object");
+    const run = createCapabilityRun({ context, gate: UNGATED });
+
+    const result = (await entry!.impl(run, {
+      timeline_id: id.slice(0, 12),
+      clip_id: "clip_a",
+      initial_region: { x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+      start_ms: 0,
+      end_ms: 4000,
+      provider: "fake",
+      model: "box-tracker"
+    })) as Record<string, unknown>;
+
+    expect(result.status).toBe("ready");
+    const stored = (await TimelineSequence.findById(id))!.toDocument();
+    expect(stored.mediaTracks?.[0]?.status).toBe("ready");
   });
 });

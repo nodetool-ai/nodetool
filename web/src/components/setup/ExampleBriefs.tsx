@@ -39,6 +39,9 @@ export function ExampleBriefs({
   briefRef
 }: ExampleBriefsProps) {
   const [replaced, setReplaced] = useState<Replaced | null>(null);
+  // The example last put in the brief. A brief still equal to it is not the
+  // creator's text, so picking another example over it offers no Undo.
+  const [lastApplied, setLastApplied] = useState<string | null>(null);
   const choices = [...new Set(examples.map((text) => text.trim()))]
     .filter((text) => text && text !== brief.trim())
     .slice(0, 3);
@@ -49,13 +52,15 @@ export function ExampleBriefs({
   const apply = (text: string) => {
     // A second example over the first keeps the creator's own text as the
     // one Undo brings back.
+    const briefIsExample = lastApplied !== null && lastApplied === brief.trim();
     setReplaced(
       undo
         ? { previous: undo.previous, applied: text }
-        : brief.trim().length > 0
+        : brief.trim().length > 0 && !briefIsExample
           ? { previous: brief, applied: text }
           : null
     );
+    setLastApplied(text);
     onSelect(text);
     briefRef?.current?.focus();
   };

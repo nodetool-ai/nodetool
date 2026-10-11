@@ -5,7 +5,6 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { normalizeModels } from '../services/api';
 import { trpc, RouterOutputs } from '../trpc/client';
 import { useChatStore } from '../stores/ChatStore';
+import { ErrorState, LoadingState } from '../components/ScreenState';
+import { HIT_SLOP } from '../utils/tokens';
 import { useTheme } from '../hooks/useTheme';
 import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { LanguageModel, ProviderInfo } from '../types';
@@ -59,8 +60,8 @@ const ProviderRow = React.memo(function ProviderRow({
       >
         {provider}
       </Text>
-      <View style={[styles.itemChevron, { backgroundColor: colors.primaryLight }]}>
-        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+      <View style={styles.itemChevron}>
+        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
       </View>
     </TouchableOpacity>
   );
@@ -139,11 +140,12 @@ export default function LanguageModelSelectionScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: step === 1 ? 'Select Provider' : selectedProvider || 'Select Model',
+      title: step === 1 ? 'Select provider' : selectedProvider || 'Select model',
       headerLeft: step === 2 ? () => (
         <TouchableOpacity
           onPress={() => { setStep(1); setSearchQuery(''); }}
           style={{ marginRight: 15, flexDirection: 'row', alignItems: 'center' }}
+          hitSlop={HIT_SLOP}
           accessibilityLabel="Go back to providers"
           accessibilityRole="button"
         >
@@ -198,7 +200,12 @@ export default function LanguageModelSelectionScreen() {
           clearButtonMode="while-editing"
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityLabel="Clear search">
+          <TouchableOpacity
+            onPress={() => setSearchQuery('')}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+            hitSlop={HIT_SLOP}
+          >
             <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
           </TouchableOpacity>
         )}
@@ -231,15 +238,18 @@ export default function LanguageModelSelectionScreen() {
   );
 
   if (loading) {
+    return <LoadingState label={step === 1 ? 'Loading providers' : 'Loading models'} />;
+  }
+
+  const activeQuery = step === 1 ? providersQuery : modelsQuery;
+  const hasItems = step === 1 ? providers.length > 0 : models.length > 0;
+  if (activeQuery.error && !hasItems) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.loadingWrap, { backgroundColor: colors.primaryMuted }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          {step === 1 ? 'Loading providers...' : 'Loading models...'}
-        </Text>
-      </View>
+      <ErrorState
+        title={step === 1 ? "Couldn't load providers" : "Couldn't load models"}
+        message={activeQuery.error.message}
+        onRetry={() => { void activeQuery.refetch(); }}
+      />
     );
   }
 
@@ -255,6 +265,8 @@ export default function LanguageModelSelectionScreen() {
         <TouchableOpacity
           style={[styles.retryButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
           onPress={step === 1 ? () => providersQuery.refetch() : () => modelsQuery.refetch()}
+          accessibilityRole="button"
+          accessibilityLabel="Retry"
         >
           <Ionicons name="refresh-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
           <Text style={[styles.retryText, { color: colors.primary }]}>Retry</Text>
@@ -299,23 +311,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  loadingText: {
-    fontSize: 15,
-  },
   stepIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -345,7 +340,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 14,
-    height: 42,
+    minHeight: 44,
   },
   searchIcon: {
     marginRight: 10,

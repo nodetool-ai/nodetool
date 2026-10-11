@@ -923,6 +923,17 @@ export interface TimelineClip {
   aspectRatio?: string;
   /** Direct-gen video: target resolution tier, e.g. "720p". */
   resolution?: string;
+  /**
+   * Direct-gen video: image assets the clip conditions on, in `[Image N]`
+   * order. A clip with any renders through reference-to-video.
+   */
+  referenceImageIds?: string[];
+  /**
+   * Direct-gen video: entities the clip renders with. Each one's reference
+   * image follows the picked images, and its name and descriptor join the
+   * prompt.
+   */
+  referenceEntityIds?: string[];
   strength?: number;
   numInferenceSteps?: number;
   seed?: number;

@@ -24,6 +24,24 @@ describe("native game merge units", () => {
     expect(result.doc.scenes[0].entities[1].sprite?.tint).toBe("#112233");
   });
 
+  it("keeps a user's spatial audio edit beside an agent move and flags concurrent audio source edits", () => {
+    const base = createTopDownRoomGame("merge-game");
+    const gem = base.scenes[0].entities.findIndex((entity) => entity.id === "gem");
+    const user = copy(base);
+    user.scenes[0].entities[gem].audioSource = { ...user.scenes[0].entities[gem].audioSource!, spatial: true, maxDistance: 20 };
+    const agent = copy(base);
+    agent.scenes[0].entities[gem].transform2d.x = 4;
+
+    const merged = mergeByUnits(base, user, agent, gameMergeAdapter, { mergeWithoutOps: true });
+    expect(merged.conflicts).toHaveLength(0);
+    expect(merged.doc.scenes[0].entities[gem].audioSource).toMatchObject({ spatial: true, maxDistance: 20 });
+    expect(merged.doc.scenes[0].entities[gem].transform2d.x).toBe(4);
+
+    const rival = copy(base);
+    rival.scenes[0].entities[gem].audioSource = { ...rival.scenes[0].entities[gem].audioSource!, spatial: true, minDistance: 3 };
+    expect(mergeByUnits(base, user, rival, gameMergeAdapter, { mergeWithoutOps: true }).conflicts.length).toBeGreaterThan(0);
+  });
+
   it("merges a script edit with another behavior and flags edits to the same script", () => {
     const base = createTopDownRoomGame("merge-game");
     base.scenes[0].entities[1].behaviors.push({ kind: "script", source: "({ state }) => ({ state, commands: [] })", maxCommands: 16, maxTickMs: 8 });

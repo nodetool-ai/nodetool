@@ -5,6 +5,7 @@
  * Pure: the host resolves the target (file, id) and writes the bundle; this
  * decides what the run means.
  */
+import { buildDocumentVerdict } from "../debug/verdict.js";
 import type { DebugVerdict } from "../debug/types.js";
 import type {
   SketchDebugIssue,
@@ -18,10 +19,7 @@ import {
   validateSketchDocument,
   type SketchValidationMeta
 } from "./validate.js";
-import {
-  isPositiveFiniteNumber,
-  isString
-} from "../predicates.js";
+import { isPositiveFiniteNumber, isString } from "../predicates.js";
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -59,10 +57,9 @@ function describeDocument(
   const canvas = isRecord(sketch.canvas) ? sketch.canvas : {};
   const pick = (value: unknown, fallback: number): number =>
     isPositiveFiniteNumber(value) ? value : fallback;
-  const background =
-    isString(canvas.backgroundColor)
-      ? canvas.backgroundColor
-      : (meta?.backgroundColor ?? DEFAULTS.backgroundColor);
+  const background = isString(canvas.backgroundColor)
+    ? canvas.backgroundColor
+    : (meta?.backgroundColor ?? DEFAULTS.backgroundColor);
 
   return {
     width: pick(canvas.width, pick(meta?.width, DEFAULTS.width)),
@@ -85,40 +82,14 @@ function buildSketchVerdict(
   interactions: ReadonlyArray<SketchInteractionRecord>,
   finalValidation: SketchValidation | undefined
 ): DebugVerdict {
-  const failedSteps = interactions.filter((step) => !step.ok);
-  const issues: string[] = [
-    ...validation.errors.map(describe),
-    ...failedSteps.map(
-      (step) =>
-        `Interaction \`${step.tool}\` failed${step.error ? `: ${step.error}` : ""}`
-    ),
-    ...(finalValidation?.errors ?? []).map(
-      (issue) => `After edits — ${describe(issue)}`
-    )
-  ];
-  const warnings: string[] = [
-    ...validation.warnings.map(describe),
-    ...(finalValidation?.warnings ?? []).map(
-      (issue) => `After edits — ${describe(issue)}`
-    )
-  ];
-
-  const ok = issues.length === 0;
-  const warningCount = warnings.length;
-  const headline = ok
-    ? `Sketch structure is valid — ${interactions.length} interaction(s) ran clean` +
-      (warningCount > 0 ? `, ${warningCount} warning(s)` : "") +
-      "."
-    : `Sketch has ${issues.length} problem(s)` +
-      (failedSteps.length > 0
-        ? `, ${failedSteps.length} failed interaction(s)`
-        : "") +
-      (warningCount > 0 ? `, ${warningCount} warning(s)` : "") +
-      ` — ${issues[0]}`;
-
-  return warningCount > 0
-    ? { ok, headline, issues, warnings }
-    : { ok, headline, issues };
+  return buildDocumentVerdict({
+    subject: "Sketch",
+    soundLabel: "Sketch structure is valid",
+    describe,
+    validation,
+    finalValidation,
+    interactions
+  });
 }
 
 export interface SketchDebugReportInput {

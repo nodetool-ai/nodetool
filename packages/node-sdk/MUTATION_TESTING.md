@@ -74,7 +74,7 @@ and are not in the security package's config:
 
 `mutate` covers `src/**/*.ts` minus:
 
-- **`src/index.ts`, `src/docs/index.ts`** — pure re-export barrels.
+- **`src/index.ts`** — the package's re-export barrel.
 - **`src/nodes/test-nodes.ts`** — test fixtures, not shipped behaviour.
 - **`src/docs/**`** — the markdown documentation *generators*. Their output is
   human-facing text, not a behavioural contract (the same reason the security

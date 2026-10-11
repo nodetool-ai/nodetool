@@ -222,7 +222,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📈 SEO Content Engine\n\nOne topic in, a keyword-targeted article batch out. Each article comes back as separate title, meta description, keyword list and body fields, ready to drop into a CMS, with an editorial hero image per article.\n\n**How it works:** \"Business & site\", \"Audience & seed topics\" and \"Article count\" (4) fill \"Build strategist prompt\". \"Plan the keyword cluster\" writes a content plan, shown in \"Content plan\". \"Build briefs prompt\" asks \"Generate article briefs\" for one brief per line, and it emits them one at a time. For each brief, \"Build writer prompt\" feeds \"Write the articles\", an agent whose typed outputs land in \"Article titles\", \"Meta descriptions\", \"Keywords\" and \"Article bodies\". In parallel, \"Build hero-image prompt\" feeds \"Render hero images\" (FLUX schnell on fal, 16:9), shown in \"Hero images\". Pick a language model on the strategist, brief generator and writer. The image step needs a fal key.\n\n**Try this:** Raise \"Article count\" from 4 to 6 and confirm six titles and six hero images appear."
+          "comment": "# 📈 SEO Content Engine\n\nOne topic in, a keyword-targeted article batch out. Each article comes back as separate title, meta description, keyword list and body fields, ready to drop into a CMS, with an editorial hero image per article.\n\n**How it works:** \"Business & site\", \"Audience & seed topics\" and \"Article count\" (4) fill \"Build strategist prompt\". \"Plan the keyword cluster\" writes a content plan, shown in \"Content plan\". \"Build briefs prompt\" asks \"Generate article briefs\" for one brief per line, and it emits them one at a time. For each brief, \"Build writer prompt\" feeds \"Write the articles\", an agent whose typed outputs land in \"Article titles\", \"Meta descriptions\", \"Keywords\" and \"Article bodies\". In parallel, \"Build hero-image prompt\" feeds \"Render hero images\" (16:9), shown in \"Hero images\". Pick a language model on the strategist, brief generator and writer. The image step uses your default image model, or the one you pick on the node.\n\n**Try this:** Raise \"Article count\" from 4 to 6 and confirm six titles and six hero images appear."
         },
         "ui_properties": {
           "position": {
@@ -646,9 +646,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

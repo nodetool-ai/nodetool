@@ -6,6 +6,7 @@ import {
   type GameEntity3D,
   type GameEntityState3D,
   type GameEvent3D,
+  type GameParticleEmission,
   type GameInputFrame3D,
   type GameInspection3D,
   type GameInspectionQuery3D,
@@ -22,6 +23,7 @@ import { initialCamera3D, resolveCamera3D } from "./spatial3d/camera.js";
 import { digestGame3D } from "./spatial3d/digest.js";
 import { ZERO3 } from "./spatial3d/math.js";
 import { pairKey3D, type Contact3D, type EntityState3D } from "./spatial3d/state.js";
+import { resolveCollisionLayers3D } from "./spatial3d/layers.js";
 import { GAME_PHYSICS_BUILD_3D, prepareRapier3D, SpatialWorld3D, type PreparedCollider3D } from "./spatial3d/world.js";
 
 import { statefulGameSystem } from "./systems/pipeline.js";
@@ -48,7 +50,7 @@ export interface GameSession3DOptions {
 
 export interface GameSession3D {
   step(input: GameInputFrame3D): GameStepResult3D & { readonly scriptStats?: GameScriptStats };
-  takePresentationEvents(): readonly GameEvent3D[];
+  takePresentationEvents(): readonly (GameEvent3D | GameParticleEmission)[];
   frame(): GameRenderFrame3D;
   inspect(query?: GameInspectionQuery3D): GameInspection3D;
   snapshot(): GameSnapshot3D;
@@ -106,6 +108,7 @@ function restoreEntityStates3D(
       opacity: entity.opacity
     };
     if (entity.props !== undefined) { state.props = structuredClone(entity.props); }
+    if (entity.animationGraph) { state.animationGraph = structuredClone(entity.animationGraph); }
     if (entity.controller) state.controller = { ...entity.controller, grounded: entity.grounded };
     return state;
   });
@@ -132,6 +135,7 @@ function snapshotEntity3D(state: EntityState3D): GameEntityState3D {
   if (state.health !== undefined) entity.health = state.health;
   if (state.opacity !== undefined) entity.opacity = state.opacity;
   if (state.animation) entity.animation = structuredClone(state.animation);
+  if (state.animationGraph) entity.animationGraph = structuredClone(state.animationGraph);
   if (state.controller) {
     entity.controller = { coyoteRemaining: state.controller.coyoteRemaining, jumpBufferRemaining: state.controller.jumpBufferRemaining,
       verticalVelocity: state.controller.verticalVelocity };
@@ -160,7 +164,7 @@ export async function createGameSession3D(
   const validation = validateGame3D(value);
   if (!validation.valid || !validation.document) throw new Error(`Invalid 3D game: ${validation.errors.join("; ")}`);
   if (!Number.isSafeInteger(seed) || seed < 0) throw new Error("Game seed must be a nonnegative safe integer");
-  const document = validation.document;
+  const document = resolveCollisionLayers3D(validation.document);
   const contentDigest = await digestGame3D(document);
   const saved = savedSnapshot ? gameSnapshot3D.parse(savedSnapshot) : undefined;
   if (
@@ -308,7 +312,7 @@ export async function createGameSession3D(
         physics: physicsState.physics
       };
     };
-    let presentationEvents: GameEvent3D[] = [];
+    let presentationEvents: (GameEvent3D | GameParticleEmission)[] = [];
     const captureScripts = () => ({
       scriptState: structuredClone(scriptState),
       rngState,
@@ -584,7 +588,7 @@ export async function createGameSession3D(
       frame
     };
     return {
-      takePresentationEvents(): readonly GameEvent3D[] {
+      takePresentationEvents(): readonly (GameEvent3D | GameParticleEmission)[] {
         const pending = presentationEvents;
         presentationEvents = [];
         return pending;

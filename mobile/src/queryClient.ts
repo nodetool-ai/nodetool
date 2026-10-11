@@ -1,4 +1,5 @@
-import { QueryClient, onlineManager } from '@tanstack/react-query';
+import { AppState, type AppStateStatus } from 'react-native';
+import { QueryClient, focusManager, onlineManager } from '@tanstack/react-query';
 import NetInfo from '@react-native-community/netinfo';
 import { isOnlineState } from './hooks/useNetworkStatus';
 import { isNumber, isRecord, isString } from './utils/typePredicates';
@@ -20,6 +21,20 @@ onlineManager.setEventListener((setOnline) =>
     setOnline(isOnlineState(state));
   })
 );
+
+/**
+ * React Native has no window focus event, so tell React Query that the app is
+ * focused while `AppState` is `active`. Foregrounding the app then refetches
+ * stale queries, the way returning to a browser tab does on web.
+ */
+export function onAppStateChange(status: AppStateStatus): void {
+  focusManager.setFocused(status === 'active');
+}
+
+focusManager.setEventListener(() => {
+  const subscription = AppState.addEventListener('change', onAppStateChange);
+  return () => subscription.remove();
+});
 
 /**
  * Pull an HTTP status code off an error, if one is present.

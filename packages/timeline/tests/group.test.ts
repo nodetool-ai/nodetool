@@ -87,6 +87,19 @@ describe("moveGroup", () => {
     expect(byId(clips, "c").trackId).toBe("audio");
   });
 
+  it("carries a child's linked partner when following links", () => {
+    const clips = [
+      group({ id: "g", startMs: 1000 }),
+      child({ id: "v", parentId: "g", startMs: 1000, linkId: "L" }),
+      child({ id: "a", mediaType: "audio", trackId: "a1", startMs: 1000, linkId: "L" })
+    ];
+    const followed = moveGroup(clips, "g", 500, { followLinks: true });
+    expect(byId(followed, "v").startMs).toBe(1500);
+    expect(byId(followed, "a").startMs).toBe(1500);
+    const unfollowed = moveGroup(clips, "g", 500);
+    expect(byId(unfollowed, "a").startMs).toBe(1000);
+  });
+
   it("clamps at the timeline origin", () => {
     const clips = moveGroup(
       [group({ id: "g", startMs: 100 }), child({ id: "c", parentId: "g", startMs: 100 })],

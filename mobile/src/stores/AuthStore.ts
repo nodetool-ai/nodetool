@@ -1,9 +1,16 @@
 import { create } from 'zustand';
 import type { Session, User, Subscription } from '@supabase/supabase-js';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { supabase, isSupabaseConfigured } from '../services/supabase';
+import {
+  bindAuthRefreshToAppState,
+  isSupabaseConfigured,
+  supabase,
+} from '../services/supabase';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '../services/authConfig';
 import { queryClient } from '../queryClient';
+// documentStore → backends → trpc/client imports this store back. The cycle is
+// safe: each side only reads the other inside functions, never at load time.
+import { resetDocumentStores } from '../documents/documentStore';
 import { isNonEmptyString, isRecord } from '../utils/typePredicates';
 
 type AuthState = 'init' | 'loading' | 'logged_in' | 'logged_out' | 'error';
@@ -19,11 +26,18 @@ interface AuthStore {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   /**
-   * Called when the server rejects a request with 401/403: drop the local
+   * Called when the session cannot be recovered: drop the local
    * session and cached state and route back to login, without a network
    * sign-out (the token is already invalid).
    */
   handleSessionExpired: () => void;
+  /**
+   * Called when the server rejects a request with 401: try one token refresh.
+   * Resolves true with the new session stored, or false after dropping the
+   * session through {@link handleSessionExpired}. Concurrent callers share one
+   * refresh.
+   */
+  refreshSession: () => Promise<boolean>;
   clearError: () => void;
   cleanup: () => void;
 }
@@ -47,8 +61,16 @@ async function resetClientState(): Promise<void> {
   } catch (err) {
     console.warn('[AuthStore] failed to reset chat state', err);
   }
+  // Open documents hold the previous account's bodies and tokens.
+  resetDocumentStores();
   queryClient.clear();
 }
+
+/** Removes the AppState → token auto-refresh binding made by `initialize`. */
+let unbindAuthRefresh: (() => void) | null = null;
+
+/** The refresh on the wire, shared by every request that hit a 401 meanwhile. */
+let refreshInFlight: Promise<boolean> | null = null;
 
 function formatAuthError(error: unknown, fallback: string): string {
   if (isRecord(error) && 'message' in error) {
@@ -83,6 +105,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       });
       return;
     }
+
+    unbindAuthRefresh?.();
+    unbindAuthRefresh = bindAuthRefreshToAppState();
 
     GoogleSignin.configure({
       webClientId: GOOGLE_WEB_CLIENT_ID,
@@ -171,24 +196,29 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (error) {
         throw error;
       }
-
-      // Tear down the auth listener and clear any user-bound chat/query state
-      // so the next account can't see the previous user's data.
-      get().cleanup();
-      await resetClientState();
-
-      set({
-        session: null,
-        user: null,
-        state: 'logged_out',
-        error: null,
-      });
     } catch (error: unknown) {
-      set({
-        state: 'error',
-        error: formatAuthError(error, 'Failed to sign out'),
-      });
+      // The global sign-out needs the network. Signing out must still work
+      // offline, so drop the stored session on this device instead; the
+      // refresh token simply expires server-side.
+      console.warn('[AuthStore] remote sign-out failed, signing out locally', error);
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (localError: unknown) {
+        console.warn('[AuthStore] local sign-out failed', localError);
+      }
     }
+
+    // Tear down the auth listener and clear any user-bound chat/query state
+    // so the next account can't see the previous user's data.
+    get().cleanup();
+    await resetClientState();
+
+    set({
+      session: null,
+      user: null,
+      state: 'logged_out',
+      error: null,
+    });
   },
 
   handleSessionExpired: () => {
@@ -206,6 +236,29 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       state: 'logged_out',
       error: 'Your session expired. Please sign in again.',
     });
+  },
+
+  refreshSession: () => {
+    if (refreshInFlight) {
+      return refreshInFlight;
+    }
+    refreshInFlight = (async () => {
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (error || !data.session) {
+          throw error ?? new Error('No session returned from refresh');
+        }
+        set({ session: data.session, user: data.session.user ?? null });
+        return true;
+      } catch (error: unknown) {
+        console.warn('[AuthStore] token refresh failed', error);
+        get().handleSessionExpired();
+        return false;
+      }
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+    return refreshInFlight;
   },
 
   clearError: () => set({ error: null }),

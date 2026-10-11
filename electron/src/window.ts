@@ -243,25 +243,20 @@ function forceQuit(errorMessage: string): never {
  * @returns {void}
  */
 function handleActivation(): void {
-  // Get all visible windows (not just existing ones)
-  const visibleWindows = BrowserWindow.getAllWindows().filter(
-    (w) => !w.isDestroyed() && w.isVisible()
-  );
-
-  if (visibleWindows.length === 0) {
+  // Reuse the main window whenever one exists. On Windows and Linux a
+  // minimized window still reports isVisible(), and a chat or mini-app window
+  // can be open while the main window is closed, so counting visible windows
+  // left the tray's "Show NodeTool" doing nothing.
+  const mainWindow = getMainWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) {
     createWindow();
-  } else if (process.platform === "darwin") {
-    const mainWindow = getMainWindow();
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.show();
-      mainWindow.focus();
-    } else {
-      createWindow();
-    }
+    return;
   }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.show();
+  mainWindow.focus();
 }
 
 /** @internal Reset the permission-handlers-initialized flag (for tests only). */

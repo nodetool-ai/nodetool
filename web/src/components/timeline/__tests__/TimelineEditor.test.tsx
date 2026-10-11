@@ -75,11 +75,11 @@ jest.mock("../preview/PreviewArea", () => ({
     React.createElement("div", { "data-testid": "preview-area" }, "Preview")
 }));
 
-// TopBarPrompt pulls in ImageModelSelect → useImageModelsByProvider, which
-// calls TanStack Query. The editor shell tests don't render a
-// QueryClientProvider, so swap it for a no-op.
-jest.mock("../TopBarPrompt", () => ({
-  TopBarPrompt: () =>
+// The Generate dialog's form pulls in the model pickers, which call TanStack
+// Query. The editor shell tests don't render a QueryClientProvider, so swap
+// it for a no-op.
+jest.mock("../TimelineGeneratePanel", () => ({
+  TimelineGeneratePanel: () =>
     React.createElement("div", { "data-testid": "topbar-prompt" }, "Prompt")
 }));
 

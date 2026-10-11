@@ -26,4 +26,23 @@ describe("previewQualityScale", () => {
       height: 270
     });
   });
+
+  it("caps a fullscreen high-DPI backing at the sequence resolution", () => {
+    // 1512x850 CSS fullscreen on a 2x display is 3024x1700 device pixels.
+    expect(previewBackingSize(1512, 850.5, 2, 1, 1920, 1080)).toEqual({
+      width: 1920,
+      height: 1080
+    });
+    expect(previewBackingSize(1512, 850.5, 2, 0.5, 1920, 1080)).toEqual({
+      width: 960,
+      height: 540
+    });
+  });
+
+  it("keeps display resolution when it is below the sequence resolution", () => {
+    expect(previewBackingSize(640, 360, 2, 1, 1920, 1080)).toEqual({
+      width: 1280,
+      height: 720
+    });
+  });
 });

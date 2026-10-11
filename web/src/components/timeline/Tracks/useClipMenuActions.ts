@@ -48,8 +48,8 @@ export interface ClipMenuActions {
 }
 
 export interface ClipMenuActionCallbacks {
-  /** Opens the replace-output dialog, which the menu itself cannot host. */
-  onRequestReplace: (currentAssetId: string) => void;
+  /** Opens the replacement asset picker, which the menu itself cannot host. */
+  onRequestReplace: () => void;
   onError: (message: string) => void;
 }
 
@@ -105,10 +105,7 @@ export function useClipMenuActions(
     setClipLocked(clipId, !clip.locked);
   }, [clip, clipId, setClipLocked]);
 
-  const openReplace = useCallback(
-    () => onRequestReplace(clip?.currentAssetId ?? ""),
-    [clip?.currentAssetId, onRequestReplace]
-  );
+  const openReplace = onRequestReplace;
 
   const editNotes = useCallback(() => {
     selectClip(clipId);

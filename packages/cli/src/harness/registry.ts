@@ -132,10 +132,10 @@ const GAME_FLOW_SUITES =
   "npm run test --workspace=packages/game-nodes && " +
   "npm run test --workspace=packages/game-runtime && " +
   "npm run test --workspace=packages/game-renderer && " +
-  "npm run test --workspace=packages/websocket -- trpc-games gameDraftHistory && " +
+  "npm run test --workspace=packages/websocket -- trpc-games trpc-game-asset-browser gameDraftHistory style-presets && " +
   "npm run test --workspace=packages/agents -- game && " +
   "npm run test --workspace=packages/cli -- game-command && " +
-  "npm run test --workspace=web -- src/stores/game src/components/game";
+  "npm run test --workspace=web -- src/stores/game src/components/game src/components/setup/game src/hooks/game";
 
 /**
  * Durable generation recovery without a provider call. These suites exercise
@@ -941,6 +941,20 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "mutator",
+    title: "Mutation testing (nodetool-mutator)",
+    command: "npm run mutate -- --base origin/main packages/<name>/src",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § npm run mutate",
+    selfcheck: {
+      // Parses and binds every site in the tool's own source through the
+      // built CLI, without running a test.
+      command: "npm run mutate -- --scan packages/mutator/src",
+      cost: "cheap"
+    }
+  },
+  {
     id: "recipes",
     title: "Recipe chains (shipped manifests, the app listing, the site pages)",
     // A recipe names shipped example workflows and stores no graph, so what
@@ -1272,6 +1286,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/protocol/src/game-design.ts",
       "packages/protocol/src/game-graph.ts",
       "packages/protocol/src/game-flow-prompt.ts",
+      "packages/protocol/src/native-game-templates.ts",
       "packages/protocol/src/style-presets.ts",
       "packages/game-nodes/",
       "packages/game-runtime/",
@@ -1283,10 +1298,13 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/websocket/src/trpc/routers/gameDraftHistory.ts",
       "packages/websocket/src/lib/style-presets.ts",
       "web/src/components/game/",
+      "web/src/components/setup/game/",
+      "web/src/hooks/game/",
       "web/src/stores/game/",
       "web/tests/journeys/native-game3d-editor.spec.ts",
       "web/src/components/workspace/GameSurface.tsx",
-      "web/src/components/projects/NewProjectSurface.tsx"
+      "web/src/components/projects/NewProjectSurface.tsx",
+      "packages/protocol/src/game-script-params.ts"
     ]
   },
   {
@@ -1785,6 +1803,12 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/kie-nodes/src/kie-manifest.json",
       "scripts/provider-codegen-check.mjs"
     ]
+  },
+  {
+    id: "mutation-testing",
+    title: "Mutation testing tool and its score report",
+    harnesses: ["mutator"],
+    paths: ["packages/mutator/", "scripts/mutation-score.mjs"]
   },
   {
     id: "deploy-image",

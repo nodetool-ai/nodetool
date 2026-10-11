@@ -12,8 +12,9 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "node ../../scripts/run-vitest.mjs run",
     "test:metadata": "node ../../scripts/run-vitest.mjs run tests/metadata.test.ts",
-    "test:mutation": "stryker run",
-    "test:mutation:crash": "stryker run stryker.crash.config.json",
+    "test:mutation": "node ../mutator/dist/cli.js --root ../.. --exclude packages/node-sdk/src/docs/ --exclude packages/node-sdk/src/nodes/test-nodes.ts --exclude packages/node-sdk/src/python-package-scan.ts src",
+    "test:mutation:stryker": "stryker run",
+    "test:mutation:crash": "node ../mutator/dist/cli.js --root ../.. --no-coverage --metrics-dir .metrics/mutate-crash --test-command \"npx --no-install vitest run --config vitest.crash.config.ts\" src/graph-validation.ts src/code-analysis.ts src/code-node-validation.ts src/validation.ts",
     "test:crash-fuzz": "node ../../scripts/run-vitest.mjs run --config vitest.crash.config.ts",
     "test:watch": "node ../../scripts/run-vitest.mjs",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"

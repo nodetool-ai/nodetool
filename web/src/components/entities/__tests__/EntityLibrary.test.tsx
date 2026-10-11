@@ -18,9 +18,18 @@ jest.mock("../../../serverState/useEntities", () => ({
 
 jest.mock("../../setup/entity/EntitySetupHost", () => ({
   __esModule: true,
-  default: ({ draftKey }: { draftKey?: string }) => (
+  default: ({
+    draftKey,
+    onBusyChange
+  }: {
+    draftKey?: string;
+    onBusyChange?: (busy: boolean) => void;
+  }) => (
     <div data-testid="entity-setup" data-draft-key={draftKey}>
       Guided entity setup
+      <button type="button" onClick={() => onBusyChange?.(true)}>
+        Start saving
+      </button>
     </div>
   )
 }));
@@ -46,7 +55,7 @@ const draft = {
 
 describe("EntityLibrary", () => {
   beforeEach(() => {
-    useEntityLibraryStore.setState({ creating: false });
+    useEntityLibraryStore.setState({ createRequested: false });
   });
 
   it("opens the guided flow from its primary create action", async () => {
@@ -74,7 +83,7 @@ describe("EntityLibrary", () => {
       .getByTestId("entity-setup")
       .getAttribute("data-draft-key");
     first.unmount();
-    useEntityLibraryStore.setState({ creating: false });
+    useEntityLibraryStore.setState({ createRequested: false });
 
     useWorkspaceTabsStore.setState({ activeProjectId: "project-b" });
     renderLibrary();
@@ -100,5 +109,27 @@ describe("EntityLibrary", () => {
     await user.click(screen.getByRole("button", { name: "Back to entities" }));
 
     expect(readEntitySetupDraft(key)).toBeNull();
+  });
+
+  it("opens the flow once per request, not on every later visit", () => {
+    useEntityLibraryStore.getState().requestCreate();
+    const first = renderLibrary();
+    expect(screen.getByTestId("entity-setup")).toBeInTheDocument();
+    expect(useEntityLibraryStore.getState().createRequested).toBe(false);
+    first.unmount();
+
+    renderLibrary();
+    expect(screen.queryByTestId("entity-setup")).not.toBeInTheDocument();
+  });
+
+  it("holds Back to entities while the entity is being saved", async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    await user.click(screen.getAllByRole("button", { name: "Add entity" })[0]);
+    await user.click(screen.getByRole("button", { name: "Start saving" }));
+
+    expect(
+      screen.getByRole("button", { name: "Back to entities" })
+    ).toBeDisabled();
   });
 });

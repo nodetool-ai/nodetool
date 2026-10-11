@@ -14,7 +14,6 @@ import {
 } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
-import { isElectron } from "../../lib/env";
 import type { LlamaModelValue } from "../../stores/ApiTypes";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import { EditorMenu, EditorMenuItem } from "../editor_ui";
@@ -129,25 +128,22 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
                 ? (ollamaError as { detail?: string }).detail
                 : "Please check that Ollama is running"}
             </Caption>
-            {isElectron ? (
-              <Caption
-                color="warning"
-                sx={{ display: "block", mt: 1 }}
-              >
-                Ollama should be running automatically. Please try restarting
-                the application.
-              </Caption>
-            ) : (
-              <Caption
-                component="a"
-                href="https://ollama.com/download"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ color: "primary.main", textDecoration: "underline" }}
-              >
-                Download Ollama →
-              </Caption>
-            )}
+            <Caption
+              color="secondary"
+              sx={{ display: "block", mt: 1 }}
+            >
+              Ollama is a separate app. Install it from ollama.com and start
+              it.
+            </Caption>
+            <Caption
+              component="a"
+              href="https://ollama.com/download"
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ color: "primary.main", textDecoration: "underline" }}
+            >
+              Download Ollama →
+            </Caption>
           </div>
         ) : sortedModels.length === 0 ? (
           <EditorMenuItem disabled>

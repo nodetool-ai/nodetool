@@ -4,10 +4,12 @@ import { ThemeProvider } from "@mui/material/styles";
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import ImageToVideoPanel from "../ImageToVideoPanel";
 
 const mockStart = jest.fn<(clipId: string) => Promise<string | null>>();
 const mockMediaOptions = jest.fn();
+const mockNaturalSize = jest.fn();
 jest.mock("../../../../lib/env", () => ({
   isLocalhost: true,
   isElectron: false
@@ -19,7 +21,10 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
         id: "i2v-model",
         name: "Image to video model",
         provider: "fal_ai",
-        supported_tasks: ["image_to_video"]
+        supported_tasks: ["image_to_video"],
+        durations: [4, 8],
+        aspect_ratios: ["16:9", "9:16"],
+        resolutions: ["480p", "720p"]
       }
     ],
     isLoading: false,
@@ -33,6 +38,9 @@ jest.mock("../../../../hooks/timeline/useTimelineDirectGenJob", () => ({
 }));
 jest.mock("../../../../hooks/useResolvedMediaUri", () => ({
   useResolvedMediaUri: () => undefined
+}));
+jest.mock("../../../../hooks/useImageNaturalSize", () => ({
+  useImageNaturalSize: () => mockNaturalSize()
 }));
 jest.mock("../../../properties/VideoModelSelect", () => ({
   __esModule: true,
@@ -65,6 +73,7 @@ describe("Image to Video inspector", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockStart.mockResolvedValue("request");
+    mockNaturalSize.mockReturnValue({ failed: false });
     mockMediaOptions.mockReturnValue({
       data: {
         durations: [4, 8],
@@ -122,6 +131,81 @@ describe("Image to Video inspector", () => {
         "This model cannot render 4 s, so the video clip is 5 s long."
       )
     ).toBeInTheDocument();
+  });
+
+  it("waits for the image size before it can generate", () => {
+    useTimelineStore.setState({
+      clips: [{ ...image, width: undefined, height: undefined }]
+    });
+    show();
+    fireEvent.change(screen.getByLabelText("Motion prompt"), {
+      target: { value: "Slow push in" }
+    });
+    expect(
+      screen.getByRole("button", { name: "Generate video" })
+    ).toBeDisabled();
+    expect(
+      screen.queryByText(
+        "The image could not be loaded, so its size is unknown."
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it("says why it cannot generate when the image failed to load", () => {
+    mockNaturalSize.mockReturnValue({ failed: true });
+    useTimelineStore.setState({
+      clips: [{ ...image, width: undefined, height: undefined }]
+    });
+    show();
+    expect(
+      screen.getByText("The image could not be loaded, so its size is unknown.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Generate video" })
+    ).toBeDisabled();
+  });
+
+  it("uses the catalog's options when the model lists none", () => {
+    mockMediaOptions.mockReturnValue({
+      data: { durations: [], aspectRatios: [], resolutions: [] }
+    });
+    show();
+    expect(screen.getByTestId("image-to-video-summary")).toHaveTextContent(
+      "4 s · 9:16 · 720p"
+    );
+  });
+
+  it("keeps the panel and shows the error when the start fails", async () => {
+    useTimelineUIStore.setState({ selectedClipIds: new Set(["image"]) });
+    mockStart.mockRejectedValue(new Error("Provider refused the request."));
+    show();
+    fireEvent.change(screen.getByLabelText("Motion prompt"), {
+      target: { value: "Slow push in" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate video" }));
+    expect(
+      await screen.findByText("Provider refused the request.")
+    ).toBeInTheDocument();
+    expect([...useTimelineUIStore.getState().selectedClipIds]).toEqual([
+      "image"
+    ]);
+  });
+
+  it("selects the video clip once it has started", async () => {
+    show();
+    fireEvent.change(screen.getByLabelText("Motion prompt"), {
+      target: { value: "Slow push in" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate video" }));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledTimes(1));
+    const video = useTimelineStore
+      .getState()
+      .clips.find((clip) => clip.bindingKind === "image-to-video");
+    await waitFor(() =>
+      expect([...useTimelineUIStore.getState().selectedClipIds]).toEqual([
+        video?.id
+      ])
+    );
   });
 
   it("asks for the image first when the clip has none", () => {

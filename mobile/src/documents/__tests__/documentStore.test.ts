@@ -266,4 +266,48 @@ describe('documentStore', () => {
     expect(store.getState().dirty).toBe(false);
     expect(store.getState().status).toBe('idle');
   });
+
+  it('keeps an edit made while a load was in flight', async () => {
+    mockRead.mockResolvedValueOnce(detail());
+    const store = documentStore<Doc>('storyboard', 'sb1');
+    await store.getState().load();
+
+    let resolveRead: (value: ReturnType<typeof detail>) => void = () => undefined;
+    mockRead.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRead = resolve;
+      })
+    );
+    const pending = store.getState().load();
+    store.getState().edit(() => ({ shots: ['local'] }));
+    resolveRead(detail({ document: { shots: ['server'] }, ref: { kind: 'storyboard', id: 'sb1', revision: 4 } }));
+    await pending;
+
+    expect(store.getState()).toMatchObject({
+      doc: { shots: ['local'] },
+      dirty: true,
+      token: 3,
+      status: 'idle',
+    });
+  });
+
+  it('applies the newest load when two overlap and resolve out of order', async () => {
+    const resolvers: Array<(value: ReturnType<typeof detail>) => void> = [];
+    mockRead.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+    const store = documentStore<Doc>('storyboard', 'sb1');
+
+    const first = store.getState().load();
+    const second = store.getState().load();
+    resolvers[1](detail({ document: { shots: ['new'] }, ref: { kind: 'storyboard', id: 'sb1', revision: 5 } }));
+    await second;
+    resolvers[0](detail({ document: { shots: ['old'] } }));
+    await first;
+
+    expect(store.getState()).toMatchObject({ doc: { shots: ['new'] }, token: 5, status: 'idle' });
+  });
 });

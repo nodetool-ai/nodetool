@@ -952,21 +952,24 @@ jobs:
         run: node scripts/smoke-release-updater-assets.mjs release-assets "${{ needs.preflight.outputs.version }}" "${{ needs.preflight.outputs.release_channel }}"
 
       # The win-unpacked zip is kept as a workflow artifact for debugging,
-      # but is intentionally NOT attached to the GitHub Release.
-      # Drop it from release-assets/ here so the publish step doesn't need a
-      # negation glob (which would fail when no win-unpacked zip is present
-      # and `fail_on_unmatched_files: true` is set).
-      - name: Drop win-unpacked archives from release assets
+      # but is intentionally NOT attached to the GitHub Release. So is
+      # builder-debug.yml, which electron-builder writes because the build
+      # jobs set DEBUG=electron-builder; the *.yml glob below would otherwise
+      # publish it (runner paths and build internals) next to the updater
+      # manifests. Drop both from release-assets/ here so the publish step
+      # doesn't need a negation glob (which would fail when no such file is
+      # present and `fail_on_unmatched_files: true` is set).
+      - name: Drop debug-only files from release assets
         run: |
           set -euo pipefail
           shopt -s nullglob
           removed=0
-          for f in release-assets/*win-unpacked*.zip; do
+          for f in release-assets/*win-unpacked*.zip release-assets/builder-debug*.yml; do
             echo "Removing from release-assets: $f"
             rm -f "$f"
             removed=$((removed + 1))
           done
-          echo "Removed ${removed} win-unpacked archive(s)."
+          echo "Removed ${removed} debug-only file(s)."
 
       - name: Publish release
         uses: softprops/action-gh-release@v3

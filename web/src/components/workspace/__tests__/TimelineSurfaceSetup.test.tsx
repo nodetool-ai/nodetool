@@ -13,17 +13,34 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
 
-jest.mock("../../timeline/TimelineEditor", () => ({
-  __esModule: true,
-  default: () => <div data-testid="timeline-editor" />
-}));
+/** Sequence ids of editor instances that unmounted. */
+const mockUnmountedEditors: string[] = [];
+jest.mock("../../timeline/TimelineEditor", () => {
+  const { useEffect, useRef } =
+    jest.requireActual<typeof import("react")>("react");
+  const MockEditor = ({ sequenceId }: { sequenceId: string }) => {
+    // Read at unmount only, so a prop change does not look like an unmount.
+    const idRef = useRef(sequenceId);
+    idRef.current = sequenceId;
+    useEffect(
+      () => () => {
+        mockUnmountedEditors.push(idRef.current);
+      },
+      []
+    );
+    return <div data-testid="timeline-editor" />;
+  };
+  return { __esModule: true, default: MockEditor };
+});
 jest.mock("../../timeline/TimelinePlayer", () => ({
   __esModule: true,
   default: () => <div data-testid="timeline-player" />
 }));
 jest.mock("../../setup/video/VideoSetupHost", () => ({
   __esModule: true,
-  default: () => <div data-testid="video-setup" />
+  default: ({ active }: { active?: boolean }) => (
+    <div data-testid="video-setup" data-active={String(active)} />
+  )
 }));
 
 /** What `trpc.timeline.get.useQuery` reports. Set per test. */
@@ -115,6 +132,45 @@ describe("TimelineSurface setup resume", () => {
 
     expect(screen.getByTestId("timeline-player")).toBeInTheDocument();
     expect(screen.queryByTestId("video-setup")).not.toBeInTheDocument();
+  });
+
+  it("passes the tab's active flag to the setup host (F30)", () => {
+    mockTimelineQuery.value = {
+      isPending: false,
+      isError: false,
+      stage: "idea"
+    };
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <TimelineSurface refId="seq-1" mode="edit" active={false} />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("video-setup")).toHaveAttribute(
+      "data-active",
+      "false"
+    );
+  });
+
+  it("remounts the editor when the tab switches sequence (F31)", () => {
+    mockTimelineQuery.value = {
+      isPending: false,
+      isError: false,
+      stage: "done"
+    };
+    mockUnmountedEditors.length = 0;
+    const { rerender } = render(
+      <ThemeProvider theme={mockTheme}>
+        <TimelineSurface refId="seq-1" mode="edit" active />
+      </ThemeProvider>
+    );
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <TimelineSurface refId="seq-2" mode="edit" active />
+      </ThemeProvider>
+    );
+
+    expect(mockUnmountedEditors).toEqual(["seq-1"]);
   });
 
   it("renders neither surface while the sequence is loading", () => {

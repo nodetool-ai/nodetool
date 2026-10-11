@@ -44,6 +44,8 @@ export const ALWAYS_ENABLED_TOOLS: readonly string[] = [
   "create_storyboard",
   "get_storyboard",
   "edit_storyboard",
+  "get_storyboard_one_take",
+  "update_storyboard_one_take",
   "render_storyboard_stills",
   "render_storyboard_clips",
   "revise_storyboard_clip",

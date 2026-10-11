@@ -356,8 +356,9 @@ environment without changing it, use `./start.sh doctor`. None of these launch
 the Electron desktop app.
 
 In a separate terminal, launch the desktop shell with `npm run electron`.
-The Node.js version is pinned in [`.nvmrc`](.nvmrc). Python 3.11 and conda are
-optional, for Python nodes. For locked-down environments or missing WebGPU, see
+The Node.js version is pinned in [`.nvmrc`](.nvmrc). Python 3.11 or newer is
+optional, for Python nodes. See
+[Python nodes without the desktop app](docs/installation.md#python-nodes-without-the-desktop-app). For locked-down environments or missing WebGPU, see
 [development environment](docs/dev-environment.md).
 
 ## Testing

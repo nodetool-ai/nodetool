@@ -14,8 +14,11 @@ import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import {
   DEFAULT_MIDI_INSTRUMENT,
+  effectiveAssetId,
   midiRenderKey,
-  resolveTempo
+  previewTake,
+  resolveTempo,
+  videoClipsWithOwnAudio
 } from "@nodetool-ai/timeline";
 import type {
   MidiInstrument,
@@ -54,6 +57,7 @@ import {
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import type { TimelineAudition } from "../../../stores/timeline/TimelineUIStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { PlaybackClock } from "./PlaybackClock";
 import { AudioGraph } from "./AudioGraph";
@@ -105,24 +109,37 @@ const AUDIO_TOPUP_INTERVAL_MS = 5_000;
 const SEEK_RESTART_DEBOUNCE_MS = 120;
 
 /**
+ * Ids of the video clips that sound their own audio (no extracted-audio
+ * partner, unmuted, not silenced by a solo). The video elements stay muted;
+ * these clips are played through the audio graph like an audio clip.
+ */
+function ownAudioClipIds(
+  clips: readonly TimelineClip[],
+  tracks: readonly TimelineTrack[]
+): Set<string> {
+  return new Set(videoClipsWithOwnAudio(clips, tracks).map((clip) => clip.id));
+}
+
+/**
  * True if `clip` is a schedulable sounding clip that hasn't finished by `atMs`.
  *
  * A midi clip has no asset and no generation to wait for — its notes are the
  * content — so it needs neither `currentAssetId` nor a status; an empty note
- * list would render silence, so it is skipped instead.
+ * list would render silence, so it is skipped instead. An audio clip sounds
+ * under the status rule its picture would be drawn under, and a video clip
+ * only when it is in `ownAudio`.
  */
-function isPendingAudioClip(clip: TimelineClip, atMs: number): boolean {
+function isPendingAudioClip(
+  clip: TimelineClip,
+  atMs: number,
+  ownAudio: ReadonlySet<string>
+): boolean {
   if (clip.muted || clip.startMs + clip.durationMs <= atMs) return false;
   if (clip.mediaType === "midi") {
     return (clip.notes?.length ?? 0) > 0;
   }
-  return (
-    clip.mediaType === "audio" &&
-    !!clip.currentAssetId &&
-    (clip.status === "generated" ||
-      clip.status === "stale" ||
-      clip.status === "locked")
-  );
+  if (clip.mediaType === "video") return ownAudio.has(clip.id);
+  return clip.mediaType === "audio" && effectiveAssetId(clip) !== undefined;
 }
 
 /** The voice a midi clip on this track plays. */
@@ -254,6 +271,70 @@ interface PreviewAreaProps {
   showDuration?: boolean;
   /** Sequence fps readout. Default on. */
   showFps?: boolean;
+}
+
+interface PlaybackScrubberProps {
+  max: number;
+  /** The paused position, or the drag position while scrubbing. */
+  value: number;
+  isPlaying: boolean;
+  subscribeTime: (cb: (timeMs: number) => void) => () => void;
+  step: number;
+  onChange: (event: Event, value: number | number[]) => void;
+  onChangeCommitted: (
+    event: Event | React.SyntheticEvent,
+    value: number | number[]
+  ) => void;
+}
+
+/**
+ * The scrub bar. While playing it follows the live playhead itself, so the
+ * position moves without a render of the whole preview on every frame.
+ */
+const PlaybackScrubber: React.FC<PlaybackScrubberProps> = memo(
+  ({ max, value, isPlaying, subscribeTime, step, onChange, onChangeCommitted }) => {
+    const [liveMs, setLiveMs] = useState<number | null>(null);
+    useEffect(() => {
+      if (!isPlaying) {
+        setLiveMs(null);
+        return;
+      }
+      // One step of the bar is one frame: finer updates move nothing.
+      return subscribeTime((ms) =>
+        setLiveMs(Math.round(ms / step) * step)
+      );
+    }, [isPlaying, subscribeTime, step]);
+
+    return (
+      <Slider
+        aria-label="Scrub timeline"
+        min={0}
+        max={max}
+        step={step}
+        value={Math.min(max, liveMs ?? value)}
+        onChange={onChange}
+        onChangeCommitted={onChangeCommitted}
+        density="compact"
+      />
+    );
+  }
+);
+PlaybackScrubber.displayName = "PlaybackScrubber";
+
+/**
+ * The clips as the audio graph should hear them. Auditioning a take swaps its
+ * media into the clip for preview only, the same projection the picture uses
+ * in `PreviewCompositor`, so a Preview Candidate on an audio take is heard.
+ */
+function auditionedClips(
+  clips: TimelineClip[],
+  audition: TimelineAudition | null
+): TimelineClip[] {
+  if (!audition) return clips;
+  const target = clips.find((clip) => clip.id === audition.clipId);
+  const preview = target && previewTake(target, audition.takeId);
+  if (!target || !preview) return clips;
+  return clips.map((clip) => (clip.id === target.id ? preview : clip));
 }
 
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
@@ -486,10 +567,18 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
     /** The key `clip`'s scheduled sound answers to, or null when it has no
      * schedulable sound. Track routing is part of the key because a source is
-     * connected to its track chain when it is scheduled. */
+     * connected to its track chain when it is scheduled. A video clip has a
+     * key only while it sounds its own audio, so muting its track, soloing a
+     * sound track or adding an audio partner stops it. */
     const audioScheduleKeyOf = useCallback(
-      (clip: TimelineClip): string | null => {
-        if (clip.mediaType !== "audio" && clip.mediaType !== "midi") {
+      (clip: TimelineClip, ownAudio: ReadonlySet<string>): string | null => {
+        const ownVideoAudio =
+          clip.mediaType === "video" && ownAudio.has(clip.id);
+        if (
+          clip.mediaType !== "audio" &&
+          clip.mediaType !== "midi" &&
+          !ownVideoAudio
+        ) {
           return null;
         }
         const midiKey = (() => {
@@ -520,7 +609,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           fadeInMs: clip.fadeInMs ?? 0,
           fadeOutMs: clip.fadeOutMs ?? 0,
           fadeInShape: clip.fadeInShape ?? "linear",
-          fadeOutShape: clip.fadeOutShape ?? "linear"
+          fadeOutShape: clip.fadeOutShape ?? "linear",
+          auditionTakeId: (() => {
+            const audition = useTimelineUIStore.getState().audition;
+            return audition?.clipId === clip.id ? audition.takeId : null;
+          })()
         });
       },
       [timelineApi]
@@ -542,8 +635,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const graph = graphRef.current;
         const liveMs = getTimeMs();
         const windowEndMs = liveMs + AUDIO_LOOKAHEAD_MS;
-        const clipsNow = timelineApi.getState().clips;
+        const clipsNow = auditionedClips(
+          timelineApi.getState().clips,
+          useTimelineUIStore.getState().audition
+        );
         const clipIdsNow = new Set(clipsNow.map((c) => c.id));
+        const ownAudio = ownAudioClipIds(
+          clipsNow,
+          timelineApi.getState().tracks
+        );
 
         const removedClipIds = [...scheduledClipIdsRef.current].filter(
           (id) => !clipIdsNow.has(id)
@@ -558,7 +658,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
         const newlyEnteredClips = clipsNow.filter(
           (c) =>
-            isPendingAudioClip(c, liveMs) &&
+            isPendingAudioClip(c, liveMs, ownAudio) &&
             c.startMs < windowEndMs &&
             !scheduledClipIdsRef.current.has(c.id)
         );
@@ -569,14 +669,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const changedAudioClips = clipsNow.filter((c) => {
           if (!scheduledClipIdsRef.current.has(c.id)) return false;
           return (
-            audioScheduleKeyOf(c) !== scheduledAudioKeysRef.current.get(c.id)
+            audioScheduleKeyOf(c, ownAudio) !==
+            scheduledAudioKeysRef.current.get(c.id)
           );
         });
         if (changedAudioClips.length > 0) {
           graph.stopClips(changedAudioClips.map((c) => c.id));
         }
         const restaleAudioClips = changedAudioClips.filter((c) =>
-          isPendingAudioClip(c, liveMs)
+          isPendingAudioClip(c, liveMs, ownAudio)
         );
         const restaleAudioIds = new Set(restaleAudioClips.map((c) => c.id));
         for (const c of changedAudioClips) {
@@ -592,7 +693,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         // the 5 s interval) can't attempt the same clip twice.
         for (const c of pending) {
           scheduledClipIdsRef.current.add(c.id);
-          const key = audioScheduleKeyOf(c);
+          const key = audioScheduleKeyOf(c, ownAudio);
           if (key !== null) scheduledAudioKeysRef.current.set(c.id, key);
         }
 
@@ -675,6 +776,23 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       [queueTopUpAudio, timelineApi]
     );
 
+    // Starting, switching or ending an audition changes what a clip sounds
+    // like without touching the document, so it reconciles the same way.
+    useEffect(
+      () =>
+        useTimelineUIStore.subscribe((state, previous) => {
+          if (state.audition === previous.audition) return;
+          if (!audioSessionActiveRef.current) return;
+          const generation = playGenRef.current;
+          queueTopUpAudio(
+            () =>
+              playGenRef.current !== generation ||
+              !audioSessionActiveRef.current
+          );
+        }),
+      [queueTopUpAudio]
+    );
+
     /** Set by the loop wrap so the seek-restart effect skips its debounce. */
     const loopWrapRef = useRef(false);
 
@@ -746,13 +864,20 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // Read fresh rather than closing over the reactive `clips` value so
       // this component never needs to subscribe to (and re-render on) the
       // clips array itself.
-      const clipsNow = timelineApi.getState().clips;
+      const clipsNow = auditionedClips(
+        timelineApi.getState().clips,
+        useTimelineUIStore.getState().audition
+      );
       // Backwards playback (J) is picture only: the audio graph schedules
       // forward from a source position.
+      const ownAudio = ownAudioClipIds(
+        clipsNow,
+        timelineApi.getState().tracks
+      );
       const remainingAudioClips =
         globalRate < 0
           ? []
-          : clipsNow.filter((c) => isPendingAudioClip(c, startMs));
+          : clipsNow.filter((c) => isPendingAudioClip(c, startMs, ownAudio));
 
       if (remainingAudioClips.length === 0) {
         // Nothing left to play — e.g. a seek landed past the last audio
@@ -795,7 +920,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       for (const { clip } of validClips) {
         scheduledClipIdsRef.current.add(clip.id);
-        const key = audioScheduleKeyOf(clip);
+        const key = audioScheduleKeyOf(clip, ownAudio);
         if (key !== null) scheduledAudioKeysRef.current.set(clip.id, key);
       }
 
@@ -1219,15 +1344,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             </Text>
           )}
           <div css={scrubberCss}>
-            <Slider
-              aria-label="Scrub timeline"
-              min={0}
+            <PlaybackScrubber
               max={scrubMax}
-              step={frameDeltaMs(fps)}
               value={scrubValue}
+              isPlaying={isPlaying}
+              subscribeTime={subscribeTime}
+              step={frameDeltaMs(fps)}
               onChange={handleScrubChange}
               onChangeCommitted={handleScrubCommit}
-              density="compact"
             />
           </div>
           {showDuration && (

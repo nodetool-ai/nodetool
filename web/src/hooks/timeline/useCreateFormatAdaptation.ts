@@ -78,22 +78,21 @@ export async function persistAdaptedTimeline(
       projectId: sequence.projectId,
       fps: sequence.fps,
       width: sequence.width,
-      height: sequence.height
+      height: sequence.height,
+      // Lineage is written at creation; a save keeps the stored value.
+      templateId: sourceId
     });
     createdId = created.id;
     await trpcClient.timeline.update.mutate({
       id: created.id,
-      document: {
-        ...buildTimelineDocumentPayload({
-          ...sequence,
-          trackFolders: sequence.trackFolders ?? [],
-          mediaTracks: sequence.mediaTracks ?? [],
-          transcript: sequence.transcript ?? [],
-          scriptEnabled: sequence.scriptEnabled ?? false,
-          camera2d: sequence.camera2d ?? null
-        }),
-        templateId: sourceId
-      }
+      document: buildTimelineDocumentPayload({
+        ...sequence,
+        trackFolders: sequence.trackFolders ?? [],
+        mediaTracks: sequence.mediaTracks ?? [],
+        transcript: sequence.transcript ?? [],
+        scriptEnabled: sequence.scriptEnabled ?? false,
+        camera2d: sequence.camera2d ?? null
+      })
     });
     invalidateTimelineGetQuery(created.id);
     useWorkspaceTabsStore
@@ -171,19 +170,17 @@ export async function persistFormatAdaptationsDetailed(
         projectId: source.projectId,
         fps: sequence.fps,
         width: sequence.width,
-        height: sequence.height
+        height: sequence.height,
+        templateId: source.id
       });
       createdId = created.id;
       await trpcClient.timeline.update.mutate({
         id: created.id,
-        document: {
-          ...buildTimelineDocumentPayload({
-            ...sequence,
-            camera2d: state.camera2d,
-            storyboardMaterializations: state.storyboardMaterializations
-          } as Parameters<typeof buildTimelineDocumentPayload>[0]),
-          templateId: source.id
-        }
+        document: buildTimelineDocumentPayload({
+          ...sequence,
+          camera2d: state.camera2d,
+          storyboardMaterializations: state.storyboardMaterializations
+        } as Parameters<typeof buildTimelineDocumentPayload>[0])
       });
       invalidateTimelineGetQuery(created.id);
       useWorkspaceTabsStore.getState().openTab({

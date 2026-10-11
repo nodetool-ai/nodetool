@@ -412,7 +412,7 @@ export const sketchRouter = router({
         fields.document = JSON.stringify(input.document);
 
       const updated = await ImageDocument.updateFieldsIfUnchanged(
-        input.id,
+        doc.id,
         expectedUpdatedAt,
         fields
       );
@@ -631,7 +631,7 @@ export const sketchRouter = router({
 
         const document = parseVersionDocument(version.document);
         const updated = await ImageDocument.updateFieldsIfUnchanged(
-          input.id,
+          doc.id,
           doc.updated_at,
           {
             document: JSON.stringify(document),

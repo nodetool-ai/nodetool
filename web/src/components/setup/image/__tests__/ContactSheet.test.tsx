@@ -7,7 +7,13 @@
  * reason the losers stay on the document instead of being deleted.
  */
 import React from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { LayerVersion } from "@nodetool-ai/image-editor";
@@ -332,6 +338,30 @@ describe("ContactSheet Pick (criterion 5)", () => {
     ).toBeInTheDocument();
   });
 
+  // Every tile repeats the same buttons, so each tile is a named group and
+  // a screen reader hears which variation a button acts on.
+  it("names each tile's controls by its variation", async () => {
+    const layerIds = seedBatch();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+    const tile = screen.getByRole("group", { name: "Variation 2" });
+    await userEvent.click(
+      within(tile).getByRole("button", { name: "Sketch editor" })
+    );
+    expect(onPick).toHaveBeenCalledWith(layerIds[1]);
+  });
+
   it("offers the strip's follow-ups", async () => {
     const layerIds = seedBatch();
     render(
@@ -442,6 +472,11 @@ describe("a failed batch", () => {
     expect(onOpenEditor).toHaveBeenCalled();
   });
 
+  it("offers Report when nothing rendered", () => {
+    renderSheet(seedFailedBatch());
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
+  });
+
   it("announces the counts and retries one variation", async () => {
     const layerIds = seedFailedBatch();
     renderSheet(layerIds);
@@ -548,5 +583,52 @@ describe("failure reasons", () => {
     }
     renderSheet(layerIds);
     expect(screen.getAllByText(/invalid api key/)).toHaveLength(1);
+  });
+});
+
+describe("ContactSheet prices", () => {
+  it("shows what another batch and one regenerate cost", () => {
+    const layerIds = seedBatch();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          makeMoreDetail="4 images · about $0.16"
+          regenerateDetail="about $0.04"
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByText("4 images · about $0.16")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "Regenerate · about $0.04" })
+    ).toHaveLength(4);
+  });
+});
+
+describe("ContactSheet failed follow-up", () => {
+  it("offers Report when another batch could not start", () => {
+    const layerIds = seedBatch();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          makeMoreError="The provider refused the request."
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
   });
 });

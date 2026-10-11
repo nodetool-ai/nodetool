@@ -3,7 +3,7 @@
  * in setup would undo the flow itself. The document shortcuts bind only once
  * the editor shows.
  */
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { useDocumentUndoShortcuts } from "../../../hooks/useDocumentUndoShortcuts";
@@ -15,7 +15,9 @@ jest.mock("../../setup/script/useScriptSetupFlow", () => ({
   useScriptSetupFlow: () => ({})
 }));
 jest.mock("../../setup/SetupFlow", () => ({
-  SetupFlow: () => <div data-testid="setup-flow" />
+  SetupFlow: ({ readOnly }: { readOnly?: boolean }) => (
+    <div data-testid="setup-flow" data-readonly={String(Boolean(readOnly))} />
+  )
 }));
 jest.mock("../../../hooks/useDocumentUndoShortcuts", () => ({
   useDocumentUndoShortcuts: jest.fn()
@@ -38,10 +40,10 @@ const shortcuts = useDocumentUndoShortcuts as jest.Mock;
 const lastEnabled = (): boolean | undefined =>
   shortcuts.mock.calls[shortcuts.mock.calls.length - 1][0].enabled;
 
-const renderSurface = () =>
+const renderSurface = (mode: "edit" | "view" = "edit") =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ScriptSurface refId="script-undo" mode="edit" active />
+      <ScriptSurface refId="script-undo" mode={mode} active />
     </ThemeProvider>
   );
 
@@ -58,5 +60,19 @@ describe("ScriptSurface undo shortcuts", () => {
     stage = "done";
     renderSurface();
     expect(lastEnabled()).toBe(true);
+  });
+});
+
+describe("ScriptSurface setup flow in view mode", () => {
+  it("renders the setup flow read-only in a view-mode tab", () => {
+    stage = "idea";
+    renderSurface("view");
+    expect(screen.getByTestId("setup-flow").dataset.readonly).toBe("true");
+  });
+
+  it("renders the setup flow editable in an edit-mode tab", () => {
+    stage = "idea";
+    renderSurface("edit");
+    expect(screen.getByTestId("setup-flow").dataset.readonly).toBe("false");
   });
 });

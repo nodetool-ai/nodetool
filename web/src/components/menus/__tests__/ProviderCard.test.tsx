@@ -212,6 +212,24 @@ describe("ProviderCard registry availability", () => {
     expect(screen.getByText("Connected")).toBeInTheDocument();
   });
 
+  // Saving a key refetches the provider list. The stale list lacks the new
+  // provider, and the card said "this server does not offer" it until the
+  // refetch landed.
+  it("holds the connected state while a saved key refetches the providers", () => {
+    mockUseProviders.mockReturnValue({
+      ...registryWith("groq"),
+      isFetching: true
+    });
+
+    renderCard(
+      { ...plainMeta, key: "OPENAI_API_KEY", name: "OpenAI", providerId: "openai" },
+      true
+    );
+
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.queryByText("Unavailable")).not.toBeInTheDocument();
+  });
+
   it("counts an OAuth sign-in as connected on a card that also takes a key", () => {
     mockUseOAuthConnection.mockReturnValue(
       oauthState({ label: "OpenAI", isConnected: true, canDisconnect: true })

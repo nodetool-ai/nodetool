@@ -63,9 +63,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/image-apps-v2/relighting",
-            "name": "Relight",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

@@ -166,11 +166,18 @@ export function projectBox(box: Box, matrix: Float32Array, canvas: { width: numb
 }
 
 /** Root-first chain of the clip and every ancestor group it is parented to.
- * Stops at the first non-group parent, same as the scene model. */
+ * Stops at the first non-group parent, same as the scene model. A chain that
+ * loops back on itself is refused (`parent_cycle` in `validate.ts`), so the
+ * clip is treated as unparented. */
 export function ancestorChain(clip: TimelineClip, byId: ReadonlyMap<string, TimelineClip>): TimelineClip[] {
   const chain: TimelineClip[] = [clip];
+  const seen = new Set([clip.id]);
   let parent = clip.parentId ? byId.get(clip.parentId) : undefined;
   while (parent?.mediaType === "group") {
+    if (seen.has(parent.id)) {
+      return [clip];
+    }
+    seen.add(parent.id);
     chain.push(parent);
     parent = parent.parentId ? byId.get(parent.parentId) : undefined;
   }

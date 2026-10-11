@@ -365,6 +365,28 @@ export interface TranscriptEditLocks {
   lockedClipIds?: ReadonlySet<string>;
 }
 
+/**
+ * Whether [startMs, endMs) covers any word of a locked clip. A transcript
+ * deletion over such a word is refused outright: cutting around the locked
+ * clip would still ripple every other track while the word stays put.
+ */
+function overlapsLockedWords(
+  clips: TimelineClip[],
+  startMs: number,
+  endMs: number,
+  locks: TranscriptEditLocks
+): boolean {
+  const locked = locks.lockedClipIds;
+  if (!locked || locked.size === 0) return false;
+  return clips.some(
+    (clip) =>
+      locked.has(clip.id) &&
+      (clip.caption?.words ?? []).some(
+        (w) => clip.startMs + w.startMs < endMs && clip.startMs + w.endMs > startMs
+      )
+  );
+}
+
 /** Whether `clip` can be cut by `splitClip` (a time remap refuses a cut). */
 function isCuttable(clip: TimelineClip): boolean {
   return clip.timeRemap === undefined;
@@ -391,6 +413,25 @@ function tailRemnant(
 }
 
 /**
+ * Relinks the remnants on one side of a cut: one fresh `linkId` per original
+ * link group, so the head halves of a linked pair stay linked to each other but
+ * not to the tail halves (mirrors the store's link-aware split). Unlinked
+ * clips pass through.
+ */
+function sideRelinker(): (clip: TimelineClip) => TimelineClip {
+  const byGroup = new Map<string, string>();
+  return (clip) => {
+    if (clip.linkId === undefined) return clip;
+    let linkId = byGroup.get(clip.linkId);
+    if (linkId === undefined) {
+      linkId = createTimeOrderedUuid();
+      byGroup.set(clip.linkId, linkId);
+    }
+    return { ...clip, linkId };
+  };
+}
+
+/**
  * Ripple-delete the absolute time span [startMs, endMs) across every track:
  * clips fully inside are dropped, clips overlapping an edge are trimmed (their
  * words partitioned and the tail's rebased), and everything after shifts left
@@ -403,9 +444,13 @@ export function rippleDeleteRange(
   endMs: number,
   locks: TranscriptEditLocks = {}
 ): ReflowedClips {
-  if (endMs <= startMs) return { clips, durationMs: maxEnd(clips) };
+  if (endMs <= startMs || overlapsLockedWords(clips, startMs, endMs, locks)) {
+    return { clips, durationMs: maxEnd(clips) };
+  }
   const span = endMs - startMs;
   const next: TimelineClip[] = [];
+  const relinkHead = sideRelinker();
+  const relinkTail = sideRelinker();
 
   for (const clip of clips) {
     const cStart = clip.startMs;
@@ -427,9 +472,9 @@ export function rippleDeleteRange(
     // Overlaps the cut: keep the head before it and the tail after it.
     const headLen = Math.max(0, startMs - cStart);
     const tailFromLocal = Math.min(clip.durationMs, endMs - cStart);
-    if (headLen > 0) next.push(headRemnant(clip, headLen));
+    if (headLen > 0) next.push(relinkHead(headRemnant(clip, headLen)));
     if (clip.durationMs - tailFromLocal > 0) {
-      next.push(tailRemnant(clip, tailFromLocal, startMs));
+      next.push(relinkTail(tailRemnant(clip, tailFromLocal, startMs)));
     }
     // Neither remnant → the clip was fully covered and is dropped.
   }
@@ -508,6 +553,37 @@ interface SurvivingWord {
 }
 
 /**
+ * What the editor showed when it was last seeded from the clips. Clips can
+ * change while the editor has focus (a split gives new ids, a voicing or
+ * transcription rewrites words), and those changes are not in the editor tree.
+ * A token or draft missing from this snapshot was never in the editor, so its
+ * absence from the edit is not a deletion.
+ */
+export interface SeededTranscript {
+  /** {@link seededTokenKey} of every word the editor was seeded with. */
+  tokenKeys: ReadonlySet<string>;
+  /** Ids of the draft beats the editor was seeded with. */
+  draftIds: ReadonlySet<string>;
+}
+
+/** Identity of a word as seeded: its source position, text and timing. */
+function seededTokenKey(tok: TranscriptToken): string {
+  return `${tok.clipId}:${tok.wordIndex}:${tok.startMs}-${tok.endMs}:${tok.text}`;
+}
+
+/** Snapshot the words and drafts an editor seeded from `clips` shows. */
+export function snapshotSeededTranscript(clips: TimelineClip[]): SeededTranscript {
+  return {
+    tokenKeys: new Set(
+      buildTranscriptDoc(clips)
+        .segments.flatMap((s) => s.tokens)
+        .map(seededTokenKey)
+    ),
+    draftIds: new Set(clips.filter(isDraftBeat).map((c) => c.id))
+  };
+}
+
+/**
  * Reconcile a freeform edit of the transcript text back onto the clips. Given
  * the words that survived the edit (each still tagged with its source word and
  * carrying its possibly-edited text), this:
@@ -518,14 +594,20 @@ interface SurvivingWord {
  * New text typed between words is folded into the adjacent word upstream (so it
  * arrives here as a relabel); authoring brand-new audio stays an explicit
  * "add line" → voice action.
+ *
+ * With `seededTokenKeys`, only words the editor was seeded with are relabeled
+ * or cut; words that appeared or changed since seeding are left alone.
  */
 export function reconcileTranscript(
   clips: TimelineClip[],
   survivors: SurvivingWord[],
-  locks: TranscriptEditLocks = {}
+  locks: TranscriptEditLocks = {},
+  seededTokenKeys?: ReadonlySet<string>
 ): ReflowedClips {
   const doc = buildTranscriptDoc(clips);
   const tokens = doc.segments.flatMap((s) => s.tokens);
+  const isSeeded = (tok: TranscriptToken): boolean =>
+    !seededTokenKeys || seededTokenKeys.has(seededTokenKey(tok));
   const key = (clipId: string, wordIndex: number): string =>
     `${clipId}:${wordIndex}`;
   const survivingText = new Map(
@@ -536,7 +618,7 @@ export function reconcileTranscript(
   let next = clips;
   for (const tok of tokens) {
     const edited = survivingText.get(key(tok.clipId, tok.wordIndex));
-    if (edited === undefined) continue;
+    if (edited === undefined || !isSeeded(tok)) continue;
     const trimmed = edited.trim();
     if (trimmed && trimmed !== tok.text) {
       next = relabelWord(next, tok.clipId, tok.wordIndex, trimmed);
@@ -549,7 +631,8 @@ export function reconcileTranscript(
   const spans: Array<{ clipId: string; startMs: number; endMs: number }> = [];
   let previousRemoved = false;
   for (const tok of tokens) {
-    const isRemoved = !survivingText.has(key(tok.clipId, tok.wordIndex));
+    const isRemoved =
+      isSeeded(tok) && !survivingText.has(key(tok.clipId, tok.wordIndex));
     if (isRemoved) {
       const last = spans[spans.length - 1];
       if (previousRemoved && last && last.clipId === tok.clipId) {
@@ -593,33 +676,71 @@ function isDraftBeat(clip: TimelineClip): boolean {
 }
 
 /**
+ * Close the gaps left by removed draft beats: voiceover beats on the same
+ * track that start at or after a removed draft's end shift left by its length.
+ * Every other clip, and every gap the edit did not create, stays put.
+ */
+function removeDraftBeats(
+  clips: TimelineClip[],
+  removedIds: ReadonlySet<string>
+): TimelineClip[] {
+  const gone = clips
+    .filter((c) => removedIds.has(c.id))
+    .sort((a, b) => b.startMs - a.startMs);
+  let next = clips.filter((c) => !removedIds.has(c.id));
+  for (const draft of gone) {
+    const end = draft.startMs + draft.durationMs;
+    next = next.map((c) =>
+      isVoiceoverBeat(c) && c.trackId === draft.trackId && c.startMs >= end
+        ? { ...c, startMs: c.startMs - draft.durationMs }
+        : c
+    );
+  }
+  return next;
+}
+
+/**
  * Apply a whole freeform edit to the clips in one transform: reconcile voiced
  * words (relabel + ripple-cut), update existing draft prompts, drop drafts
- * whose text was deleted, create draft beats for newly-typed lines, then re-flow.
- * Returns the same array when nothing changed.
+ * whose text was deleted (closing only their gaps), and append draft beats for
+ * newly-typed lines after the last clip. Beats the edit did not add or remove
+ * keep their starts and the gaps between them. Returns the same array when
+ * nothing changed. With `seeded`, only words and drafts the editor was seeded
+ * with can be cut or removed.
  */
 export function applyEditorEdits(
   clips: TimelineClip[],
   edits: EditorEdits,
   audioTrackId: string,
-  locks: TranscriptEditLocks = {}
+  locks: TranscriptEditLocks = {},
+  seeded?: SeededTranscript
 ): ReflowedClips {
-  let next = reconcileTranscript(clips, edits.survivors, locks).clips;
+  let next = reconcileTranscript(
+    clips,
+    edits.survivors,
+    locks,
+    seeded?.tokenKeys
+  ).clips;
 
   // Existing drafts: write back the edited prompt.
   const updateById = new Map(edits.draftUpdates.map((d) => [d.clipId, d.text.trim()]));
-  next = next.map((c) =>
-    updateById.has(c.id) && (c.prompt ?? "") !== updateById.get(c.id)
-      ? { ...c, prompt: updateById.get(c.id) }
-      : c
-  );
+  const promptChanged = (c: TimelineClip): boolean =>
+    updateById.has(c.id) && (c.prompt ?? "") !== updateById.get(c.id);
+  if (next.some(promptChanged)) {
+    next = next.map((c) =>
+      promptChanged(c) ? { ...c, prompt: updateById.get(c.id) } : c
+    );
+  }
 
   // Drafts whose text was deleted entirely are removed.
   const kept = new Set(edits.draftUpdates.map((d) => d.clipId));
   const removed = new Set(
-    clips.filter(isDraftBeat).map((c) => c.id).filter((id) => !kept.has(id))
+    clips
+      .filter(isDraftBeat)
+      .map((c) => c.id)
+      .filter((id) => !kept.has(id) && (!seeded || seeded.draftIds.has(id)))
   );
-  if (removed.size > 0) next = next.filter((c) => !removed.has(c.id));
+  if (removed.size > 0) next = removeDraftBeats(next, removed);
 
   // Newly-typed lines become draft beats to voice.
   for (const text of edits.newDraftTexts) {
@@ -644,7 +765,7 @@ export function applyEditorEdits(
     ];
   }
 
-  return reflowGenerated(next);
+  return { clips: next, durationMs: maxEnd(next) };
 }
 
 // ── Move (cut / paste a word range) ──────────────────────────────────────────
@@ -689,7 +810,7 @@ export function cutWordRange(
   endMs: number,
   locks: TranscriptEditLocks = {}
 ): CutResult {
-  if (endMs <= startMs) {
+  if (endMs <= startMs || overlapsLockedWords(clips, startMs, endMs, locks)) {
     return { clips, durationMs: maxEnd(clips), extracted: [] };
   }
   const extracted: TimelineClip[] = [];
@@ -722,6 +843,8 @@ export function pasteClipsAt(
   if (block.length === 0) return { clips, durationMs: maxEnd(clips) };
   const blockLen = block.reduce((m, c) => Math.max(m, c.startMs + c.durationMs), 0);
   const next: TimelineClip[] = [];
+  const relinkHead = sideRelinker();
+  const relinkTail = sideRelinker();
 
   for (const clip of clips) {
     const cStart = clip.startMs;
@@ -734,8 +857,8 @@ export function pasteClipsAt(
       next.push(clip);
     } else {
       const headLen = targetMs - cStart;
-      next.push(headRemnant(clip, headLen));
-      next.push(tailRemnant(clip, headLen, targetMs + blockLen));
+      next.push(relinkHead(headRemnant(clip, headLen)));
+      next.push(relinkTail(tailRemnant(clip, headLen, targetMs + blockLen)));
     }
   }
 

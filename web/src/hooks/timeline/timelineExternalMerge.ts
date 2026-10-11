@@ -201,6 +201,18 @@ export function applyAcceptedTimelineConflict(
       state.setCamera2D(conflict.external == null ? null : timelineCamera2d.parse(conflict.external));
       return;
     }
+    if (conflict.unit.id === "tempo") {
+      state.applyExternalMerge({
+        tempo: conflict.external as TimelineStoreState["tempo"]
+      });
+      return;
+    }
+    if (conflict.unit.id === "setup") {
+      state.applyExternalMerge({
+        setup: (conflict.external ?? null) as TimelineStoreState["setup"]
+      });
+      return;
+    }
     if (conflict.unit.id === "scriptEnabled") {
       state.setScriptEnabled(Boolean(conflict.external));
       return;

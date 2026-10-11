@@ -124,6 +124,7 @@ body.touch .touch-layer{display:block;position:fixed;inset:0;z-index:2;pointer-e
 .touch-buttons{position:absolute;right:max(1.25rem,env(safe-area-inset-right));bottom:max(1.25rem,env(safe-area-inset-bottom));display:flex;flex-direction:column-reverse;gap:1rem;pointer-events:auto}
 .touch-button{width:5.25rem;height:5.25rem;border-radius:50%;border:2px solid #fff6;background:#ffffff1f;color:#fff;font:600 .8rem system-ui,sans-serif;letter-spacing:.05em;touch-action:none;box-shadow:0 0 1.25rem #0008}
 .touch-button.active{background:#ffffff59;transform:scale(.94)}
+.touch-layer[data-pointer=mouse] *{pointer-events:none}
 @media (orientation:portrait){body.touch.landscape-game .rotate{display:flex;position:fixed;inset:0;z-index:4;align-items:center;justify-content:center;padding:2rem;text-align:center;font-size:1.25rem;background:#000e}}`;
 
 async function playerBundle(): Promise<Uint8Array> {

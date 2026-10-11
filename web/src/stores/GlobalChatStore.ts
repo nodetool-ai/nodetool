@@ -238,6 +238,8 @@ export interface GlobalChatState {
   lastUsedThreadId: string | null;
   isLoadingThreads: boolean;
   threadsLoaded: boolean;
+  /** Why the thread list failed to load. Send and connection errors stay in `error`. */
+  threadsError: string | null;
 
   // Message caching
   messageCache: Record<string, Message[]>; // threadId -> messages
@@ -560,6 +562,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       lastUsedThreadId: null as string | null,
       isLoadingThreads: false,
       threadsLoaded: false,
+      threadsError: null,
 
       // Message cache
       messageCache: {},
@@ -1281,17 +1284,20 @@ const useGlobalChatStore = create<GlobalChatState>()(
               threads,
               threadWorkflowId,
               threadsLoaded: true,
+              threadsError: null,
               error: null
             };
           });
         } catch (error) {
           console.error("Failed to fetch threads:", error);
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Failed to load chat threads";
           set({
             threadsLoaded: false,
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to load chat threads"
+            threadsError: message,
+            error: message
           });
         } finally {
           set({ isLoadingThreads: false });

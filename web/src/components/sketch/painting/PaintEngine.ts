@@ -92,6 +92,18 @@ export interface PaintEngine {
   } | null;
 
   /**
+   * Bounds of what was painted since the previous call, then reset. The
+   * per-move composite repaints only this region. Optional; callers fall back
+   * to {@link getDirtyRect}.
+   */
+  takeFrameDirtyRect?(): {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  } | null;
+
+  /**
    * Report the effective stroke-assist mode for the current settings.
    * Used by PaintSession to publish the lazy-brush leash for cursor overlay.
    * Optional; if absent, callers should treat it as `"off"`.

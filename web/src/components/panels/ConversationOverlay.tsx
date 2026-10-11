@@ -449,8 +449,8 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         <Text
           size="small"
           sx={{
-            color: theme.vars.palette.grey[100],
-            fontWeight: 600,
+            color: theme.vars.palette.text.primary,
+            fontWeight: 500,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap"
@@ -510,7 +510,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
             <ForumOutlinedIcon />
             <Text
               size="small"
-              sx={{ color: theme.vars.palette.grey[200], fontWeight: 600 }}
+              sx={{ color: theme.vars.palette.grey[200], fontWeight: 500 }}
             >
               Start a conversation
             </Text>

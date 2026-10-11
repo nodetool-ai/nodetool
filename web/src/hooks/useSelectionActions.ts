@@ -1,6 +1,10 @@
 import { useCallback } from "react";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
+import {
+  applyAbsolutePositions,
+  layoutSelection
+} from "../utils/selectionLayout";
 
 interface SelectionActionsReturn {
   alignLeft: () => void;
@@ -49,162 +53,135 @@ export const useSelectionActions = (): SelectionActionsReturn => {
   const store = useNodeStoreRef();
   const surroundWithGroup = useSurroundWithGroup();
 
+  // Group children store positions relative to their group, so layout works
+  // in canvas coordinates and writes each result back relative to its parent.
+  // A child of a selected group is left out: it moves with the group.
+  const getLayoutNodes = useCallback(
+    () => layoutSelection(getSelectedNodes(), store.getState().nodes),
+    [getSelectedNodes, store]
+  );
+
+  const applyPositions = useCallback(
+    (positions: Map<string, { x: number; y: number }>) => {
+      setNodes(applyAbsolutePositions(store.getState().nodes, positions));
+    },
+    [setNodes, store]
+  );
+
   const alignLeft = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
 
     const leftMostX = Math.min(...selectedNodes.map((n) => n.position.x));
-    const selectedIds = new Set(selectedNodes.map((n) => n.id));
-
-    const { nodes } = store.getState();
-    setNodes(
-      nodes.map((node) => {
-        if (selectedIds.has(node.id)) {
-          return { ...node, position: { ...node.position, x: leftMostX } };
-        }
-        return node;
-      })
+    applyPositions(
+      new Map(
+        selectedNodes.map((n) => [n.id, { x: leftMostX, y: n.position.y }])
+      )
     );
-  }, [getSelectedNodes, setNodes, store]);
+  }, [getLayoutNodes, applyPositions]);
 
   const alignCenter = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
 
     const avgCenterX =
-      selectedNodes.reduce((sum, n) => {
-        const nodeWidth = n.measured?.width ?? NODE_WIDTH;
-        return sum + n.position.x + nodeWidth / 2;
-      }, 0) / selectedNodes.length;
+      selectedNodes.reduce(
+        (sum, n) => sum + n.position.x + getNodeWidth(n) / 2,
+        0
+      ) / selectedNodes.length;
 
-    const selectedIds = new Set(selectedNodes.map((n) => n.id));
-
-    const { nodes } = store.getState();
-    setNodes(
-      nodes.map((node) => {
-        if (selectedIds.has(node.id)) {
-          const nodeWidth = node.measured?.width ?? NODE_WIDTH;
-          return {
-            ...node,
-            position: { ...node.position, x: avgCenterX - nodeWidth / 2 }
-          };
-        }
-        return node;
-      })
+    applyPositions(
+      new Map(
+        selectedNodes.map((n) => [
+          n.id,
+          { x: avgCenterX - getNodeWidth(n) / 2, y: n.position.y }
+        ])
+      )
     );
-  }, [getSelectedNodes, setNodes, store]);
+  }, [getLayoutNodes, applyPositions]);
 
   const alignRight = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
 
     const rightMostX = Math.max(
-      ...selectedNodes.map(
-        (n) => n.position.x + (n.measured?.width ?? NODE_WIDTH)
+      ...selectedNodes.map((n) => n.position.x + getNodeWidth(n))
+    );
+
+    applyPositions(
+      new Map(
+        selectedNodes.map((n) => [
+          n.id,
+          { x: rightMostX - getNodeWidth(n), y: n.position.y }
+        ])
       )
     );
-
-    const selectedIds = new Set(selectedNodes.map((n) => n.id));
-
-    const { nodes } = store.getState();
-    setNodes(
-      nodes.map((node) => {
-        if (selectedIds.has(node.id)) {
-          const nodeWidth = node.measured?.width ?? NODE_WIDTH;
-          return {
-            ...node,
-            position: { ...node.position, x: rightMostX - nodeWidth }
-          };
-        }
-        return node;
-      })
-    );
-  }, [getSelectedNodes, setNodes, store]);
+  }, [getLayoutNodes, applyPositions]);
 
   const alignTop = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
 
     const topMostY = Math.min(...selectedNodes.map((n) => n.position.y));
-    const selectedIds = new Set(selectedNodes.map((n) => n.id));
-
-    const { nodes } = store.getState();
-    setNodes(
-      nodes.map((node) => {
-        if (selectedIds.has(node.id)) {
-          return { ...node, position: { ...node.position, y: topMostY } };
-        }
-        return node;
-      })
+    applyPositions(
+      new Map(
+        selectedNodes.map((n) => [n.id, { x: n.position.x, y: topMostY }])
+      )
     );
-  }, [getSelectedNodes, setNodes, store]);
+  }, [getLayoutNodes, applyPositions]);
 
   const alignMiddle = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
 
     const avgCenterY =
-      selectedNodes.reduce((sum, n) => {
-        const nodeHeight = n.measured?.height ?? 0;
-        return sum + n.position.y + nodeHeight / 2;
-      }, 0) / selectedNodes.length;
+      selectedNodes.reduce(
+        (sum, n) => sum + n.position.y + getNodeHeight(n) / 2,
+        0
+      ) / selectedNodes.length;
 
-    const selectedIds = new Set(selectedNodes.map((n) => n.id));
-
-    const { nodes } = store.getState();
-    setNodes(
-      nodes.map((node) => {
-        if (selectedIds.has(node.id)) {
-          const nodeHeight = node.measured?.height ?? 0;
-          return {
-            ...node,
-            position: { ...node.position, y: avgCenterY - nodeHeight / 2 }
-          };
-        }
-        return node;
-      })
+    applyPositions(
+      new Map(
+        selectedNodes.map((n) => [
+          n.id,
+          { x: n.position.x, y: avgCenterY - getNodeHeight(n) / 2 }
+        ])
+      )
     );
-  }, [getSelectedNodes, setNodes, store]);
+  }, [getLayoutNodes, applyPositions]);
 
   const alignBottom = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
 
     const bottomMostY = Math.max(
-      ...selectedNodes.map((n) => n.position.y + (n.measured?.height ?? 0))
+      ...selectedNodes.map((n) => n.position.y + getNodeHeight(n))
     );
 
-    const selectedIds = new Set(selectedNodes.map((n) => n.id));
-
-    const { nodes } = store.getState();
-    setNodes(
-      nodes.map((node) => {
-        if (selectedIds.has(node.id)) {
-          const nodeHeight = node.measured?.height ?? 0;
-          return {
-            ...node,
-            position: { ...node.position, y: bottomMostY - nodeHeight }
-          };
-        }
-        return node;
-      })
+    applyPositions(
+      new Map(
+        selectedNodes.map((n) => [
+          n.id,
+          { x: n.position.x, y: bottomMostY - getNodeHeight(n) }
+        ])
+      )
     );
-  }, [getSelectedNodes, setNodes, store]);
+  }, [getLayoutNodes, applyPositions]);
 
   const distributeHorizontal = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
@@ -217,29 +194,17 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       return a.id.localeCompare(b.id);
     });
 
-    const leftMostX = Math.min(...sortedByX.map((n) => n.position.x));
-
-    const positionMap = new Map<string, number>();
-    let currentX = leftMostX;
+    const positions = new Map<string, { x: number; y: number }>();
+    let currentX = Math.min(...sortedByX.map((n) => n.position.x));
     sortedByX.forEach((node) => {
-      positionMap.set(node.id, currentX);
+      positions.set(node.id, { x: currentX, y: node.position.y });
       currentX += getNodeWidth(node) + HORIZONTAL_SPACING;
     });
-
-    const { nodes } = store.getState();
-    setNodes(
-      nodes.map((node) => {
-        const newX = positionMap.get(node.id);
-        if (newX !== undefined) {
-          return { ...node, position: { ...node.position, x: newX } };
-        }
-        return node;
-      })
-    );
-  }, [getSelectedNodes, setNodes, store]);
+    applyPositions(positions);
+  }, [getLayoutNodes, applyPositions]);
 
   const distributeVertical = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
@@ -252,42 +217,17 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       return a.id.localeCompare(b.id);
     });
 
-    const topMostY = Math.min(...sortedByY.map((n) => n.position.y));
-
-    const positionMap = new Map<string, number>();
-    let currentY = topMostY;
+    const positions = new Map<string, { x: number; y: number }>();
+    let currentY = Math.min(...sortedByY.map((n) => n.position.y));
     sortedByY.forEach((node) => {
-      positionMap.set(node.id, currentY);
+      positions.set(node.id, { x: node.position.x, y: currentY });
       currentY += getNodeHeight(node) + VERTICAL_SPACING;
     });
-
-    const { nodes } = store.getState();
-    setNodes(
-      nodes.map((node) => {
-        const newY = positionMap.get(node.id);
-        if (newY !== undefined) {
-          return { ...node, position: { ...node.position, y: newY } };
-        }
-        return node;
-      })
-    );
-  }, [getSelectedNodes, setNodes, store]);
-
-  const applyPositions = useCallback(
-    (positions: Map<string, { x: number; y: number }>) => {
-      const { nodes } = store.getState();
-      setNodes(
-        nodes.map((node) => {
-          const position = positions.get(node.id);
-          return position ? { ...node, position } : node;
-        })
-      );
-    },
-    [setNodes, store]
-  );
+    applyPositions(positions);
+  }, [getLayoutNodes, applyPositions]);
 
   const stackSelected = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
@@ -302,10 +242,10 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       currentY += getNodeHeight(node) + VERTICAL_SPACING;
     });
     applyPositions(positions);
-  }, [getSelectedNodes, applyPositions]);
+  }, [getLayoutNodes, applyPositions]);
 
   const arrangeGrid = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
+    const selectedNodes = getLayoutNodes();
     if (selectedNodes.length < 2) {
       return;
     }
@@ -347,7 +287,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       });
     });
     applyPositions(positions);
-  }, [getSelectedNodes, applyPositions]);
+  }, [getLayoutNodes, applyPositions]);
 
   const deleteSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();

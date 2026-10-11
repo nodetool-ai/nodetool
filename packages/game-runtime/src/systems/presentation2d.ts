@@ -1,18 +1,18 @@
 import type { EntityState } from "./state2d.js";
-import type { GameDocument, GameHudLabel, GameRenderFrame, GameScene } from "@nodetool-ai/protocol";
+import { resolveGameUiFrame, type GameDocument, type GameHudLabel, type GameRenderFrame, type GameScene, type GameUiOverride } from "@nodetool-ai/protocol";
 import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { evaluateVisual } from "../visual-animation.js";
 import type { GameSystemContext2D } from "./context2d.js";
 type PresentationContext2D = Readonly<
-  Pick<GameSystemContext2D, "tick" | "events" | "frameFor" | "document" | "scene" | "states" | "score" | "won" | "hud" | "scriptStats">
+  Pick<GameSystemContext2D, "tick" | "events" | "frameFor" | "document" | "scene" | "states" | "score" | "won" | "hud" | "ui" | "scriptStats" | "queues">
 > &
   Pick<GameSystemContext2D, "presentationEvents" | "result">;
 export function stepPresentation2D(context: PresentationContext2D): void {
-  context.presentationEvents = structuredClone(context.events);
+  context.presentationEvents = [...structuredClone(context.events), ...(context.queues.particles ?? [])];
   context.result = {
     tick: context.tick,
     events: context.events,
-    frame: context.frameFor(context.document, context.scene, context.states, context.tick, context.score, context.won, context.hud)
+    frame: context.frameFor(context.document, context.scene, context.states, context.tick, context.score, context.won, context.hud, context.ui)
   };
   if (context.scriptStats) {
     context.result = { ...context.result, scriptStats: context.scriptStats };
@@ -42,12 +42,15 @@ export function frameFor(
   tick: number,
   score: number,
   won: boolean,
-  hud: ReadonlyMap<string, GameHudLabel>
+  hud: ReadonlyMap<string, GameHudLabel>,
+  ui: ReadonlyMap<string, GameUiOverride>
 ): GameRenderFrame {
   const cameraState = states.find((state) => state.active && state.definition.camera2d);
   const camera = cameraState?.definition.camera2d;
   const sprites: GameRenderFrame["sprites"] = [];
   const tiles: GameRenderFrame["tiles"] = [];
+  const particles: NonNullable<GameRenderFrame["particles"]> = [];
+  const audioEmitters: NonNullable<GameRenderFrame["audioEmitters"]> = [];
   const cameraX = cameraState?.x ?? 0;
   const cameraY = cameraState?.y ?? 0;
   // Tiles and lights outside the view plus a margin never reach the renderer, so large levels stay cheap.
@@ -69,6 +72,9 @@ export function frameFor(
       continue;
     }
     const entity = state.definition;
+    if (entity.audioSource?.spatial) {
+      audioEmitters.push({ entityId: entity.id, x: state.x, y: state.y, previousX: state.previousX, previousY: state.previousY });
+    }
     if (entity.sprite) {
       const spriteDefinition = entity.sprite;
       const binding = document.assets[entity.sprite.assetId];
@@ -197,6 +203,9 @@ export function frameFor(
         tiles.push(item);
       }
     }
+    if (entity.particles) {
+      particles.push({ entityId: entity.id, x: state.x, y: state.y, rotation: state.visual?.rotation ?? state.rotation, particles: entity.particles });
+    }
     if (entity.light2d && scene.lighting) {
       const light = entity.light2d;
       const x = state.x + (light.offset?.x ?? 0);
@@ -237,6 +246,20 @@ export function frameFor(
     ),
     hud: projectGameplayHud(usesCollectibles(document), score, won, hud)
   };
+  if (particles.length > 0) {
+    frame.particles = particles;
+  }
+  if (audioEmitters.length > 0) {
+    frame.audioEmitters = audioEmitters;
+  }
+  const uiFrame = resolveGameUiFrame(document.ui, scene.ui, ui, (entityId) => {
+    const state = states.find((candidate) => candidate.definition.id === entityId);
+    const health = state?.definition.behaviors.find((behavior) => behavior.kind === "health");
+    return state && health?.kind === "health" ? { value: state.health ?? 0, max: health.maximum } : undefined;
+  });
+  if (uiFrame) {
+    frame.ui = uiFrame;
+  }
   if (scene.lighting) {
     // Entity lights follow their entities; the nearest ones fill the slots the scene's fixed lights leave.
     const free = Math.max(0, MAX_LIGHTS - scene.lighting.points.length);

@@ -2,11 +2,13 @@ import type {
   GameDocument,
   GameEntity,
   GameEvent,
+  GameParticleEmission,
   GameHudLabel,
   GameInputFrame,
   GameRenderFrame,
   GameScene,
-  GameSnapshot
+  GameSnapshot,
+  GameUiOverride
 } from "@nodetool-ai/protocol";
 import type { GameplayQueues } from "../gameplay/lifecycle.js";
 import type { GameScriptCall, GameScriptRunner, GameScriptStats } from "../scripts.js";
@@ -27,6 +29,7 @@ export interface GameSystemContext2D {
   readonly document: GameDocument;
   readonly isSpawnedId: (entityId: string) => boolean;
   hud: Map<string, GameHudLabel>;
+  ui: Map<string, GameUiOverride>;
   emit: (event: GameEvent) => void;
   scriptStats: GameScriptStats | undefined;
   events: GameEvent[];
@@ -42,7 +45,7 @@ export interface GameSystemContext2D {
   readonly initialState: (entity: GameEntity, world: WorldTransform, spawnTick?: number) => EntityState;
   music: GameSnapshot["music"];
   readonly initialSceneStates: (scene: GameScene, spawnTick?: number) => EntityState[];
-  presentationEvents: GameEvent[];
+  presentationEvents: (GameEvent | GameParticleEmission)[];
   result: GameStepResult | undefined;
   readonly frameFor: (
     document: GameDocument,
@@ -51,6 +54,7 @@ export interface GameSystemContext2D {
     tick: number,
     score: number,
     won: boolean,
-    hud: ReadonlyMap<string, GameHudLabel>
+    hud: ReadonlyMap<string, GameHudLabel>,
+    ui: ReadonlyMap<string, GameUiOverride>
   ) => GameRenderFrame;
 }

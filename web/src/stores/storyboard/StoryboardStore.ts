@@ -22,13 +22,18 @@ import type {
   CreativeContext,
   Entity,
   ImageRef,
+  OneTakeDirection,
+  SceneClipDirection,
   Scene,
   Screenplay,
   Shot,
   ShotStatus,
   VideoRef
 } from "@nodetool-ai/protocol";
-import { boardEntityIdsWithShots } from "@nodetool-ai/protocol";
+import {
+  boardEntityIdsWithShots,
+  SCENE_CLIP_MIN_SHOTS
+} from "@nodetool-ai/protocol";
 import {
   pushHistory,
   undoHistory,
@@ -39,6 +44,7 @@ import {
   rebaseHistoryForMerge,
   type HistoryMap
 } from "../documentHistory";
+import isEqual from "../../utils/isEqual";
 import { rebaseDocumentSnapshots } from "../documentMerge";
 import { storyboardMergeAdapter } from "./merge";
 import type {
@@ -106,6 +112,16 @@ export interface StoryboardBoard {
   setupShotCount?: number;
   /** The inputs the current screenplay was directed from (PRD § 7.2). */
   setupDirectedFrom?: string | null;
+  /**
+   * The parts of the one-take prompt, when the board renders as one
+   * continuous clip. `compileOneTake` builds the prompt from them.
+   */
+  oneTake?: OneTakeDirection;
+  /**
+   * Runs of 2 to 5 consecutive shots, each rendered as one clip. Settings a
+   * scene clip leaves unset fall back to {@link oneTake}.
+   */
+  sceneClips?: SceneClipDirection[];
   /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
   updatedAt: number;
 }
@@ -184,6 +200,18 @@ interface StoryboardStoreState {
    * three (PRD § 7.7.1).
    */
   setSetup: (boardId: string, patch: StoryboardSetupPatch) => void;
+  /** Replace the board's one-take direction. Rapid edits merge into one undo step. */
+  setOneTake: (boardId: string, oneTake: OneTakeDirection) => void;
+  /**
+   * Add a scene clip, or replace the one with its id. A scene clip that
+   * overlaps it loses the overlapping shots, and drops when fewer than two
+   * remain, so a shot belongs to one scene clip at most.
+   */
+  setSceneClip: (boardId: string, sceneClip: SceneClipDirection) => void;
+  /** Remove a scene clip. A rendered clip stays on its shots. */
+  removeSceneClip: (boardId: string, sceneClipId: string) => void;
+  /** Replace the board's scene clips, as a server merge does. */
+  setSceneClips: (boardId: string, sceneClips: SceneClipDirection[]) => void;
   /** Replace the board's entity selection. */
   setEntityIds: (boardId: string, entityIds: string[]) => void;
   /**
@@ -478,6 +506,33 @@ export const sameMediaRef = (
  * merge that inserted a server shot — must renumber or the board renders out
  * of order. Shots already at their position keep their identity.
  */
+/**
+ * Put `sceneClip` in the list: replace the one with its id in place, or
+ * append it. Every other scene clip gives up the shots it shares with it and
+ * drops below two shots.
+ */
+export const upsertSceneClip = (
+  sceneClips: readonly SceneClipDirection[],
+  sceneClip: SceneClipDirection
+): SceneClipDirection[] => {
+  const taken = new Set(sceneClip.shot_ids);
+  const others = sceneClips.flatMap((clip): SceneClipDirection[] => {
+    if (clip.id === sceneClip.id) {
+      return [sceneClip];
+    }
+    const shotIds = clip.shot_ids.filter((id) => !taken.has(id));
+    if (shotIds.length === clip.shot_ids.length) {
+      return [clip];
+    }
+    return shotIds.length >= SCENE_CLIP_MIN_SHOTS
+      ? [{ ...clip, shot_ids: shotIds }]
+      : [];
+  });
+  return others.some((clip) => clip.id === sceneClip.id)
+    ? others
+    : [...others, sceneClip];
+};
+
 const renumberShots = (shots: Shot[]): Shot[] =>
   shots.map((shot, i) => (shot.index === i ? shot : { ...shot, index: i }));
 
@@ -956,6 +1011,46 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         },
         // Typing in a setup field coalesces the same way a brief edit does.
         { coalesceKey: `setup:${Object.keys(patch).sort().join(",")}` }
+      )
+    ),
+
+  setOneTake: (boardId, oneTake) =>
+    set((state) =>
+      withBoard(
+        state,
+        boardId,
+        (b) => (isEqual(b.oneTake, oneTake) ? null : { ...b, oneTake }),
+        // Typing in a section is one undo step, as for the brief.
+        { coalesceKey: "oneTake" }
+      )
+    ),
+
+  setSceneClip: (boardId, sceneClip) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const next = upsertSceneClip(b.sceneClips ?? [], sceneClip);
+        return isEqual(b.sceneClips ?? [], next)
+          ? null
+          : { ...b, sceneClips: next };
+      })
+    ),
+
+  removeSceneClip: (boardId, sceneClipId) =>
+    set((state) =>
+      withBoard(state, boardId, (b) =>
+        b.sceneClips?.some((clip) => clip.id === sceneClipId)
+          ? {
+              ...b,
+              sceneClips: b.sceneClips.filter((clip) => clip.id !== sceneClipId)
+            }
+          : null
+      )
+    ),
+
+  setSceneClips: (boardId, sceneClips) =>
+    set((state) =>
+      withBoard(state, boardId, (b) =>
+        isEqual(b.sceneClips ?? [], sceneClips) ? null : { ...b, sceneClips }
       )
     ),
 

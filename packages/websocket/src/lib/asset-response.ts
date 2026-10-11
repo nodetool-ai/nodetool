@@ -76,6 +76,7 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
     metadata: asset.metadata ?? null,
     sketch_document_id: asset.sketch_document_id ?? null,
     created_at: asset.created_at,
+    updated_at: asset.updated_at,
     get_url: getUrl,
     thumb_url: thumbUrl,
     duration: asset.duration ?? null,

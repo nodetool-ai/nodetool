@@ -7,9 +7,9 @@
  * rendering a locator the media primitives have nothing to resolve.
  *
  * The call costs money, so the dialog says which model it goes to and what it
- * is likely to cost before it is made, and the confirm button carries the
- * dialog's own loading and disabled state — a button that only changed its
- * words while saving took a second press and made a second call (F18).
+ * is likely to cost before it is made, and the confirm button is disabled
+ * while saving — a button that only changed its words while saving took a
+ * second press and made a second call (F18).
  */
 
 import React, { Suspense, lazy, useCallback, useRef, useState } from "react";
@@ -25,11 +25,32 @@ import {
   Text
 } from "../../ui_primitives";
 import type { GenerationModel } from "../generationEstimate";
+import ReportBugButton from "../../support/ReportBugButton";
 import { MAX_STYLE_REFERENCES, STYLE_ACCEPT } from "./useCustomStyle";
 
 // The estimate pulls in the provider price tables; nothing needs them until
 // the dialog is open.
-const GenerationSummary = lazy(() => import("../GenerationSummary"));
+// Every reference goes to the model as an image, priced as input the way the
+// image flow prices its references.
+const ReferencesEstimate = lazy(async () => {
+  const [{ default: GenerationSummary }, { IMAGE_INPUT_TOKENS }] =
+    await Promise.all([
+      import("../GenerationSummary"),
+      import("../generationEstimate")
+    ]);
+  const Estimate = ({
+    references,
+    ...props
+  }: React.ComponentProps<typeof GenerationSummary> & {
+    references: number;
+  }) => (
+    <GenerationSummary
+      {...props}
+      extraInputTokens={Math.max(references, 1) * IMAGE_INPUT_TOKENS}
+    />
+  );
+  return { default: Estimate };
+});
 
 /** What the descriptor call is allowed to answer with. */
 const STYLE_MAX_OUTPUT_TOKENS = 1024;
@@ -43,6 +64,8 @@ export interface AddStyleDialogProps {
   onClose: () => void;
   /** Resolves true when the style was saved and applied. */
   onSubmit: (files: readonly File[]) => Promise<boolean>;
+  /** Stops the save in flight, so its style is never applied. */
+  onCancelSave?: () => void;
 }
 
 export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
@@ -51,7 +74,8 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
   error,
   model,
   onClose,
-  onSubmit
+  onSubmit,
+  onCancelSave
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const input = useRef<HTMLInputElement>(null);
@@ -99,10 +123,27 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
 
   // Cancelling drops the references. Leaving them behind meant reopening the
   // dialog on a set the creator had already walked away from (F18).
+  // Escape, the close button and the backdrop all land here. While the
+  // references are being read the save goes on regardless, so the dialog
+  // stays until it settles rather than hiding a style that lands later (F8).
   const handleCancel = useCallback(() => {
+    if (saving) {
+      return;
+    }
     setFiles([]);
     onClose();
-  }, [onClose]);
+  }, [onClose, saving]);
+
+  // The Cancel button is the one way out of a save: the descriptor call has
+  // no timeout, and a reply that never came held Generate forever. It stops
+  // the save, so nothing lands after the dialog closes.
+  const handleCancelButton = useCallback(() => {
+    if (saving) {
+      onCancelSave?.();
+    }
+    setFiles([]);
+    onClose();
+  }, [onCancelSave, onClose, saving]);
 
   return (
     <Dialog
@@ -112,11 +153,13 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
       showActions
       onConfirm={handleSubmit}
       confirmText={saving ? "Reading your references…" : "Add style"}
-      isLoading={saving}
+      // The primitive holds Cancel while it shows loading, and Cancel is what
+      // stops the save. The confirm button names the wait and stays disabled.
+      isLoading={saving && !onCancelSave}
       confirmDisabled={saving || files.length === 0}
-      cancelDisabled={saving}
+      cancelDisabled={saving && !onCancelSave}
       cancelText="Cancel"
-      onCancel={handleCancel}
+      onCancel={handleCancelButton}
     >
       <FlexColumn gap={GAP.comfortable}>
         <Text size="normal" color="secondary">
@@ -188,7 +231,8 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
         <Suspense
           fallback={<Caption color="secondary">Loading estimate…</Caption>}
         >
-          <GenerationSummary
+          <ReferencesEstimate
+            references={files.length}
             result="Describe your references as a style you can reuse"
             next="Saves the style and applies it to this board. No stills are rendered here."
             model={model}
@@ -196,7 +240,22 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
             maxOutputTokens={STYLE_MAX_OUTPUT_TOKENS}
           />
         </Suspense>
-        {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}
+        {error ? (
+          <AlertBanner
+            severity="error"
+            action={
+              <ReportBugButton
+                context={{
+                  source: "provider-call",
+                  summary: "Storyboard custom style failed",
+                  errorText: error
+                }}
+              />
+            }
+          >
+            {error}
+          </AlertBanner>
+        ) : null}
       </FlexColumn>
     </Dialog>
   );

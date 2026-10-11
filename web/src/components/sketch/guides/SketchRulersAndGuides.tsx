@@ -36,6 +36,8 @@ import { docToViewport, rulerTickSpacing, viewportToDoc } from "./rulerMath";
 const RULER = SKETCH_RULER_SIZE_PX;
 /** Width (CSS px) of the invisible strip that grabs a guide. */
 const GUIDE_GRAB_PX = 7;
+/** Pointer travel (CSS px) before pressing a guide starts moving it. */
+const GUIDE_MOVE_THRESHOLD_PX = 3;
 const EMPTY_GUIDES: readonly SketchGuide[] = [];
 
 interface ViewportSize {
@@ -57,6 +59,12 @@ type GuideDrag =
       orientation: SketchGuideOrientation;
       position: number | null;
       pointer: { x: number; y: number };
+      /** Viewport distance along the drag axis from the guide to where it was grabbed. */
+      grabOffset: number;
+      /** Pointer position along the drag axis at pointer down. */
+      startAlong: number;
+      /** Set once the pointer passed the move threshold. */
+      moved: boolean;
     };
 
 function drawRuler(
@@ -205,6 +213,11 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
     return () => ro.disconnect();
   }, []);
 
+  // The cursor is the integer pixel under the pointer. Its left or top edge
+  // trails the pointer by up to one zoomed pixel, so mark the pixel's center.
+  const cursorMarkX = cursor ? cursor.x + 0.5 : null;
+  const cursorMarkY = cursor ? cursor.y + 0.5 : null;
+
   useLayoutEffect(() => {
     if (!rulersVisible || size.width <= 0 || size.height <= 0) {
       return;
@@ -219,7 +232,7 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
         size.width,
         zoom,
         pan.x,
-        cursor?.x ?? null
+        cursorMarkX
       );
     }
     if (leftRef.current) {
@@ -232,17 +245,18 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
         size.height,
         zoom,
         pan.y,
-        cursor?.y ?? null
+        cursorMarkY
       );
     }
-  }, [rulersVisible, size, topInset, docW, docH, zoom, pan, cursor, theme]);
+  }, [rulersVisible, size, topInset, docW, docH, zoom, pan, cursorMarkX, cursorMarkY, theme]);
 
   /** Document position under the pointer for a guide of `orientation`, or null when it would be discarded. */
   const resolveDragPosition = useCallback(
     (
       clientX: number,
       clientY: number,
-      orientation: SketchGuideOrientation
+      orientation: SketchGuideOrientation,
+      grabOffset = 0
     ): { position: number | null; pointer: { x: number; y: number } } => {
       const el = rootRef.current;
       if (!el) {
@@ -252,7 +266,7 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
       const vx = clientX - rect.left;
       const vy = clientY - rect.top;
       const pointer = { x: vx, y: vy };
-      const along = orientation === "horizontal" ? vy : vx;
+      const along = (orientation === "horizontal" ? vy : vx) - grabOffset;
       const extent = orientation === "horizontal" ? rect.height : rect.width;
       // Over its own ruler, under the tool bar, or outside the viewport the
       // guide is discarded.
@@ -298,12 +312,27 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
       if (!drag) {
         return;
       }
+      if (drag.kind === "new") {
+        const { position, pointer } = resolveDragPosition(
+          event.clientX,
+          event.clientY,
+          drag.orientation
+        );
+        setDrag({ ...drag, position, pointer });
+        return;
+      }
       const { position, pointer } = resolveDragPosition(
         event.clientX,
         event.clientY,
-        drag.orientation
+        drag.orientation,
+        drag.grabOffset
       );
-      setDrag({ ...drag, position, pointer });
+      const along = drag.orientation === "horizontal" ? pointer.y : pointer.x;
+      // A press that stays within the threshold is a click, not a move.
+      if (!drag.moved && Math.abs(along - drag.startAlong) < GUIDE_MOVE_THRESHOLD_PX) {
+        return;
+      }
+      setDrag({ ...drag, position, pointer, moved: true });
     },
     [drag, resolveDragPosition]
   );
@@ -316,10 +345,15 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
+      if (drag.kind === "move" && !drag.moved) {
+        setDrag(null);
+        return;
+      }
       const { position } = resolveDragPosition(
         event.clientX,
         event.clientY,
-        drag.orientation
+        drag.orientation,
+        drag.kind === "move" ? drag.grabOffset : 0
       );
       const store = useSketchStore.getState();
       if (drag.kind === "new") {
@@ -380,7 +414,17 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
           options.grabbable && guideId
             ? (e: React.PointerEvent<HTMLElement>) => {
                 const { pointer } = resolveDragPosition(e.clientX, e.clientY, orientation);
-                beginDrag(e, { kind: "move", id: guideId, orientation, position, pointer });
+                const startAlong = isHorizontal ? pointer.y : pointer.x;
+                beginDrag(e, {
+                  kind: "move",
+                  id: guideId,
+                  orientation,
+                  position,
+                  pointer,
+                  grabOffset: startAlong - at,
+                  startAlong,
+                  moved: false
+                });
               }
             : undefined
         }

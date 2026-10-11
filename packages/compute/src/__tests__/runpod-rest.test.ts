@@ -4,6 +4,7 @@ import {
   DEFAULT_CPU_VCPU_COUNT,
   DEFAULT_GPU_COUNT,
   DEFAULT_GPU_VCPU_COUNT,
+  WORKER_CUDA_VERSIONS,
   deployWorkerPod,
 } from "../providers/runpod-rest.js";
 
@@ -69,6 +70,19 @@ describe("deployWorkerPod GPU spec", () => {
     expect(body.vcpuCount).toBe(DEFAULT_GPU_VCPU_COUNT);
   });
 
+  it("limits GPU pods to hosts whose driver runs the worker's CUDA 13 torch", async () => {
+    mockCreateThenRunning();
+
+    await deployWorkerPod(API_KEY, {
+      name: "gpu-worker",
+      image: "img",
+      computeType: "GPU",
+    });
+
+    expect(createBody().allowedCudaVersions).toEqual(["13.0"]);
+    expect(WORKER_CUDA_VERSIONS).toEqual(["13.0"]);
+  });
+
   it("honors explicit gpuCount / vcpuCount overrides", async () => {
     mockCreateThenRunning();
 
@@ -97,6 +111,7 @@ describe("deployWorkerPod GPU spec", () => {
 
     const body = createBody();
     expect(body.gpuCount).toBeUndefined();
+    expect(body.allowedCudaVersions).toBeUndefined();
     expect(body.vcpuCount).toBe(DEFAULT_CPU_VCPU_COUNT);
   });
 });

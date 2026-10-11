@@ -193,10 +193,10 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       apiOptions,
       frontendRendererRegistry
     });
-    const runnerTargetId = sdkLiveRunnerRegistry?.register(
-      req.userId ?? "1",
-      runner.jobs
-    );
+    // An app visitor's socket is not an SDK execution target for its owner.
+    const runnerTargetId = req.appSession
+      ? undefined
+      : sdkLiveRunnerRegistry?.register(req.userId ?? "1", runner.jobs);
     if (runnerTargetId) {
       try {
         socket.send(
@@ -288,7 +288,9 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                   token: token ?? null,
                   allowPatterns: msg.allow_patterns ?? null,
                   ignorePatterns: msg.ignore_patterns ?? null,
-                  cacheDir: msg.cache_dir ?? null,
+                  // No client-chosen cache_dir: the Model Manager, the
+                  // download badges and every loader read only the shared
+                  // hub cache, so a download elsewhere was invisible.
                   modelType,
                   onProgress: (update) => {
                     try {

@@ -8,6 +8,13 @@ import { useLastModelStore } from "../../../stores/lastModelStore";
 
 jest.mock("../../../hooks/useResolvedMediaUri");
 
+/** Whether the board renders at phone width. */
+let mockCompact = false;
+jest.mock("@mui/material", () => ({
+  ...jest.requireActual("@mui/material"),
+  useMediaQuery: () => mockCompact
+}));
+
 let mockShots: Shot[] = [];
 /** The board's scene records; empty is a legacy board (PRD § 7.7.7). */
 let mockScenes: Scene[] = [];
@@ -18,7 +25,11 @@ let activeShot: string | null = null;
 let mockTimelineId: string | null = null;
 let mockTimelineClips: Array<Record<string, unknown>> = [];
 /** The board's render models. Null on both leaves the toolbar unpriced. */
-let boardModels: { imageModel: unknown; videoModel: unknown } = {
+let boardModels: {
+  imageModel: unknown;
+  videoModel: unknown;
+  sceneClips?: unknown[];
+} = {
   imageModel: null,
   videoModel: null
 };
@@ -248,6 +259,7 @@ jest.mock("../ShotCard", () => ({
   default: ({
     shot,
     caption,
+    sceneClipTag,
     selected,
     onSelect,
     draggable,
@@ -260,6 +272,7 @@ jest.mock("../ShotCard", () => ({
   }: {
     shot: Shot;
     caption?: string;
+    sceneClipTag?: string;
     renderContext?: import("@nodetool-ai/protocol").BoardRenderContext | null;
     selected?: boolean;
     onSelect?: (id: string) => void;
@@ -274,6 +287,7 @@ jest.mock("../ShotCard", () => ({
       data-testid="shot-card"
       data-shot-id={shot.id}
       data-caption={caption}
+      data-scene-clip={sceneClipTag}
       // The board owns deriving this and handing it to every card; without it
       // a stale still shows no marker and nothing else would notice.
       data-stale={
@@ -384,6 +398,7 @@ const makeShot = (id: string, sceneId?: string): Shot => {
 };
 
 beforeEach(() => {
+  mockCompact = false;
   nextIndex = 0;
   mockScenes = [];
   mockGenre = "";
@@ -539,7 +554,9 @@ describe("StoryboardBoard download", () => {
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    await user.click(screen.getByRole("button", { name: "More board actions" }));
+    await user.click(
+      screen.getByRole("button", { name: "More board actions" })
+    );
 
     expect(
       screen.getByRole("menuitem", { name: "Download ZIP" })
@@ -552,7 +569,9 @@ describe("StoryboardBoard download", () => {
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    await user.click(screen.getByRole("button", { name: "More board actions" }));
+    await user.click(
+      screen.getByRole("button", { name: "More board actions" })
+    );
     await user.click(screen.getByRole("menuitem", { name: "Download ZIP" }));
 
     expect(mockFlushStoryboardSave).toHaveBeenCalledWith("board-1");
@@ -632,6 +651,28 @@ describe("StoryboardBoard toolbar", () => {
     expect(
       screen.getByRole("button", { name: "Create timeline" })
     ).toBeDisabled();
+  });
+
+  it("folds the board tools into one icon row on a phone", async () => {
+    mockCompact = true;
+    mockShots = [makeShot("s1")];
+    const user = userEvent.setup();
+    renderBoard(jest.fn());
+
+    // One column fills the width at any card size.
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add shot" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Slideshow" })).toBeEnabled();
+    const settings = screen.getByRole("button", { name: "Board settings" });
+    expect(settings).toHaveAttribute("aria-expanded", "false");
+    // The buttons that spend money keep their labels.
+    expect(
+      screen.getByRole("button", { name: "Render stills (1)" })
+    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Render clips" })).toBeDisabled();
+
+    await user.click(settings);
+    expect(settings).toHaveAttribute("aria-expanded", "true");
   });
 
   it("highlights clip rendering after every shot has a still", () => {
@@ -1139,6 +1180,44 @@ describe("StoryboardBoard scene headers", () => {
   });
 });
 
+describe("StoryboardBoard scene clips", () => {
+  it("offers a scene clip only on a scene with two or more shots", () => {
+    mockScenes = [
+      { type: "scene", id: "sc-a", slugline: "INT. FLAT — DAY" },
+      { type: "scene", id: "sc-b", slugline: "EXT. STREET — NIGHT" }
+    ];
+    mockShots = [
+      makeShot("a1", "sc-a"),
+      makeShot("b1", "sc-b"),
+      makeShot("b2", "sc-b")
+    ];
+    renderBoard(jest.fn());
+    const headers = screen.getAllByRole("group", { name: /^Scene \d$/ });
+    expect(
+      within(headers[0]).queryByRole("button", { name: /scene clip/i })
+    ).not.toBeInTheDocument();
+    expect(
+      within(headers[1]).getByRole("button", { name: /scene clip/i })
+    ).toBeInTheDocument();
+  });
+
+  it("names a saved scene clip in its header and tags its cards", () => {
+    mockShots = [makeShot("s1"), makeShot("s2"), makeShot("s3")];
+    boardModels = {
+      ...boardModels,
+      sceneClips: [{ id: "clip-1", prompt: "", shot_ids: ["s2", "s3"] }]
+    };
+    renderBoard(jest.fn());
+    expect(
+      screen.getByRole("button", { name: "Shots 2\u20133 \u00B7 not rendered" })
+    ).toBeInTheDocument();
+    const tags = screen
+      .getAllByTestId("shot-card")
+      .map((card) => card.getAttribute("data-scene-clip"));
+    expect(tags).toEqual([null, "Clip 1/2 \u00B7 0-5s", "Clip 2/2 \u00B7 5-10s"]);
+  });
+});
+
 describe("StoryboardBoard insert point", () => {
   it("inserts after the card it follows", async () => {
     mockShots = [makeShot("s1"), makeShot("s2")];
@@ -1219,7 +1298,9 @@ describe("StoryboardBoard Change Style", () => {
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    await user.click(screen.getByRole("button", { name: "More board actions" }));
+    await user.click(
+      screen.getByRole("button", { name: "More board actions" })
+    );
     await user.click(screen.getByRole("menuitem", { name: "Change style…" }));
     const grid = await screen.findByRole("radiogroup", { name: "Art style" });
     await user.click(within(grid).getByRole("radio", { name: /Noir/ }));
@@ -1249,7 +1330,9 @@ describe("StoryboardBoard next steps", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole("button", { name: "Create timeline" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Create timeline" })
+    ).toBeEnabled();
   });
 
   it("offers Create timeline once a shot has a clip", () => {
@@ -1320,6 +1403,37 @@ describe("StoryboardBoard next steps", () => {
         "This replaces 2 storyboard-owned clips, including trims and edits made to those clips."
       )
     ).toBeInTheDocument();
+  });
+});
+
+describe("StoryboardBoard linked timeline", () => {
+  it("offers no Open timeline button without a linked timeline", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" onAssemble={jest.fn()} />
+      </ThemeProvider>
+    );
+    expect(
+      screen.queryByRole("button", { name: "Open timeline" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the linked timeline next to the rebuild button", async () => {
+    mockTimelineId = "timeline-1";
+    const onOpenTimeline = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard
+          boardId="board-1"
+          onAssemble={jest.fn()}
+          onOpenTimeline={onOpenTimeline}
+        />
+      </ThemeProvider>
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Open timeline" }));
+
+    expect(onOpenTimeline).toHaveBeenCalledWith("timeline-1");
   });
 });
 

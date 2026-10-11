@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Upscale a Still",
   "tool_name": null,
-  "description": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
+  "description": "Enlarge an image without the softness a plain resize gives you. An upscaling model reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
   "tags": [
     "image",
     "example"
@@ -63,9 +63,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/esrgan",
-            "name": "ESRGAN",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

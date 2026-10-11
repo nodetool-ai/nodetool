@@ -48,6 +48,7 @@ import {
   type GraphLink,
   PLAN_CORE_NODE_TYPES,
   checkWorkflowPlan,
+  planInputSample,
   planNodeShape,
   planToPlacement,
   parseWorkflowPlan,
@@ -57,7 +58,8 @@ import {
   GAME_DESIGNER_SYSTEM_PROMPT,
   GAME_DESIGN_TOOL_DESCRIPTION,
   GAME_DESIGN_TOOL_NAME,
-  GAME_INSPIRATION_CHIPS,
+  NATIVE_GAME_INSPIRATION_CHIPS,
+  pinnedGameInspirationChip,
   WORKFLOW_PLANNER_SYSTEM_PROMPT,
   WORKFLOW_PLAN_TOOL_DESCRIPTION,
   WORKFLOW_PLAN_TOOL_NAME,
@@ -125,7 +127,12 @@ import {
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT
 } from "./workflows.specs.js";
-import { isNumber, isObjectLike, isString } from "../utils/type-guards.js";
+import {
+  isBoolean,
+  isNumber,
+  isObjectLike,
+  isString
+} from "../utils/type-guards.js";
 import { resolveProjectId } from "./project-scope.js";
 
 /** The run environment this run can execute a workflow in, or null. */
@@ -662,9 +669,43 @@ const setWorkflowAccess: CapabilityExport = {
   }
 };
 
+/**
+ * `node_ids` and `reuse_results` as the execution service takes them, or the
+ * error for a malformed value. A bad selection must not fall back to running
+ * (and billing) the whole workflow.
+ */
+function partialRunOptions(
+  params: Record<string, unknown>
+):
+  | { options: { nodeIds?: string[]; reuseResults?: boolean } }
+  | { error: string } {
+  const options: { nodeIds?: string[]; reuseResults?: boolean } = {};
+  const nodeIds = params["node_ids"];
+  if (nodeIds !== undefined && nodeIds !== null) {
+    if (
+      !Array.isArray(nodeIds) ||
+      nodeIds.length === 0 ||
+      !nodeIds.every(isString)
+    ) {
+      return { error: "node_ids must be a non-empty array of node id strings" };
+    }
+    options.nodeIds = nodeIds;
+  }
+  const reuse = params["reuse_results"];
+  if (reuse !== undefined && reuse !== null) {
+    if (!isBoolean(reuse)) {
+      return { error: "reuse_results must be a boolean" };
+    }
+    options.reuseResults = reuse;
+  }
+  return { options };
+}
+
 const runWorkflowCapability: CapabilityExport = {
   spec: runWorkflowCapabilitySpec,
   impl: async (run, params) => {
+    const partial = partialRunOptions(params);
+    if ("error" in partial) return partial;
     const env = await runEnvironmentOf(run);
     if (!env) return noRegistryError("run a workflow");
     const { runWorkflow } = await import("@nodetool-ai/execution/service");
@@ -673,6 +714,7 @@ const runWorkflowCapability: CapabilityExport = {
       userId: userIdOf(run.context),
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...partial.options,
       interactive: params["interactive"] === true,
       // A run started from a project's agent thread is that project's spend.
       projectId: run.projectId ?? null
@@ -684,6 +726,8 @@ const runWorkflowCapability: CapabilityExport = {
 const debugWorkflow: CapabilityExport = {
   spec: debugWorkflowSpec,
   impl: async (run, params) => {
+    const partial = partialRunOptions(params);
+    if ("error" in partial) return partial;
     const env = await runEnvironmentOf(run);
     if (!env) return noRegistryError("debug a workflow");
     const { Job, Workflow } = await import("@nodetool-ai/models");
@@ -698,6 +742,7 @@ const debugWorkflow: CapabilityExport = {
       debug: true,
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...partial.options,
       interactive: params["interactive"] === true,
       projectId: run.projectId ?? null
     });
@@ -941,6 +986,8 @@ async function withSecretRemediation(
 const startBackgroundJob: CapabilityExport = {
   spec: startBackgroundJobSpec,
   impl: async (run, params) => {
+    const partial = partialRunOptions(params);
+    if ("error" in partial) return partial;
     const env = await runEnvironmentOf(run);
     if (!env) return noRegistryError("start a background job");
     const { runWorkflow } = await import("@nodetool-ai/execution/service");
@@ -949,6 +996,7 @@ const startBackgroundJob: CapabilityExport = {
       userId: userIdOf(run.context),
       environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
+      ...partial.options,
       background: true,
       projectId: run.projectId ?? null
     });
@@ -1220,6 +1268,29 @@ const setWorkflowSetup: CapabilityExport = {
 // ── plan_workflow ───────────────────────────────────────────────────────────
 
 /**
+ * The step ids a plan repeats. The id names the step for every later edit and
+ * is carried onto the node the build places, so two steps sharing one cannot
+ * be told apart.
+ */
+function repeatedStepIds(steps: readonly { id: string }[]): string[] {
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  for (const step of steps) {
+    if (seen.has(step.id)) repeated.add(step.id);
+    seen.add(step.id);
+  }
+  return [...repeated];
+}
+
+/** The first `step-N` id the plan does not use yet. */
+function freeStepId(steps: readonly { id: string }[]): string {
+  const taken = new Set(steps.map((step) => step.id));
+  let n = steps.length + 1;
+  while (taken.has(`step-${n}`)) n += 1;
+  return `step-${n}`;
+}
+
+/**
  * Candidate node types for the planner prompt: the general-purpose nodes
  * first, then the registry's ranking against the brief.
  */
@@ -1261,6 +1332,12 @@ const planWorkflow: CapabilityExport = {
       );
       if (!parsed.success) {
         return { error: "`plan` is not a plan ({inputs, steps, outputs})." };
+      }
+      const repeated = repeatedStepIds(parsed.data.steps);
+      if (repeated.length > 0) {
+        return {
+          error: `Every plan step needs its own id. Repeated: ${repeated.join(", ")}.`
+        };
       }
       plan = parsed.data;
     } else {
@@ -1395,8 +1472,13 @@ const updateWorkflowPlanStep: CapabilityExport = {
       const [moved] = steps.splice(at, 1);
       steps.splice(Math.max(0, Math.min(steps.length, params["index"])), 0, moved);
     } else if (op === "add") {
+      if (at !== -1) {
+        return {
+          error: `The plan already has a step "${stepId ?? ""}". Pick another id, or omit step_id to get a free one.`
+        };
+      }
       const added: WorkflowPlanStep = {
-        id: stepId ?? `step-${steps.length + 1}`,
+        id: stepId ?? freeStepId(steps),
         title: fields.title ?? "New step",
         summary: fields.summary ?? "",
         node_type: fields.node_type ?? null
@@ -1496,6 +1578,18 @@ const buildWorkflowFromPlan: CapabilityExport = {
       );
       if (isError(written)) return written;
       savedRow = written;
+      // One version row per build, as the browser's build save adds. The
+      // setup answers change no graph, so they add none.
+      const { WorkflowVersion } = await import("@nodetool-ai/models");
+      await WorkflowVersion.create({
+        workflow_id: id,
+        user_id: userIdOf(run.context),
+        name: written.name,
+        description: "Built from the plan",
+        graph: written.graph,
+        version: await WorkflowVersion.nextVersion(id),
+        save_type: "manual"
+      });
     }
 
     return {
@@ -1506,12 +1600,16 @@ const buildWorkflowFromPlan: CapabilityExport = {
       saved: savedRow !== null,
       stage: save ? "done" : owned.setup?.stage ?? "setup",
       graph,
-      /** Plan input name → the sample a test run should send. */
+      /**
+       * Plan input name → the sample a test run should send, converted to the
+       * input's type. A media input, or a sample that does not convert, sends
+       * nothing.
+       */
       sample_inputs: Object.fromEntries(
-        plan.inputs.map((input: WorkflowSetupPlan["inputs"][number]) => [
-          input.name,
-          input.sample ?? ""
-        ])
+        plan.inputs.flatMap((input: WorkflowSetupPlan["inputs"][number]) => {
+          const sample = planInputSample(input);
+          return sample === undefined ? [] : [[input.name, sample]];
+        })
       ),
       /**
        * What the builder could not wire. Empty is the only value that means the
@@ -1761,18 +1859,16 @@ const designGame: CapabilityExport = {
     } else {
       // No model: the shipped chip whose brief this is carries a pinned design,
       // so a keyless install still reaches the review step.
-      const chip = GAME_INSPIRATION_CHIPS.find(
-        (entry) =>
-          entry.template === template.id &&
-          entry.brief.trim().toLowerCase() === brief.toLowerCase()
-      );
+      const chip = pinnedGameInspirationChip(template.id, brief);
       if (!chip) {
         return {
           error:
             "Pass provider and model to design, or pass a `design` to store without calling one. " +
-            `Without either, only a shipped inspiration chip's brief designs: ${GAME_INSPIRATION_CHIPS.map(
-              (entry) => `"${entry.brief}"`
-            ).join(", ")}.`
+            `Without either, only a shipped inspiration chip's brief designs: ${NATIVE_GAME_INSPIRATION_CHIPS.filter(
+              (entry) => entry.template === template.id
+            )
+              .map((entry) => `"${entry.brief}"`)
+              .join(", ")}.`
         };
       }
       raw = chip.design;

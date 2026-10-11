@@ -1,0 +1,11 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      // The journey manifests, fixtures and goldens these suites run. They sit
+      // outside the package, so they must be hashed explicitly.
+      "inputs": ["$TURBO_EXTENDS$", "$TURBO_ROOT$/reliability/journeys/**"]
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { createGamePanelRegistry, type GamePanelRegistration } from "../panelRegistry";
+import { createGamePanelRegistry, gamePanelRegistry, type GamePanelRegistration } from "../panelRegistry";
 
 const panel: GamePanelRegistration = {
   id: "extension", title: "Extension", icon: null, dimensions: ["2d"], defaultRegion: "right"
@@ -53,4 +53,11 @@ it("owns immutable registration metadata independently of its caller", () => {
   dispose();
   expect(registry.getSnapshot()).toEqual([]);
   expect(listener).toHaveBeenCalledTimes(2);
+});
+
+it("registers the console panel in the bottom region for 2D and 3D", () => {
+  for (const dimension of ["2d", "3d"] as const) {
+    expect(gamePanelRegistry.panels(dimension).find((entry) => entry.id === "console"))
+      .toMatchObject({ title: "Console", defaultRegion: "bottom" });
+  }
 });

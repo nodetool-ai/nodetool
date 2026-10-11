@@ -122,7 +122,7 @@ export class LiveTranscriptionNode extends BaseNode {
       if (vadModel) {
         vad = await binding.initWhisperVad(
           { filePath: vadModel.id, useGpu: provider.gpuBackend !== "cpu" },
-          resolveVariant(provider.gpuBackend)
+          await resolveVariant(provider.gpuBackend)
         );
       } else {
         log.warn(

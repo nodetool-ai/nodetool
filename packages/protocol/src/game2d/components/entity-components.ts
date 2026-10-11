@@ -7,6 +7,7 @@ import { gameAnimatorComponent } from "./animator.js";
 import { gameLight2dComponent } from "./light2d.js";
 import { gameVisualAnimationComponent } from "./visual-animation.js";
 import { gameAudioSourceComponent } from "./audioSource.js";
+import { gameParticles } from "../../game-particles.js";
 
 export const gameEntityComponents = {
   sprite: gameSpriteComponent,
@@ -17,5 +18,6 @@ export const gameEntityComponents = {
   animator: gameAnimatorComponent,
   light2d: gameLight2dComponent,
   visualAnimation: gameVisualAnimationComponent,
-  audioSource: gameAudioSourceComponent
+  audioSource: gameAudioSourceComponent,
+  particles: gameParticles.optional()
 };

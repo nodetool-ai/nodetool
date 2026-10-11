@@ -87,6 +87,11 @@ FrontendToolRegistry.register({
     scale: vec3.optional()
   }),
   async execute({ target, position, rotation, scale }) {
+    // An empty patch would record an undo step and mark the file unsaved
+    // without changing anything.
+    if (!position && !rotation && !scale) {
+      throw new Error("ui_3d_set_transform needs at least one of position, rotation or scale.");
+    }
     const node = getModel3DToolHandler().setTransform(target, {
       position,
       rotation,
@@ -197,14 +202,14 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_3d_set_light",
   description:
-    "Change a light in the 3D editor. Every light has color (CSS hex) and intensity. Point and spot lights also have distance (range, 0 for unlimited) and decay. Spot lights also have angle (cone half-angle in degrees, up to 90) and penumbra (0 to 1, soft edge). Omitted fields stay as they are. Aim directional and spot lights with ui_3d_set_transform rotation: they shine down their local -Z axis.",
+    "Change a light in the 3D editor. Every light has color (CSS hex) and intensity. Point and spot lights also have distance (range, 0 for unlimited) and decay. Spot lights also have angle (cone half-angle in degrees, 1 to 90) and penumbra (0 to 1, soft edge). Omitted fields stay as they are. Aim directional and spot lights with ui_3d_set_transform rotation: they shine down their local -Z axis.",
   parameters: z.object({
     target: targetParam,
     color: z.string().optional(),
     intensity: z.number().min(0).optional(),
     distance: z.number().min(0).optional(),
     decay: z.number().min(0).optional(),
-    angle: z.number().min(0).max(90).optional(),
+    angle: z.number().min(1).max(90).optional(),
     penumbra: unit.optional()
   }),
   async execute({ target, ...patch }) {

@@ -109,7 +109,8 @@ vi.mock("@nodetool-ai/security", () => ({
 }));
 
 vi.mock("@nodetool-ai/config", () => ({
-  getDefaultDbPath: () => ":memory:"
+  getDefaultDbPath: () => ":memory:",
+  getHfHubCacheDir: () => "/tmp/nodetool-hf-cache-stub"
 }));
 
 // ─── Capture helpers ─────────────────────────────────────────────────────────

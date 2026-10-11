@@ -56,7 +56,8 @@ jest.mock("../../../hooks/useModelsByProvider", () => ({
         id: "kling",
         provider: "fal",
         name: "Kling",
-        supported_tasks: ["image_to_video"]
+        supported_tasks: ["image_to_video"],
+        resolutions: ["720p", "1080p"]
       },
       {
         id: "veo",
@@ -193,7 +194,36 @@ describe("ShotCard render dialog", () => {
     expect(mockGenerateClip).toHaveBeenCalledWith(
       BOARD,
       shot,
-      expect.objectContaining({ id: "kling", provider: "fal" })
+      expect.objectContaining({ id: "kling", provider: "fal" }),
+      undefined,
+      { resolution: "1080p" }
+    );
+  });
+
+  it("renders a clip at the resolution picked in the dialog", async () => {
+    const shot = seedShot({
+      status: "keyframe_ready",
+      keyframe: { type: "image", uri: "asset://img-1", asset_id: "img-1" },
+      clip_model: { id: "kling", provider: "fal", name: "Kling" }
+    });
+    renderCard(shot);
+
+    await openMenuItem("Render clip…");
+    await userEvent.click(screen.getByRole("combobox", { name: "Resolution" }));
+    const offered = screen
+      .getAllByRole("option")
+      .map((option) => option.textContent);
+    // Kling declares 720p and 1080p, so nothing else is offered.
+    expect(offered).toEqual(["720p", "1080p"]);
+    await userEvent.click(screen.getByRole("option", { name: "720p" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Render clip/ }));
+
+    expect(mockGenerateClip).toHaveBeenCalledWith(
+      BOARD,
+      shot,
+      expect.objectContaining({ id: "kling" }),
+      undefined,
+      { resolution: "720p" }
     );
   });
 

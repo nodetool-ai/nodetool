@@ -82,19 +82,12 @@
         "data": {
           "model": {
             "type": "tts_model",
-            "provider": "openai",
-            "id": "tts-1",
-            "name": "TTS 1",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
-            "voices": [
-              "alloy",
-              "echo",
-              "fable",
-              "onyx",
-              "nova",
-              "shimmer"
-            ],
-            "selected_voice": "nova"
+            "voices": [],
+            "selected_voice": ""
           },
           "text": "",
           "speed": 1.0
@@ -118,9 +111,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/ltx-2.3/text-to-video/fast",
-            "name": "LTX-2.3 Fast",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

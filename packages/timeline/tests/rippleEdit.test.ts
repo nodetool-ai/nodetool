@@ -38,7 +38,7 @@ const byId = (clips: TimelineClip[], id: string) =>
 
 describe("shiftClipsFrom", () => {
   it("moves clips at or after the point and leaves earlier ones", () => {
-    const clips = [clip("a", 0, 1000), clip("b", 1000, 1000), clip("c", 2000, 500)];
+    const clips = [clip("a", 0, 700), clip("b", 1000, 1000), clip("c", 2000, 500)];
     const out = shiftClipsFrom(clips, 1000, -300);
     expect(byId(out, "a").startMs).toBe(0);
     expect(byId(out, "b").startMs).toBe(700);
@@ -213,5 +213,76 @@ describe("closeGap", () => {
   it("is a no-op at a time with no gap", () => {
     const input = clips();
     expect(closeGap(input, "v1", 500)).toEqual(input);
+  });
+});
+
+describe("ripple keeps link groups and other tracks consistent", () => {
+  it("moves a linked partner that starts before the edit point with its partner", () => {
+    const out = rippleDelete(
+      [
+        clip("x", 1000, 1000),
+        clip("v", 3000, 2000, { linkId: "L" }),
+        clip("a", 1900, 2000, { trackId: "a1", linkId: "L" })
+      ],
+      new Set(["x"])
+    );
+    expect(byId(out, "v").startMs).toBe(2000);
+    expect(byId(out, "a").startMs).toBe(900);
+  });
+
+  it("refuses the ripple when a linked partner would cross zero", () => {
+    const out = rippleDelete(
+      [
+        clip("x", 0, 1000),
+        clip("v", 2000, 2000, { linkId: "L" }),
+        clip("a", 900, 2000, { trackId: "a1", linkId: "L" })
+      ],
+      new Set(["x"])
+    );
+    expect(out.map((c) => c.id)).toEqual(["v", "a"]);
+    expect(byId(out, "v").startMs).toBe(2000);
+    expect(byId(out, "a").startMs).toBe(900);
+  });
+
+  it("refuses a ripple trim that would move a link group with a locked member", () => {
+    expect(() =>
+      rippleTrim(
+        [
+          clip("t", 0, 1000),
+          clip("v", 1000, 1000, { linkId: "L" }),
+          clip("a", 1000, 1000, { trackId: "a2", linkId: "L" })
+        ],
+        "t",
+        "end",
+        -400,
+        { lockedTrackIds: new Set(["a2"]) }
+      )
+    ).toThrow();
+  });
+
+  it("leaves a track alone when a clip on it straddles the closed span", () => {
+    const out = rippleDelete(
+      [
+        clip("x", 1000, 1000),
+        clip("c", 3000, 1000),
+        clip("music", 500, 3000, { trackId: "a1" }),
+        clip("vo", 4000, 500, { trackId: "a1" })
+      ],
+      new Set(["x"])
+    );
+    expect(byId(out, "c").startMs).toBe(2000);
+    expect(byId(out, "music").startMs).toBe(500);
+    expect(byId(out, "vo").startMs).toBe(4000);
+  });
+
+  it("closeGap is a no-op when the shift would split a link group", () => {
+    const input = [
+      clip("a", 0, 1000),
+      clip("b", 1500, 1000, { linkId: "L" }),
+      clip("ba", 1500, 1000, { trackId: "a1", linkId: "L" })
+    ];
+    expect(
+      closeGap(input, "v1", 1200, { lockedClipIds: new Set(["ba"]) })
+    ).toEqual(input);
   });
 });

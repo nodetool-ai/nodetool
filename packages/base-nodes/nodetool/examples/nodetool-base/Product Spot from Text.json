@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Product Spot from Text",
   "tool_name": null,
-  "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
+  "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, an image step renders the still, then an image-to-video step animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
   "tags": [
     "image",
     "video",
@@ -19,7 +19,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Product Spot from Text\n\nDescribe the product and how it should be staged, and get a short commercial spot back. Unlike Product Video Generator, this needs no product photo because the hero frame is generated.\n\n**How it works:** \"1 Product\" and \"2 Staging\" fill \"Hero-shot brief\", and \"4 Hero still\" renders it as a 16:9 still with FLUX.2 [klein]. \"3 Camera motion\" fills \"Motion brief\", which allows camera movement and subtle atmosphere only and forbids restyling the product. \"5 Animate\" runs LTX-2.3 image-to-video on the still for 6 seconds at 1080p, and \"6 Commercial spot\" shows the clip. Both steps need a FAL key, and the animation step is billed per second of output.\n\n**Try this:** Change \"3 Camera motion\" to \"Slow orbit around the product at eye level\" and compare the camera path with the first run."
+          "comment": "# Product Spot from Text\n\nDescribe the product and how it should be staged, and get a short commercial spot back. Unlike Product Video Generator, this needs no product photo because the hero frame is generated.\n\n**How it works:** \"1 Product\" and \"2 Staging\" fill \"Hero-shot brief\", and \"4 Hero still\" renders it as a 16:9 still. \"3 Camera motion\" fills \"Motion brief\", which allows camera movement and subtle atmosphere only and forbids restyling the product. \"5 Animate\" runs image-to-video on the still for 6 seconds at 1080p, and \"6 Commercial spot\" shows the clip. Each model step uses your default model for its type, or the one you pick on the node. The animation step is billed per second of output.\n\n**Try this:** Change \"3 Camera motion\" to \"Slow orbit around the product at eye level\" and compare the camera path with the first run."
         },
         "ui_properties": {
           "position": {
@@ -122,9 +122,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux-2/klein/9b",
-            "name": "FLUX.2 [klein] 9B",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -170,9 +170,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/ltx-2.3/image-to-video/fast",
-            "name": "LTX-2.3 Image to Video Fast",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

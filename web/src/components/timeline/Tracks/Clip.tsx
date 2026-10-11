@@ -44,7 +44,7 @@ import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
 import { ClipContextMenu } from "./ClipContextMenu";
 import { SendToWorkflowMenu } from "../../workflows/SendToWorkflowMenu";
 import type { WorkflowMediaItem } from "../../../hooks/handlers/useGenerationToCanvas";
-import { ReplaceOutputDialog } from "./ReplaceOutputDialog";
+import { ReplaceClipAssetDialog } from "./ReplaceClipAssetDialog";
 
 interface ClipProps {
   clipId: string;
@@ -241,9 +241,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   );
   const handleCloseWorkflowSend = useCallback(() => setWorkflowSend(null), []);
   // Raised by context-menu actions; they must outlive the menu's unmount.
-  const [replaceAssetId, setReplaceAssetId] = useState<string | null>(null);
+  const [replaceOpen, setReplaceOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const handleCloseReplace = useCallback(() => setReplaceAssetId(null), []);
+  const handleOpenReplace = useCallback(() => setReplaceOpen(true), []);
+  const handleCloseReplace = useCallback(() => setReplaceOpen(false), []);
   const handleClearError = useCallback(() => setActionError(null), []);
   const handleUnlink = useCallback(
     () => unlinkClip(clipId),
@@ -346,7 +347,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
           onDelete={handleDelete}
           onSendToWorkflow={handleSendToWorkflow}
           onClose={handleCloseContextMenu}
-          onRequestReplace={setReplaceAssetId}
+          onRequestReplace={handleOpenReplace}
           onError={setActionError}
         />
       )}
@@ -368,10 +369,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
           onClose={handleCloseFadeShapeMenu}
         />
       )}
-      {replaceAssetId !== null && (
-        <ReplaceOutputDialog
+      {replaceOpen && (
+        <ReplaceClipAssetDialog
           clipId={clipId}
-          initialAssetId={replaceAssetId}
           onClose={handleCloseReplace}
         />
       )}

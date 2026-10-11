@@ -7,6 +7,7 @@
 // config
 export const getDefaultDbPath = (): string => ":memory:";
 export const getDefaultAssetsPath = (): string => "/tmp/nodetool-assets-stub";
+export const getHfHubCacheDir = (): string => "/tmp/nodetool-hf-cache-stub";
 
 // deploy
 export class AdminHTTPClient {
@@ -176,6 +177,7 @@ const STUB_PROVIDER_SECRET_KEYS: Record<string, string | null> = {
   openrouter: "OPENROUTER_API_KEY",
   requesty: "REQUESTY_API_KEY",
   opper: "OPPER_API_KEY",
+  api_route: "API_ROUTE_API_KEY",
   huggingface: "HF_TOKEN",
   replicate: "REPLICATE_API_TOKEN",
   kie: "KIE_API_KEY",

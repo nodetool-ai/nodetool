@@ -47,7 +47,7 @@ const install = [
     system: "macOS",
     steps: [
       "Open the .dmg and drag NodeTool to Applications.",
-      "The first launch goes through Gatekeeper: right-click the app and choose Open.",
+      "Open NodeTool from Applications and confirm the first-launch prompt.",
     ],
   },
   {

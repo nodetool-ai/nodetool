@@ -5,22 +5,16 @@ import DictTable, { DictCellValue, DictDataType } from "../node/DataTable/DictTa
 import PropertyLabel from "../node/PropertyLabel";
 import { SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
-import { isNumber, isString } from "../../utils/typePredicates";
+import { isNumber, isObjectLike } from "../../utils/typePredicates";
 
+// A dict is an object, so read the type from its first value.
 const detectTypeFromDict = (dict: unknown): DictDataType => {
-  if (!Array.isArray(dict) || dict.length === 0) {
+  if (!isObjectLike(dict) || Array.isArray(dict)) {
     return "string";
   }
-  const first: unknown = dict[0];
+  const first = Object.values(dict)[0];
   if (isNumber(first)) {
-    if (Number.isInteger(first)) {
-      return "int";
-    }
-    return "float";
-  } else if (isString(first)) {
-    return "string";
-  } else if (typeof first === "object") {
-    return "string";
+    return Number.isInteger(first) ? "int" : "float";
   }
   return "string";
 };

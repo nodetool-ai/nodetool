@@ -192,9 +192,17 @@ export async function resolveProvider(
     });
   }
 
-  // Default to Ollama
+  // Default to Ollama, with the URL, context length and keep-alive saved in
+  // Settings.
+  const [apiUrl, contextLength, keepAlive] = await Promise.all([
+    resolveKey("OLLAMA_API_URL", userId),
+    resolveKey("OLLAMA_CONTEXT_LENGTH", userId),
+    resolveKey("OLLAMA_KEEP_ALIVE", userId)
+  ]);
   return new OllamaProvider({
-    OLLAMA_API_URL: process.env.OLLAMA_API_URL ?? OLLAMA_DEFAULT_URL
+    OLLAMA_API_URL: apiUrl ?? OLLAMA_DEFAULT_URL,
+    OLLAMA_CONTEXT_LENGTH: contextLength,
+    OLLAMA_KEEP_ALIVE: keepAlive
   });
 }
 

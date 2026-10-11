@@ -168,6 +168,29 @@ describe.runIf(noAdapterReason === null)(
       expect(pixelAt(frame, 2, 2)[0]).toBeGreaterThan(240);
     });
 
+    it("draws a caption whole, without its clip's shape mask", async () => {
+      // The mask keeps only the clip's top-left corner, far from the caption
+      // band at the frame's bottom. The caption composites frame-sized and
+      // untransformed, as the browser draws it, so the mask does not cut it.
+      const frame = await renderOneFrame([
+        shape("plate", "#000000", "t0", {
+          mask: { kind: "rect", x: 0, y: 0, width: 0.1, height: 0.1 },
+          caption: {
+            words: [{ word: "HELLO", startMs: 0, endMs: 1000 }],
+            style: { color: "#ffffff", activeColor: "#ffffff", fontSizeFrac: 0.2 }
+          }
+        })
+      ]);
+
+      let bright = 0;
+      for (let y = Math.floor(HEIGHT / 2); y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+          if (pixelAt(frame, x, y)[0] > 200) bright++;
+        }
+      }
+      expect(bright).toBeGreaterThan(20);
+    });
+
     it("mattes one clip with another, and the source never draws itself", async () => {
       // The source sits on the track *above* the layer it drives, so if it
       // drew it would cover the pixels the matte reveals — green anywhere on

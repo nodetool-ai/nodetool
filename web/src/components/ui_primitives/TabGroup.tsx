@@ -8,7 +8,8 @@
 import React from "react";
 import { Tabs, Tab, TabsProps, Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { CONTROL, MOTION } from "./tokens";
+import { CONTROL, MOTION, TYPOGRAPHY } from "./tokens";
+import { SPACING, getSpacingPx } from "./spacing";
 
 export interface TabItem {
   /** Unique value for the tab */
@@ -103,9 +104,11 @@ export const TabGroup: React.FC<TabGroupProps> = ({
           sx={{
             minWidth: "auto",
             minHeight: isSmall ? `${CONTROL.height.lg}px` : "40px",
-            padding: isSmall ? "6px 12px" : "8px 16px",
-            fontSize: isSmall ? "var(--fontSizeSmaller)" : "var(--fontSizeSmall)",
-            fontWeight: 600,
+            padding: isSmall
+              ? `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`
+              : `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
+            // Tabs are controls: the sanctioned label style at both sizes.
+            ...TYPOGRAPHY.sans.label,
             textTransform: "none",
             color: theme.vars.palette.text.secondary,
             transition: MOTION.all,

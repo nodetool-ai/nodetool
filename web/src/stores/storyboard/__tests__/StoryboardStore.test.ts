@@ -10,6 +10,7 @@
 import type {
   Entity,
   ImageRef,
+  OneTakeDirection,
   Scene,
   Shot,
   VideoRef
@@ -1258,5 +1259,40 @@ describe("setStylePreset", () => {
       .getState()
       .setStylePreset(SCENE_BOARD, "e-marta", ENTITIES);
     expect(sceneBoard()?.entityIds).toEqual(["e-marta", "e-pier", "e-noir"]);
+  });
+});
+
+describe("setOneTake", () => {
+  const direction = (prompt: string): OneTakeDirection => ({ prompt });
+  const pastLength = (): number =>
+    useStoryboardStore.getState().history[BOARD]?.past.length ?? 0;
+
+  it("merges rapid edits, as typing makes them, into one undo step", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.setOneTake(BOARD, direction("One take."));
+    store.setOneTake(BOARD, direction("One continuous take."));
+    expect(store.getBoard(BOARD)?.oneTake).toEqual(
+      direction("One continuous take.")
+    );
+
+    store.undo(BOARD);
+    expect(store.getBoard(BOARD)?.oneTake).toBeUndefined();
+    store.redo(BOARD);
+    expect(store.getBoard(BOARD)?.oneTake).toEqual(
+      direction("One continuous take.")
+    );
+  });
+
+  it("ignores a deep-equal direction", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.setOneTake(BOARD, direction("One take."));
+    const before = store.getBoard(BOARD);
+    const past = pastLength();
+
+    store.setOneTake(BOARD, direction("One take."));
+    expect(useStoryboardStore.getState().getBoard(BOARD)).toBe(before);
+    expect(pastLength()).toBe(past);
   });
 });

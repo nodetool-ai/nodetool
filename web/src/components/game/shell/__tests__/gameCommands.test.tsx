@@ -32,7 +32,7 @@ it("leaves text undo inside hierarchy inputs and assistant fields (F11)", () => 
 it("does not undo the document during play but still opens the command palette (F11)", () => {
   const { handlers } = fixture("3d", true);
   fireEvent.keyDown(screen.getByLabelText("Viewport"), { code: "KeyZ", ctrlKey: true });
-  fireEvent.keyDown(screen.getByLabelText("Viewport"), { code: "KeyK", metaKey: true });
+  fireEvent.keyDown(screen.getByLabelText("Viewport"), { code: "KeyK", metaKey: true, shiftKey: true });
   expect(handlers["edit.undo"]).not.toHaveBeenCalled();
   expect(handlers["editor.commandPalette"]).toHaveBeenCalledTimes(1);
 });
@@ -58,7 +58,7 @@ it("keeps viewport commands inside the viewport and panel commands inside keyboa
   fireEvent.keyDown(screen.getByRole("button", { name: "Entity" }), { code: "Delete" });
   fireEvent.keyDown(screen.getByRole("button", { name: "Toolbar" }), { code: "KeyZ", ctrlKey: true });
   expect(ran).toEqual([]);
-  fireEvent.keyDown(screen.getByRole("button", { name: "Toolbar" }), { code: "KeyK", ctrlKey: true });
+  fireEvent.keyDown(screen.getByRole("button", { name: "Toolbar" }), { code: "KeyK", ctrlKey: true, shiftKey: true });
   fireEvent.keyDown(screen.getByLabelText("Viewport"), { code: "Backspace" });
   fireEvent.keyDown(screen.getByLabelText("Viewport"), { code: "ArrowLeft", shiftKey: true });
   expect(ran).toEqual(["editor.commandPalette", "edit.delete", "edit.nudgeLeftFar"]);

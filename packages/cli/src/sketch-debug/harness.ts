@@ -12,8 +12,6 @@
  * bridge factory (`@nodetool-ai/agents`). Tests supply their own and load
  * neither.
  */
-import { mkdir, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
 import type {
   SketchDebugReport,
   SketchInteractionRecord,
@@ -21,6 +19,7 @@ import type {
 } from "@nodetool-ai/execution/sketch-debug";
 import type { SketchInteractionStep } from "./interactions.js";
 import { runInteractionSteps } from "../interaction-script.js";
+import { writeDebugBundle } from "../debug-bundle.js";
 import {
   resolveSketchTarget,
   type ResolvedSketchTarget,
@@ -132,16 +131,6 @@ async function loadBridgeFactory(): Promise<CreateSketchBridge> {
     createSketchToolBridge(
       initial as Parameters<typeof createSketchToolBridge>[0]
     ) as SketchBridge;
-}
-
-function defaultOutDir(ref: string): string {
-  const slug =
-    ref
-      .replace(/[^a-zA-Z0-9_-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "sketch";
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return resolve(`nodetool-debug/sketch-${slug}-${stamp}`);
 }
 
 /** Load a sketch and validate it — no bridge, no bundle. */
@@ -295,25 +284,14 @@ export async function runSketchDebug(
   }
   const report = await core.buildSketchDebugReport(reportInput);
 
-  const bundleDir = options.outDir
-    ? resolve(options.outDir)
-    : defaultOutDir(ref);
-  await mkdir(bundleDir, { recursive: true });
-  await writeFile(
-    join(bundleDir, "sketch.json"),
-    JSON.stringify(resolved.raw, null, 2),
-    "utf8"
-  );
-  await writeFile(
-    join(bundleDir, "report.json"),
-    JSON.stringify(report, null, 2),
-    "utf8"
-  );
-  await writeFile(
-    join(bundleDir, "report.md"),
-    core.renderSketchReportMarkdown(report),
-    "utf8"
-  );
+  const bundleDir = await writeDebugBundle({
+    kind: "sketch",
+    ref,
+    outDir: options.outDir,
+    raw: resolved.raw,
+    report,
+    reportMarkdown: core.renderSketchReportMarkdown(report),
+  });
 
   return { report, bundleDir };
 }

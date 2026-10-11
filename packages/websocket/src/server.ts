@@ -35,7 +35,11 @@ import {
 } from "./node-registry-setup.js";
 import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
-import { isPublicAuthExemptRoute } from "./lib/public-routes.js";
+import {
+  isPublicAuthExemptRoute,
+  isStaticAppRequest,
+  routedPathname
+} from "./lib/public-routes.js";
 import {
   matchesServerAuthToken,
   resolveServerAuthToken
@@ -89,6 +93,10 @@ import {
   migrateSqliteDb,
   runSeeds
 } from "@nodetool-ai/models";
+import {
+  applyTransformersJsCacheSetting,
+  resolveWorkerSettingsEnv
+} from "./worker-settings-env.js";
 import { isMcpHttpEnabled, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
 import {
   authenticateMcpAccessToken,
@@ -122,7 +130,8 @@ import {
   DelegatedTokenProvider,
   isDelegatedToken,
   AppSessionTokenProvider,
-  isAppSessionToken
+  isAppSessionToken,
+  FileUserManager
 } from "@nodetool-ai/auth";
 import {
   fastifyTRPCPlugin,
@@ -377,6 +386,19 @@ try {
   // global resolver.
   await initMasterKey();
 
+  // Transformers.js fixes its cache directory on first import, which happens
+  // after this point, so a directory saved in Settings must be applied now.
+  try {
+    const tjsCacheDir = await applyTransformersJsCacheSetting(LOCAL_USER_ID);
+    if (tjsCacheDir) {
+      log.info("Transformers.js cache directory from Settings", { path: tjsCacheDir });
+    }
+  } catch (err) {
+    log.warn("Could not read TRANSFORMERS_JS_CACHE_DIR from Settings", {
+      error: err instanceof Error ? err.message : String(err)
+    });
+  }
+
   // Bookkeeping for media generations: close the rows a restart orphaned, and
   // keep refining estimates into billed amounts while the server runs.
   void sweepInterruptedGenerations(PROCESS_STARTED_AT).catch((err: unknown) => {
@@ -535,7 +557,8 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 const localBridge = createPythonBridge({
   workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
     ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
-    : []
+    : [],
+  workerEnv: () => resolveWorkerSettingsEnv(LOCAL_USER_ID)
 });
 
 // The ONE stable bridge reference handed to every consumer. It delegates to the
@@ -940,6 +963,10 @@ const serverAuthToken = enforceAuth
   ? null
   : resolveServerAuthToken(process.env["SERVER_AUTH_TOKEN"]);
 
+// API users created with `nodetool deploy users-add` (the tRPC users router)
+// live in USERS_FILE. Local mode only, for the same reason as the token above.
+const apiUsers = enforceAuth ? null : new FileUserManager();
+
 if (enforceAuth && process.env["SERVER_AUTH_TOKEN"]) {
   log.warn(
     "SERVER_AUTH_TOKEN is set while auth is enforced (Supabase mode); it is " +
@@ -1017,27 +1044,19 @@ app.addHook("onRequest", async (req, reply) => {
   if (req.method === "OPTIONS") return;
 
   // Public routes — no auth required (still rate-limited globally above).
-  const pathname = req.url.split("?")[0];
+  // Match the decoded path the router uses, or `/%61pi/...` skips auth.
+  const pathname = routedPathname(req.url);
   if (
-    isPublicAuthExemptRoute(pathname, req.method) ||
-    (isSdkV1DiscoveryRequest(pathname, req.method) &&
-      !isSdkV1AuthenticationRequired(process.env, enforceAuth))
+    pathname !== null &&
+    (isPublicAuthExemptRoute(pathname, req.method) ||
+      (isSdkV1DiscoveryRequest(pathname, req.method) &&
+        !isSdkV1AuthenticationRequired(process.env, enforceAuth)))
   ) {
     return;
   }
 
-  // Static frontend assets don't require auth (served by fastifyStatic)
-  // `GET /mcp` is the MCP SSE stream, not a static asset — it must go through
-  // auth so the mount can bind the session's user.
-  if (
-    hasStaticApp &&
-    req.method === "GET" &&
-    !pathname.startsWith("/api") &&
-    !pathname.startsWith("/ws") &&
-    !pathname.startsWith("/v1") &&
-    !pathname.startsWith("/trpc") &&
-    !pathname.startsWith("/mcp")
-  ) {
+  // Static frontend assets don't require auth (served by fastifyStatic).
+  if (hasStaticApp && isStaticAppRequest(pathname, req.method)) {
     return;
   }
 
@@ -1169,7 +1188,7 @@ app.addHook("onRequest", async (req, reply) => {
   // /mcp gets a WWW-Authenticate challenge on every unauthenticated/invalid
   // denial below it — but only when the OAuth flow can actually complete
   // (see mcpBearerChallenge). Every other path is unaffected.
-  const challenge = pathname.startsWith("/mcp")
+  const challenge = pathname?.startsWith("/mcp")
     ? mcpBearerChallenge()
     : undefined;
 
@@ -1195,6 +1214,14 @@ app.addHook("onRequest", async (req, reply) => {
 
   if (matchesServerAuthToken(token, serverAuthToken)) {
     req.userId = "1";
+    req.authToken = token;
+    return;
+  }
+
+  const apiUser =
+    token && apiUsers ? await apiUsers.verifyToken(token) : null;
+  if (apiUser) {
+    req.userId = apiUser.id;
     req.authToken = token;
     return;
   }

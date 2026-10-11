@@ -14,7 +14,9 @@ describe("configure", () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     delete process.env["HF_HUB_CACHE"];
+    delete process.env["HUGGINGFACE_HUB_CACHE"];
     delete process.env["HF_HOME"];
+    delete process.env["XDG_CACHE_HOME"];
   });
 
   afterEach(() => {
@@ -40,6 +42,16 @@ describe("configure", () => {
       process.env["HF_HUB_CACHE"] = "/cache";
       process.env["HF_HOME"] = "/home";
       expect(detectHfCacheDefault()).toBe("/cache");
+    });
+
+    it("should honour the legacy HUGGINGFACE_HUB_CACHE and XDG_CACHE_HOME", () => {
+      delete process.env["HF_HUB_CACHE"];
+      delete process.env["HF_HOME"];
+      process.env["HUGGINGFACE_HUB_CACHE"] = "/legacy";
+      expect(detectHfCacheDefault()).toBe("/legacy");
+      delete process.env["HUGGINGFACE_HUB_CACHE"];
+      process.env["XDG_CACHE_HOME"] = "/xdg";
+      expect(detectHfCacheDefault()).toBe(join("/xdg", "huggingface", "hub"));
     });
 
     it("should fallback to ~/.cache/huggingface/hub", () => {

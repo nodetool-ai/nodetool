@@ -53,7 +53,12 @@ type ResultsStore = {
   planningUpdates: Record<NodeKey, PlanningUpdate>;
   clearResults: (workflowId: string, nodeIds?: Set<string>) => void;
   clearEdges: (workflowId: string, edgeIds?: Set<string>) => void;
-  clearJobRunVisuals: (workflowId: string, jobId: string) => void;
+  clearJobResults: (workflowId: string, jobId: string) => void;
+  clearJobRunVisuals: (
+    workflowId: string,
+    jobId: string,
+    reason?: string
+  ) => void;
   setEdge: (
     workflowId: string,
     jobId: string,
@@ -209,12 +214,51 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     }));
   },
   /**
-   * Drop one run's transient visuals — edge animations and node progress.
-   * Job-scoped (keys are `${workflowId}:${jobId}:…`), so concurrent sibling
-   * runs keep theirs. Outputs/generations are left intact so the cancelled
-   * run can still be focused and inspected.
+   * Drop every job-keyed slice of one run: outputs, costs, progress, edges,
+   * chunks, tasks, tool calls and results, and planning updates. Live
+   * generations are node history, keyed by node, and stay. Used when a run is
+   * evicted from the runs registry.
    */
-  clearJobRunVisuals: (workflowId: string, jobId: string) => {
+  clearJobResults: (workflowId: string, jobId: string) => {
+    const prefix = `${workflowId}:${jobId}:`;
+    const dropJobKeys = <K extends string, T>(record: Record<K, T>) => {
+      let next = record;
+      for (const key in record) {
+        if (key.startsWith(prefix)) {
+          if (next === record) {
+            next = { ...record };
+          }
+          delete next[key];
+        }
+      }
+      return next;
+    };
+    set((state) => ({
+      outputResults: dropJobKeys(state.outputResults),
+      providerCosts: dropJobKeys(state.providerCosts),
+      progress: dropJobKeys(state.progress),
+      edges: dropJobKeys(state.edges),
+      chunks: dropJobKeys(state.chunks),
+      tasks: dropJobKeys(state.tasks),
+      toolCalls: dropJobKeys(state.toolCalls),
+      toolResults: dropJobKeys(state.toolResults),
+      planningUpdates: dropJobKeys(state.planningUpdates),
+      resultsVersion: state.resultsVersion + 1
+    }));
+  },
+  /**
+   * Drop one run's transient visuals — edge animations and node progress —
+   * and settle its still-running live generations to "error" with `reason`,
+   * so node history stops showing a spinner for a run that will not finish.
+   * Job-scoped (keys are `${workflowId}:${jobId}:…`), so concurrent sibling
+   * runs keep theirs. Outputs and finished generations are left intact so the
+   * cancelled run can still be focused and inspected.
+   */
+  clearJobRunVisuals: (
+    workflowId: string,
+    jobId: string,
+    reason = "Cancelled"
+  ) => {
     const prefix = `${workflowId}:${jobId}:`;
     const dropJobKeys = <K extends string, T>(
       record: Record<K, T>
@@ -227,11 +271,33 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       }
       return next;
     };
-    set((state) => ({
-      edges: dropJobKeys(state.edges),
-      progress: dropJobKeys(state.progress),
-      resultsVersion: state.resultsVersion + 1
-    }));
+    const workflowPrefix = `${workflowId}:`;
+    set((state) => {
+      let liveGenerations = state.liveGenerations;
+      for (const key in state.liveGenerations) {
+        if (!key.startsWith(workflowPrefix)) {
+          continue;
+        }
+        const list = state.liveGenerations[key];
+        if (!list.some((g) => g.jobId === jobId && g.status === "running")) {
+          continue;
+        }
+        if (liveGenerations === state.liveGenerations) {
+          liveGenerations = { ...state.liveGenerations };
+        }
+        liveGenerations[key] = list.map((g) =>
+          g.jobId === jobId && g.status === "running"
+            ? { ...g, status: "error", error: reason }
+            : g
+        );
+      }
+      return {
+        edges: dropJobKeys(state.edges),
+        progress: dropJobKeys(state.progress),
+        liveGenerations,
+        resultsVersion: state.resultsVersion + 1
+      };
+    });
   },
   setPlanningUpdate: (
     workflowId: string,

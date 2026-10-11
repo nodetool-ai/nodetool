@@ -267,7 +267,7 @@ export const lightPatchCommand = (
     patch.distance === undefined ? undefined : nonNegative(patch.distance, "distance");
   const decay = patch.decay === undefined ? undefined : nonNegative(patch.decay, "decay");
   const angle =
-    patch.angle === undefined ? undefined : inRange(patch.angle, 0, 90, "angle");
+    patch.angle === undefined ? undefined : inRange(patch.angle, 1, 90, "angle");
   const penumbra =
     patch.penumbra === undefined ? undefined : inRange(patch.penumbra, 0, 1, "penumbra");
 

@@ -18,6 +18,7 @@ import {
   Caption,
   CloseButton,
   CopyButton,
+  EYEBROW,
   MOTION,
   BORDER_RADIUS,
   SPACING,
@@ -274,11 +275,7 @@ const styles = (theme: Theme) =>
         opacity: 1
       },
     ".property-required-badge": {
-      fontFamily: theme.fontFamily1,
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      letterSpacing: "0.08em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.text.disabled,
       padding: `0 ${getSpacingPx(SPACING.xs)}`,
       userSelect: "none"
@@ -350,11 +347,7 @@ const styles = (theme: Theme) =>
       marginTop: theme.spacing(2)
     },
     ".io-section-title": {
-      fontFamily: theme.fontFamily1,
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      letterSpacing: "0.08em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary,
       marginBottom: theme.spacing(1)
     },

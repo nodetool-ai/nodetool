@@ -21,6 +21,7 @@ import { DEFAULT_SETUP_SHOT_COUNT } from "@nodetool-ai/protocol/api-schemas/stor
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import type { StoryboardBoard } from "../../../stores/storyboard/StoryboardStore";
 import type { ShotlistReportEntry } from "../../../lib/storyboard/parseShotlistCsv";
+import type { EntitySuggestion } from "./entitySuggestions";
 // The Director run records the fingerprint itself, so the comparison the genre
 // step makes and the value the run writes cannot drift apart.
 import { directionFingerprint } from "../../../hooks/storyboard/directionFingerprint";
@@ -162,9 +163,115 @@ export function usePreviousScreenplay(
   );
 }
 
+/**
+ * What `Find entities` found for a board. It is a paid model call, so the list
+ * outlives the step: a canceled creation or a trip back to the screenplay
+ * remounts the step, and it must not have to be bought again.
+ */
+const entitySuggestions = new Map<string, readonly EntitySuggestion[]>();
+const NO_SUGGESTIONS: readonly EntitySuggestion[] = [];
+
+export function getEntitySuggestions(
+  boardId: string
+): readonly EntitySuggestion[] {
+  return entitySuggestions.get(boardId) ?? NO_SUGGESTIONS;
+}
+
+export function setEntitySuggestions(
+  boardId: string,
+  suggestions: readonly EntitySuggestion[]
+): void {
+  if (suggestions.length > 0) {
+    entitySuggestions.set(boardId, suggestions);
+  } else {
+    entitySuggestions.delete(boardId);
+  }
+  announce();
+}
+
+/** The board's entity suggestions, re-read when they change. */
+export function useEntitySuggestions(
+  boardId: string
+): readonly EntitySuggestion[] {
+  return useSyncExternalStore(
+    subscribe,
+    useCallback(() => getEntitySuggestions(boardId), [boardId])
+  );
+}
+
+/**
+ * The `Find entities` call running for a board, and whether the last one
+ * found nothing. Continue and Back remount the step while the call runs, and
+ * a step that forgot it offered Find again and paid for it twice.
+ */
+const entityFinds = new Map<string, AbortController>();
+const emptyFinds = new Set<string>();
+
+/** Start a find for the board, stopping any that is still running. */
+export function startEntityFind(boardId: string): AbortController {
+  entityFinds.get(boardId)?.abort();
+  const controller = new AbortController();
+  entityFinds.set(boardId, controller);
+  emptyFinds.delete(boardId);
+  announce();
+  return controller;
+}
+
+/**
+ * Record what a find answered. Returns false when it was canceled or replaced,
+ * so its answer is dropped.
+ */
+export function finishEntityFind(
+  boardId: string,
+  controller: AbortController,
+  found: readonly EntitySuggestion[] | null
+): boolean {
+  if (entityFinds.get(boardId) !== controller) {
+    return false;
+  }
+  entityFinds.delete(boardId);
+  if (found !== null) {
+    if (found.length === 0) {
+      emptyFinds.add(boardId);
+    }
+    setEntitySuggestions(boardId, found);
+  }
+  announce();
+  return true;
+}
+
+export function cancelEntityFind(boardId: string): void {
+  const controller = entityFinds.get(boardId);
+  if (controller) {
+    controller.abort();
+    entityFinds.delete(boardId);
+    announce();
+  }
+}
+
+/** True while `Find entities` is running for the board. */
+export function useEntityFindRunning(boardId: string): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    useCallback(() => entityFinds.has(boardId), [boardId])
+  );
+}
+
+/** True when the board's last finished find found nothing. */
+export function useEntityFindEmpty(boardId: string): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    useCallback(() => emptyFinds.has(boardId), [boardId])
+  );
+}
+
 /** Drop a board's session reports — used by the suites between cases. */
 export function clearSetupReports(boardId: string): void {
   shotlistImports.delete(boardId);
   previous.delete(boardId);
+  entitySuggestions.delete(boardId);
+  entityFinds.get(boardId)?.abort();
+  entityFinds.delete(boardId);
+  emptyFinds.delete(boardId);
   announce();
 }

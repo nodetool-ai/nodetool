@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, activateOnKey } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, activateOnKey, SHADOW } from "../ui_primitives";
 import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
@@ -51,7 +51,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.xl,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
-      boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+      boxShadow: SHADOW(theme).xl,
       width: "90%",
       maxWidth: "720px",
       maxHeight: "90vh",

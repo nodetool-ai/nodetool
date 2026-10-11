@@ -6,6 +6,7 @@
  * decides what the run means.
  */
 import { JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import { buildDocumentVerdict } from "../debug/verdict.js";
 import type { DebugVerdict } from "../debug/types.js";
 import type {
   JsScriptDebugIssue,
@@ -19,10 +20,7 @@ import {
   validateJsScriptDoc,
   type JsScriptValidationOptions
 } from "./validate.js";
-import {
-  isFiniteNumber,
-  isString
-} from "../predicates.js";
+import { isFiniteNumber, isString } from "../predicates.js";
 
 /** The same shape with its `readonly` modifiers dropped, for step-by-step construction. */
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -53,10 +51,9 @@ function describeDocument(document: unknown): JsScriptDocumentMeta {
     packageCount: count(record.packages),
     secretCount: count(record.secrets),
     testCount: count(record.tests),
-    timeoutSeconds:
-      isFiniteNumber(timeout)
-        ? timeout
-        : JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS,
+    timeoutSeconds: isFiniteNumber(timeout)
+      ? timeout
+      : JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS,
     codeLength: isString(record.code) ? record.code.length : 0
   };
 }
@@ -71,39 +68,14 @@ function buildVerdict(
   interactions: ReadonlyArray<JsScriptInteractionRecord>,
   finalValidation: JsScriptValidation | undefined
 ): DebugVerdict {
-  const failedSteps = interactions.filter((step) => !step.ok);
-  const issues: string[] = [
-    ...validation.errors.map(describe),
-    ...failedSteps.map(
-      (step) =>
-        `Interaction \`${step.tool}\` failed${step.error ? `: ${step.error}` : ""}`
-    ),
-    ...(finalValidation?.errors ?? []).map(
-      (issue) => `After edits — ${describe(issue)}`
-    )
-  ];
-  const warnings: string[] = [
-    ...validation.warnings.map(describe),
-    ...(finalValidation?.warnings ?? []).map(
-      (issue) => `After edits — ${describe(issue)}`
-    )
-  ];
-
-  const ok = issues.length === 0;
-  const headline = ok
-    ? `Script is sound — ${interactions.length} interaction(s) ran clean` +
-      (warnings.length > 0 ? `, ${warnings.length} warning(s)` : "") +
-      "."
-    : `Script has ${issues.length} problem(s)` +
-      (failedSteps.length > 0
-        ? `, ${failedSteps.length} failed interaction(s)`
-        : "") +
-      (warnings.length > 0 ? `, ${warnings.length} warning(s)` : "") +
-      ` — ${issues[0]}`;
-
-  return warnings.length > 0
-    ? { ok, headline, issues, warnings }
-    : { ok, headline, issues };
+  return buildDocumentVerdict({
+    subject: "Script",
+    soundLabel: "Script is sound",
+    describe,
+    validation,
+    finalValidation,
+    interactions
+  });
 }
 
 export interface JsScriptDebugReportInput {

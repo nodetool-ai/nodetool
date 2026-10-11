@@ -2,7 +2,7 @@ import type { GameDocument, GameEntity } from "@nodetool-ai/protocol/game.js";
 import { applyGameOps, gameDocumentOp, type GameDocumentOp } from "@nodetool-ai/game-runtime";
 import { diffGameOwnership, sameGameAuthoringDefinitions } from "./diffGameOwnership";
 
-const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "parentId"] as const;
+const COMPONENTS = ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "parentId", "particles"] as const;
 
 function changed(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) !== JSON.stringify(b);
@@ -72,6 +72,7 @@ export function diffGameDocuments(from: GameDocument, to: GameDocument): GameDoc
     if (changed(before.lighting, scene.lighting)) {
       ops.push({ op: "set_lighting", scene_id: scene.id, lighting: scene.lighting ?? null });
     }
+    if (changed(before.ui, scene.ui)) { ops.push({ op: "set_ui", scene_id: scene.id, ui: scene.ui ?? null }); }
     for (const entity of scene.entities) {
       const previous = before.entities.find((entry) => entry.id === entity.id);
       if (!previous) { ops.push({ op: "add_entity", scene_id: scene.id, entity }); }
@@ -154,10 +155,14 @@ export function diffGameDocuments(from: GameDocument, to: GameDocument): GameDoc
     ops.push({ op: "set_effects", effects: to.renderEffects ?? null, hud_effect_order: to.hudEffectOrder ?? null });
   }
   if (changed(from.pixelsPerUnit, to.pixelsPerUnit) || changed(from.inputActions, to.inputActions) ||
+      changed(from.inputBindings, to.inputBindings) ||
       changed(from.entrySceneId, to.entrySceneId) || changed(from.collisionLayers, to.collisionLayers)) {
     ops.push({ op: "set_game", pixels_per_unit: to.pixelsPerUnit, input_actions: to.inputActions,
+      input_bindings: to.inputBindings ?? null,
       entry_scene_id: to.entrySceneId, collision_layers: to.collisionLayers ?? null });
   }
+  if (changed(from.audio?.mixer, to.audio?.mixer)) { ops.push({ op: "set_audio", mixer: to.audio?.mixer ?? null }); }
+  if (changed(from.ui, to.ui)) { ops.push({ op: "set_ui", ui: to.ui ?? null }); }
   for (const slot of Object.keys(from.assets)) {
     if (!(slot in to.assets)) { ops.push({ op: "unbind_asset", slot }); }
   }

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useState, useCallback, useRef, useMemo } from "react";
+import { memo, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { NodeProps, Node } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "../../utils/isEqual";
@@ -13,9 +13,15 @@ import ColorPicker from "../inputs/ColorPicker";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import LexicalPlugins from "../textEditor/LexicalEditor";
-import { EditorState, LexicalEditor } from "lexical";
+import {
+  $createParagraphNode,
+  $getRoot,
+  EditorState,
+  LexicalEditor
+} from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import type { InitialConfigType } from "@lexical/react/LexicalComposer";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -187,6 +193,49 @@ const initialConfigTemplate = {
   }
 };
 
+interface ExternalCommentSyncProps {
+  comment: unknown;
+  /** The stored comment the editor last wrote or was loaded from. */
+  lastStoredRef: React.MutableRefObject<unknown>;
+  onApplied: (editorJson: unknown) => void;
+}
+
+/**
+ * Lexical reads `initialConfig` only at mount. This pushes a comment written
+ * from outside the editor (undo/redo, paste, agent edits) into it.
+ */
+const ExternalCommentSync = ({
+  comment,
+  lastStoredRef,
+  onApplied
+}: ExternalCommentSyncProps): null => {
+  const [editor] = useLexicalComposerContext();
+  useEffect(() => {
+    if (isEqual(comment, lastStoredRef.current)) {
+      return;
+    }
+    lastStoredRef.current = comment;
+    if (isObjectLike(comment) && "root" in comment) {
+      editor.setEditorState(editor.parseEditorState(JSON.stringify(comment)));
+    } else {
+      editor.update(
+        () => {
+          if (isString(comment) && comment.length > 0) {
+            $convertFromMarkdownString(comment, TRANSFORMERS);
+          } else {
+            const root = $getRoot();
+            root.clear();
+            root.append($createParagraphNode());
+          }
+        },
+        { discrete: true }
+      );
+    }
+    onApplied(editor.getEditorState().toJSON());
+  }, [comment, editor, lastStoredRef, onApplied]);
+  return null;
+};
+
 const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -197,11 +246,11 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }),
     shallow
   );
-  const [color, setColor] = useState<string>(
+  // Derived from props so undo/redo of a color change shows up.
+  const color =
     (props.data.properties.comment_color as string) ||
-      theme.vars.palette.c_bg_comment ||
-      "#ffffff"
-  );
+    theme.vars.palette.c_bg_comment ||
+    "#ffffff";
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const contentOnFocusRef = useRef<EditorState | null>(null);
@@ -244,19 +293,54 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return getContrastTextColor(color);
   }, [color, theme]);
 
-  const debouncedUpdate = useMemo(
-    () =>
-      debounce((newEditorState: EditorState) => {
-        const currentData = propsDataRef.current;
-        updateNodeData(props.id, {
-          ...currentData,
-          properties: {
-            ...currentData.properties,
-            comment: newEditorState.toJSON()
-          }
-        });
-      }, 500),
+  // The stored comment the editor last wrote or loaded, and the editor JSON
+  // that matches the store. Together they tell an outside write apart from
+  // the editor's own echo.
+  const lastStoredCommentRef = useRef<unknown>(props.data.properties.comment);
+  const syncedEditorJsonRef = useRef<unknown>(null);
+  const pendingEditorStateRef = useRef<EditorState | null>(null);
+
+  const writeComment = useCallback(
+    (newEditorState: EditorState) => {
+      pendingEditorStateRef.current = null;
+      const comment = newEditorState.toJSON();
+      lastStoredCommentRef.current = comment;
+      syncedEditorJsonRef.current = comment;
+      const currentData = propsDataRef.current;
+      updateNodeData(props.id, {
+        ...currentData,
+        properties: {
+          ...currentData.properties,
+          comment
+        }
+      });
+    },
     [props.id, updateNodeData]
+  );
+
+  const debouncedUpdate = useMemo(
+    () => debounce(writeComment, 500),
+    [writeComment]
+  );
+
+  // Write pending text instead of dropping it when the node unmounts.
+  useEffect(
+    () => () => {
+      debouncedUpdate.cancel();
+      if (pendingEditorStateRef.current) {
+        writeComment(pendingEditorStateRef.current);
+      }
+    },
+    [debouncedUpdate, writeComment]
+  );
+
+  const handleExternalCommentApplied = useCallback(
+    (editorJson: unknown) => {
+      debouncedUpdate.cancel();
+      pendingEditorStateRef.current = null;
+      syncedEditorJsonRef.current = editorJson;
+    },
+    [debouncedUpdate]
   );
 
   const handleEditorChange = useCallback(
@@ -264,6 +348,10 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       if (!contentOnFocusRef.current) {
         contentOnFocusRef.current = editorState;
       }
+      if (isEqual(editorState.toJSON(), syncedEditorJsonRef.current)) {
+        return;
+      }
+      pendingEditorStateRef.current = editorState;
       debouncedUpdate(editorState);
     },
     [debouncedUpdate]
@@ -338,7 +426,6 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   const handleColorChange = useCallback(
     (newColor: string | null) => {
-      setColor(newColor || "");
       updateNodeData(props.id, {
         ...props.data,
         properties: {
@@ -361,6 +448,11 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <LexicalComposer initialConfig={editorConfig}>
+      <ExternalCommentSync
+        comment={props.data.properties.comment}
+        lastStoredRef={lastStoredCommentRef}
+        onApplied={handleExternalCommentApplied}
+      />
       <Container
         ref={containerRef}
         style={containerStyle}

@@ -1,11 +1,13 @@
 import { useCallback } from "react";
 import { useReactFlow, type Edge as RFEdge, type Node as RFNode } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { SUBGRAPH_NODE_TYPE } from "../../constants/nodeTypes";
+import { extractDynamicIO } from "../../components/node/WorkflowNode/WorkflowLoader.helpers";
+import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 import type { NodeData } from "../../stores/NodeData";
 import type {
   Node as ApiNode,
@@ -170,6 +172,7 @@ function buildPlan(
 export function useGroupIntoSubgraph(): (selectedIds: string[]) => { subgraphNodeId: string } | null {
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((s) => s.getMetadata);
+  const nodeStore = useNodeStoreRef();
   const { createNode, addNode, addEdge, deleteEdges, deleteNodes, nodes, edges } =
     useNodes((s) => ({
       createNode: s.createNode,
@@ -212,23 +215,38 @@ export function useGroupIntoSubgraph(): (selectedIds: string[]) => { subgraphNod
         center
       );
 
-      subgraphNode.data.properties = {
-        ...(subgraphNode.data.properties ?? {}),
-        graph: { nodes: plan.innerNodes, edges: plan.innerEdges }
+      // Declare the boundary ports before the node is added. `addEdge`
+      // rejects an edge from an output handle the node does not have yet, and
+      // SubgraphSync would only fill them in a later effect.
+      const { dynamic_inputs, dynamic_outputs, dynamic_properties } =
+        extractDynamicIO({ graph: { nodes: plan.innerNodes } });
+      subgraphNode.data = {
+        ...subgraphNode.data,
+        properties: {
+          ...(subgraphNode.data.properties ?? {}),
+          graph: { nodes: plan.innerNodes, edges: plan.innerEdges }
+        },
+        dynamic_inputs:
+          Object.keys(dynamic_inputs).length > 0 ? dynamic_inputs : undefined,
+        dynamic_outputs,
+        dynamic_properties
       };
 
-      addNode(subgraphNode);
-      deleteEdges(plan.outerEdgesToRemove);
-      deleteNodes(selectedIds);
-      for (const edge of plan.outerEdgesToAdd) {
-        addEdge(edge);
-      }
+      runAsOneUndoEntry(nodeStore, () => {
+        addNode(subgraphNode);
+        deleteEdges(plan.outerEdgesToRemove);
+        deleteNodes(selectedIds);
+        for (const edge of plan.outerEdgesToAdd) {
+          addEdge(edge);
+        }
+      });
 
       return { subgraphNodeId: subgraphNode.id };
     },
     [
       reactFlowInstance,
       getMetadata,
+      nodeStore,
       createNode,
       addNode,
       addEdge,

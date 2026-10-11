@@ -281,6 +281,7 @@ describe("DockerRunGenerator environment variables", () => {
     expect(cmd).toContain("DB_PATH=/workspace/nodetool.db");
     expect(cmd).toContain("VECTORSTORE_DB_PATH=/workspace/vectorstore.db");
     expect(cmd).toContain("ASSET_FOLDER=/workspace/assets");
+    expect(cmd).toContain("USERS_FILE=/workspace/users.json");
   });
 
   it("points HF_HUB_CACHE at the mounted host hub cache", () => {

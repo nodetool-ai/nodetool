@@ -10,6 +10,7 @@ import {
   effectiveAssetId,
   isClipActive,
   resolveCaptionAtTime,
+  CAPTION_CUE_MAX_WORDS,
   resolveAnimatedLayerProps,
   trackZ,
   LAYER_Z_BASE,
@@ -138,6 +139,36 @@ describe("computeActiveLayers", () => {
     ];
     const layers = computeActiveLayers(tracks, clips, 100);
     expect(layers.map((l) => l.clipId)).toEqual(["vid"]);
+  });
+
+  it("excludes a hidden clip, its caption and a hidden adjustment", () => {
+    const tracks = [
+      track({ id: "fx", index: 0, type: "video" }),
+      track({ id: "v", index: 1, type: "video" })
+    ];
+    const clips = [
+      clip({ id: "vid", trackId: "v", startMs: 0, durationMs: 1000 }),
+      clip({
+        id: "hid",
+        trackId: "v",
+        startMs: 0,
+        durationMs: 1000,
+        hidden: true,
+        caption: { words: [{ word: "hi", startMs: 0, endMs: 300 }] }
+      }),
+      clip({
+        id: "adj",
+        trackId: "fx",
+        startMs: 0,
+        durationMs: 1000,
+        mediaType: "adjustment",
+        hidden: true,
+        effects: [{ id: "e", type: "color", enabled: true, brightness: 0.5 }]
+      })
+    ];
+    const result = computeActiveLayersWithHorizon(tracks, clips, 100);
+    expect(result.layers.map((l) => l.clipId)).toEqual(["vid"]);
+    expect(result.adjustments).toEqual([]);
   });
 
   it("excludes midi clips and midi tracks — notes are not pixels", () => {
@@ -621,5 +652,46 @@ describe("resolveAnimatedLayerProps", () => {
     const transitioning = computeActiveLayers(tracks, clips, 100).find((layer) => layer.clipId === "child");
     expect(transitioning).toBeDefined();
     expect(resolveAnimatedLayerProps(transitioning!, 100, CANVAS, undefined, { clips, mediaTracks: [] }).opacity).toBeCloseTo(0.5);
+  });
+});
+
+describe("resolveCaptionAtTime cues", () => {
+  const word = (w: string, startMs: number, endMs: number) => ({
+    word: w,
+    startMs,
+    endMs
+  });
+
+  it("shows only the cue being spoken", () => {
+    const words = Array.from({ length: 30 }, (_, i) =>
+      word(`w${i}`, i * 200, i * 200 + 180)
+    );
+    const c = clip({ startMs: 0, durationMs: 6000, caption: { words } });
+    const shown = resolveCaptionAtTime(c, 2500)!.words;
+    expect(shown.length).toBeLessThanOrEqual(CAPTION_CUE_MAX_WORDS);
+    expect(shown.some((w) => w.text === "w12" && w.active)).toBe(true);
+  });
+
+  it("starts a new cue at a pause and shows nothing inside it", () => {
+    const c = clip({
+      startMs: 0,
+      durationMs: 5000,
+      caption: { words: [word("one", 0, 500), word("two", 2000, 2500)] }
+    });
+    expect(resolveCaptionAtTime(c, 100)!.words.map((w) => w.text)).toEqual([
+      "one"
+    ]);
+    expect(resolveCaptionAtTime(c, 1200)!.words).toEqual([]);
+  });
+
+  it("leaves out words a head trim moved before the clip", () => {
+    const c = clip({
+      startMs: 0,
+      durationMs: 1000,
+      caption: { words: [word("cut", -1000, -10), word("kept", 0, 900)] }
+    });
+    expect(resolveCaptionAtTime(c, 100)!.words.map((w) => w.text)).toEqual([
+      "kept"
+    ]);
   });
 });

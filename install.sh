@@ -3,21 +3,23 @@
 # NodeTool CLI Installer
 # ======================
 #
-# A portable, self-contained shell installer that bootstraps a complete
-# NodeTool CLI environment using micromamba and installs nodetool-core and
-# nodetool-base packages from the NodeTool registry.
+# A portable shell installer that creates the Python environment for
+# NodeTool's Python nodes with micromamba, then installs nodetool-core and
+# any chosen packs from PyPI. The NodeTool server itself is the Node.js CLI.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash
 #   
 #   # Or with options:
-#   ./install.sh --prefix ~/.nodetool -y
+#   ./install.sh --prefix ~/.local/share/nodetool --pack huggingface -y
 #
 # Environment Variables:
-#   NODETOOL_HOME - Custom installation directory (default: ~/.nodetool)
+#   NODETOOL_HOME - Custom installation directory
+#                   (default: ~/.local/share/nodetool)
 #
 # Options:
 #   --prefix DIR    Installation directory (overrides NODETOOL_HOME)
+#   --pack NAME     Also install a Python pack: huggingface, mlx or wan2gp (repeatable)
 #   -y, --yes       Non-interactive mode, skip confirmation prompts
 #   --help          Show this help message
 #
@@ -32,16 +34,8 @@ set -euo pipefail
 # ==============================================================================
 
 MICROMAMBA_VERSION="2.3.3-0"
+DOCS_URL="https://github.com/nodetool-ai/nodetool/blob/main/docs/installation.md#python-nodes-without-the-desktop-app"
 MICROMAMBA_RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}"
-
-NODETOOL_REGISTRY="https://nodetool-ai.github.io/nodetool-registry/simple/"
-PYPI_INDEX="https://pypi.org/simple"
-
-# Python packages to install from the registry
-PYTHON_PACKAGES=(
-    "nodetool-core"
-    "nodetool-base"
-)
 
 # Conda dependencies from conda-forge
 CONDA_DEPENDENCIES=(
@@ -64,8 +58,6 @@ CONDA_DEPENDENCIES=(
     "pandoc"
     "uv"
     "lua"
-    "nodejs>=20"
-    "pip"
 )
 
 # ==============================================================================
@@ -147,7 +139,7 @@ die() {
     error "$@"
     echo ""
     error "Installation failed. Please check the error message above."
-    error "For troubleshooting, see: https://github.com/nodetool-ai/nodetool#troubleshooting"
+    error "For troubleshooting, see: ${DOCS_URL}"
     exit 1
 }
 
@@ -283,8 +275,6 @@ setup_directories() {
     # Create main directories
     mkdir -p "$NODETOOL_HOME"
     mkdir -p "$MICROMAMBA_DIR/bin"
-    mkdir -p "$NODETOOL_HOME/bin"
-    mkdir -p "$NODETOOL_HOME/cache"
     
     success "Created directory structure at $NODETOOL_HOME"
 }
@@ -382,198 +372,126 @@ create_conda_environment() {
     success "Created conda environment with all dependencies"
 }
 
+# Pack name -> PyPI distribution, and the platforms the pack supports.
+# Mirrors PYTHON_NODE_PACKS in packages/protocol/src/python-packs.ts.
+pack_distribution() {
+    case "$1" in
+        huggingface) echo "nodetool-huggingface" ;;
+        mlx) echo "nodetool-mlx" ;;
+        wan2gp) echo "nodetool-wan2gp" ;;
+        *) return 1 ;;
+    esac
+}
+
+# PyTorch 2.14 and MLX publish macOS wheels only for macOS 14 and newer.
+macos_14_or_newer() {
+    local major
+    major="$(sw_vers -productVersion 2>/dev/null | cut -d. -f1)"
+    [[ "$major" =~ ^[0-9]+$ ]] && (( major >= 14 ))
+}
+
+pack_supported() {
+    case "$1" in
+        mlx)
+            [[ "$PLATFORM" == "osx-arm64" ]] && macos_14_or_newer
+            ;;
+        huggingface)
+            # PyTorch publishes no wheels for Intel Macs.
+            if [[ "$OS" == "osx" ]]; then
+                [[ "$PLATFORM" == "osx-arm64" ]] && macos_14_or_newer
+            else
+                return 0
+            fi
+            ;;
+        wan2gp)
+            # The nodes call a Wan2GP server over MCP and load no model.
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+pack_needs_torch() {
+    [[ "$1" == "huggingface" || "$1" == "mlx" ]]
+}
+
 install_python_packages() {
-    step "Installing Python packages from NodeTool registry"
-    
+    step "Installing Python packages from PyPI"
+
     local uv_path="${ENV_DIR}/bin/uv"
-    
+
     if [[ ! -x "$uv_path" ]]; then
         die "uv not found in conda environment at $uv_path. This may indicate the conda environment creation failed. Try removing $ENV_DIR and running the installer again."
     fi
-    
-    info "Installing: ${PYTHON_PACKAGES[*]}"
-    
-    # Set up environment for uv
-    # We use --python to specify the target Python interpreter directly
-    # This avoids issues with virtual environment detection
-    export PATH="$ENV_DIR/bin:$PATH"
-    
+
+    local requirements=("nodetool-core")
+    local needs_torch="false"
+    local pack dist
+    for pack in "${PACKS[@]+${PACKS[@]}}"; do
+        if ! dist="$(pack_distribution "$pack")"; then
+            die "Unknown pack: $pack. Available packs: huggingface, mlx, wan2gp"
+        fi
+        if ! pack_supported "$pack"; then
+            die "The $pack pack does not support $PLATFORM. MLX and HuggingFace on a Mac need Apple Silicon and macOS 14 or newer."
+        fi
+        requirements+=("$dist")
+        if pack_needs_torch "$pack"; then
+            needs_torch="true"
+        fi
+    done
+
+    # One resolve for core and every pack, so pack pins cannot downgrade core.
+    local torch_args=()
+    if [[ "$needs_torch" == "true" && "$OS" == "linux" ]]; then
+        # uv detects the GPU driver and routes torch to the matching PyTorch index.
+        torch_args=(--torch-backend auto)
+    fi
+
+    info "Installing: ${requirements[*]}"
+
     if ! "$uv_path" pip install \
-        "${PYTHON_PACKAGES[@]}" \
         --python "${ENV_DIR}/bin/python" \
-        --index-url "$NODETOOL_REGISTRY" \
-        --extra-index-url "$PYPI_INDEX" \
-        --pre; then
+        "${torch_args[@]+${torch_args[@]}}" \
+        "${requirements[@]}"; then
         die "Failed to install Python packages"
     fi
-    
+
     success "Installed Python packages successfully"
-}
-
-create_wrapper_script() {
-    step "Creating wrapper script"
-    
-    local wrapper_path="${NODETOOL_HOME}/bin/nodetool"
-    
-    cat > "$wrapper_path" << 'WRAPPER_SCRIPT'
-#!/usr/bin/env bash
-#
-# NodeTool CLI wrapper script
-# Auto-generated by the NodeTool installer
-#
-
-set -euo pipefail
-
-# Determine the installation directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NODETOOL_HOME="$(dirname "$SCRIPT_DIR")"
-
-# Set up environment
-export MAMBA_ROOT_PREFIX="${NODETOOL_HOME}/micromamba"
-export PATH="${NODETOOL_HOME}/env/bin:${PATH}"
-
-# Set cache directories for models
-export HF_HOME="${HF_HOME:-${NODETOOL_HOME}/cache/huggingface}"
-export OLLAMA_MODELS="${OLLAMA_MODELS:-${NODETOOL_HOME}/cache/ollama}"
-
-# Invoke the nodetool CLI
-exec "${NODETOOL_HOME}/env/bin/python" -m nodetool.cli "$@"
-WRAPPER_SCRIPT
-
-    chmod +x "$wrapper_path"
-    
-    success "Created wrapper script at $wrapper_path"
 }
 
 verify_installation() {
     step "Verifying installation"
-    
-    local wrapper_path="${NODETOOL_HOME}/bin/nodetool"
-    
-    # Check if wrapper exists and is executable
-    if [[ ! -x "$wrapper_path" ]]; then
-        die "Wrapper script not found or not executable"
+
+    if ! "${ENV_DIR}/bin/python" -c "import nodetool.worker" >/dev/null 2>&1; then
+        die "The Python worker failed to import. Run: ${ENV_DIR}/bin/python -c 'import nodetool.worker'"
     fi
-    
-    # Try to run nodetool --help
-    info "Testing nodetool CLI..."
-    if ! "$wrapper_path" --help >/dev/null 2>&1; then
-        warn "nodetool --help failed, but installation may still be usable"
-        warn "Try running: $wrapper_path --help"
-    else
-        success "nodetool CLI is working"
-    fi
+    success "The Python worker imports"
 }
 
 print_completion_message() {
-    local bin_path="${NODETOOL_HOME}/bin"
-    
+    local python_path="${ENV_DIR}/bin/python"
+
     echo ""
-    echo -e "${GREEN}${BOLD}╔══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}${BOLD}║                   NodeTool Installation Complete!                ║${NC}"
-    echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${GREEN}${BOLD}NodeTool Python environment installed${NC}"
     echo ""
-    echo -e "${BOLD}Installation directory:${NC} $NODETOOL_HOME"
+    echo -e "${BOLD}Environment:${NC} $ENV_DIR"
     echo ""
-    echo -e "${BOLD}To use nodetool, add it to your PATH:${NC}"
+    echo "The NodeTool server is the Node.js CLI. It starts this environment's"
+    echo "Python worker when a workflow uses a Python node. Point it at the"
+    echo "environment with NODETOOL_PYTHON:"
     echo ""
-    echo -e "    ${CYAN}export PATH=\"$bin_path:\$PATH\"${NC}"
+    echo -e "    ${CYAN}NODETOOL_PYTHON=\"$python_path\" nodetool serve${NC}"
     echo ""
-    echo -e "${BOLD}Or add this line to your shell configuration file:${NC}"
+    echo "Without NODETOOL_PYTHON, the server finds the environment only at"
+    # shellcheck disable=SC2088 # a literal path for the reader
+    echo "~/.local/share/nodetool/conda_env on Linux. On macOS, always set it."
     echo ""
-    
-    # Detect the shell and config file
-    local shell_name
-    local rc_file
-    shell_name=$(basename "${SHELL:-/bin/bash}")
-    
-    case "$shell_name" in
-        zsh)
-            rc_file="~/.zshrc"
-            echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> $rc_file${NC}"
-            ;;
-        bash)
-            if [[ -f "$HOME/.bash_profile" ]]; then
-                rc_file="~/.bash_profile"
-            else
-                rc_file="~/.bashrc"
-            fi
-            echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> $rc_file${NC}"
-            ;;
-        fish)
-            rc_file="~/.config/fish/config.fish"
-            echo -e "    ${CYAN}fish_add_path $bin_path${NC}"
-            ;;
-        *)
-            rc_file="~/.profile"
-            echo -e "    ${CYAN}echo 'export PATH=\"$bin_path:\$PATH\"' >> $rc_file${NC}"
-            ;;
-    esac
-    
-    echo ""
-    echo -e "${BOLD}Then start a new terminal or run:${NC}"
-    echo ""
-    echo -e "    ${CYAN}source $rc_file${NC}"
-    echo ""
-    echo -e "${BOLD}Quick start:${NC}"
-    echo ""
-    echo -e "    ${CYAN}nodetool --help${NC}              # Show available commands"
-    echo -e "    ${CYAN}nodetool serve --port 7777${NC}   # Start the NodeTool server"
-    echo -e "    ${CYAN}nodetool worker --host 0.0.0.0${NC} # Start a worker"
-    echo ""
-    echo -e "${BOLD}Documentation:${NC} https://github.com/nodetool-ai/nodetool"
+    echo -e "${BOLD}Documentation:${NC} ${DOCS_URL}"
     echo ""
 }
 
-add_to_path_interactive() {
-    if [[ "$NOCONFIRM" == "true" ]]; then
-        return 0
-    fi
-    
-    local bin_path="${NODETOOL_HOME}/bin"
-    local shell_name
-    shell_name=$(basename "${SHELL:-/bin/bash}")
-    
-    local rc_file=""
-    case "$shell_name" in
-        zsh)
-            rc_file="$HOME/.zshrc"
-            ;;
-        bash)
-            if [[ -f "$HOME/.bash_profile" ]]; then
-                rc_file="$HOME/.bash_profile"
-            else
-                rc_file="$HOME/.bashrc"
-            fi
-            ;;
-        fish)
-            # Fish uses a different mechanism
-            echo ""
-            return 0
-            ;;
-        *)
-            rc_file="$HOME/.profile"
-            ;;
-    esac
-    
-    if [[ -n "$rc_file" ]]; then
-        echo ""
-        if confirm "Would you like to add nodetool to your PATH in $rc_file?"; then
-            local export_line="export PATH=\"$bin_path:\$PATH\""
-            
-            # Check if it's already there
-            if grep -qF "$bin_path" "$rc_file" 2>/dev/null; then
-                info "PATH already configured in $rc_file"
-            else
-                echo "" >> "$rc_file"
-                echo "# NodeTool CLI" >> "$rc_file"
-                echo "$export_line" >> "$rc_file"
-                success "Added nodetool to PATH in $rc_file"
-                info "Please restart your terminal or run: source $rc_file"
-            fi
-        fi
-    fi
-}
 
 # ==============================================================================
 # Main
@@ -581,12 +499,13 @@ add_to_path_interactive() {
 
 show_help() {
     cat << EOF
-NodeTool CLI Installer
+NodeTool Python Environment Installer
 
 Usage: $0 [OPTIONS]
 
 Options:
-    --prefix DIR    Installation directory (default: ~/.nodetool)
+    --prefix DIR    Installation directory (default: ~/.local/share/nodetool)
+    --pack NAME     Also install a Python pack: huggingface, mlx or wan2gp (repeatable)
     -y, --yes       Non-interactive mode, skip confirmation prompts
     --help          Show this help message
 
@@ -600,6 +519,9 @@ Examples:
     # Install to a custom location
     $0 --prefix /opt/nodetool
 
+    # Install with the HuggingFace pack
+    $0 --pack huggingface
+
     # Non-interactive installation
     $0 -y
 
@@ -612,7 +534,8 @@ EOF
 main() {
     # Default values
     NOCONFIRM="false"
-    NODETOOL_HOME="${NODETOOL_HOME:-$HOME/.nodetool}"
+    NODETOOL_HOME="${NODETOOL_HOME:-$HOME/.local/share/nodetool}"
+    PACKS=()
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -623,6 +546,14 @@ main() {
                     shift 2
                 else
                     die "--prefix requires a directory argument"
+                fi
+                ;;
+            --pack)
+                if [[ -n "${2:-}" ]]; then
+                    PACKS+=("$2")
+                    shift 2
+                else
+                    die "--pack requires a pack name"
                 fi
                 ;;
             -y|--yes|--no-confirm)
@@ -644,12 +575,12 @@ main() {
     
     # Set up paths
     MICROMAMBA_DIR="${NODETOOL_HOME}/micromamba"
-    ENV_DIR="${NODETOOL_HOME}/env"
+    ENV_DIR="${NODETOOL_HOME}/conda_env"
     
     # Show banner
     echo ""
     echo -e "${CYAN}${BOLD}╔══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}${BOLD}║                     NodeTool CLI Installer                       ║${NC}"
+    echo -e "${CYAN}${BOLD}║               NodeTool Python Environment Installer              ║${NC}"
     echo -e "${CYAN}${BOLD}╚══════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
@@ -682,17 +613,11 @@ main() {
     # Install Python packages
     install_python_packages
     
-    # Create wrapper script
-    create_wrapper_script
-    
     # Verify installation
     verify_installation
     
     # Print completion message
     print_completion_message
-    
-    # Offer to add to PATH
-    add_to_path_interactive
     
     success "NodeTool installation complete!"
 }

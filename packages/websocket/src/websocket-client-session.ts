@@ -734,7 +734,10 @@ export class WebSocketClientSession implements ClientSession {
 
     await websocket.accept();
     this.websocket = websocket;
-    if (this.frontendRendererRegistry) {
+    // A deployed app's visitor runs as the app's owner. Registering it as a
+    // renderer would let the owner's agents route frontend tool calls (and
+    // trust the results) to an anonymous visitor's page.
+    if (this.frontendRendererRegistry && !this.appSession) {
       this.frontendRendererId = this.frontendRendererRegistry.register(
         this.userId,
         this
@@ -1625,5 +1628,8 @@ export class WebSocketClientSession implements ClientSession {
           "All messages must include a 'command' field. Use 'chat_message' command for chat."
       });
     }
+    // A detached `generate_media` still answers before the connection is torn
+    // down, as it did when it held this loop.
+    await this.commands.settled();
   }
 }

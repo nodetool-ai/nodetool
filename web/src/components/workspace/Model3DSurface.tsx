@@ -1,10 +1,11 @@
-import React, { Suspense, useCallback, useMemo } from "react";
+import React, { Suspense, useCallback, useMemo, useState } from "react";
 
 import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { useAssetById } from "../../serverState/useAssetById";
 import { useAssetStore } from "../../stores/AssetStore";
+import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   tabId,
@@ -62,6 +63,36 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
   });
 
 /**
+ * The URL the editor loads, fixed for as long as the editor stays open on
+ * one asset. Cloud storage signs a new `get_url` on every asset fetch, and the
+ * asset is refetched after each save and on window focus. Passing each new
+ * URL through would reload the editor and drop its unsaved edits and history.
+ */
+const usePinnedUrl = (key: string | null, url: string | null): string | null => {
+  const [pinned, setPinned] = useState<{ key: string; url: string } | null>(null);
+  if (key === null || url === null) {
+    if (key === null && pinned !== null) {
+      setPinned(null);
+    }
+    return null;
+  }
+  if (pinned?.key !== key) {
+    setPinned({ key, url });
+    return url;
+  }
+  return pinned.url;
+};
+
+/**
+ * Make a reload fetch the new file. A local storage URL stays the same across
+ * writes and is served without Cache-Control, so the browser may answer it
+ * from cache. A signed cloud URL already changes on every fetch, and an extra
+ * parameter could break its signature.
+ */
+const withVersion = (url: string, version: string): string =>
+  url.includes("?") ? url : `${url}?v=${encodeURIComponent(version)}`;
+
+/**
  * Workspace surface for a 3D model asset tab. `refId` is the Asset id.
  *
  * In "edit" mode it mounts the real Model3DEditor (lazily) when the asset is an
@@ -83,19 +114,83 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
     }
     return resolveMediaUrl(asset.get_url);
   }, [asset]);
+  // Bumped to reopen the editor on a file written from elsewhere.
+  const [reloadCount, setReloadCount] = useState(0);
+  const pinnedEditorUrl = usePinnedUrl(
+    mode === "edit" && asset ? `${asset.id}:${reloadCount}` : null,
+    editorUrl && asset?.updated_at && reloadCount > 0
+      ? withVersion(editorUrl, asset.updated_at)
+      : editorUrl
+  );
+
+  // Publish unsaved edits so closing the tab or the window asks first.
+  const documentTabId = tabId("model3d", refId);
+  const [dirty, setDirty] = useState(false);
+  const handleDirtyChange = useCallback(
+    (next: boolean) => {
+      setDirty(next);
+      useDocumentDraftStore.getState().setDirty(documentTabId, next);
+    },
+    [documentTabId]
+  );
+
+  // The asset's `updated_at` as of the file the editor holds. Another writer
+  // (the agent's edit_model3d, another tab) moves it. A clean editor reloads,
+  // and a dirty one shows a warning, so a save does not silently replace the
+  // other change. Tracked during render, as `usePinnedUrl` does.
+  const [saving, setSaving] = useState(false);
+  const [externallyChanged, setExternallyChanged] = useState(false);
+  const [known, setKnown] = useState<{ id: string; version: string } | null>(null);
+  const version = asset?.updated_at ?? null;
+  const watchedId = mode === "edit" && asset && version !== null ? asset.id : null;
+  if (watchedId === null || version === null) {
+    if (known !== null) {
+      setKnown(null);
+      setExternallyChanged(false);
+    }
+  } else if (known?.id !== watchedId) {
+    setKnown({ id: watchedId, version });
+  } else if (version !== known.version && !saving) {
+    setKnown({ id: watchedId, version });
+    if (dirty) {
+      setExternallyChanged(true);
+    } else {
+      setReloadCount((count) => count + 1);
+    }
+  }
+
+  const reloadExternal = useCallback(() => {
+    setExternallyChanged(false);
+    setReloadCount((count) => count + 1);
+  }, []);
+  const dismissExternal = useCallback(() => setExternallyChanged(false), []);
 
   const persistBlob = useCallback(
     async (blob: Blob) => {
       if (!asset) {
         throw new Error("Asset is not loaded.");
       }
-      const base64Data = await blobToBase64(blob);
-      await updateAsset({
-        id: asset.id,
-        data: base64Data,
-        data_encoding: "base64",
-        content_type: "model/gltf-binary"
-      });
+      const drafts = useDocumentDraftStore.getState();
+      drafts.setSaving(documentTabId, true);
+      setSaving(true);
+      try {
+        const base64Data = await blobToBase64(blob);
+        const saved = await updateAsset({
+          id: asset.id,
+          data: base64Data,
+          data_encoding: "base64",
+          content_type: "model/gltf-binary"
+        });
+        // This write is the editor's own, not an external change.
+        const savedVersion = saved?.updated_at;
+        if (savedVersion) {
+          setKnown({ id: asset.id, version: savedVersion });
+        }
+        setExternallyChanged(false);
+      } finally {
+        setSaving(false);
+        drafts.setSaving(documentTabId, false);
+      }
       invalidateQueries(["asset", asset.id]);
       if (asset.parent_id) {
         invalidateQueries(["assets", { parent_id: asset.parent_id }]);
@@ -105,7 +200,7 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
         content: `Saved ${asset.name || "3D model"}.`
       });
     },
-    [asset, updateAsset, invalidateQueries]
+    [asset, updateAsset, invalidateQueries, documentTabId]
   );
 
   const handleClose = useCallback(() => {
@@ -123,7 +218,7 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
     );
   }
 
-  if (mode === "edit" && editorUrl) {
+  if (mode === "edit" && pinnedEditorUrl) {
     return (
       <Suspense
         fallback={
@@ -137,11 +232,16 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
         }
       >
         <Model3DEditor
-          url={editorUrl}
+          key={reloadCount}
+          url={pinnedEditorUrl}
           name={asset.name}
           onSave={persistBlob}
           onClose={handleClose}
           active={active}
+          onDirtyChange={handleDirtyChange}
+          externallyChanged={externallyChanged}
+          onReloadExternal={reloadExternal}
+          onDismissExternal={dismissExternal}
         />
       </Suspense>
     );

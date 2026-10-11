@@ -37,6 +37,8 @@ describe("draftFromShot", () => {
         notes: "Do not paint the sky",
         duration_seconds: 6,
         duration_source: "manual",
+        end_state: "The lamp fills the frame",
+        sound: "Surf",
         camera: {
           framing: "close-up",
           angle: "low angle",
@@ -64,7 +66,9 @@ describe("draftFromShot", () => {
       movement: "dolly in",
       equipment: "dolly",
       lens: "85mm",
-      notes: "Do not paint the sky"
+      notes: "Do not paint the sky",
+      endState: "The lamp fills the frame",
+      sound: "Surf"
     });
   });
 

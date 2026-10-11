@@ -1,10 +1,12 @@
 import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { paintHud, pixelRect, projectedCamera, tintPixels, visibleItems } from "./frame.js";
+import { pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
 import { gameFontFamily } from "./fonts.js";
+import { loadGameUiImages, paintGameHud2D } from "./ui/hud2d.js";
 import { applyGpuEffects } from "./gpu-capture.js";
 import type { GameHudEffectOrder, GameRendererEffect } from "./index.js";
+import { PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
 
 export interface CaptureGameFrameOptions {
   readonly resolveAsset?: (assetId: string) => Promise<Uint8Array | null>;
@@ -14,6 +16,8 @@ export interface CaptureGameFrameOptions {
   readonly backend?: "canvas2d" | "webgpu";
   readonly effects?: readonly GameRendererEffect[];
   readonly hudEffectOrder?: GameHudEffectOrder;
+  /** Particles to draw with the sprites, such as a `GameParticles2D` run beside the session. */
+  readonly particles?: GameParticleField;
 }
 
 /** Renders one frame to PNG with an explicit Canvas2D or GPU effect path. */
@@ -37,9 +41,12 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
   const context = canvas.getContext("2d");
   context.imageSmoothingEnabled = false;
   const pixelScaleForCulling = frame.pixelsPerUnit * frame.camera.zoom * scale;
-  const items = visibleItems(frame, options.interpolation ?? 1, overscan / pixelScaleForCulling);
+  const items = visibleItems(frame, options.interpolation ?? 1, overscan / pixelScaleForCulling, options.particles && { field: options.particles });
   const cache = new Map<string, Promise<Awaited<ReturnType<typeof loadImage>> | null>>();
   const getImage = (assetId: string): Promise<Awaited<ReturnType<typeof loadImage>> | null> => {
+    if (assetId === PARTICLE_DOT_ASSET) {
+      return particleDotImage();
+    }
     let image = cache.get(assetId);
     if (!image) {
       image = (async () => {
@@ -73,7 +80,7 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
     drawContext.globalCompositeOperation = !normalBlend && item.blend === "additive" ? "lighter" : "source-over";
     drawContext.imageSmoothingEnabled = item.sampling === "linear";
     if (image) {
-      const source = item.frame ?? { x: 0, y: 0, width: image.width, height: image.height };
+      const source = sourceRect(item, image.width, image.height);
       if (item.tint && item.tint.toLowerCase() !== "#ffffff") {
         const key = `${item.assetId}:${source.x},${source.y},${source.width},${source.height}:${item.tint}`;
         let tintCanvas = tinted.get(key);
@@ -143,12 +150,13 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
         options.onDiagnostic?.(`Optional font ${fontId} could not load; using system font`);
       }
     }
+    const uiImages = await loadGameUiImages(frame, getImage);
     const hudOrder = options.hudEffectOrder ?? (effects.some((effect) => effect.kind === "bloom") ? "afterEffects" : "beforeEffects");
     const applyEffects = backend === "webgpu" && effects.length > 0;
     if (!applyEffects || hudOrder === "beforeEffects") {
       context.save();
       context.translate(overscan, overscan);
-      paintHud(context, frame.hud, scale, frame.gameId);
+      paintGameHud2D(context, frame, scale, uiImages);
       context.restore();
     }
     if (applyEffects) {
@@ -162,17 +170,31 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
       }
     }
     if (overscan === 0) {
-      if (applyEffects && hudOrder === "afterEffects") paintHud(context, frame.hud, scale, frame.gameId);
+      if (applyEffects && hudOrder === "afterEffects") paintGameHud2D(context, frame, scale, uiImages);
       return canvas.toBuffer("image/png");
     }
     const cropped = createCanvas(outputWidth, outputHeight);
     const croppedContext = cropped.getContext("2d");
     croppedContext.drawImage(canvas, overscan, overscan, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
-    if (applyEffects && hudOrder === "afterEffects") paintHud(croppedContext, frame.hud, scale, frame.gameId);
+    if (applyEffects && hudOrder === "afterEffects") paintGameHud2D(croppedContext, frame, scale, uiImages);
     return cropped.toBuffer("image/png");
   } finally {
     GlobalFonts.removeBatch(registered);
   }
+}
+
+let particleDot: Promise<Awaited<ReturnType<typeof loadImage>>> | undefined;
+
+function particleDotImage(): Promise<Awaited<ReturnType<typeof loadImage>>> {
+  if (!particleDot) {
+    const canvas = createCanvas(PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE);
+    const context = canvas.getContext("2d");
+    const pixels = context.createImageData(PARTICLE_DOT_SIZE, PARTICLE_DOT_SIZE);
+    pixels.data.set(particleDotPixels());
+    context.putImageData(pixels, 0, 0);
+    particleDot = loadImage(canvas.toBuffer("image/png"));
+  }
+  return particleDot;
 }
 
 export { compareGameCaptures } from "./imageDiff.js";

@@ -25,7 +25,8 @@ import {
   MOTION,
   SPACING,
   Z_INDEX,
-  getSpacingPx
+  getSpacingPx,
+  SHADOW
 } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
@@ -42,7 +43,7 @@ const treeStyles = (theme: Theme) =>
       zIndex: theme.zIndex.floatingPanel,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.xxl,
-      boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
+      boxShadow: SHADOW(theme).lg,
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
       transition: `background-color ${MOTION.fast}, box-shadow ${MOTION.fast}, border-color ${MOTION.normal}`,

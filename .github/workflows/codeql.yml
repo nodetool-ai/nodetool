@@ -1,0 +1,62 @@
+name: CodeQL
+
+# Advanced setup replaces GitHub's default setup, which analysed three
+# languages on every PR push and every push to main. On main the TypeScript
+# analysis scans the whole tree on every push, and the account-wide
+# job cap makes every minute of it queue time for other PRs. Here:
+#
+#   - pull requests analyse TypeScript and the workflow files, diff-informed;
+#   - the nightly run analyses all three languages on main, which is the
+#     baseline new PR alerts are compared against;
+#   - Python, a few scripts beside the TypeScript tree, is analysed nightly
+#     only.
+#
+# Default setup must be switched off in Settings → Code security, or GitHub
+# rejects this workflow's uploads.
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  schedule:
+    - cron: "41 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: >-
+          ${{ fromJSON(github.event_name == 'pull_request'
+          && '["javascript-typescript","actions"]'
+          || '["javascript-typescript","actions","python"]') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

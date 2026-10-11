@@ -19,7 +19,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Revise an Accepted Campaign Hero\n\nMakes one bounded edit to an accepted campaign hero and records exactly what changed. Use it when a hero is approved but needs a single adjustment, such as a new time of day.\n\n**How it works:** \"Accepted hero\" passes through \"Normalize app image\", which turns an app value into an image reference. \"Capture revision request\" reads that image, the \"Accepted contract\", and the \"Change\", \"Preserve\" and \"Allow to respond\" texts, checks their length limits, and writes a prompt plus a child contract that keeps the parent. \"Make one revision\" edits the hero with Nano Banana Edit on fal at strength 0.45 and 16:9, with a negative prompt against added text or a changed product. \"Finalize revision candidate\" waits for the image, then emits \"Revision candidate\", \"Revision contract\" and \"Review phase\". The edit step needs a fal key.\n\n**Try this:** Set \"Change\" to \"Add light rain on the stone surface\" and keep \"Preserve\" as it is. The candidate should change the weather and leave the cup and composition alone."
+          "comment": "# Revise an Accepted Campaign Hero\n\nMakes one bounded edit to an accepted campaign hero and records exactly what changed. Use it when a hero is approved but needs a single adjustment, such as a new time of day.\n\n**How it works:** \"Accepted hero\" passes through \"Normalize app image\", which turns an app value into an image reference. \"Capture revision request\" reads that image, the \"Accepted contract\", and the \"Change\", \"Preserve\" and \"Allow to respond\" texts, checks their length limits, and writes a prompt plus a child contract that keeps the parent. \"Make one revision\" edits the hero at strength 0.45 and 16:9, with a negative prompt against added text or a changed product. \"Finalize revision candidate\" waits for the image, then emits \"Revision candidate\", \"Revision contract\" and \"Review phase\". The edit step uses your default image model, or the one you pick on the node.\n\n**Try this:** Set \"Change\" to \"Add light rain on the stone surface\" and keep \"Preserve\" as it is. The candidate should change the weather and leave the cup and composition alone."
         },
         "ui_properties": {
           "position": {
@@ -252,9 +252,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/nano-banana/edit",
-            "name": "Nano Banana Edit",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

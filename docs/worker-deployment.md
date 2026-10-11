@@ -57,6 +57,11 @@ tables live in NodeTool's SQLite DB so the UI and CLI share one source of truth.
 | `ghcr.io/nodetool-ai/nodetool-worker:latest` | The lean Python worker | Python nodes, HuggingFace pipelines, LLM providers |
 | `ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` | Worker + a co-located, loopback-only ComfyUI | Everything above **plus** the **Run ComfyUI Workflow (Worker)** node |
 
+The worker image installs PyTorch 2.14 from PyPI, whose Linux build uses CUDA
+13.0. A GPU host therefore needs NVIDIA driver 580 or newer. On an older driver
+the HuggingFace nodes run on the CPU or fail their VRAM checks. NodeTool does
+not filter hosts by CUDA version, so check the driver of the host you rent.
+
 A worker started from the ComfyUI image fronts ComfyUI over the worker bridge
 (ComfyUI itself is never exposed outside the container) and reports
 `worker.status.comfy.enabled: true`. The **Run ComfyUI Workflow (Worker)** node

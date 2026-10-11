@@ -46,11 +46,13 @@ interface AssetMentionSearch {
  * (assets used this session) and **Saved** (the library, debounced-searched by
  * the query) — plus a rename that syncs back to the asset library.
  * `initialTab` overrides the opening bucket, which otherwise is Recent when
- * there is anything recent.
+ * there is anything recent. `contentType` narrows both buckets to assets whose
+ * content type starts with it, such as `"video"`.
  */
 export const useAssetMentionSearch = (
   queryString: string | null,
-  initialTab?: MentionTab
+  initialTab?: MentionTab,
+  contentType?: string
 ): AssetMentionSearch => {
   const search = useAssetStore((state) => state.search);
   const updateAsset = useAssetStore((state) => state.update);
@@ -90,7 +92,8 @@ export const useAssetMentionSearch = (
       search({
         query: queryString,
         page_size: PAGE_SIZE,
-        project_id: activeProjectId
+        project_id: activeProjectId,
+        content_type: contentType
       })
         .then((result) => {
           if (active && queryTokenRef.current === token) {
@@ -112,7 +115,7 @@ export const useAssetMentionSearch = (
       active = false;
       clearTimeout(handle);
     };
-  }, [queryString, search, activeProjectId]);
+  }, [queryString, search, activeProjectId, contentType]);
 
   const loadMoreSaved = useCallback(() => {
     if (!savedCursor || queryString === null || loadingMoreRef.current) {
@@ -125,7 +128,8 @@ export const useAssetMentionSearch = (
       query: queryString,
       page_size: PAGE_SIZE,
       cursor,
-      project_id: activeProjectId
+      project_id: activeProjectId,
+      content_type: contentType
     })
       .then((result) => {
         if (queryTokenRef.current !== token) {
@@ -147,14 +151,16 @@ export const useAssetMentionSearch = (
           loadingMoreRef.current = false;
         }
       });
-  }, [savedCursor, queryString, search, activeProjectId]);
+  }, [savedCursor, queryString, search, activeProjectId, contentType]);
 
   const scopedRecentAssets = useMemo(
     () =>
       recentAssets.filter(
-        (asset) => (asset.project_id ?? LOOSE_PROJECT_ID) === activeProjectId
+        (asset) =>
+          (asset.project_id ?? LOOSE_PROJECT_ID) === activeProjectId &&
+          (!contentType || (asset.content_type ?? "").startsWith(contentType))
       ),
-    [recentAssets, activeProjectId]
+    [recentAssets, activeProjectId, contentType]
   );
 
   const filteredRecent = useMemo(() => {

@@ -1,7 +1,10 @@
+import * as acorn from "acorn";
 import { z } from "zod";
-import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
-import { applyGameOps, createTopDownRoomGame, gameDocumentOp, GameOpError } from "@nodetool-ai/game-runtime";
+import { gameDocument, gameDocument3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
+import { applyGameOps, applyGameOps3D, collisionLayerBits3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
+
+const SCRIPT_PARAMS_EVAL_SOURCE = "(input) => ({ state: input.params, commands: [] })";
 
 /** Headless game editor bridge that exercises the production op reducer. */
 export function createGameToolBridge(initial: GameDocument): HeadlessSurfaceBridge<GameDocument> {
@@ -40,8 +43,131 @@ export function createGameToolBridge(initial: GameDocument): HeadlessSurfaceBrid
   };
 }
 
+/** Headless 3D game editor bridge over the production 3D op reducer. */
+export function createGameToolBridge3D(initial: GameDocument3D): HeadlessSurfaceBridge<GameDocument3D> {
+  let document = gameDocument3D.parse(initial);
+  return {
+    tools: [
+      {
+        name: "get_native_game",
+        description: "Read the current native 3D game draft.",
+        parameters: z.object({ view: z.enum(["outline", "full"]).default("outline") }),
+        execute: async (args) => args.view === "full" ? { document } : {
+          outline: {
+            entrySceneId: document.entrySceneId,
+            scenes: document.scenes.map((scene) => ({ id: scene.id, name: scene.name, environment: scene.environment,
+              entities: scene.entities.map((entity) => ({ id: entity.id, name: entity.name, light: entity.light3d?.kind })) }))
+          }
+        }
+      },
+      {
+        name: "edit_native_game",
+        description: "Apply ordered native 3D game draft ops atomically.",
+        parameters: z.object({ ops: z.array(gameDocumentOp3D).min(1) }),
+        execute: async (args) => {
+          const parsed = z.array(gameDocumentOp3D).parse(args.ops);
+          try {
+            document = applyGameOps3D(document, parsed);
+            return { document };
+          } catch (error) {
+            if (error instanceof GameOpError) return { error: error.message, issues: error.issues };
+            throw error;
+          }
+        }
+      }
+    ],
+    finalState: () => document
+  };
+}
 
-export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<GameDocument>[] = [{
+type ScriptNode = { readonly type: string; readonly [key: string]: unknown };
+
+/** Parses a lifecycle-object script source, or undefined when it is not one. */
+function lifecycleObject(source: string): ScriptNode | undefined {
+  try {
+    const program = acorn.parse(`(${source})`, { ecmaVersion: "latest" }) as unknown as { body: { expression?: ScriptNode }[] };
+    const expression = program.body.length === 1 ? program.body[0].expression : undefined;
+    return expression?.type === "ObjectExpression" ? expression : undefined;
+  } catch {
+    // Source that does not parse is not a lifecycle object.
+    return undefined;
+  }
+}
+
+/** Every AST node under `node`, including itself. */
+function scriptNodes(node: unknown): ScriptNode[] {
+  const nodes: ScriptNode[] = [];
+  const pending = [node];
+  while (pending.length > 0) {
+    const value = pending.pop();
+    if (Array.isArray(value)) { pending.push(...value); continue; }
+    if (typeof value !== "object" || value === null || typeof (value as ScriptNode).type !== "string") { continue; }
+    nodes.push(value as ScriptNode);
+    for (const [key, child] of Object.entries(value)) {
+      if (key !== "type" && typeof child === "object") { pending.push(child); }
+    }
+  }
+  return nodes;
+}
+
+/** A property's key as written, quoted or not. */
+function propertyName(property: ScriptNode): string | undefined {
+  const key = property.key as ScriptNode | undefined;
+  if (property.computed === true || !key) { return undefined; }
+  return key.type === "Identifier" ? key.name as string : key.type === "Literal" ? String(key.value) : undefined;
+}
+
+/** A constant string or number literal, including a template literal without expressions. */
+function constantValue(node: unknown): unknown {
+  const value = node as ScriptNode | undefined;
+  if (value?.type === "Literal") { return value.value; }
+  if (value?.type === "TemplateLiteral" && (value.expressions as unknown[]).length === 0) {
+    return ((value.quasis as { value: { cooked: string } }[])[0]).value.cooked;
+  }
+  return undefined;
+}
+
+/** The object's own properties by name. Spreads and computed keys are left out. */
+function objectProperties(node: unknown): Map<string, unknown> | undefined {
+  const value = node as ScriptNode | undefined;
+  if (value?.type !== "ObjectExpression") { return undefined; }
+  const properties = new Map<string, unknown>();
+  for (const property of value.properties as ScriptNode[]) {
+    const name = property.type === "Property" ? propertyName(property) : undefined;
+    if (name !== undefined) { properties.set(name, property.value); }
+  }
+  return properties;
+}
+
+/** The hook's function with its parameters and body, whether written as a method or as a function-valued property. */
+function hookFunction(object: ScriptNode, hook: string): unknown {
+  const value = objectProperties(object)?.get(hook) as ScriptNode | undefined;
+  return value?.type === "FunctionExpression" || value?.type === "ArrowFunctionExpression" ? value : undefined;
+}
+
+/** onStart builds {kind: "emit", event: "bonus", payload: {points: 5}, target: {entityId: "gem"}}. Target fields are strict, as in the command schema. */
+function emitsTargetedBonus(source: string): boolean {
+  const object = lifecycleObject(source);
+  return object !== undefined && scriptNodes(hookFunction(object, "onStart")).some((node) => {
+    const command = objectProperties(node);
+    const payload = objectProperties(command?.get("payload"));
+    const target = objectProperties(command?.get("target"));
+    return constantValue(command?.get("kind")) === "emit" && constantValue(command?.get("event")) === "bonus"
+      && constantValue(payload?.get("points")) === 5 && target?.size === 1 && constantValue(target.get("entityId")) === "gem";
+  });
+}
+
+/** onEvent reads `points` from the event payload, by member access or destructuring. */
+function readsEventPoints(source: string): boolean {
+  const object = lifecycleObject(source);
+  const names = scriptNodes(object && hookFunction(object, "onEvent")).flatMap((node) =>
+    node.type === "MemberExpression" && node.computed !== true ? [(node.property as ScriptNode).name as string]
+      : node.type === "MemberExpression" ? [String(constantValue(node.property))]
+      : node.type === "Property" ? [propertyName(node) ?? ""] : []);
+  return names.includes("payload") && names.includes("points");
+}
+
+export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] = [{
   id: "entity-tags-properties",
   description: "Author native entity tags and nested JSON properties through public edit ops.",
   objective: "Give player the hero tag and properties health 10 and nested nullable null, replacing prior properties.",
@@ -53,6 +179,306 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<GameDocument>[] = [
       test: document => {
         const player = document.scenes[0].entities.find(entity => entity.id === "player");
         return z.object({ tags: z.tuple([z.literal("hero")]), props: z.strictObject({ health: z.literal(10), nested: z.strictObject({ nullable: z.null() }) }) }).safeParse(player).success;
+      } }]
+  }
+}, {
+  id: "audio-mixer-buses",
+  description: "Author the document audio mixer: a user bus, an asset route and an event-driven mixer snapshot.",
+  objective: "Add an ambience bus under sfx at volume 0.6, play the sfx.collect slot on the ui bus, and when the player wins fade music to volume 0.2 over 30 ticks with a victory mixer snapshot.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("mixer-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_audio {mixer} replaces document audio.mixer with buses, assetBuses, ducking, snapshots and transitions. Transitions use on {kind: win}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "mixer", detail: "The mixer lacks the ambience bus, the ui route or the victory transition.",
+      test: document => {
+        const mixer = document.audio?.mixer;
+        if (!mixer) { return false; }
+        const transition = mixer.transitions.find((rule) => rule.on.kind === "win");
+        return mixer.buses.ambience?.parent === "sfx" && mixer.buses.ambience.volume === 0.6 && mixer.assetBuses["sfx.collect"] === "ui" &&
+          transition?.fadeTicks === 30 && mixer.snapshots[transition.snapshot]?.buses.music?.volume === 0.2;
+        } }]
+    }
+  }, {
+  id: "procedural-sky",
+  description: "Author a procedural sky linked to the scene's directional light through public 3D edit ops.",
+  objective: "Give the 3D scene a procedural sky whose sun follows the sun light, with turbidity 4, while keeping its background, ambient and shadow settings.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("sky-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene replaces the whole environment object, so send its existing fields with the new sky.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "proceduralSky", detail: "The scene sky is not procedural, is not linked to the sun light, or lost its other environment settings.",
+      test: document => {
+        const initial = createNative3DGame("sky-eval").scenes[0].environment;
+        const scene = document.scenes[0];
+        if (document.schemaVersion !== 3 || !scene || !("environment" in scene)) { return false; }
+        const { sky, ...rest } = scene.environment;
+        const { sky: _initialSky, ...initialRest } = initial;
+        return sky?.kind === "procedural" && sky.sunEntityId === "sun" && sky.turbidity === 4 && JSON.stringify(rest) === JSON.stringify(initialRest);
+      } }]
+  }
+}, {
+  id: "script-parameters",
+  description: "Tune a script's declared inspector parameters through set_script_params without editing its source.",
+  objective: "The player's script declares speed and target params. Set speed to 6 and target to the gem entity. Do not change the script source.",
+  createBridge: () => {
+    const base = createTopDownRoomGame("script-params-eval");
+    return createGameToolBridge(gameDocument.parse({ ...base, schemaVersion: 4, engineVersion: "3", scenes: base.scenes.map((scene) => ({ ...scene,
+      entities: scene.entities.map((entity) => entity.id === "player" ? { ...entity, behaviors: [...entity.behaviors, { kind: "script",
+        source: SCRIPT_PARAMS_EVAL_SOURCE, params: { speed: { type: "number", default: 2, minimum: 0, maximum: 10 }, target: { type: "entity" } } }] } : entity) })) }));
+  },
+  systemPrompt: "Use get_native_game and edit_native_game. set_script_params {entity_id, index, values} sets declared script params by behavior index.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerScriptParams", detail: "The player's script values or source differ from the request.",
+      test: document => {
+        const script = document.scenes[0].entities.find(entity => entity.id === "player")?.behaviors.find(behavior => behavior.kind === "script");
+        return z.object({ source: z.literal(SCRIPT_PARAMS_EVAL_SOURCE), values: z.strictObject({ speed: z.literal(6), target: z.literal("gem") }) }).safeParse(script).success;
+      } }]
+  }
+}, {
+  id: "particle-emitter",
+  description: "Author a particles component with a death sub-emitter through public edit ops.",
+  objective: "Give player a particles component: a looping emitter trail at rate 20 whose particles fire 3 particles from a second emitter sparks on death. sparks does not play on start.",
+  createBridge: () => createGameToolBridge({ ...createTopDownRoomGame("particles-eval"), schemaVersion: 2 }),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole particles component as { emitters: [...] }. onDeath lists { emitter, count } for emitters of the same component.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerParticles", detail: "Player has no trail emitter that fires sparks on death.",
+      test: document => {
+        const emitters = document.scenes[0].entities.find(entity => entity.id === "player")?.particles?.emitters ?? [];
+        const trail = emitters.find(emitter => emitter.id === "trail");
+        const sparks = emitters.find(emitter => emitter.id === "sparks");
+        return trail?.rate === 20 && trail.loop && trail.onDeath.some(sub => sub.emitter === "sparks" && sub.count === 3) && sparks?.playOnStart === false;
+      } }]
+  }
+}, {
+  id: "render-culling",
+  description: "Author a 3D cull layer, a frame budget and per-entity distance culling through public edit ops.",
+  objective: "Declare a cull layer named props that hides entities beyond 40 units, put the crate and the pickup on it, hide the ramp beyond 25 units, and set a draw call budget of 300.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("culling-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_performance {performance} replaces document performance with cullLayers {name: {maxDistance}} and budgets {drawCalls?, triangles?, particles?, voices?}. update_entity sets renderCulling {layer?, maxDistance?} on an entity.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "renderCulling", detail: "The props layer, the entity culling settings or the draw call budget differ from the request.",
+      test: document => {
+        if (document.schemaVersion !== 3) { return false; }
+        const culling = (id: string) => document.scenes[0].entities.find(entity => entity.id === id)?.renderCulling;
+        return document.performance?.cullLayers?.props?.maxDistance === 40 && document.performance.budgets?.drawCalls === 300 &&
+          culling("crate")?.layer === "props" && culling("pickup")?.layer === "props" && culling("ramp")?.maxDistance === 25;
+      } }]
+  }
+}, {
+  id: "input-bindings",
+  description: "Author a document input map through set_game input_bindings while other actions keep their generated defaults.",
+  objective: "Bind the left action to the J key and gamepad button 14 only. Leave every other action on its default bindings.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("bindings-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game input_bindings replaces the whole input map: {actions: {action: [binding]}, axes: {}}. A key binding is {kind:\"key\", code} with a KeyboardEvent.code, a gamepad button is {kind:\"gamepadButton\", button}. Actions not listed keep their defaults.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "leftBinding", detail: "The input map does not bind left to exactly KeyJ and gamepad button 14, or it binds other actions.",
+      test: document => z.object({ actions: z.strictObject({ left: z.tuple([z.object({ kind: z.literal("key"), code: z.literal("KeyJ") }), z.object({ kind: z.literal("gamepadButton"), button: z.literal(14) })]) }) })
+        .safeParse(document.inputBindings).success
+        || z.object({ actions: z.strictObject({ left: z.tuple([z.object({ kind: z.literal("gamepadButton"), button: z.literal(14) }), z.object({ kind: z.literal("key"), code: z.literal("KeyJ") })]) }) })
+          .safeParse(document.inputBindings).success }]
+  }
+}, {
+  id: "spatial-audio-source",
+  description: "Position an entity's sound effect in the world with spatial audio settings on its audio source.",
+  objective: "Make the gem's collect sound spatial: full volume within 2 units of the camera, fading linearly to silence at 20 units.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("spatial-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity set audioSource {spatial, minDistance, maxDistance, rolloff, distanceModel: linear|inverse|exponential, cone, doppler} merges into the entity's audio source.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "spatialGem", detail: "The gem's audio source is not spatial with a linear 2 to 20 unit falloff.",
+      test: document => {
+        const audio = document.scenes.map((scene) => scene.entities.find((entity) => entity.id === "gem")).find(Boolean)?.audioSource;
+        return audio?.spatial === true && audio.minDistance === 2 && audio.maxDistance === 20 && audio.distanceModel === "linear" && (audio.rolloff ?? 1) === 1;
+      } }]
+  }
+}, {
+  id: "particle-rendering",
+  description: "Author particle render settings: additive blend, a sprite sheet, a lighting opt-out and a draw layer.",
+  objective: "Give player a particles component with one emitter named embers that blends additively, ignores scene lighting, draws on layer 5 and uses the gem image as a sheet of 4 columns and 2 rows.",
+  createBridge: () => createGameToolBridge({ ...createTopDownRoomGame("particle-render-eval"), schemaVersion: 2 }),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole particles component as { emitters: [...] }. An emitter takes blend (normal or additive), unlit, layer and sprite { assetId, columns, rows, frameCount?, cycles?, sampling? }.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerEmbers", detail: "Player has no embers emitter with additive blend, unlit, layer 5 and a 4 by 2 gem sheet.",
+      test: document => {
+        const embers = document.scenes[0].entities.find(entity => entity.id === "player")?.particles?.emitters.find(emitter => emitter.id === "embers");
+        return embers?.blend === "additive" && embers.unlit === true && embers.layer === 5 &&
+          embers.sprite?.assetId === "gem" && embers.sprite.columns === 4 && embers.sprite.rows === 2;
+      } }]
+  }
+}, {
+  id: "lifecycle-timer-script",
+  description: "Author a lifecycle-object script whose onStart hook schedules a repeating timer through public edit ops.",
+  objective: "Add a script behavior to the player written as a lifecycle object. Its onStart hook calls every(60, \"beat\") and its beat method emits the event heartbeat. Keep the player's other behaviors.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("lifecycle-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole behaviors array. A script behavior is {kind: \"script\", source}. The source may be an object of hooks such as onStart and onUpdate. every(ticks, name) calls the object's method name every ticks ticks, and a method returns {state?, commands?}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerHeartbeat", detail: "The player has no lifecycle script that schedules every(60, \"beat\") and emits heartbeat, or lost a behavior.",
+      test: document => {
+        const behaviors = document.scenes[0].entities.find(entity => entity.id === "player")?.behaviors ?? [];
+        const source = behaviors.find(behavior => behavior.kind === "script")?.source ?? "";
+        return behaviors.some(behavior => behavior.kind === "movement") && behaviors.some(behavior => behavior.kind === "winWhenCollected")
+          && /^\s*\(?\s*\{/.test(source) && /onStart/.test(source) && /every\(\s*60\s*,\s*["'`]beat["'`]\s*\)/.test(source)
+          && /\bbeat\s*(\(|:)/.test(source) && /heartbeat/.test(source);
+      } }]
+  }
+}, {
+  id: "post-processing",
+  description: "Author a 3D post-processing stack with AgX tone mapping, bloom and SMAA through public 3D edit ops.",
+  objective: "Give the 3D scene post-processing with AgX tone mapping, exposure 1.2, bloom at intensity 1.5 and SMAA antialiasing, while keeping its background, ambient and shadow settings.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("post-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene replaces the whole environment object, so send its existing fields with the new postProcessing {exposure, toneMapping, bloom?, vignette?, antialias}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "postProcessing", detail: "The scene post-processing differs from the request, or the scene lost its other environment settings.",
+      test: document => {
+        const initial = createNative3DGame("post-eval").scenes[0].environment;
+        const scene = document.scenes[0];
+        if (document.schemaVersion !== 3 || !scene || !("environment" in scene)) { return false; }
+        const { postProcessing, ...rest } = scene.environment;
+        const { postProcessing: _initialPost, ...initialRest } = initial;
+        return postProcessing?.enabled === true && postProcessing.toneMapping === "agx" && postProcessing.exposure === 1.2 &&
+          postProcessing.bloom?.intensity === 1.5 && postProcessing.antialias === "smaa" && JSON.stringify(rest) === JSON.stringify(initialRest);
+      } }]
+  }
+}, {
+  id: "cascaded-shadows",
+  description: "Author cascaded sun shadows and a per-light normal bias through public 3D edit ops.",
+  objective: "Give the 3D scene cascaded sun shadows with 4 cascades that reach 150 meters, keep its other environment settings, and set the sun light's shadow normal bias to 0.03.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("shadow-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_scene replaces the whole environment object, so send its existing fields. environment.shadows takes cascades {count 2-4, split 0-1, maxDistance}. update_entity sets light3d fields such as shadowBias and shadowNormalBias.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "cascadedShadows", detail: "The scene does not cascade 4 shadow maps over 150 m, lost other environment settings, or the sun has no 0.03 normal bias.",
+      test: document => {
+        const initial = createNative3DGame("shadow-eval").scenes[0].environment;
+        const scene = document.scenes[0];
+        if (document.schemaVersion !== 3 || !scene || !("environment" in scene)) { return false; }
+        const { cascades, ...shadows } = scene.environment.shadows;
+        const sun = scene.entities.find(entity => entity.id === "sun")?.light3d;
+        return cascades?.count === 4 && cascades.maxDistance === 150 && JSON.stringify(shadows) === JSON.stringify(initial.shadows) &&
+          JSON.stringify({ ...scene.environment, shadows: initial.shadows }) === JSON.stringify(initial) &&
+          sun?.kind === "directional" && sun.castShadow && sun.shadowNormalBias === 0.03;
+      } }]
+  }
+}, {
+  id: "hud-widget-tree",
+  description: "Author a document HUD tree with a score panel and a pause button that presses an input action, through set_game and set_ui.",
+  objective: "Add a pause input action. Then give the game a HUD with a panel anchored to the top-right corner holding a text node with id score, and a button with id pause anchored to the bottom centre that presses the pause action.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("hud-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game input_actions replaces the action list. set_ui {ui: {nodes}} replaces the document HUD tree. Nodes are {kind: panel|image|text|bar|button|stack|grid, id, parent?, anchor?: {x, y} in 0..1, pivot?, offset?: {x, y} pixels, width?, height?}. A child names an earlier container (panel, stack or grid) as parent. A button is {kind: \"button\", id, action, text?, width, height} and presses its input action. A panel needs width and height.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "hudTree", detail: "The HUD lacks a top-right panel holding text score, or a bottom-centre button pause that presses the pause action.",
+      test: document => {
+        const nodes = "dimension" in document ? [] : document.ui?.nodes ?? [];
+        const panel = nodes.find(node => node.kind === "panel" && node.anchor?.x === 1 && node.anchor.y === 0);
+        const score = nodes.find(node => node.id === "score");
+        const pause = nodes.find(node => node.id === "pause");
+        return document.inputActions.includes("pause") && panel !== undefined && score?.kind === "text" && score.parent === panel.id
+          && pause?.kind === "button" && pause.action === "pause" && pause.anchor?.x === 0.5 && pause.anchor.y === 1;
+      } }]
+  }
+}, {
+  id: "collision-layer-matrix",
+  description: "Author named 3D collision layers, a layer matrix and per-collider layers so derived bits filter contacts.",
+  objective: "Declare collision layers world, player and debris. Put the player on player and the crate on debris. The player must pass through debris, while debris still collides with the world.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("collision-layers-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game {collision_layers: [name], collision_matrix: [[a, b]]} names the 3D collision layers and lists the layer pairs that do not collide. update_entity sets collider3d.layer to a declared name.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "collisionLayers", detail: "The layers, collider layers or matrix do not let the player pass through debris while debris meets the world.",
+      test: document => {
+        if (document.schemaVersion !== 3) { return false; }
+        const layer = (id: string) => document.scenes[0].entities.find(entity => entity.id === id)?.collider3d?.layer;
+        const collide = (a: string, b: string) => {
+          const left = collisionLayerBits3D(document, a);
+          const right = collisionLayerBits3D(document, b);
+          return (left.category & right.mask) !== 0 && (right.category & left.mask) !== 0;
+        };
+        return ["world", "player", "debris"].every(name => document.collisionLayers?.includes(name)) &&
+          layer("player") === "player" && layer("crate") === "debris" && !collide("player", "debris") && collide("debris", "world");
+      } }]
+  }
+}, {
+  id: "typed-event-script",
+  description: "Author a targeted emit with a JSON payload and a receiving onEvent hook through public edit ops.",
+  objective: "Add a script behavior to the player written as a lifecycle object whose onStart hook emits the event bonus with the payload {points: 5} targeted at the entity gem. Add a lifecycle script to the gem whose onEvent hook stores the received payload's points in its state. Keep both entities' other behaviors.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("typed-event-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole behaviors array. A script behavior is {kind: \"script\", source}. The source may be an object of hooks such as onStart, onEvent and onUpdate, each returning {state?, commands?}. The emit command is {kind: \"emit\", event, payload?, target?} where target is {entityId} or {tag}. onEvent(input, event) receives events that reach its entity, with the JSON payload on event.payload.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "targetedBonus", detail: "The player does not emit bonus with payload points 5 targeted at gem, the gem has no onEvent hook reading the payload, or a behavior was lost.",
+      test: document => {
+        const entities = document.scenes[0].entities;
+        const behaviors = (id: string) => entities.find(entity => entity.id === id)?.behaviors ?? [];
+        const source = (id: string) => behaviors(id).find(behavior => behavior.kind === "script")?.source ?? "";
+        return behaviors("player").some(behavior => behavior.kind === "movement") && behaviors("gem").some(behavior => behavior.kind === "collectible")
+          && emitsTargetedBonus(source("player")) && readsEventPoints(source("gem"));
+      } }]
+  }
+}];
+
+/** Headless 3D game editor bridge that exercises the production 3D op reducer. */
+export function createGame3DToolBridge(initial: GameDocument3D): HeadlessSurfaceBridge<GameDocument3D> {
+  let document = gameDocument3D.parse(initial);
+  return {
+    tools: [
+      { name: "get_native_game", description: "Read the current native 3D game draft.", parameters: z.object({}), execute: async () => ({ document }) },
+      {
+        name: "edit_native_game",
+        description: "Apply ordered native 3D game draft ops atomically.",
+        parameters: z.object({ ops: z.array(gameDocumentOp3D).min(1) }),
+        execute: async (args) => {
+          try {
+            document = applyGameOps3D(document, z.array(gameDocumentOp3D).parse(args.ops));
+            return { document };
+          } catch (error) {
+            if (error instanceof GameOpError) return { error: error.message, issues: error.issues };
+            throw error;
+          }
+        }
+      }
+    ],
+    finalState: () => document
+  };
+}
+
+function riggedNative3DGame(): GameDocument3D {
+  const document = createNative3DGame("animation-graph-eval");
+  document.assets.hero = { mediaKind: "model", assetId: "hero", digest: "hero-digest", required: true, format: "glb", preparationVersion: "1",
+    bounds: { min: { x: -0.5, y: 0, z: -0.5 }, max: { x: 0.5, y: 2, z: 0.5 } }, nodeIds: ["node:0", "node:1"], clipIds: ["clip:0", "clip:1", "clip:2"],
+    geometryBytes: 1, textureBytes: 0, triangles: 1, supportedExtensions: [] };
+  const visual = document.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (visual) {
+    delete visual.primitive;
+    visual.model = { assetId: "hero", castShadow: true, receiveShadow: true };
+    visual.animator3d = { clips: { idle: "clip:0", walk: "clip:1", run: "clip:2" }, playbackRate: 1, loop: true, transitionTicks: 6 };
+  }
+  return document;
+}
+
+export const GAME_3D_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<GameDocument3D>[] = [{
+  id: "animation-graph-locomotion",
+  description: "Author a speed-driven locomotion animation graph and attach it to a rigged model through public edit ops.",
+  objective: "Give player-visual an animation graph named locomotion whose base layer blends idle, walk and run by a float parameter speed (0, 2 and 6).",
+  createBridge: () => createGame3DToolBridge(riggedNative3DGame()),
+  systemPrompt: "Use get_native_game and edit_native_game. set_animation_graph {graph_id, graph} stores a document-level graph, and update_entity sets animator3d.graph to its ID. Blend points name animator3d.clips aliases.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "locomotionGraph", detail: "player-visual does not play a speed blend of idle, walk and run.",
+      test: (document) => {
+        const animator = document.scenes[0].entities.find((entity) => entity.id === "player-visual")?.animator3d;
+        const graph = animator?.graph === undefined ? undefined : document.animationGraphs?.[animator.graph];
+        const base = graph?.layers[0];
+        const motion = base ? base.states[base.initialState]?.motion : undefined;
+        return graph?.parameters.speed?.kind === "float" && motion?.kind === "blend1d" && motion.parameter === "speed" &&
+          JSON.stringify(motion.points.map((point) => [point.value, point.clip])) === JSON.stringify([[0, "idle"], [2, "walk"], [6, "run"]]);
       } }]
   }
 }];

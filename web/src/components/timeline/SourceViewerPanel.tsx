@@ -27,6 +27,7 @@ import {
   Caption,
   FlexColumn,
   FlexRow,
+  FONT_WEIGHT,
   ResponsiveImage,
   ShortcutHint,
   SPACING,
@@ -70,6 +71,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
   const assetsAsset = useAssetsSelectedAsset();
   const libraryAsset = useLibrarySelectedAsset();
   const asset = activeExplorer === "library" ? libraryAsset : activeExplorer === "assets" ? assetsAsset : null;
+  const assetId = asset?.id;
   const sourceRange = useTimelineUIStore((s) => s.sourceRange);
   const setSourceRange = useTimelineUIStore((s) => s.setSourceRange);
   const docApi = useTimelineStoreApi();
@@ -84,23 +86,25 @@ export const SourceViewerPanel: React.FC = memo(() => {
     (seconds: number) => {
       const durationMs = Math.round(seconds * 1000);
       setSourceDurationMs(durationMs);
-      if (durationMs > 0 && sourceRange === null) {
-        setSourceRange({ inMs: 0, outMs: durationMs });
+      if (durationMs > 0 && assetId && sourceRange?.assetId !== assetId) {
+        setSourceRange({ assetId, inMs: 0, outMs: durationMs });
       }
     },
-    [setSourceRange, sourceRange]
+    [assetId, setSourceRange, sourceRange]
   );
   const onTimeUpdate = useCallback((sec: number) => {
     playerTimeRef.current = Math.round(sec * 1000);
   }, []);
 
-  // A new asset starts with no range.
-  const assetId = asset?.id;
+  // A new asset starts with no range. Marks on the same asset survive a
+  // remount, such as switching explorer tabs and back.
   useEffect(() => {
-    setSourceRange(null);
+    if (assetId && uiApi.getState().sourceRange?.assetId !== assetId) {
+      setSourceRange(null);
+    }
     setSourceDurationMs(null);
     playerTimeRef.current = 0;
-  }, [assetId, setSourceRange]);
+  }, [assetId, setSourceRange, uiApi]);
 
   const run = useCallback(
     (kind: SourceEditKind) => {
@@ -139,8 +143,8 @@ export const SourceViewerPanel: React.FC = memo(() => {
     );
     setSourceRange(
       edge === "in"
-        ? { inMs: timeMs, outMs: Math.max(timeMs, currentRange.outMs) }
-        : { inMs: Math.min(timeMs, currentRange.inMs), outMs: timeMs }
+        ? { assetId: asset.id, inMs: timeMs, outMs: Math.max(timeMs, currentRange.outMs) }
+        : { assetId: asset.id, inMs: Math.min(timeMs, currentRange.inMs), outMs: timeMs }
     );
   };
 
@@ -168,7 +172,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
       onKeyDown={handleKeyDown}
     >
       <FlexColumn gap={SPACING.md}>
-        <TruncatedText variant="body2" sx={{ fontWeight: 500 }} showTooltip>
+        <TruncatedText variant="body2" sx={{ fontWeight: FONT_WEIGHT.medium }} showTooltip>
           {asset.name}
         </TruncatedText>
         <div css={mediaBoxStyles(theme)}>
@@ -197,7 +201,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
                 const inMs = parseSeconds(raw);
                 if (inMs !== null) {
                   const boundedInMs = Math.min(inMs, sourceDurationMs ?? Number.POSITIVE_INFINITY);
-                  setSourceRange({ inMs: Math.min(boundedInMs, range.outMs), outMs: range.outMs });
+                  setSourceRange({ assetId: asset.id, inMs: Math.min(boundedInMs, range.outMs), outMs: range.outMs });
                 }
               }}
             />
@@ -220,7 +224,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
                 const outMs = parseSeconds(raw);
                 if (outMs !== null) {
                   const boundedOutMs = Math.min(outMs, sourceDurationMs ?? Number.POSITIVE_INFINITY);
-                  setSourceRange({ inMs: range.inMs, outMs: Math.max(range.inMs, boundedOutMs) });
+                  setSourceRange({ assetId: asset.id, inMs: range.inMs, outMs: Math.max(range.inMs, boundedOutMs) });
                 }
               }}
             />

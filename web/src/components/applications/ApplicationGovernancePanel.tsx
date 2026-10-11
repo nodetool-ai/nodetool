@@ -98,7 +98,7 @@ const VersionRow = memo(function VersionRow({
     <FlexRow align="center" justify="space-between" gap={SPACING.md} fullWidth>
       <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
         <FlexRow align="center" gap={SPACING.xs}>
-          <Text weight={600}>{`Version ${version.version}`}</Text>
+          <Text size="small" weight={500}>{`Version ${version.version}`}</Text>
           {version.released && <Chip label="Released" size="small" />}
         </FlexRow>
         <Caption>{capabilitySummary(version)}</Caption>
@@ -426,7 +426,7 @@ const InvocationsSection = memo(function InvocationsSection({
               fullWidth
             >
               <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
-                <Text weight={600}>{record.operationId}</Text>
+                <Text size="small" weight={500}>{record.operationId}</Text>
                 <Caption>
                   {`${formatDate(record.createdAt)} · ${record.status}${
                     record.version === null ? "" : ` · v${record.version}`

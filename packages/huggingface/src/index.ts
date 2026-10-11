@@ -62,9 +62,11 @@ export type {
   DownloadStateSnapshot
 } from "./hf-download-manager.js";
 export {
+  ALWAYS_IGNORE_PATTERNS,
   DownloadManager,
   getDownloadManager,
-  getExistingDownloadManager
+  getExistingDownloadManager,
+  hfDownloadConcurrency
 } from "./hf-download-manager.js";
 
 export {

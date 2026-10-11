@@ -7,6 +7,8 @@ import {
   useTimelineStoreApi
 } from "../../stores/timeline/TimelineStore";
 import {
+  attachJobTimeline,
+  clipJobKey,
   getJobTimeline,
   useTimelineGenerationStore
 } from "../../stores/timeline/TimelineGenerationStore";
@@ -29,6 +31,8 @@ import { isNumber, isObjectLike, isString } from "../../utils/typePredicates";
 
 interface JobSubscriptionContext {
   clipId: string;
+  /** The sequence the clip belongs to, when the job recorded one. */
+  sequenceId?: string | null;
   workflowId: string;
   selectedOutputNodeId?: string;
 }
@@ -49,7 +53,8 @@ interface TimelineClipLike {
 
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
-const jobOutputs = new Map<string, unknown>();
+/** jobId → node id → the last value that node output in that job. */
+const jobOutputs = new Map<string, Map<string, unknown>>();
 // Clips whose generateClip() is past the single-flight guard but hasn't
 // registered its job yet (the start path awaits a workflow fetch and the
 // runner before registerJob). A synchronous marker closes the double-click
@@ -206,8 +211,13 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
 
   forwardWorkflowMessage(context.workflowId, message);
 
-  if (isOutputUpdate(message) && message.node_id === context.selectedOutputNodeId) {
-    jobOutputs.set(jobId, normalizeOutputUpdateValue(message));
+  // Every node's output is kept: the output node is resolved at completion,
+  // and a job restored after a reload may have subscribed before its clip
+  // was loaded.
+  if (isOutputUpdate(message) && isString(message.node_id)) {
+    const outputs = jobOutputs.get(jobId) ?? new Map<string, unknown>();
+    outputs.set(message.node_id, normalizeOutputUpdateValue(message));
+    jobOutputs.set(jobId, outputs);
   }
 
   if (message.type !== "job_update") {
@@ -227,8 +237,12 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
   }
 
   if (status === "completed") {
-    const assetId = context.selectedOutputNodeId
-      ? extractAssetId(jobOutputs.get(jobId))
+    const outputNodeId =
+      context.selectedOutputNodeId ??
+      findClipById(getJobTimeline(jobId).getState().clips, context.clipId)
+        ?.selectedOutputNodeId;
+    const assetId = outputNodeId
+      ? extractAssetId(jobOutputs.get(jobId)?.get(outputNodeId))
       : undefined;
 
     // A run can report "completed" without producing the selected output
@@ -242,7 +256,7 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
         .setError(
           context.workflowId,
           jobId,
-          context.selectedOutputNodeId ?? "__job__",
+          outputNodeId ?? "__job__",
           errorMessage
         );
       generationStore.updateJobStatus(jobId, "failed", { errorMessage });
@@ -254,7 +268,7 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
     // appends a ClipVersion, sets currentAssetId / lastGeneratedHash
     // (unless locked) and settles clip.status.
     generationStore.updateJobStatus(jobId, "completed", { assetId });
-    generationStore.clearJob(context.clipId);
+    generationStore.clearJob(context.clipId, context.sequenceId);
     unsubscribeJob(jobId);
     return;
   }
@@ -277,9 +291,12 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
   if (status === "cancelled") {
     // Resolve the job's own timeline before the job record is cleared.
     const jobTimeline = getJobTimeline(jobId);
-    generationStore.clearJob(context.clipId);
+    generationStore.clearJob(context.clipId, context.sequenceId);
     const clip = findClipById(jobTimeline.getState().clips, context.clipId);
-    if (clip) {
+    const sameSequence =
+      !context.sequenceId ||
+      jobTimeline.getState().sequenceId === context.sequenceId;
+    if (clip && sameSequence) {
       jobTimeline
         .getState()
         .patchClip(context.clipId, { status: deriveIdleClipStatus(clip) });
@@ -331,6 +348,11 @@ const subscribeJob = async (
 };
 
 export const useTimelineGenerationSubscriptions = (): void => {
+  const timeline = useTimelineStoreApi();
+  // A job restored after a reload waits for its own sequence to be the one
+  // loaded here. Subscribing earlier read the clip from a document that was
+  // still loading, so the result was marked failed or written elsewhere.
+  const sequenceId = useTimelineStore((state) => state.sequenceId);
   // A sorted, comma-joined string of active job ids — a primitive, so it only
   // changes identity when a job *enters or leaves* the active set, never on
   // the progress-only updates `updateJobProgress` publishes per WebSocket
@@ -346,17 +368,9 @@ export const useTimelineGenerationSubscriptions = (): void => {
 
   useEffect(() => {
     const clipJobs = useTimelineGenerationStore.getState().clipJobs;
-    const activeJobs = Object.values(clipJobs)
-      .filter((job) => isActiveStatus(job.status))
-      .map((job) => ({
-        clipId: job.clipId,
-        jobId: job.jobId,
-        workflowId: job.workflowId,
-        selectedOutputNodeId: findClipById(
-          getJobTimeline(job.jobId).getState().clips,
-          job.clipId
-        )?.selectedOutputNodeId
-      }));
+    const activeJobs = Object.values(clipJobs).filter((job) =>
+      isActiveStatus(job.status)
+    );
 
     const activeJobIdSet = new Set(activeJobs.map((job) => job.jobId));
 
@@ -366,18 +380,29 @@ export const useTimelineGenerationSubscriptions = (): void => {
       }
     }
 
-    for (const activeJob of activeJobs) {
+    for (const job of activeJobs) {
+      if (job.sequenceId && job.sequenceId !== sequenceId) {
+        continue;
+      }
+      if (job.sequenceId && !jobSubscriptions.has(job.jobId)) {
+        // A restored job has no store handle. This editor shows its sequence.
+        attachJobTimeline(job.jobId, timeline);
+      }
       void subscribeJob(
-        activeJob.jobId,
+        job.jobId,
         {
-          clipId: activeJob.clipId,
-          workflowId: activeJob.workflowId,
-          selectedOutputNodeId: activeJob.selectedOutputNodeId
+          clipId: job.clipId,
+          sequenceId: job.sequenceId,
+          workflowId: job.workflowId,
+          selectedOutputNodeId:
+            job.selectedOutputNodeId ??
+            findClipById(getJobTimeline(job.jobId).getState().clips, job.clipId)
+              ?.selectedOutputNodeId
         },
         true
       );
     }
-  }, [activeJobIdsKey]);
+  }, [activeJobIdsKey, sequenceId, timeline]);
 };
 
 interface UseGenerateClipResult {
@@ -400,8 +425,11 @@ interface UseGenerateClipResult {
 export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
   const timeline = useTimelineStoreApi();
   const clip = useTimelineStore((state) => findClipById(state.clips, clipId));
+  const sequenceId = useTimelineStore((state) => state.sequenceId);
   const patchClip = useTimelineStore((state) => state.patchClip);
-  const jobState = useTimelineGenerationStore((state) => state.clipJobs[clipId]);
+  const jobState = useTimelineGenerationStore(
+    (state) => state.clipJobs[clipJobKey(sequenceId, clipId)]
+  );
 
   const registerJob = useTimelineGenerationStore((state) => state.registerJob);
   const clearJob = useTimelineGenerationStore((state) => state.clearJob);
@@ -450,7 +478,8 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     if (startingClips.has(clip.id)) {
       return;
     }
-    const existing = useTimelineGenerationStore.getState().clipJobs[clip.id];
+    const jobKey = clipJobKey(timeline.getState().sequenceId, clip.id);
+    const existing = useTimelineGenerationStore.getState().clipJobs[jobKey];
     if (existing && (existing.status === "queued" || existing.status === "running")) {
       return;
     }
@@ -494,6 +523,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
       // arrive while another timeline is active, and must land on this one.
       registerJob(clip.id, jobId, workflowId, {
         timeline,
+        selectedOutputNodeId: clip.selectedOutputNodeId,
         submitted: {
           paramOverrides: submittedParamOverrides,
           dependencyHash: submittedDependencyHash
@@ -503,6 +533,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
         jobId,
         {
           clipId: clip.id,
+          sequenceId: timeline.getState().sequenceId,
           workflowId,
           selectedOutputNodeId: clip.selectedOutputNodeId
         },
@@ -511,7 +542,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     } catch (error) {
       // Roll back the optimistic "queued" status unless a job actually got
       // registered (then its own lifecycle owns the status).
-      if (!useTimelineGenerationStore.getState().clipJobs[clip.id]) {
+      if (!useTimelineGenerationStore.getState().clipJobs[jobKey]) {
         patchClip(clip.id, { status: deriveIdleClipStatus(clip) });
       }
       throw error;
@@ -532,7 +563,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
 
     await trpcClient.jobs.cancel.mutate({ id: jobState.jobId });
     unsubscribeJob(jobState.jobId);
-    clearJob(clipId);
+    clearJob(clipId, jobState.sequenceId);
 
     const currentClip = findClipById(timeline.getState().clips, clipId);
     if (currentClip) {
@@ -542,6 +573,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     isDirectGen,
     directGen,
     jobState?.jobId,
+    jobState?.sequenceId,
     clearJob,
     clipId,
     patchClip,

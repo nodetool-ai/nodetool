@@ -15,7 +15,7 @@
  * `modelSamples.ts`.
  */
 
-import React, { memo, useCallback, useEffect, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   AlertBanner,
@@ -34,6 +34,7 @@ import {
 import { SETUP_FIELD_WIDTH } from "../layout";
 import { ASPECT_OPTIONS, aspectOf } from "../../storyboard/aspectOptions";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
+import ReportBugButton from "../../support/ReportBugButton";
 import VideoModelSelect from "../../properties/VideoModelSelect";
 import TTSModelSelect from "../../properties/TTSModelSelect";
 import type { TTSModelValue, VideoModelValue } from "../../../stores/ApiTypes";
@@ -347,9 +348,20 @@ export function useLookStep({
         !isAvailable(clipModels, video.model),
       "Your providers do not offer that video model. Pick another."
     ],
+    // A remembered model can be one the providers have since dropped, so
+    // Generate waits for the list that can say so. A list that failed keeps
+    // Generate live and names the unchecked model above the grid instead.
+    [
+      needsVideoGeneration && !!video?.model && clipModels.loading,
+      "Checking that your providers still offer that video model"
+    ],
     [
       needsVoiceGeneration && !audio?.voice,
       "Pick a voice, or switch Voiceover off"
+    ],
+    [
+      needsVoiceGeneration && !!audio?.voice && voices.loading,
+      "Checking that your providers still offer that voice"
     ],
     [
       needsVoiceGeneration &&
@@ -378,7 +390,9 @@ const ModelAvailabilityNote: React.FC<{
   kind: "video" | "voice";
   /** True when the providers answered and none of the curated tiles survived. */
   noCompatible: boolean;
-}> = ({ availability, kind, noCompatible }) => {
+  /** The picked model's name, which a failed list could not check. */
+  pickedLabel?: string;
+}> = ({ availability, kind, noCompatible, pickedLabel }) => {
   const connect = useCallback(() => {
     openProviderOnboarding(
       kind === "video"
@@ -414,9 +428,24 @@ const ModelAvailabilityNote: React.FC<{
               ? "Could not read the video models your providers offer."
               : "Could not read the voices your providers offer."}
           </Text>
+          {pickedLabel ? (
+            <Text size="normal" component="span">
+              {`Could not check that your providers still offer ${pickedLabel}. Generate will try it anyway.`}
+            </Text>
+          ) : null}
           <EditorButton variant="outlined" onClick={availability.refetch}>
             Try again
           </EditorButton>
+          <ReportBugButton
+            context={{
+              source: "provider-call",
+              summary:
+                kind === "video"
+                  ? "Video model list could not be read"
+                  : "Voice list could not be read",
+              errorText: availability.error
+            }}
+          />
         </FlexRow>
       </AlertBanner>
     );
@@ -461,6 +490,8 @@ export interface LookStepProps extends LookStepChoices {
   onMusicChange: (on: boolean) => void;
   /** From {@link LookStepControls}: false when no bed can be rendered. */
   musicAvailable?: boolean;
+  /** Why the last Generate stopped after the shell had handed over. */
+  error?: string;
 }
 
 const LookStepInternal: React.FC<LookStepProps> = ({
@@ -468,7 +499,8 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   musicOn,
   onVoiceChange,
   onMusicChange,
-  musicAvailable
+  musicAvailable,
+  error
 }) => {
   const width = useTimelineStore((state) => state.width);
   const height = useTimelineStore((state) => state.height);
@@ -549,6 +581,17 @@ const LookStepInternal: React.FC<LookStepProps> = ({
     !curatedVoiceOffered && voices.reported.length === 0;
 
   const pickedVoice = settings.voice?.voice;
+  const pickedModel = settings.video?.model;
+  const pickedModelLabel = pickedModel
+    ? (STUDIO_CLIP_MODELS.find((option) => option.id === pickedModel)
+        ?.label ?? pickedModel)
+    : undefined;
+  // A curated voice label reads "Ada — warm, female". The name goes in a sentence.
+  const pickedVoiceLabel = pickedVoice
+    ? (STUDIO_VOICES.find(
+        (option) => option.id === pickedVoice
+      )?.label.split(" — ")[0] ?? pickedVoice)
+    : undefined;
   // The reason the final button is dead belongs beside the control that fixes
   // it as well as beside the button (F11).
   const voiceNote =
@@ -614,9 +657,18 @@ const LookStepInternal: React.FC<LookStepProps> = ({
     [applyVoice]
   );
 
+  // A model with no preset voices hands back no voice. Applying it would
+  // leave the step asking for a voice the creator thinks they just picked.
+  const [noPresetVoice, setNoPresetVoice] = useState(false);
   const handleReportedVoice = useCallback(
-    (value: TTSModelValue) =>
-      applyVoice(value.provider, value.id, value.selected_voice),
+    (value: TTSModelValue) => {
+      if (!value.selected_voice) {
+        setNoPresetVoice(true);
+        return;
+      }
+      setNoPresetVoice(false);
+      applyVoice(value.provider, value.id, value.selected_voice);
+    },
     [applyVoice]
   );
 
@@ -631,6 +683,23 @@ const LookStepInternal: React.FC<LookStepProps> = ({
           spoken over. You can change all of it in the editor.
         </Text>
       </FlexColumn>
+
+      {error ? (
+        <AlertBanner severity="error" title="Your clips did not start">
+          <FlexRow gap={GAP.normal} align="center" wrap>
+            <Text size="normal" component="span">
+              {error}
+            </Text>
+            <ReportBugButton
+              context={{
+                source: "operation-failure",
+                summary: "Video clips did not start",
+                errorText: error
+              }}
+            />
+          </FlexRow>
+        </AlertBanner>
+      ) : null}
 
       <Box sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
         <SelectField
@@ -649,6 +718,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
           availability={clipModels}
           kind="video"
           noCompatible={noCompatibleModel}
+          pickedLabel={pickedModelLabel}
         />
         {curatedModelOffered ? (
           /* The samples are fetched, not shipped, so the preview area is held
@@ -695,6 +765,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
                   availability={voices}
                   kind="voice"
                   noCompatible={noCompatibleVoice}
+                  pickedLabel={pickedVoiceLabel}
                 />
               ) : null}
               {voiceNote ? (
@@ -727,6 +798,11 @@ const LookStepInternal: React.FC<LookStepProps> = ({
                 value={voiceValue}
                 onChange={handleReportedVoice}
               />
+              {noPresetVoice ? (
+                <Caption color="warning" role="status">
+                  This model has no preset voices. Pick another model.
+                </Caption>
+              ) : null}
             </FormField>
           ) : null}
         </FlexColumn>

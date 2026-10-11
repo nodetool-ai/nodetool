@@ -646,7 +646,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_direct",
   description:
-    "Run the Director over the specified storyboard's brief, genre and style, and load the screenplay it writes. Pass `redirect: true` to re-run over a screenplay that is already there: shots the revision keeps hold their ids, their rendered stills and clips, and their status, so a re-direct is a rewrite and not a reset. Without `redirect` a board that already has a screenplay is refused. Write the brief with ui_storyboard_set_setup first — directing without one fails.",
+    "Run the Director over the specified storyboard's brief, genre and style, and load the screenplay it writes. Pass `redirect: true` to re-run over a screenplay that is already there: shots the revision keeps hold their ids, their rendered stills and clips, and their status, so a re-direct is a rewrite and not a reset. Without `redirect` a board that already has a screenplay is refused. Write the brief with ui_storyboard_set_setup first — directing without one fails. One Director run writes a board at a time: a call while the setup flow or another call is directing it is refused, and the creator can cancel a run from the flow.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     redirect: z

@@ -10,9 +10,9 @@ if (gameIndex >= 0) {
   const path = process.argv[gameIndex + 1];
   const assetsIndex = process.argv.indexOf("--assets-dir");
   const assetsDir = assetsIndex >= 0 ? process.argv[assetsIndex + 1] : undefined;
-  if (!path || !assetsDir) { throw new Error("Use --game <file> --assets-dir <directory> for a 600-frame browser benchmark"); }
+  if (!path || !assetsDir) { throw new Error("Use --game <file> --assets-dir <directory> [--post-effects] for a 600-frame browser benchmark"); }
   const { benchmarkGameBrowser } = await import("./benchmark-game.js");
-  await benchmarkGameBrowser(path, assetsDir);
+  await benchmarkGameBrowser(path, assetsDir, 600, process.argv.includes("--post-effects"));
   process.exit(0);
 }
 

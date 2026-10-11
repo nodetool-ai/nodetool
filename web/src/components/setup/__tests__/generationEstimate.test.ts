@@ -10,11 +10,30 @@ import {
   LOCAL_FREE_PROVIDERS
 } from "@nodetool-ai/protocol";
 
-import { generationEstimate } from "../generationEstimate";
+import {
+  IMAGE_INPUT_TOKENS,
+  generationEstimate
+} from "../generationEstimate";
 
 const BRIEF = "A ten-second teaser for a desert trip.";
 
 describe("generationEstimate", () => {
+  // Attached images are billed as input, so a refinement that sends two of
+  // them prices more input than the sentence alone.
+  it("counts input the brief does not show, such as attached images", () => {
+    const model = { id: "llama-3.1-8b", provider: "ollama" };
+    const plain = generationEstimate(model, BRIEF, 4000);
+    const withImages = generationEstimate(
+      model,
+      BRIEF,
+      4000,
+      2 * IMAGE_INPUT_TOKENS
+    );
+    expect(withImages?.inputTokens).toBe(
+      (plain?.inputTokens ?? 0) + 2 * IMAGE_INPUT_TOKENS
+    );
+  });
+
   it("prices every locally-run provider at nothing", () => {
     for (const provider of LOCAL_FREE_PROVIDERS) {
       expect(

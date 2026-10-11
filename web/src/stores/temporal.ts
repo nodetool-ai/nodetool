@@ -6,7 +6,8 @@
  * attaching a vanilla Zustand store at `store.temporal` whose state is
  * `TemporalState<PartialState>`: `pastStates`, `futureStates`,
  * `undo(steps?)`, `redo(steps?)`, `clear()`, `pause()`, `resume()`,
- * `isTracking`.
+ * `isTracking`, plus `beginGroup()`/`endGroup()` for one undo entry per
+ * continuous edit and an `onRestore` option called after undo and redo.
  *
  * Semantics mirror zundo exactly for these options:
  * - Every `set` (both the one passed to the state creator and direct
@@ -47,6 +48,18 @@ export interface TemporalState<PartialState> {
   isTracking: boolean;
   pause: () => void;
   resume: () => void;
+  /**
+   * Open an edit group: record the current state as one undo entry, then stop
+   * tracking until the matching `endGroup`, so a continuous edit (typing, a
+   * slider drag) undoes in one step. Groups nest; only the outermost records.
+   * Does nothing while tracking is already paused.
+   */
+  beginGroup: () => void;
+  /**
+   * Close the group `beginGroup` opened and restore tracking. When the group
+   * changed nothing, its entry is dropped and the redo stack is kept.
+   */
+  endGroup: () => void;
 }
 
 export interface TemporalOptions<TState, PartialState> {
@@ -66,6 +79,8 @@ export interface TemporalOptions<TState, PartialState> {
   ) => boolean;
   /** Maximum number of past states retained (oldest dropped first). */
   limit?: number;
+  /** Called with the restored state after every `undo` and `redo`. */
+  onRestore?: (state: TState) => void;
 }
 
 /** A store augmented with the temporal (undo/redo) sub-store. */
@@ -115,6 +130,16 @@ function createTemporal<
       set(state);
     };
 
+    const withinLimit = (pastStates: PartialState[]): PartialState[] =>
+      options.limit !== undefined && pastStates.length >= options.limit
+        ? pastStates.slice(pastStates.length - options.limit + 1)
+        : pastStates;
+
+    // The open edit group: nesting depth and, when the outermost group
+    // recorded an entry, the redo stack it cleared (kept for an empty group).
+    let groupDepth = 0;
+    let groupFuture: PartialState[] | null = null;
+
     const temporalStore = createStore<TemporalState<PartialState>>(
       (tset, tget) => ({
         pastStates: [],
@@ -137,6 +162,7 @@ function createTemporal<
             pastStates: pastStates.slice(0, pastStates.length - n),
             futureStates: [...futureStates, currentState, ...skipped]
           });
+          options.onRestore?.(get());
         },
         redo: (steps = 1) => {
           const { pastStates, futureStates } = tget();
@@ -153,10 +179,56 @@ function createTemporal<
             pastStates: [...pastStates, currentState, ...skipped],
             futureStates: futureStates.slice(0, futureStates.length - n)
           });
+          options.onRestore?.(get());
         },
         clear: () => tset({ pastStates: [], futureStates: [] }),
         pause: () => tset({ isTracking: false }),
-        resume: () => tset({ isTracking: true })
+        resume: () => tset({ isTracking: true }),
+        beginGroup: () => {
+          groupDepth += 1;
+          if (groupDepth > 1) {
+            return;
+          }
+          const { isTracking, pastStates, futureStates } = tget();
+          if (!isTracking) {
+            groupFuture = null;
+            return;
+          }
+          groupFuture = futureStates;
+          tset({
+            pastStates: [...withinLimit(pastStates), partialize(get())],
+            futureStates: [],
+            isTracking: false
+          });
+        },
+        endGroup: () => {
+          if (groupDepth === 0) {
+            return;
+          }
+          groupDepth -= 1;
+          if (groupDepth > 0 || groupFuture === null) {
+            return;
+          }
+          const savedFuture = groupFuture;
+          groupFuture = null;
+          const { pastStates, futureStates } = tget();
+          const last = pastStates[pastStates.length - 1];
+          // The entry may have been rebased since beginGroup, so compare by
+          // value: an entry equal to the current state is an empty undo step.
+          const unchanged =
+            last !== undefined &&
+            options.equality?.(last, partialize(get())) === true;
+          tset(
+            unchanged
+              ? {
+                  isTracking: true,
+                  pastStates: pastStates.slice(0, -1),
+                  futureStates:
+                    futureStates.length === 0 ? savedFuture : futureStates
+                }
+              : { isTracking: true }
+          );
+        }
       })
     );
 
@@ -177,13 +249,9 @@ function createTemporal<
       if (options.equality?.(pastState, currentState)) {
         return;
       }
-      let pastStates = t.pastStates;
-      if (options.limit !== undefined && pastStates.length >= options.limit) {
-        // Drop the oldest entries so the new push lands within the limit.
-        pastStates = pastStates.slice(pastStates.length - options.limit + 1);
-      }
+      // Drop the oldest entries so the new push lands within the limit.
       temporalStore.setState({
-        pastStates: [...pastStates, pastState],
+        pastStates: [...withinLimit(t.pastStates), pastState],
         futureStates: []
       });
     };

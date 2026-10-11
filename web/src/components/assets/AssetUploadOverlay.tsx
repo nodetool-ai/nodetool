@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { Text, Box, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
+import { Text, Box, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING, SHADOW } from "../ui_primitives";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import LinearProgressWithLabel from "./LinearProgressWithLabel";
 
@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
       overflowY: "auto",
       backgroundColor: theme.vars.palette.grey[600],
       outline: `2px solid ${theme.vars.palette.grey[900]}`,
-      boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.01)",
+      boxShadow: SHADOW(theme).lg,
       padding: getSpacingPx(SPACING.xl),
       borderRadius: BORDER_RADIUS.lg
     },

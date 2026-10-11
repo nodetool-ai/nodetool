@@ -9,7 +9,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
-import { shotRenderMode } from "@nodetool-ai/protocol";
+import { CLIP_RESOLUTION, shotRenderMode } from "@nodetool-ai/protocol";
 import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 
@@ -18,7 +18,8 @@ import {
   Dialog,
   FlexColumn,
   FormField,
-  SPACING
+  SPACING,
+  SelectField
 } from "../ui_primitives";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
@@ -46,6 +47,7 @@ import {
   getRememberedModelForTask
 } from "../../stores/lastModelStore";
 import type { ImageModelValue, VideoModelValue } from "../../stores/ApiTypes";
+import { VIDEO_RESOLUTIONS } from "../../stores/MediaGenerationStore";
 
 export type ShotRenderStep = "still" | "clip";
 
@@ -136,13 +138,33 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
   const clipSelection = pickedClip ?? defaultClip;
   const selection = step === "clip" ? clipSelection : stillSelection;
 
+  // The resolutions the clip model declares, or the standard set when it
+  // declares none. A pick the model cannot do falls back to its first one.
+  const resolutionOptions = useMemo(() => {
+    const declared = videoModels.find(
+      (model) =>
+        model.id === clipSelection?.id &&
+        model.provider === clipSelection?.provider
+    )?.resolutions;
+    const allowed: readonly string[] =
+      declared && declared.length > 0 ? declared : VIDEO_RESOLUTIONS;
+    return allowed.map((value) => ({ value, label: value }));
+  }, [videoModels, clipSelection?.id, clipSelection?.provider]);
+  const [pickedResolution, setPickedResolution] = useState(CLIP_RESOLUTION);
+  const resolution = resolutionOptions.some(
+    (option) => option.value === pickedResolution
+  )
+    ? pickedResolution
+    : (resolutionOptions[0]?.value ?? CLIP_RESOLUTION);
+
   const shots = useMemo(() => [shot], [shot]);
   const modelForShot = useCallback(() => selection, [selection]);
   const estimate = useRenderBatchCostEstimate(
     boardId,
     shots,
     step,
-    modelForShot
+    modelForShot,
+    resolution
   );
 
   // A start that fails records its reason on the shot, which the card shows.
@@ -150,10 +172,22 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
     if (!selection) {
       return;
     }
-    const run = step === "clip" ? generateClip : generateKeyframe;
-    void run(boardId, shot, selection).catch(() => undefined);
+    const render =
+      step === "clip"
+        ? generateClip(boardId, shot, selection, undefined, { resolution })
+        : generateKeyframe(boardId, shot, selection);
+    void render.catch(() => undefined);
     onClose();
-  }, [selection, step, generateClip, generateKeyframe, boardId, shot, onClose]);
+  }, [
+    selection,
+    step,
+    generateClip,
+    generateKeyframe,
+    boardId,
+    shot,
+    resolution,
+    onClose
+  ]);
 
   const isClip = step === "clip";
   const priced = estimate.pricedRequestCount > 0 && estimate.cost > 0;
@@ -175,14 +209,24 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
             : "Pick the model for this shot's still. The shot keeps the choice for the next render."}
         </Caption>
         {isClip ? (
-          <FormField label={CLIP_TASK_LABELS[clipTask]} sx={modelFieldSx}>
-            <VideoModelSelect
-              value={clipSelection?.id ?? ""}
-              provider={clipSelection?.provider}
-              task={clipTask}
-              onChange={setPickedClip}
-            />
-          </FormField>
+          <>
+            <FormField label={CLIP_TASK_LABELS[clipTask]} sx={modelFieldSx}>
+              <VideoModelSelect
+                value={clipSelection?.id ?? ""}
+                provider={clipSelection?.provider}
+                task={clipTask}
+                onChange={setPickedClip}
+              />
+            </FormField>
+            <FormField label="Resolution">
+              <SelectField
+                label="Resolution"
+                value={resolution}
+                onChange={setPickedResolution}
+                options={resolutionOptions}
+              />
+            </FormField>
+          </>
         ) : (
           <FormField label="Still model" sx={modelFieldSx}>
             <ImageModelSelect

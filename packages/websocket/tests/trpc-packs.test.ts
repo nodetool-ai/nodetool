@@ -194,6 +194,29 @@ describe("packs router", () => {
     ).rejects.toThrow(/cannot be disabled/);
   });
 
+  it("setBuiltinEnabled answers unknown and required packs with typed errors", async () => {
+    const caller = createCaller(makeCtx());
+    await expect(
+      caller.setBuiltinEnabled({ id: "nope", enabled: false })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(
+      caller.setBuiltinEnabled({ id: "base", enabled: false })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("refuses server-wide pack changes in production", async () => {
+    process.env["NODETOOL_ENV"] = "production";
+    const caller = createCaller(makeCtx());
+    await expect(
+      caller.setTrust({ allowUnlisted: true })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(
+      caller.setBuiltinEnabled({ id: "nope", enabled: false })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.reload()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(() => readFileSync(configPath, "utf8")).toThrow();
+  });
+
   // Same cold-import cost as setBuiltinEnabled above.
   it("reload re-runs the loader against the registry and refreshes the snapshot", { timeout: 120_000 }, async () => {
     // Empty searchPaths → loader finds nothing, snapshot becomes [].

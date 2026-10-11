@@ -186,3 +186,66 @@ describe("useLayerActions history ordering", () => {
     expect(collapseStates).toEqual([true]);
   });
 });
+
+describe("useLayerActions opacity history", () => {
+  beforeEach(() => {
+    useSketchStore.getState().setDocument(useSketchStore.getState().document);
+  });
+
+  it("records one history entry for a slider drag and keeps earlier history", () => {
+    const store = useSketchStore.getState();
+    const layerId = store.document.activeLayerId;
+    store.pushHistory("earlier edit");
+    const params = makeBaseParams({
+      pushHistory: useSketchStore.getState().pushHistory,
+      setLayerOpacity: useSketchStore.getState().setLayerOpacity
+    });
+    const { result } = renderHook(() => useLayerActions(params as never));
+
+    act(() => {
+      for (let step = 99; step >= 50; step -= 1) {
+        result.current.handleSetLayerOpacity(layerId, step / 100, false);
+      }
+      result.current.handleSetLayerOpacity(layerId, 0.5, true);
+    });
+
+    const actions = useSketchStore.getState().history.map((entry) => entry.action);
+    expect(actions).toEqual(["open", "earlier edit", "change opacity"]);
+    const layer = useSketchStore
+      .getState()
+      .document.layers.find((l) => l.id === layerId);
+    expect(layer?.opacity).toBe(0.5);
+  });
+});
+
+describe("useLayerActions after a stroke", () => {
+  it("undoes a rename without undoing the stroke before it", () => {
+    useSketchStore.getState().resetDocument();
+    const store = useSketchStore.getState();
+    const layerId = store.document.activeLayerId;
+    const blank = store.document.layers[0].data;
+    store.pushHistory("brush stroke", undefined, { timing: "before" });
+    useSketchStore.getState().updateLayerData(layerId, "data:image/png;base64,S");
+    const params = makeBaseParams({
+      pushHistory: useSketchStore.getState().pushHistory,
+      renameLayer: useSketchStore.getState().renameLayer
+    });
+    const { result } = renderHook(() => useLayerActions(params as never));
+
+    act(() => {
+      result.current.handleRenameLayer(layerId, "Renamed");
+    });
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    let layer = useSketchStore.getState().document.layers[0];
+    expect(layer.name).not.toBe("Renamed");
+    expect(layer.data).toBe("data:image/png;base64,S");
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    layer = useSketchStore.getState().document.layers[0];
+    expect(layer.data).toBe(blank);
+  });
+});

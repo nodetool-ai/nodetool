@@ -8,6 +8,9 @@ import {
   setKeyframe
 } from "../src/keyframes.js";
 import { compileClipAnimations } from "../src/animation/compile.js";
+import { sampleAnimations } from "../src/animation/sample.js";
+import { splitClip } from "../src/splitClip.js";
+import { trimClip } from "../src/trimClip.js";
 import type { TimelineClip } from "../src/types.js";
 
 function clip(extra: Partial<TimelineClip> = {}): TimelineClip {
@@ -81,5 +84,88 @@ describe("keyframes", () => {
       height: 1080
     });
     expect(compiled.length).toBeGreaterThan(0);
+  });
+});
+
+describe("keyframes across split and trim", () => {
+  const canvas = { width: 1920, height: 1080 };
+  const rendered = (c: TimelineClip, atMs: number) =>
+    sampleAnimations(
+      compileClipAnimations(c.animations, c.durationMs, canvas),
+      atMs
+    ).offsetX ?? 0;
+  const ramp = () => {
+    let c = clip({ startMs: 0, durationMs: 4000, inPointMs: 0 });
+    c = { ...c, animations: setKeyframe(c, "offsetX", 0, 0) };
+    return { ...c, animations: setKeyframe(c, "offsetX", 4000, 400) };
+  };
+
+  it("gives each half of a split the part of the curve it covers", () => {
+    const [left, right] = splitClip(ramp(), 2000);
+
+    expect(rendered(left, 1000)).toBeCloseTo(100);
+    expect(rendered(right, 1000)).toBeCloseTo(300);
+    expect(keyframeValueAt(left, "offsetX", 1000)).toBeCloseTo(100);
+    expect(keyframeValueAt(right, "offsetX", 1000)).toBeCloseTo(300);
+    expect(findKeyframeAnimation(right)?.id).not.toBe(
+      findKeyframeAnimation(left)?.id
+    );
+  });
+
+  it("stretches keyframes over an extended clip in the render and the inspector", () => {
+    const extended = trimClip(ramp(), "end", 2000);
+
+    expect(rendered(extended, 3000)).toBeCloseTo(200);
+    expect(keyframeValueAt(extended, "offsetX", 3000)).toBeCloseTo(200);
+    expect(rendered(extended, 5000)).toBeCloseTo(
+      keyframeValueAt(extended, "offsetX", 5000)
+    );
+  });
+});
+
+describe("keyframeValueAt easing", () => {
+  it("reads the curve the way the sampler plays it", () => {
+    let c = clip();
+    c = { ...c, animations: setKeyframe(c, "opacity", 0, 0) };
+    c = { ...c, animations: setKeyframe(c, "opacity", 2000, 1) };
+    c = {
+      ...c,
+      animations: c.animations!.map((a) => ({ ...a, easing: "easeInOut" }))
+    };
+    const compiled = compileClipAnimations(c.animations, c.durationMs, {
+      width: 1920,
+      height: 1080
+    });
+    const rendered = sampleAnimations(compiled, 500).opacity ?? 1;
+    expect(keyframeValueAt(c, "opacity", 500)).toBeCloseTo(rendered, 6);
+    expect(keyframeValueAt(c, "opacity", 500)).toBeLessThan(0.25);
+  });
+
+  it("keeps the animation's easing and a keyframe's easing on update", () => {
+    let c = clip();
+    c = { ...c, animations: setKeyframe(c, "opacity", 0, 0) };
+    c = { ...c, animations: setKeyframe(c, "opacity", 2000, 1) };
+    c = {
+      ...c,
+      animations: c.animations!.map((a) => ({
+        ...a,
+        easing: "easeIn",
+        custom: {
+          ...a.custom!,
+          curves: a.custom!.curves.map((curve) => ({
+            ...curve,
+            keyframes: curve.keyframes.map((kf) => ({ ...kf, easing: "easeOut" }))
+          }))
+        }
+      }))
+    };
+    const animations = setKeyframe(c, "opacity", 2000, 0.5);
+    const animation = findKeyframeAnimation({ animations })!;
+    expect(animation.easing).toBe("easeIn");
+    expect(animation.custom!.curves[0].keyframes[1]).toEqual({
+      t: 1,
+      value: 0.5,
+      easing: "easeOut"
+    });
   });
 });

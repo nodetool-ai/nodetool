@@ -9,6 +9,7 @@ import { useNodeStoreRef } from "../../contexts/NodeContext";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "./useClipboardContentPaste";
 import { isTextInputActive } from "../../utils/browser";
+import { absoluteNodePosition } from "../../utils/absoluteNodePosition";
 
 interface ClipboardData {
   nodes: Node<NodeData>[];
@@ -86,8 +87,20 @@ export const useCopyPaste = (): UseCopyPasteResult => {
           nodesToCopyIdsSet.has(edge.source) ||
           nodesToCopyIdsSet.has(edge.target)
       );
+      // A node copied without its group is pasted outside any group, so it
+      // carries its canvas position rather than one relative to that group.
+      const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
+      const clipboardNodes = nodesToCopy.map((node) =>
+        node.parentId && !nodesToCopyIdsSet.has(node.parentId)
+          ? {
+              ...node,
+              parentId: undefined,
+              position: absoluteNodePosition(node, nodeById)
+            }
+          : node
+      );
       const serializedData = JSON.stringify({
-        nodes: nodesToCopy,
+        nodes: clipboardNodes,
         edges: connectedEdges
       });
 
@@ -233,7 +246,12 @@ export const useCopyPaste = (): UseCopyPasteResult => {
       return;
     }
 
-    const firstPos = copiedNodes[0].position ?? { x: 0, y: 0 };
+    // Anchor on a top-level node: a group child's position is relative.
+    const anchorNode =
+      copiedNodes.find(
+        (node) => !node.parentId || !oldToNewIds.has(node.parentId)
+      ) ?? copiedNodes[0];
+    const firstPos = anchorNode.position ?? { x: 0, y: 0 };
     const offset = {
       x: firstNodePosition.x - (firstPos.x ?? 0),
       y: firstNodePosition.y - (firstPos.y ?? 0)

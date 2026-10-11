@@ -21,7 +21,7 @@
 import { useCallback, useRef } from "react";
 import type React from "react";
 
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import { findRollNeighbour, type TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
@@ -36,6 +36,7 @@ import {
   snapEdge,
   snapGridSpecFrom
 } from "./clipSnap";
+import { getSourceCapMs } from "./useClipSourceDuration";
 
 interface UseClipTrimOptions {
   clip: TimelineClip | undefined;
@@ -205,7 +206,19 @@ export function useClipTrim({
       } else {
         const deltaMs = fresh.startMs - valueMs;
         if (gesture.mode === "roll") {
-          rollClipEdge(clip.id, "start", -deltaMs);
+          // Rolling the cut later grows the left neighbour's end, so its
+          // source length caps the roll.
+          const neighbour = findRollNeighbour(
+            useTimelineStore.getState().clips,
+            fresh,
+            "start"
+          );
+          rollClipEdge(
+            clip.id,
+            "start",
+            -deltaMs,
+            neighbour ? getSourceCapMs(neighbour) : undefined
+          );
         } else {
           trimClipStart(clip.id, deltaMs);
         }

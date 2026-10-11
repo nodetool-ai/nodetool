@@ -96,6 +96,11 @@ describe("useFloatingToolbarActions", () => {
   const mockRun = jest.fn();
   const mockCancel = jest.fn();
   const mockSaveWorkflow = jest.fn();
+  const mockQueueWorkflowSave = jest.fn(
+    async (_id: string, task: () => Promise<string | undefined>) => {
+      await task();
+    }
+  );
   const mockGetWorkflow = jest.fn(() => mockWorkflow);
   const mockAutoLayout = jest.fn();
   const mockWorkflowJSON = jest.fn(() => JSON.stringify(mockWorkflow));
@@ -130,9 +135,11 @@ describe("useFloatingToolbarActions", () => {
     mockUseWorkflowManager.mockImplementation(
       selectFrom<WorkflowManagerState>({
         getWorkflow: mockGetWorkflow,
-        saveWorkflow: mockSaveWorkflow
+        saveWorkflow: mockSaveWorkflow,
+        queueWorkflowSave: mockQueueWorkflowSave
       })
     );
+    mockSaveWorkflow.mockResolvedValue(undefined);
 
     // `confirmLargeRun: false` keeps the large-run confirmation out of the way
     // for every case except the ones that opt into it.
@@ -321,6 +328,78 @@ describe("useFloatingToolbarActions", () => {
           maxVersions: 10
         })
       );
+    });
+
+    it("adopts the checkpoint's tokens without a conflict-prone stale etag", async () => {
+      const setWorkflowUpdatedAt = jest.fn();
+      mockUseNodeStoreRef.mockReturnValue(
+        nodeStoreRef({ nodes: [], edges: [], setWorkflowUpdatedAt })
+      );
+      mockUseSettingsStore.mockImplementation(
+        selectFrom<SettingsState>({
+          settings: {
+            ...defaultSettings,
+            confirmLargeRun: false,
+            autosave: {
+              ...defaultSettings.autosave,
+              saveBeforeRun: true,
+              maxVersionsPerWorkflow: 10
+            }
+          }
+        })
+      );
+      mockGetWorkflow.mockReturnValue({
+        ...mockWorkflow,
+        graph: {
+          nodes: [{ id: "node-1", type: "nodetool.agents.Agent" }],
+          edges: []
+        }
+      });
+      mockTriggerAutosave.mockResolvedValue({
+        updatedAt: "2026-10-09T10:00:00Z",
+        etag: "checkpoint-etag",
+        skipped: false
+      });
+
+      const { result } = renderHook(() => useFloatingToolbarActions());
+      await act(async () => {
+        await result.current.handleRun();
+      });
+
+      expect(mockQueueWorkflowSave).toHaveBeenCalledWith(
+        "workflow-123",
+        expect.any(Function)
+      );
+      expect(setWorkflowUpdatedAt).toHaveBeenCalledWith(
+        "2026-10-09T10:00:00Z",
+        "checkpoint-etag"
+      );
+    });
+
+    it("reports a failed save after execution", async () => {
+      useNotificationStore.getState().clearNotifications();
+      mockSaveWorkflow.mockRejectedValueOnce(new Error("conflict"));
+      const consoleError = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
+      const { result } = renderHook(() => useFloatingToolbarActions());
+
+      await act(async () => {
+        await result.current.handleRun();
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(useNotificationStore.getState().notifications).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: "error",
+            content: "Failed to save workflow: conflict"
+          })
+        ])
+      );
+      consoleError.mockRestore();
     });
 
     it("saves workflow after execution", async () => {

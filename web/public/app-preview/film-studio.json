@@ -843,8 +843,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": 60
+                "x": 0,
+                "y": 1365
               },
               "zIndex": 0,
               "width": 280,
@@ -864,8 +864,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": 320
+                "x": 0,
+                "y": 1140
               },
               "zIndex": 0,
               "width": 280,
@@ -885,8 +885,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": 580
+                "x": 0,
+                "y": 1590
               },
               "zIndex": 0,
               "width": 280,
@@ -905,8 +905,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1160,
-                "y": -60
+                "x": 1230,
+                "y": 1310
               },
               "title": "📋 Direction document",
               "selectable": true
@@ -922,8 +922,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2880,
-                "y": 80
+                "x": 3320,
+                "y": 1012
               },
               "title": "🖼️ Storyboard — approve before video spend",
               "selectable": true
@@ -939,8 +939,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 4350,
-                "y": 560
+                "x": 4860,
+                "y": 1135
               },
               "title": "🎬 Final film",
               "selectable": true
@@ -966,8 +966,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 40,
-                "y": 100
+                "x": 0,
+                "y": 578
               },
               "zIndex": 0,
               "width": 280,
@@ -986,8 +986,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2830,
-                "y": 180
+                "x": 3090,
+                "y": 591
               },
               "title": "🎬 Rough cut",
               "selectable": true
@@ -1014,8 +1014,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 279,
-                "y": 50
+                "x": 0,
+                "y": 696
               },
               "zIndex": 0,
               "width": 280,
@@ -1036,8 +1036,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 279,
-                "y": 330
+                "x": 0,
+                "y": 921
               },
               "zIndex": 0,
               "width": 280,
@@ -1058,8 +1058,8 @@
             "ui_properties": {
               "selected": false,
               "position": {
-                "x": 279,
-                "y": 610
+                "x": 0,
+                "y": 471
               },
               "zIndex": 0,
               "width": 280,
@@ -1078,8 +1078,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 3200,
-                "y": 187
+                "x": 3278,
+                "y": 854
               },
               "zIndex": 0,
               "width": 320,

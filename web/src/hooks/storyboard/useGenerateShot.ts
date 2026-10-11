@@ -62,6 +62,7 @@ import {
   subscribeDirectShotJob,
   unsubscribeShotJob,
   useStoryboardGenerationStore,
+  type OneTakeCompletion,
   type ShotGenerationOperation,
   type ShotJobKind
 } from "../../stores/storyboard/StoryboardGenerationStore";
@@ -141,6 +142,12 @@ const STILL_VARIANT_TASKS: Record<StillVariantMode, string> = {
   outpaint: "outpaint"
 };
 
+/** What a single clip render may set beyond its model. */
+export interface ClipRenderOptions {
+  /** Output resolution, e.g. "720p". Defaults to {@link CLIP_RESOLUTION}. */
+  resolution?: string;
+}
+
 interface UseGenerateShotResult {
   generateKeyframe: (
     boardId: string,
@@ -152,7 +159,8 @@ interface UseGenerateShotResult {
     boardId: string,
     shot: Shot,
     model?: ShotModelRef,
-    batchId?: string
+    batchId?: string,
+    options?: ClipRenderOptions
   ) => Promise<void>;
   generateRevisedClip: (
     boardId: string,
@@ -164,6 +172,17 @@ interface UseGenerateShotResult {
     boardId: string,
     shot: Shot,
     request: StillVariantRequest
+  ) => Promise<void>;
+  /**
+   * Send a prepared one-take `generate_media` request as `shot`'s clip job.
+   * On completion the clip becomes the shot's clip and `oneTake` covers the
+   * rest of the board with windows of it.
+   */
+  startOneTakeClip: (
+    boardId: string,
+    shot: Shot,
+    data: Record<string, unknown>,
+    oneTake: OneTakeCompletion
   ) => Promise<void>;
   retryFailedRequest: (requestId: string, batchId?: string) => Promise<void>;
 }
@@ -220,7 +239,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       mediaEdit?: MediaEditRequest,
       production?: CompiledProductionCandidate,
       batchId?: string,
-      acceptedShotStatusOverride?: Shot["status"]
+      acceptedShotStatusOverride?: Shot["status"],
+      oneTake?: OneTakeCompletion
     ): Promise<void> => {
       // Single-flight per shot: skip when a job is active or a start is
       // already in the pre-registration window.
@@ -244,7 +264,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           ...(board && { render: { shot, board } }),
           ...(mediaEdit && { mediaEdit }),
           ...(acceptedShotStatus && { acceptedShotStatus }),
-          ...(production && { production })
+          ...(production && { production }),
+          ...(oneTake && { oneTake })
         };
         registerJob(
           shot.id,
@@ -271,7 +292,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
             kind,
             mediaEdit,
             acceptedShotStatus,
-            production
+            production,
+            oneTake
           });
           await globalWebSocketManager.send({
             command: "generate_media",
@@ -393,7 +415,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       boardId: string,
       shot: Shot,
       modelOverride?: ShotModelRef,
-      batchId?: string
+      batchId?: string,
+      options?: ClipRenderOptions
     ): Promise<void> => {
       assertProductionGenerationAllowed(shot.production, "text_to_video");
       if (isShotBusy(shot.id)) {
@@ -509,7 +532,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         mode: "video",
         prompt: `${productionCandidates[0]?.snapshot.prompt ?? prompt}${entityTokenSuffix(entities)}`,
         aspect_ratio: aspectRatio,
-        resolution: CLIP_RESOLUTION,
+        resolution: options?.resolution ?? CLIP_RESOLUTION,
         variations: 1
       };
       if (productionRoute === "reference_to_video") {
@@ -766,6 +789,36 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     [startDirectGeneration, renderContext]
   );
 
+  const startOneTakeClip = useCallback(
+    async (
+      boardId: string,
+      shot: Shot,
+      data: Record<string, unknown>,
+      oneTake: OneTakeCompletion
+    ): Promise<void> => {
+      if (isShotBusy(shot.id)) {
+        throw new Error(
+          "The first shot is already rendering. Wait for it to finish."
+        );
+      }
+      // No render record: the clip is compiled from the whole board, not from
+      // this shot's prompt, so a later edit to the shot does not make it stale.
+      await startDirectGeneration(
+        boardId,
+        shot,
+        "clip",
+        data,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        oneTake
+      );
+    },
+    [startDirectGeneration]
+  );
+
   const retryFailedRequest = useCallback(
     async (requestId: string, batchId?: string): Promise<void> => {
       const record =
@@ -833,7 +886,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         operation.mediaEdit,
         production,
         retryBatchId,
-        operation.acceptedShotStatus
+        operation.acceptedShotStatus,
+        operation.oneTake
       );
       useStoryboardGenerationStore.getState().markRequestRetried(requestId);
     },
@@ -845,6 +899,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     generateClip,
     generateRevisedClip,
     generateStillVariant,
+    startOneTakeClip,
     retryFailedRequest
   };
 };

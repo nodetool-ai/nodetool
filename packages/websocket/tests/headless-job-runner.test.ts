@@ -26,6 +26,8 @@ const USER_ID = "user-1";
 let capturedTriggerEvent: unknown = "never-ran";
 /** Captures the permission gate the run context carries. */
 let capturedGate: unknown = "never-ran";
+/** Captures the run context itself. */
+let capturedContext: ProcessingContext | null = null;
 
 class CaptureNode extends BaseNode {
   static readonly nodeType = "test.headless.Capture";
@@ -35,6 +37,7 @@ class CaptureNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     capturedTriggerEvent = context?.triggerEvent ?? null;
     capturedGate = context?.get(PERMISSION_GATE_CONTEXT_KEY) ?? null;
+    capturedContext = context ?? null;
     return { out: "done" };
   }
 }
@@ -180,6 +183,7 @@ describe("startHeadlessJob", () => {
     initTestDb();
     capturedTriggerEvent = "never-ran";
     capturedGate = "never-ran";
+    capturedContext = null;
     gate = new Promise<void>((resolve) => {
       releaseGate = resolve;
     });
@@ -307,6 +311,20 @@ describe("startHeadlessJob", () => {
 
     expect(result.status).toBe("completed");
     expect(capturedTriggerEvent).toEqual(triggerEvent);
+  });
+
+  it("does not retain emitted messages, since nothing drains the queue", async () => {
+    const wf = await makeWorkflow("test.headless.Capture");
+
+    const result = await startHeadlessJob({
+      workflowId: wf.id,
+      userId: USER_ID,
+      registry: makeRegistry()
+    });
+
+    expect(result.status).toBe("completed");
+    expect(capturedContext).not.toBeNull();
+    expect(capturedContext?.hasMessages()).toBe(false);
   });
 
   it("sets the headless permission gate on the run context", async () => {

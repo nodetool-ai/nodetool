@@ -347,7 +347,7 @@ const AppPreviewApp: React.FC = () => {
                     border: "1px solid",
                     borderColor: "divider",
                     backgroundColor: "background.default",
-                    boxShadow: "0 24px 80px rgba(0,0,0,0.45)"
+                    boxShadow: "var(--shadow-xl)"
                   }}
                 >
                   <Render config={appConfig} data={data} />

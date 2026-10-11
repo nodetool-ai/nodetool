@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
     ".cost-title": {
       fontFamily: theme.fontFamily1,
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
+      fontWeight: 400,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
       color: theme.vars.palette.text.secondary

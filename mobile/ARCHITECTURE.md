@@ -121,8 +121,7 @@ client) and renders them; it does not edit them (Puck is a DOM editor).
 `AppsScreen` lists the apps, `AppScreen` opens one — the same one-per-screen
 model the documents browser uses. A workflow is never presented as an app, and
 nothing generates an app document for a workflow that has none. Apps is the
-first screen after sign-in, and its header opens Chat, Documents, Jobs, Assets,
-and Settings.
+first tab after sign-in, and the gear in its header opens Settings.
 
 The semantics come from `@nodetool-ai/app-runtime`, the framework-independent
 core the web runtime, the CLI `app debug` harness, and the eval suites already
@@ -381,26 +380,36 @@ class ApiService {
 
 ## Navigation Structure
 
-### Stack Navigator
+### Tabs and the root stack
 
-`RootStackParamList` in `src/navigation/types.ts` declares one route per screen
-in `src/screens/`: `Login`, `Apps`, `App`, `Settings`, `Chat`, `Threads`,
-`LanguageModelSelection`, `Assets`, `AssetViewer`, `Documents`,
-`StoryboardEditor`, `TimelineViewer`, `SketchViewer`, `Jobs`, and `JobDetail`.
-Deep links map onto it in `src/navigation/linking.ts`, with `/` on Apps and
-`nodetool://job/<id>` on JobDetail.
+The five top-level surfaces are tabs: `MainTabs` (`src/navigation/MainTabs.tsx`)
+holds `Apps`, `Chat`, `Documents`, `Jobs`, and `Assets` under a bottom tab bar,
+typed by `MainTabParamList`. The root stack (`RootStackParamList` in
+`src/navigation/types.ts`) holds the tabs as one `Main` route, plus `Login` and
+every screen pushed above the bar: `Settings`, `LanguageModelSelection`,
+`Threads`, `App`, `AssetFolder`, `AssetViewer`, `StoryboardEditor`,
+`TimelineViewer`, `SketchViewer`, and `JobDetail`. A pushed screen gets the
+full height and a back button.
+
+A tab screen's `navigation` is `TabScreenNavigationProp<T>`, so `navigate`
+switches tabs and also pushes root screens. A pushed screen reaches a tab
+through `Main`: `navigate('Main', { screen: 'Chat' })`. The Assets tab shows
+the root folder; opening a folder pushes `AssetFolder`, the same screen with a
+`parentId`.
+
+Deep links map onto both levels in `src/navigation/linking.ts`, with `/` on
+the Apps tab and `nodetool://job/<id>` on JobDetail. `initialRouteName: 'Main'`
+keeps the tabs under a linked screen, so Back works after a notification tap.
 
 ### Navigation Flow
 
 ```
-AppsScreen
-├── App (from an app card)
-├── Chat, Documents, Jobs, Assets, Settings (from header buttons)
-│   Documents
-│   ├── StoryboardEditor
-│   ├── TimelineViewer
-│   └── SketchViewer
-└── Threads, LanguageModelSelection (from Chat)
+Main (tab bar)
+├── Apps ── App (from an app card), Settings (from the header gear)
+├── Chat ── Threads, LanguageModelSelection (from the header)
+├── Documents ── StoryboardEditor, TimelineViewer, SketchViewer
+├── Jobs ── JobDetail
+└── Assets ── AssetFolder, AssetViewer
 ```
 
 ## Chat Feature Architecture

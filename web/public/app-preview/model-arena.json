@@ -260,8 +260,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 60
+                "x": 0,
+                "y": 732
               },
               "zIndex": 0,
               "width": 300,
@@ -283,8 +283,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 50,
-                "y": 360
+                "x": 0,
+                "y": 1088
               },
               "zIndex": 0,
               "width": 300,
@@ -304,12 +304,12 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1250,
-                "y": -60
+                "x": 1260,
+                "y": 533
               },
               "zIndex": 0,
               "width": 300,
-              "title": "🟢 OpenAI answer",
+              "title": "🟢 Lane 1 answer",
               "selectable": true,
               "bypassed": false
             },
@@ -324,12 +324,12 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1250,
-                "y": 320
+                "x": 1260,
+                "y": 1294
               },
               "zIndex": 0,
               "width": 300,
-              "title": "🟣 Anthropic answer",
+              "title": "🟣 Lane 2 answer",
               "selectable": true,
               "bypassed": false
             },
@@ -344,12 +344,12 @@
             },
             "ui_properties": {
               "position": {
-                "x": 1250,
-                "y": 700
+                "x": 1260,
+                "y": 1494
               },
               "zIndex": 0,
               "width": 300,
-              "title": "🔵 Gemini answer",
+              "title": "🔵 Lane 3 answer",
               "selectable": true,
               "bypassed": false
             },
@@ -364,8 +364,8 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2070,
-                "y": 1080
+                "x": 2120,
+                "y": 1008
               },
               "zIndex": 0,
               "width": 300,

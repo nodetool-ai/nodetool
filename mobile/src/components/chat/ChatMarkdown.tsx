@@ -27,9 +27,9 @@ interface ChatMarkdownProps {
 }
 
 export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
-  const { colors, mode } = useTheme();
+  const { colors, isDark } = useTheme();
 
-  const codeTheme = mode === 'dark' ? atomDark : tomorrow;
+  const codeTheme = isDark ? atomDark : tomorrow;
   const fontFamily = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
 
   const rules: RenderRules = useMemo(() => ({
@@ -140,7 +140,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
       textDecorationLine: 'underline',
     },
     blockquote: {
-      backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+      backgroundColor: colors.inputBg,
       borderLeftWidth: 3,
       borderLeftColor: colors.primary,
       paddingLeft: 12,
@@ -148,7 +148,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
       marginVertical: 8,
     },
     code_inline: {
-      backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+      backgroundColor: colors.inputBg,
       color: colors.primary,
       fontFamily: fontFamily,
       fontSize: 13,
@@ -157,7 +157,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
       borderRadius: 4,
     },
     code_block: {
-      backgroundColor: mode === 'dark' ? '#1E1E1E' : '#F5F5F5',
+      backgroundColor: colors.surfaceElevated,
       padding: 12,
       borderRadius: 8,
       marginVertical: 8,
@@ -165,7 +165,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
       borderColor: colors.border,
     },
     fence: {
-      backgroundColor: mode === 'dark' ? '#1E1E1E' : '#F5F5F5',
+      backgroundColor: colors.surfaceElevated,
       padding: 12,
       borderRadius: 8,
       marginVertical: 8,
@@ -187,7 +187,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
       marginVertical: 8,
     },
     thead: {
-      backgroundColor: mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+      backgroundColor: colors.inputBg,
     },
     th: {
       padding: 8,
@@ -215,7 +215,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
       fontStyle: 'italic',
       color: colors.text,
     },
-  }), [colors, mode, fontFamily]);
+  }), [colors, fontFamily]);
 
   if (!content) {
     return null;

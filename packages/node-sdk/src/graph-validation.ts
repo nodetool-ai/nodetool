@@ -38,6 +38,7 @@ import type { NodeMetadata } from "./metadata.js";
 import { portTypeAliases } from "./port-types.js";
 import {
   isNonEmptyString,
+  isNumber,
   isObjectLike,
   isRecord,
   isString
@@ -100,7 +101,8 @@ export interface GraphValidationIssue {
    * "property" | "dangling_edge" | "unknown_handle" | "missing_handle" |
    * "cycle" | "type_mismatch" | "fan_in" | "untyped_dynamic_slot" |
    * "dynamic_type_mismatch" | "unknown_provider" | "missing_provider" |
-   * "unknown_model" | "missing_secret" | "slot_type_alias" | "invalid_graph", plus the `code_*`
+   * "unknown_model" | "missing_secret" | "slot_type_alias" | "invalid_choice" |
+   * "invalid_graph", plus the `code_*`
    * categories a Code node body produces (see {@link validateCodeNodeBody}).
    *
    * - "invalid_graph" (error): `nodes` or `edges` is not an array, so that half
@@ -125,6 +127,8 @@ export interface GraphValidationIssue {
    *   requirements offline. `info` because the graph is not broken, it is
    *   model-specific — and because the manifests are generated, so a wrong
    *   `required` must not fail a build.
+   * - "invalid_choice" (warning): a property with declared `values` holds a
+   *   value outside them, so the node falls back to a default branch.
    * - "missing_secret" (warning): a node declares a credential
    *   ({@link collectSecretRequirementSites}) that `options.availableSecrets`
    *   cannot resolve. Only reported when a set was supplied; warning because
@@ -1139,6 +1143,42 @@ function collectUnknownPropertyIssues(
 }
 
 /**
+ * A choice property set to a value outside its declared `values`. Nodes read
+ * these with a switch or a lookup table, so an unlisted value ("R" for "red",
+ * "pad" for "padding") falls through to a default branch and the node runs
+ * without doing what was asked. Properties fed by an edge are skipped, since
+ * their value only exists at run time. A float's `values` are presets on a
+ * continuous scale (ImageToImage `strength`), which the node passes through, so
+ * floats are not checked.
+ */
+function collectInvalidChoiceIssues(
+  nodeId: string,
+  nodeType: string,
+  node: GraphValidationNode,
+  meta: NodeMetadata,
+  connected: ReadonlySet<string>
+): GraphValidationIssue[] {
+  const properties = readProperties(node);
+  const issues: GraphValidationIssue[] = [];
+  for (const prop of meta.properties) {
+    const allowed = prop.values ?? prop.type?.values;
+    if (!allowed || allowed.length === 0) continue;
+    if (prop.type?.type === "float" || connected.has(prop.name)) continue;
+    const value = properties[prop.name];
+    if (!isString(value) && !isNumber(value)) continue;
+    if (allowed.some((choice) => String(choice) === String(value))) continue;
+    issues.push({
+      severity: "warning",
+      code: "invalid_choice",
+      nodeId,
+      nodeType,
+      message: `"${prop.name}" is ${JSON.stringify(value)}, which ${nodeType} does not accept. It takes: ${allowed.map((choice) => JSON.stringify(choice)).join(", ")}.`
+    });
+  }
+  return issues;
+}
+
+/**
  * Dynamic slot types: a JSON-Schema/TypeScript spelling of a type NodeTool
  * already has passes the transport schema, then silently refuses to connect.
  * Custom names stay legal — only known aliases are flagged. Inputs are
@@ -1438,7 +1478,8 @@ export function validateGraph(
           connected,
           registry
         ),
-        ...collectUnknownPropertyIssues(id, type, node, meta)
+        ...collectUnknownPropertyIssues(id, type, node, meta),
+        ...collectInvalidChoiceIssues(id, type, node, meta, connected)
       );
     }
 

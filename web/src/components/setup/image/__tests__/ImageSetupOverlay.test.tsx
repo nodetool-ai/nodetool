@@ -370,6 +370,24 @@ describe("step 1 alternatives (criterion 1)", () => {
     expect(useSketchStore.getState().document.setup?.stage).toBe("done");
   });
 
+  // The editor's window shortcuts would act on the hidden document (nudge,
+  // clear layer, undo), so the host pauses them while the flow covers it.
+  it("reports when it covers the editor and when it hands back", async () => {
+    seed({ stage: "idea", brief: "" });
+    const onCoveringChange = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ImageSetupOverlay onCoveringChange={onCoveringChange} />
+      </ThemeProvider>
+    );
+    expect(onCoveringChange).toHaveBeenLastCalledWith(true);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Start with a blank canvas/ })
+    );
+    expect(onCoveringChange).toHaveBeenLastCalledWith(false);
+  });
+
   it("an upload lands as the first layer and opens the editor", async () => {
     seed({ stage: "idea", brief: "" });
     renderOverlay();
@@ -766,6 +784,183 @@ describe("make more after leaving the sheet", () => {
       expect(
         screen.queryByRole("button", { name: "Make more variations" })
       ).not.toBeInTheDocument();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+// "Make more" adds its layers before their start requests return. A pick made
+// in that window must hide them, or they cover the pick in the editor.
+describe("picking while more variations start", () => {
+  it("hides the new batch's layers too", async () => {
+    seed({ stage: "look", brief: "a dripper", use_case: "product" });
+    const original = imageSetupFlow.useImageSetupFlow;
+    let generated: ((layerIds: readonly string[]) => void) | undefined;
+    let more = "";
+    const generateMore = jest.fn(
+      (onCreated?: (layerIds: readonly string[]) => void) => {
+        more = useSketchStore.getState().addLayer("Variation 2");
+        onCreated?.([more]);
+        // The start requests are still out.
+        return new Promise<string[]>(() => {});
+      }
+    );
+    const spy = jest
+      .spyOn(imageSetupFlow, "useImageSetupFlow")
+      .mockImplementation((options) => {
+        generated = options.onGenerated;
+        const flow = original(options);
+        return { ...flow, look: { ...flow.look, generate: generateMore } };
+      });
+    try {
+      renderOverlay();
+      const first = useSketchStore.getState().addLayer("Variation 1");
+      act(() => {
+        useSketchSessionStore.setState({
+          bindings: {
+            [first]: {
+              layerId: first,
+              kind: "text-to-image",
+              prompt: "a dripper",
+              provider: "prov",
+              model: "model-1",
+              width: 1024,
+              height: 1024,
+              seed: 1,
+              status: "generated",
+              currentAssetId: "first-image",
+              versions: []
+            }
+          }
+        });
+        useSketchStore.getState().setSetup({ stage: "done" });
+        generated?.([first]);
+      });
+      await userEvent.click(
+        screen.getByRole("button", { name: "Make more variations" })
+      );
+      // The new tile shows at once, still rendering.
+      const pickButtons = screen.getAllByRole("button", {
+        name: "Sketch editor"
+      });
+      expect(pickButtons).toHaveLength(2);
+      await userEvent.click(pickButtons[0]);
+      const layers = useSketchStore.getState().document.layers;
+      expect(layers.find((layer) => layer.id === first)?.visible).toBe(true);
+      expect(layers.find((layer) => layer.id === more)?.visible).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+// A refinement that failed on the use-case step reported on the shell's
+// button. Returning to the brief already written must not show it again.
+describe("a use-case refinement failure", () => {
+  it("does not follow the creator to the review", async () => {
+    useGlobalChatStore.setState({ selectedModel: undefined });
+    seed({
+      stage: "useCase",
+      brief: "a dripper",
+      use_case: "product",
+      refined_from: "a dripper␟product",
+      refined: {
+        subject: "a ceramic pour-over dripper",
+        composition: "centred",
+        lighting: "soft",
+        style_words: "85mm",
+        negative: "hands"
+      }
+    });
+    jest
+      .mocked(rpcRequest)
+      .mockRejectedValueOnce(new Error("The provider is down."));
+    renderOverlay();
+    await userEvent.click(screen.getByRole("radio", { name: /Key art/ }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Refine the brief" })
+    );
+    expect(await screen.findByText("The provider is down.")).toBeInTheDocument();
+    // Back on the use case the brief was written from, the button continues
+    // to that brief (it still reads "Try again" after the failure).
+    await userEvent.click(screen.getByRole("radio", { name: /Product shot/ }));
+    jest.mocked(rpcRequest).mockClear();
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(rpcRequest).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Subject")).toHaveValue(
+      "a ceramic pour-over dripper"
+    );
+    expect(screen.queryByText("The provider is down.")).not.toBeInTheDocument();
+  });
+});
+
+// A failed Re-refine shows under its button on the review. Once the creator
+// moved on with the brief they had, coming back must not show it again.
+describe("a failed Re-refine", () => {
+  it("is gone when the creator comes back to the review", async () => {
+    useGlobalChatStore.setState({ selectedModel: undefined });
+    seed({
+      stage: "review",
+      brief: "a dripper",
+      use_case: "product",
+      refined: {
+        subject: "a ceramic pour-over dripper",
+        composition: "centred",
+        lighting: "soft",
+        style_words: "85mm",
+        negative: "hands"
+      }
+    });
+    jest
+      .mocked(rpcRequest)
+      .mockRejectedValueOnce(new Error("The provider is down."));
+    renderOverlay();
+    await userEvent.click(screen.getByRole("button", { name: "Re-refine" }));
+    expect(await screen.findByText("The provider is down.")).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Continue to look" })
+    );
+    expect(useSketchStore.getState().document.setup?.stage).toBe("look");
+    await userEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(screen.getByLabelText("Subject")).toHaveValue(
+      "a ceramic pour-over dripper"
+    );
+    expect(screen.queryByText("The provider is down.")).not.toBeInTheDocument();
+  });
+});
+
+// Swapping the flow for the sheet (and back) removes the control that was
+// pressed. Focus goes to the new view's heading, not to the page.
+describe("focus across the sheet", () => {
+  it("lands on each view's heading", async () => {
+    seed({ stage: "look", brief: "a dripper", use_case: "product" });
+    const original = imageSetupFlow.useImageSetupFlow;
+    let generated: ((layerIds: readonly string[]) => void) | undefined;
+    const spy = jest
+      .spyOn(imageSetupFlow, "useImageSetupFlow")
+      .mockImplementation((options) => {
+        generated = options.onGenerated;
+        return original(options);
+      });
+    try {
+      renderOverlay();
+      const first = useSketchStore.getState().addLayer("Variation 1");
+      act(() => {
+        useSketchStore.getState().setSetup({ stage: "done" });
+        generated?.([first]);
+      });
+      expect(
+        screen.getByRole("heading", { name: "Pick your image" })
+      ).toHaveFocus();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Back to generation settings" })
+      );
+      expect(
+        screen.getByRole("heading", { name: "Choose the look" })
+      ).toHaveFocus();
     } finally {
       spy.mockRestore();
     }

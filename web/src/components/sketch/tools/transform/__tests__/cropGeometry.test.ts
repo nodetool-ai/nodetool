@@ -168,6 +168,27 @@ describe("resizeCropRectFromDrag", () => {
     expect(r.y + r.height).toBeLessThanOrEqual(ch);
   });
 
+  it("stops the left edge at the canvas edge without moving the right edge", () => {
+    const r = resizeCropRectFromDrag(start, "left", -50, 0, cw, ch);
+    expect(r).toEqual({ x: 0, y: 20, width: 80, height: 40 });
+  });
+
+  it("stops the top-left corner at the canvas edge without moving the far edges", () => {
+    const r = resizeCropRectFromDrag(start, "top-left", -50, -50, cw, ch);
+    expect(r).toEqual({ x: 0, y: 0, width: 80, height: 60 });
+  });
+
+  it("keeps the opposite edge fixed when a left drag passes it", () => {
+    const r = resizeCropRectFromDrag(start, "left", 100, 0, cw, ch);
+    expect(r.x + r.width).toBe(80);
+    expect(r.width).toBe(2);
+  });
+
+  it("keeps the rect's size when a move hits the canvas edge", () => {
+    const r = resizeCropRectFromDrag(start, "move", 200, -200, cw, ch);
+    expect(r).toEqual({ x: 40, y: 0, width: 60, height: 40 });
+  });
+
   it("handles rotate handle as identity (default case)", () => {
     const r = resizeCropRectFromDrag(start, "rotate", 10, 10, cw, ch);
     expect(r.x).toBe(start.x);

@@ -51,10 +51,21 @@ export const creditsRouter = router({
     .input(setPlanInput)
     .output(creditStatusOutput)
     .mutation(async ({ ctx, input }) => {
-      if (!planById(input.planId)) {
+      const plan = planById(input.planId);
+      if (!plan) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: `Unknown plan "${input.planId}".`
+        });
+      }
+      // Switching plans grants that plan's monthly credits at once. With no
+      // payment provider, a paid plan is the same open mint as `topup`.
+      if (plan.priceUsdPerMonth > 0 && !testTopupEnabled()) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Paid plans are disabled on this server: no payment provider is " +
+            "configured and NODETOOL_ENABLE_TEST_TOPUP is not set."
         });
       }
       await setSubscriptionPlan(ctx.userId, input.planId);

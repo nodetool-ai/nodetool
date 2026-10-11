@@ -12,6 +12,7 @@ import TitleOutlinedIcon from "@mui/icons-material/TitleOutlined";
 import type { ClipTextStyle, ShapeFill, TimelineClip } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import {
   Caption,
   CollapsibleSection,
@@ -148,10 +149,19 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
 
     // A stable callback per field, so an edit re-renders only the field whose
     // value changed rather than every memoized control in the section.
+    // One undo entry per focused typing session, not one per keystroke.
+    const textHistory = useTimelineHistoryBatch();
+    const handleTextFocus = useCallback(
+      () => textHistory.begin(),
+      [textHistory]
+    );
+    const handleTextBlur = useCallback(() => textHistory.end(), [textHistory]);
     const handleTextChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) =>
-        patchStyle({ text: event.target.value }),
-      [patchStyle]
+      (event: React.ChangeEvent<HTMLInputElement>) => {
+        patchStyle({ text: event.target.value });
+        textHistory.mark();
+      },
+      [patchStyle, textHistory]
     );
     const handleFontFamilyChange = useCallback(
       (fontFamily: string | undefined) => patchStyle({ fontFamily }),
@@ -313,6 +323,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
               minRows={3}
               fullWidth
               onChange={handleTextChange}
+              onFocus={handleTextFocus}
+              onBlur={handleTextBlur}
               inputProps={TEXT_CONTENT_INPUT_PROPS}
             />
             <InspectorRow label="Font">

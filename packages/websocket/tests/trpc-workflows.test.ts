@@ -30,15 +30,29 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       updateFieldsIfUnchanged: vi.fn(),
       deleteOwned: vi.fn()
     },
-    WorkflowVersion: {
-      ...actual.WorkflowVersion,
-      get: vi.fn(),
-      create: vi.fn(),
-      nextVersion: vi.fn(),
-      listForWorkflow: vi.fn(),
-      findByVersion: vi.fn(),
-      pruneOldAutosaves: vi.fn()
-    },
+    // Constructable so the autosave route's `new WorkflowVersion(...)` runs.
+    WorkflowVersion: Object.assign(
+      vi.fn(function (
+        this: Record<string, unknown>,
+        data: Record<string, unknown>
+      ) {
+        Object.assign(this, {
+          id: "ver-new",
+          created_at: null,
+          ...data,
+          save: vi.fn().mockResolvedValue(undefined)
+        });
+      }),
+      {
+        ...actual.WorkflowVersion,
+        get: vi.fn(),
+        create: vi.fn(),
+        nextVersion: vi.fn(),
+        listForWorkflow: vi.fn(),
+        findByVersion: vi.fn(),
+        pruneOldAutosaves: vi.fn()
+      }
+    ),
     WorkflowCollaborator: {
       ...actual.WorkflowCollaborator,
       findFor: vi.fn(),
@@ -73,12 +87,18 @@ vi.mock("../src/storage-retention.js", () => ({
   }))
 }));
 
+vi.mock("../src/lib/workflow-service.js", async (orig) => ({
+  ...(await orig<typeof import("../src/lib/workflow-service.js")>()),
+  syncTriggerRegistrations: vi.fn(async () => undefined)
+}));
+
 import {
   Workflow,
   WorkflowVersion,
   WorkflowCollaborator,
   WorkflowShare
 } from "@nodetool-ai/models";
+import { syncTriggerRegistrations } from "../src/lib/workflow-service.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -594,6 +614,72 @@ describe("workflows router", () => {
       expect(wf.save).not.toHaveBeenCalled();
     });
 
+    it("applies a checkpoint's description and save_type to the version row only", async () => {
+      const wf = makeWorkflow({ id: "wf-cp", user_id: "user-1" });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      (
+        WorkflowVersion.nextVersion as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(3);
+      (
+        WorkflowVersion.pruneOldAutosaves as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.autosave({
+        id: "wf-cp",
+        graph: { nodes: [], edges: [] },
+        save_type: "checkpoint",
+        description: "Before execution",
+        force: true
+      });
+
+      expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
+        "wf-cp",
+        wf.updated_at,
+        { graph: { nodes: [], edges: [] } }
+      );
+      expect(WorkflowVersion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflow_id: "wf-cp",
+          version: 3,
+          save_type: "checkpoint",
+          description: "Before execution"
+        })
+      );
+      expect(result.version?.save_type).toBe("checkpoint");
+      expect(result.etag).toBe("etag-123");
+    });
+
+    it("records a plain autosave version and keeps the workflow description", async () => {
+      const wf = makeWorkflow({ id: "wf-as", user_id: "user-1" });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      (
+        WorkflowVersion.nextVersion as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(1);
+      (
+        WorkflowVersion.pruneOldAutosaves as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.autosave({
+        id: "wf-as",
+        graph: { nodes: [], edges: [] },
+        force: true
+      });
+
+      expect(WorkflowVersion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          save_type: "autosave",
+          description: "Test description"
+        })
+      );
+      expect(result.version?.save_type).toBe("autosave");
+      expect(WorkflowVersion.pruneOldAutosaves).toHaveBeenCalledWith(
+        "wf-as",
+        expect.any(Number)
+      );
+    });
+
     it("rate-limits without force flag", async () => {
       const wf = makeWorkflow({ id: "wf-rl", user_id: "user-1" });
       (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
@@ -882,7 +968,33 @@ describe("workflows router", () => {
           version: 1
         });
         expect(result.id).toBe("wf-1");
-        expect(wf.save).toHaveBeenCalled();
+        expect(result.graph).toEqual(ver.graph);
+        expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
+          "wf-1",
+          wf.updated_at,
+          { graph: ver.graph }
+        );
+        expect(wf.save).not.toHaveBeenCalled();
+        expect(syncTriggerRegistrations).toHaveBeenCalledWith(
+          expect.objectContaining({ id: "wf-1", graph: ver.graph })
+        );
+      });
+
+      it("answers CONFLICT when the workflow changed during the restore", async () => {
+        const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+        (
+          WorkflowVersion.findByVersion as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(makeVersion({ id: "ver-1", version: 1 }));
+        (
+          Workflow.updateFieldsIfUnchanged as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(null);
+
+        const caller = createCaller(makeCtx());
+        await expect(
+          caller.workflows.versions.restore({ id: "wf-1", version: 1 })
+        ).rejects.toMatchObject({ code: "CONFLICT" });
+        expect(syncTriggerRegistrations).not.toHaveBeenCalled();
       });
 
       it("throws NOT_FOUND for missing version", async () => {

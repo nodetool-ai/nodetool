@@ -16,11 +16,21 @@
  * reset by later prop changes.
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import type { Shot } from "@nodetool-ai/protocol";
 import { resolveEffectiveProductionRequirement } from "@nodetool-ai/protocol";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import { useMediaQuery } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 import {
   Box,
@@ -37,7 +47,8 @@ import {
   VideoPlayer,
   BORDER_RADIUS,
   MOTION,
-  SPACING
+  SPACING,
+  Z_INDEX
 } from "../ui_primitives";
 import { useBoard } from "../../stores/storyboard/StoryboardStore";
 import { sceneOrder } from "../../lib/storyboard/sceneOrder";
@@ -109,6 +120,22 @@ const descriptionSx = {
   height: "3lh",
   overflowY: "auto"
 } as const;
+
+/** How far a finger has to travel sideways for a swipe to change the slide. */
+const SWIPE_MIN_PX = 40;
+
+// On a phone the arrows float over the stage's edges rather than taking two
+// columns from a picture that is already narrow.
+const arrowSx = (side: "left" | "right") =>
+  ({
+    "@media (max-width: 600px)": {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      [side]: 0,
+      zIndex: Z_INDEX.raised
+    }
+  }) as const;
 
 const thumbSx = {
   flex: "0 0 auto",
@@ -232,6 +259,41 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
     }
   }, [slide, onEditShot, onClose]);
 
+  // A sideways swipe on the stage pages like the arrows. A mostly vertical
+  // drag is a scroll, not a swipe.
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const handleTouchStart = useCallback((event: React.TouchEvent) => {
+    const touch = event.touches[0];
+    // Dragging a video's seek bar is not a swipe.
+    const onControl = (event.target as HTMLElement).closest(
+      "input, [role=slider]"
+    );
+    swipeStart.current =
+      event.touches.length === 1 && touch && !onControl
+        ? { x: touch.clientX, y: touch.clientY }
+        : null;
+  }, []);
+  const handleTouchEnd = useCallback(
+    (event: React.TouchEvent) => {
+      const start = swipeStart.current;
+      const touch = event.changedTouches[0];
+      swipeStart.current = null;
+      if (!start || !touch) {
+        return;
+      }
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy)) {
+        return;
+      }
+      step(dx < 0 ? 1 : -1);
+    },
+    [step]
+  );
+
+  const theme = useTheme();
+  const compact = useMediaQuery(theme.breakpoints.down("sm"));
+
   const title = slide ? slide.caption : "Slideshow";
 
   return (
@@ -251,17 +313,29 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
             checked={autoplay}
             onChange={setAutoplay}
           />
-          {onEditShot && slide && (
-            <EditorButton size="small" onClick={handleEdit}>
-              Edit shot
-            </EditorButton>
-          )}
+          {onEditShot &&
+            slide &&
+            (compact ? (
+              <ToolbarIconButton
+                icon={<EditOutlinedIcon />}
+                tooltip="Edit shot"
+                onClick={handleEdit}
+              />
+            ) : (
+              <EditorButton size="small" onClick={handleEdit}>
+                Edit shot
+              </EditorButton>
+            ))}
         </FlexRow>
       }
     >
       <FlexColumn gap={SPACING.md} fullHeight sx={{ minHeight: 0 }}>
-        <FlexRow align="stretch" gap={SPACING.sm} sx={{ flex: 1, minHeight: 0 }}>
-          <FlexRow align="center">
+        <FlexRow
+          align="stretch"
+          gap={SPACING.sm}
+          sx={{ flex: 1, minHeight: 0, position: "relative" }}
+        >
+          <FlexRow align="center" sx={arrowSx("left")}>
             <ToolbarIconButton
               icon={<ChevronLeftIcon />}
               tooltip="Previous shot"
@@ -270,7 +344,12 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
               disabled={index <= 0}
             />
           </FlexRow>
-          <Box sx={stageSx} data-testid="slideshow-stage">
+          <Box
+            sx={stageSx}
+            data-testid="slideshow-stage"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             {!slide ? (
               <Caption color="muted">This board has no shots.</Caption>
             ) : hasGraphics(slide.shot) ? (
@@ -300,7 +379,7 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
               <Caption color="muted">Not rendered yet</Caption>
             )}
           </Box>
-          <FlexRow align="center">
+          <FlexRow align="center" sx={arrowSx("right")}>
             <ToolbarIconButton
               icon={<ChevronRightIcon />}
               tooltip="Next shot"

@@ -15,7 +15,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import type { TimelineClip } from "@nodetool-ai/timeline";
-import { groupDescendantIds } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { SPACING_PX } from "../../ui_primitives";
@@ -34,20 +33,54 @@ const bracketStyles = (theme: Theme) =>
     pointerEvents: "none"
   });
 
+type ChildSpan = { startMs: number; endMs: number } | null;
+
+interface GroupSpanIndex {
+  childrenByParent: Map<string, TimelineClip[]>;
+  spans: Map<string, ChildSpan>;
+}
+
+// Keyed on the clips array, which every edit replaces: each store publish
+// builds the children index once, shared by every bracket's selectors.
+const spanIndexCache = new WeakMap<readonly TimelineClip[], GroupSpanIndex>();
+
 /** The timeline span a group's descendants cover, or null when it holds none. */
-function childSpanMs(
+export function childSpanMs(
   clips: readonly TimelineClip[],
   groupId: string
-): { startMs: number; endMs: number } | null {
-  const descendants = groupDescendantIds(clips, groupId);
+): ChildSpan {
+  let index = spanIndexCache.get(clips);
+  if (!index) {
+    const childrenByParent = new Map<string, TimelineClip[]>();
+    for (const clip of clips) {
+      if (!clip.parentId) continue;
+      const siblings = childrenByParent.get(clip.parentId);
+      if (siblings) siblings.push(clip);
+      else childrenByParent.set(clip.parentId, [clip]);
+    }
+    index = { childrenByParent, spans: new Map() };
+    spanIndexCache.set(clips, index);
+  }
+  const cached = index.spans.get(groupId);
+  if (cached !== undefined) return cached;
+
   let startMs = Number.POSITIVE_INFINITY;
   let endMs = Number.NEGATIVE_INFINITY;
-  for (const clip of clips) {
-    if (!descendants.has(clip.id)) continue;
-    startMs = Math.min(startMs, clip.startMs);
-    endMs = Math.max(endMs, clip.startMs + clip.durationMs);
+  const seen = new Set<string>();
+  const queue = [groupId];
+  while (queue.length > 0) {
+    const id = queue.pop()!;
+    for (const child of index.childrenByParent.get(id) ?? []) {
+      if (seen.has(child.id)) continue;
+      seen.add(child.id);
+      queue.push(child.id);
+      startMs = Math.min(startMs, child.startMs);
+      endMs = Math.max(endMs, child.startMs + child.durationMs);
+    }
   }
-  return endMs > startMs ? { startMs, endMs } : null;
+  const span = endMs > startMs ? { startMs, endMs } : null;
+  index.spans.set(groupId, span);
+  return span;
 }
 
 interface GroupBracketProps {

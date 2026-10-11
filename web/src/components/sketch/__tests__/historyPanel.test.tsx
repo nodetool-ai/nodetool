@@ -13,6 +13,7 @@ import type { HistoryEntry } from "../types";
 import { createDefaultDocument } from "../types";
 import { buildHistoryRows } from "../history/historyRows";
 import { jumpToHistoryIndex } from "../history/jumpToHistoryIndex";
+import { MAX_HISTORY_SIZE } from "../types";
 import { SketchHistoryPanel } from "../history/SketchHistoryPanel";
 import { useSketchStore } from "../state/useSketchStore";
 
@@ -116,6 +117,23 @@ describe("jumpToHistoryIndex", () => {
     expect(state.historyIndex).toBe(0);
     expect(state.history).toHaveLength(2);
     expect(state.document.layers[0]!.name).not.toBe("Renamed");
+  });
+
+  it("reaches the oldest entry when recording the tip trims a full history", () => {
+    const layerId = useSketchStore.getState().document.layers[0]!.id;
+    for (let i = 0; i < MAX_HISTORY_SIZE; i++) {
+      useSketchStore.getState().pushHistory("rename layer", undefined, { timing: "before" });
+      useSketchStore.getState().renameLayer(layerId, `Name ${i}`);
+    }
+    expect(useSketchStore.getState().history).toHaveLength(MAX_HISTORY_SIZE);
+
+    jumpToHistoryIndex(
+      0,
+      () => useSketchStore.getState().undo(),
+      () => useSketchStore.getState().redo()
+    );
+
+    expect(useSketchStore.getState().historyIndex).toBe(0);
   });
 
   it("stops when undo makes no progress", () => {

@@ -37,6 +37,9 @@ describe("users router", () => {
     });
 
     it("rejects non-admin callers with FORBIDDEN", async () => {
+      vi.spyOn(FileUserManager.prototype, "getUserById").mockResolvedValue(
+        null
+      );
       const caller = createCaller(makeCtx({ userId: "non-admin" }));
       await expect(caller.users.list()).rejects.toMatchObject({
         code: "FORBIDDEN"
@@ -48,6 +51,33 @@ describe("users router", () => {
       vi.spyOn(FileUserManager.prototype, "listUsers").mockResolvedValue({});
       const caller = createCaller(makeCtx({ userId: "admin2" }));
       await expect(caller.users.list()).resolves.toEqual({ users: [] });
+    });
+
+    it("allows an API user created with the admin role", async () => {
+      vi.spyOn(FileUserManager.prototype, "getUserById").mockResolvedValue({
+        id: "user_ops_1a2b3c4d",
+        username: "ops",
+        role: "admin",
+        tokenHash: "h",
+        createdAt: "c"
+      });
+      vi.spyOn(FileUserManager.prototype, "listUsers").mockResolvedValue({});
+      const caller = createCaller(makeCtx({ userId: "user_ops_1a2b3c4d" }));
+      await expect(caller.users.list()).resolves.toEqual({ users: [] });
+    });
+
+    it("rejects an API user with the user role", async () => {
+      vi.spyOn(FileUserManager.prototype, "getUserById").mockResolvedValue({
+        id: "user_ann_1a2b3c4d",
+        username: "ann",
+        role: "user",
+        tokenHash: "h",
+        createdAt: "c"
+      });
+      const caller = createCaller(makeCtx({ userId: "user_ann_1a2b3c4d" }));
+      await expect(caller.users.list()).rejects.toMatchObject({
+        code: "FORBIDDEN"
+      });
     });
 
     it("rejects unauthenticated callers with UNAUTHORIZED (not FORBIDDEN)", async () => {
@@ -152,6 +182,26 @@ describe("users router", () => {
       const caller = createCaller(makeCtx());
       await caller.users.create({ username: "root", role: "admin" });
       expect(addUser).toHaveBeenCalledWith("root", "admin");
+    });
+
+    it("refuses to issue a token in Supabase mode", async () => {
+      vi.stubEnv("SUPABASE_URL", "https://example.supabase.co");
+      vi.stubEnv("SUPABASE_KEY", "service-role");
+      const addUser = vi.spyOn(FileUserManager.prototype, "addUser");
+      const resetToken = vi.spyOn(FileUserManager.prototype, "resetToken");
+      try {
+        const caller = createCaller(makeCtx());
+        await expect(
+          caller.users.create({ username: "x" })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+        await expect(
+          caller.users.resetToken({ username: "x" })
+        ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+        expect(addUser).not.toHaveBeenCalled();
+        expect(resetToken).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllEnvs();
+      }
     });
 
     it("throws BAD_REQUEST when FileUserManager.addUser rejects (already exists)", async () => {

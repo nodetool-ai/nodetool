@@ -280,4 +280,41 @@ describe("PaintSession shift-line buffer reuse", () => {
     expect(stroke.pendingCommit).toBeDefined();
     expect(session.isActive).toBe(false);
   });
+
+  it("merges the last Shift-line segment when Shift is released", () => {
+    const engine = makeBrushEngine();
+    const session = new PaintSession(engine);
+    const ctx = makeToolContext();
+
+    session.begin(ctx, makePointerEvent({ point: { x: 0, y: 0 } }));
+    ctx.shiftHeldRef.current = true;
+    session.end(ctx, makePointerEvent({ point: { x: 20, y: 20 } }));
+    expect(ctx.onStrokeEnd).not.toHaveBeenCalled();
+
+    ctx.shiftHeldRef.current = false;
+    session.flushPendingChain(ctx);
+
+    expect(ctx.activeStrokeRef.current).toBeNull();
+    expect(ctx.onStrokeEnd).toHaveBeenCalledTimes(1);
+
+    // A second release, or one with no chain open, does nothing.
+    session.flushPendingChain(ctx);
+    expect(ctx.onStrokeEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not merge mid-stroke when Shift is released during a drag", () => {
+    const engine = makeBrushEngine();
+    const session = new PaintSession(engine);
+    const ctx = makeToolContext();
+
+    session.begin(ctx, makePointerEvent({ point: { x: 0, y: 0 } }));
+    ctx.shiftHeldRef.current = true;
+    session.end(ctx, makePointerEvent({ point: { x: 20, y: 20 } }));
+    session.begin(ctx, makePointerEvent({ point: { x: 40, y: 40 } }));
+
+    session.flushPendingChain(ctx);
+
+    expect(ctx.onStrokeEnd).not.toHaveBeenCalled();
+    expect(session.isActive).toBe(true);
+  });
 });

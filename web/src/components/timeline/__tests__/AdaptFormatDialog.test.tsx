@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -12,6 +12,7 @@ import {
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { AdaptFormatDialog } from "../AdaptFormatDialog";
+import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 
 const createAdaptations = jest.fn(async () => ({
   createdIds: ["derived-1"],
@@ -65,13 +66,16 @@ const subject: MediaTrack = {
   status: "ready"
 };
 
-const renderDialog = (mediaTracks: readonly MediaTrack[] = []) =>
+const renderDialog = (
+  mediaTracks: readonly MediaTrack[] = [],
+  openedSequence: TimelineSequence = sequence
+) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <AdaptFormatDialog
         open
         onClose={jest.fn()}
-        sequence={sequence}
+        sequence={openedSequence}
         mediaTracks={mediaTracks}
       />
     </ThemeProvider>
@@ -80,6 +84,19 @@ const renderDialog = (mediaTracks: readonly MediaTrack[] = []) =>
 describe("AdaptFormatDialog", () => {
   beforeEach(() => {
     createAdaptations.mockClear();
+    act(() => {
+      useTimelineStore.getState().reset();
+      useTimelineStore.getState().addClips(sequence.clips);
+    });
+  });
+
+  it("reads clips from the live document, not the sequence loaded at open", () => {
+    renderDialog([subject], { ...sequence, clips: [] });
+
+    expect(screen.getByRole("radio", { name: "Smart reframe" })).toBeEnabled();
+    expect(
+      screen.getByRole("radio", { name: "Follow selected object" })
+    ).toBeEnabled();
   });
 
   it("defaults to a nondestructive 9:16 Smart reframe adaptation", async () => {

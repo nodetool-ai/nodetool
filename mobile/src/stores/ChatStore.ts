@@ -63,7 +63,11 @@ interface ChatState {
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
-  sendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => Promise<void>;
+  /**
+   * Send a user message. Resolves `true` once the message is on the wire and
+   * `false` when it could not be sent (the reason is in `error`). Never rejects.
+   */
+  sendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => Promise<boolean>;
   stopGeneration: () => void;
   createNewThread: (title?: string) => Promise<string>;
   loadThreadFromServer: (threadId: string) => Promise<void>;
@@ -80,6 +84,34 @@ interface ChatState {
 // Tracks the in-flight safety timeout from sendMessage. Module-scoped so
 // the cancellation path doesn't have to plumb it through state.
 let safetyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+// What the live socket is connected to (URL plus auth token), so a repeated
+// `connect()` for the same target keeps the socket instead of tearing down a
+// reply that is streaming.
+let activeConnectionKey: string | null = null;
+
+/** Socket states in which an existing manager is still usable. */
+const LIVE_SOCKET_STATES: ReadonlySet<ConnectionState> = new Set<ConnectionState>([
+  'connected',
+  'connecting',
+  'reconnecting',
+]);
+
+/** Socket states that mean the chat has no working connection. */
+const LOST_SOCKET_STATES: ReadonlySet<ConnectionState> = new Set<ConnectionState>([
+  'disconnected',
+  'reconnecting',
+  'failed',
+]);
+
+export const STREAM_LOST_ERROR = 'Connection lost while the reply was streaming';
+
+function clearSafetyTimeout(): void {
+  if (safetyTimeoutId !== null) {
+    clearTimeout(safetyTimeoutId);
+    safetyTimeoutId = null;
+  }
+}
 
 /**
  * Handle incoming WebSocket messages and update state
@@ -154,13 +186,17 @@ function handleWebSocketMessage(
 
     case 'chunk': {
       const chunk = data;
-      if (!threadId) {break;}
+      // A chunk names its thread when the server knows it. Route by that, so a
+      // reply still streaming into a thread the user left does not land in
+      // the thread now on screen.
+      const chunkThreadId = chunk.thread_id ?? threadId;
+      if (!chunkThreadId) {break;}
 
       // Audio chunks carry binary payloads (Float32Array or base64); only
       // text contributes to the assistant message.
       const chunkText = isString(chunk.content) ? chunk.content : '';
 
-      const messages = state.messageCache[threadId] || [];
+      const messages = state.messageCache[chunkThreadId] || [];
       const lastMessage = messages[messages.length - 1];
 
       if (lastMessage?.role === 'assistant') {
@@ -173,7 +209,7 @@ function handleWebSocketMessage(
           status: chunk.done ? 'connected' : 'streaming',
           messageCache: {
             ...s.messageCache,
-            [threadId]: [...messages.slice(0, -1), updatedMessage],
+            [chunkThreadId]: [...messages.slice(0, -1), updatedMessage],
           },
         }));
       } else {
@@ -188,7 +224,7 @@ function handleWebSocketMessage(
           status: chunk.done ? 'connected' : 'streaming',
           messageCache: {
             ...s.messageCache,
-            [threadId]: [...messages, newMessage],
+            [chunkThreadId]: [...messages, newMessage],
           },
         }));
       }
@@ -286,9 +322,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
   connect: async () => {
     const state = get();
 
-    // Prevent duplicate connection attempts
-    if (state.status === 'connecting') {
-      console.log('Connection already in progress, skipping');
+    // Get WebSocket URL from API service. The auth token is sent as an
+    // Authorization header (see WebSocketManager) rather than a URL query
+    // param, so it doesn't leak into logs/proxies.
+    const wsUrl = apiService.getWebSocketUrl('/ws');
+    const accessToken = useAuthStore.getState().session?.access_token;
+    const headers = accessToken
+      ? { Authorization: `Bearer ${accessToken}` }
+      : undefined;
+    const connectionKey = `${wsUrl}|${accessToken ?? ''}`;
+
+    // Idempotent: a socket that is up, or on its way up, to the same target
+    // is kept. Recreating it would cut off a reply that is streaming.
+    if (
+      state.wsManager &&
+      connectionKey === activeConnectionKey &&
+      LIVE_SOCKET_STATES.has(state.wsManager.getState())
+    ) {
       return;
     }
 
@@ -296,17 +346,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (state.wsManager) {
       state.wsManager.destroy();
     }
+    activeConnectionKey = connectionKey;
 
     set({ status: 'connecting' });
-
-    // Get WebSocket URL from API service. The auth token is sent as an
-    // Authorization header (see WebSocketManager) rather than a URL query
-    // param, so it doesn't leak into logs/proxies.
-    const wsUrl = apiService.getWebSocketUrl('/ws');
-    const session = useAuthStore.getState().session;
-    const headers = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : undefined;
     console.log('Connecting to chat WebSocket:', wsUrl);
 
     // Create WebSocket manager
@@ -340,15 +382,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
       onOpen: sendToolManifest,
       onStateChange: (newState: ConnectionState) => {
         const currentState = get();
-        // Don't override loading/streaming status when WebSocket events occur
-        if (
-          newState === 'connected' &&
-          (currentState.status === 'loading' || currentState.status === 'streaming')
-        ) {
-          set({ error: null, statusMessage: null });
-        } else {
-          set({ status: newState, error: null, statusMessage: null });
+        const wasGenerating =
+          currentState.status === 'loading' || currentState.status === 'streaming';
+
+        if (newState === 'connected') {
+          // A reconnect clears socket errors, but a reply that was cut off
+          // stays reported until the next send.
+          const error = currentState.error === STREAM_LOST_ERROR ? STREAM_LOST_ERROR : null;
+          if (wasGenerating) {
+            // Don't override loading/streaming status when the socket opens
+            set({ error, statusMessage: null });
+          } else {
+            set({ status: newState, error, statusMessage: null });
+          }
+          return;
         }
+
+        if (wasGenerating && LOST_SOCKET_STATES.has(newState)) {
+          // The reply in flight went with the socket. Say so instead of
+          // spinning until the safety timeout.
+          clearSafetyTimeout();
+          set({ status: newState, error: STREAM_LOST_ERROR, statusMessage: null });
+          return;
+        }
+
+        // Keep any error: a socket that gives up reports why through onError.
+        set({ status: newState, statusMessage: null });
       },
       onMessage: (data: WebSocketMessageData) => {
         handleWebSocketMessage(data, set, get);
@@ -380,11 +439,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       wsManager.disconnect();
       wsManager.destroy();
     }
+    activeConnectionKey = null;
 
-    if (safetyTimeoutId !== null) {
-      clearTimeout(safetyTimeoutId);
-      safetyTimeoutId = null;
-    }
+    clearSafetyTimeout();
 
     set({
       wsManager: null,
@@ -401,7 +458,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     if (!wsManager || !wsManager.isConnected()) {
       set({ error: 'Not connected to chat service' });
-      return;
+      return false;
     }
 
     // Ensure we have a thread
@@ -469,10 +526,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Cancel any prior safety timeout — otherwise rapid sends accumulate
     // timers and one can fire mid-stream of a later message, clobbering
     // the live `status: "loading"` flag.
-    if (safetyTimeoutId !== null) {
-      clearTimeout(safetyTimeoutId);
-      safetyTimeoutId = null;
-    }
+    clearSafetyTimeout();
 
     try {
       wsManager.send(messageToSend);
@@ -491,12 +545,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
           });
         }
       }, 5 * 60 * 1000);
+      return true;
     } catch (error) {
       console.error('Failed to send message:', error);
-      set({
+      // The composer keeps the draft for a retry, so drop the optimistic copy
+      // rather than show a message the server never got.
+      set((state) => ({
+        status: wsManager.getState(),
         error: error instanceof Error ? error.message : 'Failed to send message',
-      });
-      throw error;
+        messageCache: {
+          ...state.messageCache,
+          [threadId]: (state.messageCache[threadId] ?? []).filter(
+            (m) => m.id !== messageForCache.id
+          ),
+        },
+      }));
+      return false;
     }
   },
 
@@ -511,10 +575,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     // Cancel the safety timeout so it doesn't fire after the user stops.
-    if (safetyTimeoutId !== null) {
-      clearTimeout(safetyTimeoutId);
-      safetyTimeoutId = null;
-    }
+    clearSafetyTimeout();
 
     if (!wsManager || !wsManager.isConnected() || !currentThreadId) {
       console.log('Cannot stop: not connected or no thread');

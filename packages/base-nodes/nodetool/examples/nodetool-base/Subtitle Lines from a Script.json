@@ -61,9 +61,9 @@
           "name": "model",
           "value": {
             "type": "language_model",
-            "provider": "anthropic",
-            "id": "claude-sonnet-5",
-            "name": "Claude Sonnet 5",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -94,7 +94,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You prepare subtitle text from a transcript. Break into lines of at most 42 characters, at most two lines per caption, split at natural phrase boundaries. Number each caption.",
+          "system": "You prepare subtitle text from a script. Break into lines of at most 42 characters, at most two lines per caption, split at natural phrase boundaries. Number each caption.",
           "prompt": "",
           "tools": [],
           "image": [],

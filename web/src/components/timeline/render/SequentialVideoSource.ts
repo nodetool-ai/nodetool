@@ -7,6 +7,12 @@ import {
 } from "mediabunny";
 
 const MAX_SEQUENTIAL_GAP_SEC = 1;
+/**
+ * Slack when matching a requested time to a container timestamp. Frame times
+ * are computed in floating point and can land an ulp below the timestamp of
+ * the frame they mean, which would repeat the previous frame and then skip.
+ */
+const TIMESTAMP_EPSILON_SEC = 0.000001;
 
 function abortError(): DOMException {
   return new DOMException("Video decode aborted", "AbortError");
@@ -81,7 +87,7 @@ export class SequentialVideoSource {
     let sample: VideoSample | null = null;
     try {
       if (!this.iterator) {
-        sample = await this.sink.getSample(timeSec);
+        sample = await this.sink.getSample(timeSec + TIMESTAMP_EPSILON_SEC);
         if (!sample) throw new Error(`No decoded frame at ${timeSec}s`);
         this.iterator = this.sink.samples(sample.timestamp + Math.max(sample.duration / 2, 0.000001));
       } else {
@@ -89,7 +95,7 @@ export class SequentialVideoSource {
           const next = await this.iterator.next();
           this.nextSample = next.done ? null : next.value;
         }
-        while (this.nextSample && this.nextSample.timestamp <= timeSec) {
+        while (this.nextSample && this.nextSample.timestamp <= timeSec + TIMESTAMP_EPSILON_SEC) {
           sample?.close();
           sample = this.nextSample;
           const next = await this.iterator.next();

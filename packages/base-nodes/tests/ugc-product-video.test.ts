@@ -249,7 +249,7 @@ describe("UGC Product Video recipe", () => {
     expect(timelineCode).not.toContain("caption-pop-");
   });
 
-  it("uses Seedance 2.5 reference-to-video on AtlasCloud", () => {
+  it("ships an unselected reference-to-video model", () => {
     const workflow = read<{
       graph: {
         nodes: Array<{
@@ -283,8 +283,8 @@ describe("UGC Product Video recipe", () => {
       aspect_ratio: "9:16",
       resolution: "720p",
       model: {
-        provider: "atlascloud",
-        id: "bytedance/seedance-2.5/reference-to-video",
+        provider: "",
+        id: "",
         supported_tasks: ["reference_to_video"]
       }
     });

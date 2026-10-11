@@ -19,7 +19,8 @@ import {
   drawPencilStroke as drawPencilStrokeUtil,
   type StrokeStampState
 } from "../drawingUtils";
-import type { DirtyRectTracker } from "../drawingUtils";
+import type { DirtyRectBox } from "../rendering/canvasUtils";
+import { StrokeDirtyRegion } from "./StrokeDirtyRegion";
 import { StrokeAssist } from "./StrokeAssist";
 
 export class PencilEngine implements PaintEngine {
@@ -33,7 +34,7 @@ export class PencilEngine implements PaintEngine {
   readonly dabOnDown = true;
 
   private settings: PencilSettings;
-  private dirtyRect: DirtyRectTracker = { current: null };
+  private dirty = new StrokeDirtyRegion();
   private stampStates: Map<number, StrokeStampState> = new Map();
   private assist = new StrokeAssist();
 
@@ -46,7 +47,7 @@ export class PencilEngine implements PaintEngine {
   }
 
   beginStroke(): void {
-    this.dirtyRect = { current: null };
+    this.dirty.reset();
     this.stampStates.clear();
     this.assist.reset();
   }
@@ -82,24 +83,25 @@ export class PencilEngine implements PaintEngine {
       stampState = { hasStamped: false, distanceToNextDab: 0 };
       this.stampStates.set(branchIdx, stampState);
     }
-    drawPencilStrokeUtil(
-      snappedFrom,
-      snappedTo,
-      this.settings,
-      ctx,
-      pressure,
-      this.dirtyRect,
-      stampState
+    this.dirty.track((tracker) =>
+      drawPencilStrokeUtil(
+        snappedFrom,
+        snappedTo,
+        this.settings,
+        ctx,
+        pressure,
+        tracker,
+        stampState
+      )
     );
   }
 
-  getDirtyRect(): {
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-  } | null {
-    return this.dirtyRect.current ?? null;
+  getDirtyRect(): DirtyRectBox | null {
+    return this.dirty.strokeRect;
+  }
+
+  takeFrameDirtyRect(): DirtyRectBox | null {
+    return this.dirty.takeFrameRect();
   }
 
   getAssistMode(): EngineAssistMode {

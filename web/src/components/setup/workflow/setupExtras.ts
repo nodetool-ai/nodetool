@@ -1,6 +1,6 @@
 /**
- * Two things the flow keeps on the workflow beyond the fields the protocol
- * schema names, both because losing them changes what gets built or what it
+ * Three things the flow keeps on the workflow beyond the fields the protocol
+ * schema names, each because losing it changes what gets built or what it
  * costs (PRD § 11.5):
  *
  * - **`plan_source`** — the brief and category the stored plan was written
@@ -9,8 +9,10 @@
  * - **`role_models`** — the model picked per model role on step 3. In
  *   component state it survived a scroll and not a remount, so a reload could
  *   resume the right stage and build on a different model (F17).
+ * - **`role_voices`** — the voice picked for a voice model on step 3, which
+ *   the model's tile id does not carry.
  *
- * `settings.setup` is a passthrough record, so both travel with the workflow
+ * `settings.setup` is a passthrough record, so all three travel with the workflow
  * and through `writeWorkflowSetup` untouched. They are parsed here rather than
  * read raw: what comes back off a saved workflow is whatever the last client
  * wrote, and a malformed value has to read as "not chosen", never as a value.
@@ -30,8 +32,13 @@ export type WorkflowPlanSource = z.infer<typeof planSourceSchema>;
 export const roleModelsSchema = z.record(z.string(), z.string());
 export type WorkflowRoleModels = z.infer<typeof roleModelsSchema>;
 
+/** Role → the voice picked for that role's model, for a voice model. */
+export const roleVoicesSchema = z.record(z.string(), z.string());
+export type WorkflowRoleVoices = z.infer<typeof roleVoicesSchema>;
+
 export const PLAN_SOURCE_KEY = "plan_source";
 export const ROLE_MODELS_KEY = "role_models";
+export const ROLE_VOICES_KEY = "role_voices";
 
 export const readPlanSource = (
   setup: WorkflowSetup | null
@@ -44,6 +51,13 @@ export const readRoleModels = (
   setup: WorkflowSetup | null
 ): WorkflowRoleModels => {
   const parsed = roleModelsSchema.safeParse(setup?.[ROLE_MODELS_KEY]);
+  return parsed.success ? parsed.data : {};
+};
+
+export const readRoleVoices = (
+  setup: WorkflowSetup | null
+): WorkflowRoleVoices => {
+  const parsed = roleVoicesSchema.safeParse(setup?.[ROLE_VOICES_KEY]);
   return parsed.success ? parsed.data : {};
 };
 

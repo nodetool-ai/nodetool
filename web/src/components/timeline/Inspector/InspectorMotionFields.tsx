@@ -60,6 +60,8 @@ export const TextCommitField: React.FC<TextCommitFieldProps> = memo(
         onBlur={() => {
           setFocused(false);
           if (draft !== value) onCommit(draft);
+          // Show what the store kept: a rejected draft must not stay on screen.
+          setDraft(value);
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter") {

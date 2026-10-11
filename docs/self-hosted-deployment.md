@@ -338,8 +338,9 @@ nodetool deploy logs local --tail 200
 A deployment that serves more than one person needs API users. Four
 `nodetool deploy` subcommands manage them over the running server's admin API,
 so the deployment must already be applied and reachable. The caller must be an
-admin: user `1`, or an id listed in `ADMIN_USER_IDS`. Records live in the file
-named by `USERS_FILE`.
+admin: user `1`, an id listed in `ADMIN_USER_IDS`, or an API user created with
+`--role admin`. Records live in the file named by `USERS_FILE`, which the image
+sets to `/workspace/users.json` so they survive a redeploy.
 
 Every one of them needs an admin bearer token. It comes from `--token`, else
 from `NODETOOL_ADMIN_TOKEN`, else from an interactive prompt — with no TTY and
@@ -349,8 +350,14 @@ neither set, the command exits with
 The deployment's `server_auth_token` (in `deployment.yaml`) is that admin
 token. `apply` passes it to the container as `SERVER_AUTH_TOKEN`, and a
 Local-mode server accepts it as `Authorization: Bearer <token>` for user `1`.
-A Supabase-mode server ignores it. The tokens `users-add` prints are stored in
-`USERS_FILE`, but the server does not accept them as credentials.
+A Supabase-mode server ignores it.
+
+A Local-mode server accepts each token `users-add` prints as
+`Authorization: Bearer <token>` for that user's own id, so each API user has
+separate workflows and assets. API users exist only in Local mode: a
+Supabase-mode server refuses `users-add` and `users-reset-token`, because the
+token would never authenticate there. Supabase users sign in, or mint an
+access token in the app.
 
 - `users-add <deployment> <username>` — create a user and print its token.
   `--role <admin|user>` defaults to `user`; any other value is refused. The

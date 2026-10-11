@@ -396,7 +396,8 @@ export const autosaveOutput = z.object({
   version: versionInfo.nullable(),
   message: z.string(),
   skipped: z.boolean(),
-  updated_at: z.string().nullable()
+  updated_at: z.string().nullable(),
+  etag: z.string().nullable().optional()
 });
 export type AutosaveOutput = z.infer<typeof autosaveOutput>;
 

@@ -164,6 +164,18 @@ describe("affine geometry helpers", () => {
     expect(e).toEqual({ x: -45, y: -35, width: 200, height: 160 });
   });
 
+  it("computeTransformedExtents keeps a positive size for a flipped layer", () => {
+    const t = makeAffineTransform({ x: 0, y: 0, scaleX: -1, scaleY: -1 });
+    const e = computeTransformedExtents(t, bounds);
+    // A flip mirrors around the center, so the box is the raster's own box.
+    expect(e).toEqual({
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height
+    });
+  });
+
   it("computeTransformedCorners for 90° rotation", () => {
     const t = makeAffineTransform({ x: 0, y: 0, rotation: Math.PI / 2 });
     const small: LayerContentBounds = { x: 0, y: 0, width: 10, height: 10 };

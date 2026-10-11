@@ -7,12 +7,11 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { DEFAULT_NATIVE_GAME_TEMPLATE } from "@nodetool-ai/protocol";
 import {
+  writeGameSetup,
   writeWorkflowSetup
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-
-import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
-import { newDocumentId } from "../../lib/newDocumentId";
 
 import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
 import { useCreateScript } from "../../hooks/script/useScripts";
@@ -42,8 +41,11 @@ export interface GuidedFlowStarter {
   title: string;
   description: string;
   icon: ReactNode;
-  /** Start in the selected project, or the supplied project id. */
-  start: (projectId?: string) => Promise<void>;
+  /**
+   * Start in the selected project, or the supplied project id. Resolves to
+   * whether the flow opened; a failure has already been shown as a toast.
+   */
+  start: (projectId?: string) => Promise<boolean>;
 }
 
 /**
@@ -86,11 +88,12 @@ export const useGuidedFlowStarters = (
   const createWorkflow = useWorkflowManager((state) => state.create);
 
   const runStart = useCallback(
-    async (id: EntryFlowId, start: () => Promise<void>) => {
+    async (id: EntryFlowId, start: () => Promise<void>): Promise<boolean> => {
       setStarting(id);
       try {
         await start();
         onStarted?.();
+        return true;
       } catch (error) {
         addNotification({
           type: "error",
@@ -99,6 +102,7 @@ export const useGuidedFlowStarters = (
             error instanceof Error ? error.message : "unknown error"
           }`
         });
+        return false;
       } finally {
         setStarting(null);
       }
@@ -227,25 +231,32 @@ export const useGuidedFlowStarters = (
     [runStart, createWorkflow, openTab]
   );
 
+  // The Game flow's document is a workflow row carrying `settings.game`; the
+  // workflow tab hosts the flow until the build opens the game.
   const startGame = useCallback(
     (projectIdOverride?: string) =>
       runStart("game", async () => {
         const projectId = projectIdOverride ?? creationProjectId();
-        const created = await trpcClient.games.create.mutate({
+        const created = await createWorkflow({
           name: "Untitled game",
-          projectId,
-          dimension: "2d",
-          document: createTopDownRoomGame(newDocumentId())
+          description: "",
+          tags: [],
+          access: "private",
+          project_id: projectId,
+          settings: writeGameSetup(
+            {},
+            { stage: "idea", brief: "", template: DEFAULT_NATIVE_GAME_TEMPLATE }
+          )
         });
         openTab({
-          type: "game",
-          ref: created.game.id,
+          type: "workflow",
+          ref: created.id,
           mode: "edit",
-          title: created.game.name || "Untitled game",
-          projectId: created.game.projectId
+          title: created.name || "Untitled game",
+          projectId
         });
       }),
-    [runStart, openTab]
+    [runStart, createWorkflow, openTab]
   );
 
   // Entities have no document tab — the library is their surface — so the
@@ -253,7 +264,7 @@ export const useGuidedFlowStarters = (
   const startEntity = useCallback(
     () =>
       runStart("entity", async () => {
-        useEntityLibraryStore.getState().setCreating(true);
+        useEntityLibraryStore.getState().requestCreate();
         openPageTab("entities");
       }),
     [runStart]
@@ -262,7 +273,7 @@ export const useGuidedFlowStarters = (
   const starters = useMemo<readonly GuidedFlowStarter[]>(() => {
     const startById: Record<
       EntryFlowId,
-      (projectId?: string) => Promise<void>
+      (projectId?: string) => Promise<boolean>
     > = {
       entity: startEntity,
       storyboard: startStoryboard,

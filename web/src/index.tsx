@@ -79,6 +79,7 @@ const InstallRuntimePackageDialog = React.lazy(
 import FirstRunProviderSignIn from "./components/provider_onboarding/FirstRunProviderSignIn";
 import HelpDialogHost from "./components/content/Help/HelpDialogHost";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
+import CommandMenuHost from "./components/menus/CommandMenuHost";
 import StaleDeployDialog from "./components/dialogs/StaleDeployDialog";
 import ReportBugButton from "./components/support/ReportBugButton";
 import { installConsoleCapture } from "./utils/consoleCapture";
@@ -802,6 +803,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <ProviderSignInDialog />
                       <InstallRuntimePackageDialog />
                       <FirstRunProviderSignIn />
+                      <CommandMenuHost />
                     </>
                   )}
                   {/* Outside the router gate: a boot failure is exactly when

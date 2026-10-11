@@ -44,6 +44,7 @@ import {
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import HandleColumn from "../../node/HandleColumn";
+import NodeModelChips from "../../node/NodeModelChips";
 import NodeProgress from "../../node/NodeProgress";
 import FormatListNumberedRoundedIcon from "@mui/icons-material/FormatListNumberedRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
@@ -223,6 +224,7 @@ const styles = (theme: Theme) =>
 
 const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
   id,
+  nodeType,
   nodeMetadata,
   data,
   workflowId,
@@ -342,6 +344,12 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
         </div>
       )}
 
+      <NodeModelChips
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+      />
       {!isOutputNode && (
         <div className="outputs-row">
           <NodeOutputs id={id} outputs={nodeMetadata.outputs} />

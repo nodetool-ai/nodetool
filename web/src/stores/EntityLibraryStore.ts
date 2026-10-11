@@ -1,18 +1,21 @@
 // EntityLibraryStore.ts
 // -----------------------------------------------------------------
-// Whether the Entities page shows its guided "Add entity" flow or the
-// library grid. The page is a workspace tab, so a caller that wants the
-// flow (e.g. `+ New → Entity`) sets it before opening the tab.
+// A one-shot request for the Entities page to open its guided "Add entity"
+// flow. The page is a workspace tab, so a caller that wants the flow
+// (e.g. `+ New → Entity`) requests it before opening the tab. The page
+// consumes the request, so a later visit lands on the library grid.
 // -----------------------------------------------------------------
 
 import { create } from "zustand";
 
 interface EntityLibraryState {
-  creating: boolean;
-  setCreating: (creating: boolean) => void;
+  createRequested: boolean;
+  requestCreate: () => void;
+  clearCreateRequest: () => void;
 }
 
 export const useEntityLibraryStore = create<EntityLibraryState>((set) => ({
-  creating: false,
-  setCreating: (creating) => set({ creating })
+  createRequested: false,
+  requestCreate: () => set({ createRequested: true }),
+  clearCreateRequest: () => set({ createRequested: false })
 }));

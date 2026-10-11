@@ -20,7 +20,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# AI Spokesperson\n\nRe-voices a presenter clip with a new script and lip-syncs the face to the new words. Use it to update a spoken line without reshooting.\n\n**How it works:** \"3 Voice the script\" reads \"2 New script\" aloud at speed 1.0 with Inworld Realtime TTS on Replicate. \"Even out volume\" normalizes the speech, then \"Soften the start\" (0.01 s fade in) and \"Soften the ending\" (0.03 s fade out) remove clicks at the edges. \"4 Lip-sync to the new audio\" matches \"1 Presenter clip\" to that track with Sync Lipsync v2 Pro on fal, and \"5 Re-voiced clip\" shows the result. Both model steps need provider keys and are billed per run.\n\n**Try this:** Change \"2 New script\" to a longer line, for example add a second sentence, and watch the re-voiced clip's mouth movements follow the new words."
+          "comment": "# AI Spokesperson\n\nRe-voices a presenter clip with a new script and lip-syncs the face to the new words. Use it to update a spoken line without reshooting.\n\n**How it works:** \"3 Voice the script\" reads \"2 New script\" aloud at speed 1.0. \"Even out volume\" normalizes the speech, then \"Soften the start\" (0.01 s fade in) and \"Soften the ending\" (0.03 s fade out) remove clicks at the edges. \"4 Lip-sync to the new audio\" matches \"1 Presenter clip\" to that track, and \"5 Re-voiced clip\" shows the result. Both model steps use your default model for their type, or the one you pick on the node, and are billed per run.\n\n**Try this:** Change \"2 New script\" to a longer line, for example add a second sentence, and watch the re-voiced clip's mouth movements follow the new words."
         },
         "ui_properties": {
           "position": {
@@ -86,9 +86,9 @@
         "data": {
           "model": {
             "type": "tts_model",
-            "provider": "replicate",
-            "id": "inworld/realtime-tts-1.5-max",
-            "name": "Inworld Realtime TTS 1.5 Max",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "voices": []
           },
@@ -113,9 +113,9 @@
         "data": {
           "model": {
             "type": "video_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/sync-lipsync/v2/pro",
-            "name": "Sync Lipsync v2 Pro",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           }

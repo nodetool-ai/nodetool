@@ -60,7 +60,7 @@ jest.mock("../../../hooks/useDocumentConflicts", () => ({ useDocumentConflicts: 
 jest.mock("../useGamePlaySession", () => ({
   ...jest.requireActual<typeof import("../useGamePlaySession")>("../useGamePlaySession"),
   useGamePlaySession: () => ({
-    canvasRef: { current: null }, keysRef: { current: new Set() }, newlyPressedRef: { current: new Set() },
+    canvasRef: { current: null }, inputRef: { current: { handlesKey: () => false, keyDown: jest.fn(), keyUp: jest.fn(), release: jest.fn() } },
     playing: false, playDocument: mockPlayDocument, playState: { tick: 11, score: 0, won: false, sceneId: mockDocument.entrySceneId },
     backend: "Test", error: null, setError: jest.fn(), scriptError: mockHostFailure, setScriptError: jest.fn(), frame: null,
     onViewportAspect: jest.fn(), onCamera: jest.fn(), resetCamera: jest.fn(), step: jest.fn(), beginPlay: jest.fn(), stop: jest.fn(),
@@ -82,6 +82,7 @@ jest.mock("../panels/inspector/GameRuntimeInspector", () => ({ __esModule: true,
 jest.mock("../panels/authoring/GameAuthoringPreview", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/changes/GameChanges", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/agent/GameAgentPanel", () => ({ __esModule: true, default: () => null }));
+jest.mock("../panels/assets/GameAssetBrowser", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/scripts/GameScriptPane", () => ({
   __esModule: true, default: ({ error, onReplay }: ComponentProps<typeof GameScriptPane>) => <>
     <p>{error?.message}</p>
@@ -89,8 +90,13 @@ jest.mock("../panels/scripts/GameScriptPane", () => ({
   </>
 }));
 
+const saveServerDraft = async (_request: { id: string; baseUpdatedAt: string; ops: readonly unknown[] }) => mockServer;
+
 beforeEach(() => {
   jest.clearAllMocks();
+  // One test holds a save open with mockImplementationOnce. Reset so an unused one-off cannot reach the next test.
+  mockSave.mockReset();
+  mockSave.mockImplementation(saveServerDraft);
   // The editor shares one persisted layout store per user, so each case starts from the same docking layout.
   getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().selectLayout("Default");
   mockViewportProps = undefined;
@@ -273,7 +279,9 @@ it.each(["active play", "independent diagnostic"])("offers host replay only for 
   else { mockDiagnosticFailure = mockFailure; }
   render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
   await user.click(screen.getByRole("button", { name: "Edit player script" }));
-  expect(screen.getByText(mockFailure.message)).toBeInTheDocument();
+  const shown = screen.getAllByText(mockFailure.message);
+  expect(shown.filter((element) => !element.closest("[role='log']")).length).toBeGreaterThan(0);
+  expect(within(screen.getByRole("list", { name: "Console lines", hidden: true })).getAllByRole("listitem", { hidden: true }).at(-1)).toHaveTextContent(mockFailure.message);
   if (provenance === "independent diagnostic") {
     expect(screen.queryByRole("button", { name: "Replay displayed error" })).not.toBeInTheDocument();
     expect(mockReplay).not.toHaveBeenCalled();
@@ -334,6 +342,9 @@ it("keeps hierarchy navigation keys from editing the selected entity", async () 
 it("keeps inspector-button undo and delete outside the editor keyboard scope", async () => {
   const user = userEvent.setup();
   mockPlayDocument = null;
+  // Autosave may start while the test types. Holding the save open keeps the server copy from replacing the local edit,
+  // so the assertions below depend only on the keyboard scope and not on how fast the editor renders.
+  mockSave.mockImplementationOnce(() => new Promise(() => undefined));
   const store = getGameDraftStore(mockDocument.id);
   store.getState().select("player");
   store.getState().apply([{ op: "update_entity", scene_id: mockDocument.entrySceneId, entity_id: "player", set: { transform2d: { x: 1 } } }]);

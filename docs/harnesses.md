@@ -42,7 +42,7 @@ Chat flags:
 ```
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, meta, alibaba, together,
-                         openrouter, requesty, opper, huggingface, replicate, kie,
+                         openrouter, requesty, opper, api_route, huggingface, replicate, kie,
                          aki, ollama, lmstudio, claude_agent_sdk, codex, gmi, mlx,
                          node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
@@ -1061,6 +1061,11 @@ those keyframes into clips, **`revise_storyboard_clip`** revises one take, and
 **`assemble_storyboard_timeline`** lays the rendered clips into a saved timeline
 sequence — which `validate_timeline` then checks. **`list_storyboards`** and
 **`get_storyboard`** find the board and its shot ids.
+**`get_storyboard_one_take`** reads a board's one-take prompt with the block
+compiled from the board and its `[Image N]` references, and
+**`update_storyboard_one_take`** writes the prompt, the render settings
+(`duration_seconds`, `aspect_ratio`, `resolution`, `model`), and each shot's
+`end_state` and `sound`.
 
 `edit_storyboard`'s `set_board` operation accepts screenplay-level `narration`
 and `music_prompt` strings. It preserves the screenplay's other fields and
@@ -1297,6 +1302,12 @@ asset slots. `SlotPrompt` prepares a request for one slot. `SpriteSheet`,
 the project workspace. Staging does not alter a published game revision.
 `install_native_game_asset` installs a selected candidate binding into the draft
 with a draft timestamp check. Existing scene and behavior edits remain in place.
+`browse_native_game_assets` lists the draft's assets with where each is used,
+its prefabs and scenes, the staged candidates, and each slot's generation
+prompt. With `digest` and `slot` it returns an installable binding for one
+candidate. The editor's Assets panel calls the same catalog and filter. Tests:
+`packages/agents/tests/capabilities-game-asset-browser.test.ts` and
+`packages/websocket/tests/trpc-game-asset-browser.test.ts`.
 
 Agents can build a complete document with `@nodetool-ai/sandbox-game` and save
 it through `edit_native_game`'s atomic `set_document` op. The builder supplies
@@ -1329,9 +1340,18 @@ diagnostic; external-engine scene behavior requires manual reconstruction.
 
 ### Game flow (guided design and asset graph)
 
-The Game entry creates a playable native game. `design_game` writes a reviewed
-game brief to workflow settings. `build_game` creates or selects a game in the
-workflow's project and stages a generation graph. The pure design, prompt, and
+The Game entry opens a guided flow: idea, design, review, look, then build.
+Its document is a workflow row carrying `settings.game`, the same record the
+headless capabilities use. `design_game` writes a reviewed game design to
+workflow settings, and `build_game` creates or selects a game in the
+workflow's project and stages a generation graph. The web flow
+(`web/src/components/setup/game/`) designs with the same prompt and parser,
+then builds without a graph: it creates the template's game, records its id on
+the workflow, and generates each image slot through `games.generateAsset` with
+the chosen style and image model. Sound slots keep the template's built-in
+effects. The built-in templates and their manifests live in
+`packages/protocol/src/native-game-templates.ts`, and the inspiration chips for
+them in `NATIVE_GAME_INSPIRATION_CHIPS`. The pure design, prompt, and
 graph placement contracts live in `packages/protocol/src/game-design.ts`,
 `game-flow-prompt.ts`, and `game-graph.ts`. Re-running the graph produces asset
 candidates; it does not overwrite a published game.
@@ -1896,6 +1916,35 @@ npm run dev:nodetool -- affected packages/cli/src/x.ts # explicit files
 npm run dev:nodetool -- affected --json
 ```
 
+### npm run mutate (Mutation Testing for TypeScript)
+
+Mutates one TypeScript site at a time (`<` to `<=`, `&&` to `||`, `true` to
+`false`, delete `!`, `?.` to `.`, …), runs the owning package's tests, and
+reports each mutant the tests fail to kill. A port of
+[unclebob/mutator](https://github.com/unclebob/mutator). Use it to check that
+a new test actually pins the behavior it claims to.
+
+```bash
+npm run mutate -- packages/kernel/src/graph.ts           # one file
+npm run mutate -- --base origin/main packages/kernel/src # functions changed on this branch
+npm run mutate -- --scan packages/kernel/src             # list sites, run nothing
+npm run test:mutation --workspace=packages/kernel        # the package's configured run
+node scripts/mutation-score.mjs --survivors kernel       # survivors from the snapshots
+```
+
+- **Tests:** a Vitest package runs `vitest related --run` for the mutated
+  file. A mutant is killed when that fails or exceeds ten times the baseline
+  duration.
+- **Coverage:** sites on lines the package's V8 coverage run never hits are
+  reported as uncovered and skipped. `--no-coverage` runs them too.
+- **Snapshots:** `.metrics/mutate/<namespace>.json` records each function's
+  hash and each outcome, so a rerun only retries survivors and functions whose
+  text changed.
+- **Isolation:** mutants run in overlays under `target/mutation-workers`, one
+  per core, each holding a copy of the package. The checkout is never edited.
+- **Exit codes:** `0` all killed, `2` baseline failed, `3` a mutant survived.
+  Details: [packages/mutator/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/mutator/README.md).
+
 ### npm run probe:providers (Provider Contract Probes)
 
 Asks OpenAI, Gemini, fal, and KIE for one real response each and decodes it with
@@ -1925,6 +1974,37 @@ messages, never a body — no credential, prompt, request id, or signed URL
 survives. Manifest:
 `packages/runtime/src/providers/contract/probe-manifest.ts`. Details:
 [docs/provider-contract-probes.md](provider-contract-probes.md).
+
+### npm run crap (CRAP Scores for TypeScript)
+
+Scores each TypeScript function with `CRAP = CC² × (1 − coverage)³ + CC`, a
+port of [crapper](https://github.com/unclebob/crapper)'s TypeScript rules.
+1–5 is low risk, 5–30 is worth a look, and above 30 the function is complex
+and under-tested. Use it to find which function to split or test first.
+
+```bash
+npm run crap -- --no-coverage --top 20 packages/kernel  # complexity only
+npm run crap -- --changed --run-coverage                # working-tree changes, with tests
+npm run crap -- --base origin/main --run-coverage --threshold 30   # CI: exit 2 above 30
+npm run crap -- --lcov packages/kernel/coverage/lcov.info --json packages/kernel
+```
+
+- **Complexity** is 1 plus each `if`, loop, `catch`, `?:`, `case`/`default`,
+  `&&`, `||`, `??`, logical assignment, and `?.` token.
+- **Entries** are functions not nested in another entry: top-level functions,
+  arrow functions, values a call wraps (`const Card = memo(() => …)` is
+  `Card`), top-level object-literal members, and every class member. A route
+  callback (`app.get("/users", handler)`) is its own entry, `GET /users`.
+  Other nested callbacks count toward their enclosing function, so a store
+  built inside `create((set) => …)` is one entry.
+- **Coverage** is LCOV. A function with `BRDA` branch records is scored by
+  branches, otherwise by line hits. A function the report leaves out scores
+  0%. By default the tool reads `coverage/lcov.info` in each workspace that
+  owns an analyzed file. `--run-coverage` first runs that workspace's related
+  tests (`vitest related` or `jest --findRelatedTests`) with LCOV output.
+- Test files, declaration files, and `tests/`, `__tests__/`, `dist/`, and
+  `node_modules/` are skipped. Rules are pinned by
+  `scripts/__tests__/crap-score.test.mjs`.
 
 ### nodetool harness (Registry, Coverage Audit, and the Gate)
 
@@ -2380,9 +2460,25 @@ IO- and CPU-bound work gets its own spans, tagged `nodetool.task.kind` =
 | `subprocess.run` | cpu | `runHostBinary`, the video nodes' ffmpeg/ffprobe, server-side thumbnails and audio extraction |
 | `image.encode_png` / `rasterize_svg` / `extract_region` / `thumbnail` | cpu | Image codec helpers and asset thumbnails |
 | `audio.peaks`, `video.encode_proxy`, `ffmpeg.trim_video_window` | cpu | Waveform peaks, preview proxies, video-edit source windows |
+| `storage.store` / `retrieve` / `delete` / `list` | io | A run's asset storage (`ProcessingContext.storage` and `assetStorage`), tagged with the backend class |
+
+Other activity spans:
+
+| Span | Where |
+|---|---|
+| `provider.<method>` | Every non-chat provider call: image, video, audio, 3D, embeddings and rerank. Carries `gen_ai.system`, `gen_ai.operation.name` and `gen_ai.request.model`, never the prompt |
+| `python.execute` / `python.execute_stream` | A node run in the Python worker, with `node.type` |
+| `ws.command` | Every `/ws` command except `stream_input` frames, with `rpc.method`. Like an API request span, it starts its own trace |
 
 Wrap new IO or CPU work with `withTaskSpan(kind, name, attributes, fn)` from
 `@nodetool-ai/runtime`. It runs `fn` directly when telemetry is off.
+
+Declare a new span name in `SAFE_SPAN_NAMES` and each metadata attribute in
+`SAFE_TRACE_ATTRIBUTES` (`packages/protocol/src/run-trace.ts`). An undeclared
+name or attribute is stored as owner content, so external sinks and retained
+summaries see `content.span` without it.
+`packages/protocol/tests/run-trace-span-names.test.ts` fails when a literal
+span name in the source is undeclared.
 
 Every `llm.chat` / `llm.stream` span carries `gen_ai.usage.input_tokens`,
 `gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, and

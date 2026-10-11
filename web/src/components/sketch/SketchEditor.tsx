@@ -50,15 +50,14 @@ import {
   Fab,
   FlexColumn,
   FlexRow,
+  InspectorSectionTitle,
   MobileBottomSheet,
-  Text,
   Tooltip,
-  SPACING,
   TYPOGRAPHY,
-  Z_INDEX,
-  FONT_SIZE_SANS
+  Z_INDEX
 } from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
+import { sketchSectionSx } from "./Inspector/sketchSectionSx";
 import type { SketchDocument } from "./types";
 import type { SketchPersistenceSnapshot } from "../../stores/sketch/persistence";
 import {
@@ -116,22 +115,6 @@ export interface SketchEditorHandle {
 
 const PRESET_SWATCH_SIZE = 18;
 
-/** Shared label for inspector section headers. */
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({
-  children
-}) => (
-  <Text
-    size="small"
-    sx={{
-      ...TYPOGRAPHY.sans.label,
-      color: "text.primary",
-      fontSize: FONT_SIZE_SANS.label
-    }}
-  >
-    {children}
-  </Text>
-);
-
 const ConnectedColorPanel = memo(function ConnectedColorPanel() {
   const foregroundColor = useSketchStore((s) => s.foregroundColor) || "#ffffff";
   const handleFgColorChange = useColorIntentRouter();
@@ -168,7 +151,7 @@ const ColorSectionHeader = memo(function ColorSectionHeader() {
       justify="space-between"
       sx={{ width: "100%", pr: 1 }}
     >
-      <SectionTitle>Color</SectionTitle>
+      <InspectorSectionTitle title="Color" />
       <Chip
         compact
         label={colorToHex6(foregroundColor)}
@@ -414,6 +397,7 @@ function SketchEditor({
 
   // Color / Layers / Canvas sections. Shared between the docked desktop
   // column and the mobile bottom sheet so the two stay in lockstep.
+  const sectionSx = sketchSectionSx(theme);
   const rightPanelSections = (
     <>
       <CollapsibleSection
@@ -421,40 +405,17 @@ function SketchEditor({
         title={<ColorSectionHeader />}
         defaultOpen={false}
         compact
-        sx={{
-          flexShrink: 0,
-          fontSize: theme.fontSizeSmall,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          "& > [role='button']": {
-            padding: theme.spacing(SPACING.md, SPACING.lg),
-            "&:focus-visible": {
-              outline: `2px solid ${theme.vars.palette.primary.main}`,
-              outlineOffset: "-2px"
-            }
-          }
-        }}
+        sx={sectionSx}
       >
         <ConnectedColorPanel />
       </CollapsibleSection>
 
       <CollapsibleSection
         className="sketch-editor__layers-section"
-        title={<SectionTitle>Layers</SectionTitle>}
+        title={<InspectorSectionTitle title="Layers" />}
         defaultOpen
         compact
-        sx={{
-          flexShrink: 0,
-          fontSize: theme.fontSizeSmall,
-          minHeight: 0,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          "& > [role='button']": {
-            padding: theme.spacing(SPACING.md, SPACING.lg),
-            "&:focus-visible": {
-              outline: `2px solid ${theme.vars.palette.primary.main}`,
-              outlineOffset: "-2px"
-            }
-          }
-        }}
+        sx={{ ...sectionSx, minHeight: 0 }}
       >
         <ConnectedLayersPanel
           onClearLayer={session.canvasActions.handleClearLayer}
@@ -505,21 +466,10 @@ function SketchEditor({
 
       <CollapsibleSection
         className="sketch-editor__history-section"
-        title={<SectionTitle>History</SectionTitle>}
+        title={<InspectorSectionTitle title="History" />}
         defaultOpen={false}
         compact
-        sx={{
-          flexShrink: 0,
-          fontSize: theme.fontSizeSmall,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          "& > [role='button']": {
-            padding: theme.spacing(SPACING.md, SPACING.lg),
-            "&:focus-visible": {
-              outline: `2px solid ${theme.vars.palette.primary.main}`,
-              outlineOffset: "-2px"
-            }
-          }
-        }}
+        sx={sectionSx}
       >
         <SketchHistoryPanel
           onUndo={session.handleUndo}
@@ -529,21 +479,10 @@ function SketchEditor({
 
       <CollapsibleSection
         className="sketch-editor__canvas-section"
-        title={<SectionTitle>Canvas</SectionTitle>}
+        title={<InspectorSectionTitle title="Canvas" />}
         defaultOpen={false}
         compact
-        sx={{
-          flexShrink: 0,
-          fontSize: theme.fontSizeSmall,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          "& > [role='button']": {
-            padding: theme.spacing(SPACING.md, SPACING.lg),
-            "&:focus-visible": {
-              outline: `2px solid ${theme.vars.palette.primary.main}`,
-              outlineOffset: "-2px"
-            }
-          }
-        }}
+        sx={sectionSx}
       >
         <ConnectedCanvasSizePanel
           onCanvasResize={session.canvasActions.handleCanvasResize}

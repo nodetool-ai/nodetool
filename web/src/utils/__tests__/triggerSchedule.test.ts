@@ -4,57 +4,71 @@ import {
   formatSchedule
 } from "../triggerSchedule";
 
-const NOW = Date.parse("2026-07-26T12:00:00.000Z");
+describe("triggerSchedule", () => {
+  const now = Date.parse("2026-01-01T00:00:00Z");
 
-describe("formatDuration", () => {
-  it("formats seconds, minutes, hours, and days", () => {
-    expect(formatDuration(45)).toBe("45s");
-    expect(formatDuration(300)).toBe("5m");
-    expect(formatDuration(330)).toBe("5m 30s");
-    expect(formatDuration(3600)).toBe("1h");
-    expect(formatDuration(5400)).toBe("1h 30m");
-    expect(formatDuration(172800)).toBe("2d");
-  });
+  describe("formatDuration", () => {
+    it.each([
+      [45, "45s"],
+      [60, "1m"],
+      [90, "1m 30s"],
+      [3600, "1h"],
+      [5400, "1h 30m"],
+      [86400, "1d"],
+      [90000, "1d 1h"]
+    ])("formats %d seconds as %s", (seconds, expected) => {
+      expect(formatDuration(seconds)).toBe(expected);
+    });
 
-  it("returns null for missing, zero, or non-finite input", () => {
-    expect(formatDuration(undefined)).toBeNull();
-    expect(formatDuration(null)).toBeNull();
-    expect(formatDuration(0)).toBeNull();
-    expect(formatDuration(Number.NaN)).toBeNull();
-  });
-});
-
-describe("formatNextFire", () => {
-  it("counts down to a future fire", () => {
-    expect(formatNextFire("2026-07-26T12:04:00.000Z", NOW)).toBe("next in 4m");
-  });
-
-  it("says due now for a timestamp that has passed", () => {
-    expect(formatNextFire("2026-07-26T11:59:00.000Z", NOW)).toBe("due now");
-  });
-
-  it("returns null rather than 'Invalid Date' for missing or junk input", () => {
-    expect(formatNextFire(null, NOW)).toBeNull();
-    expect(formatNextFire(undefined, NOW)).toBeNull();
-    expect(formatNextFire("not-a-date", NOW)).toBeNull();
-  });
-});
-
-describe("formatSchedule", () => {
-  it("combines cadence and countdown", () => {
-    expect(formatSchedule(300, "2026-07-26T12:04:00.000Z", NOW)).toBe(
-      "Runs every 5m — next in 4m"
+    it.each([null, undefined, 0, -5, NaN, Infinity])(
+      "returns null for %s",
+      (value) => {
+        expect(formatDuration(value as number | null | undefined)).toBeNull();
+      }
     );
   });
 
-  it("degrades to whichever field is present", () => {
-    expect(formatSchedule(300, null, NOW)).toBe("Runs every 5m");
-    expect(formatSchedule(null, "2026-07-26T12:04:00.000Z", NOW)).toBe(
-      "Next in 4m"
-    );
+  describe("formatNextFire", () => {
+    it("formats a future timestamp", () => {
+      expect(formatNextFire("2026-01-01T00:04:00Z", now)).toBe("next in 4m");
+    });
+
+    it("rounds sub-second futures up to 1s", () => {
+      expect(formatNextFire(new Date(now + 200).toISOString(), now)).toBe(
+        "next in 1s"
+      );
+    });
+
+    it("reports due now for past timestamps", () => {
+      expect(formatNextFire("2025-12-31T23:00:00Z", now)).toBe("due now");
+    });
+
+    it("returns null for missing or invalid input", () => {
+      expect(formatNextFire(null, now)).toBeNull();
+      expect(formatNextFire("", now)).toBeNull();
+      expect(formatNextFire("not a date", now)).toBeNull();
+    });
   });
 
-  it("returns null when the server sent neither field", () => {
-    expect(formatSchedule(undefined, undefined, NOW)).toBeNull();
+  describe("formatSchedule", () => {
+    it("combines cadence and next fire", () => {
+      expect(formatSchedule(300, "2026-01-01T00:04:00Z", now)).toBe(
+        "Runs every 5m — next in 4m"
+      );
+    });
+
+    it("shows only cadence when next fire is missing", () => {
+      expect(formatSchedule(300, null, now)).toBe("Runs every 5m");
+    });
+
+    it("capitalizes next fire when cadence is missing", () => {
+      expect(formatSchedule(undefined, "2026-01-01T00:04:00Z", now)).toBe(
+        "Next in 4m"
+      );
+    });
+
+    it("returns null when neither field is usable", () => {
+      expect(formatSchedule(null, undefined, now)).toBeNull();
+    });
   });
 });

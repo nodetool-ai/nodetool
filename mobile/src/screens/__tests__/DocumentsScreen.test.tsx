@@ -250,7 +250,7 @@ describe('DocumentsScreen', () => {
     );
     renderScreen();
 
-    expect(screen.getByText('Loading documents...')).toBeTruthy();
+    expect(screen.getByText('Loading documents')).toBeTruthy();
   });
 
   it('banners a load error and retries', () => {

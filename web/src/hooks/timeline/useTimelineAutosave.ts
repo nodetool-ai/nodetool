@@ -124,6 +124,9 @@ export function useTimelineAutosave(
     let lastLive: DocumentSnapshot | null = initial.sequenceId
       ? lastSaved
       : null;
+    // The merge base the store held while the sequence was open, for a
+    // closing save that has to merge after the store was reset.
+    let lastLiveSynced = initial.sequenceId ? initial.syncedDocument : null;
     let finalSnapshot: DocumentSnapshot | null = null;
     const currentSnapshot = (): DocumentSnapshot =>
       finalSnapshot ?? pickSnapshot(store.getState());
@@ -199,6 +202,34 @@ export function useTimelineAutosave(
         },
         recoverCasConflict: async () => {
           const recoveryStart = store.getState();
+          const closing = finalSnapshot;
+          if (
+            closing?.sequenceId &&
+            recoveryStart.sequenceId !== closing.sequenceId
+          ) {
+            // The editor closed and the store moved on, so there is no live
+            // draft to merge into. Merge the closing snapshot against the
+            // server copy instead, and let the controller retry with it.
+            const draft = timelineMergeDocumentOf(closing);
+            const base = lastLiveSynced ?? draft;
+            const sequence = await trpcClient.timeline.get.query({
+              id: closing.sequenceId
+            });
+            const server = timelineMergeDocumentOfSequence(sequence, base);
+            const { doc } = mergeTimelineDocuments(
+              base,
+              draft,
+              server,
+              undefined,
+              { mergeWithoutOps: true }
+            );
+            finalSnapshot = {
+              ...closing,
+              baseUpdatedAt: sequence.updatedAt,
+              ...buildTimelineDocumentPayload(timelineTypedDocumentOf(doc))
+            };
+            return;
+          }
           const sequenceId = recoveryStart.sequenceId;
           if (!sequenceId) {
             return;
@@ -314,7 +345,10 @@ export function useTimelineAutosave(
       lastDocument = snapshot;
       lastSequenceId = state.sequenceId;
       lastBaseUpdatedAt = state.baseUpdatedAt;
-      if (state.sequenceId) lastLive = snapshot;
+      if (state.sequenceId) {
+        lastLive = snapshot;
+        lastLiveSynced = state.syncedDocument;
+      }
       if (!state.sequenceId || !changed) {
         return;
       }

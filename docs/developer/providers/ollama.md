@@ -52,7 +52,7 @@ async getAvailableLanguageModels(): Promise<LanguageModel[]> {
 
 **URL resolution order** (highest priority first):
 
-1. Secret store, key `OLLAMA_API_URL` (set via `nodetool secrets store OLLAMA_API_URL` or Settings → API Keys)
+1. Secret store, key `OLLAMA_API_URL` (set via `nodetool secrets store OLLAMA_API_URL` or Settings → Integrations → Local Model Servers)
 2. Environment variable — `OLLAMA_API_URL`
 3. Registered default — `http://127.0.0.1:11434` (`OLLAMA_DEFAULT_URL` in `defaults.ts`)
 

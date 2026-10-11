@@ -1412,5 +1412,136 @@ describe("useConnectionHandlers", () => {
       expect(mockOpenContextMenu).not.toHaveBeenCalled();
       expect(mockEndConnecting).toHaveBeenCalled();
     });
+
+    it("reports a drop on a handle that isValidConnection rejected", () => {
+      const mockedConnectionStore = asMockStore(useConnectionStore);
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "source",
+        connectNodeId: "sourceNode",
+        connectHandleId: "output",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+      const sourceNode = createMockNode("sourceNode", "test.node");
+      const targetNode = createMockNode("targetNode", "test.node");
+      mockFindNode.mockImplementation((id: string) =>
+        id === "sourceNode" ? sourceNode : id === "targetNode" ? targetNode : undefined
+      );
+      mockGetMetadata.mockReturnValue(mockNodeMetadata);
+
+      const mockEvent = {
+        target: {
+          classList: { contains: jest.fn(() => false) },
+          closest: jest.fn((selector: string) => {
+            if (selector === ".react-flow__node") {
+              return { dataset: { id: "targetNode" } };
+            }
+            if (selector === ".react-flow__handle") {
+              return {};
+            }
+            return null;
+          }),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+      result.current.onConnectEnd(mockEvent as any, {
+        isValid: false,
+        toHandle: { nodeId: "targetNode", id: "image", type: "target" }
+      } as any);
+
+      expect(mockAddNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ content: "Cannot connect these handles" })
+      );
+      expect(mockOnConnect).not.toHaveBeenCalled();
+      expect(mockUpdateNodeData).not.toHaveBeenCalled();
+      expect(mockEndConnecting).toHaveBeenCalled();
+    });
+
+    it("picks a fresh name when an input of that name exists with an empty value", () => {
+      const mockedConnectionStore = asMockStore(useConnectionStore);
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "source",
+        connectNodeId: "sourceNode",
+        connectHandleId: "output",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      const sourceNode = createMockNode("sourceNode", "test.node");
+      sourceNode.data.title = "String";
+      const dynamicNode = createMockNode("dynamicNode", "test.dynamic");
+      // A slot made by an earlier drop: its default value is falsy.
+      dynamicNode.data.dynamic_properties = { String: "" };
+      mockUpdateNodeData.mockImplementation((id: string, update: Partial<NodeData>) => {
+        if (id === "dynamicNode" && update.dynamic_properties) {
+          dynamicNode.data.dynamic_properties = update.dynamic_properties;
+        }
+      });
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "sourceNode") {
+          return sourceNode;
+        }
+        if (id === "dynamicNode") {
+          return dynamicNode;
+        }
+        return undefined;
+      });
+      mockGetMetadata.mockImplementation((type: string) =>
+        type === "test.dynamic" ? mockDynamicNodeMetadata : mockNodeMetadata
+      );
+      mockFindOutputHandle.mockReturnValue({
+        name: "output",
+        type: mockNodeMetadata.outputs[0].type,
+        stream: false,
+        isDynamic: false
+      });
+      mockFindInputHandle.mockReturnValue(undefined);
+
+      const mockEvent = {
+        target: {
+          classList: { contains: jest.fn(() => false) },
+          closest: jest.fn((selector: string) => {
+            if (selector === ".react-flow__node") {
+              return { dataset: { id: "dynamicNode" } };
+            }
+            if (selector === ".dynamic-input-button") {
+              return { className: "dynamic-input-button" };
+            }
+            return null;
+          }),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+      result.current.onConnectEnd(mockEvent as any, {} as any);
+
+      expect(mockUpdateNodeData).toHaveBeenCalledWith(
+        "dynamicNode",
+        expect.objectContaining({
+          dynamic_properties: { String: "", String_1: "" }
+        })
+      );
+      expect(mockOnConnect).toHaveBeenCalledWith(
+        expect.objectContaining({ targetHandle: "String_1" })
+      );
+    });
   });
 });

@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900],
       borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
-      fontFamily: "monospace",
+      fontFamily: "var(--fontFamily2)",
       wordBreak: "break-all",
       color: theme.vars.palette.grey[300]
     }

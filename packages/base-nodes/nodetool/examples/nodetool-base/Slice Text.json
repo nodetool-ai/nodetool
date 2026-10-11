@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Slice Text",
   "tool_name": null,
-  "description": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
+  "description": "Take a fixed range out of a string by index. The blunt way to truncate a caption to a length limit.",
   "tags": [
     "data",
     "utility",
@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Slice Text\n\nTakes a fixed range of characters out of a string by index. Use it to cut a caption to a length limit. It runs locally with no model or key.\n\n**How it works:** \"Text\" holds a sample string of digits and letters. \"Slice\" is a Code node that returns the characters between its start and end inputs, and \"Excerpt\" shows the result.\n\n**Try this:** Set start to 0 and end to 10 on \"Slice\" to keep only the first ten characters, then paste a long caption into \"Text\"."
+          "comment": "# Slice Text\n\nTakes a fixed range of characters out of a string by index. Use it to cut a caption to a length limit. It runs locally with no model or key.\n\n**How it works:** \"Text\" holds a sample string of digits and letters. \"Slice\" is a Code node that returns the characters between its start and end inputs, and \"Excerpt\" shows the result.\n\n**Try this:** Set end to 4 on \"Slice\" to keep only the first four characters, then paste a long caption into \"Text\"."
         },
         "ui_properties": {
           "position": {

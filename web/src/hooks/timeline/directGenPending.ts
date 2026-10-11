@@ -24,7 +24,7 @@
  * samples answers null and the surface says nothing at all.
  */
 
-import { create } from "zustand";
+import { create, type StateCreator } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type {
   CompiledProductionCandidate,
@@ -206,9 +206,56 @@ interface DirectGenPendingState {
   restore: (sequenceId: string) => PendingClipJob[];
 }
 
+const STORAGE_KEY = "nodetool-timeline-directgen-pending";
+
+/** What the last writer, in any tab, left in storage. */
+const readPersisted = (): Partial<DirectGenPendingState> => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "state" in parsed &&
+      typeof parsed.state === "object" &&
+      parsed.state !== null
+    ) {
+      return parsed.state as Partial<DirectGenPendingState>;
+    }
+  } catch {
+    // Unreadable storage: this tab's own state is all there is.
+  }
+  return {};
+};
+
+/**
+ * Start every read and change from what storage holds now.
+ *
+ * Every editor tab shares the storage key, and persist writes the whole
+ * state. A tab writing from its own copy dropped the requests another tab had
+ * remembered, and after a reload that tab failed those clips as orphaned.
+ */
+const mergeOtherTabs =
+  (
+    creator: StateCreator<DirectGenPendingState>
+  ): StateCreator<DirectGenPendingState> =>
+  (set, get, api) =>
+    creator(
+      (update) =>
+        set((state) => {
+          const base = { ...state, ...readPersisted() };
+          return {
+            ...base,
+            ...(typeof update === "function" ? update(base) : update)
+          };
+        }),
+      () => ({ ...get(), ...readPersisted() }),
+      api
+    );
+
 export const useDirectGenPendingStore = create<DirectGenPendingState>()(
   persist(
-    (set, get) => ({
+    mergeOtherTabs((set, get) => ({
       pending: {},
       durationSamples: {},
       editSettlements: {},
@@ -481,9 +528,9 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
         });
         return kept;
       }
-    }),
+    })),
     {
-      name: "nodetool-timeline-directgen-pending",
+      name: STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         pending: state.pending,

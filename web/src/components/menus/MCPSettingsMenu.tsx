@@ -213,7 +213,7 @@ const MCPSettingsMenu = () => {
               </Text>
               <Text
                 className="description"
-                sx={{ mb: 1, fontFamily: "monospace", opacity: 0.6 }}
+                sx={{ mb: 1, fontFamily: "var(--fontFamily2)", opacity: 0.6 }}
               >
                 {data.defaultLaunch}
               </Text>
@@ -314,7 +314,7 @@ const MCPSettingsMenu = () => {
               <Text
                 sx={{
                   flex: 1,
-                  fontFamily: "monospace",
+                  fontFamily: "var(--fontFamily2)",
                   fontSize: "var(--fontSizeSmall) !important",
                   wordBreak: "break-all"
                 }}

@@ -163,6 +163,43 @@ describe("useTimelineDirectGenJob request payloads", () => {
     });
   });
 
+  it("text-to-video: sends picked images as references and entities as mentions", async () => {
+    addClip({
+      id: "clip-refs",
+      mediaType: "video",
+      bindingKind: "text-to-video",
+      prompt: "Open on [Image 1].",
+      referenceImageIds: ["asset-a", "asset-b"],
+      referenceEntityIds: ["entity-mara"]
+    });
+    await startClip("clip-refs");
+    expect(sentData()).toMatchObject({
+      mode: "video",
+      capability: "reference_to_video",
+      reference_images: [
+        { type: "image", asset_id: "asset-a" },
+        { type: "image", asset_id: "asset-b" }
+      ],
+      prompt: "Open on [Image 1].\n\nCast: entity://entity-mara."
+    });
+  });
+
+  it("text-to-video: stays text-to-video with entities alone", async () => {
+    addClip({
+      id: "clip-cast",
+      mediaType: "video",
+      bindingKind: "text-to-video",
+      referenceEntityIds: ["entity-a", "entity-b"]
+    });
+    await startClip("clip-cast");
+    const data = sentData();
+    expect(data.capability).toBeUndefined();
+    expect(data.reference_images).toBeUndefined();
+    expect(data.prompt).toBe(
+      "a cat on a roof\n\nCast: entity://entity-a, entity://entity-b."
+    );
+  });
+
   it("rejects a protected imported source before submitting image-to-image", async () => {
     addClip({ id: "protected", mediaType: "image", sourceType: "imported", currentAssetId: "original", storyboardBoardId: "board", storyboardShotId: "shot" });
     addClip({ id: "edit", bindingKind: "image-to-image", sourceClipId: "protected" });

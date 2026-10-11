@@ -7,8 +7,12 @@ import { initKeyListeners } from "../../../stores/KeyPressedStore";
 import Model3DEditor from "../Model3DEditor";
 import { getModel3DToolHandler } from "../model3DToolBridge";
 
+const mockCanvasProps = jest.fn();
 jest.mock("@react-three/fiber", () => ({
-  Canvas: () => null,
+  Canvas: (props: { frameloop?: string }) => {
+    mockCanvasProps(props);
+    return null;
+  },
   useThree: () => ({})
 }));
 
@@ -19,17 +23,43 @@ jest.mock("@react-three/drei", () => ({
   TransformControls: () => null
 }));
 
+// Set per test: `animated` adds a clip that lifts Box to y = 5; `outcome`
+// makes the load fail or never finish.
+const mockLoader: { animated: boolean; outcome: "load" | "fail" | "pending" } = {
+  animated: false,
+  outcome: "load"
+};
+
 jest.mock("three/examples/jsm/loaders/GLTFLoader.js", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const three = require("three") as typeof THREE;
   return {
     GLTFLoader: jest.fn().mockImplementation(() => ({
-      load: (_url: string, onLoad: (gltf: unknown) => void) => {
+      load: (
+        _url: string,
+        onLoad: (gltf: unknown) => void,
+        _onProgress: unknown,
+        onError: (error: unknown) => void
+      ) => {
+        if (mockLoader.outcome === "fail") {
+          onError(new Error("404 Not Found"));
+          return;
+        }
+        if (mockLoader.outcome === "pending") {
+          return;
+        }
         const scene = new three.Group();
         const box = new three.Mesh();
         box.name = "Box";
         scene.add(box);
-        onLoad({ scene, animations: [] });
+        const animations = mockLoader.animated
+          ? [
+              new three.AnimationClip("Lift", 1, [
+                new three.VectorKeyframeTrack("Box.position", [0, 1], [0, 5, 0, 0, 5, 0])
+              ])
+            ]
+          : [];
+        onLoad({ scene, animations });
       }
     }))
   };
@@ -75,6 +105,69 @@ describe("Model3DEditor", () => {
 
   afterEach(() => {
     detachKeys();
+    mockLoader.animated = false;
+    mockLoader.outcome = "load";
+  });
+
+  it.each(["fail", "pending"] as const)(
+    "does not overwrite the file with an empty scene when the load did %s",
+    async (outcome) => {
+      mockLoader.outcome = outcome;
+      const { onSave, getByRole } = renderEditor();
+
+      await act(async () => {
+        pressSave();
+      });
+
+      expect(getByRole("button", { name: "Save" })).toBeDisabled();
+      expect(onSave).not.toHaveBeenCalled();
+    }
+  );
+
+  it("stops rendering frames while the editor is a background tab", () => {
+    const { rerender } = renderEditor({ active: false });
+    expect(mockCanvasProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ frameloop: "never" })
+    );
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <Model3DEditor url="model.glb" onSave={jest.fn()} onClose={jest.fn()} active />
+      </ThemeProvider>
+    );
+    expect(mockCanvasProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ frameloop: "always" })
+    );
+  });
+
+  it("offers a reload when the file changed outside the editor", () => {
+    const onReloadExternal = jest.fn();
+    const { getByRole, getByText } = renderEditor({ externallyChanged: true, onReloadExternal });
+    expect(getByText(/changed outside the editor/)).toBeInTheDocument();
+    fireEvent.click(getByRole("button", { name: "Reload" }));
+    expect(onReloadExternal).toHaveBeenCalled();
+  });
+
+  it("tells the host when the scene gains and loses unsaved edits", async () => {
+    const onDirtyChange = jest.fn();
+    const { unmount } = renderEditor({ onDirtyChange });
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+
+    act(() => {
+      getModel3DToolHandler().setTransform("Box", { position: [1, 0, 0] });
+    });
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+
+    await act(async () => {
+      pressSave();
+    });
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
+
+    act(() => {
+      getModel3DToolHandler().setTransform("Box", { position: [2, 0, 0] });
+    });
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    unmount();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
 
   it("saves on Ctrl+S when it is the visible tab", async () => {
@@ -223,6 +316,39 @@ describe("Model3DEditor", () => {
       handler.undo();
     });
     expect(handler.getObject("Crate").parentUuid).toBeNull();
+  });
+
+  it("saves on Ctrl+S while an input in the editor has focus", async () => {
+    const { onSave, getByLabelText } = renderEditor();
+    const filter = getByLabelText("Filter scene objects");
+    filter.focus();
+
+    await act(async () => {
+      pressSave();
+    });
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  });
+
+  it("keeps a transform made during animation playback when saving", async () => {
+    mockLoader.animated = true;
+    const { onSave, getByRole } = renderEditor();
+    const handler = getModel3DToolHandler();
+
+    act(() => {
+      fireEvent.click(getByRole("button", { name: "Play animation" }));
+    });
+    expect(handler.listScene()[0].position).toEqual([0, 5, 0]);
+
+    act(() => {
+      handler.setTransform("Box", { position: [1, 2, 3] });
+    });
+    await act(async () => {
+      pressSave();
+    });
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(handler.listScene()[0].position).toEqual([1, 2, 3]);
   });
 
   it("refuses to parent an object under its own child", () => {

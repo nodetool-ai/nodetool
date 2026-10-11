@@ -58,7 +58,7 @@ const frontierModels = [
     { name: "Qwen Image" },
     { name: "Veo 3.1" },
     { name: "Kling 3" },
-    { name: "Seedance 3" },
+    { name: "Seedance 2.5" },
     { name: "Hailuo 2.3" },
     { name: "Wan 2.5" },
     { name: "FLUX" },

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  planInputSample,
   planNodeShape,
   planToPlacement,
   resolveWorkflowPlan
@@ -18,6 +19,13 @@ import type { FrontendToolState } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { docUrl } from "./resourceLinks";
 import { resolveSnippetSteps } from "../../../utils/planSnippetSteps";
+import { isRecord } from "../../../utils/typePredicates";
+import { queueWorkflowSave } from "../../../hooks/workflow/useWorkflowSetup";
+import { isWorkflowBuildLive } from "../../../hooks/workflow/useBuildFromPlan";
+import {
+  PLAN_SOURCE_KEY,
+  planSourceOf
+} from "../../../components/setup/workflow/setupExtras";
 
 /**
  * The four tools that drive the Workflow creation flow from an agent
@@ -56,18 +64,25 @@ function requireSetup(state: FrontendToolState, workflowId: string) {
   return { workflow, setup: readWorkflowSetup(workflow.settings) };
 }
 
-/** Write a setup patch and persist it, failing the call if the save is refused. */
+/**
+ * Write a setup patch and persist it, failing the call if the save is refused.
+ * Setup answers change no graph, so the save adds a version row only when
+ * `snapshot` says it carries one, as the build's does.
+ */
 async function persistSetup(
   state: FrontendToolState,
   workflowId: string,
-  patch: Parameters<typeof writeWorkflowSetup>[1]
+  patch: Parameters<typeof writeWorkflowSetup>[1],
+  snapshot = false
 ) {
   const { workflow } = requireSetup(state, workflowId);
   const settings = writeWorkflowSetup(workflow.settings, patch);
   const live = state.getNodeStore(workflowId)?.getState().getWorkflow();
   const next = { ...(live ?? workflow), settings };
   state.updateWorkflow(next);
-  await state.saveWorkflow(next);
+  // Through the flow's save queue: a save the open flow has on the wire
+  // carries the same `expected_updated_at`, and the second one is refused.
+  await queueWorkflowSave(state, workflowId, { snapshot });
   return readWorkflowSetup(settings);
 }
 
@@ -83,6 +98,37 @@ function requirePlan(
     );
   }
   return setup.plan;
+}
+
+/**
+ * Refuse a plan whose step ids repeat. The id names the step for every later
+ * edit, the review keys its rows by it, and the build tags each placed node
+ * with it, so two steps sharing one cannot be told apart.
+ */
+function requireUniqueStepIds(steps: readonly { id: string }[]): void {
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  for (const step of steps) {
+    if (seen.has(step.id)) {
+      repeated.add(step.id);
+    }
+    seen.add(step.id);
+  }
+  if (repeated.size > 0) {
+    throw new Error(
+      `Every plan step needs its own id. Repeated: ${[...repeated].join(", ")}.`
+    );
+  }
+}
+
+/** The first `step-N` id the plan does not use yet. */
+function freeStepId(steps: readonly { id: string }[]): string {
+  const taken = new Set(steps.map((step) => step.id));
+  let n = steps.length + 1;
+  while (taken.has(`step-${n}`)) {
+    n += 1;
+  }
+  return `step-${n}`;
 }
 
 /** Grade a plan against the live registry and model catalog (D23). */
@@ -211,9 +257,15 @@ FrontendToolRegistry.register({
         id: step.id ?? `step-${index + 1}`
       }))
     });
+    requireUniqueStepIds(parsed.steps);
+    // What the plan answers, as the flow's own planner records it: a creator
+    // who steps back to the category is offered this plan, not a paid
+    // re-plan of it.
+    const current = requireSetup(state, workflowId).setup;
     const setup = await persistSetup(state, workflowId, {
       plan: parsed,
-      stage: "review"
+      stage: "review",
+      [PLAN_SOURCE_KEY]: planSourceOf(current?.brief ?? "", current?.category)
     });
     return {
       ok: true,
@@ -288,8 +340,13 @@ FrontendToolRegistry.register({
       const [moved] = steps.splice(at, 1);
       steps.splice(clamp(index), 0, moved);
     } else if (op === "add") {
+      if (at !== -1) {
+        throw new Error(
+          `The plan already has a step "${step_id ?? ""}". Pick another id, or omit step_id to get a free one.`
+        );
+      }
       const added: WorkflowSetupPlan["steps"][number] = {
-        id: step_id ?? `step-${steps.length + 1}`,
+        id: step_id ?? freeStepId(steps),
         title: fields.title ?? "New step",
         summary: fields.summary ?? "",
         node_type: fields.node_type ?? null
@@ -350,6 +407,13 @@ FrontendToolRegistry.register({
       );
     }
 
+    // The guided flow's build places the same node ids on the same canvas.
+    if (isWorkflowBuildLive(workflowId)) {
+      throw new Error(
+        "The guided flow is building this workflow now. Wait for its test run to finish, then read the graph with ui_get_graph."
+      );
+    }
+
     const placement = planToPlacement(
       resolveSnippetSteps(plan),
       (nodeType) => {
@@ -359,49 +423,110 @@ FrontendToolRegistry.register({
       models === undefined ? {} : { models }
     );
 
+    // `ui_add_node` skips an id the canvas already has, so building over an
+    // earlier build would keep its nodes with their old types and settings.
+    const nodeStore = state.getNodeStore(workflowId)?.getState();
+    const present = placement.nodes
+      .map((node) => node.id)
+      .filter((id) => nodeStore?.findNode(id) !== undefined);
+    if (present.length > 0) {
+      throw new Error(
+        `The canvas already has nodes this build would place: ${present.join(", ")}. Delete them with ui_delete_node, then build again.`
+      );
+    }
+
     let seq = 0;
     const call = (name: string, args: Record<string, unknown>) =>
       FrontendToolRegistry.call(name, args, `plan-build-${++seq}`, {
         getState: () => state
       });
 
-    for (const node of placement.nodes) {
-      await call("ui_add_node", {
-        workflow_id: workflowId,
-        id: node.id,
-        type: node.type,
-        position: node.position,
-        properties: node.properties
-      });
-      const data: Record<string, unknown> = {};
-      if (node.dynamicProperties !== undefined) {
-        data["dynamic_properties"] = node.dynamicProperties;
+    const addedNodeIds: string[] = [];
+    const addedEdgeIds: string[] = [];
+    // A failure before the terminal stage takes the placed nodes back off,
+    // so a retry does not build over a half-placed graph.
+    const rollback = async () => {
+      for (const edgeId of [...addedEdgeIds].reverse()) {
+        try {
+          await call("ui_delete_edge", {
+            workflow_id: workflowId,
+            edge_id: edgeId
+          });
+        } catch {
+          // Best effort. The original failure is the useful error.
+        }
       }
-      if (node.dynamicOutputs !== undefined) {
-        data["dynamic_outputs"] = node.dynamicOutputs;
+      for (const nodeId of [...addedNodeIds].reverse()) {
+        try {
+          await call("ui_delete_node", {
+            workflow_id: workflowId,
+            node_id: nodeId
+          });
+        } catch {
+          // Best effort, as above.
+        }
       }
-      if (node.setupStepId !== undefined) {
-        data["setupStepId"] = node.setupStepId;
-      }
-      if (Object.keys(data).length > 0) {
-        await call("ui_update_node_data", {
+    };
+
+    const previousStage = requireSetup(state, workflowId).setup?.stage;
+    let setup: ReturnType<typeof readWorkflowSetup>;
+    try {
+      for (const node of placement.nodes) {
+        await call("ui_add_node", {
           workflow_id: workflowId,
-          node_id: node.id,
-          data
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          properties: node.properties
+        });
+        addedNodeIds.push(node.id);
+        const data: Record<string, unknown> = {};
+        if (node.dynamicProperties !== undefined) {
+          data["dynamic_properties"] = node.dynamicProperties;
+        }
+        if (node.dynamicOutputs !== undefined) {
+          data["dynamic_outputs"] = node.dynamicOutputs;
+        }
+        if (node.setupStepId !== undefined) {
+          data["setupStepId"] = node.setupStepId;
+        }
+        if (Object.keys(data).length > 0) {
+          await call("ui_update_node_data", {
+            workflow_id: workflowId,
+            node_id: node.id,
+            data
+          });
+        }
+      }
+      for (const edge of placement.edges) {
+        const response = await call("ui_connect_nodes", {
+          workflow_id: workflowId,
+          source_node_id: edge.source,
+          source_handle: edge.sourceHandle,
+          target_node_id: edge.target,
+          target_handle: edge.targetHandle
+        });
+        if (isRecord(response) && typeof response["edge_id"] === "string") {
+          addedEdgeIds.push(response["edge_id"]);
+        }
+      }
+
+      setup = await persistSetup(state, workflowId, { stage: "done" }, true);
+    } catch (cause) {
+      await rollback();
+      // A refused save already moved the stage to `done` in memory, which
+      // would hand the open flow to a canvas the rollback just emptied.
+      const { workflow, setup: current } = requireSetup(state, workflowId);
+      if (current?.stage !== previousStage) {
+        state.updateWorkflow({
+          ...workflow,
+          settings: writeWorkflowSetup(workflow.settings, {
+            stage: previousStage
+          })
         });
       }
+      throw cause;
     }
-    for (const edge of placement.edges) {
-      await call("ui_connect_nodes", {
-        workflow_id: workflowId,
-        source_node_id: edge.source,
-        source_handle: edge.sourceHandle,
-        target_node_id: edge.target,
-        target_handle: edge.targetHandle
-      });
-    }
-
-    const setup = await persistSetup(state, workflowId, { stage: "done" });
     return {
       ok: true,
       workflow_id: workflowId,
@@ -412,8 +537,13 @@ FrontendToolRegistry.register({
       nodes_placed: placement.nodes.length,
       edges_placed: placement.edges.length,
       issues: placement.issues,
+      // The value the input node carries: a number input runs with a
+      // number, and a media input sends nothing.
       sample_inputs: Object.fromEntries(
-        plan.inputs.map((input) => [input.name, input.sample ?? ""])
+        plan.inputs.flatMap((input) => {
+          const sample = planInputSample(input);
+          return sample === undefined ? [] : [[input.name, sample]];
+        })
       ),
       url: docUrl("workflow", workflowId)
     };

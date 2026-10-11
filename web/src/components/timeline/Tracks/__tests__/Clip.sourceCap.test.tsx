@@ -34,7 +34,7 @@ jest.mock("../../../../stores/timeline/TimelineGenerationStore", () => ({
   ) => sel({ clipJobs: {} })
 }));
 
-import { act, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import {
   installPointerEvent,
   makeTrack,
@@ -46,6 +46,7 @@ import {
 } from "../../../../test-utils/timelineClipHarness";
 import { probeMediaDurationMs } from "../../../../utils/probeMediaDuration";
 import { resetVideoDurationCache } from "../useClipSourceDuration";
+import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 
 const probe = probeMediaDurationMs as jest.MockedFunction<
   typeof probeMediaDurationMs
@@ -113,5 +114,127 @@ describe("trim-end source cap", () => {
     dragHandle("i1", "end", 200, 200 + GROW_PX);
     expect(clipState("i1").durationMs).toBe(1300);
     expect(probe).not.toHaveBeenCalled();
+  });
+});
+
+describe("trim-end cap without a probed length", () => {
+  it("caps a video clip at its out-point while the probe is pending", async () => {
+    probe.mockReturnValue(new Promise<number | null>(() => undefined));
+    seedTimeline(
+      [makeTrack("t1", 0)],
+      [
+        makeClip("v1", "t1", 2000, 1000, {
+          currentAssetId: "vid",
+          inPointMs: 0,
+          outPointMs: 1000
+        })
+      ]
+    );
+    renderLanes();
+    await waitFor(() => expect(probe).toHaveBeenCalled());
+    dragHandle("v1", "end", 300, 300 + GROW_PX);
+    expect(clipState("v1").durationMs).toBe(1000);
+  });
+
+  it("caps at the out-point after a failed probe and probes again on the next mount", async () => {
+    probe.mockResolvedValue(null);
+    seedTimeline(
+      [makeTrack("t1", 0)],
+      [
+        makeClip("v1", "t1", 2000, 1000, {
+          currentAssetId: "vid",
+          inPointMs: 0,
+          outPointMs: 1000
+        })
+      ]
+    );
+    const first = renderLanes();
+    await waitFor(() => expect(probe).toHaveBeenCalledTimes(1));
+    await flushProbe();
+    dragHandle("v1", "end", 300, 300 + GROW_PX);
+    expect(clipState("v1").durationMs).toBe(1000);
+
+    first.unmount();
+    renderLanes();
+    await waitFor(() => expect(probe).toHaveBeenCalledTimes(2));
+  });
+
+  it("lets a shortened clip grow back to its earlier out-point", async () => {
+    probe.mockReturnValue(new Promise<number | null>(() => undefined));
+    seedTimeline(
+      [makeTrack("t1", 0)],
+      [
+        makeClip("v1", "t1", 2000, 1000, {
+          currentAssetId: "vid",
+          inPointMs: 0,
+          outPointMs: 1000
+        })
+      ]
+    );
+    renderLanes();
+    await waitFor(() => expect(probe).toHaveBeenCalled());
+    dragHandle("v1", "end", 300, 300 - GROW_PX);
+    expect(clipState("v1").durationMs).toBe(700);
+    dragHandle("v1", "end", 270, 270 + 2 * GROW_PX);
+    expect(clipState("v1").durationMs).toBe(1000);
+  });
+});
+
+describe("start-edge roll source cap", () => {
+  /** a | b back to back; a plays source 0..1000 of asset "va". */
+  const seedCut = () =>
+    seedTimeline(
+      [makeTrack("t1", 0)],
+      [
+        makeClip("a", "t1", 0, 1000, {
+          currentAssetId: "va",
+          inPointMs: 0,
+          outPointMs: 1000
+        }),
+        makeClip("b", "t1", 1000, 1000, {
+          currentAssetId: "vb",
+          inPointMs: 500,
+          outPointMs: 1500
+        })
+      ]
+    );
+
+  const rollStart = (clipId: string, fromX: number, toX: number) => {
+    const el = screen.getByTestId(`clip-trim-start-${clipId}`);
+    fireEvent.pointerDown(el, {
+      button: 0,
+      buttons: 1,
+      clientX: fromX,
+      pointerId: 1,
+      ctrlKey: true
+    });
+    fireEvent.pointerMove(el, { buttons: 1, clientX: toX, pointerId: 1 });
+    fireEvent.pointerUp(el, { pointerId: 1 });
+  };
+
+  const clip = (id: string) =>
+    useTimelineStore.getState().clips.find((c) => c.id === id)!;
+
+  it("stops the left neighbour at its probed source length", async () => {
+    probe.mockImplementation((url) =>
+      Promise.resolve(url === "blob:va" ? 1100 : 5000)
+    );
+    seedCut();
+    renderLanes();
+    await waitFor(() => expect(probe).toHaveBeenCalledTimes(2));
+    await flushProbe();
+    rollStart("b", 100, 100 + GROW_PX);
+    expect(clip("a").durationMs).toBe(1100);
+    expect(clip("b").startMs).toBe(1100);
+  });
+
+  it("does not grow the left neighbour past its out-point while its probe is pending", async () => {
+    probe.mockReturnValue(new Promise<number | null>(() => undefined));
+    seedCut();
+    renderLanes();
+    await waitFor(() => expect(probe).toHaveBeenCalled());
+    rollStart("b", 100, 100 + GROW_PX);
+    expect(clip("a").durationMs).toBe(1000);
+    expect(clip("b").startMs).toBe(1000);
   });
 });

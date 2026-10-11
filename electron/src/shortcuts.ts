@@ -5,8 +5,32 @@ import { workflowShortcut } from "./workflowSettings";
 import { Workflow } from "./types";
 import { runWorkflow } from "./workflowExecution";
 
+// Accelerator registered for each workflow id. A changed or cleared shortcut,
+// a deleted workflow and a vault switch must release the old accelerator, or
+// it keeps running a workflow that no longer has it (or no longer exists).
+const registeredShortcuts = new Map<string, string>();
+
+const unregisterWorkflowShortcut = (workflowId: string): void => {
+  const previous = registeredShortcuts.get(workflowId);
+  if (previous === undefined) {
+    return;
+  }
+  registeredShortcuts.delete(workflowId);
+  globalShortcut.unregister(previous);
+  logMessage(`Unregistered shortcut "${previous}" for workflow ${workflowId}`);
+};
+
+const unregisterAllWorkflowShortcuts = (): void => {
+  for (const workflowId of [...registeredShortcuts.keys()]) {
+    unregisterWorkflowShortcut(workflowId);
+  }
+};
+
 const registerWorkflowShortcut = async (workflow: Workflow): Promise<boolean> => {
   const shortcut = workflowShortcut(workflow);
+  if (registeredShortcuts.get(workflow.id) !== shortcut) {
+    unregisterWorkflowShortcut(workflow.id);
+  }
   if (!shortcut) {
     logMessage(
       `Workflow "${workflow.name}" (${workflow.id}) has no shortcut configured`,
@@ -24,16 +48,27 @@ const registerWorkflowShortcut = async (workflow: Workflow): Promise<boolean> =>
     if (wasRegistered) {
       logMessage(`Unregistering existing shortcut "${shortcut}" before re-registering`);
       globalShortcut.unregister(shortcut);
+      for (const [workflowId, accelerator] of registeredShortcuts) {
+        if (accelerator === shortcut) {
+          registeredShortcuts.delete(workflowId);
+        }
+      }
     }
 
     const success = globalShortcut.register(shortcut, () => {
       logMessage(
         `Shortcut "${shortcut}" triggered - executing workflow "${workflow.name}" (${workflow.id})`
       );
-      runWorkflow(workflow);
+      runWorkflow(workflow).catch((error: unknown) => {
+        logMessage(
+          `Shortcut run of workflow "${workflow.name}" failed: ${String(error)}`,
+          "error"
+        );
+      });
     });
 
     if (success) {
+      registeredShortcuts.set(workflow.id, shortcut);
       logMessage(
         `Successfully registered shortcut "${shortcut}" for workflow "${workflow.name}"`,
         "info"
@@ -57,6 +92,7 @@ const registerWorkflowShortcut = async (workflow: Workflow): Promise<boolean> =>
 
 async function setupWorkflowShortcuts(): Promise<void> {
   logMessage("Setting up workflow shortcuts...");
+  unregisterAllWorkflowShortcuts();
   try {
     const workflows = await fetchWorkflows();
     logMessage(`Found ${workflows.length} workflows to check for shortcuts`);
@@ -87,4 +123,8 @@ async function setupWorkflowShortcuts(): Promise<void> {
   }
 }
 
-export { setupWorkflowShortcuts, registerWorkflowShortcut };
+export {
+  setupWorkflowShortcuts,
+  registerWorkflowShortcut,
+  unregisterWorkflowShortcut,
+};

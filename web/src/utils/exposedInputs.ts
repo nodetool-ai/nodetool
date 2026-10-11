@@ -129,6 +129,35 @@ export const resolveInlineFieldNames = (
   );
 };
 
+/**
+ * True for a property type the editor edits with a model picker: every
+ * `*_model` type (provider, local and inference-provider models) plus the
+ * Hugging Face (`hf.`) and Transformers.js (`tjs.`) model families.
+ */
+export const isModelPropertyType = (type: string): boolean =>
+  type.endsWith("_model") || type.startsWith("hf.") || type.startsWith("tjs.");
+
+/**
+ * Model pickers shown on the node itself, under the port band. A model
+ * property gets one unless its metadata or the user already placed it (inline
+ * row, handle, labeled row) or the user hid it in the Inspector.
+ */
+export const resolveModelChipNames = (
+  metadata: NodeMetadata,
+  data: ExposedInputPlacementData
+): string[] => {
+  const placed = new Set([
+    ...(metadata.inline_fields ?? []),
+    ...(metadata.input_fields ?? []),
+    ...(data.exposedInputs ?? []),
+    ...(data.exposedInputsLabeled ?? []),
+    ...(data.exposedInputsHidden ?? [])
+  ]);
+  return (metadata.properties ?? [])
+    .filter((p) => isModelPropertyType(p.type.type) && !placed.has(p.name))
+    .map((p) => p.name);
+};
+
 /** Bottom labeled section (explicit overrides only). */
 export const resolveExposedInputLabeledNames = (
   data: Pick<NodeData, "exposedInputsLabeled">

@@ -10,12 +10,15 @@
 
 import { CropTool } from "../tools/CropTool";
 import { stub } from "../../../test-utils/doubles";
-import { floodFill } from "../tools/FillTool";
+import { FillTool, floodFill } from "../tools/FillTool";
+import { GradientTool } from "../tools/GradientTool";
+import { setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
+import { applyLayerSourceBySelectionMask } from "../rendering/canvas2d/maskAndExport";
 import { MoveTool } from "../tools/MoveTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
 import type { Point } from "../types";
 import { createDefaultDocument } from "../types";
-import { ellipseSelectionMask } from "../selection";
+import { createEmptyMask, ellipseSelectionMask, fillRectMask } from "../selection";
 import { makeToolContext } from "./_toolContextFixture";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -159,6 +162,69 @@ describe("FillTool flood fill", () => {
       expect(imageData.data[i + 2]).toBe(255);
       expect(imageData.data[i + 3]).toBe(255);
     }
+  });
+});
+
+describe("FillTool on a layer", () => {
+  /** A 64x64 layer with a 1px opaque black square outline from 20 to 40. */
+  function outlinedLayerContext(overrides: Partial<ToolContext> = {}): {
+    ctx: ToolContext;
+    pixel: (x: number, y: number) => number[];
+  } {
+    const ctx = makeToolContext({ activeTool: "fill", foregroundColor: "#ff0000", ...overrides });
+    const layerId = ctx.doc.activeLayerId!;
+    const canvas = ctx.getOrCreateLayerCanvas(layerId);
+    const c2d = canvas.getContext("2d")!;
+    c2d.strokeStyle = "#000000";
+    c2d.lineWidth = 1;
+    c2d.strokeRect(20.5, 20.5, 20, 20);
+    ctx.runtime = stub<NonNullable<ToolContext["runtime"]>>({
+      applyLayerSourceBySelectionMask: (id: string, ox: number, oy: number, sel, src) =>
+        applyLayerSourceBySelectionMask(ctx.layerCanvasesRef.current, id, ox, oy, sel, src)
+    });
+    const pixel = (x: number, y: number): number[] =>
+      Array.from(
+        ctx.getOrCreateLayerCanvas(layerId).getContext("2d")!.getImageData(x, y, 1, 1).data
+      );
+    return { ctx, pixel };
+  }
+
+  it("fills the clicked region when a selection is active", () => {
+    const selection = createEmptyMask(64, 64);
+    fillRectMask(selection, 0, 0, 64, 64, 255);
+    const { ctx, pixel } = outlinedLayerContext({ selection });
+    new FillTool().onDown(ctx, makeToolPointerEvent({ x: 30, y: 30 }));
+    expect(pixel(30, 30)).toEqual([255, 0, 0, 255]);
+    expect(pixel(5, 5)).toEqual([0, 0, 0, 0]);
+  });
+
+  it("keeps transparent pixels transparent under Lock Transparency", () => {
+    const { ctx, pixel } = outlinedLayerContext();
+    ctx.doc.layers[0].alphaLock = true;
+    new FillTool().onDown(ctx, makeToolPointerEvent({ x: 30, y: 30 }));
+    expect(pixel(30, 30)[3]).toBe(0);
+  });
+});
+
+describe("GradientTool on a trimmed layer", () => {
+  it("fills the whole canvas, not only the layer's raster", () => {
+    const ctx = makeToolContext({ activeTool: "gradient" });
+    const layer = ctx.doc.layers[0];
+    const small = document.createElement("canvas");
+    small.width = 16;
+    small.height = 16;
+    setCanvasRasterBounds(small, { x: 0, y: 0, width: 16, height: 16 });
+    layer.contentBounds = { x: 0, y: 0, width: 16, height: 16 };
+    ctx.layerCanvasesRef.current.set(layer.id, small);
+
+    const tool = new GradientTool();
+    tool.onDown(ctx, makeToolPointerEvent({ x: 0, y: 32 }));
+    tool.onMove(ctx, makeToolPointerEvent({ x: 64, y: 32 }));
+    tool.onUp(ctx, makeToolPointerEvent({ x: 64, y: 32 }));
+
+    const canvas = ctx.getOrCreateLayerCanvas(layer.id);
+    expect(canvas.width).toBeGreaterThanOrEqual(64);
+    expect(canvas.getContext("2d")!.getImageData(50, 50, 1, 1).data[3]).toBe(255);
   });
 });
 

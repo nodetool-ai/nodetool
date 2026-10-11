@@ -28,7 +28,9 @@ import type {
 
 import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
 import { getFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
+import useErrorStore, { nodeErrorToDisplayString } from "../../stores/ErrorStore";
 import useMetadataStore from "../../stores/MetadataStore";
+import usePropertyValidationStore from "../../stores/PropertyValidationStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
@@ -40,7 +42,12 @@ export const workflowBuildStatuses = [
   "validated",
   "running",
   "failed",
-  "completed-with-output"
+  "completed-with-output",
+  // The creator stopped the build after the graph was placed.
+  "canceled",
+  // Read back from the document: the build stopped reporting before a final
+  // status (a reload mid-run), so nobody knows how the run ended.
+  "unrecorded"
 ] as const;
 
 export type WorkflowBuildStatus = (typeof workflowBuildStatuses)[number];
@@ -61,6 +68,10 @@ export interface BuildFromPlanResult {
   issues: string[];
   /** Errors from the graph check. Empty means `Validated` is ticked. */
   validationErrors: string[];
+  /** Why the graph check itself could not run. */
+  validationError?: string;
+  /** True when the graph check never reported a result. */
+  validationPending?: boolean;
   /** Whether the test run was started, and what it said if it was refused. */
   testRun: WorkflowTestRun;
   /** The sample run's output when it completed with one. */
@@ -75,6 +86,8 @@ export const workflowBuildSchema = z.object({
   node_count: z.number(),
   issues: z.array(z.string()),
   validation_errors: z.array(z.string()),
+  validation_error: z.string().optional(),
+  validation_pending: z.boolean().optional(),
   run_started: z.boolean(),
   run_error: z.string().nullable(),
   output: z.unknown().optional(),
@@ -99,6 +112,12 @@ export const workflowBuildRecord = (
   if (result.output !== undefined) {
     record.output = result.output;
   }
+  if (result.validationError !== undefined) {
+    record.validation_error = result.validationError;
+  }
+  if (result.validationPending) {
+    record.validation_pending = true;
+  }
   return record;
 };
 
@@ -109,9 +128,38 @@ export const readWorkflowBuild = (
   return parsed.success ? parsed.data : null;
 };
 
+/** Workflows with a build running in this window, which keeps its record current. */
+const liveBuilds = new Set<string>();
+
+/** True while this window is building the workflow and updating its record. */
+export const isWorkflowBuildLive = (workflowId: string): boolean =>
+  liveBuilds.has(workflowId);
+
+/** Statuses a build passes through before it writes its final one. */
+const IN_PROGRESS_STATUSES: ReadonlySet<WorkflowBuildStatus> = new Set([
+  "built",
+  "validated",
+  "running"
+]);
+
+/**
+ * The checklist's reading of a saved record. Pass `live: false` when no build
+ * in this window is updating it: an in-progress status then can never move on,
+ * so it reads as unrecorded rather than checking or running forever.
+ */
 export const workflowBuildResult = (
-  record: WorkflowBuildRecord
+  record: WorkflowBuildRecord,
+  options: { live?: boolean } = {}
 ): BuildFromPlanResult => {
+  if (options.live === false && IN_PROGRESS_STATUSES.has(record.status)) {
+    return workflowBuildResult({
+      ...record,
+      status: "unrecorded",
+      validation_pending:
+        record.status === "built" ? true : record.validation_pending,
+      explanation: "The test run's result was not recorded."
+    });
+  }
   const result: BuildFromPlanResult = {
     status: record.status,
     nodeCount: record.node_count,
@@ -126,6 +174,12 @@ export const workflowBuildResult = (
   if (record.output !== undefined) {
     result.output = record.output;
     result.testRun.output = record.output;
+  }
+  if (record.validation_error !== undefined) {
+    result.validationError = record.validation_error;
+  }
+  if (record.validation_pending) {
+    result.validationPending = true;
   }
   return result;
 };
@@ -224,12 +278,57 @@ interface PlacementOutput {
   name: string;
 }
 
+/** A placed node and the name the creator knows it by. */
+interface PlacedNode {
+  id: string;
+  label: string;
+}
+
+/**
+ * Why a sample run ended in an error, read from the per-run node errors, the
+ * pre-flight property issues, and then the job's own error. Without it the
+ * checklist and the repair message said only that the run failed.
+ */
+const runFailureReason = (
+  workflowId: string,
+  jobId: string,
+  nodes: readonly PlacedNode[],
+  jobError: string | undefined
+): string => {
+  const errors = useErrorStore.getState();
+  for (const node of nodes) {
+    const message = nodeErrorToDisplayString(
+      errors.getError(workflowId, jobId, node.id)
+    );
+    if (message) {
+      return `${node.label}: ${message}`;
+    }
+  }
+  const issues = usePropertyValidationStore.getState().errors;
+  for (const node of nodes) {
+    const prefix = `${workflowId}:${node.id}:`;
+    const key = Object.keys(issues).find((candidate) =>
+      candidate.startsWith(prefix)
+    );
+    if (key !== undefined) {
+      const property = key.slice(prefix.length);
+      return `${node.label}, ${property}: ${issues[key as keyof typeof issues]}`;
+    }
+  }
+  return jobError ?? "No node reported an error.";
+};
+
 const waitForRunCompletion = async (
   workflowId: string,
   jobId: string,
   outputs: PlacementOutput[],
+  nodes: readonly PlacedNode[],
   signal?: AbortSignal
-): Promise<{ status: "completed-with-output" | "failed"; output?: unknown; error: string | null }> =>
+): Promise<{
+  status: "completed-with-output" | "failed" | "canceled";
+  output?: unknown;
+  error: string | null;
+}> =>
   new Promise((resolve, reject) => {
     let settled = false;
     const cleanups: Array<() => void> = [];
@@ -237,6 +336,7 @@ const waitForRunCompletion = async (
       value:
         | { status: "completed-with-output"; output: unknown; error: null }
         | { status: "failed"; error: string; output?: never }
+        | { status: "canceled"; error: null; output?: never }
     ) => {
       if (settled) return;
       settled = true;
@@ -258,11 +358,27 @@ const waitForRunCompletion = async (
       if (!run || !["completed", "error", "cancelled"].includes(run.state)) {
         return;
       }
+      if (run.state === "cancelled") {
+        finish({ status: "canceled", error: null });
+        return;
+      }
       if (run.state !== "completed") {
-        finish({
-          status: "failed",
-          error: `The sample run ${run.state === "cancelled" ? "was canceled" : "failed"}.`
-        });
+        // The job's failure frame records its property issues after the run
+        // state changes, so the reason is read once that frame is done.
+        queueMicrotask(() =>
+          finish({
+            status: "failed",
+            error: runFailureReason(
+              workflowId,
+              jobId,
+              nodes,
+              useWorkflowRunsStore
+                .getState()
+                .getRuns(workflowId)
+                .find((candidate) => candidate.jobId === jobId)?.error
+            )
+          })
+        );
         return;
       }
       const output: Record<string, unknown> = {};
@@ -324,9 +440,14 @@ export const useBuildFromPlan = (
   const [building, setBuilding] = useState(false);
   const [result, setResult] = useState<BuildFromPlanResult | null>(null);
   const activeJobIdRef = useRef<string | null>(null);
+  // The build's own abort. After the graph is placed the setup shell is gone,
+  // so its signal no longer reaches the build, and Cancel has to stop the
+  // check and the test run from here, before the run has a job id too.
+  const buildControllerRef = useRef<AbortController | null>(null);
   const { setSetup } = useWorkflowSetupWriter(workflowId);
 
   const cancelBuild = useCallback(async () => {
+    buildControllerRef.current?.abort();
     const jobId = activeJobIdRef.current;
     if (jobId) {
       await getWorkflowRunnerStore(workflowId).getState().cancelJob(jobId);
@@ -336,11 +457,30 @@ export const useBuildFromPlan = (
   const buildFromPlan = useCallback(
     async (
       input: BuildFromPlanInput,
-      signal?: AbortSignal
+      outerSignal?: AbortSignal
     ): Promise<BuildFromPlanResult> => {
+      const controller = new AbortController();
+      buildControllerRef.current = controller;
+      const forwardAbort = () => controller.abort();
+      if (outerSignal?.aborted) {
+        controller.abort();
+      } else {
+        outerSignal?.addEventListener("abort", forwardAbort, { once: true });
+      }
+      const signal = controller.signal;
+      liveBuilds.add(workflowId);
       setBuilding(true);
       const addedNodeIds: string[] = [];
       const addedEdgeIds: string[] = [];
+      // Set once stage `done` is written. Before it, any failure takes the
+      // placed nodes back off, because node ids are fixed per plan and a
+      // rebuild skips an id that is already on the canvas.
+      let placedDone = false;
+      let nodeCount = 0;
+      let issues: string[] = [];
+      let validationErrors: string[] = [];
+      let validationChecked = false;
+      let runStarted = false;
       const rollback = async () => {
         for (const edgeId of addedEdgeIds.reverse()) {
           try {
@@ -349,8 +489,8 @@ export const useBuildFromPlan = (
               edge_id: edgeId
             });
           } catch {
-            // Best effort cleanup. The original cancellation remains the
-            // useful error and the graph can still be repaired manually.
+            // Best effort cleanup. The original failure remains the useful
+            // error and the graph can still be repaired manually.
           }
         }
         for (const nodeId of addedNodeIds.reverse()) {
@@ -372,6 +512,13 @@ export const useBuildFromPlan = (
           // The setup writer may already have observed the aborted operation.
         }
       };
+      const settle = async (
+        final: BuildFromPlanResult
+      ): Promise<BuildFromPlanResult> => {
+        await setSetup({ [WORKFLOW_BUILD_KEY]: workflowBuildRecord(final) });
+        setResult(final);
+        return final;
+      };
       try {
         throwIfAborted(signal);
         const metadata = useMetadataStore.getState().metadata;
@@ -383,6 +530,8 @@ export const useBuildFromPlan = (
           },
           input.models === undefined ? {} : { models: input.models }
         );
+        nodeCount = placement.nodes.length;
+        issues = placement.issues;
 
         // The editor has to be open before a node tool can reach it.
         await callTool("ui_open_workflow", { workflow_id: workflowId }, signal);
@@ -435,7 +584,9 @@ export const useBuildFromPlan = (
         }
 
         // The graph is placed: the stage is terminal from here, so a reload
-        // lands on the canvas rather than back in the flow (D3).
+        // lands on the canvas rather than back in the flow (D3). This is the
+        // build's one version row. The progress saves after it change only
+        // the build record, so they add none.
         const placed = resultWith(
           "built",
           placement.nodes.length,
@@ -447,10 +598,14 @@ export const useBuildFromPlan = (
           }. Checking it now.`
         );
         throwIfAborted(signal);
-        await setSetup({
-          stage: "done",
-          [WORKFLOW_BUILD_KEY]: workflowBuildRecord(placed)
-        });
+        await setSetup(
+          {
+            stage: "done",
+            [WORKFLOW_BUILD_KEY]: workflowBuildRecord(placed)
+          },
+          { snapshot: true }
+        );
+        placedDone = true;
 
         let graph: { validation?: GraphValidation };
         try {
@@ -458,6 +613,9 @@ export const useBuildFromPlan = (
             workflow_id: workflowId
           }, signal)) as { validation?: GraphValidation };
         } catch (cause) {
+          if (signal.aborted) {
+            throw cause;
+          }
           const error = cause instanceof Error ? cause.message : String(cause);
           const failed = resultWith(
             "failed",
@@ -467,13 +625,14 @@ export const useBuildFromPlan = (
             { started: false, error },
             `The graph was built, but validation could not run: ${error}`
           );
-          await setSetup({ [WORKFLOW_BUILD_KEY]: workflowBuildRecord(failed) });
-          setResult(failed);
-          return failed;
+          failed.validationError = error;
+          return await settle(failed);
         }
-        const validationErrors = Array.isArray(graph.validation?.errors)
+        throwIfAborted(signal);
+        validationErrors = Array.isArray(graph.validation?.errors)
           ? graph.validation.errors.map(String)
           : [];
+        validationChecked = true;
 
         if (validationErrors.length > 0 || placement.issues.length > 0) {
           const failed = resultWith(
@@ -488,9 +647,7 @@ export const useBuildFromPlan = (
                 }.`
               : "The graph validates, but part of the plan is unwired."
           );
-          await setSetup({ [WORKFLOW_BUILD_KEY]: workflowBuildRecord(failed) });
-          setResult(failed);
-          return failed;
+          return await settle(failed);
         }
 
         const validated = resultWith(
@@ -515,12 +672,23 @@ export const useBuildFromPlan = (
 
         let finalResult: BuildFromPlanResult;
         try {
+          // A Cancel pressed during the check stops the paid run here.
+          throwIfAborted(signal);
+          runStarted = true;
           const response = await callTool("ui_run_workflow", {
             workflow_id: workflowId,
             params: input.sampleInputs ?? {}
           }, signal);
           const runResponse = readRunResponse(response);
-          throwIfAborted(signal);
+          if (signal.aborted) {
+            // The run started while Cancel was pressed: stop it too.
+            if (runResponse.jobId) {
+              await getWorkflowRunnerStore(workflowId)
+                .getState()
+                .cancelJob(runResponse.jobId);
+            }
+            throw abortError();
+          }
           if (runResponse.status === "completed-with-output") {
             finalResult = resultWith(
               "completed-with-output",
@@ -554,6 +722,16 @@ export const useBuildFromPlan = (
                       ? node.properties["name"]
                       : node.id
                 })),
+              placement.nodes.map((node) => ({
+                id: node.id,
+                label:
+                  input.plan.steps.find((step) => step.id === node.setupStepId)
+                    ?.title ??
+                  (typeof node.properties["name"] === "string" &&
+                  node.properties["name"].length > 0
+                    ? node.properties["name"]
+                    : node.type.split(".").pop() ?? node.id)
+              })),
               signal
             );
             activeJobIdRef.current = null;
@@ -566,6 +744,15 @@ export const useBuildFromPlan = (
                 { started: true, error: null, output: completed.output },
                 "The sample run completed and produced output.",
                 completed.output
+              );
+            } else if (completed.status === "canceled") {
+              finalResult = resultWith(
+                "canceled",
+                placement.nodes.length,
+                placement.issues,
+                validationErrors,
+                { started: true, error: null },
+                "The test run was canceled."
               );
             } else {
               finalResult = resultWith(
@@ -588,7 +775,7 @@ export const useBuildFromPlan = (
             );
           }
         } catch (cause) {
-          if (signal?.aborted) {
+          if (signal.aborted) {
             throw cause;
           }
           const error = cause instanceof Error ? cause.message : String(cause);
@@ -601,18 +788,50 @@ export const useBuildFromPlan = (
             `The sample run could not start: ${error}`
           );
         }
-        await setSetup({
-          [WORKFLOW_BUILD_KEY]: workflowBuildRecord(finalResult)
-        });
-        setResult(finalResult);
-        return finalResult;
+        return await settle(finalResult);
       } catch (cause) {
-        if (signal?.aborted) {
+        if (!placedDone) {
           await rollback();
+          throw cause;
         }
-        throw cause;
+        // The graph is on the canvas and the stage is `done`, so the shell is
+        // gone. The record has to end in a final status, or the checklist
+        // would show this build checking or running for good.
+        const final = signal.aborted
+          ? resultWith(
+              "canceled",
+              nodeCount,
+              issues,
+              validationErrors,
+              { started: runStarted, error: null },
+              "The test run was canceled."
+            )
+          : resultWith(
+              "failed",
+              nodeCount,
+              issues,
+              validationErrors,
+              { started: runStarted, error: null },
+              `The build stopped: ${
+                cause instanceof Error ? cause.message : String(cause)
+              }`
+            );
+        if (!validationChecked) {
+          final.validationPending = true;
+        }
+        try {
+          return await settle(final);
+        } catch {
+          setResult(final);
+          return final;
+        }
       } finally {
+        outerSignal?.removeEventListener("abort", forwardAbort);
+        if (buildControllerRef.current === controller) {
+          buildControllerRef.current = null;
+        }
         activeJobIdRef.current = null;
+        liveBuilds.delete(workflowId);
         setBuilding(false);
       }
     },

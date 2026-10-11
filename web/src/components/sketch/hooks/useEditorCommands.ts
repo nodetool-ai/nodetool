@@ -163,37 +163,47 @@ export function useEditorCommands({
     [canvasRef]
   );
 
+  // Each of these commands is one undo step: it pushes a single checkpoint
+  // and adds its layer without the history entry Add Layer records.
+  const pushHistory = useSketchStore((s) => s.pushHistory);
+  const addLayer = useSketchStore((s) => s.addLayer);
+
   /**
    * Photoshop-style Ctrl+V: paste the clipboard image into a new layer
    * centered on the cursor. Lives at the editor-commands level because it
    * needs both the clipboard plumbing (`canvasActions`) and the
-   * add-layer action (`layerActions`).
+   * store's add-layer action.
    */
   const handlePasteAsNewLayer = useCallback(async () => {
-    return canvasActions.handlePasteAsNewLayer(() =>
-      layerActions.handleAddLayer()
-    );
-  }, [canvasActions, layerActions]);
+    return canvasActions.handlePasteAsNewLayer(() => addLayer());
+  }, [canvasActions, addLayer]);
 
   const handleLayerViaCopy = useCallback(async () => {
-    canvasActions.handleCopy();
-    const newLayerId = layerActions.handleAddLayer();
+    const origin = canvasActions.handleCopy();
+    pushHistory("layer via copy", undefined, { timing: "before" });
+    const newLayerId = addLayer();
     ensureLayerCanvasMaterialized(newLayerId);
     await canvasActions.handlePaste(true, {
       targetLayerId: newLayerId,
-      pasteAnchorDocument: null
+      // Keep the pixels where they were on the source layer.
+      pasteAnchorDocument: origin,
+      recordHistory: false
     });
-  }, [canvasActions, layerActions, ensureLayerCanvasMaterialized]);
+  }, [canvasActions, pushHistory, addLayer, ensureLayerCanvasMaterialized]);
 
   const handleLayerViaCut = useCallback(async () => {
-    canvasActions.handleCut();
-    const newLayerId = layerActions.handleAddLayer();
+    const origin = canvasActions.handleCopy();
+    pushHistory("layer via cut", undefined, { timing: "before" });
+    canvasActions.handleClearLayer({ recordHistory: false });
+    const newLayerId = addLayer();
     ensureLayerCanvasMaterialized(newLayerId);
     await canvasActions.handlePaste(true, {
       targetLayerId: newLayerId,
-      pasteAnchorDocument: null
+      // Keep the pixels where they were on the source layer.
+      pasteAnchorDocument: origin,
+      recordHistory: false
     });
-  }, [canvasActions, layerActions, ensureLayerCanvasMaterialized]);
+  }, [canvasActions, pushHistory, addLayer, ensureLayerCanvasMaterialized]);
 
   const handleFreeTransform = useCallback(() => {
     canvasActions.prepareSelectionFreeTransform?.();

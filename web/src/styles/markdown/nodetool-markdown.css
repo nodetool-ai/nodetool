@@ -23,7 +23,7 @@
 .markdown-body pre>div,
 .markdown-body pre>div code,
 .markdown-body pre>div span {
-  font-family: "JetBrains Mono !important", monospace !important;
+  font-family: var(--fontFamily2) !important;
 }
 
 .markdown-body .highlight pre,

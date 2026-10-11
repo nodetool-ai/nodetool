@@ -1052,3 +1052,71 @@ describe("shared timeline fixtures through the web handler", () => {
     expect(mockDoc.getState().clips).toEqual(initial.clips);
   });
 });
+describe("useTimelineAgentBridge target resolution", () => {
+  it("refuses a beat id that only shares leading digits with a position", async () => {
+    const beats = [
+      { id: "3abc0000000000000000000000000000", prompt: "one", duration_ms: 1000 },
+      { id: "11111111111111111111111111111111", prompt: "two", duration_ms: 1000 },
+      { id: "22222222222222222222222222222222", prompt: "three", duration_ms: 1000 }
+    ];
+    mockDoc.setState({ setup: { stage: "review", brief: "", beats } });
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    await expect(handler.removeBeat("2f4c1111aaaa")).rejects.toThrow(
+      "No beat matches"
+    );
+    expect(mockDoc.getState().setup?.beats).toHaveLength(3);
+    expect((await handler.removeBeat("3abc00000000")).id).toBe(beats[0].id);
+    expect(mockDoc.getState().setup?.beats?.map((beat) => beat.id)).toEqual([
+      beats[1].id,
+      beats[2].id
+    ]);
+  });
+
+  it("returns the edited clip for a mixed-case selected target", async () => {
+    mockDoc.getState().addTrack("overlay", "Titles");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "title-1",
+        name: "Title",
+        trackId,
+        mediaType: "text",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 2000
+      })
+    );
+    mockUi.getState().setSelection(["title-1"]);
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    const trimmed = await handler.trimClip("Selected", { durationMs: 1000 });
+    expect(trimmed.id).toBe("title-1");
+    expect(clipById("title-1").durationMs).toBe(1000);
+  });
+
+  it("does not apply a queued edit to a sequence opened while it waited", async () => {
+    mockDoc.getState().addTrack("video", "Video 1");
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const resolveAsset = async (ref: string) => {
+      await gate;
+      return {
+        id: ref,
+        name: "Shot.mp4",
+        contentType: "video/mp4",
+        durationMs: 4000
+      };
+    };
+    const overrides = { resolveAsset };
+    renderHook(() => useTimelineAgentBridge(SEQ_ID, overrides));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    const pendingEdit = handler.addMediaClip({ asset: "asset-1" });
+    mockDoc.setState({ sequenceId: "seq-2", clips: [] });
+    release();
+    await expect(pendingEdit).rejects.toThrow("open timeline changed");
+    expect(mockDoc.getState().clips).toEqual([]);
+  });
+});

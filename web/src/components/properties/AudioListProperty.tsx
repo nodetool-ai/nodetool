@@ -11,6 +11,8 @@ import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingP
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { settleUploads } from "./shared/settleUploads";
 import { isElectron } from "../../utils/browser";
 import {
   deserializeDragData,
@@ -141,21 +143,27 @@ const AudioListProperty = (props: PropertyProps<AudioItem[] | null>) => {
     () => flattenAudioItems(props.value),
     [props.value]
   );
+  // Read at upload completion: the list may have changed while files uploaded.
+  const audiosRef = useRef(audios);
+  audiosRef.current = audios;
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddAudios = useCallback(
     (newAudios: AudioItem[]) => {
-      const updatedAudios = [...audios, ...newAudios];
+      const updatedAudios = [...audiosRef.current, ...newAudios];
+      audiosRef.current = updatedAudios;
       props.onChange(updatedAudios);
     },
-    [audios, props]
+    [props]
   );
 
   const handleRemoveAudio = useCallback(
     (index: number) => {
       const updatedAudios = audios.filter((_, i) => i !== index);
+      audiosRef.current = updatedAudios;
       props.onChange(updatedAudios);
     },
     [audios, props]
@@ -257,13 +265,13 @@ const AudioListProperty = (props: PropertyProps<AudioItem[] | null>) => {
       );
 
       try {
-        const newAudios = await Promise.all(uploadPromises);
+        const newAudios = await settleUploads(uploadPromises, "audio files", addNotification);
         handleAddAudios(newAudios);
       } catch (error) {
         console.error("Failed to upload audio files:", error);
       }
     },
-    [uploadAsset, handleAddAudios, filteredAssets, globalSearchResults, selectedAssets]
+    [uploadAsset, addNotification, handleAddAudios, filteredAssets, globalSearchResults, selectedAssets]
   );
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -321,13 +329,13 @@ const AudioListProperty = (props: PropertyProps<AudioItem[] | null>) => {
           });
         });
 
-        const newAudios = await Promise.all(uploadPromises);
+        const newAudios = await settleUploads(uploadPromises, "audio files", addNotification);
         handleAddAudios(newAudios);
       }
     } catch (error) {
       console.error("Error opening file picker:", error);
     }
-  }, [uploadAsset, handleAddAudios]);
+  }, [uploadAsset, addNotification, handleAddAudios]);
 
   // Handle files from browser file input
   const handleBrowserFilePicker = useCallback(() => {
@@ -363,7 +371,7 @@ const AudioListProperty = (props: PropertyProps<AudioItem[] | null>) => {
     );
 
     try {
-      const newAudios = await Promise.all(uploadPromises);
+      const newAudios = await settleUploads(uploadPromises, "audio files", addNotification);
       handleAddAudios(newAudios);
     } catch (error) {
       console.error("Failed to upload audio files:", error);
@@ -373,7 +381,7 @@ const AudioListProperty = (props: PropertyProps<AudioItem[] | null>) => {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, [uploadAsset, handleAddAudios]);
+  }, [uploadAsset, addNotification, handleAddAudios]);
 
   // Handle dropzone click - use native dialog in Electron, file input in browser
   const handleDropzoneClick = useCallback(() => {

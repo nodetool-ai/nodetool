@@ -2,7 +2,7 @@
 // so Fast Refresh keeps working.
 
 import { create, StoreApi, UseBoundStore } from "zustand";
-import { NodeStore, createNodeStore } from "./NodeStore";
+import { NodeStore, NodeStoreState, createNodeStore } from "./NodeStore";
 import {
   Workflow,
   WorkflowAttributes,
@@ -192,6 +192,25 @@ interface HeldChangeNotice {
   ops?: DocumentOp[];
 }
 
+/**
+ * A manual save's input, with the node store's state references at call time.
+ * Every NodeStore mutation produces new `nodes`/`edges`/`workflow`
+ * references, so reference equality after the save tells whether the user
+ * edited the graph after asking to save.
+ */
+interface SaveInput {
+  workflow: Workflow;
+  nodeStoreBefore: NodeStore | undefined;
+  stateBefore: NodeStoreState | undefined;
+  /** Whether this save also records a version row. */
+  snapshot: boolean;
+}
+
+interface PendingSave {
+  input: SaveInput;
+  promise: Promise<void>;
+}
+
 const isWorkflowNotFoundError = (err: unknown): boolean => {
   if (!isRecord(err)) return false;
   if (isRecord(err.data)) {
@@ -299,7 +318,24 @@ export type WorkflowManagerState = {
   reorderWorkflows: (sourceIndex: number, targetIndex: number) => void;
   updateWorkflow: (workflow: WorkflowAttributes) => void;
   isSavingWorkflow: (workflowId: string) => boolean;
-  saveWorkflow: (workflow: Workflow) => Promise<void>;
+  /**
+   * Saves the workflow. `snapshot: false` skips the version row, for a save
+   * that only records progress on a change an earlier save already captured.
+   */
+  saveWorkflow: (
+    workflow: Workflow,
+    options?: { snapshot?: boolean }
+  ) => Promise<void>;
+  /**
+   * Run a write of this workflow (an autosave or checkpoint) after any save
+   * already queued for it, holding external-change notices until it ends.
+   * `task` resolves to the etag the server assigned, so the write's own echo
+   * is recognized; undefined when it wrote nothing.
+   */
+  queueWorkflowSave: (
+    workflowId: string,
+    task: () => Promise<string | undefined>
+  ) => Promise<void>;
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
   fetchWorkflow: (
@@ -417,7 +453,232 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
    */
   const savesInFlight = new Map<string, HeldChangeNotice[]>();
 
+  /**
+   * The tail of each workflow's save queue. Writes of one workflow run one at
+   * a time: a second write sent while the first is in flight carries the same
+   * expected_updated_at and the server rejects it as a conflict.
+   */
+  const saveQueues = new Map<string, Promise<void>>();
+
+  /**
+   * A manual save waiting behind another write. A newer `saveWorkflow` call
+   * replaces its input, so repeated Ctrl+S sends one request.
+   */
+  const pendingSaves = new Map<string, PendingSave>();
+
   const store = create<WorkflowManagerState>()((set, get) => {
+    const runQueuedSave = (
+      workflowId: string,
+      task: () => Promise<string | undefined>
+    ): Promise<void> => {
+      const start = async (): Promise<void> => {
+        savesInFlight.set(workflowId, []);
+        // The etag the server assigns this write. Every notice held while it
+        // runs is judged against it: equal means our own write.
+        let savedEtag: string | undefined;
+        try {
+          savedEtag = await task();
+        } finally {
+          const held = savesInFlight.get(workflowId) ?? [];
+          savesInFlight.delete(workflowId);
+          for (const notice of held) {
+            // Our own write echoing back — the save already applied it.
+            if (savedEtag && notice.etag === savedEtag) continue;
+            void get().refreshWorkflow(workflowId, notice.etag, notice.ops);
+          }
+        }
+      };
+      // With nothing queued the write starts now, so notices arriving from
+      // this tick on are already held.
+      const previous = saveQueues.get(workflowId);
+      const run = previous ? previous.then(start) : start();
+      const settled = run.catch(() => undefined);
+      saveQueues.set(workflowId, settled);
+      void settled.then(() => {
+        if (saveQueues.get(workflowId) === settled) {
+          saveQueues.delete(workflowId);
+        }
+      });
+      return run;
+    };
+
+    const captureSave = (
+      workflow: Workflow,
+      options?: { snapshot?: boolean }
+    ): SaveInput => {
+      const nodeStoreBefore = get().nodeStores[workflow.id];
+      return {
+        workflow,
+        nodeStoreBefore,
+        stateBefore: nodeStoreBefore?.getState(),
+        snapshot: options?.snapshot !== false
+      };
+    };
+
+    /** Sends one manual save and returns the etag the server assigned. */
+    const performSave = async (
+      { workflow: requested, nodeStoreBefore, stateBefore, snapshot }: SaveInput,
+      waited: boolean
+    ): Promise<string | undefined> => {
+      // A save that waited behind another write must send the token that
+      // write left in the editor, not the one current when it was queued.
+      const tokenSource = waited
+        ? get().nodeStores[requested.id]?.getState().workflow
+        : undefined;
+      const workflow: Workflow = tokenSource
+        ? {
+            ...requested,
+            updated_at: tokenSource.updated_at,
+            etag: tokenSource.etag
+          }
+        : requested;
+      let savedEtag: string | undefined;
+      // A never-persisted workflow only has a client-fabricated updated_at;
+      // sending it as expected_updated_at makes the server refuse the
+      // create-on-first-save upsert with "Workflow not found".
+      const neverPersisted = Boolean(get().unsavedWorkflowIds[workflow.id]);
+
+      let data: Workflow;
+      try {
+        const graph = workflow.graph ?? { nodes: [], edges: [] };
+        const updateInput: Parameters<
+          typeof trpcClient.workflows.update.mutate
+        >[0] = {
+          id: workflow.id,
+          name: workflow.name,
+          access: workflow.access ?? "private",
+          graph,
+          tool_name: workflow.tool_name,
+          description: workflow.description,
+          tags: workflow.tags,
+          package_name: workflow.package_name,
+          thumbnail: workflow.thumbnail,
+          thumbnail_url: workflow.thumbnail_url,
+          settings: workflow.settings,
+          run_mode: workflow.run_mode,
+          workspace_id: workflow.workspace_id,
+          html_app: workflow.html_app,
+          expected_updated_at: neverPersisted
+            ? undefined
+            : workflow.updated_at ?? undefined
+        };
+        if (workflow.project_id) {
+          updateInput.project_id = workflow.project_id;
+        }
+        data = (await trpcClient.workflows.update.mutate(
+          updateInput
+        )) as Workflow;
+      } catch (err) {
+        // The row was deleted outside the editor (REST, MCP). Name the gone
+        // document instead of surfacing a bare "not found".
+        if (!neverPersisted && isWorkflowNotFoundError(err)) {
+          throw new Error(
+            `Workflow "${workflow.name}" was deleted and can no longer be saved`
+          );
+        }
+        throw createErrorMessage(err, "Failed to save workflow");
+      }
+
+      if (neverPersisted) {
+        set((state) => {
+          const { [workflow.id]: _saved, ...rest } = state.unsavedWorkflowIds;
+          return { unsavedWorkflowIds: rest };
+        });
+      }
+
+      // Version snapshot is best-effort — the main save already succeeded.
+      if (snapshot) {
+        try {
+          await trpcClient.workflows.versions.create.mutate({
+            id: workflow.id,
+            name: workflow.name,
+            description: `Manual save: ${new Date().toISOString()}`
+          });
+        } catch (err) {
+          console.warn(
+            "[saveWorkflow] Workflow saved but version snapshot failed:",
+            err
+          );
+        }
+      }
+
+      const persistedWorkflow: Workflow = {
+        ...data,
+        run_mode: workflow.run_mode ?? data.run_mode
+      };
+      savedEtag = persistedWorkflow.etag ?? undefined;
+
+      // The server now holds the graph this save sent, so it is the base
+      // the next external change merges against. The update response may
+      // omit the graph; what we sent is what the row holds.
+      mergeBases.set(persistedWorkflow.id, {
+        ...persistedWorkflow,
+        graph: persistedWorkflow.graph ?? workflow.graph
+      });
+
+      if (window.api) {
+        window.api.onUpdateWorkflow(persistedWorkflow);
+      }
+
+      set((state) => {
+        const nodeStore = state.nodeStores[persistedWorkflow.id];
+        if (nodeStore) {
+          const current = nodeStore.getState();
+          const editedDuringSave =
+            nodeStore !== nodeStoreBefore ||
+            !stateBefore ||
+            current.nodes !== stateBefore.nodes ||
+            current.edges !== stateBefore.edges ||
+            current.workflow !== stateBefore.workflow;
+          // Only mark the store clean (and adopt the server's workflow
+          // attributes) when nothing changed during the save. If the user
+          // edited meanwhile, keep the dirty flag and their attribute
+          // edits — the next autosave persists them.
+          if (!editedDuringSave) {
+            nodeStore.getState().adoptSavedWorkflow(persistedWorkflow);
+            nodeStore.getState().setWorkflowDirty(false);
+          } else {
+            // The save itself succeeded, so the server row now carries this
+            // response's updated_at and etag. Adopt both as the concurrency
+            // tokens — keeping the old ones makes every later save and
+            // autosave fail with an optimistic-concurrency conflict.
+            nodeStore
+              .getState()
+              .setWorkflowUpdatedAt(
+                persistedWorkflow.updated_at,
+                persistedWorkflow.etag
+              );
+          }
+        }
+
+        const index = state.openWorkflows.findIndex(
+          (w) => w.id === persistedWorkflow.id
+        );
+        if (index === -1) return state;
+
+        const newWorkflows = [...state.openWorkflows];
+        newWorkflows[index] = omit(persistedWorkflow, ["graph"]);
+
+        return {
+          openWorkflows: newWorkflows
+        };
+      });
+
+      get().queryClient?.setQueryData(
+        workflowQueryKey(persistedWorkflow.id),
+        persistedWorkflow
+      );
+      get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+      get().queryClient?.invalidateQueries({
+        queryKey: ["workflow", persistedWorkflow.id]
+      });
+      get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
+      get().queryClient?.invalidateQueries({
+        queryKey: ["workflow", persistedWorkflow.id, "versions"]
+      });
+      return savedEtag;
+    };
+
     return {
       nodeStores: {},
       openWorkflows: [],
@@ -466,174 +727,33 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @returns {Promise<void>}
        * @throws {Error} If the save operation fails
        */
-      isSavingWorkflow: (workflowId) => savesInFlight.has(workflowId),
-      saveWorkflow: async (workflow: Workflow) => {
-        savesInFlight.set(workflow.id, []);
-        // The etag the server assigns this save. Every notice held while the
-        // save runs is judged against it: equal means our own write.
-        let savedEtag: string | undefined;
-        try {
-        // Snapshot the node store's state references before the awaited
-        // mutation. Every NodeStore mutation produces new `nodes`/`edges`/
-        // `workflow` references, so reference equality after the await tells
-        // us whether the user edited the graph while the save was in flight.
-        const nodeStoreBefore = get().nodeStores[workflow.id];
-        const stateBefore = nodeStoreBefore?.getState();
-        // A never-persisted workflow only has a client-fabricated updated_at;
-        // sending it as expected_updated_at makes the server refuse the
-        // create-on-first-save upsert with "Workflow not found".
-        const neverPersisted = Boolean(get().unsavedWorkflowIds[workflow.id]);
-
-        let data: Workflow;
-        try {
-          const graph = workflow.graph ?? { nodes: [], edges: [] };
-          const updateInput: Parameters<
-            typeof trpcClient.workflows.update.mutate
-          >[0] = {
-            id: workflow.id,
-            name: workflow.name,
-            access: workflow.access ?? "private",
-            graph,
-            tool_name: workflow.tool_name,
-            description: workflow.description,
-            tags: workflow.tags,
-            package_name: workflow.package_name,
-            thumbnail: workflow.thumbnail,
-            thumbnail_url: workflow.thumbnail_url,
-            settings: workflow.settings,
-            run_mode: workflow.run_mode,
-            workspace_id: workflow.workspace_id,
-            html_app: workflow.html_app,
-            expected_updated_at: neverPersisted
-              ? undefined
-              : workflow.updated_at ?? undefined
+      isSavingWorkflow: (workflowId) =>
+        savesInFlight.has(workflowId) || saveQueues.has(workflowId),
+      saveWorkflow: (workflow: Workflow, options?: { snapshot?: boolean }) => {
+        // Capture the editor's state now: an edit made after this call, even
+        // while the save waits its turn, must keep the workflow dirty.
+        const input = captureSave(workflow, options);
+        const pending = pendingSaves.get(workflow.id);
+        if (pending) {
+          // The coalesced save records a version if any caller asked for one.
+          pending.input = {
+            ...input,
+            snapshot: input.snapshot || pending.input.snapshot
           };
-          if (workflow.project_id) {
-            updateInput.project_id = workflow.project_id;
-          }
-          data = (await trpcClient.workflows.update.mutate(
-            updateInput
-          )) as Workflow;
-        } catch (err) {
-          // The row was deleted outside the editor (REST, MCP). Name the gone
-          // document instead of surfacing a bare "not found".
-          if (!neverPersisted && isWorkflowNotFoundError(err)) {
-            throw new Error(
-              `Workflow "${workflow.name}" was deleted and can no longer be saved`
-            );
-          }
-          throw createErrorMessage(err, "Failed to save workflow");
+          return pending.promise;
         }
-
-        if (neverPersisted) {
-          set((state) => {
-            const { [workflow.id]: _saved, ...rest } = state.unsavedWorkflowIds;
-            return { unsavedWorkflowIds: rest };
-          });
+        if (!saveQueues.has(workflow.id)) {
+          return runQueuedSave(workflow.id, () => performSave(input, false));
         }
-
-        // Version snapshot is best-effort — the main save already succeeded.
-        try {
-          await trpcClient.workflows.versions.create.mutate({
-            id: workflow.id,
-            name: workflow.name,
-            description: `Manual save: ${new Date().toISOString()}`
-          });
-        } catch (err) {
-          console.warn(
-            "[saveWorkflow] Workflow saved but version snapshot failed:",
-            err
-          );
-        }
-
-        const persistedWorkflow: Workflow = {
-          ...data,
-          run_mode: workflow.run_mode ?? data.run_mode
-        };
-        savedEtag = persistedWorkflow.etag ?? undefined;
-
-        // The server now holds the graph this save sent, so it is the base
-        // the next external change merges against. The update response may
-        // omit the graph; what we sent is what the row holds.
-        mergeBases.set(persistedWorkflow.id, {
-          ...persistedWorkflow,
-          graph: persistedWorkflow.graph ?? workflow.graph
+        const entry: PendingSave = { input, promise: Promise.resolve() };
+        entry.promise = runQueuedSave(workflow.id, () => {
+          pendingSaves.delete(workflow.id);
+          return performSave(entry.input, true);
         });
-
-        if (window.api) {
-          window.api.onUpdateWorkflow(persistedWorkflow);
-        }
-
-        set((state) => {
-          const nodeStore = state.nodeStores[persistedWorkflow.id];
-          if (nodeStore) {
-            const current = nodeStore.getState();
-            const editedDuringSave =
-              nodeStore !== nodeStoreBefore ||
-              !stateBefore ||
-              current.nodes !== stateBefore.nodes ||
-              current.edges !== stateBefore.edges ||
-              current.workflow !== stateBefore.workflow;
-            // Only mark the store clean (and adopt the server's workflow
-            // attributes) when nothing changed during the save. If the user
-            // edited meanwhile, keep the dirty flag and their attribute
-            // edits — the next autosave persists them.
-            if (!editedDuringSave) {
-              nodeStore.setState({
-                workflow: persistedWorkflow
-              });
-              nodeStore.getState().setWorkflowDirty(false);
-            } else {
-              // The save itself succeeded, so the server row now carries this
-              // response's updated_at and etag. Adopt both as the concurrency
-              // tokens — keeping the old ones makes every later save and
-              // autosave fail with an optimistic-concurrency conflict.
-              const currentWorkflow = nodeStore.getState().workflow;
-              nodeStore.setState({
-                workflow: {
-                  ...currentWorkflow,
-                  updated_at: persistedWorkflow.updated_at,
-                  etag: persistedWorkflow.etag ?? currentWorkflow.etag
-                }
-              });
-            }
-          }
-
-          const index = state.openWorkflows.findIndex(
-            (w) => w.id === persistedWorkflow.id
-          );
-          if (index === -1) return state;
-
-          const newWorkflows = [...state.openWorkflows];
-          newWorkflows[index] = omit(persistedWorkflow, ["graph"]);
-
-          return {
-            openWorkflows: newWorkflows
-          };
-        });
-
-        get().queryClient?.setQueryData(
-          workflowQueryKey(persistedWorkflow.id),
-          persistedWorkflow
-        );
-        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-        get().queryClient?.invalidateQueries({
-          queryKey: ["workflow", persistedWorkflow.id]
-        });
-        get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
-        get().queryClient?.invalidateQueries({
-          queryKey: ["workflow", persistedWorkflow.id, "versions"]
-        });
-        } finally {
-          const held = savesInFlight.get(workflow.id) ?? [];
-          savesInFlight.delete(workflow.id);
-          for (const notice of held) {
-            // Our own write echoing back — the save already applied it.
-            if (savedEtag && notice.etag === savedEtag) continue;
-            void get().refreshWorkflow(workflow.id, notice.etag, notice.ops);
-          }
-        }
+        pendingSaves.set(workflow.id, entry);
+        return entry.promise;
       },
+      queueWorkflowSave: (workflowId, task) => runQueuedSave(workflowId, task),
 
       /**
        * Creates a new workflow in memory only.
