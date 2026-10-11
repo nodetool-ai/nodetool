@@ -68,10 +68,16 @@ const SelectedItemsInfo: React.FC<{
     }, 0);
   }, [selectedAssetIds, assets]);
 
-  if (selectedAssetIds.length === 0) return null;
+  // The row keeps its height while nothing is selected: selecting an asset
+  // as a drag starts must not push the folder list under the pointer.
+  const hidden = selectedAssetIds.length === 0;
 
   return (
-    <div className="header-info">
+    <div
+      className="header-info"
+      aria-hidden={hidden}
+      style={hidden ? { visibility: "hidden" } : undefined}
+    >
       <div className="selected-asset-info">
         <Text className="selected-info">
           {selectedAssetIds.length}{" "}
