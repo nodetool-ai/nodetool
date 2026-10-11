@@ -29,8 +29,9 @@ skip `merge_group`, so a required check from one of them never reports on a
 diff outside its paths and blocks the merge.
 
 The browser suites in `user-journeys.yml`, `page-load-smoke.yml`, and
-`e2e-runner.yml` run on pushes to `main`, nightly or on dispatch, and on a pull
-request only when the `browser-suites` label is added. Their pull-request
+`e2e-runner.yml` run nightly and on dispatch, and on a pull request only when
+the `browser-suites` label is added. The `journeys` job in `user-journeys.yml`
+also runs on every push to `main`. The other two do not run on push. Their pull-request
 trigger is `labeled` alone, so a PR without the label starts no run of them.
 A new push to a labeled PR does not rerun them. Remove and re-add the label,
 or dispatch the workflow on the PR branch. On pull requests they are advisory
@@ -43,8 +44,8 @@ below.
 |---|---|---|---|
 | `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A push to `main` cancels the run of the push before it and diffs against the last `main` commit whose Test run passed. A nightly run and `merge_group` events are also wired | 0 | Required |
 | `quality-checks.yml` | Reusable gate: deps/lint static legs plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples, four `test-packages-*` shards of the backend suite, three web Jest shards or one related-tests leg, electron+mobile, bundle, harness gate). The shipped-workflow integration tests and the workflow-runner browser E2E run here too, so their failures fail the required check. The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly. The nodes shard installs Blender, and so runs the Blender render suites, only when a diff touches `packages/blender-nodes/` and nightly | 0 | Required (infra called by `test.yml`) |
-| `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Advisory on PRs with the `browser-suites` label |
-| `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Advisory on PRs with the `browser-suites` label |
+| `page-load-smoke.yml` | Playwright: every route loads against a seeded backend. Nightly, dispatch, labeled PRs | 0 | Advisory on PRs with the `browser-suites` label |
+| `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack. Nightly, dispatch, labeled PRs | 1 | Advisory on PRs with the `browser-suites` label |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
 | `fly-deploy.yml` | **Deploy to Docker**: release the GHCR image to the production host over restricted SSH, gated on Docker + User Journeys succeeding for the same commit | 1 | Required |
 | `web-deploy.yml` | Build the web app and deploy to Cloudflare Pages | 1 | Required |
@@ -74,7 +75,7 @@ below.
 | `genspend-pricing.yml` | Nightly GenSpend price sync; opens a PR when a price moved | none/maintenance | Advisory |
 | `internal-only-shipper.yaml` | Scheduled agent ships or deletes features gated to dev/internal builds | none/maintenance | Advisory (`continue-on-error`) |
 | `issue-triage.yml` | Labels new issues, flags duplicates, requests repro details | none/maintenance | n/a (read-only) |
-| `jekyll.yml` | Build and deploy the docs site to GitHub Pages | none/maintenance | Required for docs deploy |
+| `jekyll.yml` | Build and deploy the docs site to GitHub Pages on pushes to `main` that change `docs/` | none/maintenance | Required for docs deploy |
 | `logic-bugfixer.yaml` | Scheduled agent models one decidable function, enumerates its inputs, and fixes divergences with a reproduction | none/maintenance | Advisory (`continue-on-error`) |
 | `logic-simplifier.yaml` | Scheduled agent simplifies the logic in one branch-dense function | none/maintenance | Advisory (`continue-on-error`) |
 | `marketing-ci.yml` | Typecheck/lint/build/Playwright smoke for the marketing site; deploys to Cloudflare Workers on push to main | none/maintenance | Required for `marketing/**` |
