@@ -29,6 +29,8 @@ Use the user's target, scope, and permissions. Otherwise use these defaults:
 - Run the core campaign in [journeys.md](references/journeys.md): website
   understanding, app first use, and one outcome-led task, each independently cold.
   Include persistence and recovery inside the task session. Report omissions.
+  Run each journey by its protocol in [protocols](references/protocols/README.md):
+  the packet, what counts as success, the checks, and the known behavior.
 - Use desktop at 1440 × 900 CSS pixels, device scale 1, a fresh browser context,
   and ordinary browser proficiency but no assumed product knowledge. For a UX
   campaign, run at least one session at a small laptop size (`viewport` in the

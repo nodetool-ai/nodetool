@@ -11,6 +11,11 @@ then, run persistence as the last part of the task session itself.
 Use the persona from the packet example in [runtime.md](runtime.md) unless the
 user names one. Do not name NodeTool features in a goal.
 
+Run a goal by its protocol in [protocols/](protocols/README.md), which holds
+its packet, pass criteria, checks, routes, and known behavior. The protocols
+also define goals that this page does not list. A goal added here needs a
+protocol in the same change.
+
 ## Core campaign
 
 | Session | Kind | Entry | Limits | Goal given to the participant |
