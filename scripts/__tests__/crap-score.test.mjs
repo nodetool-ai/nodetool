@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   analyze,
+  coverageCommand,
   crapScore,
   functionsInSource,
   loadLcov,
@@ -195,6 +196,29 @@ describe("LCOV", () => {
       expect(entry).toMatchObject({ name: "a", file: "pkg/src/a.ts", complexity: 2, coverage: 50, crap: 2.5 });
     });
 
+    it("unions reports that cover the same file", () => {
+      dir = mkdtempSync(join(tmpdir(), "crap-"));
+      mkdirSync(join(dir, "pkg", "src"), { recursive: true });
+      mkdirSync(join(dir, "pkg", "coverage"));
+      mkdirSync(join(dir, "other", "coverage"), { recursive: true });
+      writeFileSync(join(dir, "pkg", "src", "a.ts"), "export function a(x: number) {\n  return x ? 1 : 2;\n}\n");
+      writeFileSync(join(dir, "pkg", "package.json"), "{}");
+      // Each run takes a different branch, and the second run misses line 1.
+      writeFileSync(join(dir, "pkg", "coverage", "lcov.info"), "SF:src/a.ts\nDA:1,1\nDA:2,1\nBRDA:2,0,0,1\nBRDA:2,0,1,0\nend_of_record\n");
+      writeFileSync(
+        join(dir, "other", "coverage", "lcov.info"),
+        "SF:../pkg/src/a.ts\nDA:1,0\nDA:2,1\nBRDA:2,0,0,0\nBRDA:2,0,1,3\nend_of_record\n"
+      );
+
+      const coverage = loadLcov(
+        [join(dir, "pkg", "coverage", "lcov.info"), join(dir, "other", "coverage", "lcov.info")],
+        dir
+      );
+      const record = coverage.get(join(dir, "pkg", "src", "a.ts"));
+      expect(percentForSpan(record, 2, 2)).toBe(100);
+      expect(percentForSpan(record, 1, 1)).toBe(100);
+    });
+
     it("scores a file missing from the report at 0% and fails the threshold", () => {
       dir = mkdtempSync(join(tmpdir(), "crap-"));
       writeFileSync(join(dir, "b.ts"), "export const b = (x: number) => (x > 1 && x < 5 ? 1 : 2);\n");
@@ -215,6 +239,18 @@ describe("LCOV", () => {
         process.stdout.write = stdout;
       }
     });
+  });
+});
+
+describe("coverageCommand", () => {
+  let dir;
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  it("asks Vitest for a report even when a related test fails", () => {
+    dir = mkdtempSync(join(tmpdir(), "crap-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { test: "vitest run" } }));
+    const [, args] = coverageCommand(dir, ["src/a.ts"]);
+    expect(args).toContain("--coverage.reportOnFailure");
   });
 });
 

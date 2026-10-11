@@ -62,7 +62,10 @@ export default defineConfig({
       "@nodetool-ai/transformers-js-nodes": resolve(
         __dirname,
         "../transformers-js-nodes/src/index.ts"
-      )
+      ),
+      // Tests import this package by name. Resolve it to src/ so coverage
+      // lands on the source, not dist/.
+      "@nodetool-ai/dsl": resolve(__dirname, "src/index.ts")
     }
   },
   test: {
