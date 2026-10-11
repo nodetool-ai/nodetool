@@ -85,6 +85,12 @@ jobs:
       - name: Verify dry-run
         run: node scripts/prepare-publish.mjs --dry-run
 
+      # Install the CLI from the packed tarballs and run it against an empty
+      # HOME before anything reaches the registry. The post-publish smoke job
+      # below only finds a broken release after users can install it.
+      - name: Smoke-test the packed CLI
+        run: node scripts/smoke-packed-cli.mjs
+
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
