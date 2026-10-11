@@ -66,3 +66,43 @@ conversation and stayed on it.
 
 **Known behavior.** The composer's attachment chip truncates the file name to
 a few letters ("trip-…"), so two similar files cannot be told apart.
+
+## `chat-threads`
+
+| Packet | Value |
+|---|---|
+| Kind | `task` |
+| Limits | 50 actions, 10 minutes |
+| State | `--state empty` |
+| Credentials | One OpenAI test key |
+| Goal | The `chat-threads` row in [journeys.md](../journeys.md#outcome-goals) |
+
+**Pass.** Two threads, each holding only its own questions, opened again
+after a reload through visible navigation. The first thread holds the
+follow-up message.
+
+**Checks.**
+
+- Count the replies under each question when the participant switches back
+  to the first thread, after the follow-up, and after the reload. One reply
+  per question each time.
+- Compare each question on screen with its typed receipt, letter for letter.
+- Record whether the participant switched threads through the tab strip or
+  the rail's "Chats" panel.
+
+**Routes.**
+
+- The first chat starts from the Home composer and a model pick, or from
+  "+ New", then "New chat". The second chat starts from "+ New" again.
+- Switching back: the first chat's tab, or its row in the rail's "Chats"
+  panel.
+
+**Fakes.** Every reply reads "deterministic e2e response", so the two threads
+differ only in their questions. Tell them apart by the questions.
+
+**Known behavior.** Round 6 fixed a reply that showed twice after switching
+back to a thread (the stream placeholder kept beside the stored row). A
+doubled reply again is a regression of that fix, not a new finding.
+
+**Regression.** `web/src/stores/__tests__/GlobalChatStore.test.ts`, the
+`loadMessages` placeholder cases.
