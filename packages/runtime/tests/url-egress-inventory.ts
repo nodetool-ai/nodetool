@@ -592,6 +592,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Every chatgpt.com request, image downloads included, executes in the user's ChatGPT tab. An input image given as a URL is fetched server-side through fetchExternalMedia, which checks each redirect hop."
   },
   {
+    file: "packages/runtime/src/providers/gemini-web-provider.ts",
+    owner: "Gemini web chat, image and video generation",
+    inputSource: "chat-client",
+    schemes: ["https", "http"],
+    authScope: "the browser's Google cookies for generated media; none on input image fetches",
+    redirects: "runtime-follows",
+    dnsRebinding: "deployment-egress",
+    policy: "browser",
+    guardedBy: ["fetchExternalMedia"],
+    note: "Every gemini.google.com request runs in the user's Gemini tab, and the browser itself loads generated images (lh3.googleusercontent.com/gg-dl) and videos (contribution.usercontent.google.com) that the Gemini response named. A chat input image given as a URL is fetched server-side through fetchExternalMedia, which checks each redirect hop."
+  },
+  {
     file: "packages/game-renderer/src/standalone-player.ts",
     owner: "standalone game player assets",
     inputSource: "fixed",

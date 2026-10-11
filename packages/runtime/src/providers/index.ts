@@ -35,6 +35,7 @@ import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { DreaminaProvider } from "./dreamina-provider.js";
 import { ChatGPTProvider } from "./chatgpt-provider.js";
+import { GeminiWebProvider } from "./gemini-web-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
 import { NodeLlamaCppProvider } from "./node-llama-cpp-provider.js";
@@ -231,6 +232,7 @@ export { UseapiProvider };
 export { ClaudeAgentProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
 export { ChatGPTProvider, setChatGPTTab } from "./chatgpt-provider.js";
+export { GeminiWebProvider, setGeminiWebTab } from "./gemini-web-provider.js";
 export type { ExtensionTab } from "./extension-tab.js";
 export { GeminiProvider };
 export { LlamaProvider };
@@ -522,6 +524,10 @@ registerBuiltinProvider(PROVIDER_IDS.DREAMINA, DreaminaProvider, {});
 // tab, driven by the NodeTool Chrome extension. No credentials. Pruned from the
 // cloud profile (NON_CLOUD_PROVIDER_IDS).
 registerBuiltinProvider(PROVIDER_IDS.CHATGPT, ChatGPTProvider, {});
+// Gemini web: image generation through the user's logged-in gemini.google.com
+// tab, driven by the NodeTool Chrome extension. No credentials. Pruned from the
+// cloud profile (NON_CLOUD_PROVIDER_IDS).
+registerBuiltinProvider(PROVIDER_IDS.GEMINI_WEB, GeminiWebProvider, {});
 registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, {
   GEMINI_API_KEY: ""
 });
