@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   Box,
@@ -33,10 +33,46 @@ const CurrentProjectDocuments = () => {
       ? activeProjectId
       : personalProjectId;
   const [pageState, setPageState] = useState({ projectId, page: 0 });
-  const { data, isPending, error } = trpc.projects.get.useQuery(
-    { id: projectId ?? "" },
-    { enabled: Boolean(projectId), staleTime: 15_000 }
+  const requestedPage = pageState.projectId === projectId ? pageState.page : 0;
+  const utils = trpc.useUtils();
+  // One page of cards per request: the server reads whole only the documents
+  // on it, rather than every document, entity and ledger row in the project.
+  // Unbatched, so the cards do not wait on the start page's slower queries.
+  const { data, isPending, error } = trpc.projects.documentPage.useQuery(
+    {
+      id: projectId ?? "",
+      offset: requestedPage * DOCUMENTS_PER_PAGE,
+      limit: DOCUMENTS_PER_PAGE
+    },
+    {
+      enabled: Boolean(projectId),
+      staleTime: 15_000,
+      trpc: { context: { skipBatch: true } }
+    }
   );
+  const total = data?.total ?? 0;
+  const pageCount = Math.ceil(total / DOCUMENTS_PER_PAGE);
+  const page = Math.min(requestedPage, Math.max(pageCount - 1, 0));
+  const hasNextPage = page < pageCount - 1;
+  // Documents removed while a later page was open: step back to the last page
+  // that still has cards rather than showing an empty one.
+  useEffect(() => {
+    if (data && requestedPage > page) {
+      setPageState({ projectId, page });
+    }
+  }, [data, requestedPage, page, projectId]);
+  // Fetch the next page ahead, so Next shows cached cards instead of a spinner.
+  useEffect(() => {
+    if (!projectId || !hasNextPage) return;
+    void utils.projects.documentPage.prefetch(
+      {
+        id: projectId,
+        offset: (page + 1) * DOCUMENTS_PER_PAGE,
+        limit: DOCUMENTS_PER_PAGE
+      },
+      { staleTime: 15_000, trpc: { context: { skipBatch: true } } }
+    );
+  }, [utils, projectId, page, hasNextPage]);
   const openDocument = useCallback(
     (document: ProjectDocument) => {
       if (!projectId) return;
@@ -52,23 +88,14 @@ const CurrentProjectDocuments = () => {
 
   if (!projectId) return null;
 
-  const documents = data?.project.id === projectId ? data.documents : [];
-  const pageCount = Math.ceil(documents.length / DOCUMENTS_PER_PAGE);
-  const page =
-    pageState.projectId === projectId
-      ? Math.min(pageState.page, Math.max(pageCount - 1, 0))
-      : 0;
+  const documents = data?.documents ?? [];
   const firstDocument = page * DOCUMENTS_PER_PAGE;
-  const visibleDocuments = documents.slice(
-    firstDocument,
-    firstDocument + DOCUMENTS_PER_PAGE
-  );
   return (
     <FlexColumn gap={SPACING.md} aria-label="Current project documents">
       <FlexRow align="center" gap={SPACING.md} wrap>
         <ProjectSelector inline />
         <Caption color="muted">
-          Documents{documents.length > 0 ? ` · ${documents.length}` : ""}
+          Documents{total > 0 ? ` · ${total}` : ""}
         </Caption>
       </FlexRow>
       {isPending ? (
@@ -86,7 +113,7 @@ const CurrentProjectDocuments = () => {
               "repeat(auto-fill, minmax(min(100%, 190px), 1fr))"
           }}
         >
-          {visibleDocuments.map((document) => (
+          {documents.map((document) => (
             <ProjectDocumentCard
               key={`${document.type}:${document.ref}`}
               document={document}
@@ -109,13 +136,12 @@ const CurrentProjectDocuments = () => {
           </EditorButton>
           <Caption color="secondary">
             {firstDocument + 1}–
-            {Math.min(firstDocument + DOCUMENTS_PER_PAGE, documents.length)} of{" "}
-            {documents.length}
+            {Math.min(firstDocument + DOCUMENTS_PER_PAGE, total)} of {total}
           </Caption>
           <EditorButton
             variant="outlined"
             density="compact"
-            disabled={page >= pageCount - 1}
+            disabled={!hasNextPage}
             onClick={() => setPageState({ projectId, page: page + 1 })}
           >
             Next

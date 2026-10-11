@@ -49,7 +49,7 @@ import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 import { setWorkflowResourceReloader } from "./resourceChangeHandler";
 import { shouldApplyWorkflowRefresh } from "./workflowRefreshPolicy";
 import { isString } from "../utils/typePredicates";
-import type { DocumentOp } from "@nodetool-ai/protocol";
+import { mergeGraphLinks, type DocumentOp } from "@nodetool-ai/protocol";
 import { mergeWorkflowDocuments } from "./workflowMerge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
@@ -104,7 +104,12 @@ function mergeExternalGraph(
   state.applyExternalGraph(
     merged.nodes as Node<NodeData>[],
     merged.edges as Edge[],
-    { etag: fresh.etag ?? undefined, updatedAt: fresh.updated_at }
+    { etag: fresh.etag ?? undefined, updatedAt: fresh.updated_at },
+    mergeGraphLinks(
+      baseWorkflow.graph?.links ?? [],
+      state.links,
+      fresh.graph?.links ?? []
+    )
   );
 
   const listed = conflicts.map((conflict) =>

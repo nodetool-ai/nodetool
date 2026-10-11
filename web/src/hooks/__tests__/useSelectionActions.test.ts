@@ -70,6 +70,8 @@ describe("useSelectionActions", () => {
     // Mock useNodeStoreRef to return a store with getState
     asMock(useNodeStoreRef).mockReturnValue({
       getState: () => ({
+        links: [],
+        selectedLinkIds: [],
         nodes: defaultNodes,
         edges: []
       })
@@ -125,7 +127,7 @@ describe("useSelectionActions", () => {
         })
       );
       asMock(useNodeStoreRef).mockReturnValue({
-        getState: () => ({ nodes, edges: [] })
+        getState: () => ({ nodes, edges: [], links: [], selectedLinkIds: [] })
       });
     };
 
@@ -288,6 +290,8 @@ describe("useSelectionActions", () => {
       // Update the store mock for this test
       asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
+          links: [],
+          selectedLinkIds: [],
           nodes: testNodes,
           edges: []
         })
@@ -390,6 +394,8 @@ describe("useSelectionActions", () => {
       // Update the store mock for this test
       asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
+          links: [],
+          selectedLinkIds: [],
           nodes: testNodes,
           edges: []
         })
@@ -460,6 +466,8 @@ describe("useSelectionActions", () => {
       // Update the store mock for this test
       asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
+          links: [],
+          selectedLinkIds: [],
           nodes: testNodes,
           edges: []
         })
@@ -504,6 +512,8 @@ describe("useSelectionActions", () => {
       );
       asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
+          links: [],
+          selectedLinkIds: [],
           nodes: testNodes,
           edges: []
         })
@@ -538,6 +548,8 @@ describe("useSelectionActions", () => {
       );
       asMock(useNodeStoreRef).mockReturnValue({
         getState: () => ({
+          links: [],
+          selectedLinkIds: [],
           nodes: [],
           edges
         })
@@ -643,6 +655,65 @@ describe("useSelectionActions", () => {
       result.current.stackSelected();
       result.current.arrangeGrid();
       expect(mockSetNodes).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("linkSelected", () => {
+    const useSelection = (selected: PositionedNode[]) => {
+      const addLink = jest.fn();
+      asMock(useNodes).mockImplementation(
+        selectorOver({
+          addLink,
+          getSelectedNodes: () => selected
+        })
+      );
+      asMock(useNodeStoreRef).mockReturnValue({
+        getState: () => ({
+          nodes: selected,
+          edges: [],
+          links: [],
+          selectedLinkIds: []
+        })
+      });
+      return addLink;
+    };
+
+    it("links two selected nodes from the left one to the right one", () => {
+      const addLink = useSelection([defaultNodes[1], defaultNodes[0]]);
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.linkSelected();
+      expect(addLink).toHaveBeenCalledWith("1", "2");
+    });
+
+    it("does nothing unless exactly two nodes are selected", () => {
+      const addLink = useSelection(defaultNodes);
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.linkSelected();
+      expect(addLink).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteSelected with links", () => {
+    it("passes selected link ids to deleteEdges", () => {
+      const deleteEdges = jest.fn();
+      asMock(useNodes).mockImplementation(
+        selectorOver({
+          getSelectedNodes: () => [],
+          deleteNodes: jest.fn(),
+          deleteEdges
+        })
+      );
+      asMock(useNodeStoreRef).mockReturnValue({
+        getState: () => ({
+          nodes: [],
+          edges: [],
+          links: [],
+          selectedLinkIds: ["link-1"]
+        })
+      });
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.deleteSelected();
+      expect(deleteEdges).toHaveBeenCalledWith(["link-1"]);
     });
   });
 });

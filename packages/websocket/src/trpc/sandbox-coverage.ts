@@ -768,6 +768,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "control."
   },
   "projects.delete": { capability: "delete_project" },
+  "projects.documentPage": {
+    gap:
+      "Same grouping surface as `projects.get`. One page of its document " +
+      "cards, for the start page."
+  },
   "projects.documents": {
     gap:
       "Lists the documents in a project. A run enumerates each kind " +

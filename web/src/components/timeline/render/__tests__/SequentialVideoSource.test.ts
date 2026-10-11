@@ -29,7 +29,9 @@ jest.mock("mediabunny", () => ({
       getRotation: async () => 0,
       getPixelAspectRatio: async () => ({ num: 1, den: 1 }),
       canBeTransparent: async () => false,
-      hasHighDynamicRange: async () => false
+      hasHighDynamicRange: async () => false,
+      getDisplayWidth: async () => 1920,
+      getDisplayHeight: async () => 1080
     });
     dispose = () => undefined;
   },

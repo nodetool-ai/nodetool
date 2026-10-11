@@ -321,11 +321,11 @@ describe("crypto", () => {
 
       // Decode, corrupt version byte, re-encode
       const decoded = fromBase64Url(token);
-      decoded[0] = 0x00; // Wrong version byte
+      decoded[0] = 0x81; // Wrong version byte
       const corrupted = toBase64Url(decoded);
 
       expect(() => decryptFernet(masterKey, userId, corrupted)).toThrow(
-        "version"
+        "Invalid Fernet token version: 129"
       );
     });
 

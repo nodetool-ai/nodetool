@@ -64,9 +64,11 @@ the `EAS Build (mobile)` GitHub workflow, which authenticates with the
 - Use the Node version in the repo root `.nvmrc` (`nvm use`). The `base`
   profile in `eas.json` pins the same version for cloud builds.
 
-`@nodetool-ai/app-runtime` and `@nodetool-ai/protocol/resource-uri` are the
-exceptions: they are dependency-free TypeScript compiled **from source**, so
-they need no build. Three places must agree —
+`@nodetool-ai/app-runtime` and `@nodetool-ai/protocol` are the exceptions:
+they are compiled **from source**, so they need no build and the app never
+runs a stale published copy. Neither is a dependency in `package.json`.
+`protocol` imports `zod`, which mobile declares itself. Three places must
+agree, and `src/__tests__/sharedSourcePackages.test.ts` checks them —
 `metro.config.js` (bundler; it also maps the package's ESM `.js` specifiers back
 to `.ts`), `paths` in `tsconfig.json` (types), and `moduleNameMapper` in
 `jest.config.js` (tests). Wire any further shared package the same way.

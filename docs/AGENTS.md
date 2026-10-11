@@ -231,7 +231,7 @@ lazy implementation table disagree.
 
 | Module | Capabilities |
 |---|---|
-| `workflows` | `list_workflows`, `get_workflow`, `create_workflow`, `update_workflow`, `delete_workflow`, `list_workflow_versions`, `get_workflow_version`, `create_workflow_version`, `restore_workflow_version`, `delete_workflow_version`, `set_workflow_access`, `run_workflow`, `debug_workflow`, `resolve_workflow_escalation`, `validate_workflow`, `start_background_job`, `get_example_workflow`, `export_workflow_digraph` |
+| `workflows` | `list_workflows`, `get_workflow`, `create_workflow`, `update_workflow`, `add_workflow_link`, `remove_workflow_link`, `delete_workflow`, `list_workflow_versions`, `get_workflow_version`, `create_workflow_version`, `restore_workflow_version`, `delete_workflow_version`, `set_workflow_access`, `run_workflow`, `debug_workflow`, `resolve_workflow_escalation`, `validate_workflow`, `start_background_job`, `get_example_workflow`, `export_workflow_digraph` |
 | `nodes` | `list_nodes`, `search_nodes`, `get_node_info` |
 | `models` | `find_model`, `list_models`, `list_provider_models` |
 | `files` | `read_file`, `write_file`, `list_directory`, `edit_file`, `glob`, `grep`, `todo_write` |

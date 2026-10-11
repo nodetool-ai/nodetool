@@ -94,48 +94,58 @@ export function validateProducedTimeline(
       if (clips.length === 0) { issue("missing_element", `Missing ${shot.id}/${element.id}.`); continue; }
       if (clips.length > 1) { issue("duplicate_element", `Duplicate ${shot.id}/${element.id}.`); continue; }
       const clip = clips[0];
-      const track = tracks.get(clip.trackId);
-      if (isInvisible(clip, track)) {
-        issue("missing_element", `${element.id} must be visible.`);
-      }
-      if (!intersectsCanvas(clip, input.width, input.height)) {
-        issue("missing_element", `${element.id} is outside the canvas. Move the layer into view before finishing.`);
-      }
-      if (element.kind === "shape") {
-        if (clip.mediaType !== "shape") issue("protected_value", `${element.id} requires its separately editable shape.`);
-        if (!clip.shapeStyle || !isKnownShapeKind(clip.shapeStyle.kind)) issue("missing_element", `${element.id} has unsupported or missing visible shape geometry.`);
-      }
-      const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
-      if (element.protected_input_id && !protection) {
-        issue("protected_source", `Unknown protected input ${element.protected_input_id}.`);
-      }
-      if (protection) {
-        const isImageSource = ["product", "logo", "source_asset"].includes(protection.kind);
-        if (isImageSource && !(element.kind === "asset" && clip.mediaType === "image" && clip.currentAssetId === protection.asset_id)) {
-          issue("protected_source", `${protection.id} requires its original separately editable image.`);
-        }
-        if (protection.kind === "exact_text" && !(element.kind === "text" && clip.mediaType === "text" && clip.textStyle?.text === protection.value)) {
-          issue("protected_value", `${protection.id} requires its exact editable text.`);
-        }
-        if (track?.effects?.length) issue("forbidden_transform", `Track effects on ${protection.id} cannot be proven faithful.`);
-      }
-      if (element.kind === "asset") {
-        const assetId = protection?.asset_id ?? element.asset_id;
-        if (!assetId || clip.mediaType !== "image" || clip.currentAssetId !== assetId) {
-          issue("protected_source", `${element.id} must use original asset ${assetId ?? "(unresolved)"}.`);
-        }
-        if (hasGenerativeSource(clip)) issue("forbidden_generation", `${element.id} cannot use a generative source.`);
-      }
-      if (element.kind === "text" && (clip.mediaType !== "text" || clip.textStyle?.text !== (protection?.value ?? element.text))) {
-        issue("protected_value", `${element.id} must keep exact copy.`);
-      }
-      if (protection?.kind === "brand_color" && (clip.shapeStyle?.fill ?? clip.textStyle?.color) !== protection.value) {
-        issue("protected_value", `${element.id} must keep exact brand color.`);
-      }
-      if (protection) validateTransforms(clip, protection, issue);
+      validateElementClip(element, clip, tracks.get(clip.trackId), protectedInputs, input, issue);
     }
   }
   return issues;
+}
+
+function validateElementClip(
+  element: GraphicsElement,
+  clip: TimelineClip,
+  track: TimelineSequence["tracks"][number] | undefined,
+  protectedInputs: ReadonlyMap<string, ProductionProtectedInput>,
+  canvas: Pick<FinishStoryboardInput, "width" | "height">,
+  issue: (code: ProducedTimelineIssue["code"], message: string) => void
+): void {
+  if (isInvisible(clip, track)) {
+    issue("missing_element", `${element.id} must be visible.`);
+  }
+  if (!intersectsCanvas(clip, canvas.width, canvas.height)) {
+    issue("missing_element", `${element.id} is outside the canvas. Move the layer into view before finishing.`);
+  }
+  if (element.kind === "shape") {
+    if (clip.mediaType !== "shape") issue("protected_value", `${element.id} requires its separately editable shape.`);
+    if (!clip.shapeStyle || !isKnownShapeKind(clip.shapeStyle.kind)) issue("missing_element", `${element.id} has unsupported or missing visible shape geometry.`);
+  }
+  const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
+  if (element.protected_input_id && !protection) {
+    issue("protected_source", `Unknown protected input ${element.protected_input_id}.`);
+  }
+  if (protection) {
+    const isImageSource = ["product", "logo", "source_asset"].includes(protection.kind);
+    if (isImageSource && !(element.kind === "asset" && clip.mediaType === "image" && clip.currentAssetId === protection.asset_id)) {
+      issue("protected_source", `${protection.id} requires its original separately editable image.`);
+    }
+    if (protection.kind === "exact_text" && !(element.kind === "text" && clip.mediaType === "text" && clip.textStyle?.text === protection.value)) {
+      issue("protected_value", `${protection.id} requires its exact editable text.`);
+    }
+    if (track?.effects?.length) issue("forbidden_transform", `Track effects on ${protection.id} cannot be proven faithful.`);
+  }
+  if (element.kind === "asset") {
+    const assetId = protection?.asset_id ?? element.asset_id;
+    if (!assetId || clip.mediaType !== "image" || clip.currentAssetId !== assetId) {
+      issue("protected_source", `${element.id} must use original asset ${assetId ?? "(unresolved)"}.`);
+    }
+    if (hasGenerativeSource(clip)) issue("forbidden_generation", `${element.id} cannot use a generative source.`);
+  }
+  if (element.kind === "text" && (clip.mediaType !== "text" || clip.textStyle?.text !== (protection?.value ?? element.text))) {
+    issue("protected_value", `${element.id} must keep exact copy.`);
+  }
+  if (protection?.kind === "brand_color" && (clip.shapeStyle?.fill ?? clip.textStyle?.color) !== protection.value) {
+    issue("protected_value", `${element.id} must keep exact brand color.`);
+  }
+  if (protection) validateTransforms(clip, protection, issue);
 }
 
 /** A contain-fit source cannot exceed this canvas-sized envelope. This checks

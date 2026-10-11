@@ -17,6 +17,12 @@ const PACKAGES = [
   { name: "@nodetool-ai/protocol", dir: "packages/protocol", internalDeps: [] },
   { name: "@nodetool-ai/storage", dir: "packages/storage", internalDeps: [] },
   {
+    name: "@nodetool-ai/node-sdk",
+    dir: "packages/node-sdk",
+    internalDeps: ["@nodetool-ai/protocol"],
+    ownedPaths: ["packages/sandbox-packs"]
+  },
+  {
     name: "@nodetool-ai/base-nodes",
     dir: "packages/base-nodes",
     internalDeps: ["@nodetool-ai/protocol"]
@@ -184,6 +190,18 @@ describe("buildCiPlan", () => {
     expect(p.packages_agents).toBe(true);
     expect(p.packages_core).toBe(false);
     expect(p.turbo_affected).toBe(false);
+  });
+
+  it("drops --affected for Markdown in an owned path, which DOC_ONLY reads as prose", () => {
+    for (const file of [
+      "packages/sandbox-packs/sandbox-aws/SKILL.md",
+      "packages/sandbox-packs/README.md"
+    ]) {
+      const p = plan([file]);
+      expect(p.full).toBe(false);
+      expect(p.packages_core).toBe(true);
+      expect(p.turbo_affected).toBe(false);
+    }
   });
 
   it("keeps --affected when every changed file sits in a workspace directory", () => {

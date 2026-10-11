@@ -76,7 +76,8 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: getSpacingPx(SPACING.md),
       right: getSpacingPx(SPACING.lg),
-      zIndex: Z_INDEX.dropdown
+      zIndex: Z_INDEX.dropdown,
+      "& svg": { fontSize: "var(--fontSizeNormal)" }
     },
     "&::before": {
       content: '""',

@@ -70,6 +70,20 @@ describe("parseEnvFile", () => {
     expect(parseEnvFile("A=bar\\#comment")).toEqual({ A: "bar\\" });
   });
 
+  it("skips comment lines that contain =", () => {
+    expect(parseEnvFile("# DISABLED=1\nA=1")).toEqual({ A: "1" });
+  });
+
+  it("keeps a hash that ends a quoted value", () => {
+    expect(parseEnvFile('A="ends with #" # comment')).toEqual({
+      A: "ends with #"
+    });
+  });
+
+  it("unquotes an empty quoted value", () => {
+    expect(parseEnvFile("A=\"\"\nB=''")).toEqual({ A: "", B: "" });
+  });
+
   it("ignores lines without = and empty keys", () => {
     expect(parseEnvFile("NOTAKEY\n=value\nA=1")).toEqual({ A: "1" });
   });

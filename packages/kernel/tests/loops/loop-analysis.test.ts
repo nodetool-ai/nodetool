@@ -71,6 +71,12 @@ describe("loop analysis", () => {
     expect(loopFacts.outputs.get("value")!.scope).toEqual(["loop:loop"]);
     expect(loopFacts.outputs.get("done")!.scope).toEqual([]);
     expect(loopFacts.inputs.get("next")!.scope).toEqual(["loop:loop"]);
+    for (const handle of ["initial", "next"]) {
+      expect(loopFacts.inputs.get(handle)).toMatchObject({
+        repeatsPerKey: false,
+        isMultiEdge: false
+      });
+    }
     expect(result.nodes.get("body")!.invocationScope).toEqual(["loop:loop"]);
     expect(result.nodes.get("out")!.invocationScope).toEqual([]);
   });
@@ -118,6 +124,20 @@ describe("loop analysis", () => {
     g.edges[2] = edge("body", "output", "loop", "condition");
     const msgs = messages(analyzeCorrelation(g));
     expect(msgs.some((m) => m.includes('connect the loop body\'s result to its "next"'))).toBe(true);
+  });
+
+  it("rejects two edges into one feedback input", () => {
+    const g = simpleLoop();
+    g.nodes.push(node("body2"));
+    g.edges.push(
+      edge("loop", "value", "body2", "input"),
+      edge("body2", "output", "loop", "next")
+    );
+    const result = analyzeCorrelation(g);
+    expect(messages(result)).toContain(
+      'Loop input "next" receives 2 edges; each iteration feeds back one value.'
+    );
+    expect(result.nodes.get("loop")!.inputs.get("next")!.isMultiEdge).toBe(true);
   });
 
   it("rejects feedback wired from outside the loop body", () => {

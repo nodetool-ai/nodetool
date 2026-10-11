@@ -15,6 +15,7 @@ import type {
 import {
   isCanvasSource,
   isSourceReady,
+  isVideoFrameSource,
   shouldPresentFrame,
   sourceDimensions
 } from "./source";
@@ -23,33 +24,13 @@ import {
   logPreviewFailure,
   type PreviewFailureHandler
 } from "../previewFailure";
+import type { TimelinePreviewDiagnostic } from "./previewDiagnostics";
 import { previewVideoFrameGeneration, previewVideoFrameMediaTime, previewVideoFrameReady } from "./videoFrameVersion";
 
 interface SourceTexture extends GpuSourceTexture {
   source: CompositeSource;
   lastUploadKey: string;
   sourceUrl: string;
-}
-
-/**
- * Optional diagnostics consumed by the timeline performance fixture. Keeping
- * the sink on window avoids routing measurements through React state.
- */
-export interface TimelinePreviewDiagnostic {
-  kind: "source-upload" | "compositor-submit";
-  at: number;
-  sourceId?: string;
-  width?: number;
-  height?: number;
-  mediaTime?: number;
-  layerCount?: number;
-  drawnLayers?: number;
-}
-
-declare global {
-  interface Window {
-    __nodetoolTimelinePerf?: (event: TimelinePreviewDiagnostic) => void;
-  }
 }
 
 /**
@@ -67,6 +48,11 @@ function uploadKey(source: CompositeSource): string {
   }
   if (source instanceof HTMLImageElement) {
     return `i:${source.src}:${source.naturalWidth}x${source.naturalHeight}`;
+  }
+  // One upload per decoded frame. The texture entry is per layer, so the
+  // timestamp alone tells two frames of one source apart.
+  if (isVideoFrameSource(source)) {
+    return `f:${source.timestamp}:${source.displayWidth}x${source.displayHeight}`;
   }
   if (isCanvasSource(source)) {
     canvasUploads += 1;
@@ -93,6 +79,8 @@ function videoSourceUrl(video: HTMLVideoElement): string {
  */
 /** The format `GpuFrameCompositor` composites in and blits from. */
 const PRESENT_FORMAT: GPUTextureFormat = "rgba8unorm";
+
+export type { TimelinePreviewDiagnostic };
 
 export class WebGPUCompositor implements TimelineCompositor {
   private disposed = false;
@@ -321,6 +309,8 @@ export class WebGPUCompositor implements TimelineCompositor {
           };
           if (source instanceof HTMLVideoElement) {
             event.mediaTime = previewVideoFrameMediaTime(source) ?? source.currentTime;
+          } else if (isVideoFrameSource(source)) {
+            event.mediaTime = source.timestamp / 1_000_000;
           }
           sink(event);
         }

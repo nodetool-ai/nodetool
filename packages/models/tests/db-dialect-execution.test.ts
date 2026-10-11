@@ -18,6 +18,7 @@ import { JsScriptVersion } from "../src/js-script-version.js";
 import { Message } from "../src/message.js";
 import { Prediction } from "../src/prediction.js";
 import { Project } from "../src/project.js";
+import { summarizeProjectDocumentPage } from "../src/project-summary.js";
 import { Script, emptyScriptDocument } from "../src/script.js";
 import { Storyboard, emptyStoryboardDocument } from "../src/storyboard.js";
 import { TimelineSequence, type TimelineDocument } from "../src/timeline-sequence.js";
@@ -74,6 +75,32 @@ describe("model execution on SQLite and PostgreSQL", () => {
       await pingDb();
       expect(await executeRaw("SELECT id FROM nodetool_assets")).toEqual({ rows: [] });
       return { projectId, migrated: migration.migrated, dangling: migration.dangling, repeated: repeated.migrated };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
+  it("pages a project's document cards and sums their spend in SQL", async () => {
+    await onBothDialects(async () => {
+      const projectId = "dialect-project";
+      await Project.create<Project>({ id: projectId, user_id: OWNER, name: "P" });
+      const board = await Storyboard.create<Storyboard>({
+        user_id: OWNER, project_id: projectId, name: "Board",
+        document: JSON.stringify(emptyStoryboardDocument())
+      });
+      await Script.create<Script>({ user_id: OWNER, project_id: projectId, name: "Script" });
+      for (const cost of [0.25, 0.5, null]) {
+        await Prediction.create<Prediction>({
+          user_id: OWNER, project_id: projectId, document_id: board.id, cost
+        });
+      }
+      const page = await summarizeProjectDocumentPage(OWNER, projectId, { offset: 0, limit: 10 });
+      const card = page.documents.find((document) => document.ref === board.id);
+      return {
+        total: page.total,
+        partial: page.partial,
+        types: page.documents.map((document) => document.type).sort(),
+        spendUsd: card?.spendUsd,
+        unpricedCount: card?.unpricedCount
+      };
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 

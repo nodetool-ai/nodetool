@@ -140,6 +140,10 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
     <PanelHeader
       title={title}
       description={description}
+      sx={{
+        // Match the header's own title icon instead of MUI's 20px "small".
+        "& .panel-header-actions svg": { fontSize: "var(--fontSizeNormal)" }
+      }}
       actions={
         <>
           <ToolbarIconButton

@@ -14,6 +14,14 @@ export function isCanvasSource(source: CompositeSource): boolean {
 }
 
 /**
+ * Whether a source is a WebCodecs `VideoFrame`. Guarded on the constructor,
+ * which jsdom and older browsers do not have.
+ */
+export function isVideoFrameSource(source: CompositeSource): source is VideoFrame {
+  return typeof VideoFrame !== "undefined" && source instanceof VideoFrame;
+}
+
+/**
  * Whether a composite source has decoded pixels ready to sample. Shared by the
  * WebGPU compositor (before uploading to a texture) and the Canvas2D fallback
  * (before `drawImage`).
@@ -25,6 +33,8 @@ export function isSourceReady(source: CompositeSource): boolean {
   if (source instanceof HTMLImageElement) {
     return source.complete && source.naturalWidth > 0;
   }
+  // A closed frame reports a zero display size.
+  if (isVideoFrameSource(source)) return source.displayWidth > 0;
   return source.width > 0;
 }
 
@@ -43,6 +53,20 @@ export function shouldPresentFrame(
   return layerCount === 0 || drawnCount > 0;
 }
 
+/**
+ * Whether to composite a frame at all. A decoded clip with no frame yet is
+ * left out of the layer list, so a cut onto a clip whose decoder is still
+ * opening looks like an empty scene, which {@link shouldPresentFrame} clears
+ * to black. When nothing else draws, skip the frame and the canvas holds its
+ * last picture, as it does for a `<video>` still seeking.
+ */
+export function shouldCompositeScene(
+  layerCount: number,
+  pendingDecodedCount: number
+): boolean {
+  return layerCount > 0 || pendingDecodedCount === 0;
+}
+
 /** Intrinsic pixel dimensions of a composite source. */
 export function sourceDimensions(source: CompositeSource) {
   if (source instanceof HTMLVideoElement) {
@@ -56,6 +80,9 @@ export function sourceDimensions(source: CompositeSource) {
       width: source.naturalWidth || 0,
       height: source.naturalHeight || 0
     };
+  }
+  if (isVideoFrameSource(source)) {
+    return { width: source.displayWidth, height: source.displayHeight };
   }
   return { width: source.width, height: source.height };
 }
