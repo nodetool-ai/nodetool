@@ -23,7 +23,7 @@
  * plain `if (__DEV__)` guard. Accepted here as the cost of dev/test protocol
  * observability; revisit if release bundle size becomes a concern.
  */
-import * as protocol from '@nodetool-ai/protocol';
+import { processingMessageSchemas } from '@nodetool-ai/protocol';
 import { isRecord, isString } from '../utils/typePredicates';
 
 /** Jest's RN preset sets `__DEV__ = true`, so this is on under the test suite. */
@@ -36,20 +36,7 @@ interface ProcessingSchema {
   };
 }
 
-interface ProtocolWithProcessingSchemas {
-  processingMessageSchemas: Record<string, ProcessingSchema>;
-}
-
-function hasProcessingMessageSchemas(
-  value: typeof protocol
-): value is typeof protocol & ProtocolWithProcessingSchemas {
-  return 'processingMessageSchemas' in value;
-}
-
-const schemasByType: Record<string, ProcessingSchema> =
-  hasProcessingMessageSchemas(protocol)
-    ? protocol.processingMessageSchemas
-    : {};
+const schemasByType: Partial<Record<string, ProcessingSchema>> = processingMessageSchemas;
 
 /**
  * Validate one inbound (already-decoded) message against the shared
