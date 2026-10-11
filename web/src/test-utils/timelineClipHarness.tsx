@@ -3,7 +3,8 @@
  * tree against the default timeline store instance.
  *
  * Each suite still declares its own `jest.mock` calls (they are hoisted per
- * test file); this module only holds the pure builders and pointer drivers.
+ * test file, factories in `timelineClipMocks`); this module only holds the
+ * pure builders and pointer drivers.
  */
 
 import React from "react";
@@ -147,7 +148,10 @@ export const pressClip = (clipId: string, x: number) => {
   });
 };
 
-export const moveClipPointer = (x: number, { altKey = false }: PointerOptions = {}) => {
+export const moveClipPointer = (
+  x: number,
+  { altKey = false }: PointerOptions = {}
+) => {
   fireEvent.pointerMove(window, {
     buttons: 1,
     clientX: x,
@@ -179,7 +183,12 @@ export const pressHandle = (
   x: number
 ) => {
   const el = screen.getByTestId(`clip-trim-${edge}-${clipId}`);
-  fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: x, pointerId: 1 });
+  fireEvent.pointerDown(el, {
+    button: 0,
+    buttons: 1,
+    clientX: x,
+    pointerId: 1
+  });
   return el;
 };
 

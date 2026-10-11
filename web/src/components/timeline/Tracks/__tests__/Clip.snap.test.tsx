@@ -5,33 +5,36 @@
  * clear on pointerup.
  */
 
-jest.mock("../useClipThumbnails", () => ({
-  useClipThumbnails: () => null
-}));
-jest.mock("../useAudioPeaks", () => ({
-  useAudioPeaks: () => ({ peaks: null, durationMs: null })
-}));
-jest.mock("../../../../stores/AssetStore", () => ({
-  useAssetStore: <T,>(sel: (s: { get: () => Promise<null> }) => T) =>
-    sel({ get: () => Promise.resolve(null) })
-}));
-jest.mock("../../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { focusedJob: Record<string, string> }) => T) =>
-    sel({ focusedJob: {} })
-}));
-jest.mock("../../../../stores/ErrorStore", () => ({
-  __esModule: true,
-  default: <T,>(sel: (s: { errors: Record<string, unknown> }) => T) =>
-    sel({ errors: {} }),
-  hasNodeError: () => false,
-  nodeErrorToDisplayString: () => ""
-}));
-jest.mock("../../../../stores/timeline/TimelineGenerationStore", () => ({
-  useTimelineGenerationStore: <T,>(
-    sel: (s: { clipJobs: Record<string, unknown> }) => T
-  ) => sel({ clipJobs: {} })
-}));
+jest.mock("../useClipThumbnails", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .clipThumbnailsMock()
+);
+jest.mock("../useAudioPeaks", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .audioPeaksMock()
+);
+jest.mock("../../../../stores/AssetStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .assetStoreMock()
+);
+jest.mock("../../../../stores/WorkflowRunsStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .workflowRunsStoreMock()
+);
+jest.mock("../../../../stores/ErrorStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .errorStoreMock()
+);
+jest.mock("../../../../stores/timeline/TimelineGenerationStore", () =>
+  jest
+    .requireActual("../../../../test-utils/timelineClipMocks")
+    .timelineGenerationStoreMock()
+);
 
 import {
   installPointerEvent,
@@ -151,7 +154,11 @@ describe("trim snapping", () => {
     // raw end 3000 + 1150 = 4150, 50 ms short of a4's start.
     const el = pressHandle("a1", "end", 200);
     moveHandle(el, 200 + 115);
-    expect(clipState("a1")).toEqual({ trackId: "t1", startMs: 2000, durationMs: 2200 });
+    expect(clipState("a1")).toEqual({
+      trackId: "t1",
+      startMs: 2000,
+      durationMs: 2200
+    });
     expect(ui().snapGuideMs).toBe(4200);
     releaseHandle(el);
   });
@@ -167,7 +174,11 @@ describe("trim snapping", () => {
     // a4's start edge dragged left: raw 4200 - 1150 = 3050, 50 ms past a1's
     // end at 3000 (the 3000 gridline coincides with it).
     dragHandle("a4", "start", 300, 300 - 115);
-    expect(clipState("a4")).toEqual({ trackId: "t1", startMs: 3000, durationMs: 2200 });
+    expect(clipState("a4")).toEqual({
+      trackId: "t1",
+      startMs: 3000,
+      durationMs: 2200
+    });
   });
 
   it("targets the edge from the pointer, not from the last snapped position", () => {
