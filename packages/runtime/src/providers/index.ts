@@ -47,6 +47,7 @@ import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { RequestyProvider } from "./requesty-provider.js";
 import { OpperProvider } from "./opper-provider.js";
+import { APIRouteProvider } from "./api-route-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import {
   ALIBABA_DEFAULT_BASE_URL,
@@ -242,6 +243,7 @@ export { MoonshotProvider };
 export { OpenRouterProvider };
 export { RequestyProvider };
 export { OpperProvider };
+export { APIRouteProvider };
 export { TogetherProvider };
 export { AlibabaProvider };
 export { CerebrasProvider };
@@ -584,6 +586,9 @@ registerBuiltinProvider(PROVIDER_IDS.REQUESTY, RequestyProvider, {
 });
 registerBuiltinProvider(PROVIDER_IDS.OPPER, OpperProvider, {
   OPPER_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.API_ROUTE, APIRouteProvider, {
+  API_ROUTE_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, {
   TOGETHER_API_KEY: ""

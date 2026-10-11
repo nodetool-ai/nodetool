@@ -473,6 +473,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://docs.opper.ai"
   },
   {
+    key: "API_ROUTE_API_KEY",
+    providerId: PROVIDER_IDS.API_ROUTE,
+    name: "API Route",
+    description: "Use hosted chat models through an OpenAI-compatible API.",
+    section: "gateways",
+    docsUrl: "https://www.api-route.com/docs/quickstart"
+  },
+  {
     key: "SERPAPI_API_KEY",
     name: "SerpAPI",
     description: "Web search via SerpAPI.",

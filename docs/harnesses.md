@@ -42,7 +42,7 @@ Chat flags:
 ```
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, meta, alibaba, together,
-                         openrouter, requesty, opper, huggingface, replicate, kie,
+                         openrouter, requesty, opper, api_route, huggingface, replicate, kie,
                          aki, ollama, lmstudio, claude_agent_sdk, codex, gmi, mlx,
                          node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
