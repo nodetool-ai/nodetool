@@ -575,7 +575,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     open,
     assets: assetsToUse,
     currentIndex,
-    FILMSTRIP_NEIGHBOURS,
+    prevNextAmount: FILMSTRIP_NEIGHBOURS,
     onChangeIndex: handleChangeAsset
   });
   const caption = currentAsset ? captions?.[currentAsset.id] : undefined;
