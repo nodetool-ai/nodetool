@@ -48,7 +48,7 @@ Imports use `@nodetool-ai/<package>`; never import from `dist/`. See the root
 build artifact (`dist/` is gitignored, like the rest of this package's output),
 regenerated on every build rather than checked in. Non-TypeScript consumers —
 the Python worker, external SDKs — validate wire messages against this file
-instead of hand-copying the TS shapes (RELIABILITY_ARCHITECTURE.md §8.2).
+instead of hand-copying the TS shapes.
 
 ```bash
 npm run generate:processing-messages-schema --workspace=packages/protocol       # (re)write it
