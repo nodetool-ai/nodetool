@@ -11,6 +11,7 @@ import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import WorkflowIcon from "@mui/icons-material/AccountTreeOutlined";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { colorForType } from "../../config/data_types";
@@ -21,6 +22,7 @@ import {
   type DocumentTreeLeafType
 } from "../../hooks/useDocumentTreeData";
 import { useDeleteDocument } from "../../serverState/useDeleteDocument";
+import { useDuplicateWorkflowDocument } from "../../hooks/useDuplicateWorkflowDocument";
 import { useOpenApplication } from "../../hooks/useOpenApplication";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { usePanelStore } from "../../stores/PanelStore";
@@ -48,7 +50,8 @@ import {
   SPACING,
   Text,
   TruncatedText,
-  PanelHeader
+  PanelHeader,
+  ToolbarIconButton
 } from "../ui_primitives";
 
 const DOCUMENT_TAB_TYPES = {
@@ -102,17 +105,24 @@ interface DocumentTreeRowProps {
   readonly active: boolean;
   readonly onOpen: (document: DocumentTreeLeaf) => void;
   readonly onDelete: (document: DocumentTreeLeaf) => void;
+  /** Present only for kinds that can be copied from the tree. */
+  readonly onDuplicate?: (document: DocumentTreeLeaf) => void;
 }
 
 const DocumentTreeRow = ({
   leaf,
   active,
   onOpen,
-  onDelete
+  onDelete,
+  onDuplicate
 }: DocumentTreeRowProps) => {
   const Icon = LEAF_ICONS[leaf.type];
   const handleClick = useCallback(() => onOpen(leaf), [leaf, onOpen]);
   const handleDelete = useCallback(() => onDelete(leaf), [leaf, onDelete]);
+  const handleDuplicate = useCallback(
+    () => onDuplicate?.(leaf),
+    [leaf, onDuplicate]
+  );
 
   return (
     <FlexRow
@@ -120,8 +130,8 @@ const DocumentTreeRow = ({
       fullWidth
       className="documents-tree-row"
       sx={{
-        "& .documents-tree-delete": { opacity: 0 },
-        "&:hover .documents-tree-delete, &:focus-within .documents-tree-delete":
+        "& .documents-tree-delete, & .documents-tree-duplicate": { opacity: 0 },
+        "&:hover .documents-tree-delete, &:focus-within .documents-tree-delete, &:hover .documents-tree-duplicate, &:focus-within .documents-tree-duplicate":
           { opacity: 1 }
       }}
     >
@@ -189,6 +199,16 @@ const DocumentTreeRow = ({
           </Text>
         </FlexRow>
       </Box>
+      {onDuplicate && (
+        <ToolbarIconButton
+          icon={<ContentCopyIcon fontSize="small" />}
+          tooltip={`Duplicate ${leaf.name}`}
+          aria-label={`Duplicate ${leaf.name}`}
+          onClick={handleDuplicate}
+          size="small"
+          className="documents-tree-duplicate"
+        />
+      )}
       <DeleteButton
         onClick={handleDelete}
         tooltip={`Delete ${leaf.name}`}
@@ -207,6 +227,7 @@ interface DocumentTreeGroupRowProps {
   readonly activeTabId: string | null;
   readonly onOpen: (document: DocumentTreeLeaf) => void;
   readonly onDelete: (document: DocumentTreeLeaf) => void;
+  readonly onDuplicate: (document: DocumentTreeLeaf) => void;
 }
 
 const DocumentTreeGroupRow = ({
@@ -215,7 +236,8 @@ const DocumentTreeGroupRow = ({
   onToggle,
   activeTabId,
   onOpen,
-  onDelete
+  onDelete,
+  onDuplicate
 }: DocumentTreeGroupRowProps) => {
   const theme = useTheme();
   const Icon = GROUP_ICONS[group.id];
@@ -295,6 +317,9 @@ const DocumentTreeGroupRow = ({
               active={activeTabId === `${document.type}:${document.id}`}
               onOpen={onOpen}
               onDelete={onDelete}
+              onDuplicate={
+                document.type === "workflow" ? onDuplicate : undefined
+              }
             />
           ))}
         </FlexColumn>
@@ -382,6 +407,33 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
       setVisibility(false);
     },
     [location.pathname, navigate, openApplication, openTab, setVisibility]
+  );
+
+  const duplicateWorkflow = useDuplicateWorkflowDocument();
+  const handleDuplicate = useCallback(
+    (document: DocumentTreeLeaf) => {
+      const siblingNames =
+        groups
+          .find((group) => group.id === "workflows")
+          ?.children.map((child) => child.name) ?? [];
+      duplicateWorkflow(document.id, siblingNames)
+        .then(() => {
+          if (!location.pathname.startsWith("/workspace")) {
+            navigate("/workspace");
+          }
+        })
+        .catch((duplicateError: unknown) =>
+          addNotification({
+            type: "error",
+            content: `Could not duplicate ${document.name}: ${
+              duplicateError instanceof Error
+                ? duplicateError.message
+                : "Unknown error"
+            }`
+          })
+        );
+    },
+    [addNotification, duplicateWorkflow, groups, location.pathname, navigate]
   );
 
   const handleConfirmDelete = useCallback(() => {
@@ -487,6 +539,7 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
                 activeTabId={activeTabId}
                 onOpen={handleOpen}
                 onDelete={setDocumentToDelete}
+                onDuplicate={handleDuplicate}
               />
             ))}
           </FlexColumn>

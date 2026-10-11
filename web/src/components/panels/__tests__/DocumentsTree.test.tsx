@@ -21,6 +21,11 @@ jest.mock("../../../serverState/useDeleteDocument", () => ({
   useDeleteDocument: () => ({ mutate: mockDeleteMutate })
 }));
 
+const mockDuplicateWorkflow = jest.fn(() => Promise.resolve());
+jest.mock("../../../hooks/useDuplicateWorkflowDocument", () => ({
+  useDuplicateWorkflowDocument: () => mockDuplicateWorkflow
+}));
+
 jest.mock("../../../hooks/useOpenApplication", () => ({
   useOpenApplication: () => mockOpenApplication
 }));
@@ -259,4 +264,20 @@ it("points an empty project at the Library, where text files are listed", () => 
 
   expect(screen.getByText("No documents yet")).toBeInTheDocument();
   expect(screen.getByText(/Text files and uploads are in the Library/)).toBeInTheDocument();
+});
+
+it("duplicates a workflow from its row and offers no duplicate for other kinds", async () => {
+  const user = userEvent.setup();
+  renderTree();
+
+  await user.click(
+    screen.getByRole("button", { name: "Duplicate Campaign Generator" })
+  );
+
+  expect(mockDuplicateWorkflow).toHaveBeenCalledWith("workflow-1", [
+    "Campaign Generator"
+  ]);
+  expect(
+    screen.queryByRole("button", { name: "Duplicate Normalize Brief" })
+  ).not.toBeInTheDocument();
 });
