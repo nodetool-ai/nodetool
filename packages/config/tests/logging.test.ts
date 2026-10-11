@@ -215,3 +215,73 @@ describe("T-CFG-3b: createLogger", () => {
     expect(written).toMatch(/\d{2}:\d{2}:\d{2}/);
   });
 });
+
+describe("NODETOOL_LOG_FILE rotation", () => {
+  let dir = "";
+  let savedLogFile: string | undefined;
+
+  beforeEach(async () => {
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    dir = mkdtempSync(join(tmpdir(), "nodetool-log-"));
+    savedLogFile = process.env.NODETOOL_LOG_FILE;
+    process.env.NODETOOL_LOG_FILE = join(dir, "chat.log");
+    vi.resetModules();
+  });
+
+  afterEach(async () => {
+    const { rmSync } = await import("node:fs");
+    if (savedLogFile === undefined) {
+      delete process.env.NODETOOL_LOG_FILE;
+    } else {
+      process.env.NODETOOL_LOG_FILE = savedLogFile;
+    }
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("rotates the log file at the size cap and keeps a bounded number of copies", async () => {
+    const fs = await import("node:fs");
+    const { join } = await import("node:path");
+    const logging = await import("../src/logging.js");
+    logging.configureLogging({ level: "info" });
+    const log = logging.createLogger("test");
+
+    const message = "x".repeat(256 * 1024);
+    const writes = Math.ceil(
+      (logging.MAX_LOG_FILE_BYTES * (logging.MAX_ROTATED_LOG_FILES + 3)) /
+        message.length
+    );
+    for (let i = 0; i < writes; i++) {
+      log.info(message);
+    }
+    log.info("newest");
+
+    const expected = ["chat.log"];
+    for (let i = 1; i <= logging.MAX_ROTATED_LOG_FILES; i++) {
+      expected.push(`chat.log.${i}`);
+    }
+    expect(fs.readdirSync(dir).sort()).toEqual(expected);
+    for (const file of expected) {
+      expect(fs.statSync(join(dir, file)).size).toBeLessThanOrEqual(
+        logging.MAX_LOG_FILE_BYTES
+      );
+    }
+    expect(fs.readFileSync(join(dir, "chat.log"), "utf8")).toMatch(
+      /newest\n$/
+    );
+  });
+
+  it("rotates an oversized file from an earlier run on the first write", async () => {
+    const fs = await import("node:fs");
+    const { join } = await import("node:path");
+    const file = join(dir, "chat.log");
+    const logging = await import("../src/logging.js");
+    fs.writeFileSync(file, Buffer.alloc(logging.MAX_LOG_FILE_BYTES + 1, "a"));
+    logging.configureLogging({ level: "info" });
+    logging.createLogger("test").info("fresh");
+
+    expect(fs.readFileSync(file, "utf8")).toMatch(/^[^\n]*fresh\n$/);
+    expect(fs.statSync(`${file}.1`).size).toBe(logging.MAX_LOG_FILE_BYTES + 1);
+  });
+});

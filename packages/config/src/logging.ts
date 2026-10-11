@@ -17,6 +17,11 @@ import { IS_NODE, getNodeBuiltinSync } from "./node-import.js";
 type FsSync = {
   openSync: (path: string, flags: string) => number;
   writeSync: (fd: number, data: string) => number;
+  closeSync: (fd: number) => void;
+  fstatSync: (fd: number) => { size: number };
+  existsSync: (path: string) => boolean;
+  renameSync: (from: string, to: string) => void;
+  truncateSync: (path: string, len: number) => void;
 };
 const fsSync = getNodeBuiltinSync<FsSync>("node:fs");
 
@@ -77,8 +82,54 @@ const ENV: Record<string, string | undefined> = IS_NODE ? process.env : {};
 let currentLevel: LogLevel =
   normalizeLevel(ENV["NODETOOL_LOG_LEVEL"] ?? ENV["LOG_LEVEL"] ?? "") ?? "info";
 
+/** The log file rotates when a write would take it past this size. */
+export const MAX_LOG_FILE_BYTES = 10 * 1024 * 1024;
+
+/** Rotated copies kept as <file>.1 … <file>.N; older ones are overwritten. */
+export const MAX_ROTATED_LOG_FILES = 3;
+
 /** File descriptor for log output. Defaults to stderr; set via NODETOOL_LOG_FILE. */
 let logFd: number | null = null;
+let logFilePath: string | null = null;
+let logFileBytes = 0;
+
+function openLogFile(fs: FsSync, file: string): number {
+  const fd = fs.openSync(file, "a");
+  logFd = fd;
+  logFilePath = file;
+  logFileBytes = fs.fstatSync(fd).size;
+  return fd;
+}
+
+/**
+ * Shifts <file> → .1 → .2 … and drops the oldest copy. If a rename fails,
+ * the live file is truncated so the log never grows without bound.
+ */
+function rotateLogFile(fs: FsSync, fd: number, file: string): number {
+  fs.closeSync(fd);
+  logFd = null;
+  try {
+    for (let i = MAX_ROTATED_LOG_FILES - 1; i >= 1; i--) {
+      if (fs.existsSync(`${file}.${i}`)) {
+        fs.renameSync(`${file}.${i}`, `${file}.${i + 1}`);
+      }
+    }
+    fs.renameSync(file, `${file}.1`);
+  } catch {
+    fs.truncateSync(file, 0);
+  }
+  return openLogFile(fs, file);
+}
+
+function writeLogFile(fs: FsSync, fd: number, line: string): void {
+  const lineBytes = Buffer.byteLength(line);
+  let target = fd;
+  if (logFilePath && logFileBytes > 0 && logFileBytes + lineBytes > MAX_LOG_FILE_BYTES) {
+    target = rotateLogFile(fs, fd, logFilePath);
+  }
+  fs.writeSync(target, line);
+  logFileBytes += lineBytes;
+}
 
 /**
  * Configure the global log level.
@@ -99,7 +150,7 @@ export function configureLogging(opts: LoggingOptions = {}): void {
   const logFile = ENV["NODETOOL_LOG_FILE"];
   if (logFile && logFd === null && fsSync) {
     try {
-      logFd = fsSync.openSync(logFile, "a");
+      openLogFile(fsSync, logFile);
     } catch {
       // Fall back to stderr silently
     }
@@ -217,7 +268,12 @@ function write(
   const nm = `${C.cyan}${name}${C.reset}`;
   const line = `${ts} | ${lv} | ${nm} | ${msg}${formatArgs(args)}\n`;
   if (logFd !== null && fsSync) {
-    fsSync.writeSync(logFd, line);
+    try {
+      writeLogFile(fsSync, logFd, line);
+    } catch {
+      logFd = null;
+      process.stderr.write(line);
+    }
   } else if (IS_NODE) {
     process.stderr.write(line);
   } else {
