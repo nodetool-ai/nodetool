@@ -161,6 +161,15 @@ When you drag a connection and release on **empty space**, a connection menu app
 
 Releasing on a node's body instead connects to a matching input on that node. On a node that supports dynamic inputs, it creates a new input named after the source node.
 
+### Lineage Links
+
+A lineage link records that one node relates to another, such as "this clip comes from this shot" or "this sketch is the reference for that frame". It is a dotted line that carries no data and does not change the order nodes run in. A run gives the same result with or without it.
+
+- Select exactly two nodes and click **Link** in the selection toolbar. The link runs from the node on the left to the node on the right.
+- Click a link to select it, then press `Delete` or `Backspace`. You can also right-click it and choose **Delete Link**, or middle-click it.
+- Deleting a node removes its links. Copy, paste and duplicate keep a link when both of its nodes are included.
+- Agents add and remove links with the `add_workflow_link` and `remove_workflow_link` tools. `get_workflow` lists them under `graph.links`.
+
 ---
 
 ## Running Workflows
@@ -293,6 +302,7 @@ Right-click for options anywhere:
 | **Selection** | Duplicate, Copy, Cut, Run Selected, Align, Arrange, Disable All, Collapse / Expand, Surround With Group, Group into Subgraph, Select All Connected, Select Inputs, Select Outputs, Delete |
 | **Input or output port** | Searchable list of compatible nodes, plus Preview, Reroute, and Save shortcuts |
 | **Connection** | Insert Reroute, Delete Edge |
+| **Lineage link** | Delete Link |
 
 **Copy Node as JSON** puts the node's data — its property values, title, and dynamic slots — on the clipboard as formatted JSON. Paste it into a bug report, or hand it to an agent.
 

@@ -49,6 +49,8 @@ describe("useCopyPaste handleCut", () => {
 
     asMock(useNodeStoreRef).mockReturnValue({
       getState: () => ({
+        links: [],
+        selectedLinkIds: [],
         nodes: [group, child],
         edges: [],
         getSelectedNodes: () => [group],
@@ -99,6 +101,8 @@ describe("useCopyPaste handleCut", () => {
   it("does nothing when nothing is selected", async () => {
     asMock(useNodeStoreRef).mockReturnValue({
       getState: () => ({
+        links: [],
+        selectedLinkIds: [],
         nodes: [group, child],
         edges: [],
         getSelectedNodes: () => [],

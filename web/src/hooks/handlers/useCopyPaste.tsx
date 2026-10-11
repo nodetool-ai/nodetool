@@ -2,6 +2,7 @@
 
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
+import type { GraphLink } from "@nodetool-ai/protocol";
 import { NodeData } from "../../stores/NodeData";
 import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -14,6 +15,8 @@ import { absoluteNodePosition } from "../../utils/absoluteNodePosition";
 interface ClipboardData {
   nodes: Node<NodeData>[];
   edges: Edge[];
+  /** Lineage links between copied nodes. Absent in older clipboard data. */
+  links?: GraphLink[];
 }
 
 const isValidNode = (node: unknown): node is Node<NodeData> =>
@@ -59,7 +62,7 @@ export const useCopyPaste = (): UseCopyPasteResult => {
       if (!nodeId && isTextInputActive()) return { nodesToCopy: [], connectedEdges: [] };
 
       // Always read fresh state to avoid stale closures.
-      const { nodes, edges, getSelectedNodes } = nodeStore.getState();
+      const { nodes, edges, links, getSelectedNodes } = nodeStore.getState();
       const selectedNodes = getSelectedNodes();
 
       // Allow the browser to handle text copy when no nodes are selected and
@@ -99,10 +102,19 @@ export const useCopyPaste = (): UseCopyPasteResult => {
             }
           : node
       );
-      const serializedData = JSON.stringify({
+      const copiedLinks = links.filter(
+        (link) =>
+          nodesToCopyIdsSet.has(link.source) &&
+          nodesToCopyIdsSet.has(link.target)
+      );
+      const clipboard: ClipboardData = {
         nodes: clipboardNodes,
         edges: connectedEdges
-      });
+      };
+      if (copiedLinks.length > 0) {
+        clipboard.links = copiedLinks;
+      }
+      const serializedData = JSON.stringify(clipboard);
 
       // Use Electron's clipboard API if available, otherwise fallback to browser clipboard API
       if (window.api?.clipboard?.writeText) {
@@ -214,7 +226,11 @@ export const useCopyPaste = (): UseCopyPasteResult => {
     // Read fresh state from the store so that cross-workflow paste always uses
     // the current workflow's nodes/edges/workflowId rather than a stale snapshot
     // captured when the callback was last created.
-    const { nodes: copiedNodes, edges: copiedEdges } = parsedData;
+    const {
+      nodes: copiedNodes,
+      edges: copiedEdges,
+      links: copiedLinks
+    } = parsedData;
     const oldToNewIds = new Map<string, string>();
     const newNodes: Node<NodeData>[] = [];
     const newEdges: Edge[] = [];
@@ -222,8 +238,10 @@ export const useCopyPaste = (): UseCopyPasteResult => {
     const {
       nodes,
       edges,
+      links,
       setNodes,
       setEdges,
+      setLinks,
       generateNodeIds,
       workflow
     } = nodeStore.getState();
@@ -322,9 +340,26 @@ export const useCopyPaste = (): UseCopyPasteResult => {
       selected: false
     }));
 
+    const newLinks: GraphLink[] = [];
+    for (const link of Array.isArray(copiedLinks) ? copiedLinks : []) {
+      const newSource = oldToNewIds.get(link.source);
+      const newTarget = oldToNewIds.get(link.target);
+      if (newSource && newTarget) {
+        newLinks.push({
+          ...link,
+          id: crypto.randomUUID().replace(/-/g, ""),
+          source: newSource,
+          target: newTarget
+        });
+      }
+    }
+
     // Update state
     setNodes([...deselectedNodes, ...newNodes]);
     setEdges([...deselectedEdges, ...newEdges]);
+    if (newLinks.length > 0) {
+      setLinks([...links, ...newLinks]);
+    }
   }, [
     nodeStore,
     reactFlow,

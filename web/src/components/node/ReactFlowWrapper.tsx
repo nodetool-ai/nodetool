@@ -168,6 +168,7 @@ import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
+import LinkLayer from "../node_editor/LinkLayer";
 import { usePlaceholderNodeTypes } from "../node_types/usePlaceholderNodeTypes";
 import { isNumber, isString } from "../../utils/typePredicates";
 
@@ -191,7 +192,8 @@ const ReactFlowWrapper = ({
     createNode,
     addNode,
     addEdge,
-    generateEdgeId
+    generateEdgeId,
+    setLinkSelection
   } = useNodes(
     useMemo(
       () => (state) => ({
@@ -207,7 +209,8 @@ const ReactFlowWrapper = ({
         createNode: state.createNode,
         addNode: state.addNode,
         addEdge: state.addEdge,
-        generateEdgeId: state.generateEdgeId
+        generateEdgeId: state.generateEdgeId,
+        setLinkSelection: state.setLinkSelection
       }),
       []
     )
@@ -760,9 +763,15 @@ const ReactFlowWrapper = ({
     setSuppressNodeDrivenEdgeSelection
   });
 
-  const handleNodeClick = useCallback((_event: ReactMouseEvent, _node: Node) => {
-    setSuppressNodeDrivenEdgeSelection(false);
-  }, []);
+  const handleNodeClick = useCallback(
+    (event: ReactMouseEvent, _node: Node) => {
+      setSuppressNodeDrivenEdgeSelection(false);
+      if (!event.shiftKey && !event.metaKey && !event.ctrlKey) {
+        setLinkSelection([]);
+      }
+    },
+    [setLinkSelection]
+  );
 
   const handleNodeDoubleClick = useCallback(
     (_event: ReactMouseEvent, node: Node) => {
@@ -778,9 +787,10 @@ const ReactFlowWrapper = ({
   const handlePaneClickWithSuppress = useCallback(
     (event: ReactMouseEvent) => {
       setSuppressNodeDrivenEdgeSelection(false);
+      setLinkSelection([]);
       handlePaneClick(event);
     },
-    [handlePaneClick]
+    [handlePaneClick, setLinkSelection]
   );
 
   // Node statuses are keyed per run; the canvas animates edges for the
@@ -1254,6 +1264,7 @@ const ReactFlowWrapper = ({
           variant={BackgroundVariant.Cross}
         />
         <AxisMarker />
+        <LinkLayer />
         <ContextMenus />
         <ConnectableNodes />
         <EdgeGradientDefinitions

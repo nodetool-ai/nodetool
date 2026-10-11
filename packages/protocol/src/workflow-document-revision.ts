@@ -73,7 +73,7 @@ export function workflowDocumentRevision(
   edges: readonly unknown[],
   links: readonly unknown[] = []
 ): string {
-  const graph = {
+  const graph: Record<string, unknown> = {
     workflow_id: workflowId,
     nodes: nodes.map((value) => {
       const node = record(value);
@@ -111,23 +111,21 @@ export function workflowDocumentRevision(
         edge_type: edge.edge_type === "control" || edge.type === "control" || record(edge.data).edge_type === "control"
           ? "control" : "data"
       };
-    }),
-    // Omitted when empty so revisions of graphs without links are unchanged.
-    ...(links.length > 0
-      ? {
-          links: links.map((value) => {
-            const link = record(value);
-            return {
-              id: link.id,
-              source: link.source,
-              target: link.target,
-              label: link.label ?? null,
-              kind: link.kind ?? null
-            };
-          })
-        }
-      : {})
+    })
   };
+  // Omitted when empty so revisions of graphs without links are unchanged.
+  if (links.length > 0) {
+    graph.links = links.map((value) => {
+      const link = record(value);
+      return {
+        id: link.id,
+        source: link.source,
+        target: link.target,
+        label: link.label ?? null,
+        kind: link.kind ?? null
+      };
+    });
+  }
   const canonical = JSON.stringify(graph, (_key, value: unknown) => {
     if (isRecord(value)) {
       return Object.fromEntries(

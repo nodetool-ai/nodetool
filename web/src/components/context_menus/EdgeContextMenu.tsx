@@ -33,6 +33,9 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
     shallow
   );
 
+  const isLink = useNodes((state) =>
+    state.links.some((link) => link.id === edgeId)
+  );
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const reactFlowInstance = useReactFlow();
 
@@ -106,6 +109,25 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
   ]);
 
   if (!menuPosition) {return null;}
+
+  if (isLink) {
+    return (
+      <ContextMenu
+        open={true}
+        onClose={closeContextMenu}
+        position={menuPosition}
+        maxHeight="400px"
+        minWidth="200px"
+      >
+        <ContextMenuItem
+          onClick={handleDeleteEdge}
+          IconComponent={<DeleteIcon />}
+          label="Delete Link"
+          tooltip="Remove this lineage link. Data connections are not affected."
+        />
+      </ContextMenu>
+    );
+  }
 
   return (
     <ContextMenu

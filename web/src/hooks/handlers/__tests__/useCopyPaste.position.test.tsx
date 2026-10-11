@@ -50,6 +50,8 @@ describe("useCopyPaste positions of group children", () => {
     jest.clearAllMocks();
     asMock(useNodeStoreRef).mockReturnValue({
       getState: () => ({
+        links: [],
+        selectedLinkIds: [],
         nodes: [group, child, other],
         edges: [],
         workflow: { id: "w1" },

@@ -21,6 +21,7 @@ import ArrowDropDown from "@mui/icons-material/ArrowDropDown";
 import ContentCopy from "@mui/icons-material/ContentCopy";
 import Delete from "@mui/icons-material/Delete";
 import Layers from "@mui/icons-material/Layers";
+import LinkIcon from "@mui/icons-material/Link";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import PowerSettingsNew from "@mui/icons-material/PowerSettingsNew";
 import ViewColumn from "@mui/icons-material/ViewColumn";
@@ -215,6 +216,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
           slug: "groupSelected",
           action: selectionActions.groupSelected,
           disabled: !canArrange
+        },
+        {
+          icon: <LinkIcon fontSize="small" />,
+          label: "Link (lineage only, no data)",
+          slug: "linkSelected",
+          action: selectionActions.linkSelected,
+          disabled: selectedCount !== 2
         },
         {
           icon: <PowerSettingsNew fontSize="small" />,

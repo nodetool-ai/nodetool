@@ -66,3 +66,21 @@ export function pruneGraphLinks(
 ): GraphLink[] {
   return links.filter((l) => nodeIds.has(l.source) && nodeIds.has(l.target));
 }
+
+/**
+ * Three-way merge of link lists by id: start from `local`, drop links the
+ * remote side deleted since `base`, and append links the remote side added.
+ */
+export function mergeGraphLinks(
+  base: readonly GraphLink[],
+  local: readonly GraphLink[],
+  remote: readonly GraphLink[]
+): GraphLink[] {
+  const baseIds = new Set(base.map((l) => l.id));
+  const remoteIds = new Set(remote.map((l) => l.id));
+  const localIds = new Set(local.map((l) => l.id));
+  return [
+    ...local.filter((l) => !baseIds.has(l.id) || remoteIds.has(l.id)),
+    ...remote.filter((l) => !baseIds.has(l.id) && !localIds.has(l.id))
+  ];
+}
