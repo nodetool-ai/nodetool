@@ -822,7 +822,7 @@ const ComponentPreview: React.FC = () => {
       sx={{
         width: "100%",
         minHeight: "100vh",
-        bgcolor: theme.palette.background.default
+        bgcolor: theme.vars.palette.background.default
       }}
     >
       <PreviewComponent />
