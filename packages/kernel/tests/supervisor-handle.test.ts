@@ -11,7 +11,9 @@ import {
   BoundedHandle,
   FailClosedHandle,
   computeAllowedActions,
+  ensureBounded,
   failureSignature,
+  MAX_ESCALATION_VALUE_CHARS,
   redactRecord,
   redactValue,
   type DecisionOutcome,
@@ -168,6 +170,32 @@ describe("BoundedHandle — decisions and retries are capped", () => {
   });
 });
 
+describe("BoundedHandle — wrapping", () => {
+  it("forwards attach to the inner handle, and tolerates one without it", () => {
+    const attached: unknown[] = [];
+    const inner = {
+      ...handleReturning({ action: "fail" }),
+      attach: (reader: unknown) => {
+        attached.push(reader);
+      }
+    };
+    const reader = {} as never;
+    new BoundedHandle(inner).attach(reader);
+    expect(attached).toEqual([reader]);
+
+    expect(() =>
+      new BoundedHandle(handleReturning({ action: "fail" })).attach(reader)
+    ).not.toThrow();
+  });
+
+  it("bounds a handle once", () => {
+    const raw = handleReturning({ action: "fail" });
+    const bounded = ensureBounded(raw);
+    expect(bounded).toBeInstanceOf(BoundedHandle);
+    expect(ensureBounded(bounded)).toBe(bounded);
+  });
+});
+
 describe("BoundedHandle — sticky verdicts", () => {
   it("resolves later matching failures without waking the agent", async () => {
     const inner = handleReturning({ action: "skip", applyTo: "signature" });
@@ -201,6 +229,19 @@ describe("BoundedHandle — sticky verdicts", () => {
     await bounded.decide(e(), never);
     await bounded.decide(e(), never);
     expect(inner.calls).toBe(2);
+  });
+
+  it("sticks a fail scoped to the signature", async () => {
+    const inner = handleReturning({ action: "fail", applyTo: "signature" });
+    const bounded = new BoundedHandle(inner);
+    const e = () => escalation({ failureSignature: "code:quota" });
+    await bounded.decide(e(), never);
+    const later = await bounded.decide(e(), never);
+    expect(later).toEqual({
+      verdict: { action: "fail", applyTo: "signature" },
+      decidedBy: "sticky"
+    });
+    expect(inner.calls).toBe(1);
   });
 
   it("decides afresh when the cached verdict is not allowed here", async () => {
@@ -337,6 +378,11 @@ describe("failure signatures", () => {
     ).toBe("http:503");
   });
 
+  it("signs an error by its errno, string or number", () => {
+    expect(failureSignature({ errno: "ECONNRESET" })).toBe("errno:ECONNRESET");
+    expect(failureSignature({ errno: -104 })).toBe("errno:-104");
+  });
+
   it("gives a plain Error none — error class is not a category", () => {
     expect(failureSignature(new Error("item 147 timed out"))).toBeUndefined();
     expect(failureSignature(new TypeError("nope"))).toBeUndefined();
@@ -388,6 +434,35 @@ describe("redaction", () => {
     const long = redactValue("x".repeat(5000), new Set()) as string;
     expect(long.length).toBeLessThan(2100);
     expect(long.endsWith("…[truncated]")).toBe(true);
+  });
+
+  it("keeps text at the limit and truncates from its start", () => {
+    const atLimit = "y".repeat(MAX_ESCALATION_VALUE_CHARS);
+    expect(redactValue(atLimit, new Set())).toBe(atLimit);
+    const over = `a${"x".repeat(MAX_ESCALATION_VALUE_CHARS)}`;
+    expect(redactValue(over, new Set())).toBe(
+      `${over.slice(0, MAX_ESCALATION_VALUE_CHARS)}…[truncated]`
+    );
+  });
+
+  it("passes null and undefined through", () => {
+    expect(redactValue(null, new Set())).toBeNull();
+    expect(redactValue(undefined, new Set())).toBeUndefined();
+  });
+
+  it("keeps the first hundred items of a list", () => {
+    const items = Array.from({ length: 101 }, (_, i) => i);
+    expect(redactValue(items, new Set())).toEqual(items.slice(0, 100));
+  });
+
+  it("masks whatever sits six levels deep", () => {
+    // depth 0 is the outer object; its value at depth 6 is masked.
+    const nested = { a: { b: { c: { d: { e: { f: { g: "deep" } } } } } } };
+    expect(redactValue(nested, new Set())).toEqual({
+      a: { b: { c: { d: { e: { f: "«redacted»" } } } } }
+    });
+    const list = [[[[[[["deep"]]]]]]];
+    expect(redactValue(list, new Set())).toEqual([[[[[["«redacted»"]]]]]]);
   });
 
   it("summarizes binary rather than stringifying it", () => {
@@ -481,6 +556,83 @@ describe("substitute validator", () => {
     );
     expect(result.ok).toBe(false);
     expect(result.issues[0]).toContain("no runtime validation rule");
+  });
+});
+
+describe("substitute validator — rules per type", () => {
+  it.each([
+    "str",
+    "string",
+    "int",
+    "integer",
+    "float",
+    "number",
+    "bool",
+    "boolean",
+    "list[str]",
+    "array",
+    "dict[str, any]",
+    "object"
+  ])("covers %s on its own", (type) => {
+    expect(hasFullValidatorCoverage({ out: type }, false)).toBe(true);
+  });
+
+  it("does not count any as coverage", () => {
+    expect(hasFullValidatorCoverage({ out: "any" }, true)).toBe(false);
+  });
+
+  it("accepts only plain objects for a dict slot", async () => {
+    const check = (value: unknown) =>
+      validateSubstituteOutputs({ out: value }, { declaredOutputs: { out: "dict" } });
+    expect((await check({ a: 1 })).ok).toBe(true);
+    expect((await check(Object.create(null))).ok).toBe(true);
+    expect((await check([1])).issues).toEqual([
+      'output "out" must be an object, got a list'
+    ]);
+    expect((await check(null)).issues).toEqual([
+      'output "out" must be an object, got null'
+    ]);
+    expect((await check(new Date(0))).issues).toEqual([
+      'output "out" must be an object, got object'
+    ]);
+  });
+
+  it("names a missing value as undefined", async () => {
+    const result = await validateSubstituteOutputs(
+      { out: undefined, extra: 1 },
+      { declaredOutputs: { out: "str", extra: "str" } }
+    );
+    expect(result.issues).toEqual([
+      'output "out" is declared by this node but missing',
+      'output "out" must be a string, got undefined',
+      'output "extra" must be a string, got number'
+    ]);
+  });
+
+  it("resolves a reference by asset id when it has no uri", async () => {
+    const seen: string[] = [];
+    const resolveRef = async (id: string) => {
+      seen.push(id);
+      return false;
+    };
+    const result = await validateSubstituteOutputs(
+      { img: { type: "image", asset_id: "asset-1" } },
+      { declaredOutputs: { img: "image" }, resolveRef }
+    );
+    expect(seen).toEqual(["asset-1"]);
+    expect(result.issues).toEqual([
+      'output "img" references "asset-1", which does not resolve'
+    ]);
+  });
+
+  it("rejects a reference with neither uri nor asset id", async () => {
+    const result = await validateSubstituteOutputs(
+      { img: { type: "image", uri: "" } },
+      { declaredOutputs: { img: "image" }, resolveRef: async () => true }
+    );
+    expect(result.issues).toEqual([
+      'output "img" is a image reference with neither uri nor asset_id'
+    ]);
   });
 });
 

@@ -193,6 +193,14 @@ describe("T-CFG-3b: createLogger", () => {
     expect(written).toContain("boom");
   });
 
+  it("renders string args without JSON quotes", () => {
+    const log = createLogger("test");
+    log.info("model", "gpt-x");
+    const written = stderrSpy.mock.calls[0][0] as string;
+    expect(written).toContain("model gpt-x");
+    expect(written).not.toContain('"gpt-x"');
+  });
+
   it("formats primitive args as strings", () => {
     const log = createLogger("test");
     log.info("value is", 99);

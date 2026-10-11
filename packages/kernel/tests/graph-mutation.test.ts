@@ -1196,6 +1196,7 @@ describe("withExplicitNodeFlags", () => {
     expect(unset.is_streaming_output).toBe(false);
     expect(unset.is_controlled).toBe(false);
     expect(unset.is_join_node).toBe(false);
+    expect(unset.retry_safe).toBe(false);
 
     expect(hydrated.edges).toHaveLength(1);
     expect(hydrated.edges[0]).toMatchObject({ source: "set", target: "unset" });

@@ -341,6 +341,50 @@ describe("transient failures", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it("stops retrying a thrown network error after maxAttempts", async () => {
+    fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+    await expect(
+      retrying(3).storage.from("assets").createSignedUploadUrl("a.bin")
+    ).rejects.toThrow("fetch failed");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("makes a single attempt when maxAttempts is 0", async () => {
+    fetchMock.mockImplementation(async () => tooManyConnections());
+    await retrying(0)
+      .storage.from("assets")
+      .upload("assets/a.bin", new Uint8Array([1]), { upsert: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("backs off exponentially with jitter, capped at four seconds", async () => {
+    const sleeps: number[] = [];
+    const random = vi.spyOn(Math, "random");
+    fetchMock.mockImplementation(async () => tooManyConnections());
+    const upload = (maxAttempts: number) =>
+      createSupabaseStorageClient("https://xyz.supabase.co", "service-key", {
+        maxAttempts,
+        sleep: async (ms) => {
+          sleeps.push(ms);
+        }
+      })
+        .storage.from("assets")
+        .upload("assets/a.bin", new Uint8Array([1]), { upsert: true });
+    try {
+      random.mockReturnValue(0);
+      await upload(7);
+      // Half of 250, 500, 1000, 2000, 4000, then the 4000 cap.
+      expect(sleeps).toEqual([125, 250, 500, 1000, 2000, 2000]);
+
+      sleeps.length = 0;
+      random.mockReturnValue(1);
+      await upload(3);
+      expect(sleeps).toEqual([250, 500]);
+    } finally {
+      random.mockRestore();
+    }
+  });
+
   it("does not retry a client error", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ message: "denied" }, 403));
     const { error } = await retrying()

@@ -54,6 +54,29 @@ describe("esmExportPath", () => {
     ).toBe("./dist/x.js");
   });
 
+  it("strips a pattern's suffix before substituting the match", () => {
+    expect(
+      esmExportPath(
+        { exports: { "./features/*.js": { import: "./src/features/*.mjs" } } },
+        "./features/a/b.js"
+      )
+    ).toBe("./src/features/a/b.mjs");
+  });
+
+  it("matches a pattern only when the subpath has both its prefix and suffix", () => {
+    const manifest = { exports: { "./lib/*": "./dist/*.js", "./x*x": "./t*" } };
+    expect(esmExportPath(manifest, "./other/x")).toBeNull();
+    // "./x" starts with "./x" and ends with "x", but the two overlap.
+    expect(esmExportPath(manifest, "./x")).toBeNull();
+    expect(esmExportPath(manifest, "./xx")).toBe("./t");
+  });
+
+  it("skips keys without a star when matching patterns", () => {
+    expect(
+      esmExportPath({ exports: { "./a": "./a.js", "./*": "./dist/*.js" } }, "./x./a")
+    ).toBe("./dist/x./a.js");
+  });
+
   it("answers null for a subpath the package does not export", () => {
     expect(esmExportPath({ exports: { ".": "./a.js" } }, "./hidden")).toBeNull();
     expect(esmExportPath({ exports: { ".": { require: "./a.cjs" } } }, ".")).toBeNull();
