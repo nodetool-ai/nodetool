@@ -89,6 +89,34 @@ function runner(): DreaminaPageRunner {
   return (pageRunner ??= createExtensionRunner());
 }
 
+/**
+ * A request to the tab that did not answer in time. Its outcome is unknown:
+ * for the generate request, Dreamina may already run (and bill) the job.
+ */
+class DreaminaStallError extends Error {}
+
+/** Whether `error` means a request stalled, so its outcome is unknown. */
+function stalled(error: unknown): boolean {
+  return error instanceof DreaminaStallError;
+}
+
+/**
+ * Evaluate `expression` in the tab, but stop waiting after `timeoutMs`. The
+ * provider keeps its own limit, so a stalled tab or bridge cannot hang a poll.
+ */
+async function evaluateBounded(expression: string, what: string, timeoutMs = TAB_CALL_TIMEOUT_MS): Promise<unknown> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new DreaminaStallError(`Dreamina tab did not answer ${what} within ${timeoutMs / 1000}s`)), timeoutMs);
+    timer.unref?.();
+  });
+  try {
+    return await Promise.race([runner().evaluate(expression), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const API_BASE = "https://mweb-api-sg.capcut.com";
 const APP_ID = "513641";
 const APP_VERSION = "8.4.0";
@@ -102,6 +130,12 @@ const GENERATE_PATH = "/mweb/v1/aigc_draft/generate";
 const DEFAULT_TIMEOUT_MS = 5 * 60_000;
 const VIDEO_TIMEOUT_MS = 10 * 60_000;
 const CONFIG_TTL_MS = 5 * 60_000;
+/** One API request in the tab gives up after this, so a stalled request cannot block a poll. */
+const API_TIMEOUT_MS = 30_000;
+/** The whole tab round trip, past the request's own limit, before the provider stops waiting. */
+const TAB_CALL_TIMEOUT_MS = API_TIMEOUT_MS + 15_000;
+/** One image download attempt gives up after this. */
+const DOWNLOAD_TIMEOUT_MS = 60_000;
 const VIDEO_FPS = 24;
 
 /** Dreamina's `image_ratio` enum, in the order the web app numbers it. */
@@ -206,11 +240,20 @@ async function callApiOnce<T>(path: string, body: unknown): Promise<T> {
       for (const k of Object.keys(a.headers)) x.setRequestHeader(k, a.headers[k]);
       x.onload = () => { try { resolve(JSON.parse(x.responseText)); } catch { reject(new Error("Dreamina returned a non-JSON response (HTTP " + x.status + ")")); } };
       x.onerror = () => reject(new Error("Dreamina request failed"));
+      x.timeout = ${API_TIMEOUT_MS};
+      x.ontimeout = () => reject(new Error("Dreamina request timed out after ${API_TIMEOUT_MS / 1000}s"));
       x.send(a.body);
     });
   })()`;
   const started = Date.now();
-  const response = (await runner().evaluate(expression)) as DreaminaResponse<T>;
+  let response: DreaminaResponse<T>;
+  try {
+    response = (await evaluateBounded(expression, path)) as DreaminaResponse<T>;
+  } catch (error) {
+    // A request that ran out of time has an unknown outcome, like a lost tab.
+    if (error instanceof Error && /timed out after/.test(error.message)) throw new DreaminaStallError(error.message);
+    throw error;
+  }
   log.debug("Dreamina API call", { path, ret: response.ret, ms: Date.now() - started });
   // `submit_audit_job` answers with an empty `ret`, which carries no error.
   if (response.ret !== "0" && response.ret !== "") {
@@ -669,9 +712,9 @@ async function submitAndAwait(body: Record<string, unknown>, submitId: string, t
   try {
     await callApi(GENERATE_PATH, body);
   } catch (error) {
-    if (!tabLost(error)) throw error;
+    if (!tabLost(error) && !stalled(error)) throw error;
     unconfirmed = error as Error;
-    log.warn("Dreamina tab lost during submit, looking the job up by id", { submitId, error: unconfirmed.message });
+    log.warn("Dreamina submit has no answer, looking the job up by id", { submitId, error: unconfirmed.message });
   }
   const started = Date.now();
   const deadline = started + timeoutMs;
@@ -688,6 +731,9 @@ async function submitAndAwait(body: Record<string, unknown>, submitId: string, t
       // transient error while a fresh task registers. The submit is never retried.
       log.warn("Dreamina poll failed", { submitId, pollFailures: pollFailures + 1, error: error instanceof Error ? error.message : String(error) });
       if (++pollFailures > MAX_POLL_FAILURES) throw error;
+      if (Date.now() > deadline) {
+        throw new Error(`Dreamina generation ${submitId} timed out after ${timeoutMs / 1000}s (last task status ${lastStatus ?? "none"}, last poll failed: ${error instanceof Error ? error.message : String(error)})`);
+      }
       continue;
     }
     pollFailures = 0;
@@ -713,10 +759,49 @@ async function submitAndAwait(body: Record<string, unknown>, submitId: string, t
   }
 }
 
-async function download(url: string, signal?: AbortSignal): Promise<Uint8Array> {
-  const response = await fetchExternalMedia(url, signal ? { signal } : undefined);
+async function downloadOnce(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+  const limit = AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS);
+  const combined = signal ? AbortSignal.any([signal, limit]) : limit;
+  const response = await fetchExternalMedia(url, { signal: combined });
   if (!response.ok) throw new Error(`Dreamina download failed: HTTP ${response.status}`);
   return new Uint8Array(await response.arrayBuffer());
+}
+
+/** Fetch `url` inside the Dreamina tab, which can always reach Dreamina's CDN. */
+async function downloadViaTab(url: string): Promise<Uint8Array> {
+  const expression = `(async () => {
+    const response = await fetch(${JSON.stringify(url)}, { credentials: "omit", signal: AbortSignal.timeout(${DOWNLOAD_TIMEOUT_MS}) });
+    if (!response.ok) throw new Error("Dreamina download failed in the tab: HTTP " + response.status);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(binary);
+  })()`;
+  const base64 = (await evaluateBounded(expression, "the download", DOWNLOAD_TIMEOUT_MS + 15_000)) as string;
+  return new Uint8Array(Buffer.from(base64, "base64"));
+}
+
+/**
+ * Download a finished result. The job is paid for by now, so a slow or broken
+ * connection gets a second attempt, then the tab's own connection.
+ */
+async function download(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      return await downloadOnce(url, signal);
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      lastError = error;
+      log.warn("Dreamina download failed", { attempt, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  try {
+    return await downloadViaTab(url);
+  } catch (error) {
+    log.warn("Dreamina download through the tab failed", { error: error instanceof Error ? error.message : String(error) });
+    throw new Error(`Dreamina download failed: ${lastError instanceof Error ? lastError.message : String(lastError)}. The result is still in your Dreamina history`);
+  }
 }
 
 function videoEnum(model: DreaminaVideoModelConfig, key: string): { values: Array<string | number>; defaultIndex: number } {
