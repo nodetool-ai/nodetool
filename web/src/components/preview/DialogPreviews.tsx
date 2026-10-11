@@ -9,6 +9,7 @@ import React, { Suspense, useEffect } from "react";
 
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useLogsStore from "../../stores/LogStore";
+import { useSearchProviderCalloutStore } from "../../stores/SearchProviderCalloutStore";
 import type { Asset } from "../../stores/ApiTypes";
 import { Box } from "../ui_primitives";
 
@@ -38,6 +39,18 @@ const JsScriptRunDialog = React.lazy(
 );
 const ModelShortcutsDialog = React.lazy(
   () => import("../model_editor/ShortcutsDialog")
+);
+const CollectionForm = React.lazy(
+  () => import("../collections/CollectionForm")
+);
+const SaveToMyNodesDialog = React.lazy(
+  () => import("../node_types/SaveToMyNodesDialog")
+);
+const WorkerProfilesDialog = React.lazy(
+  () => import("../workers/WorkerProfilesDialog")
+);
+const SearchProviderSetupDialog = React.lazy(
+  () => import("../dialogs/SearchProviderSetupDialog")
 );
 const NodeLogsDialog = React.lazy(() =>
   import("../node/NodeLogs").then((m) => ({ default: m.NodeLogsDialog }))
@@ -215,6 +228,51 @@ const PreviewNodeLogs: React.FC = () => {
   );
 };
 
+const PreviewCollectionForm: React.FC = () => (
+  <DialogFrame preview="form-collection">
+    <Box sx={{ maxWidth: 560, p: 4 }}>
+      <CollectionForm onClose={noop} />
+    </Box>
+  </DialogFrame>
+);
+
+const PreviewSaveToMyNodes: React.FC = () => (
+  <DialogFrame preview="dialog-save-to-my-nodes">
+    <SaveToMyNodesDialog
+      open
+      initialName="Caption images"
+      initialCategory="My nodes"
+      onCancel={noop}
+      onConfirm={noop}
+    />
+  </DialogFrame>
+);
+
+const resolveNever = (): Promise<never> => new Promise<never>(noop);
+
+const PreviewWorkerProfiles: React.FC = () => (
+  <DialogFrame preview="dialog-worker-profiles">
+    <WorkerProfilesDialog
+      open
+      onClose={noop}
+      profiles={[]}
+      createProfile={resolveNever}
+      deleteProfile={resolveNever}
+    />
+  </DialogFrame>
+);
+
+const PreviewSearchProvider: React.FC = () => {
+  useEffect(() => {
+    useSearchProviderCalloutStore.getState().show([]);
+  }, []);
+  return (
+    <DialogFrame preview="dialog-search-provider">
+      <SearchProviderSetupDialog />
+    </DialogFrame>
+  );
+};
+
 export const DIALOG_PREVIEWS: Record<
   string,
   { label: string; component: React.FC }
@@ -248,5 +306,21 @@ export const DIALOG_PREVIEWS: Record<
     label: "3D editor shortcuts",
     component: PreviewModelShortcuts
   },
-  "dialog-node-logs": { label: "Node logs", component: PreviewNodeLogs }
+  "dialog-node-logs": { label: "Node logs", component: PreviewNodeLogs },
+  "form-collection": {
+    label: "New collection",
+    component: PreviewCollectionForm
+  },
+  "dialog-save-to-my-nodes": {
+    label: "Save to my nodes",
+    component: PreviewSaveToMyNodes
+  },
+  "dialog-worker-profiles": {
+    label: "Worker profiles",
+    component: PreviewWorkerProfiles
+  },
+  "dialog-search-provider": {
+    label: "Search provider setup",
+    component: PreviewSearchProvider
+  }
 };
