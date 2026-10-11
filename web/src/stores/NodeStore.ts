@@ -996,9 +996,14 @@ export const createNodeStore = (
             id: string,
             nodeUpdate: Partial<Node<NodeData>>
           ): void => {
-            // Check if this is only a selection change
-            const isOnlySelectionChange =
-              Object.keys(nodeUpdate).length === 1 && "selected" in nodeUpdate;
+            // Check if this is only a selection change. `selectable` is
+            // toggled by groups while Ctrl/Cmd is held, which is not an edit.
+            const isOnlySelectionChange = Object.keys(nodeUpdate).every(
+              (key) => key === "selected" || key === "selectable"
+            );
+            const isOnlySelectableChange =
+              Object.keys(nodeUpdate).length === 1 &&
+              "selectable" in nodeUpdate;
 
             // Check if this is only a measurement reset (e.g. BaseNode forcing
             // a re-measure via `{ height: undefined, measured: undefined }`
@@ -1053,7 +1058,7 @@ export const createNodeStore = (
               return { ...state, nodes: newNodes };
             });
             // A measurement reset clears `height`, which undo compares.
-            if (isOnlyMeasurementReset) {
+            if (isOnlyMeasurementReset || isOnlySelectableChange) {
               withoutHistory(applyUpdate);
             } else {
               applyUpdate();

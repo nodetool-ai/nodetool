@@ -36,6 +36,7 @@ import {
 import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
+import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import ColorPicker from "../inputs/ColorPicker";
 import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
@@ -337,26 +338,17 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
   );
-  const run = useWebsocketRunner((state) => state.run);
+  const { runSelectedNodes } = useRunSelectedNodes();
 
+  // Runs the group's children through the Run selected path, so inputs wired
+  // from outside the group are seeded from cache or block the run.
   const runWorkflow = useCallback(() => {
-    // Access state imperatively to avoid re-renders
-    const state = store.getState();
-    const { nodes, edges, workflow } = state;
-
-    const groupNodes = nodes.filter(
-      (node) => node.id === props.id || node.parentId === props.id
-    );
-
-    const groupNodeIds = new Set(groupNodes.map((n) => n.id));
-    const groupEdges = edges.filter(
-      (edge) =>
-        groupNodeIds.has(edge.source) &&
-        groupNodeIds.has(edge.target)
-    );
-
-    run({}, workflow, groupNodes, groupEdges);
-  }, [run, props.id, store]);
+    const childIds = store
+      .getState()
+      .nodes.filter((node) => node.parentId === props.id)
+      .map((node) => node.id);
+    void runSelectedNodes(1, childIds);
+  }, [runSelectedNodes, props.id, store]);
 
   const toggleBypassChildren = useCallback(() => {
     const state = store.getState();
@@ -424,7 +416,24 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }, 500),
     [props.id, updateNodeData]
   );
-  useEffect(() => () => debouncedHeadlineSave.cancel(), [debouncedHeadlineSave]);
+  // Write a pending rename instead of dropping it when the node unmounts.
+  useEffect(() => () => debouncedHeadlineSave.flush(), [debouncedHeadlineSave]);
+
+  // Follow outside changes (undo, agent edits) while the title isn't being
+  // edited.
+  const storedHeadline =
+    (props.data.properties.headline as string | undefined) || "Group";
+  useEffect(() => {
+    if (document.activeElement !== headerInputRef.current) {
+      setHeadline(storedHeadline);
+    }
+  }, [storedHeadline]);
+  const storedColor = props.data.properties.group_color as string | undefined;
+  useEffect(() => {
+    if (storedColor) {
+      setColor(storedColor);
+    }
+  }, [storedColor]);
 
   const handleHeadlineChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -476,8 +485,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   useEffect(() => {
     // Selectable group when ctrl/meta is held AND this group owns a
     // selected child — enables drag-out and selection rectangle inside.
-    updateNode(props.id, { selectable: modifierActive });
-  }, [updateNode, props.id, modifierActive]);
+    if ((props.selectable ?? true) !== modifierActive) {
+      updateNode(props.id, { selectable: modifierActive });
+    }
+  }, [updateNode, props.id, props.selectable, modifierActive]);
 
   // Bound the label to the group body width. Only reserve room for the
   // action cluster when it's actually visible — otherwise the label can use
@@ -593,6 +604,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             aria-label="Group headline"
             value={headline}
             onChange={handleHeadlineChange}
+            onBlur={debouncedHeadlineSave.flush}
             placeholder="Group"
             style={inputStyle}
           />

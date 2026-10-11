@@ -68,7 +68,10 @@ describe("useAddToGroup", () => {
         selector({ updateNode: mockUpdateNode })
     );
     mockGetGroupBounds.mockReturnValue({ width: 300, height: 200, offsetX: 0, offsetY: 0 });
-    mockGetState.mockReturnValue({ nodes: [] });
+    mockGetState.mockReturnValue({
+      nodes: [],
+      findNode: (id: string) => ({ id, width: 100, height: 100 })
+    });
   });
 
   it("returns a function", () => {
@@ -238,6 +241,27 @@ describe("useAddToGroup", () => {
         height: 300
       })
     );
+    jest.useRealTimers();
+  });
+
+  it("never shrinks a group that is already larger than its children", () => {
+    jest.useFakeTimers();
+    mockGetState.mockReturnValue({
+      nodes: [],
+      findNode: (id: string) => ({ id, width: 800, height: 100 })
+    });
+    const { result } = renderHook(() => useAddToGroup());
+    const parentNode = createMockNode("parent-1", "nodetool.group.Loop", { x: 0, y: 0 });
+    mockGetGroupBounds.mockReturnValue({ width: 400, height: 300, offsetX: 0, offsetY: 0 });
+
+    act(() => {
+      result.current([createMockNode("node-1", "custom", { x: 100, y: 100 })], parentNode);
+    });
+    act(() => {
+      jest.advanceTimersByTime(20);
+    });
+
+    expect(mockUpdateNode).toHaveBeenCalledWith("parent-1", { width: 800, height: 300 });
     jest.useRealTimers();
   });
 

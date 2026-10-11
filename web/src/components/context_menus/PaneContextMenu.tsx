@@ -193,10 +193,11 @@ const PaneContextMenu: React.FC = () => {
     []
   );
 
+  // Paste where the menu was opened, not under the clicked menu item.
   const handlePasteAndClose = useCallback(() => {
-    handlePaste();
+    void handlePaste(menuPosition ?? undefined);
     closeAllMenus();
-  }, [handlePaste, closeAllMenus]);
+  }, [handlePaste, closeAllMenus, menuPosition]);
 
   const handleFitViewAndClose = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {

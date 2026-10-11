@@ -397,7 +397,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
   // A lineage link between exactly two selected nodes, drawn from the one on
   // the left (or above, when they share a column) to the other.
   const linkSelected = useCallback(() => {
-    const selected = getLayoutNodes();
+    // Every selected node counts here, a group and its child included; the
+    // toolbar enables Link for any two.
+    const selected = getSelectedNodes();
     if (selected.length !== 2) {
       return;
     }
@@ -408,7 +410,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         a.id.localeCompare(b.id)
     );
     addLink(source.id, target.id);
-  }, [addLink, getLayoutNodes]);
+  }, [addLink, getSelectedNodes]);
 
   return {
     alignLeft,

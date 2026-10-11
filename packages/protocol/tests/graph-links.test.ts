@@ -43,6 +43,27 @@ describe("graph links", () => {
     ).toEqual(["1"]);
   });
 
+  it("removes a link by the 12-character id an agent sees", () => {
+    const full = "b8d651a210c4" + "0".repeat(20);
+    const other = "c" + "1".repeat(31);
+    const links = [
+      { id: full, source: "a", target: "b" },
+      { id: other, source: "b", target: "c" }
+    ];
+    const removed = removeGraphLink(links, full.slice(0, 12));
+    expect(removed.ok && removed.value.map((l) => l.id)).toEqual([other]);
+  });
+
+  it("refuses a short id that matches two links", () => {
+    const links = [
+      { id: "abcdefabcdef" + "0".repeat(20), source: "a", target: "b" },
+      { id: "abcdefabcdef" + "1".repeat(20), source: "b", target: "c" }
+    ];
+    const removed = removeGraphLink(links, "abcdefabcdef");
+    expect(removed.ok).toBe(false);
+    expect(!removed.ok && removed.error).toMatch(/matches 2 links/);
+  });
+
   it("changes the document revision only when links exist", () => {
     const without = workflowDocumentRevision("wf", [], []);
     expect(workflowDocumentRevision("wf", [], [], [])).toBe(without);

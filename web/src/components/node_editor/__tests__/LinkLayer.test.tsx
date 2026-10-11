@@ -14,12 +14,18 @@ const mockState = {
   selectedLinkIds: [] as string[],
   setLinkSelection: jest.fn(),
   deleteEdge: jest.fn(),
-  setSelectedNodes: jest.fn()
+  setSelectedNodes: jest.fn(),
+  edges: [
+    { id: "e-selected", source: "a", target: "b", selected: true },
+    { id: "e-plain", source: "a", target: "b", selected: false }
+  ],
+  setEdgeSelectionState: jest.fn()
 };
 
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: (selector: (state: typeof mockState) => unknown) =>
-    selector(mockState)
+    selector(mockState),
+  useNodeStoreRef: () => ({ getState: () => mockState })
 }));
 
 jest.mock("../../../stores/ContextMenuStore", () => ({
@@ -79,6 +85,10 @@ describe("LinkLayer", () => {
     fireEvent.click(hit);
     expect(mockState.setSelectedNodes).toHaveBeenCalledWith([]);
     expect(mockState.setLinkSelection).toHaveBeenCalledWith(["link-1"]);
+    // A selected edge would otherwise be deleted along with the link.
+    expect(mockState.setEdgeSelectionState).toHaveBeenCalledWith({
+      "e-selected": false
+    });
 
     fireEvent(hit, new MouseEvent("auxclick", { bubbles: true, button: 1 }));
     expect(mockState.deleteEdge).toHaveBeenCalledWith("link-1");

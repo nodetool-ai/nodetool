@@ -301,6 +301,17 @@ export const useClipboardContentPaste = () => {
         }
       }
 
+      // Plain text first: browsers and editors put text/html beside it on
+      // every copy, and a String node should hold the text, not the markup.
+      const text = await readClipboardText();
+      if (text) {
+        return {
+          type: "text",
+          data: text,
+          mimeType: "text/plain"
+        };
+      }
+
       // Check for HTML
       const html = await readClipboardHTML();
       if (html) {
@@ -318,16 +329,6 @@ export const useClipboardContentPaste = () => {
           type: "rtf",
           data: rtf,
           mimeType: "text/rtf"
-        };
-      }
-
-      // Check for plain text
-      const text = await readClipboardText();
-      if (text) {
-        return {
-          type: "text",
-          data: text,
-          mimeType: "text/plain"
         };
       }
 

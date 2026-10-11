@@ -44,6 +44,7 @@ import { queryClient } from "./queryClient";
 import { TRPCProvider } from "./trpc/Provider";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
+import { consumePostLoginReturn } from "./utils/postLoginReturn";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
@@ -200,7 +201,9 @@ const NavigateToStart = () => {
       return;
     }
     if (!isAuthRequired() || state === "logged_in") {
-      navigate("/workspace", { replace: true });
+      // A public share page that sent the user to sign in gets them back.
+      const returnTo = state === "logged_in" ? consumePostLoginReturn() : null;
+      navigate(returnTo ?? "/workspace", { replace: true });
     } else if (state === "logged_out" || state === "error") {
       navigate("/login", { replace: true });
     }

@@ -6,7 +6,7 @@ import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { shallow } from "zustand/shallow";
 import { Tooltip, Text, EditorButton, PanelHeader, Box, MOTION, BORDER_RADIUS, SHADOW, SPACING, getSpacingPx } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { useReactFlow, useViewport } from "@xyflow/react";
+import { useReactFlow, useViewport, type Node } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -15,6 +15,8 @@ import { useNodes } from "../../contexts/NodeContext";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { nodeErrorToDisplayString } from "../../stores/ErrorStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
+import type { NodeData } from "../../stores/NodeData";
+import { absoluteNodePosition } from "../../utils/absoluteNodePosition";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -197,6 +199,24 @@ const styles = (theme: Theme) =>
  * reposition the panel while panning/zooming) doesn't re-render anything
  * when the panel is hidden.
  */
+/** A node's canvas position, adding the offsets of its ancestor groups. */
+const canvasPosition = (
+  node: Node<NodeData>,
+  findNode: (id: string) => Node<NodeData> | undefined
+): { x: number; y: number } => {
+  const lookup = new Map<string, Node<NodeData>>();
+  let parentId = node.parentId;
+  while (parentId && !lookup.has(parentId)) {
+    const parent = findNode(parentId);
+    if (!parent) {
+      break;
+    }
+    lookup.set(parentId, parent);
+    parentId = parent.parentId;
+  }
+  return absoluteNodePosition(node, lookup);
+};
+
 const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
   ({ inspectedNodeId }) => {
   const theme = useTheme();
@@ -214,9 +234,10 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
     if (!node) {
       return null;
     }
+    const position = canvasPosition(node, state.findNode);
     return {
-      x: node.position.x,
-      y: node.position.y,
+      x: position.x,
+      y: position.y,
       width: node.measured?.width ?? node.width ?? 200,
       height: node.measured?.height ?? node.height ?? 100
     };
@@ -280,12 +301,13 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
     if (!node) {
       return null;
     }
+    const position = canvasPosition(node, state.findNode);
     return {
       id: node.id,
       type: node.type || "unknown",
       workflowId: node.data.workflow_id,
-      x: node.position.x,
-      y: node.position.y
+      x: position.x,
+      y: position.y
     };
   }, shallow);
   const nodeError = useNodeError(

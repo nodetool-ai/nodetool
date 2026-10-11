@@ -112,6 +112,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
+  const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -149,6 +150,12 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
       const patch: Partial<Workflow> = Object.fromEntries(
         edited.map((key) => [key, next[key]])
       );
+      if (store) {
+        // Write the edits into the open editor too. Otherwise a save that
+        // overlaps a canvas edit keeps the old values in the editor, and the
+        // next Ctrl+S writes them back.
+        updateWorkflow({ ...base, ...patch });
+      }
       saveWorkflow({ ...base, ...patch }, { snapshot: false }).catch((err) => {
         // Surface autosave failures instead of swallowing them — a silent
         // failure here is exactly what "my setting didn't save" looks like.
@@ -162,7 +169,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
         });
       });
     },
-    [getNodeStore, saveWorkflow, addNotification]
+    [getNodeStore, saveWorkflow, updateWorkflow, addNotification]
   );
 
   const debouncedPersist = useDebouncedCallback(persist, 600);

@@ -192,11 +192,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <WorkflowShareDialogHost />
               <Modal
                 open={showShortcuts}
-                onClose={(_event, reason) => {
-                  if (reason === "backdropClick") {
-                    setShowShortcuts(false);
-                  }
-                }}
+                onClose={() => setShowShortcuts(false)}
                 closeAfterTransition
                 aria-label="Keyboard shortcuts"
               >

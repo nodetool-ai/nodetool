@@ -215,10 +215,15 @@ export class Workflow extends DBModel {
   }
 
   getGraph(): WorkflowGraph {
-    return {
+    const graph: WorkflowGraph = {
       nodes: this.graph?.nodes ?? [],
       edges: this.graph?.edges ?? []
     };
+    // Exports and validation read the graph through here; links ride along.
+    if (this.graph?.links?.length) {
+      graph.links = this.graph.links;
+    }
+    return graph;
   }
 
   getApiGraph(): WorkflowGraph {

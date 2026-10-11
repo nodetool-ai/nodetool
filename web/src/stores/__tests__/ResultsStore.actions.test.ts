@@ -59,13 +59,25 @@ describe("ResultsStore — output results", () => {
     ]);
   });
 
-  it("setOutputResult with append extends existing array", () => {
+  it("setOutputResult with append keeps a list result as one item", () => {
     const s = useResultsStore.getState();
     s.setOutputResult(WF, JOB, NODE, ["a"]);
     s.setOutputResult(WF, JOB, NODE, "b", true);
     expect(useResultsStore.getState().getOutputResult(WF, JOB, NODE)).toEqual([
-      "a",
+      ["a"],
       "b"
+    ]);
+  });
+
+  it("appending list chunks never flattens them", () => {
+    const s = useResultsStore.getState();
+    s.setOutputResult(WF, JOB, NODE, [1, 2], true);
+    s.setOutputResult(WF, JOB, NODE, [3, 4], true);
+    s.setOutputResult(WF, JOB, NODE, [5, 6], true);
+    expect(useResultsStore.getState().getOutputResult(WF, JOB, NODE)).toEqual([
+      [1, 2],
+      [3, 4],
+      [5, 6]
     ]);
   });
 

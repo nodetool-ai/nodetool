@@ -22,6 +22,7 @@ import { createErrorMessage, AppError } from "../../utils/errorHandling";
 import { Graph, Workflow } from "../../stores/ApiTypes";
 import { shallow } from "zustand/shallow";
 import { getLocalFilePath, pathToFileUri } from "../../utils/localFile";
+import { readImportedWorkflow } from "../../utils/readImportedWorkflow";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -66,7 +67,11 @@ export const useFileHandlers = () => {
   // instead of an uploaded asset. Used in local (desktop) mode where the file
   // already lives on disk and the backend can read it in place.
   const addLocalFileNode = useCallback(
-    (file: File, localPath: string, position: XYPosition): FileHandlerResult => {
+    async (
+      file: File,
+      localPath: string,
+      position: XYPosition
+    ): Promise<FileHandlerResult> => {
       const assetType = contentTypeToNodeType(file.type, file.name);
       const nodeType = constantForType(assetType || "");
       if (nodeType === null) {
@@ -83,12 +88,16 @@ export const useFileHandlers = () => {
         throw new Error("No metadata for node type: " + nodeType);
       }
       const newNode = createNode(nodeMetadata, position);
-      newNode.data.properties.value = {
-        type: assetType,
-        uri: pathToFileUri(localPath),
-        asset_id: null,
-        temp_id: null
-      };
+      // A String node holds the text itself, as when adding a text asset.
+      newNode.data.properties.value =
+        assetType === "text"
+          ? await file.text()
+          : {
+              type: assetType,
+              uri: pathToFileUri(localPath),
+              asset_id: null,
+              temp_id: null
+            };
       addNode(newNode);
       return { success: true };
     },
@@ -146,12 +155,15 @@ export const useFileHandlers = () => {
           throw new Error("No metadata for node type: " + nodeType);
         }
         const newNode = createNode(nodeMetadata, position);
-        newNode.data.properties.value = {
-          type: assetType,
-          uri: uploadedAsset.get_url,
-          asset_id: uploadedAsset.id,
-          temp_id: null
-        };
+        newNode.data.properties.value =
+          assetType === "text"
+            ? await file.text()
+            : {
+                type: assetType,
+                uri: uploadedAsset.get_url,
+                asset_id: uploadedAsset.id,
+                temp_id: null
+              };
         addNode(newNode);
 
         return { success: true };
@@ -194,9 +206,13 @@ export const useFileHandlers = () => {
             name: file.name
           });
           try {
+            // Keep the file's settings, tags, description and app fields,
+            // as the Command Menu import does.
+            const imported = readImportedWorkflow(jsonContent);
             const createdWorkflow = await createWorkflow({
-              name: jsonData.name || file.name,
-              description: "created from json",
+              ...imported,
+              name: imported.name || file.name.replace(/\.json$/, ""),
+              description: imported.description ?? "",
               access: "private",
               graph: jsonData.graph
             });

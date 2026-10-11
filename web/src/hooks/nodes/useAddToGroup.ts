@@ -13,7 +13,8 @@ export function useAddToGroup(): (nodesToAdd: Node<NodeData>[], parentNode?: Nod
   const addToGroup = useCallback(
     (nodesToAdd: Node<NodeData>[], parentNode?: Node<NodeData> | undefined) => {
       if (!nodesToAdd) { return; }
-      
+
+      let reparented = false;
       nodesToAdd.forEach((node) => {
         if (parentNode && isGroupable(node) && isGroup(parentNode)) {
           if (!node.parentId) {
@@ -25,20 +26,33 @@ export function useAddToGroup(): (nodesToAdd: Node<NodeData>[], parentNode?: Nod
               parentId: parentNode.id,
               expandParent: true
             });
+            reparented = true;
           }
         }
       });
+      if (!reparented) {
+        return;
+      }
 
       setTimeout(() => {
         if (parentNode && nodeContext) {
-          const currentNodes = nodeContext.getState().nodes;
+          const { nodes: currentNodes, findNode } = nodeContext.getState();
           const newBounds = getGroupBounds(currentNodes, parentNode, 25, 50);
-
-          if (newBounds) {
-            updateNode(parentNode.id, {
-              width: newBounds.width,
-              height: newBounds.height
-            });
+          const group = findNode(parentNode.id);
+          if (!newBounds || !group) {
+            return;
+          }
+          // Grow the group to fit its children, never shrink it.
+          const width = Math.max(
+            newBounds.width,
+            group.width ?? group.measured?.width ?? 0
+          );
+          const height = Math.max(
+            newBounds.height,
+            group.height ?? group.measured?.height ?? 0
+          );
+          if (width !== group.width || height !== group.height) {
+            updateNode(parentNode.id, { width, height });
           }
         }
       }, 10);

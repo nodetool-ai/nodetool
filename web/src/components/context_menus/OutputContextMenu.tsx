@@ -143,23 +143,20 @@ const OutputContextMenu: React.FC = () => {
     return getMetadata(saveNodePath);
   }, [sourceType, getMetadata]);
 
-  type HandleType = "value" | "image" | "df" | "values";
+  // Preview and Output take `value`. Any other node connects to its first
+  // input that accepts the output's type (Save Text takes `text`, Save Video
+  // `video`).
   const getTargetHandle = useCallback(
-    (type: string, nodeType: string): HandleType => {
-      const typeMap: { [key: string]: HandleType } = {
-        image: "image",
-        dataframe: "df",
-        list: "values"
-      };
-      if (nodeType === "preview") {
+    (metadata: NodeMetadata, nodeType: string): string => {
+      if (nodeType === "preview" || nodeType === "output" || !sourceType) {
         return "value";
-      } else if (nodeType === "output") {
-        return "value";
-      } else {
-        return typeMap[type] || "value";
       }
+      const match = metadata.properties.find((property) =>
+        isConnectable(sourceType, property.type, false)
+      );
+      return match?.name ?? "value";
     },
-    []
+    [sourceType]
   );
 
   /**
@@ -225,7 +222,7 @@ const OutputContextMenu: React.FC = () => {
       };
 
       if (!targetHandle) {
-        targetHandle = getTargetHandle(sourceType?.type || "", nodeType);
+        targetHandle = getTargetHandle(metadata as NodeMetadata, nodeType);
       }
 
       if (sourceHandle && newNode.data.properties.name !== undefined) {

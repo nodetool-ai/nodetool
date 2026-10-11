@@ -36,18 +36,17 @@ const NodeContextMenu: React.FC = () => {
   const removeFromGroup = useRemoveFromGroup();
   const handleRemoveFromGroup = useCallback(() => {
     removeFromGroup([node as Node<NodeData>]);
-  }, [removeFromGroup, node]);
+    closeContextMenu();
+  }, [removeFromGroup, node, closeContextMenu]);
 
   const groupIntoSubgraph = useGroupIntoSubgraph();
   const getSelectedNodes = useNodes((s) => s.getSelectedNodes);
   const handleGroupIntoSubgraph = useCallback(() => {
+    if (!node) return;
     const selected = getSelectedNodes();
-    const ids =
-      selected.length > 0
-        ? selected.map((n) => n.id)
-        : node
-        ? [node.id]
-        : [];
+    const ids = selected.some((n) => n.id === node.id)
+      ? selected.map((n) => n.id)
+      : [node.id];
     if (ids.length === 0) return;
     groupIntoSubgraph(ids);
     closeContextMenu();

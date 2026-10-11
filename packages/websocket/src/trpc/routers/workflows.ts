@@ -95,7 +95,10 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { isString } from "../../lib/wire-values.js";
 import { getStorageRetentionSettings } from "../../storage-retention.js";
-import { loadPublicShareWorkflow } from "../../lib/public-workflow-share.js";
+import {
+  loadPublicShareWorkflow,
+  parseSharedGraph
+} from "../../lib/public-workflow-share.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 
@@ -942,7 +945,7 @@ export const workflowsRouter = router({
             description: source.description,
             tags: source.tags,
             access: "private",
-            graph: safeGraph(source.id, source.graph),
+            graph: parseSharedGraph(source.graph),
             settings: source.settings,
             run_mode: source.run_mode
           })

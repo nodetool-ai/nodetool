@@ -1028,27 +1028,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 </Container>
               );
             }
-            const columnType = (
-              cell: unknown
-            ): "string" | "float" | "int" | "datetime" | "object" => {
-              if (isString(cell)) {
-                return "string";
-              }
-              if (isNumber(cell)) {
-                return "float";
-              }
-              return "object";
-            };
-            const df: DataframeRef = {
+            // Rows are matched to columns by key, over the union of keys, and
+            // null rows are tolerated (DataframeRenderer normalizes them).
+            const df = {
               type: "dataframe" as const,
               uri: "",
-              data: (arr as Record<string, unknown>[]).map((row) => Object.values(row)),
-              columns: Object.entries(first).map((i) => ({
-                name: i[0],
-                data_type: columnType(i[1]),
-                description: ""
-              }))
-            };
+              rows: arr as Record<string, unknown>[]
+            } as DataframeRef;
             return <DataframeRenderer dataframe={df} />;
           }
         }

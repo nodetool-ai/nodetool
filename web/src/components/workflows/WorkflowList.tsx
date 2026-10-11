@@ -217,10 +217,22 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
   const duplicateWorkflow = useCallback(
     async (event: React.MouseEvent, workflow: Workflow) => {
       event.stopPropagation();
-      const workflowRequest = await copyWorkflow(workflow);
-      workflowRequest.name = nextCopyName(workflow.name, workflowNames);
-      workflowRequest.project_id = projectId;
-      const newWorkflow = await createWorkflow(workflowRequest);
+      let newWorkflow: Workflow;
+      try {
+        const workflowRequest = await copyWorkflow(workflow);
+        workflowRequest.name = nextCopyName(workflow.name, workflowNames);
+        workflowRequest.project_id = projectId;
+        newWorkflow = await createWorkflow(workflowRequest);
+      } catch (error) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not duplicate workflow: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+        return;
+      }
       openTab({
         type: "workflow",
         ref: newWorkflow.id,
@@ -231,6 +243,7 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
       navigate("/workspace");
     },
     [
+      addNotification,
       copyWorkflow,
       createWorkflow,
       workflowNames,

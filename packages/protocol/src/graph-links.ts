@@ -5,6 +5,7 @@
  */
 
 import type { GraphLink } from "./graph.js";
+import { isShortResourceId } from "./resource-id.js";
 
 export interface LinkInput {
   source: string;
@@ -48,15 +49,32 @@ export function addGraphLink(
   return { ok: true, value: { links: [...links, link], link } };
 }
 
-/** Remove one link by id. */
+/**
+ * Remove one link by id. Agents see link ids shortened to 12 characters, so an
+ * exact 12-character prefix with a single match is accepted too.
+ */
 export function removeGraphLink(
   links: readonly GraphLink[],
   linkId: string
 ): LinkResult<GraphLink[]> {
-  if (!links.some((l) => l.id === linkId)) {
+  let target = links.find((l) => l.id === linkId);
+  if (!target && isShortResourceId(linkId)) {
+    // isShortResourceId fixes the prefix to exactly 12 hex characters, and
+    // more than one match is refused below.
+    const matches = links.filter((l) => l.id.startsWith(linkId)); // key-boundary-ok
+    if (matches.length > 1) {
+      return {
+        ok: false,
+        error: `Link id ${linkId} matches ${matches.length} links; pass the full id.`
+      };
+    }
+    target = matches[0];
+  }
+  if (!target) {
     return { ok: false, error: `Link ${linkId} was not found.` };
   }
-  return { ok: true, value: links.filter((l) => l.id !== linkId) };
+  const removedId = target.id;
+  return { ok: true, value: links.filter((l) => l.id !== removedId) };
 }
 
 /** Drop links whose endpoints are no longer in the graph, as after a node delete. */

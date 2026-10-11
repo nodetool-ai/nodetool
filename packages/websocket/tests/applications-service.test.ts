@@ -114,6 +114,25 @@ describe("applications service", () => {
     expect(await listApplications(USER)).toHaveLength(2);
   });
 
+  it("finds a workflow's app behind 50 newer apps", async () => {
+    const bound = await createApplication(
+      USER,
+      input({ id: "old-app", name: "Old" })
+    );
+    for (let i = 0; i < 50; i++) {
+      await createApplication(USER, {
+        id: `newer-${i}`,
+        name: `Newer ${i}`,
+        description: "",
+        projectId: "default",
+        document: createEmptyDocument(`Newer ${i}`)
+      });
+    }
+
+    const filtered = await listApplications(USER, undefined, "wf1");
+    expect(filtered.map((app) => app.id)).toEqual([bound.id]);
+  });
+
   it("refuses to scaffold over invalid Recipe protection in a workflow document", async () => {
     const workflow = await Workflow.find(USER, "wf1");
     workflow!.app_doc = { version: 2, data: { root: {}, content: [] }, recipe: { schemaVersion: 99 } };

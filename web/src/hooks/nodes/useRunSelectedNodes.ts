@@ -26,7 +26,11 @@ interface RunProgress {
 }
 
 interface UseRunSelectedNodesReturn {
-  runSelectedNodes: (runs?: number) => Promise<void>;
+  /**
+   * Runs the selected nodes, or the nodes in `nodeIds` when given (Run
+   * Group), seeding inputs wired from outside the set.
+   */
+  runSelectedNodes: (runs?: number, nodeIds?: readonly string[]) => Promise<void>;
   isWorkflowRunning: boolean;
   runProgress: RunProgress | null;
 }
@@ -52,7 +56,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
   }, []);
 
   const runSelectedNodes = useCallback(
-    async (runs = 1) => {
+    async (runs = 1, nodeIds?: readonly string[]) => {
       if (isWorkflowRunning) {
         return;
       }
@@ -62,7 +66,10 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
       const { nodes, edges, workflow, findNode, getSelectedNodes } =
         nodeStore.getState();
 
-      const selectedNodes = getSelectedNodes();
+      const requested = nodeIds ? new Set(nodeIds) : null;
+      const selectedNodes = requested
+        ? nodes.filter((n: Node<NodeData>) => requested.has(n.id))
+        : getSelectedNodes();
       if (selectedNodes.length === 0) {
         return;
       }

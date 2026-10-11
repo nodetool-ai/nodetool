@@ -19,15 +19,24 @@ const makeAsset = (overrides: Partial<Asset> = {}) =>
   }) as never;
 
 describe("nodeAssetsQueryKey", () => {
-  it("returns a tuple with the node id", () => {
-    expect(nodeAssetsQueryKey("node-42")).toEqual([
+  it("scopes the key to the workflow and the node", () => {
+    expect(nodeAssetsQueryKey("wf-1", "node-42")).toEqual([
       "assets",
-      { node_id: "node-42" }
+      { workflow_id: "wf-1", node_id: "node-42" }
     ]);
   });
 
-  it("returns null node_id when passed null", () => {
-    expect(nodeAssetsQueryKey(null)).toEqual(["assets", { node_id: null }]);
+  it("keeps a duplicated workflow's node apart from the original", () => {
+    expect(nodeAssetsQueryKey("wf-1", "node-42")).not.toEqual(
+      nodeAssetsQueryKey("wf-2", "node-42")
+    );
+  });
+
+  it("returns null ids when passed null", () => {
+    expect(nodeAssetsQueryKey(null, null)).toEqual([
+      "assets",
+      { workflow_id: null, node_id: null }
+    ]);
   });
 });
 
