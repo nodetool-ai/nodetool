@@ -167,6 +167,10 @@ is drained before it is restarted.
   carries it to a machine that is staying.
 - A connection with nothing in flight is closed with **1012** (service
   restart). One driving a turn or a run is closed when that settles.
+- A turn whose client has disconnected is aborted with the reason
+  `shutdown`, at the start of the drain or when the client leaves during it.
+  No client can reach it any more to answer an approval or press Stop, so it
+  would otherwise hold the drain open.
 - `chat_message` and `run_job` answer an `error` frame, and the socket closes
   under the rule above. The refusal comes before the user message is
   persisted, so the client's retry on the other machine is the only copy.
