@@ -58,9 +58,23 @@ Write one Python module:
 
 Reply with the complete module in a single \`\`\`python code block, nothing after it. When told about an error or layout problems, reply with the whole corrected module.`;
 
-/** The longest fenced Python block, or the whole reply when it is bare code. */
+/** The longest fenced code block, or the whole reply when it is bare code. */
 export function extractSceneCode(reply: string): string {
-  const blocks = [...reply.matchAll(/```(?:python|py)?[^\n]*\n([\s\S]*?)```/g)].map((m) => m[1] ?? "");
+  // A line scan, not a regex: the reply is model output of any shape.
+  const blocks: string[] = [];
+  let open: string[] | null = null;
+  for (const line of reply.split("\n")) {
+    if (line.trimStart().startsWith("```")) {
+      if (open) {
+        blocks.push(open.join("\n"));
+        open = null;
+      } else {
+        open = [];
+      }
+    } else if (open) {
+      open.push(line);
+    }
+  }
   if (blocks.length > 0) {
     return blocks.reduce((a, b) => (b.length > a.length ? b : a)).trim();
   }
@@ -123,6 +137,7 @@ export class GenerateSceneNode extends BaseNode {
   };
   static readonly inputFields = ["prompt"];
   static readonly supportsDynamicInputs = true;
+  static readonly requiredRuntimes = ["manimgx"];
 
   @prop({
     type: "language_model",

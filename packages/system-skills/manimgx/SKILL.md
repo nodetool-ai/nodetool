@@ -8,8 +8,9 @@ description: "Write, inspect and render ManimGX scenes: math and 3D animations i
 ManimGX renders animations written in Manim Community Edition's Python API on a
 Rust GPU engine. A scene is a Python module; the `nodetool.manimgx` nodes run
 it on the machine NodeTool runs on. They need `manimgx` installed there
-(`uv tool install manimgx`, Python 3.13 or newer) and are absent from the
-hosted cloud, because a scene is a program.
+(ManimGX in the desktop Package Manager, or `uv tool install manimgx` with
+Python 3.13 or newer) and are absent from the hosted cloud, because a scene is
+a program.
 
 | Node | Takes | Gives |
 | :--- | :--- | :--- |

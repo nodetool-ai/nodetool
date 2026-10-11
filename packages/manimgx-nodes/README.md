@@ -5,7 +5,10 @@
 video by a Rust GPU engine.
 
 The nodes shell out to the `manimgx` command, resolved from the `MANIMGX_PATH`
-setting, `MANIMGX_PATH`, PATH, or `~/.local/bin`. Install it with:
+setting, `MANIMGX_PATH`, PATH, or `~/.local/bin`. In the desktop app, install
+ManimGX from the Package Manager: it runs `uv tool install manimgx` on a Python
+3.13 that uv downloads into the app's data directory, which is on the server's
+PATH. A node run without it asks for that install. Elsewhere, install it with:
 
 ```bash
 uv tool install manimgx   # or: pip install manimgx (Python 3.13+)

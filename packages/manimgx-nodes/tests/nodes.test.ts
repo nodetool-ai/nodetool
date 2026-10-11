@@ -6,6 +6,7 @@ import {
   type FakeContextHandle,
   type Message
 } from "@nodetool-ai/runtime";
+import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -52,6 +53,29 @@ describe("ManimGX nodes against a fake manimgx", () => {
       "nodetool.manimgx.InspectScene",
       "nodetool.manimgx.GenerateScene"
     ]);
+  });
+
+  it("declares manimgx as a required runtime on every node", () => {
+    for (const node of MANIMGX_NODES) {
+      expect(node.requiredRuntimes).toEqual(["manimgx"]);
+    }
+  });
+
+  it("keeps a missing manimgx findable through the node's error", async () => {
+    process.env["MANIMGX_PATH"] = path.join(path.dirname(FAKE), "missing-manimgx");
+    const saved = { path: process.env["PATH"], home: process.env["HOME"] };
+    process.env["PATH"] = "";
+    process.env["HOME"] = path.dirname(FAKE);
+    try {
+      const node = new RenderSceneNode();
+      node.assign({ code: scene("ok") });
+      const error = await node.process(handle.context).catch((err: unknown) => err);
+      expect(String(error)).toMatch(/nodetool\.manimgx\.RenderScene: manimgx was not found/);
+      expect(missingRuntimePackageOf(error)).toBe("manimgx");
+    } finally {
+      process.env["PATH"] = saved.path;
+      process.env["HOME"] = saved.home;
+    }
   });
 
   it("RenderScene fills every declared output", async () => {
@@ -160,6 +184,13 @@ describe("extractSceneCode", () => {
     expect(extractSceneCode("a\n```python\nshort\n```\n```py\nimport manimgx as m\nlonger\n```")).toBe(
       "import manimgx as m\nlonger"
     );
+  });
+
+  it("reads a long run of fences in linear time", () => {
+    const hostile = "```" + "```py".repeat(50000);
+    const started = Date.now();
+    extractSceneCode(hostile);
+    expect(Date.now() - started).toBeLessThan(500);
   });
 
   it("accepts bare code and rejects prose", () => {

@@ -14,6 +14,12 @@ inspection). The authoring guide for agents is the shipped
   `nodetool.manimgx` namespace stays out of `CLOUD_NODE_NAMESPACES`. Keep both.
 - **Binary discovery order**: the user's `MANIMGX_PATH` setting, process
   `MANIMGX_PATH`, `manimgx` on PATH, then `~/.local/bin/manimgx`.
+- **The desktop Package Manager installs ManimGX** as the `manimgx` runtime
+  package (`UvToolRuntimePackage` in `electron/src/runtime/packages/`). It
+  runs `uv tool install` into the app's `uv-tools/bin`, which the server's
+  PATH holds. A missing binary throws `MissingRuntimePackageError` for
+  `manimgx`, and the nodes declare `requiredRuntimes = ["manimgx"]`, so the
+  editor offers that install. Keep the id the same in all three places.
 - **The argv is built in one place**, `manimgxArgs`. Every value reaching it
   is validated: the scene name must be a Python class name, times are seconds
   or `end`, the preset is from `MANIMGX_PRESETS`, numbers are clamped. Add a

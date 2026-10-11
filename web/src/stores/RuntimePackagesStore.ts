@@ -30,7 +30,8 @@ const SERVER_RUNTIME_LABELS: Record<string, string> = {
   pandoc: "Pandoc",
   pdftotext: "PDF Tools (pdftotext)",
   pdftoppm: "PDF Tools (pdftoppm)",
-  "yt-dlp": "yt-dlp"
+  "yt-dlp": "yt-dlp",
+  manimgx: "ManimGX"
 };
 
 interface RuntimePackageStatus {

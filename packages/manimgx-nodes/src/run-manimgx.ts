@@ -322,14 +322,20 @@ async function readOwnFile(dir: string, name: string): Promise<Uint8Array | null
   return new Uint8Array(await readFile(file));
 }
 
+/** The page number of a storyboard sheet `stem.png` (1) or `stem-N.png`, else null. */
+function sheetPage(name: string, stem: string): number | null {
+  if (name === `${stem}.png`) return 1;
+  if (!name.startsWith(`${stem}-`) || !name.endsWith(".png")) return null;
+  const page = name.slice(stem.length + 1, -".png".length);
+  return /^\d+$/.test(page) ? Number(page) : null;
+}
+
 /** The storyboard sheets `stem.png`, `stem-2.png`, … in page order. */
 async function readStoryboards(dir: string, file: string): Promise<Uint8Array[]> {
   const stem = file.replace(/\.png$/, "");
-  const pattern = new RegExp(`^${stem.replace(/\./g, "\\.")}(?:-(\\d+))?\\.png$`);
   const pages = (await readdir(dir))
-    .map((name) => ({ name, match: pattern.exec(name) }))
-    .filter((entry) => entry.match !== null)
-    .map((entry) => ({ name: entry.name, page: Number(entry.match?.[1] ?? 1) }))
+    .map((name) => ({ name, page: sheetPage(name, stem) }))
+    .filter((entry): entry is { name: string; page: number } => entry.page !== null)
     .sort((a, b) => a.page - b.page);
   const sheets: Uint8Array[] = [];
   for (const page of pages) {

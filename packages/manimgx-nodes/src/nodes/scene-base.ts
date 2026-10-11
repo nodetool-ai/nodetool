@@ -61,7 +61,9 @@ export async function runNodeStep<T>(
     const message = error instanceof Error ? error.message : String(error);
     if (error instanceof ManimgxError) throw new ManimgxError(`${nodeName}: ${message}`);
     if (error instanceof Error) {
-      const wrapped = new Error(`${nodeName}: ${message}`);
+      // The cause keeps a MissingRuntimePackageError findable, so the editor
+      // still offers to install ManimGX.
+      const wrapped = new Error(`${nodeName}: ${message}`, { cause: error });
       wrapped.name = error.name;
       throw wrapped;
     }
@@ -73,6 +75,7 @@ export abstract class ManimgxSceneNode extends BaseNode {
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
   static readonly supportsDynamicInputs = true;
+  static readonly requiredRuntimes = ["manimgx"];
 
   @prop({
     type: "str",

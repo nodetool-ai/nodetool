@@ -1,6 +1,7 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
 import { createFakeContext, type FakeContextHandle } from "@nodetool-ai/runtime";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -174,14 +175,16 @@ describe("runManimgx against a fake manimgx", () => {
     await expect(run(scene("ok"))).rejects.toThrow(MANIMGX_DISABLED_ERROR);
   });
 
-  it("names the install command when no manimgx is found", async () => {
+  it("asks for the manimgx runtime package when no manimgx is found", async () => {
     process.env["MANIMGX_PATH"] = path.join(path.dirname(FAKE), "missing-manimgx");
     const savedPath = process.env["PATH"];
     process.env["PATH"] = "";
     const savedHome = process.env["HOME"];
     process.env["HOME"] = path.dirname(FAKE);
     try {
-      await expect(run(scene("ok"))).rejects.toThrow(/uv tool install manimgx/);
+      const error = await run(scene("ok")).catch((err: unknown) => err);
+      expect(missingRuntimePackageOf(error)).toBe("manimgx");
+      expect(String(error)).toMatch(/Package Manager[\s\S]*uv tool install manimgx/);
     } finally {
       process.env["PATH"] = savedPath;
       process.env["HOME"] = savedHome;
