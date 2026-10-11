@@ -8,7 +8,7 @@
  * selected when the dialog closes.
  */
 
-import React, { memo, useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { MAX_DERIVED_FRAMES } from "@nodetool-ai/timeline";
 
 import {

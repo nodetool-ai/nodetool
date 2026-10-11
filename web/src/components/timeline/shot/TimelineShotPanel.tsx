@@ -15,7 +15,7 @@
  * footage stays as it is.
  */
 
-import React, { memo, useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { shotRenderMode } from "@nodetool-ai/protocol";
 import type { Shot } from "@nodetool-ai/protocol";

@@ -20,7 +20,6 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import {
   Box,
   Caption,
-  Chip,
   EditorButton,
   FlexColumn,
   FlexRow,

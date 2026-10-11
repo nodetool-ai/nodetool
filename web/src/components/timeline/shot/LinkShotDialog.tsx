@@ -6,7 +6,7 @@
  * shot's selected take, and the Shot tab works on that shot.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import type { Shot } from "@nodetool-ai/protocol";
 
 import {
