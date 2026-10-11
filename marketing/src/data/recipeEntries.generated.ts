@@ -171,12 +171,7 @@ export const recipeEntries: RecipeEntry[] = [
     "heroThumbnail": "/apps/directed-campaign-kit.png",
     "workflowCount": 3,
     "nodeCount": 40,
-    "keys": [
-      {
-        "provider": "fal_ai",
-        "env": "FAL_API_KEY"
-      }
-    ],
+    "keys": [],
     "steps": [
       {
         "template": "render-a-directed-campaign-hero",
@@ -186,12 +181,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "In the app, upload the product image, review the AI-written brief and directions, choose one, then check product identity and composition before accepting.",
         "thumbnail": null,
         "nodeCount": 8,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/nano-banana/edit"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -213,12 +203,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Compare the revision with the original, then use the same composition workflow.",
         "thumbnail": null,
         "nodeCount": 12,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/nano-banana/edit"
-          }
-        ],
+        "models": [],
         "alternative": null
       }
     ]
@@ -395,12 +380,7 @@ export const recipeEntries: RecipeEntry[] = [
     "heroThumbnail": "/apps/ugc-product-video.png",
     "workflowCount": 3,
     "nodeCount": 22,
-    "keys": [
-      {
-        "provider": "atlascloud",
-        "env": "ATLASCLOUD_API_KEY"
-      }
-    ],
+    "keys": [],
     "steps": [
       {
         "template": "ad-copy-in-three-registers",
@@ -421,12 +401,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Choose a compatible native-audio reference-to-video model. Give it image 1 for creator identity and image 2 for product identity, then generate voice, lip-sync, natural phone motion, and the brief 4.5–7.0 second product beat in one pass. The finished sample used Seedance 2.5 on AtlasCloud.",
         "thumbnail": null,
         "nodeCount": 8,
-        "models": [
-          {
-            "provider": "atlascloud",
-            "model": "bytedance/seedance-2.5/reference-to-video"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -636,16 +611,7 @@ export const recipeEntries: RecipeEntry[] = [
     "heroThumbnail": "/templates/hook-and-thumbnail-factory.jpg",
     "workflowCount": 4,
     "nodeCount": 24,
-    "keys": [
-      {
-        "provider": "fal_ai",
-        "env": "FAL_API_KEY"
-      },
-      {
-        "provider": "kie",
-        "env": "KIE_API_KEY"
-      }
-    ],
+    "keys": [],
     "steps": [
       {
         "template": "ad-copy-in-three-registers",
@@ -666,12 +632,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Generate hooks and a thumbnail for each from your video topic.",
         "thumbnail": "/templates/hook-and-thumbnail-factory.jpg",
         "nodeCount": 12,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/flux/schnell"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -682,12 +643,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Turn your product photo into a short, slowed-down video loop.",
         "thumbnail": "/templates/ad-loop-from-a-product-photo.jpg",
         "nodeCount": 6,
-        "models": [
-          {
-            "provider": "kie",
-            "model": "kling-2.6/image-to-video"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -891,16 +847,7 @@ export const recipeEntries: RecipeEntry[] = [
     "heroThumbnail": "/templates/lip-sync-a-clip-to-a-voice-track.jpg",
     "workflowCount": 5,
     "nodeCount": 24,
-    "keys": [
-      {
-        "provider": "openai",
-        "env": "OPENAI_API_KEY"
-      },
-      {
-        "provider": "fal_ai",
-        "env": "FAL_API_KEY"
-      }
-    ],
+    "keys": [],
     "steps": [
       {
         "template": "transcribe-a-clip",
@@ -910,12 +857,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Extract the spoken words as text. Only the audio goes to the transcription model.",
         "thumbnail": "/templates/transcribe-a-clip.jpg",
         "nodeCount": 4,
-        "models": [
-          {
-            "provider": "openai",
-            "model": "gpt-4o-mini-transcribe"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -937,12 +879,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Speak the translated script with a multilingual voice to get a new voice track.",
         "thumbnail": "/templates/narrate-a-script.jpg",
         "nodeCount": 3,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/elevenlabs/tts/multilingual-v2"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -964,12 +901,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Add the presenter clip and the voice track from the step before. The mouth movements follow that track, so the dub says what you heard.",
         "thumbnail": "/templates/lip-sync-a-clip-to-a-voice-track.jpg",
         "nodeCount": 7,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/sync-lipsync/v2/pro"
-          }
-        ],
+        "models": [],
         "alternative": null
       }
     ]
@@ -1170,12 +1102,7 @@ export const recipeEntries: RecipeEntry[] = [
     "heroThumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
     "workflowCount": 6,
     "nodeCount": 29,
-    "keys": [
-      {
-        "provider": "fal_ai",
-        "env": "FAL_API_KEY"
-      }
-    ],
+    "keys": [],
     "steps": [
       {
         "template": "cut-a-product-out-of-its-background",
@@ -1185,12 +1112,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Create a product cutout with a transparent background.",
         "thumbnail": "/templates/cut-a-product-out-of-its-background.jpg",
         "nodeCount": 7,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/bria/background/remove"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -1201,16 +1123,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Add a scene description to place your cutout on a new backdrop.",
         "thumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
         "nodeCount": 7,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/bria/background/remove"
-          },
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/nano-banana/edit"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -1221,12 +1134,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Relight the product shot for a seasonal campaign.",
         "thumbnail": "/templates/relight-a-product-for-a-seasonal-campaign.jpg",
         "nodeCount": 3,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/image-apps-v2/relighting"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -1237,12 +1145,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Animate the still with a short camera move around the product.",
         "thumbnail": "/templates/spin-a-packshot-into-a-turntable-clip.jpg",
         "nodeCount": 3,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/ltx-2.3/image-to-video/fast"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -1253,12 +1156,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Upscale the approved image to create your print master.",
         "thumbnail": "/templates/take-a-product-shot-to-print-resolution.jpg",
         "nodeCount": 6,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/clarity-upscaler"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -1455,20 +1353,7 @@ export const recipeEntries: RecipeEntry[] = [
     "heroThumbnail": "/templates/movie-trailer-generator.jpg",
     "workflowCount": 4,
     "nodeCount": 26,
-    "keys": [
-      {
-        "provider": "gemini",
-        "env": "GEMINI_API_KEY"
-      },
-      {
-        "provider": "kie",
-        "env": "KIE_API_KEY"
-      },
-      {
-        "provider": "fal_ai",
-        "env": "FAL_API_KEY"
-      }
-    ],
+    "keys": [],
     "steps": [
       {
         "template": "trailer-beats-from-a-premise",
@@ -1500,20 +1385,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Turn a logline into a storyboard, generate and animate the frames, then assemble the teaser.",
         "thumbnail": "/templates/movie-trailer-generator.jpg",
         "nodeCount": 10,
-        "models": [
-          {
-            "provider": "gemini",
-            "model": "gemini-3.1-pro-preview"
-          },
-          {
-            "provider": "kie",
-            "model": "gpt-image-2-text-to-image"
-          },
-          {
-            "provider": "gemini",
-            "model": "veo-3.1-generate-preview"
-          }
-        ],
+        "models": [],
         "alternative": {
           "template": "directed-film-to-timeline",
           "name": "Directed Film to Timeline",
@@ -1530,12 +1402,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Generate music to fit the clip and your chosen mood, then mix it with the original audio.",
         "thumbnail": "/templates/score-a-silent-clip.jpg",
         "nodeCount": 10,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/stable-audio-25/text-to-audio"
-          }
-        ],
+        "models": [],
         "alternative": null
       }
     ]
@@ -1725,12 +1592,7 @@ export const recipeEntries: RecipeEntry[] = [
     "heroThumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
     "workflowCount": 1,
     "nodeCount": 7,
-    "keys": [
-      {
-        "provider": "fal_ai",
-        "env": "FAL_API_KEY"
-      }
-    ],
+    "keys": [],
     "steps": [
       {
         "template": "put-a-product-on-a-studio-backdrop",
@@ -1740,16 +1602,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Replace the image-edit prompt with one scene from your approved board. Repeat from the same product photo for each scene, and match the aspect ratio to your delivery.",
         "thumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
         "nodeCount": 7,
-        "models": [
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/bria/background/remove"
-          },
-          {
-            "provider": "fal_ai",
-            "model": "fal-ai/nano-banana/edit"
-          }
-        ],
+        "models": [],
         "alternative": null
       }
     ]
