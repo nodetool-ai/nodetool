@@ -12,9 +12,7 @@ import { memo, useCallback, useMemo, useState } from "react";
 
 import {
   Dialog,
-  EditorButton,
   FlexColumn,
-  FlexRow,
   Text,
   TextInput,
   SPACING
@@ -159,20 +157,12 @@ const JsScriptRunDialog = ({
       title="Run script"
       fullWidth
       maxWidth="sm"
-      actions={
-        <FlexRow gap={SPACING.md}>
-          <EditorButton onClick={onClose}>Cancel</EditorButton>
-          <EditorButton variant="contained" onClick={handleRun}>
-            Run
-          </EditorButton>
-        </FlexRow>
-      }
+      onConfirm={handleRun}
+      confirmText="Run"
     >
       <NodeContext.Provider value={store}>
         <EditorUiProvider scope="inspector">
-          {/* Phones are narrower than the 380px the controls want, so the
-              floor only applies once there is room for it. */}
-          <FlexColumn gap={SPACING.md} sx={{ minWidth: { xs: 0, sm: 380 } }}>
+          <FlexColumn gap={SPACING.md}>
             {inputs.length === 0 ? (
               <Text size="small" color="secondary">
                 This script declares no inputs. Run it as it is.

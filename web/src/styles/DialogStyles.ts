@@ -1,6 +1,11 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, SPACING, getSpacingPx } from "../components/ui_primitives";
+import {
+  MOTION,
+  SPACING,
+  TYPOGRAPHY,
+  getSpacingPx
+} from "../components/ui_primitives";
 
 const dialogStyles = (theme: Theme) =>
   css({
@@ -15,7 +20,14 @@ const dialogStyles = (theme: Theme) =>
       minWidth: "min(320px, calc(100vw - 32px))"
     },
     ".dialog-content": {
+      ...TYPOGRAPHY.sans.body,
+      color: theme.vars.palette.text.primary,
       padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}`
+    },
+    // MUI drops the content's top padding after a title; the title's divider
+    // needs the gap back.
+    ".dialog-title + .dialog-content": {
+      paddingTop: getSpacingPx(SPACING.xl)
     },
     ".dialog-title": {
       fontFamily: theme.fontFamily1,
@@ -28,7 +40,11 @@ const dialogStyles = (theme: Theme) =>
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".dialog-actions": {
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
+      gap: getSpacingPx(SPACING.md),
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
+      "& > :not(style) ~ :not(style)": {
+        marginLeft: 0
+      }
     },
     ".input-field": {
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)}`,
@@ -56,19 +72,6 @@ const dialogStyles = (theme: Theme) =>
         borderWidth: "2px"
       }
     },
-    ".button-confirm": {
-      color: "var(--palette-primary-main)",
-      fontWeight: 600
-    },
-    ".button-confirm.MuiButton-containedError": {
-      color: theme.vars.palette.error.contrastText
-    },
-    ".button-confirm:hover": {
-      backgroundColor: theme.vars.palette.grey[900]
-    },
-    ".button-cancel": {
-      color: theme.vars.palette.grey[100]
-    },
     ".error-message": {
       color: theme.vars.palette.grey[1000],
       backgroundColor: theme.vars.palette.error.main,
@@ -93,20 +96,6 @@ const dialogStyles = (theme: Theme) =>
     },
     ".notice span": {
       fontFamily: theme.fontFamily1
-    },
-    ".asset-names": {
-      width: "90%",
-      height: "100px",
-      overflowY: "auto",
-      backgroundColor: theme.vars.palette.grey[600],
-      listStyleType: "square",
-      margin: `0 0 0 ${getSpacingPx(SPACING.xl)}`,
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xxl)}`,
-      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
-      fontSize: theme.fontSizeSmaller
-    },
-    ".delete": {
-      color: theme.vars.palette.c_delete
     }
   });
 

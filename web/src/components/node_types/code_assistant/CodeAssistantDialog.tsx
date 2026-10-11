@@ -13,6 +13,7 @@
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { shallow } from "zustand/shallow";
+import { useTheme } from "@mui/material/styles";
 import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
 
 import {
@@ -20,7 +21,6 @@ import {
   Box,
   Chip,
   Dialog,
-  EditorButton,
   FlexColumn,
   FlexRow,
   Label,
@@ -87,6 +87,7 @@ const CodeAssistantDialogInner = ({
   inputs,
   expectedOutput
 }: CodeAssistantDialogProps) => {
+  const theme = useTheme();
   const { findNode, updateNodeData } = useNodes(
     (state) => ({
       findNode: state.findNode,
@@ -242,15 +243,12 @@ const CodeAssistantDialogInner = ({
       open={open}
       onClose={onClose}
       title="Code assistant"
-      minWidth="min(1100px, 100vw - 32px)"
-      actions={
-        <FlexRow gap={SPACING.md}>
-          <EditorButton onClick={onClose}>Cancel</EditorButton>
-          <EditorButton variant="contained" onClick={handleApply}>
-            Apply
-          </EditorButton>
-        </FlexRow>
-      }
+      maxWidth="lg"
+      fullWidth
+      onConfirm={handleApply}
+      confirmText="Apply"
+      // Apply overwrites the node's code, so it does not take focus on open.
+      actionButtonsProps={{ confirmButtonProps: { autoFocus: false } }}
     >
       <FlexRow
         gap={SPACING.md}
@@ -258,7 +256,7 @@ const CodeAssistantDialogInner = ({
       >
         <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0 }}>
           <FlexRow gap={SPACING.md} align="center" sx={{ flexWrap: "wrap" }}>
-            <Text weight={600}>{nodeTitle}</Text>
+            <Label>{nodeTitle}</Label>
             <PortChips label="Inputs" ports={draftInputs} />
             <PortChips label="Outputs" ports={draftOutputs} />
           </FlexRow>
@@ -266,7 +264,7 @@ const CodeAssistantDialogInner = ({
             sx={{
               flex: 1,
               minHeight: 0,
-              border: "1px solid var(--palette-grey-500)",
+              border: `1px solid ${theme.vars.palette.divider}`,
               borderRadius: BORDER_RADIUS.sm,
               overflow: "hidden"
             }}

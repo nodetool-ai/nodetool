@@ -86,8 +86,8 @@ const CopyProjectDocumentAction = ({
         title={`Copy ${document.name}`}
         onConfirm={confirmCopy}
         confirmText="Copy"
-        cancelText="Cancel"
         confirmDisabled={!destinationProjectId}
+        cancelDisabled={copy.isPending}
         isLoading={copy.isPending}
       >
         <FlexColumn gap={SPACING.lg}>

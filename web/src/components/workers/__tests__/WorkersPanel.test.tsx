@@ -158,22 +158,6 @@ describe("WorkersPanel", () => {
   it("Terminate button confirms then calls terminate", async () => {
     const value = makeHookValue();
     mockUseWorkers.mockReturnValue(value);
-    const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
-    renderPanel();
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /terminate worker i-1/i })
-    );
-
-    expect(confirmSpy).toHaveBeenCalled();
-    expect(value.terminate).toHaveBeenCalledWith("i-1");
-    confirmSpy.mockRestore();
-  });
-
-  it("Terminate does nothing when the confirm is cancelled", async () => {
-    const value = makeHookValue();
-    mockUseWorkers.mockReturnValue(value);
-    const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(false);
     renderPanel();
 
     await userEvent.click(
@@ -181,7 +165,25 @@ describe("WorkersPanel", () => {
     );
 
     expect(value.terminate).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
+    expect(screen.getByText("Terminate worker?")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^terminate$/i }));
+
+    await waitFor(() => {
+      expect(value.terminate).toHaveBeenCalledWith("i-1");
+    });
+  });
+
+  it("Terminate does nothing when the confirm is cancelled", async () => {
+    const value = makeHookValue();
+    mockUseWorkers.mockReturnValue(value);
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /terminate worker i-1/i })
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
+
+    expect(value.terminate).not.toHaveBeenCalled();
   });
 
   it("a paused (stopped) worker shows Resume, which calls resume", async () => {

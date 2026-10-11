@@ -13,6 +13,7 @@ import {
   FlexRow,
   Text,
   Caption,
+  Label,
   Chip,
   Divider,
   CopyButton,
@@ -111,7 +112,7 @@ const ShareWorkflowDialog = ({
       maxWidth="sm"
       fullWidth
     >
-      <FlexColumn gap={SPACING.md} sx={{ pb: 2 }}>
+      <FlexColumn gap={SPACING.md}>
         <Caption>
           Anyone signed in to this server who opens a view or edit link gets
           the link&apos;s role. Revoking a link stops new joins; people who
@@ -148,7 +149,7 @@ const ShareWorkflowDialog = ({
 
         {activeShares.length > 0 && (
           <FlexColumn gap={SPACING.xs}>
-            <Text size="small">Active links</Text>
+            <Label sx={{ mb: 0 }}>Active links</Label>
             {activeShares.map((share) => (
               <FlexRow
                 key={share.id}
@@ -177,7 +178,7 @@ const ShareWorkflowDialog = ({
 
         <Divider />
 
-        <Text size="small">People with access</Text>
+        <Label sx={{ mb: 0 }}>People with access</Label>
         {collaborators.length === 0 && !query.isLoading && (
           <EmptyState
             variant="empty"
@@ -200,7 +201,8 @@ const ShareWorkflowDialog = ({
             </Text>
             <FlexRow gap={SPACING.sm} align="center">
               <SelectField
-                label=""
+                label={`Role for ${collaborator.user_id}`}
+                hideLabel
                 size="small"
                 value={collaborator.role}
                 options={ROLE_OPTIONS}

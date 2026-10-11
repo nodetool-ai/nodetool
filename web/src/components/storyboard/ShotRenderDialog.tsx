@@ -14,6 +14,7 @@ import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
+  AlertBanner,
   Caption,
   Dialog,
   FlexColumn,
@@ -244,10 +245,10 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
           </FormField>
         )}
         {isClip && needsStill ? (
-          <Caption role="alert" sx={{ color: "error.main" }}>
+          <AlertBanner severity="error">
             This shot animates its still. Render a still first, or set the shot
             to render directly from its prompt.
-          </Caption>
+          </AlertBanner>
         ) : (
           <RenderCostSummary estimate={estimate} />
         )}

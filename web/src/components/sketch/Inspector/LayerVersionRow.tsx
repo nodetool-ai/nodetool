@@ -164,11 +164,12 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
           title="Delete version?"
           onConfirm={handleDeleteConfirm}
           confirmText="Delete"
-          cancelText="Cancel"
           destructive
         >
-          This version will be permanently removed. The underlying job and asset
-          are not deleted.
+          <Text size="small">
+            This version will be permanently removed. The underlying job and
+            asset are not deleted.
+          </Text>
         </Dialog>
       </>
     );

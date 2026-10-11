@@ -34,14 +34,14 @@ const styles = (theme: Theme) =>
       margin: 0,
       padding: 0,
       width: "100%",
-      maxWidth: "500px",
+      maxWidth: theme.breakpoints.values.sm,
       boxSizing: "border-box"
     },
     
     // Section chrome; the field stack and its gaps are FormSection's job.
     ".settings-section": {
-      marginBottom: theme.spacing(3),
-      padding: theme.spacing(2),
+      marginBottom: theme.spacing(SPACING.lg),
+      padding: theme.spacing(SPACING.md),
       backgroundColor: theme.vars.palette.action.hover,
       borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.divider}`
@@ -77,12 +77,12 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily1
     },
     
-    // Button container
+    // Close footer, shown only outside a dialog (the side panel).
     ".button-container": {
       display: "flex",
-      gap: theme.spacing(2),
-      marginTop: theme.spacing(4),
-      paddingTop: theme.spacing(3),
+      gap: theme.spacing(SPACING.md),
+      marginTop: theme.spacing(SPACING.xl),
+      paddingTop: theme.spacing(SPACING.lg),
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       justifyContent: "flex-end"
     },
@@ -104,7 +104,9 @@ const styles = (theme: Theme) =>
 
 interface WorkflowFormProps {
   workflow: Workflow;
-  onClose: () => void;
+  /** Renders a Close button under the form. Omit inside a Dialog, whose
+   *  title X already closes it. */
+  onClose?: () => void;
   availableTags?: string[];
 }
 
@@ -282,9 +284,9 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           Configure how this workflow runs and can be triggered
         </Caption>
 
-        <FormField label="Run Mode">
+        <FormField label="Run mode">
           <SelectField
-            label="Run Mode"
+            label="Run mode"
             value={localWorkflow.run_mode || "workflow"}
             onChange={(value) => applyChange({ run_mode: value }, true)}
             options={RUN_MODE_OPTIONS}
@@ -304,7 +306,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
         />
 
         <FormField
-          label="Tool Name"
+          label="Tool name"
           helperText="Identifier for API/tool usage. Letters, numbers, underscores only."
         >
           <TextInput
@@ -319,11 +321,13 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
         </FormField>
       </FormSection>
 
-      <div className="button-container">
-        <EditorButton className="cancel-button" onClick={onClose}>
-          Close
-        </EditorButton>
-      </div>
+      {onClose && (
+        <div className="button-container">
+          <EditorButton className="cancel-button" onClick={onClose}>
+            Close
+          </EditorButton>
+        </div>
+      )}
     </div>
   );
 };

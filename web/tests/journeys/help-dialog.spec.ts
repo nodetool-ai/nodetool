@@ -28,9 +28,9 @@ test("mobile Help survives navigation sheet dismissal and reopens", async ({
     await expect(navigation).toHaveCount(0);
     await expect(help).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(1);
-    await help.getByRole("tab", { name: "DataTypes", exact: true }).click();
+    await help.getByRole("tab", { name: "Data types", exact: true }).click();
     await expect(
-      help.getByRole("tab", { name: "DataTypes", exact: true })
+      help.getByRole("tab", { name: "Data types", exact: true })
     ).toHaveAttribute("aria-selected", "true");
     await help.getByRole("button", { name: "Close", exact: true }).click();
     await expect(help).toHaveCount(0);
@@ -59,9 +59,9 @@ test("desktop More and app menu produce a single Help dialog", async ({
     .filter({ has: page.getByRole("tablist", { name: "help tabs" }) });
   await expect(help).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(1);
-  await help.getByRole("tab", { name: "DataTypes", exact: true }).click();
+  await help.getByRole("tab", { name: "Data types", exact: true }).click();
   await expect(
-    help.getByRole("tab", { name: "DataTypes", exact: true })
+    help.getByRole("tab", { name: "Data types", exact: true })
   ).toHaveAttribute("aria-selected", "true");
   await help.getByRole("button", { name: "Close", exact: true }).click();
   await expect(help).toHaveCount(0);

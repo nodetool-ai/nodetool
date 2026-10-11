@@ -38,6 +38,7 @@ import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   Box,
+  Button,
   Card,
   Caption,
   CollapsibleSection,
@@ -936,19 +937,21 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         onClose={keepEditing}
         title="Discard changes?"
         actions={
-          <FlexRow align="center" gap={SPACING.sm}>
-            <EditorButton onClick={keepEditing}>Keep editing</EditorButton>
-            <EditorButton onClick={() => runPending(false)}>
-              Discard
-            </EditorButton>
-            <EditorButton
-              variant="contained"
-              color="primary"
-              onClick={() => runPending(true)}
+          <>
+            <Button variant="text" color="inherit" onClick={keepEditing}>
+              Keep editing
+            </Button>
+            <Button
+              variant="text"
+              color="error"
+              onClick={() => runPending(false)}
             >
+              Discard
+            </Button>
+            <Button variant="contained" onClick={() => runPending(true)}>
               Save
-            </EditorButton>
-          </FlexRow>
+            </Button>
+          </>
         }
       >
         <Text>This shot has edits that have not been saved.</Text>
@@ -962,21 +965,28 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         onClose={() => setSaveConflicts([])}
         title="This shot changed elsewhere"
         actions={
-          <FlexRow align="center" gap={SPACING.sm} wrap>
-            <EditorButton onClick={() => setSaveConflicts([])}>
+          <>
+            <Button
+              variant="text"
+              color="inherit"
+              onClick={() => setSaveConflicts([])}
+            >
               Keep editing
-            </EditorButton>
-            <EditorButton onClick={() => resolveSaveConflicts("current")}>
+            </Button>
+            <Button
+              variant="text"
+              color="inherit"
+              onClick={() => resolveSaveConflicts("current")}
+            >
               Use current values
-            </EditorButton>
-            <EditorButton
+            </Button>
+            <Button
               variant="contained"
-              color="primary"
               onClick={() => resolveSaveConflicts("mine")}
             >
               Keep my changes
-            </EditorButton>
-          </FlexRow>
+            </Button>
+          </>
         }
       >
         <FlexColumn gap={SPACING.md}>

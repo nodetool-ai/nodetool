@@ -13,11 +13,12 @@ import {
   isKeyboardConnectionValid
 } from "./keyboardConnection";
 import {
-  Box,
+  Button,
   Caption,
   CONTROL,
   Dialog,
   EditorButton,
+  EmptyState,
   FlexColumn,
   FlexRow,
   SPACING,
@@ -244,9 +245,20 @@ export const KeyboardConnectionPicker = ({
       open={open}
       onClose={handleClose}
       title={`Connect ${titleize(handleId)}`}
-      aria-label={`Connect ${titleize(handleId)}`}
       maxWidth="sm"
       fullWidth
+      actions={
+        connectedEdgeIds.length > 0 ? (
+          <Button
+            variant="text"
+            color="error"
+            onClick={disconnect}
+            sx={{ mr: "auto" }}
+          >
+            Disconnect {connectedEdgeIds.length === 1 ? "edge" : "all edges"}
+          </Button>
+        ) : undefined
+      }
     >
       <FlexColumn
         gap={SPACING.md}
@@ -272,11 +284,6 @@ export const KeyboardConnectionPicker = ({
           label="Find a compatible node or port"
           placeholder="Search compatible ports"
         />
-        {connectedEdgeIds.length > 0 ? (
-          <EditorButton color="error" onClick={disconnect}>
-            Disconnect {connectedEdgeIds.length === 1 ? "edge" : "all edges"}
-          </EditorButton>
-        ) : null}
         {filteredOptions.length > 0 ? (
           <VirtualList
             ref={optionListRef}
@@ -325,9 +332,11 @@ export const KeyboardConnectionPicker = ({
             )}
           />
         ) : (
-          <Box padding={SPACING.md}>
-            <Text color="muted">No compatible ports found.</Text>
-          </Box>
+          <EmptyState
+            variant="no-results"
+            size="small"
+            title="No compatible ports found"
+          />
         )}
       </FlexColumn>
     </Dialog>
