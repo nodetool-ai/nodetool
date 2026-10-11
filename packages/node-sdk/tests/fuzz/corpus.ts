@@ -321,7 +321,7 @@ export function seedRegistry(): GraphValidationRegistry {
     }
     return "str";
   };
-  const REQUIRED = new Set(["value", "prompt", "code", "a", "model"]);
+  const REQUIRED = new Set(["value", "prompt", "code", "a", "model", "image"]);
 
   const metas = new Map<string, NodeMetadata>();
   const declaredOf = new Map<string, DeclaredPropertyMetadata[]>();
