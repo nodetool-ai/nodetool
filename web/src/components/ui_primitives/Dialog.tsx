@@ -48,7 +48,9 @@ import {
   DialogActionButtonsProps
 } from "./DialogActionButtons";
 import { CloseButton } from "./CloseButton";
-import PanelHeadline from "../ui/PanelHeadline";
+import { FlexRow } from "./FlexRow";
+import { Text } from "./Text";
+import { SPACING } from "./spacing";
 import { isString } from "../../utils/typePredicates";
 import { OverlayLayerProvider, useOverlayLayer } from "./OverlayLayer";
 
@@ -239,7 +241,22 @@ export const Dialog = memo(
             {title && (
               <DialogTitle className="dialog-title" id={titleId}>
                 {titleIsString ? (
-                  <PanelHeadline title={title} actions={headerActions} />
+                  <FlexRow
+                    className="dialog-title-row"
+                    align="center"
+                    justify="space-between"
+                    gap={SPACING.md}
+                    fullWidth
+                  >
+                    <Text size="big" component="span" className="dialog-title-text">
+                      {title}
+                    </Text>
+                    {headerActions && (
+                      <FlexRow align="center" gap={SPACING.micro}>
+                        {headerActions}
+                      </FlexRow>
+                    )}
+                  </FlexRow>
                 ) : (
                   title
                 )}

@@ -19,7 +19,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhances a list of photos through a fixed retouch chain with an AI polish at the end. Drop images into the input, with no folder path required.\n\n**How it works:** \"1️⃣ Iterate photos\" sends each image from \"Photos to enhance\" down the chain. \"2️⃣ Auto-contrast\" clips 2% at each end. \"3️⃣ Brightness/Contrast\" raises contrast by a factor of 1.1. \"4️⃣ Adjust color\" multiplies brightness by \"Brightness factor\" (1.05) and saturation by \"Color factor\" (1.2). \"5️⃣ Sharpen\" and \"6️⃣ Sharpen detail\" apply two unsharp-mask passes at amounts 1 and 1.2. \"7️⃣ AI enhance\" runs FLUX Schnell image-to-image at strength 0.3 with a cinematic-grade prompt. \"8️⃣ Collect enhanced batch\" gathers the results into one list. Every step runs locally except \"7️⃣ AI enhance\", which needs a FAL key.\n\n**Try this:** Raise \"Color factor\" to 1.6 and compare the saturation of the output with the original."
+          "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhances a list of photos through a fixed retouch chain with an AI polish at the end. Drop images into the input, with no folder path required.\n\n**How it works:** \"1️⃣ Iterate photos\" sends each image from \"Photos to enhance\" down the chain. \"2️⃣ Auto-contrast\" clips 2% at each end. \"3️⃣ Brightness/Contrast\" raises contrast by a factor of 1.1. \"4️⃣ Adjust color\" multiplies brightness by \"Brightness factor\" (1.05) and saturation by \"Color factor\" (1.2). \"5️⃣ Sharpen\" and \"6️⃣ Sharpen detail\" apply two unsharp-mask passes at amounts 1 and 1.2. \"7️⃣ AI enhance\" runs image-to-image at strength 0.3 with a cinematic-grade prompt. \"8️⃣ Collect enhanced batch\" gathers the results into one list. Every step runs locally except \"7️⃣ AI enhance\", which uses your default image model or the one you pick on the node.\n\n**Try this:** Raise \"Color factor\" to 1.6 and compare the saturation of the output with the original."
         },
         "ui_properties": {
           "selected": false,
@@ -60,9 +60,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

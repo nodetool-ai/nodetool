@@ -96,4 +96,4 @@ export {
   type StorageConfig
 } from "./storage-config.js";
 
-export { redactPrivateKeys, redactTraceText } from "./trace-redaction.js";
+export { createTraceTextRedactor, redactPrivateKeys, redactTraceText } from "./trace-redaction.js";

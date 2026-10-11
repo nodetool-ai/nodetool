@@ -91,6 +91,7 @@ function summarizeOps(ops: readonly GameDocumentOp[]): string {
     set_effects: ["Changed effects", "Changed effects"],
     set_game: ["Changed game settings", "Changed game settings"],
     set_audio: ["Changed audio mix", "Changed audio mix"],
+    set_ui: ["Changed HUD", "Changed HUD"],
     set_performance: ["Changed performance settings", "Changed performance settings"],
     bind_asset: ["Bound asset", "Bound assets"],
     unbind_asset: ["Unbound asset", "Unbound assets"],

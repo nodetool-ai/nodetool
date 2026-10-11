@@ -905,8 +905,22 @@ const validateTimeline: CapabilityExport = {
 function documentToStore(raw: Record<string, unknown>): {
   document: Record<string, unknown>;
   settings: AuthoredRenderSettings;
+  name: string | undefined;
 } {
-  return normalizeAuthoredDocument(raw);
+  const {
+    name,
+    id: _id,
+    projectId: _projectId,
+    workflowId: _workflowId,
+    durationMs: _durationMs,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...document
+  } = raw;
+  return {
+    ...normalizeAuthoredDocument(document),
+    name: isString(name) && name.trim() ? name.trim() : undefined
+  };
 }
 
 /** The end of the last clip — what the sequence's stored duration means. */
@@ -976,7 +990,11 @@ const setTimelineDocument: CapabilityExport = {
       }
     }
 
-    const { document, settings } = documentToStore(raw);
+    // `get_timeline` returns the sequence row's fields beside the document.
+    // A caller that sends that object back renames the sequence with `name`.
+    // The other row fields are owned by the row, so they are dropped rather
+    // than reported as stripped document fields.
+    const { document, settings, name } = documentToStore(raw);
 
     // Document-level fps/width/height are sequence settings, so opts win and a
     // document that carries them configures the sequence instead of having
@@ -1030,19 +1048,22 @@ const setTimelineDocument: CapabilityExport = {
       name: snapshotName
     });
 
-    const durationMs = documentDurationMs(document);
+    const fields: Parameters<typeof TimelineSequence.updateFieldsIfUnchanged>[2] = {
+      document: JSON.stringify(document),
+      fps,
+      width,
+      height,
+      duration_ms: documentDurationMs(document)
+    };
+    if (name !== undefined) {
+      fields.name = name;
+    }
     let saved: TimelineSequence | null;
     try {
       saved = await TimelineSequence.updateFieldsIfUnchanged(
         sequence.id,
         sequence.updated_at,
-        {
-          document: JSON.stringify(document),
-          fps,
-          width,
-          height,
-          duration_ms: durationMs
-        }
+        fields
       );
     } catch (error) {
       // The model rejects a document without tracks/clips/markers arrays. The
@@ -1075,6 +1096,7 @@ const setTimelineDocument: CapabilityExport = {
       ok: true,
       written: true,
       timeline_id: saved.id,
+      name: saved.name,
       updated_at: saved.updated_at,
       undo_version: undo.version,
       fps: saved.fps,

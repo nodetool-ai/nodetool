@@ -1,6 +1,7 @@
+import * as acorn from "acorn";
 import { z } from "zod";
 import { gameDocument, gameDocument3D, type AnyGameDocument, type GameDocument, type GameDocument3D } from "@nodetool-ai/protocol";
-import { applyGameOps, applyGameOps3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
+import { applyGameOps, applyGameOps3D, collisionLayerBits3D, createNative3DGame, createTopDownRoomGame, gameDocumentOp, gameDocumentOp3D, GameOpError } from "@nodetool-ai/game-runtime";
 import type { HeadlessSurfaceBridge, ToolLoopEvalCase } from "../tool-loop-eval.js";
 
 const SCRIPT_PARAMS_EVAL_SOURCE = "(input) => ({ state: input.params, commands: [] })";
@@ -77,6 +78,93 @@ export function createGameToolBridge3D(initial: GameDocument3D): HeadlessSurface
     ],
     finalState: () => document
   };
+}
+
+type ScriptNode = { readonly type: string; readonly [key: string]: unknown };
+
+/** Parses a lifecycle-object script source, or undefined when it is not one. */
+function lifecycleObject(source: string): ScriptNode | undefined {
+  try {
+    const program = acorn.parse(`(${source})`, { ecmaVersion: "latest" }) as unknown as { body: { expression?: ScriptNode }[] };
+    const expression = program.body.length === 1 ? program.body[0].expression : undefined;
+    return expression?.type === "ObjectExpression" ? expression : undefined;
+  } catch {
+    // Source that does not parse is not a lifecycle object.
+    return undefined;
+  }
+}
+
+/** Every AST node under `node`, including itself. */
+function scriptNodes(node: unknown): ScriptNode[] {
+  const nodes: ScriptNode[] = [];
+  const pending = [node];
+  while (pending.length > 0) {
+    const value = pending.pop();
+    if (Array.isArray(value)) { pending.push(...value); continue; }
+    if (typeof value !== "object" || value === null || typeof (value as ScriptNode).type !== "string") { continue; }
+    nodes.push(value as ScriptNode);
+    for (const [key, child] of Object.entries(value)) {
+      if (key !== "type" && typeof child === "object") { pending.push(child); }
+    }
+  }
+  return nodes;
+}
+
+/** A property's key as written, quoted or not. */
+function propertyName(property: ScriptNode): string | undefined {
+  const key = property.key as ScriptNode | undefined;
+  if (property.computed === true || !key) { return undefined; }
+  return key.type === "Identifier" ? key.name as string : key.type === "Literal" ? String(key.value) : undefined;
+}
+
+/** A constant string or number literal, including a template literal without expressions. */
+function constantValue(node: unknown): unknown {
+  const value = node as ScriptNode | undefined;
+  if (value?.type === "Literal") { return value.value; }
+  if (value?.type === "TemplateLiteral" && (value.expressions as unknown[]).length === 0) {
+    return ((value.quasis as { value: { cooked: string } }[])[0]).value.cooked;
+  }
+  return undefined;
+}
+
+/** The object's own properties by name. Spreads and computed keys are left out. */
+function objectProperties(node: unknown): Map<string, unknown> | undefined {
+  const value = node as ScriptNode | undefined;
+  if (value?.type !== "ObjectExpression") { return undefined; }
+  const properties = new Map<string, unknown>();
+  for (const property of value.properties as ScriptNode[]) {
+    const name = property.type === "Property" ? propertyName(property) : undefined;
+    if (name !== undefined) { properties.set(name, property.value); }
+  }
+  return properties;
+}
+
+/** The hook's function with its parameters and body, whether written as a method or as a function-valued property. */
+function hookFunction(object: ScriptNode, hook: string): unknown {
+  const value = objectProperties(object)?.get(hook) as ScriptNode | undefined;
+  return value?.type === "FunctionExpression" || value?.type === "ArrowFunctionExpression" ? value : undefined;
+}
+
+/** onStart builds {kind: "emit", event: "bonus", payload: {points: 5}, target: {entityId: "gem"}}. Target fields are strict, as in the command schema. */
+function emitsTargetedBonus(source: string): boolean {
+  const object = lifecycleObject(source);
+  return object !== undefined && scriptNodes(hookFunction(object, "onStart")).some((node) => {
+    const command = objectProperties(node);
+    const payload = objectProperties(command?.get("payload"));
+    const target = objectProperties(command?.get("target"));
+    return constantValue(command?.get("kind")) === "emit" && constantValue(command?.get("event")) === "bonus"
+      && constantValue(payload?.get("points")) === 5 && target?.size === 1 && constantValue(target.get("entityId")) === "gem";
+  });
+}
+
+/** onEvent reads `points` from the event payload, by member access or destructuring. */
+function readsEventPoints(source: string): boolean {
+  const object = lifecycleObject(source);
+  const names = scriptNodes(object && hookFunction(object, "onEvent")).flatMap((node) =>
+    node.type === "MemberExpression" && node.computed !== true ? [(node.property as ScriptNode).name as string]
+      : node.type === "MemberExpression" ? [String(constantValue(node.property))]
+      : node.type === "Property" ? [propertyName(node) ?? ""] : []);
+  return names.includes("payload") && names.includes("points");
 }
 
 export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] = [{
@@ -276,6 +364,62 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         return cascades?.count === 4 && cascades.maxDistance === 150 && JSON.stringify(shadows) === JSON.stringify(initial.shadows) &&
           JSON.stringify({ ...scene.environment, shadows: initial.shadows }) === JSON.stringify(initial) &&
           sun?.kind === "directional" && sun.castShadow && sun.shadowNormalBias === 0.03;
+      } }]
+  }
+}, {
+  id: "hud-widget-tree",
+  description: "Author a document HUD tree with a score panel and a pause button that presses an input action, through set_game and set_ui.",
+  objective: "Add a pause input action. Then give the game a HUD with a panel anchored to the top-right corner holding a text node with id score, and a button with id pause anchored to the bottom centre that presses the pause action.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("hud-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game input_actions replaces the action list. set_ui {ui: {nodes}} replaces the document HUD tree. Nodes are {kind: panel|image|text|bar|button|stack|grid, id, parent?, anchor?: {x, y} in 0..1, pivot?, offset?: {x, y} pixels, width?, height?}. A child names an earlier container (panel, stack or grid) as parent. A button is {kind: \"button\", id, action, text?, width, height} and presses its input action. A panel needs width and height.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "hudTree", detail: "The HUD lacks a top-right panel holding text score, or a bottom-centre button pause that presses the pause action.",
+      test: document => {
+        const nodes = "dimension" in document ? [] : document.ui?.nodes ?? [];
+        const panel = nodes.find(node => node.kind === "panel" && node.anchor?.x === 1 && node.anchor.y === 0);
+        const score = nodes.find(node => node.id === "score");
+        const pause = nodes.find(node => node.id === "pause");
+        return document.inputActions.includes("pause") && panel !== undefined && score?.kind === "text" && score.parent === panel.id
+          && pause?.kind === "button" && pause.action === "pause" && pause.anchor?.x === 0.5 && pause.anchor.y === 1;
+      } }]
+  }
+}, {
+  id: "collision-layer-matrix",
+  description: "Author named 3D collision layers, a layer matrix and per-collider layers so derived bits filter contacts.",
+  objective: "Declare collision layers world, player and debris. Put the player on player and the crate on debris. The player must pass through debris, while debris still collides with the world.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("collision-layers-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. set_game {collision_layers: [name], collision_matrix: [[a, b]]} names the 3D collision layers and lists the layer pairs that do not collide. update_entity sets collider3d.layer to a declared name.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "collisionLayers", detail: "The layers, collider layers or matrix do not let the player pass through debris while debris meets the world.",
+      test: document => {
+        if (document.schemaVersion !== 3) { return false; }
+        const layer = (id: string) => document.scenes[0].entities.find(entity => entity.id === id)?.collider3d?.layer;
+        const collide = (a: string, b: string) => {
+          const left = collisionLayerBits3D(document, a);
+          const right = collisionLayerBits3D(document, b);
+          return (left.category & right.mask) !== 0 && (right.category & left.mask) !== 0;
+        };
+        return ["world", "player", "debris"].every(name => document.collisionLayers?.includes(name)) &&
+          layer("player") === "player" && layer("crate") === "debris" && !collide("player", "debris") && collide("debris", "world");
+      } }]
+  }
+}, {
+  id: "typed-event-script",
+  description: "Author a targeted emit with a JSON payload and a receiving onEvent hook through public edit ops.",
+  objective: "Add a script behavior to the player written as a lifecycle object whose onStart hook emits the event bonus with the payload {points: 5} targeted at the entity gem. Add a lifecycle script to the gem whose onEvent hook stores the received payload's points in its state. Keep both entities' other behaviors.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("typed-event-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole behaviors array. A script behavior is {kind: \"script\", source}. The source may be an object of hooks such as onStart, onEvent and onUpdate, each returning {state?, commands?}. The emit command is {kind: \"emit\", event, payload?, target?} where target is {entityId} or {tag}. onEvent(input, event) receives events that reach its entity, with the JSON payload on event.payload.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 6,
+    finalState: [{ name: "targetedBonus", detail: "The player does not emit bonus with payload points 5 targeted at gem, the gem has no onEvent hook reading the payload, or a behavior was lost.",
+      test: document => {
+        const entities = document.scenes[0].entities;
+        const behaviors = (id: string) => entities.find(entity => entity.id === id)?.behaviors ?? [];
+        const source = (id: string) => behaviors(id).find(behavior => behavior.kind === "script")?.source ?? "";
+        return behaviors("player").some(behavior => behavior.kind === "movement") && behaviors("gem").some(behavior => behavior.kind === "collectible")
+          && emitsTargetedBonus(source("player")) && readsEventPoints(source("gem"));
       } }]
   }
 }];

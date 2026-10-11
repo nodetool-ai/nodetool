@@ -471,6 +471,7 @@ export const LookStep: React.FC<LookStepProps> = ({
         model={directorModel}
         onClose={closeAddStyle}
         onSubmit={customStyle.addStyle}
+        onCancelSave={customStyle.cancel}
       />
     </FlexColumn>
   );

@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Poster on Kie",
   "tool_name": null,
-  "description": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
+  "description": "Generate a poster-style image on a Kie model that you pick on \"Render\". Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
   "tags": [
     "image",
     "example"
@@ -18,7 +18,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Poster on Kie\n\nGenerates a poster-style image through the Kie provider. Kie serves several model families behind one key, so this is a quick way to check that your Kie key works.\n\n**How it works:** Describe the scene in \"Subject\". \"Render\" turns it into a 16:9 image at 1K and avoids text, watermarks and logos through its negative prompt. \"Poster\" shows the image.\n\n**Try this:** Pick a Kie image model on \"Render\", then change aspect_ratio to 2:3 for a portrait poster."
+          "comment": "# Poster on Kie\n\nGenerates a poster-style image and is meant to run on a Kie model. Kie serves several model families behind one key, so this is a quick way to check that your Kie key works.\n\n**How it works:** Describe the scene in \"Subject\". \"Render\" turns it into a 16:9 image at 1K and avoids text, watermarks and logos through its negative prompt. \"Poster\" shows the image.\n\n**Try this:** Pick a Kie image model on \"Render\", then change aspect_ratio to 2:3 for a portrait poster."
         },
         "ui_properties": {
           "position": {
@@ -60,9 +60,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "kie",
-            "id": "seedream/4.5-text-to-image",
-            "name": "Seedream 4.5",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

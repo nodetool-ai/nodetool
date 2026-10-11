@@ -88,6 +88,56 @@ beforeEach(() => {
 });
 
 describe("syncShotClipToTimeline", () => {
+  it("patches only the shot's source clips, not its finished layers (S2)", async () => {
+    seedBoard("tl-1");
+    getQuery.mockResolvedValue({
+      id: "tl-1",
+      updatedAt: "rev-1",
+      tracks: [track],
+      clips: [
+        shotClip({ id: "legacy" }),
+        shotClip({ id: "source", storyboardElementId: "$source" }),
+        shotClip({
+          id: "source-audio",
+          mediaType: "audio",
+          storyboardElementId: "$source-audio"
+        }),
+        shotClip({
+          id: "headline",
+          mediaType: "text",
+          currentAssetId: undefined,
+          storyboardElementId: "headline"
+        }),
+        shotClip({
+          id: "logo",
+          mediaType: "image",
+          currentAssetId: "logo-asset",
+          storyboardElementId: "logo"
+        }),
+        shotClip({ id: "still", mediaType: "image", currentAssetId: "still" })
+      ],
+      markers: []
+    });
+    updateMutate.mockResolvedValue({});
+
+    expect(await syncShotClipToTimeline("board-1", "shot-1", "new-clip")).toBe(
+      true
+    );
+    const assets = Object.fromEntries(
+      (updateMutate.mock.calls[0][0].document.clips as TimelineClip[]).map(
+        (clip) => [clip.id, clip.currentAssetId]
+      )
+    );
+    expect(assets).toEqual({
+      legacy: "new-clip",
+      source: "new-clip",
+      "source-audio": "new-clip",
+      headline: undefined,
+      logo: "logo-asset",
+      still: "still"
+    });
+  });
+
   it("re-reads and reapplies the rendered shot after a revision conflict", async () => {
     seedBoard("tl-1");
     getQuery

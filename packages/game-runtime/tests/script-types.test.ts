@@ -111,3 +111,27 @@ it("types lifecycle-object scripts and timers in both dimension editor contracts
     }
   } finally { await rm(directory,{recursive:true,force:true}); }
 });
+
+it("types typed emit commands and onEvent hooks in both dimension editor contracts", async () => {
+  const {GAME_SCRIPT_TYPES_3D,GAME_SCRIPT_LIFECYCLE_TYPES_3D} = await import("../src/script-types3d.js");
+  const {GAME_SCRIPT_LIFECYCLE_TYPES} = await import("../src/script-types.js");
+  const directory = await mkdtemp(join(tmpdir(),"game-events-editor-types-"));
+  try {
+    for (const [index,types,contract] of [[0,GAME_SCRIPT_TYPES+GAME_SCRIPT_LIFECYCLE_TYPES,"GameScriptHooks"],[1,GAME_SCRIPT_TYPES_3D+GAME_SCRIPT_LIFECYCLE_TYPES_3D,"GameScriptHooks3D"]] as const) {
+      const declaration = join(directory,`types${index}.d.ts`);
+      const valid = join(directory,`valid${index}.js`);
+      const invalidTarget = join(directory,`invalid-target${index}.js`);
+      const invalidEvent = join(directory,`invalid-event${index}.js`);
+      await writeFile(declaration,types);
+      await writeFile(valid,`/** @type {${contract}} */\n({ onEvent(input, event) { return { state: [event.event, event.entityId, event.payload ?? null], commands: [
+  { kind: "emit", event: "pong" }, { kind: "emit", event: "pong", payload: { n: [1, "a", null] }, target: { tag: "enemy" } }, { kind: "emit", event: "pong", target: { entityId: event.entityId } }] }; } })`);
+      await writeFile(invalidTarget,`/** @type {${contract}} */\n({ onUpdate() { return { commands: [{ kind: "emit", event: "pong", target: { everyone: true } }] }; } })`);
+      await writeFile(invalidEvent,`/** @type {${contract}} */\n({ onEvent(input, event) { return { state: event.otherId.length }; } })`);
+      const program = ts.createProgram([declaration,valid,invalidTarget,invalidEvent],{allowJs:true,checkJs:true,noEmit:true,strict:true,skipLibCheck:true,target:ts.ScriptTarget.ES2020});
+      const diagnostics = ts.getPreEmitDiagnostics(program);
+      expect(diagnostics.filter(diagnostic=>diagnostic.file?.fileName===valid).map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))).toEqual([]);
+      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalidTarget)).toBe(true);
+      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalidEvent)).toBe(true);
+    }
+  } finally { await rm(directory,{recursive:true,force:true}); }
+});

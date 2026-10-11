@@ -1,5 +1,5 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { paintHud } from "../frame.js";
+import { paintGameHud2D } from "../ui/hud2d.js";
 export const HUD_SHADER = `
 @group(0) @binding(0) var sourceSampler: sampler;
 @group(0) @binding(1) var sourceTexture: texture_2d<f32>;
@@ -17,7 +17,8 @@ struct VertexOutput { @builtin(position) position: vec4f, @location(0) uv: vec2f
 }`;
 
 
-export function paintWebGPUHud(canvas: HTMLCanvasElement, width: number, height: number, frame: GameRenderFrame): void {
+export function paintWebGPUHud(canvas: HTMLCanvasElement, width: number, height: number, frame: GameRenderFrame,
+  images?: ReadonlyMap<string, unknown>): void {
       canvas.width = width;
       canvas.height = height;
       const context = canvas.getContext("2d");
@@ -25,5 +26,5 @@ export function paintWebGPUHud(canvas: HTMLCanvasElement, width: number, height:
         throw new Error("HUD canvas is unavailable");
       }
       context.clearRect(0, 0, canvas.width, canvas.height);
-      paintHud(context, frame.hud, 1, frame.gameId);
+      paintGameHud2D(context, frame, 1, images);
 }

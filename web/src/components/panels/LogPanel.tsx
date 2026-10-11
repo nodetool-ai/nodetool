@@ -22,9 +22,9 @@ import {
   ToggleGroup,
   ToggleOption,
   ToolbarIconButton,
-  getSpacingPx
+  getSpacingPx,
+  PanelHeader
 } from "../ui_primitives";
-import PanelToolbar from "./PanelToolbar";
 
 type Row = LogRow & { workflowId: string; workflowName: string; key: string };
 
@@ -193,7 +193,7 @@ const LogPanel: React.FC = memo(function LogPanel() {
       css={rootStyles}
       className={isFullscreen ? "fullscreen" : undefined}
     >
-      <PanelToolbar
+      <PanelHeader
         title="Logs"
         count={filteredRows.length}
         actions={
@@ -232,7 +232,7 @@ const LogPanel: React.FC = memo(function LogPanel() {
             title={filter.jobId ? `Run ${filter.jobId}` : undefined}
           />
         ) : null}
-      </PanelToolbar>
+      </PanelHeader>
 
       <Box className="table-wrap">
         <LogsTable

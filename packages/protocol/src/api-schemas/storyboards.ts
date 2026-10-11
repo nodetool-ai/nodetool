@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Screenplay, Shot } from "../creative.js";
+import { SCENE_CLIP_MAX_SHOTS, SCENE_CLIP_MIN_SHOTS } from "../one-take.js";
 import {
   creativeContext,
   productionRequirement,
@@ -489,6 +490,17 @@ export const oneTakeDirection = z.object({
 });
 export type OneTakeDirectionSchema = z.infer<typeof oneTakeDirection>;
 
+// Mirrors `SceneClipDirection` in `one-take.ts`: a run of 2 to 5 consecutive
+// shots rendered as one clip.
+export const sceneClipDirection = oneTakeDirection.extend({
+  id: z.string(),
+  shot_ids: z
+    .array(z.string())
+    .min(SCENE_CLIP_MIN_SHOTS)
+    .max(SCENE_CLIP_MAX_SHOTS)
+});
+export type SceneClipDirectionSchema = z.infer<typeof sceneClipDirection>;
+
 /** What the Director is asked for when the flow does not say otherwise. */
 export const DEFAULT_SETUP_SHOT_COUNT = 6;
 
@@ -536,7 +548,12 @@ export const storyboardDocument = z.object({
    * The board's one-take direction, when it renders as one continuous clip.
    * Optional and additive: a board without it renders shot by shot.
    */
-  one_take: oneTakeDirection.optional()
+  one_take: oneTakeDirection.optional(),
+  /**
+   * Runs of consecutive shots rendered as one clip each. Optional and
+   * additive: a board without it renders shot by shot.
+   */
+  scene_clips: z.array(sceneClipDirection).optional()
 });
 export type StoryboardDocumentSchema = z.infer<typeof storyboardDocument>;
 

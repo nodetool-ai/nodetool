@@ -188,3 +188,25 @@ describe("trimClip on clips with no source clock", () => {
     );
   });
 });
+
+describe("trimClip caption words", () => {
+  it("a head trim keeps each word at its timeline instant", () => {
+    const clip: TimelineClip = {
+      ...makeBaseClip(),
+      startMs: 0,
+      durationMs: 2000,
+      inPointMs: 0,
+      outPointMs: 2000,
+      caption: {
+        words: [
+          { word: "hello", startMs: 0, endMs: 1000 },
+          { word: "world", startMs: 1000, endMs: 2000 }
+        ]
+      }
+    };
+    const trimmed = trimClip(clip, "start", -1000);
+    expect(trimmed.caption!.words[1]).toMatchObject({ startMs: 0, endMs: 1000 });
+    const restored = trimClip(trimmed, "start", 1000);
+    expect(restored.caption!.words).toEqual(clip.caption!.words);
+  });
+});

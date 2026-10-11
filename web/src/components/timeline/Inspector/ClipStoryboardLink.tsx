@@ -5,14 +5,24 @@
  * storyboard shot, naming the shot and jumping back to it on the board. The
  * board's own selection footer draws the same link in the other direction.
  *
- * Renders nothing for a clip carrying no shot provenance, or while the board
- * it names cannot be read.
+ * An unlinked, unlocked video clip offers `Link to shot` instead, which opens
+ * {@link LinkShotDialog}. Renders nothing for any other clip without a shot,
+ * or while the board a linked clip names cannot be read.
  */
 
-import { memo } from "react";
+import { memo, useState } from "react";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 
-import { Chip, FlexRow, BORDER_RADIUS, CONTROL, SPACING } from "../../ui_primitives";
+import {
+  Chip,
+  EditorButton,
+  FlexRow,
+  BORDER_RADIUS,
+  CONTROL,
+  SPACING
+} from "../../ui_primitives";
+import LinkShotDialog from "../shot/LinkShotDialog";
 import { colorForType } from "../../../config/data_types";
 import { hexToRgba } from "../../../utils/ColorUtils";
 import { useClipStoryboardLink } from "../../../hooks/timeline/useClipStoryboardLink";
@@ -36,6 +46,29 @@ const ClipStoryboardLinkInner = ({ clip }: ClipStoryboardLinkProps) => {
     clip.storyboardBoardId,
     clip.storyboardShotId
   );
+
+  const [linkOpen, setLinkOpen] = useState(false);
+
+  if (!clip.storyboardShotId) {
+    if (clip.mediaType !== "video" || clip.locked || clip.scriptLineId) {
+      return null;
+    }
+    return (
+      <FlexRow align="center" sx={{ pt: SPACING.micro }}>
+        <EditorButton
+          size="small"
+          startIcon={<LinkOutlinedIcon />}
+          onClick={() => setLinkOpen(true)}
+          title="Make this clip follow a shot on a storyboard"
+        >
+          Link to shot
+        </EditorButton>
+        {linkOpen && (
+          <LinkShotDialog clipId={clip.id} onClose={() => setLinkOpen(false)} />
+        )}
+      </FlexRow>
+    );
+  }
 
   if (!link) {
     return null;

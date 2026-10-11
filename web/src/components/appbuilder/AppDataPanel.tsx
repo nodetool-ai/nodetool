@@ -139,7 +139,7 @@ const EntryCard: React.FC<{
     <FlexColumn gap={SPACING.sm} fullWidth>
       <FlexRow align="center" justify="space-between" gap={SPACING.sm} fullWidth>
         <Box sx={{ minWidth: 0 }}>
-          <Text size="small" weight={600} truncate>
+          <Text size="small" weight={500} truncate>
             {title}
           </Text>
           {subtitle ? (

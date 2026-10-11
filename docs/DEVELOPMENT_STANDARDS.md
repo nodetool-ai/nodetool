@@ -253,34 +253,41 @@ The node graph uses ReactFlow 12.11. The runtime semantics live in `@nodetool-ai
 ### target
 
 - Every new feature ships with at least one test at the lowest level it can fail (unit), and one integration test for cross-module concerns.
-- Mutation testing (Stryker or equivalent) verifies tests actually catch regressions.
+- Mutation testing (`nodetool-mutator`, see the [policy](#mutation-testing-policy)) verifies tests actually catch regressions.
 
 ### Mutation testing policy
 
-Mutation testing (Stryker) runs via `npm run test:mutation` over the
-correctness- and security-critical packages: `agents`, `auth`, `config`,
-`kernel`, `node-sdk`, `runtime`, `security`, `storage`. Each has a
-`stryker.config.json` and a `test:mutation` script.
+Mutation testing runs through `nodetool-mutator`
+([`packages/mutator`](../packages/mutator/README.md)), a TypeScript port of
+[unclebob/mutator](https://github.com/unclebob/mutator). `npm run test:mutation`
+covers the correctness- and security-critical packages: `agents`, `auth`,
+`config`, `kernel`, `node-sdk`, `runtime`, `security`, `storage`. Each package's
+`test:mutation` script names its targets.
 
-- **Gated packages** (`auth`, `kernel`, `node-sdk`, `runtime`, `security`,
-  `agents`) set a `break` threshold — a drop below it fails the run.
-- **Report-only packages** (`config`, `storage`) were onboarded with
-  `break: null` while their suites are strengthened. Ratchet `break` upward as
-  the score improves; do not let it regress.
+- A mutant is killed when the tests fail or time out. The score is
+  killed / (killed + survived). Sites on lines no test covers are reported as
+  uncovered and not run.
+- Runs are differential. The snapshot under `.metrics/mutate/` (gitignored)
+  records each function's hash and each mutant's outcome, so the next run
+  reruns only survivors and functions whose text changed.
+- `Mutation Testing` runs weekly and reports the score per package.
+  `Mutation Testing (changed functions)` runs on pull requests and lists
+  survivors in the functions the PR adds or rewrites. Both are advisory.
 - **Excluded:** integration-heavy packages like `websocket` are intentionally
   not mutation-tested (their value is in end-to-end/contract tests). Revisit if
   pure-logic modules there grow.
 
-`node-sdk` carries a second Stryker config, `stryker.crash.config.json`, whose
-test oracle is the crash-fuzzer corpus alone (`tests/fuzz/`, run with
-`npm run test:crash-fuzz`). It mutates the four parser sources —
-`graph-validation.ts`, `code-analysis.ts`, `code-node-validation.ts`,
-`validation.ts` — and answers a different question from the gated config: not
-"do the tests catch regressions" but "does fuzzed input reach this branch at
-all". A survivor there is a hole in the corpus, so the config is report-only
-(`break: null`) and the nightly `Crash Fuzzer` workflow is what acts on it.
+`node-sdk`'s `test:mutation:crash` runs the same tool with the crash-fuzzer
+corpus (`tests/fuzz/`, run with `npm run test:crash-fuzz`) as its only test
+suite. It mutates the four parser sources (`graph-validation.ts`,
+`code-analysis.ts`, `code-node-validation.ts`, `validation.ts`) and answers a
+different question: not "do the tests catch regressions" but "does fuzzed
+input reach this branch at all". A survivor there is a hole in the corpus. Its
+snapshots go to `.metrics/mutate-crash/`, and the nightly `Crash Fuzzer`
+workflow acts on them.
 
-Reports land in each package's gitignored `reports/mutation/` directory.
+The earlier Stryker setup is still reachable as `test:mutation:stryker` in the
+packages whose `test:mutation` used to run it. CI no longer runs it.
 
 ---
 

@@ -1,4 +1,4 @@
-import { redactTraceText } from "@nodetool-ai/config";
+import { createTraceTextRedactor } from "@nodetool-ai/config";
 import { TRACE_CONTENT_BYTE_LIMIT, TRACE_STRING_LIMIT } from "@nodetool-ai/protocol";
 import { getRunTraceScope, markTraceContentTruncated } from "./run-trace-scope.js";
 
@@ -15,6 +15,7 @@ function containsMedia(value: unknown, depth = 0): boolean {
 /** Encode trace content without turning inline media buffers into stored JSON byte arrays. */
 export function stringifyTraceContent(value: unknown, secrets: ReadonlySet<string> = getRunTraceScope()?.secretValues ?? NO_SECRETS): string {
   const ancestors = new WeakSet<object>();
+  const redact = createTraceTextRedactor(secrets);
   let textBytes = 0;
   const walk = (item: unknown, depth: number): unknown => {
     if (depth > 12 || textBytes >= TRACE_CONTENT_BYTE_LIMIT) { markTraceContentTruncated(); return "[truncated]"; }
@@ -26,7 +27,7 @@ export function stringifyTraceContent(value: unknown, secrets: ReadonlySet<strin
           if (containsMedia(parsed)) { text = JSON.stringify(walk(parsed, depth + 1)); }
         } catch { /* Ordinary text remains text. */ }
       }
-      const redacted = redactTraceText(text.replace(BUFFER_JSON, "[media omitted]"), secrets);
+      const redacted = redact(text.replace(BUFFER_JSON, "[media omitted]"));
       if (redacted.length > TRACE_STRING_LIMIT) { markTraceContentTruncated(); }
       const clean = redacted.slice(0, TRACE_STRING_LIMIT);
       textBytes += clean.length * 2;

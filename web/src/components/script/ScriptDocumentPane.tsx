@@ -63,6 +63,7 @@ import {
 } from "../../hooks/script/useVoiceCostEstimate";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
+import { useScriptWriting } from "../../hooks/script/scriptWrites";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
 import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
 import { useScriptLineShotLink } from "../../hooks/script/useScriptShotLinks";
@@ -567,6 +568,8 @@ const VoicingStrip = ({
   );
   const [retrying, setRetrying] = useState<readonly string[]>([]);
   const live = useVoicingLive(scriptId);
+  // Voicing refuses while a write replaces the lines.
+  const writing = useScriptWriting(scriptId);
 
   const run: VoicingRun | null = readVoicingRun(setup);
 
@@ -607,7 +610,7 @@ const VoicingStrip = ({
     );
   }
 
-  const busy = retrying.length > 0 || live;
+  const busy = retrying.length > 0 || live || writing;
 
   if (run.failed.length === 0 && !stopped) {
     return (
@@ -723,6 +726,9 @@ const ScriptDocumentPane = ({
   // A run started elsewhere in this page, such as the guided flow's last step,
   // is voicing these lines already: a second Voice all would pay for them twice.
   const voicingLive = useVoicingLive(scriptId);
+  // A write the agent started replaces these lines, so voicing them now would
+  // pay for takes the write throws away. Voicing refuses it.
+  const writing = useScriptWriting(scriptId);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
@@ -957,10 +963,12 @@ const ScriptDocumentPane = ({
           />
         )}
         {!readOnly &&
-          (voicingAll || voicingLive ? (
+          (voicingAll || voicingLive || writing ? (
             <FlexRow align="center" gap={SPACING.xs}>
               <LoadingSpinner size={18} />
-              <Text size="smaller">Voicing…</Text>
+              <Text size="smaller">
+                {voicingAll || voicingLive ? "Voicing…" : "Writing…"}
+              </Text>
             </FlexRow>
           ) : (
             <VoiceAllButton

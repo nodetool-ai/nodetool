@@ -127,3 +127,7 @@ nodetool-debug/
 
 # Dev-server / build logs
 *.log
+
+# nodetool-mutator snapshots and worker overlays
+/.metrics/
+/target/

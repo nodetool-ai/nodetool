@@ -10,8 +10,9 @@ export const listPanelStyles = (theme: Theme) =>
   css({
     height: "100%",
     minHeight: 0,
+    // Same inset below the panel header as the documents and more panels.
     ".list-panel-search": {
-      paddingBottom: theme.spacing(1)
+      paddingBlock: theme.spacing(2)
     },
     ".list-panel-list": {
       minHeight: 0,

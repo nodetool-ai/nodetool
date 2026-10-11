@@ -15,7 +15,8 @@ import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
-import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast, SPACING } from "../../ui_primitives";
+import { ReplaceClipAssetDialog } from "../Tracks/ReplaceClipAssetDialog";
+import { ToolbarIconButton, FlexRow, Toast, SPACING } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -46,13 +47,11 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     const regenerateAsCopy = useTimelineStore((s) => s.regenerateAsCopy);
     const selectClip = useTimelineUIStore((s) => s.selectClip);
     const setClipLocked = useTimelineStore((s) => s.setClipLocked);
-    const replaceClipOutput = useTimelineStore((s) => s.replaceClipOutput);
 
     const duplicateBusyRef = useRef(false);
     const [duplicateBusy, setDuplicateBusy] = useState(false);
     const [duplicateError, setDuplicateError] = useState<string | null>(null);
     const [replaceOpen, setReplaceOpen] = useState(false);
-    const [assetIdInput, setAssetIdInput] = useState("");
 
     const handleDuplicate = useCallback(async () => {
       if (duplicateBusyRef.current) {
@@ -100,19 +99,10 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     // ── Replace Output ─────────────────────────────────────────────────────
 
     const handleOpenReplace = useCallback(() => {
-      setAssetIdInput(clip?.currentAssetId ?? "");
       setReplaceOpen(true);
-    }, [clip]);
+    }, []);
 
-    const handleConfirmReplace = useCallback(() => {
-      const trimmed = assetIdInput.trim();
-      if (trimmed) {
-        replaceClipOutput(clipId, trimmed);
-      }
-      setReplaceOpen(false);
-    }, [clipId, assetIdInput, replaceClipOutput]);
-
-    const handleCancelReplace = useCallback(() => {
+    const handleCloseReplace = useCallback(() => {
       setReplaceOpen(false);
     }, []);
 
@@ -193,30 +183,9 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
           )}
         </FlexRow>
 
-        {/* Replace output dialog */}
-        <Dialog
-          open={replaceOpen}
-          onClose={handleCancelReplace}
-          title="Replace output"
-          onConfirm={handleConfirmReplace}
-          onCancel={handleCancelReplace}
-          confirmText="Replace"
-          cancelText="Cancel"
-          showActions
-        >
-          <Text size="small" sx={{ mb: SPACING.xs }}>
-            Enter the asset ID to use as the clip&apos;s current output. The
-            generation state and param overrides will not be changed.
-          </Text>
-          <TextInput
-            value={assetIdInput}
-            onChange={(e) => setAssetIdInput(e.target.value)}
-            placeholder="Asset ID"
-            inputProps={{ "aria-label": "Asset ID" }}
-            fullWidth
-            size="small"
-          />
-        </Dialog>
+        {replaceOpen && (
+          <ReplaceClipAssetDialog clipId={clipId} onClose={handleCloseReplace} />
+        )}
 
         <Toast
           open={duplicateError !== null}

@@ -300,7 +300,7 @@ export interface TimelineUIState {
    * Id of the MIDI track selected in the right-panel Instruments tab.
    */
   expandedInstrumentTrackId: string | null;
-  panelTab: "inspector" | "source" | "instrument" | "agent" | "history" | "script" | "code";
+  panelTab: "inspector" | "shot" | "source" | "instrument" | "agent" | "history" | "script" | "code";
   setPanelTab: (tab: TimelineUIState["panelTab"]) => void;
   /**
    * Whether the Code panel has edits not yet baked or discarded.

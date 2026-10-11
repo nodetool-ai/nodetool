@@ -37,9 +37,8 @@ const MIN_SERVICE_TOKEN_LENGTH = 16;
 const DELEGATED_TOKEN_TTL_SECONDS = 60 * 60;
 
 /**
- * `/link/complete` body. `user_id` is required only for a bot-minted code:
- * a web-minted code already carries the user who was signed in when it was
- * created, and that user wins over anything the bridge sends.
+ * `/link/complete` body. A `user_id` is accepted and ignored: the code names
+ * the user, never the bridge.
  */
 const linkCompleteBodySchema = integrationLinkCompleteBodySchema.extend({
   user_id: z.string().min(1).optional()
@@ -171,11 +170,16 @@ export function createIntegrationRoutes(
         if (!body.success) {
           reply
             .status(400)
-            .send({ error: "external_id, code and user_id are required" });
+            .send({ error: "external_id and code are required" });
           return;
         }
 
-        const pending = linkCodes.consume(body.data.code);
+        // Check before spending, so a malformed bridge call does not burn the
+        // user's code. Only a web-minted code is redeemed here: it carries the
+        // user who was signed in when it was created. A code the bridge minted
+        // names no user, and only a signed-in browser may supply one
+        // (`integrations.confirmLink`), never the bridge.
+        const pending = linkCodes.peek(body.data.code);
         if (!pending) {
           reply
             .status(410)
@@ -190,28 +194,21 @@ export function createIntegrationRoutes(
           return;
         }
 
-        // A web-minted code carries the user who was signed in when it was
-        // created; the bridge supplies the external account it belongs to.
-        // A bot-minted code is the mirror image, and the browser that redeems
-        // it is what names the user.
-        let userId: string;
-        if (pending.kind === "user") {
-          userId = pending.userId;
-        } else {
-          if (pending.externalId !== body.data.external_id) {
-            reply.status(400).send({
-              error: "This link code was issued for a different account"
-            });
-            return;
-          }
-          if (!body.data.user_id) {
-            reply
-              .status(400)
-              .send({ error: "external_id, code and user_id are required" });
-            return;
-          }
-          userId = body.data.user_id;
+        if (pending.kind !== "user") {
+          reply.status(400).send({
+            error:
+              "This link code must be confirmed in the browser by the signed-in user"
+          });
+          return;
         }
+
+        if (!linkCodes.consume(body.data.code)) {
+          reply
+            .status(410)
+            .send({ error: "This link code has expired or was already used" });
+          return;
+        }
+        const userId = pending.userId;
 
         await ExternalIdentity.link({
           provider,

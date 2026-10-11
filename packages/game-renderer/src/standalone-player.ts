@@ -4,6 +4,7 @@ import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "./audio.js";
 import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { browserGamepads, GameInput } from "./input-bindings.js";
+import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController, gameUiViewport2D } from "./ui/index.js";
 import { resolveGameInputBindings } from "@nodetool-ai/protocol";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 import { GameParticles2D } from "./particles/render2d.js";
@@ -107,7 +108,13 @@ async function start(): Promise<void> {
   let paused = false;
   // Keyboard, gamepad and touch reach the simulation through the document's input bindings.
   const input = new GameInput();
+  // HUD buttons press their input actions on the same input, by pointer, touch or gamepad focus.
+  const hud = new GameUiController(input, browserGameUiMeasure(game.id));
+  attachGameUiPointer(canvas, hud, () => gameUiViewport2D(latest));
+  let hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest));
+  window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, gameUiViewport2D(latest)); });
   function releaseAll(): void {
+    hud.release();
     input.release();
   }
   const touchRoot = element("touch");
@@ -148,7 +155,8 @@ async function start(): Promise<void> {
       return;
     }
     audio.updateSpatial(gameAudioSpatialView2D(latest, interpolation));
-    rendering = renderer.render(latest, interpolation, particles)
+    hud.update(latest.ui, gameUiViewport2D(latest), hudInsets);
+    rendering = renderer.render(hud.annotate(latest), interpolation, particles)
       .then((stats) => {
         budget.observe({ drawCalls: stats.drawCalls, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
         if (effects.some((effect) => !effect.required) && renderer.capabilities.fallbackReason) {
@@ -161,7 +169,7 @@ async function start(): Promise<void> {
 
   function step(): boolean {
     try {
-      input.pollGamepads(browserGamepads());
+      input.pollGamepads(hud.pollGamepads(browserGamepads()));
       const result = session.step(input.sample2D(game));
       latest = result.frame;
       particles.tick(result.frame, session.takePresentationEvents());

@@ -25,9 +25,9 @@ describe("generated game inspector fields", () => {
     render(<FormFixture />);
 
     expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("Player");
-    expect(screen.queryByRole("textbox", { name: "New Optional Field" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add New Optional Field" }));
-    expect(screen.getByRole("textbox", { name: "New Optional Field" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "New optional field" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add New optional field" }));
+    expect(screen.getByRole("textbox", { name: "New optional field" })).toBeInTheDocument();
   });
 
   it("uses schema defaults for an added object and leaves optional fields absent", () => {

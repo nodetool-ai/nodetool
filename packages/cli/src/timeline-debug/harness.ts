@@ -12,8 +12,6 @@
  * bridge factory (`@nodetool-ai/agents`). Tests supply their own and load
  * neither.
  */
-import { mkdir, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
 import type { TimelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type {
   TimelineDebugReport,
@@ -22,6 +20,7 @@ import type {
 } from "@nodetool-ai/execution/timeline-debug";
 import type { TimelineInteractionStep } from "./interactions.js";
 import { runInteractionSteps } from "../interaction-script.js";
+import { writeDebugBundle } from "../debug-bundle.js";
 import {
   resolveTimelineTarget,
   type ResolvedTimelineTarget,
@@ -128,16 +127,6 @@ async function loadBridgeFactory(): Promise<CreateTimelineBridge> {
     ) as TimelineBridge;
 }
 
-function defaultOutDir(ref: string): string {
-  const slug =
-    ref
-      .replace(/[^a-zA-Z0-9_-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "timeline";
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return resolve(`nodetool-debug/timeline-${slug}-${stamp}`);
-}
-
 /** Load a timeline and validate it — no bridge, no bundle. */
 export async function runTimelineValidate(
   ref: string,
@@ -231,25 +220,14 @@ export async function runTimelineDebug(
   }
   const report = await core.buildTimelineDebugReport(reportInput);
 
-  const bundleDir = options.outDir
-    ? resolve(options.outDir)
-    : defaultOutDir(ref);
-  await mkdir(bundleDir, { recursive: true });
-  await writeFile(
-    join(bundleDir, "timeline.json"),
-    JSON.stringify(resolved.raw, null, 2),
-    "utf8"
-  );
-  await writeFile(
-    join(bundleDir, "report.json"),
-    JSON.stringify(report, null, 2),
-    "utf8"
-  );
-  await writeFile(
-    join(bundleDir, "report.md"),
-    core.renderTimelineReportMarkdown(report),
-    "utf8"
-  );
+  const bundleDir = await writeDebugBundle({
+    kind: "timeline",
+    ref,
+    outDir: options.outDir,
+    raw: resolved.raw,
+    report,
+    reportMarkdown: core.renderTimelineReportMarkdown(report),
+  });
 
   return { report, bundleDir };
 }

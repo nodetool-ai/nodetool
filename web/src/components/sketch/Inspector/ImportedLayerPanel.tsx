@@ -12,9 +12,9 @@ import type { Layer } from "../types";
 import { summarizeLayerImageReference } from "../types";
 import {
   Caption,
-  CollapsibleSection,
   FlexColumn,
   FlexRow,
+  InspectorSection,
   Label,
   Panel,
   Text
@@ -43,7 +43,7 @@ export const ImportedLayerPanel: React.FC<ImportedLayerPanelProps> = memo(
             <Caption color="secondary">Imported layer</Caption>
           </FlexColumn>
 
-          <CollapsibleSection title="Source" defaultOpen>
+          <InspectorSection title="Source" divider={false}>
             {ref ? (
               <FlexColumn gap={0.5}>
                 <Text size="small">
@@ -56,7 +56,7 @@ export const ImportedLayerPanel: React.FC<ImportedLayerPanelProps> = memo(
             ) : (
               <Caption color="secondary">No image source recorded.</Caption>
             )}
-          </CollapsibleSection>
+          </InspectorSection>
         </FlexColumn>
       </Panel>
     );

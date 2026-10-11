@@ -147,9 +147,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -245,9 +245,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -343,9 +343,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -441,9 +441,9 @@
         "data": {
           "model": {
             "type": "music_model",
-            "provider": "replicate",
-            "id": "meta/musicgen",
-            "name": "MusicGen",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null
           },
           "lyrics": ""
@@ -520,9 +520,9 @@
         "data": {
           "model": {
             "type": "music_model",
-            "provider": "replicate",
-            "id": "meta/musicgen",
-            "name": "MusicGen",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null
           },
           "lyrics": ""

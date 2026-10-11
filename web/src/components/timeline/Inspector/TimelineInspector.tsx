@@ -8,7 +8,7 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 
-import { DEFAULT_MODEL3D_STYLE } from "@nodetool-ai/timeline";
+import { DEFAULT_MODEL3D_STYLE, hasTimeRemap } from "@nodetool-ai/timeline";
 import { useShallow } from "zustand/react/shallow";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -263,20 +263,22 @@ const TimelineInspectorContent: React.FC = memo(() => {
     ];
   }, [groupSummaries, clipId]);
 
+  // Moving a locked clip into a group would leave a group that can be neither
+  // moved nor ungrouped, so the picker follows the timing lock.
   const handleParentChange = useCallback(
     (value: string) => {
-      if (!clipId) return;
+      if (!clipId || timingLocked) return;
       patchClip(clipId, {
         parentId: value === NO_PARENT ? undefined : value
       });
     },
-    [clipId, patchClip]
+    [clipId, patchClip, timingLocked]
   );
 
   const handleUngroup = useCallback(() => {
-    if (!clipId) return;
+    if (!clipId || timingLocked) return;
     patchClip(clipId, { parentId: undefined });
-  }, [clipId, patchClip]);
+  }, [clipId, patchClip, timingLocked]);
 
   /**
    * Ungroup from the group's own panel: release the direct children, then
@@ -284,9 +286,16 @@ const TimelineInspectorContent: React.FC = memo(() => {
    */
   const handleUngroupChildren = useCallback(() => {
     if (!clipId) return;
-    const members = storeApi
-      .getState()
-      .clips.filter((candidate) => candidate.parentId === clipId);
+    const { clips, tracks } = storeApi.getState();
+    const members = clips.filter((candidate) => candidate.parentId === clipId);
+    // A group holding a locked child stays a group: releasing the child would
+    // change a locked clip, and deleting the group would strand it.
+    const lockedTracks = new Set(
+      tracks.filter((t) => t.locked).map((t) => t.id)
+    );
+    if (members.some((m) => m.locked || lockedTracks.has(m.trackId))) {
+      return;
+    }
     history.begin();
     for (const member of members) {
       patchClip(member.id, { parentId: undefined });
@@ -581,7 +590,11 @@ const TimelineInspectorContent: React.FC = memo(() => {
       {shapeStyle && <ClipShapeSection clip={clip} shapeStyle={shapeStyle} />}
 
       {model3dStyle && (
-        <ClipModel3DSection clip={clip} model3dStyle={model3dStyle} />
+        <ClipModel3DSection
+          key={clip.id}
+          clip={clip}
+          model3dStyle={model3dStyle}
+        />
       )}
 
       {isMidi && <ClipMidiSection clip={clip} />}
@@ -611,11 +624,17 @@ const TimelineInspectorContent: React.FC = memo(() => {
                 value={clip.parentId ?? NO_PARENT}
                 options={parentOptions}
                 onChange={handleParentChange}
+                disabled={timingLocked}
                 grow
               />
             </InspectorRow>
             {clip.parentId !== undefined && (
-              <Button size="small" variant="text" onClick={handleUngroup}>
+              <Button
+                size="small"
+                variant="text"
+                onClick={handleUngroup}
+                disabled={timingLocked}
+              >
                 Ungroup
               </Button>
             )}
@@ -642,11 +661,17 @@ const TimelineInspectorContent: React.FC = memo(() => {
                 value={clip.parentId ?? NO_PARENT}
                 options={parentOptions}
                 onChange={handleParentChange}
+                disabled={timingLocked}
                 grow
               />
             </InspectorRow>
             {clip.parentId !== undefined && (
-              <Button size="small" variant="text" onClick={handleUngroup}>
+              <Button
+                size="small"
+                variant="text"
+                onClick={handleUngroup}
+                disabled={timingLocked}
+              >
                 Ungroup
               </Button>
             )}
@@ -700,10 +725,15 @@ const TimelineInspectorContent: React.FC = memo(() => {
                   unit="×"
                   scrub={SCRUB_SPEED}
                   onCommit={handleSpeedCommit}
-                  disabled={timingLocked}
+                  disabled={timingLocked || hasTimeRemap(clip)}
                   ariaLabel="Playback speed"
                 />
               </InspectorRow>
+              {hasTimeRemap(clip) && (
+                <Caption color="muted">
+                  Time Remap sets this clip&apos;s speed.
+                </Caption>
+              )}
               <InspectorToggleRow
                 label="Hidden"
                 checked={!!clip.hidden}

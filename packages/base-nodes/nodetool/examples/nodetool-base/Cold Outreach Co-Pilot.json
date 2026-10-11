@@ -122,7 +122,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an agent researches them on the web, then drafts a personalized cold email that opens with a real, specific detail. The pieces come back as separate fields, ready for a CRM or email tool.\n\n**How it works:** \"3 Build research objective\" puts \"1 Prospect\" and \"2 Your offer\" into a task brief. \"4 Research + write outreach\" is an Agent with the web_search and browser tools, set to Claude Sonnet. It returns company_summary, pain_points, subject, body and follow_up as typed outputs, each shown in its own Preview (\"Company summary\", \"Pain points\", \"Subject line\", \"Email body\", \"Follow-up\"). \"Agent thinking (live)\" streams its progress. The agent needs a language model and search access.\n\n**Try this:** Change \"1 Prospect\" to a company you know well and check whether the opening line of \"Email body\" cites a detail you recognize."
+          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an agent researches them on the web, then drafts a personalized cold email that opens with a real, specific detail. The pieces come back as separate fields, ready for a CRM or email tool.\n\n**How it works:** \"3 Build research objective\" puts \"1 Prospect\" and \"2 Your offer\" into a task brief. \"4 Research + write outreach\" is an Agent with the web_search and browser tools. It returns company_summary, pain_points, subject, body and follow_up as typed outputs, each shown in its own Preview (\"Company summary\", \"Pain points\", \"Subject line\", \"Email body\", \"Follow-up\"). \"Agent thinking (live)\" streams its progress. The agent uses your default language model, or the one you pick on the node, and needs search access.\n\n**Try this:** Change \"1 Prospect\" to a company you know well and check whether the opening line of \"Email body\" cites a detail you recognize."
         },
         "ui_properties": {
           "position": {
@@ -213,9 +213,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "id": "sonnet",
-            "provider": "claude_agent_sdk",
-            "name": "Claude Sonnet (subscription)"
+            "id": "",
+            "provider": "",
+            "name": ""
           },
           "tools": [
             {

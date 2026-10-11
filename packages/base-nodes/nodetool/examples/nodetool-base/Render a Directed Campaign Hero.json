@@ -19,7 +19,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Render a Directed Campaign Hero\n\nRenders one 16:9 campaign hero from a direction you pick out of a captured plan. Use it after Propose Three Campaign Directions, once you know which of A, B or C you want.\n\n**How it works:** \"Captured plan\" and \"Direction choice\" feed \"Select and capture direction\", a Code node that checks the plan is schema version 1 with three directions and finds the chosen one. It builds the edit prompt, lists the product image first and the optional role-labelled reference second, and writes a hero contract. \"Render selected hero\" edits those images with Nano Banana Edit on fal at strength 0.65 and 1K, with a negative prompt that blocks text and logo changes. \"Finalize candidate\" waits for the image, checks it and the contract, then emits \"Candidate hero\", \"Creative contract\" and \"Ready phase\". The render step needs a fal key.\n\n**Try this:** Change \"Direction choice\" from \"A\" to \"B\" and run again to see the same product placed in the second direction's setting and lighting."
+          "comment": "# Render a Directed Campaign Hero\n\nRenders one 16:9 campaign hero from a direction you pick out of a captured plan. Use it after Propose Three Campaign Directions, once you know which of A, B or C you want.\n\n**How it works:** \"Captured plan\" and \"Direction choice\" feed \"Select and capture direction\", a Code node that checks the plan is schema version 1 with three directions and finds the chosen one. It builds the edit prompt, lists the product image first and the optional role-labelled reference second, and writes a hero contract. \"Render selected hero\" edits those images at strength 0.65 and 1K, with a negative prompt that blocks text and logo changes. \"Finalize candidate\" waits for the image, checks it and the contract, then emits \"Candidate hero\", \"Creative contract\" and \"Ready phase\". The render step uses your default image model, or the one you pick on the node.\n\n**Try this:** Change \"Direction choice\" from \"A\" to \"B\" and run again to see the same product placed in the second direction's setting and lighting."
         },
         "ui_properties": {
           "position": {
@@ -132,9 +132,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/nano-banana/edit",
-            "name": "Nano Banana Edit",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

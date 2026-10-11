@@ -19,6 +19,7 @@ import {
   SHADOW
 } from "../ui_primitives";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { creationProjectId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { openPageTab } from "../workspace/openPageTab";
 import { useGuidedFlowStarters } from "../workspace/useGuidedFlowStarters";
@@ -288,6 +289,9 @@ const TutorialsPage: React.FC = () => {
   const { starters } = useGuidedFlowStarters();
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const active = getTutorial(params.get("id"));
 
@@ -333,11 +337,22 @@ const TutorialsPage: React.FC = () => {
       } else {
         openPageTab("examples");
       }
+    } catch (error) {
+      // A guided start reports its own failure. The chat thread and a
+      // missing starter would otherwise fail without a word.
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Could not open the task: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      });
     } finally {
       setOpeningTask(false);
     }
   }, [
     active.launch,
+    addNotification,
     createNewThread,
     navigate,
     openTab,

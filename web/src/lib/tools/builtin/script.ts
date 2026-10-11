@@ -68,10 +68,16 @@ FrontendToolRegistry.register({
       .enum(["voiceover", "dialogue", "interview", "ad-read", "tutorial"])
       .optional()
       .describe("The format, which sets the cast shape and section layout."),
+    // The range and whole seconds the Format step's length field accepts.
     length_seconds: z
       .number()
+      .int()
+      .min(5)
+      .max(3600)
       .optional()
-      .describe("How long the script should run when read aloud."),
+      .describe(
+        "How long the script should run when read aloud, in whole seconds from 5 to 3600."
+      ),
     pace: z
       .enum(["slow", "normal", "fast"])
       .optional()
@@ -87,7 +93,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_script_write",
   description:
-    "Write the script from its brief, format and length (set them first with ui_script_set_setup), replacing the cast and the lines with what the writer returns. Without `rewrite`, words imported from a file or pasted in are kept as written: they are only split into lines and given speakers. Pass `rewrite: true` to rewrite the script that is already there — the lines it keeps keep their ids, so their takes and their storyboard links survive. A rewrite gives up the imported words: the writer rewrites them and the import is dropped, so do not pass it on an imported script unless the creator asked for new wording. Refused while the script is already being written. Records no take; voice the lines with ui_script_voice_all.",
+    "Write the script from its brief, format and length (set them first with ui_script_set_setup), replacing the cast and the lines with what the writer returns. Without `rewrite`, words imported from a file or pasted in are kept as written: they are only split into lines and given speakers. Pass `rewrite: true` to rewrite the script that is already there — the lines it keeps keep their ids, so their takes and their storyboard links survive. A rewrite gives up the imported words: the writer rewrites them and the import is dropped, so do not pass it on an imported script unless the creator asked for new wording. Refused while the script is already being written or is being voiced. Records no take; voice the lines with ui_script_voice_all.",
   parameters: z.object({
     script_id: scriptIdParam,
     rewrite: z
@@ -195,7 +201,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_script_voice_line",
   description:
-    "Voice a single line into a new take (TTS with the line's effective voice), setting it as the current take. The line must have text and an effective voice (its own override or its speaker's). Returns the updated line; the take's word timings arrive best-effort.",
+    "Voice a single line into a new take (TTS with the line's effective voice), setting it as the current take. The line must have text and an effective voice (its own override or its speaker's). Returns the updated line; the take's word timings arrive best-effort. Refused while the script is being written.",
   parameters: z.object({ script_id: scriptIdParam, target: lineTargetParam }),
   async execute({ script_id, target }) {
     const line = await getScriptAgentHandler(script_id).voiceLine(target);
@@ -206,7 +212,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_script_voice_all",
   description:
-    "Voice every draft or stale line in the specified script (bounded concurrency), respecting each line's effective voice. Lines already up to date, or with no text or no voice, are skipped. Returns the number of lines voiced.",
+    "Voice every draft or stale line in the specified script (bounded concurrency), respecting each line's effective voice. Lines already up to date, or with no text or no voice, are skipped. Refused while the script is being written or is already being voiced. Returns the number of lines voiced.",
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
     const result = await getScriptAgentHandler(script_id).voiceAll();

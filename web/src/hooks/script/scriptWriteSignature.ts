@@ -33,6 +33,30 @@ export function writerSignature(
   setup: ScriptSetup | null | undefined,
   source: ImportedScript | null
 ): string {
+  // An attributed import is applied as it is: the brief, the length and the
+  // model never reach it, only the format's section title does. Counting them
+  // made a changed length offer to prepare the import again, which drops the
+  // edits made in the review.
+  if (source?.attributed === true) {
+    return [
+      "",
+      setup?.format ?? "",
+      "",
+      "",
+      "",
+      "",
+      scriptSourceSignature(source) ?? ""
+    ].join("\u0001");
+  }
+  return allInputsSignature(setup, source);
+}
+
+/** Every input, as signatures were written before attributed imports
+ * dropped the ones they never read. */
+function allInputsSignature(
+  setup: ScriptSetup | null | undefined,
+  source: ImportedScript | null
+): string {
   return [
     setup?.brief.trim() ?? "",
     setup?.format ?? "",
@@ -44,7 +68,23 @@ export function writerSignature(
     "",
     setup?.writer_model?.id ?? "",
     scriptSourceSignature(source) ?? ""
-  ].join("");
+  ].join("\u0001");
+}
+
+/**
+ * True when the lines on the document answer these inputs. A signature
+ * written before the attributed rule still matches on unchanged inputs.
+ */
+export function isWrittenFrom(
+  setup: ScriptSetup | null | undefined,
+  source: ImportedScript | null
+): boolean {
+  const written = readWriterSignature(setup);
+  return (
+    written === writerSignature(setup, source) ||
+    (source?.attributed === true &&
+      written === allInputsSignature(setup, source))
+  );
 }
 
 /** The signature of the write that produced the lines now on the document. */

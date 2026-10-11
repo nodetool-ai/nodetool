@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  gameAnimationGraph3D, gameAssetBinding3D, gameAudioMixer, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameDocument3D,
+  gameAnimationGraph3D, gameAssetBinding3D, gameAudioMixer, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameCollisionMatrix3D, gameDocument3D,
   gameEntity3D, gameInputBindings, gameLight3D, gamePerformance3D, gamePrefab3D, gameScene3D, gameScriptParamValue, gameScriptParams, gameTransform3D, gameVector3,
   type AnyGameDocument, type GameDocument, type GameDocument3D, type GameEntity3D, type GamePrefab3D, type GameTransform3D
 } from "@nodetool-ai/protocol";
@@ -29,7 +29,7 @@ const entitySet = preservingPatch(gameEntity3D.partial().extend({
   primitive: gameEntity3D.shape.primitive.unwrap().partial().nullable().optional(),
   model: gameEntity3D.shape.model.unwrap().partial().nullable().optional(),
   body3d: z.union(gameBody3D.options.map((schema) => schema.partial())).nullable().optional(),
-  collider3d: z.union(gameCollider3D.options.map((schema) => schema.partial())).nullable().optional(),
+  collider3d: z.union(gameCollider3D.options.map((schema) => schema.partial().extend({ layer: id.nullable().optional() }))).nullable().optional(),
   character3d: gameEntity3D.shape.character3d.unwrap().partial().nullable().optional(),
   camera3d: gameCamera3D.partial().nullable().optional(),
   light3d: z.union(gameLight3D.options.map((schema) => schema.partial())).nullable().optional(),
@@ -61,7 +61,7 @@ export const gameDocumentOp3D = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("set_prefab"), prefab_id: id, prefab: gamePrefab3D }),
   z.strictObject({ op: z.literal("remove_prefab"), prefab_id: id }),
   z.strictObject({ op: z.literal("instantiate_prefab"), scene_id: id, prefab_id: id, instance_id: id, transform: gameTransform3D.optional() }),
-  z.strictObject({ op: z.literal("set_game"), presentation: preservingPatch(gameDocument3D.shape.presentation.partial()).optional(), input_actions: gameDocument3D.shape.inputActions.optional(), input_axes: gameDocument3D.shape.inputAxes.optional(), input_bindings: gameInputBindings.nullable().optional(), entry_scene_id: id.optional(), collision_layers: gameDocument3D.shape.collisionLayers.nullable().optional() }),
+  z.strictObject({ op: z.literal("set_game"), presentation: preservingPatch(gameDocument3D.shape.presentation.partial()).optional(), input_actions: gameDocument3D.shape.inputActions.optional(), input_axes: gameDocument3D.shape.inputAxes.optional(), input_bindings: gameInputBindings.nullable().optional(), entry_scene_id: id.optional(), collision_layers: gameDocument3D.shape.collisionLayers.nullable().optional(), collision_matrix: gameCollisionMatrix3D.nullable().optional() }),
   z.strictObject({ op: z.literal("set_audio"), mixer: gameAudioMixer.nullable() }),
   z.strictObject({ op: z.literal("set_performance"), performance: gamePerformance3D.nullable() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding3D }),
@@ -298,6 +298,8 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         if (op.entry_scene_id) { draft.entrySceneId = op.entry_scene_id; }
         if (op.collision_layers === null) { delete draft.collisionLayers; }
         else if (op.collision_layers !== undefined) { draft.collisionLayers = op.collision_layers; }
+        if (op.collision_matrix === null) { delete draft.collisionMatrix; }
+        else if (op.collision_matrix !== undefined) { draft.collisionMatrix = op.collision_matrix; }
         break;
       }
       case "set_audio": {

@@ -73,3 +73,27 @@ export function useStylePresets(): UseQueryResult<StylePresetEntity[], Error> {
     staleTime: Infinity
   });
 }
+
+export const GAME_STYLE_PRESETS_QUERY_KEY = ["style-presets", "game"] as const;
+
+/**
+ * The six shipped game art styles, seeded the same way. The Game flow's look
+ * step picks one; its descriptor is pasted into every image slot's prompt.
+ */
+export function useGameStylePresets(): UseQueryResult<
+  StylePresetEntity[],
+  Error
+> {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: GAME_STYLE_PRESETS_QUERY_KEY,
+    queryFn: async (): Promise<StylePresetEntity[]> => {
+      const presets = await trpcClient.storyboards.stylePresets.mutate({
+        set: "game"
+      });
+      await queryClient.invalidateQueries({ queryKey: ["entities"] });
+      return presets;
+    },
+    staleTime: Infinity
+  });
+}

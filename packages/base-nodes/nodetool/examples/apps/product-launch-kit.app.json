@@ -520,7 +520,7 @@
     {
       "key": "mockups",
       "name": "Product Mockup Generator",
-      "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then Nano Banana composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+      "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then an image-to-image step composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
       "sourceId": "nodetool-base/Product Mockup Generator",
       "graph": {
         "edges": [
@@ -644,7 +644,7 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out. Use it when you need several distinct scenes for one product instead of one prompt and one image.\n\n**How it works:** \"1️⃣ Product name\", \"5️⃣ Product description\", \"4️⃣ Target audience\" and \"2️⃣ Scene count\" (6) fill \"6️⃣ Build scene prompt\". \"7️⃣ Scene concept agent\" invents distinct scenes, and \"8️⃣ Build image prompt\" turns them into photography prompts. \"9️⃣ Split into per-scene prompts\" emits one prompt per scene to two branches. \"🔟 Render scene (text-to-image)\" draws the empty scene with FLUX Schnell for the \"scene\" output. \"🅰️ Composite product into scene (image-to-image)\" places \"3️⃣ Product image\" into the scene with Nano Banana at strength 0.65. Two Brightness/Contrast passes, \"🅱️ Brightness / contrast polish\" and \"©️ Final color adjust → mockup\" (contrast 1.1), finish the \"mockup\" output. Pick models on \"7️⃣ Scene concept agent\" and \"9️⃣ Split into per-scene prompts\".\n\n**Try this:** Change \"4️⃣ Target audience\" to \"college students on a budget\" and watch the whole shot list shift."
+              "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out. Use it when you need several distinct scenes for one product instead of one prompt and one image.\n\n**How it works:** \"1️⃣ Product name\", \"5️⃣ Product description\", \"4️⃣ Target audience\" and \"2️⃣ Scene count\" (6) fill \"6️⃣ Build scene prompt\". \"7️⃣ Scene concept agent\" invents distinct scenes, and \"8️⃣ Build image prompt\" turns them into photography prompts. \"9️⃣ Split into per-scene prompts\" emits one prompt per scene to two branches. \"🔟 Render scene (text-to-image)\" draws the empty scene for the \"scene\" output. \"🅰️ Composite product into scene (image-to-image)\" places \"3️⃣ Product image\" into the scene at strength 0.65. Two Brightness/Contrast passes, \"🅱️ Brightness / contrast polish\" and \"©️ Final color adjust → mockup\" (contrast 1.1), finish the \"mockup\" output. Pick models on \"7️⃣ Scene concept agent\" and \"9️⃣ Split into per-scene prompts\".\n\n**Try this:** Change \"4️⃣ Target audience\" to \"college students on a budget\" and watch the whole shot list shift."
             },
             "ui_properties": {
               "selected": false,
@@ -709,9 +709,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/nano-banana/edit",
-                "name": "Nano Banana",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -981,9 +981,9 @@
             "data": {
               "model": {
                 "type": "image_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/flux/schnell",
-                "name": "FLUX.1 Schnell",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1042,7 +1042,7 @@
     {
       "key": "video",
       "name": "Product Video Generator",
-      "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
+      "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then an image-to-video model animates the shot. Cost note: the video step is a paid generation, so this run costs noticeably more than an image-only template.",
       "sourceId": "nodetool-base/Product Video Generator",
       "graph": {
         "edges": [
@@ -1137,7 +1137,7 @@
             "id": "comment-1",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Product Video Generator\n\nTurns a campaign brief and product image into a cinematic 16:9 launch clip. Use it when you already have a product photo and want a short animated shot.\n\n**How it works:** \"1️⃣ Campaign brief\", \"2️⃣ Target audience\" and \"3️⃣ Key features\" fill \"5️⃣ Build prompt\". \"6️⃣ Write video prompt\" is an Agent that reads that prompt together with \"4️⃣ Product image\" and writes one image-to-video paragraph. \"7️⃣ Animate product video\" animates the same product image with that prompt for 8 seconds at 720p. Pick a language model on \"6️⃣ Write video prompt\". The animation step runs on Veo 3.1, a paid per-second video model, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"2️⃣ Target audience\" to \"retirees who walk daily\" and compare the setting and pace of the new clip."
+              "comment": "# 🎬 Product Video Generator\n\nTurns a campaign brief and product image into a cinematic 16:9 launch clip. Use it when you already have a product photo and want a short animated shot.\n\n**How it works:** \"1️⃣ Campaign brief\", \"2️⃣ Target audience\" and \"3️⃣ Key features\" fill \"5️⃣ Build prompt\". \"6️⃣ Write video prompt\" is an Agent that reads that prompt together with \"4️⃣ Product image\" and writes one image-to-video paragraph. \"7️⃣ Animate product video\" animates the same product image with that prompt for 8 seconds at 720p. Pick a language model on \"6️⃣ Write video prompt\". The animation step uses your default video model, or the one you pick on the node. It is a paid video generation, so each run costs noticeably more than an image-only template.\n\n**Try this:** Change \"2️⃣ Target audience\" to \"retirees who walk daily\" and compare the setting and pace of the new clip."
             },
             "ui_properties": {
               "position": {
@@ -1315,9 +1315,9 @@
             "data": {
               "model": {
                 "type": "video_model",
-                "provider": "gemini",
-                "id": "veo-3.1-generate-preview",
-                "name": "Veo 3.1 Preview",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },

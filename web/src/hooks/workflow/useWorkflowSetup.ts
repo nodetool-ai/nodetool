@@ -223,8 +223,22 @@ export const queueWorkflowSave = (
     options.snapshot ?? true
   );
 
+/** Merge a patch into one key of a workflow's `settings` bag. */
+export type WorkflowSettingsWrite<Patch> = (
+  settings: unknown,
+  patch: Patch
+) => Record<string, unknown>;
+
+/** A writer for one flow's key on `settings`, sharing the workflow's queue. */
+export interface WorkflowSettingsWriter<Patch> {
+  /** Apply the patch now and resolve once a save that includes it finished. */
+  write: (patch: Patch, options?: SetupSaveOptions) => Promise<void>;
+  /** Apply the patch now and save it after the typing pauses. */
+  edit: (patch: Patch) => void;
+}
+
 /**
- * Write setup answers back onto the workflow.
+ * Write one flow's answers back onto the workflow.
  *
  * Every write goes through the manager's `updateWorkflow` at once, so the open
  * editor and the tab list see it, and then `saveWorkflow`, so a reload resumes
@@ -233,11 +247,13 @@ export const queueWorkflowSave = (
  * at once and carries any edit still waiting. A refused explicit save rejects
  * rather than resolving quietly: the shell puts the reason on the button, and
  * a stage that did not persist would otherwise strand the creator one refresh
- * later.
+ * later. The Workflow flow writes `settings.setup` and the Game flow writes
+ * `settings.game`; both go through the same queue.
  */
-export const useWorkflowSetupWriter = (
-  workflowId: string
-): WorkflowSetupWriter => {
+export const useWorkflowSettingsWriter = <Patch>(
+  workflowId: string,
+  writeSettings: WorkflowSettingsWrite<Patch>
+): WorkflowSettingsWriter<Patch> => {
   const store = useWorkflowManagerStore();
 
   // The save reads the workflow when it starts, not when it was asked for, so
@@ -249,7 +265,7 @@ export const useWorkflowSetupWriter = (
   );
 
   const apply = useCallback(
-    (patch: Partial<WorkflowSetup>) => {
+    (patch: Patch) => {
       const state = store.getState();
       const workflow = state.getWorkflow(workflowId);
       if (!workflow) {
@@ -257,14 +273,14 @@ export const useWorkflowSetupWriter = (
       }
       state.updateWorkflow({
         ...workflow,
-        settings: writeWorkflowSetup(workflow.settings, patch)
+        settings: writeSettings(workflow.settings, patch)
       });
     },
-    [store, workflowId]
+    [store, workflowId, writeSettings]
   );
 
-  const setSetup = useCallback(
-    async (patch: Partial<WorkflowSetup>, options?: SetupSaveOptions) => {
+  const write = useCallback(
+    async (patch: Patch, options?: SetupSaveOptions) => {
       apply(patch);
       await flushQueue(
         workflowId,
@@ -275,8 +291,8 @@ export const useWorkflowSetupWriter = (
     [apply, save, workflowId]
   );
 
-  const editSetup = useCallback(
-    (patch: Partial<WorkflowSetup>) => {
+  const edit = useCallback(
+    (patch: Patch) => {
       try {
         apply(patch);
       } catch (cause) {
@@ -307,5 +323,16 @@ export const useWorkflowSetupWriter = (
     [workflowId]
   );
 
-  return { setSetup, editSetup };
+  return { write, edit };
+};
+
+/** Write the Workflow flow's answers onto `settings.setup`. */
+export const useWorkflowSetupWriter = (
+  workflowId: string
+): WorkflowSetupWriter => {
+  const { write, edit } = useWorkflowSettingsWriter<Partial<WorkflowSetup>>(
+    workflowId,
+    writeWorkflowSetup
+  );
+  return { setSetup: write, editSetup: edit };
 };

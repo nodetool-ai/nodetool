@@ -156,4 +156,22 @@ describe("Final Draft dialogue as script lines", () => {
     ]);
     expect(imported.speakers).toEqual(["MARA"]);
   });
+
+  // A speech can carry more than one parenthetical. Each one replaced the
+  // last, so "(quietly)" vanished from the line and from the shot.
+  it("keeps every parenthetical in a speech", () => {
+    const parsed = parseFdx(
+      screenplay(
+        para("Character", "MARA") +
+          para("Parenthetical", "(quietly)") +
+          para("Dialogue", "Hi.") +
+          para("Parenthetical", "(louder)") +
+          para("Dialogue", "Bye.")
+      )
+    );
+    expect(parsed.shots[0].action).toBe("MARA (quietly; louder)");
+    expect(importedFromFdx(parsed).lines).toEqual([
+      { text: "Hi. Bye.", speakerName: "MARA", direction: "quietly; louder" }
+    ]);
+  });
 });

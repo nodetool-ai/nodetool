@@ -1,8 +1,9 @@
 import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { paintHud, pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems } from "./frame.js";
+import { pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
 import { gameFontFamily } from "./fonts.js";
+import { loadGameUiImages, paintGameHud2D } from "./ui/hud2d.js";
 import { applyGpuEffects } from "./gpu-capture.js";
 import type { GameHudEffectOrder, GameRendererEffect } from "./index.js";
 import { PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
@@ -149,12 +150,13 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
         options.onDiagnostic?.(`Optional font ${fontId} could not load; using system font`);
       }
     }
+    const uiImages = await loadGameUiImages(frame, getImage);
     const hudOrder = options.hudEffectOrder ?? (effects.some((effect) => effect.kind === "bloom") ? "afterEffects" : "beforeEffects");
     const applyEffects = backend === "webgpu" && effects.length > 0;
     if (!applyEffects || hudOrder === "beforeEffects") {
       context.save();
       context.translate(overscan, overscan);
-      paintHud(context, frame.hud, scale, frame.gameId);
+      paintGameHud2D(context, frame, scale, uiImages);
       context.restore();
     }
     if (applyEffects) {
@@ -168,13 +170,13 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
       }
     }
     if (overscan === 0) {
-      if (applyEffects && hudOrder === "afterEffects") paintHud(context, frame.hud, scale, frame.gameId);
+      if (applyEffects && hudOrder === "afterEffects") paintGameHud2D(context, frame, scale, uiImages);
       return canvas.toBuffer("image/png");
     }
     const cropped = createCanvas(outputWidth, outputHeight);
     const croppedContext = cropped.getContext("2d");
     croppedContext.drawImage(canvas, overscan, overscan, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
-    if (applyEffects && hudOrder === "afterEffects") paintHud(croppedContext, frame.hud, scale, frame.gameId);
+    if (applyEffects && hudOrder === "afterEffects") paintGameHud2D(croppedContext, frame, scale, uiImages);
     return cropped.toBuffer("image/png");
   } finally {
     GlobalFonts.removeBatch(registered);

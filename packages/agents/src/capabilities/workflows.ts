@@ -43,6 +43,7 @@ import {
 import {
   PLAN_CORE_NODE_TYPES,
   checkWorkflowPlan,
+  planInputSample,
   planNodeShape,
   planToPlacement,
   parseWorkflowPlan,
@@ -52,7 +53,8 @@ import {
   GAME_DESIGNER_SYSTEM_PROMPT,
   GAME_DESIGN_TOOL_DESCRIPTION,
   GAME_DESIGN_TOOL_NAME,
-  GAME_INSPIRATION_CHIPS,
+  NATIVE_GAME_INSPIRATION_CHIPS,
+  pinnedGameInspirationChip,
   WORKFLOW_PLANNER_SYSTEM_PROMPT,
   WORKFLOW_PLAN_TOOL_DESCRIPTION,
   WORKFLOW_PLAN_TOOL_NAME,
@@ -1468,6 +1470,18 @@ const buildWorkflowFromPlan: CapabilityExport = {
       );
       if (isError(written)) return written;
       savedRow = written;
+      // One version row per build, as the browser's build save adds. The
+      // setup answers change no graph, so they add none.
+      const { WorkflowVersion } = await import("@nodetool-ai/models");
+      await WorkflowVersion.create({
+        workflow_id: id,
+        user_id: userIdOf(run.context),
+        name: written.name,
+        description: "Built from the plan",
+        graph: written.graph,
+        version: await WorkflowVersion.nextVersion(id),
+        save_type: "manual"
+      });
     }
 
     return {
@@ -1478,12 +1492,16 @@ const buildWorkflowFromPlan: CapabilityExport = {
       saved: savedRow !== null,
       stage: save ? "done" : owned.setup?.stage ?? "setup",
       graph,
-      /** Plan input name → the sample a test run should send. */
+      /**
+       * Plan input name → the sample a test run should send, converted to the
+       * input's type. A media input, or a sample that does not convert, sends
+       * nothing.
+       */
       sample_inputs: Object.fromEntries(
-        plan.inputs.map((input: WorkflowSetupPlan["inputs"][number]) => [
-          input.name,
-          input.sample ?? ""
-        ])
+        plan.inputs.flatMap((input: WorkflowSetupPlan["inputs"][number]) => {
+          const sample = planInputSample(input);
+          return sample === undefined ? [] : [[input.name, sample]];
+        })
       ),
       /**
        * What the builder could not wire. Empty is the only value that means the
@@ -1733,18 +1751,16 @@ const designGame: CapabilityExport = {
     } else {
       // No model: the shipped chip whose brief this is carries a pinned design,
       // so a keyless install still reaches the review step.
-      const chip = GAME_INSPIRATION_CHIPS.find(
-        (entry) =>
-          entry.template === template.id &&
-          entry.brief.trim().toLowerCase() === brief.toLowerCase()
-      );
+      const chip = pinnedGameInspirationChip(template.id, brief);
       if (!chip) {
         return {
           error:
             "Pass provider and model to design, or pass a `design` to store without calling one. " +
-            `Without either, only a shipped inspiration chip's brief designs: ${GAME_INSPIRATION_CHIPS.map(
-              (entry) => `"${entry.brief}"`
-            ).join(", ")}.`
+            `Without either, only a shipped inspiration chip's brief designs: ${NATIVE_GAME_INSPIRATION_CHIPS.filter(
+              (entry) => entry.template === template.id
+            )
+              .map((entry) => `"${entry.brief}"`)
+              .join(", ")}.`
         };
       }
       raw = chip.design;

@@ -7,10 +7,12 @@
  * under one implicit header with no slugline — so the slugline is optional
  * rather than a reason to materialize a scene.
  *
- * The header spans its scene's shot grid, above that scene's cards.
+ * The header spans its scene's shot grid, above that scene's cards. Its
+ * `actions` sit at the end of the row: a scene clip belongs to its scene, so
+ * the control that renders one does too.
  */
 
-import React, { memo } from "react";
+import React, { memo, type ReactNode } from "react";
 
 import {
   Box,
@@ -26,6 +28,8 @@ export interface SceneHeaderProps {
   number: number;
   /** The scene's slugline. Absent on the implicit legacy header. */
   slugline?: string;
+  /** Controls at the end of the row: the scene's clips. */
+  actions?: ReactNode;
 }
 
 const headerSx = {
@@ -44,7 +48,8 @@ const numberSx = {
 
 const SceneHeaderInner: React.FC<SceneHeaderProps> = ({
   number,
-  slugline
+  slugline,
+  actions
 }) => (
   <Box sx={headerSx}>
     <FlexRow align="baseline" gap={SPACING.md} wrap>
@@ -53,6 +58,16 @@ const SceneHeaderInner: React.FC<SceneHeaderProps> = ({
       </Text>
       {slugline ? (
         <Caption color="secondary">{slugline}</Caption>
+      ) : null}
+      {actions ? (
+        <FlexRow
+          align="center"
+          gap={SPACING.xs}
+          wrap
+          sx={{ ml: "auto", alignSelf: "center" }}
+        >
+          {actions}
+        </FlexRow>
       ) : null}
     </FlexRow>
   </Box>

@@ -22,17 +22,39 @@ export type StoryboardSaveResult =
 type StoryboardSaveFlush = () => Promise<StoryboardSaveResult>;
 
 const savers = new Map<string, StoryboardSaveFlush>();
+const listeners = new Set<() => void>();
 
-/** Register (or clear, with null) the saver for one board id. */
+/**
+ * Register (or clear, with null) the saver for one board id. Clearing with the
+ * saver itself removes it only while it is still the registered one, so a
+ * second editor of the board closing does not unregister the first.
+ */
 export function registerStoryboardSaver(
   boardId: string,
-  flush: StoryboardSaveFlush | null
+  flush: StoryboardSaveFlush | null,
+  owner?: StoryboardSaveFlush
 ): void {
   if (flush) {
     savers.set(boardId, flush);
-  } else {
+  } else if (!owner || savers.get(boardId) === owner) {
     savers.delete(boardId);
   }
+  for (const listener of [...listeners]) {
+    listener();
+  }
+}
+
+/** Whether some open editor is saving this board to the server. */
+export function hasStoryboardSaver(boardId: string): boolean {
+  return savers.has(boardId);
+}
+
+/** Hear about savers registering and clearing. Returns the unsubscribe. */
+export function subscribeStoryboardSavers(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 /**

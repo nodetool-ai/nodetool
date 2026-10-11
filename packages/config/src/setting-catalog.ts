@@ -343,6 +343,11 @@ sec(
   "Opper API key for accessing multiple AI models through one EU-hosted OpenAI-compatible gateway. Get yours at https://platform.opper.ai"
 );
 sec(
+  "API_ROUTE_API_KEY",
+  "API Route",
+  "API Route key for hosted OpenAI-compatible chat models. Get yours at https://www.api-route.com/api-keys"
+);
+sec(
   "ANTHROPIC_API_KEY",
   "Anthropic",
   "Anthropic API key for accessing Claude models and other Anthropic services. Get yours at https://console.anthropic.com/settings/keys"

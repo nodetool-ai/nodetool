@@ -42,6 +42,10 @@ export const ONE_TAKE_DEFAULT_MAX_SECONDS = 30;
 export const ONE_TAKE_TASK = "reference_to_video";
 /** A board's aspect ratio when it has none. */
 const DEFAULT_ASPECT_RATIO = "16:9";
+/** The durations offered when a model declares none. */
+export const ONE_TAKE_FALLBACK_DURATIONS: readonly number[] = [
+  4, 5, 6, 8, 10, 12, 15, 20, 25, 30
+];
 /** The resolutions offered when a model declares none. */
 export const ONE_TAKE_FALLBACK_RESOLUTIONS: readonly string[] = [
   "720p",
@@ -263,6 +267,27 @@ export const oneTakeBlockers = (
   return blockers;
 };
 
+/** The `generate_media` request a one take or a scene clip sends. */
+export const oneTakeRequestData = (
+  compiled: CompiledOneTake,
+  settings: Pick<OneTakeSettings, "aspect_ratio" | "resolution">,
+  model: ShotModelRef
+): Record<string, unknown> => ({
+  mode: "video",
+  capability: ONE_TAKE_TASK,
+  prompt: compiled.prompt,
+  reference_images: compiled.references.map((reference) => ({
+    type: "image",
+    asset_id: reference.asset_id
+  })),
+  aspect_ratio: settings.aspect_ratio,
+  resolution: settings.resolution,
+  duration: compiled.duration_seconds,
+  variations: 1,
+  provider: model.provider,
+  model: model.id
+});
+
 export const useRenderOneTake = (boardId: string): UseRenderOneTakeResult => {
   const board = useStoryboardStore((state) => state.boards[boardId]);
   const { models: catalog } = useVideoModelsByProvider();
@@ -295,28 +320,16 @@ export const useRenderOneTake = (boardId: string): UseRenderOneTakeResult => {
       throw new Error(sendBlockers.join(" "));
     }
     const { compiled, firstShot } = sendPlan;
-    const data: Record<string, unknown> = {
-      mode: "video",
-      capability: ONE_TAKE_TASK,
-      prompt: compiled.prompt,
-      reference_images: compiled.references.map((reference) => ({
-        type: "image",
-        asset_id: reference.asset_id
-      })),
-      aspect_ratio: sendSettings.aspect_ratio,
-      resolution: sendSettings.resolution,
-      duration: compiled.duration_seconds,
-      variations: 1,
-      provider: model.provider,
-      model: model.id
-    };
     useLastModelStore.getState().rememberForTask("video", ONE_TAKE_TASK, {
       provider: model.provider,
       model: model.id
     });
-    await startOneTakeClip(boardId, firstShot, data, {
-      steps: compiled.steps
-    });
+    await startOneTakeClip(
+      boardId,
+      firstShot,
+      oneTakeRequestData(compiled, sendSettings, model),
+      { steps: compiled.steps }
+    );
   }, [boardId, catalog, remembered, startOneTakeClip]);
 
   return { plan, settings, blockers, renderOneTake };

@@ -20,18 +20,12 @@ const dialogStyles = (theme: Theme) =>
     ".dialog-title": {
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeBig,
-      fontWeight: 500,
-      color: theme.vars.palette.grey[0],
+      fontWeight: 600,
+      color: theme.vars.palette.text.primary,
       wordSpacing: "normal",
       margin: 0,
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`
-    },
-    ".dialog-title .panel-headline": {
-      padding: 0
-    },
-    ".dialog-title > span, .dialog-title .headline-title": {
-      borderBottom: `2px solid ${"var(--palette-primary-main)"}`
     },
     ".dialog-actions": {
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`

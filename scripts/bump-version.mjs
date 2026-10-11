@@ -22,7 +22,7 @@ import { parseArgs } from "node:util";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
-const PRIVATE_PACKAGES = new Set(["fal-codegen", "kie-codegen", "replicate-codegen"]);
+const PRIVATE_PACKAGES = new Set(["fal-codegen", "kie-codegen", "mutator", "replicate-codegen"]);
 
 /**
  * Every directory holding a versioned package.json. Both extra roots live

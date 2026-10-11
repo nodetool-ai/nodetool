@@ -101,6 +101,10 @@ import {
 } from "../useStoryboardSetupFlow";
 import { productionReviewFingerprint } from "../../video/productionAuthoring";
 import { setImportSource } from "../../../../lib/storyboard/importSource";
+import {
+  endBoardDirecting,
+  startBoardDirecting
+} from "../../../../hooks/storyboard/directorRuns";
 
 const BOARD_ID = "b1";
 
@@ -560,6 +564,108 @@ describe("useStoryboardSetupFlow", () => {
     // The review step's own rewrite fails: that one is shown.
     await act(async () => reviewBody().props.onRewrite());
     expect(reviewBody().props.error).toBe("Your provider is out of credits.");
+  });
+
+  // A failed rewrite belongs to that visit. Going on to entities, or back to
+  // the genre step and on again without a run, must not show it again.
+  it("drops the review's rewrite failure once the creator leaves review", async () => {
+    seedScreenplay();
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "review" });
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const reviewBody = () =>
+      result.current.steps
+        .find((step) => step.stage === "review")
+        ?.render() as {
+        props: { error: string | null; onRewrite: () => void };
+      };
+    directError = "Your provider is out of credits.";
+    direct.mockResolvedValue(false);
+    await act(async () => reviewBody().props.onRewrite());
+    expect(reviewBody().props.error).toBe("Your provider is out of credits.");
+
+    act(() => {
+      useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "entities" });
+    });
+    act(() => {
+      useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "review" });
+    });
+
+    expect(reviewBody().props.error).toBeNull();
+  });
+
+  // The agent's `ui_storyboard_set_setup` can write `done` while the guided
+  // tab is up. No step answers for it, so the flow hands over itself.
+  it("hands over when the agent writes done during the flow", () => {
+    const onFinish = jest.fn();
+    seedStepValues();
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "genre" });
+    renderHook(() => useStoryboardSetupFlow({ boardId: BOARD_ID, onFinish }));
+
+    act(() => {
+      useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "done" });
+    });
+
+    expect(onFinish).toHaveBeenCalledTimes(1);
+  });
+
+  // Generate writes `done` before it sends the stills. The hand-off waits for
+  // them and happens once.
+  it("hands over once, after the stills are sent, when Generate writes done", async () => {
+    const user = userEvent.setup();
+    const onFinish = jest.fn();
+    let sendStills: () => void = () => undefined;
+    generate.mockImplementationOnce(async () => {
+      useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "done" });
+      await new Promise<void>((resolve) => {
+        sendStills = resolve;
+      });
+    });
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "look" });
+    renderFlow(onFinish);
+
+    await user.click(
+      screen.getByRole("button", { name: /Generate your storyboard/ })
+    );
+    expect(onFinish).not.toHaveBeenCalled();
+
+    await act(async () => sendStills());
+    await waitFor(() => expect(onFinish).toHaveBeenCalledTimes(1));
+  });
+
+  // A board that loaded as `done` is the host's to finish
+  // (`useFinishIfLoadedDone`), so the flow does not finish it a second time.
+  it("does not hand over a board that was already done", () => {
+    const onFinish = jest.fn();
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "done" });
+    renderHook(() => useStoryboardSetupFlow({ boardId: BOARD_ID, onFinish }));
+
+    expect(onFinish).not.toHaveBeenCalled();
+  });
+
+  // The agent's `ui_storyboard_direct` runs outside the flow. Its run holds
+  // the genre step, like the flow's own, and the step's Cancel stops it.
+  it("holds the genre step during the agent's Director run, with Cancel", async () => {
+    const user = userEvent.setup();
+    seedStepValues();
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "genre" });
+    renderFlow();
+    let run: AbortController | null = null;
+    act(() => {
+      run = startBoardDirecting(BOARD_ID);
+    });
+
+    expect(
+      screen.getByRole("button", { name: /Generate screenplay/ })
+    ).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(run).not.toBeNull();
+    expect((run as unknown as AbortController).signal.aborted).toBe(true);
+    act(() => {
+      endBoardDirecting(BOARD_ID, run as unknown as AbortController);
+    });
   });
 
   it("does not extract for a host that has no linked script", async () => {

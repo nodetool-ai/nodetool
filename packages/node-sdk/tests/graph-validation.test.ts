@@ -2292,3 +2292,67 @@ describe("collectModelProviders", () => {
     expect(collectModelProviders({})).toEqual([]);
   });
 });
+
+describe("validateGraph — invalid_choice", () => {
+  // Shapes the decorator produces: `values` on the property and on its type.
+  function choiceMeta(): NodeMetadata {
+    const base = meta("img.Channels", { image: "image" }, { output: "image" });
+    const channelValues = ["red", "green", "blue"];
+    const sizeValues = [512, 768];
+    const strengthValues = [0.25, 0.5];
+    base.properties.push(
+      { name: "channel", type: { type: "str", values: channelValues, type_args: [] }, values: channelValues },
+      { name: "size", type: { type: "int", values: sizeValues, type_args: [] }, values: sizeValues },
+      { name: "strength", type: { type: "float", values: strengthValues, type_args: [] }, values: strengthValues }
+    );
+    return base;
+  }
+
+  function choiceIssues(
+    properties: Record<string, unknown>,
+    edges: Parameters<typeof validateGraph>[0]["edges"] = []
+  ) {
+    const registry = fakeRegistry({
+      "img.Channels": choiceMeta(),
+      "a.Source": meta("a.Source", {}, { out: "str" })
+    });
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "src", type: "a.Source", properties: {} },
+          { id: "ch", type: "img.Channels", properties }
+        ],
+        edges
+      },
+      registry
+    );
+    return report.issues.filter((issue) => issue.code === "invalid_choice");
+  }
+
+  it("warns on a string outside the declared values and names the choices", () => {
+    const issues = choiceIssues({ channel: "R" });
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatchObject({ severity: "warning", nodeId: "ch" });
+    expect(issues[0].message).toContain('"channel" is "R"');
+    expect(issues[0].message).toContain('"red", "green", "blue"');
+  });
+
+  it("accepts declared values, including a numeric choice saved as a string", () => {
+    expect(choiceIssues({ channel: "green", size: "768" })).toEqual([]);
+  });
+
+  it("warns on a number outside the declared values", () => {
+    expect(choiceIssues({ size: 1024 })).toHaveLength(1);
+  });
+
+  it("skips float presets, which the node passes through", () => {
+    expect(choiceIssues({ strength: 0.6 })).toEqual([]);
+  });
+
+  it("skips a property fed by an edge", () => {
+    const issues = choiceIssues({ channel: "R" }, [
+      { id: "e1", source: "src", sourceHandle: "out", target: "ch", targetHandle: "channel" }
+    ]);
+    expect(issues).toEqual([]);
+  });
+});

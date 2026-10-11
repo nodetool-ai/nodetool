@@ -108,7 +108,7 @@ export const ExportVideoDialog: React.FC<ExportVideoDialogProps> = ({
       title="Export timeline"
       actions={actions}
     >
-      <FlexColumn gap={SPACING.md} sx={{ minWidth: 360, py: 1 }}>
+      <FlexColumn gap={SPACING.md} sx={{ py: SPACING.xs }}>
         <SelectField
           label="Format"
           value={format}

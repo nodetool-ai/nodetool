@@ -112,9 +112,13 @@ import {
 import { moveTrackOrder, type TrackDestination } from "../trackOrder.js";
 import {
   applyTransitionAtCutCandidate,
+  transitionGrowthMs,
+  transitionGrowthUnit,
+  transitionLengthAtCut,
   planTransitionAtCut
 } from "../transitionAtCut.js";
-import { trimClip } from "../trimClip.js";
+import { retimeCaption, trimClip } from "../trimClip.js";
+import { retimeClipSpeed } from "../clipSpeed.js";
 import type {
   ClipTransform,
   MediaTrack,
@@ -555,18 +559,11 @@ class OpScope {
     if (clip.mediaType !== "audio" && clip.mediaType !== "video") {
       return undefined;
     }
-    const assetId = clip.currentAssetId;
-    if (!assetId) {
+    if (!clip.currentAssetId) {
       return undefined;
     }
-    let known: number | undefined;
-    try {
-      known = (await this.ctx.resolveAsset?.(assetId))?.durationMs;
-    } catch {
-      // An unreadable asset is an unknown length, handled below.
-      known = undefined;
-    }
-    if (known !== undefined && known > 0) {
+    const known = await this.knownSourceMs(clip);
+    if (known !== undefined) {
       return known;
     }
     if (clip.sourceType !== "imported") {
@@ -576,6 +573,28 @@ class OpScope {
       clip.outPointMs ??
       (clip.inPointMs ?? 0) + clip.durationMs * sourceRate(clip)
     );
+  }
+
+  /**
+   * The length of a clip's audio or video asset when the host knows it.
+   * Undefined for anything else, including an asset it cannot read.
+   */
+  async knownSourceMs(clip: TimelineClip): Promise<number | undefined> {
+    if (clip.mediaType !== "audio" && clip.mediaType !== "video") {
+      return undefined;
+    }
+    const assetId = clip.currentAssetId;
+    if (!assetId) {
+      return undefined;
+    }
+    let known: number | undefined;
+    try {
+      known = (await this.ctx.resolveAsset?.(assetId))?.durationMs;
+    } catch {
+      // An unreadable asset is an unknown length.
+      known = undefined;
+    }
+    return known !== undefined && known > 0 ? known : undefined;
   }
 
   /**
@@ -629,6 +648,40 @@ class OpScope {
       );
     }
     const targets = this.editTargets(clip);
+    // An in-point alone is a slip: the window keeps its length and moves
+    // through the source, so the out-point moves with it — and a linked
+    // partner slips by the same timeline amount, or picture and sound part.
+    if (
+      patch.inPointMs !== undefined &&
+      patch.durationMs === undefined &&
+      patch.outPointMs === undefined
+    ) {
+      const slipMs =
+        (patch.inPointMs - (clip.inPointMs ?? 0)) / sourceRate(clip);
+      const slipped = targets.map((target) => {
+        const inPointMs =
+          target.id === clip.id
+            ? patch.inPointMs!
+            : (target.inPointMs ?? 0) + slipMs * sourceRate(target);
+        if (inPointMs < 0) {
+          throw new Error(
+            `Linked clip "${target.name}" has no source before its in-point to slip into.`
+          );
+        }
+        return { target, inPointMs };
+      });
+      for (const { target, inPointMs } of slipped) {
+        target.inPointMs = inPointMs;
+        target.outPointMs = inPointMs + target.durationMs * sourceRate(target);
+        // Words are timed on the clip's clock; the media moved under it.
+        if (target.caption) {
+          target.caption = retimeCaption(target.caption, -slipMs);
+        }
+        this.mediaTracks = resliceTracksForTrimmedClip(this.mediaTracks, target);
+        this.touch(target.id);
+      }
+      return clip;
+    }
     if (
       targets.length > 1 &&
       patch.durationMs !== undefined &&
@@ -716,6 +769,34 @@ class OpScope {
     }
     this.mediaTracks = resliceTracksForTrimmedClip(this.mediaTracks, next);
     return next;
+  }
+
+  /**
+   * Move a clip's head by `deltaMs` (positive grows it earlier), for the clip
+   * and every linked partner, keeping each one's end where it was. A group
+   * carries its children with the edge (D4).
+   */
+  applyHeadTrim(clip: TimelineClip, deltaMs: number): TimelineClip {
+    const targets = this.editTargets(clip);
+    if (isGroupClip(clip)) {
+      this.clips = trimGroup(this.clips, clip.id, "start", deltaMs);
+    } else {
+      // Every partner is trimmed before any is written, so one that runs out
+      // of source leaves the whole group as it was.
+      const trimmed = targets.map((target) => ({
+        target,
+        next: trimClip(target, "start", deltaMs)
+      }));
+      for (const { target, next } of trimmed) {
+        this.replaceClip(target, next);
+      }
+    }
+    for (const target of targets) {
+      const next = this.resolveClip(target.id);
+      this.mediaTracks = resliceTracksForTrimmedClip(this.mediaTracks, next);
+      this.touch(next.id);
+    }
+    return this.resolveClip(clip.id);
   }
 
   /** The body of `move_clip`, shared with `set_clip_params`. */
@@ -1628,7 +1709,18 @@ async function runOp(
         clip.transform = mergeClipTransform(clip.transform, patch.transform);
       }
       if (patch.speedMultiplier !== undefined) {
-        clip.speedMultiplier = patch.speedMultiplier;
+        // The editor's rule: the source window stays, the duration scales, and
+        // linked partners change speed with the clip.
+        const unit = scope.editTargets(clip);
+        scope.clips = retimeClipSpeed(
+          scope.clips,
+          new Set(unit.map((member) => member.id)),
+          patch.speedMultiplier
+        );
+        for (const member of unit) {
+          scope.touch(member.id);
+        }
+        clip = scope.resolveClip(clip.id);
       }
       if (patch.volumeDb !== undefined) {
         clip.volumeDb = patch.volumeDb;
@@ -1740,6 +1832,7 @@ async function runOp(
 
     case "set_transition": {
       const clip = scope.resolveClip(op.target);
+      scope.assertWritable([clip]);
       if (op.transition === null) {
         delete clip.transitionIn;
       } else {
@@ -1750,22 +1843,51 @@ async function runOp(
     }
 
     case "apply_transition_at_cut": {
-      const planned = planTransitionAtCut(scope.clips, op);
+      const outgoing = scope.resolveClip(op.outgoingClipId);
+      const incoming = scope.resolveClip(op.incomingClipId);
+      const planned = planTransitionAtCut(scope.clips, {
+        ...op,
+        outgoingClipId: outgoing.id,
+        incomingClipId: incoming.id
+      });
       if (!planned.ok) {
         throw new Error(planned.error);
       }
+      scope.assertWritable([incoming]);
+      // The outgoing clip grows under the transition with the partners that
+      // end with it, so each is a write the lock refuses. Like the editor, it
+      // is capped at a source length the host knows and free otherwise.
+      const growth = transitionGrowthMs(
+        outgoing,
+        incoming,
+        transitionLengthAtCut(outgoing, incoming, planned.candidate.durationMs)
+      );
+      const unit =
+        growth > 0 ? transitionGrowthUnit(scope.clips, outgoing) : [];
+      scope.assertWritable(unit);
+      const limits = new Map<string, number | undefined>();
+      for (const member of unit) {
+        limits.set(member.id, await scope.knownSourceMs(member));
+      }
       const applied = applyTransitionAtCutCandidate(
         scope.clips,
-        planned.candidate
+        planned.candidate,
+        { sourceDurationMs: (clip) => limits.get(clip.id) }
       );
       if (!applied.ok) {
         throw new Error(applied.error);
       }
+      const before = new Map(scope.clips.map((clip) => [clip.id, clip]));
       scope.clips = applied.clips;
-      scope.touch(
-        planned.candidate.outgoingClipId,
-        planned.candidate.incomingClipId
-      );
+      for (const clip of scope.clips) {
+        if (before.get(clip.id) !== clip) {
+          scope.mediaTracks = resliceTracksForTrimmedClip(
+            scope.mediaTracks,
+            clip
+          );
+          scope.touch(clip.id);
+        }
+      }
       return {
         ok: true,
         candidate: planned.candidate,
@@ -1848,6 +1970,7 @@ async function runOp(
 
     case "set_time_remap": {
       const clip = scope.resolveClip(op.target);
+      scope.assertWritable([clip]);
       if (op.timeRemap === null) {
         delete clip.timeRemap;
       } else {
@@ -2210,10 +2333,19 @@ async function runOp(
             if (entry.after.durationMs === entry.before.durationMs) {
               scope.applyMove(clip, { startMs: entry.after.startMs });
             } else {
-              const trimmed = scope.applyTrim(clip, {
-                durationMs: entry.after.durationMs
-              });
-              scope.applyMove(trimmed, { startMs: entry.after.startMs });
+              // A trim moves only the edge that snapped: a snapped start is a
+              // head trim, so the in-point follows it and the out-point stays.
+              let trimmed = clip;
+              const headDelta = entry.before.startMs - entry.after.startMs;
+              if (headDelta !== 0) {
+                trimmed = scope.applyHeadTrim(trimmed, headDelta);
+              }
+              const tailDelta = entry.after.endMs - entry.before.endMs;
+              if (tailDelta !== 0) {
+                scope.applyTrim(trimmed, {
+                  durationMs: trimmed.durationMs + tailDelta
+                });
+              }
             }
           } catch (error) {
             return {
@@ -2546,6 +2678,7 @@ async function runOp(
     }
     case "set_notes": {
       const clip = scope.resolveMidiClip(op.clip);
+      scope.assertWritable([clip]);
       clip.notes = scope.buildNotes(op.notes, clip.name);
       scope.touch(clip.id);
       return { ok: true, clip: scope.clipOut(clip) };
@@ -2575,6 +2708,7 @@ async function runOp(
     }
     case "set_track_instrument": {
       const track = scope.resolveMidiTrack(op.track);
+      scope.assertWritable([], track.id);
       let instrument: MidiInstrument;
       if ("preset" in op.instrument) {
         const preset = findInstrumentPreset(op.instrument.preset);
@@ -2609,6 +2743,7 @@ async function runOp(
     case "quantize_notes":
     case "scale_velocity": {
       const clip = scope.resolveMidiClip(op.clip);
+      scope.assertWritable([clip]);
       const before = clip.notes ?? [];
       const notes =
         op.op === "transpose_clip"
@@ -3002,7 +3137,13 @@ function runTrackOp(scope: OpScope, op: TimelineTrackOp): TimelineOpResult {
     case "delete_track": {
       const { target, deleteClips } = resolveDeleteTrackArgs(op);
       const track = scope.resolveTrack(target);
+      // The editor's removeTrack refuses a locked track, and a locked clip is
+      // not deleted by deleting the track under it.
+      scope.assertWritable([], track.id);
       const onIt = scope.clips.filter((c) => c.trackId === track.id);
+      if (deleteClips) {
+        scope.assertWritable(onIt);
+      }
       if (onIt.length > 0 && !deleteClips) {
         throw new Error(
           `Track "${track.name}" still holds ${onIt.length} clip(s): ` +

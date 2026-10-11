@@ -92,6 +92,7 @@ export function stepGameplay2D(context: GameSystemContext2D): void {
     context.spawnSequence = 0;
     context.scriptState = {};
     context.hud = new Map();
+    context.ui = new Map();
     context.emit({ kind: "sceneTransition", sceneId: context.sceneId });
   }
   context.previousEvents = structuredClone(context.events);

@@ -22,7 +22,7 @@ import {
   storyboardListItem,
   storyboardResponse
 } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
-import { STYLE_PRESETS } from "@nodetool-ai/protocol";
+import { GAME_STYLE_PRESETS, STYLE_PRESETS } from "@nodetool-ai/protocol";
 import {
   installExampleStoryboard,
   listExampleStoryboards
@@ -189,12 +189,18 @@ export const storyboardsRouter = router({
   // Rows, not files: the style step applies one by entity id, so the row has to
   // exist before a board can reference it. A mutation because it writes on
   // first call; idempotent, so the step can call it every time it opens.
+  // `set: "game"` seeds the game look step's presets instead.
 
   stylePresets: protectedProcedure
+    .input(
+      z.object({ set: z.enum(["storyboard", "game"]).optional() }).optional()
+    )
     .output(z.array(stylePresetEntity))
-    .mutation(async ({ ctx }) => {
-      const assets = await seedStylePresets(ctx.userId);
-      return STYLE_PRESETS.map((preset, index) => ({
+    .mutation(async ({ ctx, input }) => {
+      const presets =
+        input?.set === "game" ? GAME_STYLE_PRESETS : STYLE_PRESETS;
+      const assets = await seedStylePresets(ctx.userId, presets);
+      return presets.map((preset, index) => ({
         entityId: assets[index].id,
         presetId: preset.id,
         name: preset.name,

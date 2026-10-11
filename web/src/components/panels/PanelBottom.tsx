@@ -16,7 +16,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  Drawer
+  Drawer,
+  PanelHeader
 } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import {
@@ -35,7 +36,6 @@ import {
   VersionHistoryPanel,
   type RestoredWorkflowTokens
 } from "../version/VersionHistoryPanel";
-import PanelHeadline from "../ui/PanelHeadline";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -220,7 +220,7 @@ const styles = (theme: Theme) =>
       border: "0",
       minHeight: 0
     },
-    ".panel-header": {
+    ".panel-tabbar": {
       height: `${HEADER_HEIGHT}px`,
       minHeight: `${HEADER_HEIGHT}px`,
       display: "flex",
@@ -448,13 +448,20 @@ export const PanelBodyContent = memo(function PanelBodyContent({
           className="queue-panel"
           fullWidth
           fullHeight
-          sx={{
-            overflow: "hidden",
-            padding: `0 ${getSpacingPx(SPACING.xl)}`
-          }}
+          sx={{ overflow: "hidden" }}
         >
-          <PanelHeadline title="Queue" docsTopic="debugging" />
-          <QueuePanel />
+          <PanelHeader title="Queue" docsTopic="debugging" />
+          <FlexColumn
+            fullWidth
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
+              paddingInline: getSpacingPx(SPACING.lg)
+            }}
+          >
+            <QueuePanel />
+          </FlexColumn>
         </FlexColumn>
       );
     case "workers":
@@ -580,7 +587,7 @@ const PanelBottom: React.FC = () => {
           />
         )}
         <div className="panel-content">
-          <div className="panel-header">
+          <div className="panel-tabbar">
             <div
               className="status-cluster"
               role="status"

@@ -2271,7 +2271,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "set_timeline_document",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "8121307c4b04",
+    contract: "4cc7e6065c81",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -2738,7 +2738,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "1842395da245",
+    contract: "05fd985c6b97",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",

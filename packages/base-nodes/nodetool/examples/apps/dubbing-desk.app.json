@@ -991,9 +991,9 @@
             "data": {
               "model": {
                 "type": "asr_model",
-                "provider": "openai",
-                "id": "gpt-4o-mini-transcribe",
-                "name": "GPT-4o Mini Transcribe",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null
               },
               "language": "en",
@@ -1274,7 +1274,7 @@
     {
       "key": "voice",
       "name": "Narrate a Script",
-      "description": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
+      "description": "Turn written copy into a voice track. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
       "sourceId": "nodetool-base/Narrate a Script",
       "graph": {
         "nodes": [
@@ -1324,9 +1324,9 @@
             "data": {
               "model": {
                 "type": "tts_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/elevenlabs/tts/multilingual-v2",
-                "name": "ElevenLabs Multilingual v2",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "voices": []
               },
@@ -1553,7 +1553,7 @@
             "id": "comment-1",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# Lip-sync a Clip to a Voice Track\n\nSyncs your presenter clip to a voice track you already have. Use it to re-voice footage without reshooting.\n\n**How it works:** \"Voice track\" passes through \"Even out volume\" (Normalize), then \"Soften the start\" with a 0.01 second fade-in and \"Soften the ending\" with a 0.03 second fade-out. \"Lip-sync to the voice track\" matches the mouth movement in \"Presenter clip\" to that audio with fal sync-lipsync v2 pro, and \"Re-voiced clip\" shows the result. The audio steps run locally. Lip-sync is a paid step billed per second of footage.\n\n**Try this:** Set \"duration\" on \"Soften the ending\" to 0.3. The voice fades out more gently at the end of the clip."
+              "comment": "# Lip-sync a Clip to a Voice Track\n\nSyncs your presenter clip to a voice track you already have. Use it to re-voice footage without reshooting.\n\n**How it works:** \"Voice track\" passes through \"Even out volume\" (Normalize), then \"Soften the start\" with a 0.01 second fade-in and \"Soften the ending\" with a 0.03 second fade-out. \"Lip-sync to the voice track\" matches the mouth movement in \"Presenter clip\" to that audio, and \"Re-voiced clip\" shows the result. The audio steps run locally. Lip-sync is a paid step billed per second of footage.\n\n**Try this:** Set \"duration\" on \"Soften the ending\" to 0.3. The voice fades out more gently at the end of the clip."
             },
             "ui_properties": {
               "position": {
@@ -1671,9 +1671,9 @@
             "data": {
               "model": {
                 "type": "video_model",
-                "provider": "fal_ai",
-                "id": "fal-ai/sync-lipsync/v2/pro",
-                "name": "Sync Lipsync v2 Pro",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               }

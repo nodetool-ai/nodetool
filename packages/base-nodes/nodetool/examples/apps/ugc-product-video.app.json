@@ -876,7 +876,7 @@
     {
       "key": "creator",
       "name": "Generate a Native-Audio UGC Testimonial",
-      "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
+      "description": "Turn creator and product references plus one short script into a continuous 15-second testimonial with native voice and lip-sync.",
       "sourceId": "nodetool-base/Generate a Native-Audio UGC Testimonial",
       "graph": {
         "nodes": [
@@ -884,7 +884,7 @@
             "id": "intro-comment",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# Generate a Native-Audio UGC Testimonial\n\nGenerates a 15-second vertical testimonial video with the creator's voice and lip-sync produced in the same pass. It combines a creator photo, a product photo and a short script.\n\n**How it works:** \"Creator reference\" and \"Product reference\" are ordered by \"Ordered Seedance references\". \"Spoken script\" and \"Product brief\" fill \"Native-audio direction\", which tells the model what each image is for. \"Generate picture and voice together\" renders the clip, and \"Native-audio testimonial\" shows it.\n\n**Try this:** Rewrite \"Spoken script\" for your own product, keeping it short enough to say naturally in 15 seconds."
+              "comment": "# Generate a Native-Audio UGC Testimonial\n\nGenerates a 15-second vertical testimonial video with the creator's voice and lip-sync produced in the same pass. It combines a creator photo, a product photo and a short script.\n\n**How it works:** \"Creator reference\" and \"Product reference\" are ordered by \"Ordered references\". \"Spoken script\" and \"Product brief\" fill \"Native-audio direction\", which tells the model what each image is for. \"Generate picture and voice together\" renders the clip, and \"Native-audio testimonial\" shows it. Pick a video model that generates audio on \"Generate picture and voice together\".\n\n**Try this:** Rewrite \"Spoken script\" for your own product, keeping it short enough to say naturally in 15 seconds."
             },
             "ui_properties": {
               "position": {
@@ -1014,7 +1014,7 @@
               "zIndex": 0,
               "width": 280,
               "selectable": true,
-              "title": "5  Ordered Seedance references"
+              "title": "5  Ordered references"
             },
             "dynamic_properties": {
               "image_1_creator": null,
@@ -1028,9 +1028,9 @@
             "data": {
               "model": {
                 "type": "video_model",
-                "provider": "atlascloud",
-                "id": "bytedance/seedance-2.5/reference-to-video",
-                "name": "Seedance 2.5 Reference to Video",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": [
                   "reference_to_video"

@@ -1,6 +1,6 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import { scriptParamReferenceIssues } from "./script-params.js";
-import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, type GameDocument } from "@nodetool-ai/protocol";
+import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, gameUiIssues, type GameDocument } from "@nodetool-ai/protocol";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 
 /**
@@ -33,7 +33,7 @@ function issueFromError(error: string, document: GameDocument): GameValidationIs
   const separator = error.indexOf(": ");
   if (separator < 0) return { path: [], message: error };
   const prefix = error.slice(0, separator);
-  if (!/^(assets|scenes|renderEffects|entrySceneId|inputActions|inputBindings|collisionLayers)(\.|$)/.test(prefix)) return { path: [], message: error };
+  if (!/^(assets|scenes|renderEffects|entrySceneId|inputActions|inputBindings|collisionLayers|ui)(\.|$)/.test(prefix)) return { path: [], message: error };
   if (prefix.startsWith("assets.")) {
     const slot = Object.keys(document.assets).sort((left, right) => right.length - left.length)
       .find((key) => prefix === `assets.${key}` || prefix.startsWith(`assets.${key}.`));
@@ -131,6 +131,9 @@ export function validateGame(value: unknown): GameValidationResult {
     actions.add(action);
   }
   for (const issue of gameInputBindingIssues(document)) {
+    errors.push(`${issue.path.join(".")}: ${issue.message}`);
+  }
+  for (const issue of gameUiIssues(document)) {
     errors.push(`${issue.path.join(".")}: ${issue.message}`);
   }
   for (const [sceneIndex, scene] of document.scenes.entries()) {

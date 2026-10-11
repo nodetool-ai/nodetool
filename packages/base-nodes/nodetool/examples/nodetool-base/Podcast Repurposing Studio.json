@@ -244,7 +244,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images.\n\n**How it works:** \"4️⃣ Transcribe the episode\" runs GPT-4o Mini Transcribe once on \"1️⃣ Episode audio\". The transcript and \"2️⃣ Show context\" fill four prompt nodes, one per writer branch. \"5️⃣ Write show notes & titles\" and \"6️⃣ Draft the newsletter\" are Agents that write Markdown. \"7️⃣ Generate social posts\" splits five posts into separate items. \"8️⃣ Pull the best quotes\" pulls as many verbatim quotes as \"3️⃣ Quote-card count\" (4). Each quote fills \"Build quote-card prompt\", and \"9️⃣ Render quote cards\" draws it as a 1:1 card with FLUX Schnell. Four Preview nodes show the results. Pick a language model on the two Agents and the two list generators.\n\n**Try this:** Rewrite \"2️⃣ Show context\" for your own show and set \"3️⃣ Quote-card count\" to 6 to get six cards in your voice."
+          "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images.\n\n**How it works:** \"4️⃣ Transcribe the episode\" runs once on \"1️⃣ Episode audio\". The transcript and \"2️⃣ Show context\" fill four prompt nodes, one per writer branch. \"5️⃣ Write show notes & titles\" and \"6️⃣ Draft the newsletter\" are Agents that write Markdown. \"7️⃣ Generate social posts\" splits five posts into separate items. \"8️⃣ Pull the best quotes\" pulls as many verbatim quotes as \"3️⃣ Quote-card count\" (4). Each quote fills \"Build quote-card prompt\", and \"9️⃣ Render quote cards\" draws it as a 1:1 card. Four Preview nodes show the results. Pick a language model on the two Agents and the two list generators.\n\n**Try this:** Rewrite \"2️⃣ Show context\" for your own show and set \"3️⃣ Quote-card count\" to 6 to get six cards in your voice."
         },
         "ui_properties": {
           "position": {
@@ -337,9 +337,9 @@
         "data": {
           "model": {
             "type": "asr_model",
-            "provider": "openai",
-            "id": "gpt-4o-mini-transcribe",
-            "name": "GPT-4o Mini Transcribe",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null
           }
         },
@@ -683,9 +683,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

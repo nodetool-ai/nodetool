@@ -160,12 +160,16 @@ describe("useGuidedFlowStarters", () => {
   });
 });
 
-it("opens the native game resource instead of a general workflow", async () => {
+it("starts the Game flow on a workflow that carries the game setup", async () => {
   const { hook } = renderStarters();
   await act(async () => { await hook.result.current.starters.find((entry) => entry.id === "game")!.start("p-game"); });
-  expect(gameCreate).toHaveBeenCalledWith(expect.objectContaining({ projectId: "p-game", dimension: "2d", document: expect.objectContaining({ schemaVersion: 1 }) }));
-  expect(managerCreate).not.toHaveBeenCalled();
-  expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "game", ref: "game-1", projectId: "p-game" }));
+  expect(managerCreate).toHaveBeenCalledWith(expect.objectContaining({
+    project_id: "p-game",
+    settings: { game: expect.objectContaining({ stage: "idea", brief: "", template: "topdown" }) }
+  }));
+  // No game exists until the flow builds one.
+  expect(gameCreate).not.toHaveBeenCalled();
+  expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "workflow", projectId: "p-game" }));
 });
 
 // The setup PATCH follows the create. When it fails, the empty timeline it

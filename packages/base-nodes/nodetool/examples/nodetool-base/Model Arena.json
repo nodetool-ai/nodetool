@@ -5,7 +5,7 @@
   "updated_at": "2026-07-17T00:00:00.000000",
   "name": "Model Arena",
   "tool_name": null,
-  "description": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
+  "description": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to three model lanes in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
   "tags": [
     "comparison",
     "llm",
@@ -21,7 +21,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# ⚔️ Model Arena\n\nOne brief, three frontier models, side by side, then a fourth model judges them blind. Use it to compare how models reason on the same decision, spec, or judgement call.\n\n**How it works:** \"1️⃣ The brief\" and \"2️⃣ Audience & constraints\" fill the \"Shared prompt (one format, all lanes)\", which asks for exactly three sections: Recommendation, Why, and Strongest counterargument. Three Agent lanes answer it: \"🟢 OpenAI · GPT-5 mini\", \"🟣 Anthropic · Claude Sonnet 5\" and \"🔵 Google · Gemini 3.5 Flash\". Each answer goes to its own output and into \"Judge prompt (answers as A, B, C)\" without the model names. \"⚖️ Blind judge\" scores each answer from 1 to 5 on four criteria and names a winner in \"⚖️ Verdict\". Pick a model on the OpenAI lane before running. The other lanes and the judge come preset, and each needs its provider key.\n\n**Try this:** Paste your own decision into \"1️⃣ The brief\", then switch the model on \"⚖️ Blind judge\" to Gemini and see whether the winner changes."
+          "comment": "# ⚔️ Model Arena\n\nOne brief, three frontier models, side by side, then a fourth model judges them blind. Use it to compare how models reason on the same decision, spec, or judgement call.\n\n**How it works:** \"1️⃣ The brief\" and \"2️⃣ Audience & constraints\" fill the \"Shared prompt (one format, all lanes)\", which asks for exactly three sections: Recommendation, Why, and Strongest counterargument. Three Agent lanes answer it: \"🟢 Lane 1\", \"🟣 Lane 2\" and \"🔵 Lane 3\". Each answer goes to its own output and into \"Judge prompt (answers as A, B, C)\" without the model names. \"⚖️ Blind judge\" scores each answer from 1 to 5 on four criteria and names a winner in \"⚖️ Verdict\". Pick a different model on each lane before running. The judge uses your default language model unless you pick one on it.\n\n**Try this:** Paste your own decision into \"1️⃣ The brief\", then switch the model on \"⚖️ Blind judge\" to a different one and see whether the winner changes."
         },
         "ui_properties": {
           "position": {
@@ -139,7 +139,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 340,
-          "title": "🟢 OpenAI · GPT-5 mini",
+          "title": "🟢 Lane 1",
           "selectable": true,
           "bypassed": false
         },
@@ -152,9 +152,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "anthropic",
-            "id": "claude-sonnet-5",
-            "name": "Claude Sonnet 5",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -177,7 +177,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 340,
-          "title": "🟣 Anthropic · Claude Sonnet 5",
+          "title": "🟣 Lane 2",
           "selectable": true,
           "bypassed": false
         },
@@ -190,9 +190,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "gemini",
-            "id": "gemini-3.5-flash",
-            "name": "Gemini 3.5 Flash",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -215,7 +215,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 340,
-          "title": "🔵 Google · Gemini 3.5 Flash",
+          "title": "🔵 Lane 3",
           "selectable": true,
           "bypassed": false
         },
@@ -235,7 +235,7 @@
           },
           "zIndex": 0,
           "width": 300,
-          "title": "🟢 OpenAI answer",
+          "title": "🟢 Lane 1 answer",
           "selectable": true,
           "bypassed": false
         },
@@ -255,7 +255,7 @@
           },
           "zIndex": 0,
           "width": 300,
-          "title": "🟣 Anthropic answer",
+          "title": "🟣 Lane 2 answer",
           "selectable": true,
           "bypassed": false
         },
@@ -275,7 +275,7 @@
           },
           "zIndex": 0,
           "width": 300,
-          "title": "🔵 Gemini answer",
+          "title": "🔵 Lane 3 answer",
           "selectable": true,
           "bypassed": false
         },
@@ -315,9 +315,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "anthropic",
-            "id": "claude-sonnet-5",
-            "name": "Claude Sonnet 5",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

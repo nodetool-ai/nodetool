@@ -157,7 +157,8 @@ jest.mock("../../../serverState/useEntities", () => ({
 }));
 
 let settings: Record<string, unknown> = {};
-const nodeStore = { getState: () => ({ nodes: [], edges: [] }) };
+let canvasNodes: Array<{ id: string; type: string; data: object }> = [];
+const nodeStore = { getState: () => ({ nodes: canvasNodes, edges: [] }) };
 const managerState = {
   getWorkflow: () => ({ id: "w1", name: "W", settings, graph: null }),
   getNodeStore: jest.fn((): typeof nodeStore | undefined => nodeStore),
@@ -225,8 +226,18 @@ jest.mock("../../../stores/NotificationStore", () => ({
     selector({ addNotification: mockAddNotification })
 }));
 
+// The game flow's host draws its own steps; this suite asks only whether a
+// workflow carrying `settings.game` mounts it instead of the canvas.
+jest.mock("../../setup/game/GameSetupHost", () => ({
+  __esModule: true,
+  default: ({ workflowId }: { workflowId: string }) => (
+    <div data-testid="game-setup-flow">{workflowId}</div>
+  )
+}));
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  writeGameSetup,
   writeWorkflowSetup,
   type WorkflowSetupStage
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
@@ -256,6 +267,7 @@ const renderSurface = () =>
 beforeEach(() => {
   jest.clearAllMocks();
   mockPersistedBuild = null;
+  canvasNodes = [];
   useSubgraphTabsStore.setState({ tabs: [], activeKey: null });
 });
 
@@ -331,6 +343,22 @@ describe("WorkflowEditorSurface workflow setup resume", () => {
     renderSurface();
 
     expect(screen.getByTestId("node-editor")).toBeInTheDocument();
+  });
+
+  it("renders the game flow for a workflow still designing a game", () => {
+    settings = writeGameSetup({}, { stage: "review", brief: "a fox" });
+    renderSurface();
+
+    expect(screen.getByTestId("game-setup-flow")).toHaveTextContent("w1");
+    expect(screen.queryByTestId("node-editor")).not.toBeInTheDocument();
+  });
+
+  it("renders the canvas once the game flow is done", () => {
+    settings = writeGameSetup({}, { stage: "done", game_id: "g1" });
+    renderSurface();
+
+    expect(screen.getByTestId("node-editor")).toBeInTheDocument();
+    expect(screen.queryByTestId("game-setup-flow")).not.toBeInTheDocument();
   });
 
   it("creates and opens an app for a reopened app-mode build", async () => {
@@ -413,6 +441,28 @@ it("files the example copy in the tab's project and deletes the placeholder", as
     expect.objectContaining({ ref: "copy-1", projectId: "project-1" })
   );
   expect(mockTabs.closeTab).toHaveBeenCalledWith("workflow:w1");
+});
+
+// A built workflow can be sent back to step 1, by `ui_workflow_set_setup` for
+// one. Its canvas is the creator's work, not an empty placeholder.
+it("keeps a workflow whose canvas holds nodes when an example is picked", async () => {
+  seed("idea");
+  canvasNodes = [
+    { id: "step_1", type: "nodetool.text.Template", data: { properties: {} } }
+  ];
+  renderSurface();
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /Start from an example/ })
+  );
+  await userEvent.click(await screen.findByText("Summarize a PDF"));
+
+  await waitFor(() =>
+    expect(mockTabs.openTab).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: "copy-1" })
+    )
+  );
+  expect(managerState.delete).not.toHaveBeenCalled();
 });
 
 it("keeps a failed workflow load visible and lets the user retry", async () => {

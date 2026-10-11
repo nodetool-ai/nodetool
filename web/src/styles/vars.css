@@ -51,11 +51,12 @@
   --c_input: var(--palette-c_input);
   --c_output: var(--palette-c_output);
 
-  /* Elevation mirrors SHADOW(theme).sm, .md, .lg and .xl. */
-  --shadow-sm: 0 1px 3px rgba(var(--palette-common-blackChannel) / 0.3);
-  --shadow-md: 0 4px 12px rgba(var(--palette-common-blackChannel) / 0.35);
-  --shadow-lg: 0 8px 32px rgba(var(--palette-common-blackChannel) / 0.4);
-  --shadow-xl: 0 16px 64px rgba(var(--palette-common-blackChannel) / 0.45);
+  /* Elevation mirrors SHADOW(theme).sm, .md, .lg and .xl, scaled by the
+     palette's shadow strength (softer in the light scheme). */
+  --shadow-sm: 0 1px 3px rgba(var(--palette-common-blackChannel) / calc(0.3 * var(--palette-c_shadow_alpha, 1)));
+  --shadow-md: 0 4px 12px rgba(var(--palette-common-blackChannel) / calc(0.35 * var(--palette-c_shadow_alpha, 1)));
+  --shadow-lg: 0 8px 32px rgba(var(--palette-common-blackChannel) / calc(0.4 * var(--palette-c_shadow_alpha, 1)));
+  --shadow-xl: 0 16px 64px rgba(var(--palette-common-blackChannel) / calc(0.45 * var(--palette-c_shadow_alpha, 1)));
 
   /* Node handle and tooltip geometry. */
   --node-tooltip-max-width: 250px;

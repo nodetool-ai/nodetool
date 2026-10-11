@@ -16,6 +16,7 @@ import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import { randomRequestId, rpcRequest } from "../../lib/websocket/rpcRequest";
 import { paceSpeed } from "../../hooks/script/scriptPace";
+import { isScriptWriting } from "../../hooks/script/scriptWrites";
 import { useAssetStore } from "../AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import {
@@ -89,6 +90,10 @@ function parseCaptionWords(
   return words;
 }
 
+/** Why voicing is refused while the script is being written. */
+const WRITING_REFUSAL =
+  "This script is being written. Voice it once the write finishes.";
+
 function takeId(): string {
   return `take_${randomRequestId()}`;
 }
@@ -106,6 +111,9 @@ export async function voiceLine(
   const store = useScriptStore;
   const script = store.getState().scripts[scriptId];
   if (!script) throw new Error("Script not found");
+  // The write replaces these lines: a take recorded now is paid for and then
+  // dropped with its line, or left stale on a line with new words.
+  if (isScriptWriting(scriptId)) throw new Error(WRITING_REFUSAL);
   const line = script.sections
     .flatMap((s) => s.lines)
     .find((l) => l.id === lineId);
@@ -113,6 +121,10 @@ export async function voiceLine(
 
   const text = line.text.trim();
   if (!text) throw new Error("Line has no text to voice");
+  // A second call for a line still in flight pays for the same take twice.
+  if (store.getState().voicingLineIds[lineId]) {
+    throw new Error("This line is already being voiced.");
+  }
 
   const voice: VoiceBinding | null = effectiveVoice(line, script.cast);
   if (!voice) {
@@ -436,6 +448,9 @@ async function voiceLines(
   base?: VoicingRun
 ): Promise<VoicingRun> {
   openChannel();
+  if (isScriptWriting(scriptId)) {
+    throw new Error(WRITING_REFUSAL);
+  }
   if (liveRuns.has(scriptId)) {
     throw new Error("This script is already being voiced.");
   }
@@ -454,6 +469,18 @@ async function voiceLines(
   }
 }
 
+/** True when the line is being voiced, or is already voiced, outside the run. */
+function isHandledElsewhere(scriptId: string, lineId: string): boolean {
+  const state = useScriptStore.getState();
+  if (state.voicingLineIds[lineId]) return true;
+  const script = state.scripts[scriptId];
+  const line = script?.sections
+    .flatMap((section) => section.lines)
+    .find((candidate) => candidate.id === lineId);
+  if (!script || !line) return false;
+  return lineStatus(line, effectiveVoice(line, script.cast)) === "voiced";
+}
+
 async function runLines(
   scriptId: string,
   lineIds: readonly string[],
@@ -468,10 +495,14 @@ async function runLines(
   const failed: VoicingRun["failed"] = [];
   let voiced = 0;
   let cursor = 0;
+  // Lines voiced elsewhere since the run was planned: a line's own Voice
+  // button, or the agent's `ui_script_voice_line`. Voicing them again pays
+  // twice, so they leave the run.
+  let handledElsewhere = 0;
 
   const snapshot = (status: VoicingStatus): VoicingRun => ({
     status,
-    total: base?.total ?? lineIds.length,
+    total: (base?.total ?? lineIds.length) - handledElsewhere,
     voiced: (base?.voiced ?? 0) + voiced,
     failed: [...carried, ...failed],
     updatedAt: new Date().toISOString()
@@ -481,6 +512,11 @@ async function runLines(
   const worker = async (): Promise<void> => {
     while (cursor < lineIds.length) {
       const lineId = lineIds[cursor++];
+      if (isHandledElsewhere(scriptId, lineId)) {
+        handledElsewhere += 1;
+        recordRun(scriptId, snapshot("running"));
+        continue;
+      }
       try {
         await voiceLine(scriptId, lineId, asr);
         voiced += 1;

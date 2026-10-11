@@ -25,7 +25,11 @@ let activeShot: string | null = null;
 let mockTimelineId: string | null = null;
 let mockTimelineClips: Array<Record<string, unknown>> = [];
 /** The board's render models. Null on both leaves the toolbar unpriced. */
-let boardModels: { imageModel: unknown; videoModel: unknown } = {
+let boardModels: {
+  imageModel: unknown;
+  videoModel: unknown;
+  sceneClips?: unknown[];
+} = {
   imageModel: null,
   videoModel: null
 };
@@ -255,6 +259,7 @@ jest.mock("../ShotCard", () => ({
   default: ({
     shot,
     caption,
+    sceneClipTag,
     selected,
     onSelect,
     draggable,
@@ -267,6 +272,7 @@ jest.mock("../ShotCard", () => ({
   }: {
     shot: Shot;
     caption?: string;
+    sceneClipTag?: string;
     renderContext?: import("@nodetool-ai/protocol").BoardRenderContext | null;
     selected?: boolean;
     onSelect?: (id: string) => void;
@@ -281,6 +287,7 @@ jest.mock("../ShotCard", () => ({
       data-testid="shot-card"
       data-shot-id={shot.id}
       data-caption={caption}
+      data-scene-clip={sceneClipTag}
       // The board owns deriving this and handing it to every card; without it
       // a stale still shows no marker and nothing else would notice.
       data-stale={
@@ -1170,6 +1177,44 @@ describe("StoryboardBoard scene headers", () => {
         `Scene ${scene} | Shot ${n}`
       );
     }
+  });
+});
+
+describe("StoryboardBoard scene clips", () => {
+  it("offers a scene clip only on a scene with two or more shots", () => {
+    mockScenes = [
+      { type: "scene", id: "sc-a", slugline: "INT. FLAT — DAY" },
+      { type: "scene", id: "sc-b", slugline: "EXT. STREET — NIGHT" }
+    ];
+    mockShots = [
+      makeShot("a1", "sc-a"),
+      makeShot("b1", "sc-b"),
+      makeShot("b2", "sc-b")
+    ];
+    renderBoard(jest.fn());
+    const headers = screen.getAllByRole("group", { name: /^Scene \d$/ });
+    expect(
+      within(headers[0]).queryByRole("button", { name: /scene clip/i })
+    ).not.toBeInTheDocument();
+    expect(
+      within(headers[1]).getByRole("button", { name: /scene clip/i })
+    ).toBeInTheDocument();
+  });
+
+  it("names a saved scene clip in its header and tags its cards", () => {
+    mockShots = [makeShot("s1"), makeShot("s2"), makeShot("s3")];
+    boardModels = {
+      ...boardModels,
+      sceneClips: [{ id: "clip-1", prompt: "", shot_ids: ["s2", "s3"] }]
+    };
+    renderBoard(jest.fn());
+    expect(
+      screen.getByRole("button", { name: "Shots 2\u20133 \u00B7 not rendered" })
+    ).toBeInTheDocument();
+    const tags = screen
+      .getAllByTestId("shot-card")
+      .map((card) => card.getAttribute("data-scene-clip"));
+    expect(tags).toEqual([null, "Clip 1/2 \u00B7 0-5s", "Clip 2/2 \u00B7 5-10s"]);
   });
 });
 

@@ -18,13 +18,28 @@ interface PropertyMeta {
   type: { type: string } | string;
 }
 
+// Image tasks whose models are not generators, so they get a default of their
+// own. Keyed `image_model:<task>` in the preferences store.
+export const IMAGE_TASK_DEFAULTS = {
+  "nodetool.image.Upscale": "image_model:upscale",
+  "nodetool.image.RemoveBackground": "image_model:remove_background"
+} as const satisfies Record<string, string>;
+
 function getTypeString(type: { type: string } | string): string {
   return isString(type) ? type : type.type;
 }
 
+function defaultKeyFor(modelType: string, nodeType: string | undefined): string {
+  if (modelType === "image_model" && nodeType && nodeType in IMAGE_TASK_DEFAULTS) {
+    return IMAGE_TASK_DEFAULTS[nodeType as keyof typeof IMAGE_TASK_DEFAULTS];
+  }
+  return modelType;
+}
+
 export function applyDefaultModels(
   properties: Record<string, unknown>,
-  propertyMetadata: PropertyMeta[]
+  propertyMetadata: PropertyMeta[],
+  nodeType?: string
 ) {
   const defaults = useModelPreferencesStore.getState().defaults;
   if (Object.keys(defaults).length === 0) return properties;
@@ -45,7 +60,8 @@ export function applyDefaultModels(
       current.provider === "" ||
       current.id === "";
 
-    const userDefault = defaults[modelType];
+    const userDefault =
+      defaults[defaultKeyFor(modelType, nodeType)] ?? defaults[modelType];
     if (isEmpty && userDefault) {
       result[prop.name] = {
         type: modelType,

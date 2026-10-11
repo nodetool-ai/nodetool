@@ -15,11 +15,9 @@ import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { formatDateTime } from "../../utils/formatUtils";
-import PanelToolbar from "../panels/PanelToolbar";
 import {
   Caption,
   Chip,
-  CloseButton,
   Dialog,
   EditorButton,
   FlexColumn,
@@ -30,7 +28,8 @@ import {
   ToggleOption,
   Tooltip,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  PanelHeader
 } from "../ui_primitives";
 
 /** The workflow row's concurrency tokens after a restore. */
@@ -288,12 +287,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           height: "100%"
         }}
       >
-        <PanelToolbar
-          title="Version History"
-          actions={
-            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
-          }
-        />
+        <PanelHeader title="Versions" onClose={onClose} />
         <FlexColumn padding={3} gap={0.5}>
           <Text color="error">Failed to load versions</Text>
           <Text size="smaller" color="secondary">{String(error)}</Text>
@@ -313,7 +307,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         overflow: "hidden"
       }}
     >
-      <PanelToolbar
+      <PanelHeader
         title="Versions"
         count={versions.length}
         actions={
@@ -345,9 +339,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 Compare
               </EditorButton>
             </Tooltip>
-            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
           </>
         }
+        onClose={onClose}
       >
         <ToggleGroup
           value={filterType}
@@ -360,7 +354,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           <ToggleOption value="manual" aria-label="manual">Manual</ToggleOption>
           <ToggleOption value="autosave" aria-label="autosave">Auto</ToggleOption>
         </ToggleGroup>
-      </PanelToolbar>
+      </PanelHeader>
 
       {isCompareMode && !compareVersionId && (
         <div style={{

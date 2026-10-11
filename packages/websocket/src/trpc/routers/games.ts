@@ -790,21 +790,25 @@ export const gamesRouter = router({
    * current when the bytes are ready. The editor keeps saving while a
    * generation runs, so the request carries no draft token: a sheet's frame
    * bindings, or the slot's existing frame and tile bindings, are written in
-   * the same compare-and-swap as the slot, as the user who asked.
+   * the same compare-and-swap as the slot, as the user who asked. A
+   * provider and model pin the generator; without them the capability picks one.
    */
   generateAsset: gameProcedure
     .input(idInput.extend({
       slot: z.string().min(1),
       kind: z.enum(["image", "audio", "music"]),
       prompt: z.string().trim().min(1).max(4000),
-      preparation: z.record(z.string(), z.unknown()).optional()
-    }).strict())
+      preparation: z.record(z.string(), z.unknown()).optional(),
+      provider: z.string().min(1).optional(),
+      model: z.string().min(1).optional()
+    }).strict().refine((value) => (value.provider === undefined) === (value.model === undefined), "Pass provider and model together"))
     .output(generatedAsset)
     .mutation(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
       const workspace = await gameWorkspace(ctx.userId, game);
       const args: Record<string, unknown> = { game_id: game.id, slot: input.slot, kind: input.kind, prompt: input.prompt, install: false };
       if (input.preparation) { args["preparation"] = input.preparation; }
+      if (input.provider && input.model) { args["provider"] = input.provider; args["model"] = input.model; }
       const run = await assetGenerationRun(ctx.userId, game, workspace);
       const result = generatedAssetResult.safeParse(await run.invoke("generate_game_asset", args));
       if (!result.success) { throwApiError(ApiErrorCode.INTERNAL_ERROR, "Asset generation returned an invalid result"); }

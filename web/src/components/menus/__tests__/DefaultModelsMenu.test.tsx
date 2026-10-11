@@ -9,12 +9,14 @@ interface StubSelectProps {
   value: string;
   placeholder?: string;
   requireToolSupport?: boolean;
+  task?: string;
 }
 
 function makeStub(testId: string) {
-  const Stub = ({ value, placeholder, requireToolSupport }: StubSelectProps) => (
+  const Stub = ({ value, placeholder, requireToolSupport, task }: StubSelectProps) => (
     <div
       data-testid={testId}
+      data-task={task ?? ""}
       data-value={value}
       data-placeholder={placeholder ?? ""}
       data-require-tool-support={requireToolSupport ? "true" : "false"}
@@ -85,5 +87,21 @@ describe("DefaultModelsMenu", () => {
     expect(
       row?.querySelector("[data-testid='language-model-select']")
     ).toHaveAttribute("data-require-tool-support", "false");
+  });
+
+  it("offers Upscale and Remove Background defaults filtered to their task", () => {
+    useModelPreferencesStore.setState({
+      defaults: {
+        "image_model:upscale": { provider: "fal_ai", id: "clarity", name: "Clarity" }
+      }
+    });
+    renderMenu();
+
+    expect(screen.getByText("Upscale Model")).toBeInTheDocument();
+    expect(screen.getByText("Remove Background Model")).toBeInTheDocument();
+    const upscale = document.getElementById("default-model-image_model:upscale");
+    const cutout = document.getElementById("default-model-image_model:remove_background");
+    expect(upscale?.querySelector("[data-task='upscale']")).toHaveAttribute("data-value", "clarity");
+    expect(cutout?.querySelector("[data-task='remove_background']")).toHaveAttribute("data-value", "");
   });
 });

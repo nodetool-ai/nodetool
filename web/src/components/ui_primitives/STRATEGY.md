@@ -79,7 +79,7 @@ Media that is being generated shows `MagicGenerationFill` over its host: the ske
 `ConflictBanner` — the one document-level notice listing the external values a dirty draft refused, with per-value Accept/Discard and an optional viewer. A string `detail` shows the external value; with `draftDetail` too, the viewer is a two-pane Your-edit / External view (JS script `code`). Mounted by every document editor shell; fed by `useDocumentConflicts`.
 
 ### Composite (replace manual layout combos)
-`FormField` | `PropertyFieldRow` | `InspectorFieldRow` | `InspectorToggleRow` | `SectionHeader` | `CollapsibleSection` | `TabGroup` / `TabPanel` | `ActionButtonGroup` | `ButtonGroup` | `ToggleGroup` | `SelectionControls` | `ListGroup` / `ListItemRow` | `TreeRow` | `DataTable`
+`FormField` | `InspectorSection` | `InspectorFieldRow` | `InspectorToggleRow` | `SectionHeader` | `PanelHeader` | `CollapsibleSection` | `TabGroup` / `TabPanel` | `ActionButtonGroup` | `ButtonGroup` | `ToggleGroup` | `SelectionControls` | `ListGroup` / `ListItemRow` | `TreeRow` | `DataTable`
 
 ### Menus & Navigation
 `EditorMenu` | `EditorMenuItem` | `MenuItemPrimitive` | `ContextMenu` | `Breadcrumbs` | `Tooltip` | `Popover`
@@ -164,11 +164,18 @@ Need an input?
 ├── Tags → TagInput / AutocompleteTagInput
 └── Label + input + help → FormField (wraps any input)
 
-For a compact inspector with one label and several controls, use `PropertyFieldRow` and give each control its own accessible name.
+A properties panel (an inspector beside a canvas or timeline) builds from one set:
+
+- `InspectorSection` for each collapsible group, or `InspectorSectionTitle` as a `CollapsibleSection` title when the body needs its own layout.
+- `InspectorFieldRow` for a label and its controls. Give each control its own accessible name when a row holds several.
+- `InspectorValueInput` for numbers, `InspectorSelect` for choices and `InspectorToggleRow` for booleans.
+
+See [Properties panels](../../../../docs/DESIGN.md#11-properties-panels).
 
 Need a container/surface?
 ├── Content card → Card
 ├── Panel with header/footer → Panel
+├── Title strip of a docked or floating panel → PanelHeader
 ├── Generic surface → Surface
 ├── Modal → Dialog
 ├── Backdrop → Overlay

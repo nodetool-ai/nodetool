@@ -240,8 +240,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 400,
           "y": 346,
-          "width": 300,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 300
         },
         {
           "id": "out",
@@ -330,8 +329,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 400,
           "y": 346,
-          "width": 300,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 300
         },
         {
           "id": "out",
@@ -665,8 +663,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 380,
           "y": 716,
-          "width": 280,
-          "subtitle": "inworld/realtime-tts-1.5-max"
+          "width": 280
         },
         {
           "id": "sync",
@@ -674,8 +671,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Lip Sync",
           "x": 1960,
           "y": 548,
-          "width": 280,
-          "subtitle": "fal-ai/sync-lipsync/v2/pro"
+          "width": 280
         },
         {
           "id": "output-clip",
@@ -841,8 +837,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 800,
           "y": 384,
-          "width": 300,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 300
         },
         {
           "id": "ag",
@@ -985,13 +980,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/ad-loop-from-a-product-photo",
     "title": "Ad Loop from a Product Photo — NodeTool AI Workflow Template",
-    "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
+    "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, an image-to-video model animates the still, and a speed pass slows it into a hero loop. The video step uses your default video model, or the one you pick on the node, and is billed per generation.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "ad-loop-from-a-product-photo",
     "name": "Ad Loop from a Product Photo",
-    "summary": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
+    "summary": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, an image-to-video model animates the still, and a speed pass slows it into a hero loop. The video step uses your default video model, or the one you pick on the node, and is billed per generation.",
     "tags": [
       "image",
       "video",
@@ -1076,8 +1071,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 800,
           "y": 490,
-          "width": 280,
-          "subtitle": "kling-2.6/image-to-video"
+          "width": 280
         },
         {
           "id": "slow",
@@ -1283,8 +1277,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 400,
           "y": 346,
-          "width": 300,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 300
         },
         {
           "id": "out",
@@ -1421,13 +1414,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/audio-to-image",
     "title": "Audio To Image — NodeTool AI Workflow Template",
-    "description": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
+    "description": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then an image model renders the description as an image — the whole pipeline runs from a single voice note.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "audio-to-image",
     "name": "Audio To Image",
-    "summary": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
+    "summary": "Speak an image into existence: no keyboard needed. A speech-to-text model transcribes your audio, then an image model renders the description as an image — the whole pipeline runs from a single voice note.",
     "tags": [
       "huggingface",
       "multimodal",
@@ -1484,8 +1477,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 345,
           "y": 515,
-          "width": 280,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 280
         },
         {
           "id": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
@@ -1493,8 +1485,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 725,
           "y": 380,
-          "width": 384,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 384
         },
         {
           "id": "output-image",
@@ -1628,8 +1619,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Video",
           "x": 800,
           "y": 875,
-          "width": 280,
-          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+          "width": 280
         },
         {
           "id": "shot-detail",
@@ -1637,8 +1627,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Video",
           "x": 800,
           "y": 649,
-          "width": 280,
-          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+          "width": 280
         },
         {
           "id": "cut",
@@ -2319,13 +2308,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/brand-asset-generator",
     "title": "Brand Asset Generator — NodeTool AI Workflow Template",
-    "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and your default language model for text.",
+    "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Each model step uses your default model for its type, and the image steps are paid.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "brand-asset-generator",
     "name": "Brand Asset Generator",
-    "summary": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and your default language model for text.",
+    "summary": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Each model step uses your default model for its type, and the image steps are paid.",
     "tags": [
       "brand-asset",
       "branding",
@@ -2452,8 +2441,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1180,
           "y": 1067,
-          "width": 360,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 360
         },
         {
           "id": "label",
@@ -2981,8 +2969,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 800,
           "y": 434,
-          "width": 280,
-          "subtitle": "fal-ai/ltx-2.3/image-to-video/fast"
+          "width": 280
         },
         {
           "id": "out",
@@ -3191,8 +3178,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 800,
           "y": 384,
-          "width": 300,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 300
         },
         {
           "id": "ag",
@@ -3928,13 +3914,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/clip-on-kie",
     "title": "Clip on Kie — NodeTool AI Workflow Template",
-    "description": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
+    "description": "Generate a short clip on a Kie video model. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "clip-on-kie",
     "name": "Clip on Kie",
-    "summary": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
+    "summary": "Generate a short clip on a Kie video model. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
     "tags": [
       "video",
       "example"
@@ -3985,8 +3971,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Video",
           "x": 380,
           "y": 366,
-          "width": 280,
-          "subtitle": "kling-2.6/text-to-video"
+          "width": 280
         },
         {
           "id": "out",
@@ -4101,8 +4086,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 820,
           "y": 1210,
-          "width": 316,
-          "subtitle": "sonnet"
+          "width": 316
         },
         {
           "id": "preview_summary",
@@ -4806,13 +4790,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/concept-art-iteration-board",
     "title": "Concept Art Iteration Board — NodeTool AI Workflow Template",
-    "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on your default language model; images on fal-ai/flux/schnell.",
+    "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Each model step uses your default model for its type, or the one you pick on the node.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "concept-art-iteration-board",
     "name": "Concept Art Iteration Board",
-    "summary": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on your default language model; images on fal-ai/flux/schnell.",
+    "summary": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Each model step uses your default model for its type, or the one you pick on the node.",
     "tags": [
       "concept-art",
       "planning",
@@ -4875,8 +4859,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2284,
           "y": 658,
-          "width": 461,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 461
         },
         {
           "id": "5",
@@ -5095,8 +5078,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 400,
           "y": 346,
-          "width": 300,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 300
         },
         {
           "id": "vid",
@@ -6022,8 +6004,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Remove Background",
           "x": 380,
           "y": 366,
-          "width": 280,
-          "subtitle": "fal-ai/imageutils/rembg"
+          "width": 280
         },
         {
           "id": "out",
@@ -6219,8 +6200,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Remove Background",
           "x": 400,
           "y": 441,
-          "width": 300,
-          "subtitle": "fal-ai/bria/background/remove"
+          "width": 300
         },
         {
           "id": "out",
@@ -6537,13 +6517,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/direct-a-short-film",
     "title": "Direct a Short Film — NodeTool AI Workflow Template",
-    "description": "Type a brief; get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count — at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
+    "description": "Type a brief, get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Some providers publish those as separate model ids, so Continuation Model carries the second. On a provider where one id does both you can leave it empty.\n\nCost scales with shot count and with the video models you pick. Text costs pennies.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "direct-a-short-film",
     "name": "Direct a Short Film",
-    "summary": "Type a brief; get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count — at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
+    "summary": "Type a brief, get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Some providers publish those as separate model ids, so Continuation Model carries the second. On a provider where one id does both you can leave it empty.\n\nCost scales with shot count and with the video models you pick. Text costs pennies.",
     "tags": [
       "video",
       "example"
@@ -6630,8 +6610,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Shot Chain",
           "x": 1200,
           "y": 741,
-          "width": 300,
-          "subtitle": "kling-2.6/text-to-video"
+          "width": 300
         },
         {
           "id": "cut",
@@ -6846,8 +6825,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1180,
           "y": 483,
-          "width": 320,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 320
         },
         {
           "id": "animate",
@@ -7859,13 +7837,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/edit-a-still-with-words",
     "title": "Edit a Still with Words — NodeTool AI Workflow Template",
-    "description": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
+    "description": "Change an image by describing the change. The model edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "edit-a-still-with-words",
     "name": "Edit a Still with Words",
-    "summary": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
+    "summary": "Change an image by describing the change. The model edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
     "tags": [
       "image",
       "example"
@@ -7950,8 +7928,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Image",
           "x": 800,
           "y": 494,
-          "width": 280,
-          "subtitle": "fal-ai/nano-banana/edit"
+          "width": 280
         },
         {
           "id": "out",
@@ -8004,13 +7981,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/editorial-still-from-a-line",
     "title": "Editorial Still from a Line — NodeTool AI Workflow Template",
-    "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] is among the cheapest ways to get a usable frame.",
+    "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "editorial-still-from-a-line",
     "name": "Editorial Still from a Line",
-    "summary": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] is among the cheapest ways to get a usable frame.",
+    "summary": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image.",
     "tags": [
       "image",
       "example"
@@ -8074,8 +8051,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 800,
           "y": 366,
-          "width": 280,
-          "subtitle": "fal-ai/flux-2/klein/9b"
+          "width": 280
         },
         {
           "id": "out",
@@ -8626,8 +8602,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 400,
           "y": 629,
-          "width": 300,
-          "subtitle": "tts-1"
+          "width": 300
         },
         {
           "id": "vid",
@@ -8635,8 +8610,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Video",
           "x": 800,
           "y": 470,
-          "width": 300,
-          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+          "width": 300
         },
         {
           "id": "mix",
@@ -9833,13 +9807,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/generate-a-native-audio-ugc-testimonial",
     "title": "Generate a Native-Audio UGC Testimonial — NodeTool AI Workflow Template",
-    "description": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
+    "description": "Turn creator and product references plus one short script into a continuous 15-second testimonial with native voice and lip-sync.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "generate-a-native-audio-ugc-testimonial",
     "name": "Generate a Native-Audio UGC Testimonial",
-    "summary": "Turn creator and product references plus one short script into a continuous 15-second Seedance 2.5 testimonial with native voice and lip-sync.",
+    "summary": "Turn creator and product references plus one short script into a continuous 15-second testimonial with native voice and lip-sync.",
     "tags": [
       "video",
       "marketing",
@@ -9949,8 +9923,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Reference To Video",
           "x": 820,
           "y": 708,
-          "width": 320,
-          "subtitle": "bytedance/seedance-2.5/reference-to-video"
+          "width": 320
         },
         {
           "id": "video-out",
@@ -10148,8 +10121,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 380,
           "y": 366,
-          "width": 280,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 280
         },
         {
           "id": "up",
@@ -10157,8 +10129,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Upscale",
           "x": 760,
           "y": 366,
-          "width": 280,
-          "subtitle": "fal-ai/clarity-upscaler"
+          "width": 280
         },
         {
           "id": "out",
@@ -10308,13 +10279,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/hook-and-thumbnail-factory",
     "title": "Hook & Thumbnail Factory — NodeTool AI Workflow Template",
-    "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
+    "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "hook-and-thumbnail-factory",
     "name": "Hook & Thumbnail Factory",
-    "summary": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
+    "summary": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run.",
     "tags": [
       "image",
       "content",
@@ -10441,8 +10412,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1740,
           "y": 634,
-          "width": 320,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 320
         },
         {
           "id": "punch",
@@ -10651,8 +10621,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 760,
           "y": 486,
-          "width": 280,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 280
         },
         {
           "id": "ct",
@@ -10926,8 +10895,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 760,
           "y": 421,
-          "width": 340,
-          "subtitle": "tts-1"
+          "width": 340
         },
         {
           "id": "output-narration",
@@ -10966,13 +10934,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/image-to-video-animation",
     "title": "Image to Video Animation — NodeTool AI Workflow Template",
-    "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
+    "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. The animation step costs more per run than image-only templates.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "image-to-video-animation",
     "name": "Image to Video Animation",
-    "summary": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
+    "summary": "Generate a high-quality still from text, then animate it into a short cinematic clip. The animation step costs more per run than image-only templates.",
     "tags": [
       "image",
       "video",
@@ -11025,8 +10993,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 864,
           "y": 865,
-          "width": 416,
-          "subtitle": "veo-3.1-generate-preview"
+          "width": 416
         },
         {
           "id": "3",
@@ -11034,8 +11001,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 380,
           "y": 985,
-          "width": 384,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 384
         },
         {
           "id": "4",
@@ -12017,8 +11983,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Lip Sync",
           "x": 1580,
           "y": 569,
-          "width": 280,
-          "subtitle": "fal-ai/sync-lipsync/v2/pro"
+          "width": 280
         },
         {
           "id": "output-clip",
@@ -12252,8 +12217,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 800,
           "y": 352,
-          "width": 300,
-          "subtitle": "tts-1"
+          "width": 300
         },
         {
           "id": "out",
@@ -13699,8 +13663,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 380,
           "y": 765,
-          "width": 280,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 280
         },
         {
           "id": "is_transcript_empty",
@@ -13890,13 +13853,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/model-arena",
     "title": "Model Arena — NodeTool AI Workflow Template",
-    "description": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
+    "description": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to three model lanes in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "model-arena",
     "name": "Model Arena",
-    "summary": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
+    "summary": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to three model lanes in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
     "tags": [
       "comparison",
       "llm",
@@ -13981,8 +13944,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 820,
           "y": 919,
-          "width": 340,
-          "subtitle": "claude-sonnet-5"
+          "width": 340
         },
         {
           "id": "gemini_lane",
@@ -13990,8 +13952,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 820,
           "y": 1355,
-          "width": 340,
-          "subtitle": "gemini-3.5-flash"
+          "width": 340
         },
         {
           "id": "openai_out",
@@ -14032,8 +13993,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 1680,
           "y": 870,
-          "width": 340,
-          "subtitle": "claude-sonnet-5"
+          "width": 340
         },
         {
           "id": "verdict_out",
@@ -14213,8 +14173,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 400,
           "y": 346,
-          "width": 300,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 300
         },
         {
           "id": "out",
@@ -14360,8 +14319,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2669,
           "y": 634,
-          "width": 509,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 509
         },
         {
           "id": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
@@ -14548,13 +14506,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/movie-trailer-generator",
     "title": "Movie Trailer Generator — NodeTool AI Workflow Template",
-    "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+    "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through image-to-video, which is usually metered per second of generated video and is the most expensive step in the pipeline. A 6-shot trailer makes 6 video generations.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "movie-trailer-generator",
     "name": "Movie Trailer Generator",
-    "summary": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+    "summary": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through image-to-video, which is usually metered per second of generated video and is the most expensive step in the pipeline. A 6-shot trailer makes 6 video generations.",
     "tags": [
       "video",
       "generation",
@@ -14658,8 +14616,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Director",
           "x": 380,
           "y": 566,
-          "width": 360,
-          "subtitle": "gemini-3.1-pro-preview"
+          "width": 360
         },
         {
           "id": "shots",
@@ -14675,8 +14632,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1260,
           "y": 595,
-          "width": 320,
-          "subtitle": "gpt-image-2-text-to-image"
+          "width": 320
         },
         {
           "id": "animate",
@@ -14684,8 +14640,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 1680,
           "y": 645,
-          "width": 331,
-          "subtitle": "veo-3.1-generate-preview"
+          "width": 331
         },
         {
           "id": "collect",
@@ -14950,8 +14905,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 380,
           "y": 668,
-          "width": 280,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 280
         },
         {
           "id": "mood_analyzer",
@@ -15001,8 +14955,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2660,
           "y": 1051,
-          "width": 384,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 384
         },
         {
           "id": "collected_frames",
@@ -15357,8 +15310,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 760,
           "y": 490,
-          "width": 280,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 280
         },
         {
           "id": "tr",
@@ -15427,13 +15379,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/narrate-a-script",
     "title": "Narrate a Script — NodeTool AI Workflow Template",
-    "description": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
+    "description": "Turn written copy into a voice track. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "narrate-a-script",
     "name": "Narrate a Script",
-    "summary": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
+    "summary": "Turn written copy into a voice track. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
     "tags": [
       "audio",
       "example"
@@ -15484,8 +15436,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 380,
           "y": 307,
-          "width": 280,
-          "subtitle": "fal-ai/elevenlabs/tts/multilingual-v2"
+          "width": 280
         },
         {
           "id": "out",
@@ -15613,8 +15564,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 400,
           "y": 570,
-          "width": 300,
-          "subtitle": "tts-1"
+          "width": 300
         },
         {
           "id": "mus",
@@ -17445,8 +17395,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 800,
           "y": 384,
-          "width": 300,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 300
         },
         {
           "id": "ag",
@@ -17607,8 +17556,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 380,
           "y": 1277,
-          "width": 300,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 300
         },
         {
           "id": "shownotes_prompt",
@@ -17717,8 +17665,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2070,
           "y": 1714,
-          "width": 320,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 320
         },
         {
           "id": "preview_cards",
@@ -17973,8 +17920,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1162,
           "y": 523,
-          "width": 384,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 384
         },
         {
           "id": "output-pokemon",
@@ -18027,13 +17973,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/poster-on-kie",
     "title": "Poster on Kie — NodeTool AI Workflow Template",
-    "description": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
+    "description": "Generate a poster-style image on a Kie model that you pick on \"Render\". Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "poster-on-kie",
     "name": "Poster on Kie",
-    "summary": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
+    "summary": "Generate a poster-style image on a Kie model that you pick on \"Render\". Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
     "tags": [
       "image",
       "example"
@@ -18084,8 +18030,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 380,
           "y": 346,
-          "width": 280,
-          "subtitle": "seedream/4.5-text-to-image"
+          "width": 280
         },
         {
           "id": "out",
@@ -18205,13 +18150,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/private-assistant",
     "title": "Private Assistant — NodeTool AI Workflow Template",
-    "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
+    "description": "Ask questions about your own notes and documents — fully local, no API keys. It is meant to run on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled, such as llama3.2 (`ollama pull llama3.2`), picked on the agent node.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "private-assistant",
     "name": "Private Assistant",
-    "summary": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
+    "summary": "Ask questions about your own notes and documents — fully local, no API keys. It is meant to run on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled, such as llama3.2 (`ollama pull llama3.2`), picked on the agent node.",
     "tags": [
       "local",
       "privacy",
@@ -18297,8 +18242,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 800,
           "y": 648,
-          "width": 320,
-          "subtitle": "llama3.2"
+          "width": 320
         },
         {
           "id": "output-answer",
@@ -18351,13 +18295,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/product-mockup-generator",
     "title": "Product Mockup Generator — NodeTool AI Workflow Template",
-    "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then Nano Banana composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+    "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then an image-to-image step composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "product-mockup-generator",
     "name": "Product Mockup Generator",
-    "summary": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then Nano Banana composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+    "summary": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then an image-to-image step composites your product photo into each scene, finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
     "tags": [
       "product-mockup",
       "mockup",
@@ -18452,8 +18396,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Image",
           "x": 1900,
           "y": 588,
-          "width": 384,
-          "subtitle": "fal-ai/nano-banana/edit"
+          "width": 384
         },
         {
           "id": "5",
@@ -18538,8 +18481,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1900,
           "y": 1103,
-          "width": 384,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 384
         },
         {
           "id": "output-mockup",
@@ -18677,13 +18619,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/product-spot-from-text",
     "title": "Product Spot from Text — NodeTool AI Workflow Template",
-    "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
+    "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, an image step renders the still, then an image-to-video step animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "product-spot-from-text",
     "name": "Product Spot from Text",
-    "summary": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
+    "summary": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, an image step renders the still, then an image-to-video step animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
     "tags": [
       "image",
       "video",
@@ -18772,8 +18714,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 800,
           "y": 759,
-          "width": 280,
-          "subtitle": "fal-ai/flux-2/klein/9b"
+          "width": 280
         },
         {
           "id": "prompt-motion",
@@ -18790,8 +18731,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 1180,
           "y": 925,
-          "width": 280,
-          "subtitle": "fal-ai/ltx-2.3/image-to-video/fast"
+          "width": 280
         },
         {
           "id": "output-spot",
@@ -18858,13 +18798,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/product-video-generator",
     "title": "Product Video Generator — NodeTool AI Workflow Template",
-    "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
+    "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then an image-to-video model animates the shot. Cost note: the video step is a paid generation, so this run costs noticeably more than an image-only template.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "product-video-generator",
     "name": "Product Video Generator",
-    "summary": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
+    "summary": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then an image-to-video model animates the shot. Cost note: the video step is a paid generation, so this run costs noticeably more than an image-only template.",
     "tags": [
       "business",
       "data",
@@ -18975,8 +18915,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 1523,
           "y": 831,
-          "width": 739,
-          "subtitle": "veo-3.1-generate-preview"
+          "width": 739
         },
         {
           "id": "output-product-video",
@@ -19748,8 +19687,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 800,
           "y": 364,
-          "width": 300,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 300
         },
         {
           "id": "ag",
@@ -19879,8 +19817,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Remove Background",
           "x": 400,
           "y": 441,
-          "width": 300,
-          "subtitle": "fal-ai/bria/background/remove"
+          "width": 300
         },
         {
           "id": "comp",
@@ -20077,8 +20014,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 380,
           "y": 567,
-          "width": 280,
-          "subtitle": "tts-1"
+          "width": 280
         },
         {
           "id": "mus",
@@ -20852,8 +20788,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Image",
           "x": 920,
           "y": 690,
-          "width": 320,
-          "subtitle": "fal-ai/nano-banana/edit"
+          "width": 320
         },
         {
           "id": "hero-finalize",
@@ -21877,13 +21812,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/research-a-brand-from-its-website",
     "title": "Research a Brand from Its Website — NodeTool AI Workflow Template",
-    "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses Claude Sonnet 5 with browser and web search tools. Pick any language model for the extractor.",
+    "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses browser and web search tools. Pick a language model for the researcher and the extractor.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "research-a-brand-from-its-website",
     "name": "Research a Brand from Its Website",
-    "summary": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses Claude Sonnet 5 with browser and web search tools. Pick any language model for the extractor.",
+    "summary": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. The researcher uses browser and web search tools. Pick a language model for the researcher and the extractor.",
     "tags": [
       "brand-asset",
       "branding",
@@ -21956,8 +21891,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 820,
           "y": 870,
-          "width": 340,
-          "subtitle": "claude-sonnet-5"
+          "width": 340
         },
         {
           "id": "extract_fields",
@@ -22493,8 +22427,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Image",
           "x": 1340,
           "y": 1025,
-          "width": 320,
-          "subtitle": "fal-ai/nano-banana/edit"
+          "width": 320
         },
         {
           "id": "revision-finalize",
@@ -23002,8 +22935,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2540,
           "y": 1435,
-          "width": 320,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 320
         },
         {
           "id": "preview_heroes",
@@ -24017,8 +23949,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Music",
           "x": 800,
           "y": 475,
-          "width": 300,
-          "subtitle": "fal-ai/stable-audio-25/text-to-audio"
+          "width": 300
         },
         {
           "id": "mix",
@@ -24181,8 +24112,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Music",
           "x": 780,
           "y": 697,
-          "width": 280,
-          "subtitle": "fal-ai/stable-audio-25/text-to-audio"
+          "width": 280
         },
         {
           "id": "mix",
@@ -24400,8 +24330,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 400,
           "y": 366,
-          "width": 300,
-          "subtitle": "tts-1"
+          "width": 300
         },
         {
           "id": "vid",
@@ -24409,8 +24338,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Video",
           "x": 400,
           "y": 618,
-          "width": 300,
-          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+          "width": 300
         },
         {
           "id": "mix",
@@ -24641,8 +24569,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1650,
           "y": 544,
-          "width": 300,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 300
         },
         {
           "id": "shotlist_prompt",
@@ -24676,8 +24603,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Image",
           "x": 2470,
           "y": 919,
-          "width": 320,
-          "subtitle": "fal-ai/nano-banana/edit"
+          "width": 320
         },
         {
           "id": "storyboard_collect",
@@ -24710,8 +24636,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 2890,
           "y": 1236,
-          "width": 330,
-          "subtitle": "veo-3.1-generate-preview"
+          "width": 330
         },
         {
           "id": "clips_collect",
@@ -24735,8 +24660,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 1650,
           "y": 1296,
-          "width": 300,
-          "subtitle": "tts-1"
+          "width": 300
         },
         {
           "id": "music",
@@ -24744,8 +24668,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Music",
           "x": 1650,
           "y": 960,
-          "width": 300,
-          "subtitle": "meta/musicgen"
+          "width": 300
         },
         {
           "id": "mix_vo",
@@ -25223,8 +25146,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Video",
           "x": 800,
           "y": 385,
-          "width": 280,
-          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+          "width": 280
         },
         {
           "id": "out",
@@ -25680,8 +25602,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 380,
           "y": 327,
-          "width": 280,
-          "subtitle": "tts-1"
+          "width": 280
         },
         {
           "id": "rs",
@@ -26084,13 +26005,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/still-on-replicate",
     "title": "Still on Replicate — NodeTool AI Workflow Template",
-    "description": "Generate an image through Replicate rather than fal. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
+    "description": "Generate an image with a Replicate model rather than a fal one. Pick a Replicate model on Render. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "still-on-replicate",
     "name": "Still on Replicate",
-    "summary": "Generate an image through Replicate rather than fal. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
+    "summary": "Generate an image with a Replicate model rather than a fal one. Pick a Replicate model on Render. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
     "tags": [
       "image",
       "example"
@@ -26141,8 +26062,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 380,
           "y": 366,
-          "width": 280,
-          "subtitle": "black-forest-labs/flux-2-klein-9b"
+          "width": 280
         },
         {
           "id": "out",
@@ -26446,8 +26366,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 800,
           "y": 364,
-          "width": 300,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 300
         },
         {
           "id": "ag",
@@ -26576,8 +26495,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 800,
           "y": 364,
-          "width": 300,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 300
         },
         {
           "id": "ag",
@@ -26917,8 +26835,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Upscale",
           "x": 400,
           "y": 433,
-          "width": 300,
-          "subtitle": "fal-ai/clarity-upscaler"
+          "width": 300
         },
         {
           "id": "out",
@@ -27878,8 +27795,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1000,
           "y": 416,
-          "width": 220,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 220
         },
         {
           "id": "sheet_pass",
@@ -27919,8 +27835,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1000,
           "y": 689,
-          "width": 220,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 220
         },
         {
           "id": "tile_pass",
@@ -27960,8 +27875,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1000,
           "y": 968,
-          "width": 220,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 220
         },
         {
           "id": "image_pass",
@@ -28001,8 +27915,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Music",
           "x": 1000,
           "y": 1194,
-          "width": 220,
-          "subtitle": "meta/musicgen"
+          "width": 220
         },
         {
           "id": "sfx_check",
@@ -28034,8 +27947,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Music",
           "x": 1000,
           "y": 1446,
-          "width": 220,
-          "subtitle": "meta/musicgen"
+          "width": 220
         },
         {
           "id": "music_check",
@@ -28552,8 +28464,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 380,
           "y": 426,
-          "width": 280,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 280
         },
         {
           "id": "output-transcript",
@@ -28655,8 +28566,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 760,
           "y": 346,
-          "width": 280,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 280
         },
         {
           "id": "out",
@@ -29536,8 +29446,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Vectorize",
           "x": 400,
           "y": 327,
-          "width": 300,
-          "subtitle": "fal-ai/recraft/vectorize"
+          "width": 300
         },
         {
           "id": "out",
@@ -29732,8 +29641,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 800,
           "y": 364,
-          "width": 300,
-          "subtitle": "gpt-4o-mini-transcribe"
+          "width": 300
         },
         {
           "id": "ag",
@@ -29787,13 +29695,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/upscale-a-still",
     "title": "Upscale a Still — NodeTool AI Workflow Template",
-    "description": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
+    "description": "Enlarge an image without the softness a plain resize gives you. An upscaling model reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "upscale-a-still",
     "name": "Upscale a Still",
-    "summary": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
+    "summary": "Enlarge an image without the softness a plain resize gives you. An upscaling model reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
     "tags": [
       "image",
       "example"
@@ -29843,8 +29751,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Upscale",
           "x": 380,
           "y": 307,
-          "width": 280,
-          "subtitle": "fal-ai/esrgan"
+          "width": 280
         },
         {
           "id": "out",
@@ -29876,13 +29783,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/vectorize-a-generated-logo",
     "title": "Vectorize a Generated Logo — NodeTool AI Workflow Template",
-    "description": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
+    "description": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: one model draws the shape, and a vectorizing model converts it to SVG paths that scale without resampling.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "vectorize-a-generated-logo",
     "name": "Vectorize a Generated Logo",
-    "summary": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
+    "summary": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: one model draws the shape, and a vectorizing model converts it to SVG paths that scale without resampling.",
     "tags": [
       "image",
       "example"
@@ -29938,8 +29845,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 380,
           "y": 346,
-          "width": 280,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 280
         },
         {
           "id": "vec",
@@ -29947,8 +29853,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Vectorize",
           "x": 760,
           "y": 346,
-          "width": 280,
-          "subtitle": "fal-ai/recraft/vectorize"
+          "width": 280
         },
         {
           "id": "out",
@@ -30081,8 +29986,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Video To Video",
           "x": 800,
           "y": 570,
-          "width": 280,
-          "subtitle": "decart/lucy-edit-2"
+          "width": 280
         },
         {
           "id": "output-video",
@@ -30292,8 +30196,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 400,
           "y": 346,
-          "width": 300,
-          "subtitle": "tts-1"
+          "width": 300
         },
         {
           "id": "tb",
@@ -30301,8 +30204,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 400,
           "y": 598,
-          "width": 300,
-          "subtitle": "tts-1"
+          "width": 300
         },
         {
           "id": "cat",
@@ -30618,8 +30520,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 380,
           "y": 327,
-          "width": 280,
-          "subtitle": "tts-1"
+          "width": 280
         },
         {
           "id": "ms",
@@ -30666,13 +30567,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/workflow-as-a-tool",
     "title": "Workflow As A Tool — NodeTool AI Workflow Template",
-    "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager, on a model you pick, decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+    "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research gathers the facts, Copy Editor polishes the draft, and the manager decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "workflow-as-a-tool",
     "name": "Workflow As A Tool",
-    "summary": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager, on a model you pick, decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+    "summary": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research gathers the facts, Copy Editor polishes the draft, and the manager decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
     "tags": [
       "agents",
       "composition",
@@ -30747,8 +30648,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 1160,
           "y": 510,
-          "width": 300,
-          "subtitle": "gemini-3.5-flash"
+          "width": 300
         },
         {
           "id": "copy_editor",
@@ -30756,8 +30656,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 1160,
           "y": 773,
-          "width": 300,
-          "subtitle": "claude-sonnet-5"
+          "width": 300
         },
         {
           "id": "output-article",
@@ -30970,8 +30869,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 800,
           "y": 346,
-          "width": 300,
-          "subtitle": "fal-ai/flux/schnell"
+          "width": 300
         },
         {
           "id": "op",

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   ONE_TAKE_DEFAULT_SHOT_SECONDS,
   compileOneTake,
+  compileSceneClip,
+  sceneClipRun,
   oneTakeSteps,
   oneTakeWindow
 } from "../src/one-take.js";
@@ -227,6 +229,75 @@ describe("one-take schemas", () => {
     expect(parsed.sound).toBe("a click");
     expect(
       storyboardShot.safeParse({ ...parsed, sound: 3 }).success
+    ).toBe(false);
+  });
+});
+
+describe("sceneClipRun", () => {
+  const run = [
+    shot("a", 0, { scene_id: "s1" }),
+    shot("b", 1, { scene_id: "s1" }),
+    shot("c", 2, { scene_id: "s1" }),
+    shot("d", 3, { scene_id: "s2" })
+  ];
+
+  it("resolves consecutive shots of one scene in board order", () => {
+    const resolved = sceneClipRun(run, ["c", "b"]);
+    expect(resolved.issue).toBeNull();
+    expect(resolved.shots.map((s) => s.id)).toEqual(["b", "c"]);
+  });
+
+  it.each([
+    [["a"], "A scene clip covers 2 to 5 shots."],
+    [["a", "c"], "The shots in this scene clip are no longer next to each other."],
+    [["c", "d"], "The shots in this scene clip are no longer in one scene."],
+    [["a", "gone"], "A shot in this scene clip was deleted."]
+  ])("reports why %j is not a run", (ids, issue) => {
+    expect(sceneClipRun(run, ids).issue).toBe(issue);
+  });
+
+  it("compiles windows and image numbers from the run's first shot", () => {
+    const compiled = compileSceneClip(
+      [
+        shot("a", 0, { duration_seconds: 4 }),
+        shot("b", 1, { duration_seconds: 2, keyframe: still("still-b") }),
+        shot("c", 2, { duration_seconds: 3, keyframe: still("still-c") })
+      ],
+      { id: "clip", prompt: "", shot_ids: ["b", "c"] }
+    );
+    expect(compiled.steps).toEqual([
+      { shot_id: "b", start_seconds: 0, end_seconds: 2 },
+      { shot_id: "c", start_seconds: 2, end_seconds: 5 }
+    ]);
+    expect(compiled.references.map((r) => r.asset_id)).toEqual([
+      "still-b",
+      "still-c"
+    ]);
+  });
+
+  it("stores scene clips on the document and rejects a run over five shots", () => {
+    const base = {
+      screenplay: null,
+      shots: [],
+      brief: "",
+      style: "",
+      aspectRatio: "16:9",
+      directorModel: null,
+      imageModel: null,
+      videoModel: null
+    };
+    const parsed = storyboardDocument.parse({
+      ...base,
+      scene_clips: [{ id: "clip", prompt: "Go.", shot_ids: ["a", "b"] }]
+    });
+    expect(parsed.scene_clips?.[0].shot_ids).toEqual(["a", "b"]);
+    expect(
+      storyboardDocument.safeParse({
+        ...base,
+        scene_clips: [
+          { id: "clip", prompt: "", shot_ids: ["a", "b", "c", "d", "e", "f"] }
+        ]
+      }).success
     ).toBe(false);
   });
 });

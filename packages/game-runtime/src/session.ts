@@ -12,6 +12,7 @@ import type {
   GameEvent,
   GameParticleEmission,
   GameHudLabel,
+  GameUiOverride,
   GameInputFrame,
   GameRenderFrame,
   GameScene,
@@ -177,6 +178,7 @@ function createGameSessionWithRunner(
   let activeContacts = new Map<string, ContactPair>();
   let scriptState: GameSnapshot["scriptState"] = {};
   let hud = new Map<string, GameHudLabel>();
+  let ui = new Map<string, GameUiOverride>();
   let disposed = false;
   let failed = false;
 
@@ -274,6 +276,7 @@ function createGameSessionWithRunner(
     );
     scriptState = structuredClone(parsed.scriptState);
     hud = new Map(parsed.hud.map((label) => [label.id, { ...label }]));
+    ui = new Map(Object.entries(structuredClone(parsed.ui ?? {})));
   }
 
   function snapshot(): GameSnapshot {
@@ -283,7 +286,7 @@ function createGameSessionWithRunner(
     if (failed) {
       throw new Error("Game session stopped after a failed step");
     }
-    return {
+    const saved: GameSnapshot = {
       gameRevision: document.revision,
       engineVersion: document.engineVersion,
       sceneId,
@@ -322,6 +325,9 @@ function createGameSessionWithRunner(
         return entity;
       })
     };
+    // Left out until a script changes the HUD tree, so snapshots of games without one keep their bytes.
+    if (ui.size > 0) { saved.ui = structuredClone(Object.fromEntries(ui)); }
+    return saved;
   }
 
   function isSpawnedId(entityId: string): boolean {
@@ -446,6 +452,12 @@ function createGameSessionWithRunner(
     set hud(value) {
       hud = value;
     },
+    get ui() {
+      return ui;
+    },
+    set ui(value) {
+      ui = value;
+    },
 
     get activeContacts() {
       return activeContacts;
@@ -552,7 +564,7 @@ function createGameSessionWithRunner(
       if (failed) {
         throw new Error("Game session stopped after a failed step");
       }
-      return frameFor(document, scene, states, tick, score, won, hud);
+      return frameFor(document, scene, states, tick, score, won, hud, ui);
     },
     inspect(query): GameInspection {
       const current = snapshot();

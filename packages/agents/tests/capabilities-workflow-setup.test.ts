@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext, ProviderId } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { Workflow, initTestDb } from "@nodetool-ai/models";
+import { Workflow, WorkflowVersion, initTestDb } from "@nodetool-ai/models";
 import { readWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { capabilityCategoryFor } from "../src/capabilities/registry.js";
@@ -565,6 +565,57 @@ describe("build_workflow_from_plan", () => {
     expect(result.issues.join(" ")).toContain("produces nothing");
   });
 
+  it("adds one version row for the build and none for the setup answers", async () => {
+    const workflow = await makeWorkflow();
+    await run().invoke("set_workflow_setup", {
+      workflow_id: workflow.id,
+      brief: "Turn text into a post",
+      category: "content-pipeline",
+      stage: "category"
+    });
+    await run().invoke("plan_workflow", {
+      workflow_id: workflow.id,
+      plan: PLAN
+    });
+    await run().invoke("update_workflow_plan_step", {
+      workflow_id: workflow.id,
+      step_id: "compose",
+      title: "Compose the post"
+    });
+    expect(await WorkflowVersion.listForWorkflow(workflow.id)).toHaveLength(0);
+
+    await run().invoke("build_workflow_from_plan", {
+      workflow_id: workflow.id
+    });
+    const versions = await WorkflowVersion.listForWorkflow(workflow.id);
+    expect(versions).toHaveLength(1);
+    const graph = versions[0].graph as { nodes: { id: string }[] };
+    expect(graph.nodes.map((node) => node.id)).toEqual([
+      "input_1",
+      "step_1",
+      "output_1"
+    ]);
+  });
+
+  it("hands back sample inputs converted to each input's type", async () => {
+    const workflow = await makeWorkflow();
+    await run().invoke("plan_workflow", {
+      workflow_id: workflow.id,
+      plan: {
+        ...PLAN,
+        inputs: [
+          { name: "count", type: "number", sample: "3" },
+          { name: "photo", type: "image", sample: "" }
+        ]
+      }
+    });
+    const result = (await run().invoke("build_workflow_from_plan", {
+      workflow_id: workflow.id,
+      save: false
+    })) as { sample_inputs: Record<string, unknown> };
+    expect(result.sample_inputs).toEqual({ count: 3 });
+  });
+
   it("builds without saving when asked", async () => {
     const workflow = await makeWorkflow();
     await run().invoke("plan_workflow", {
@@ -578,6 +629,7 @@ describe("build_workflow_from_plan", () => {
     expect(result.saved).toBe(false);
     const stored = (await Workflow.get(workflow.id)) as Workflow;
     expect(stored.getGraph().nodes).toEqual([]);
+    expect(await WorkflowVersion.listForWorkflow(workflow.id)).toHaveLength(0);
   });
 
   it("refuses to build before a plan exists", async () => {

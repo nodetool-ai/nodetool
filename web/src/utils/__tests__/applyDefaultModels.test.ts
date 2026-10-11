@@ -113,4 +113,39 @@ describe("applyDefaultModels", () => {
     expect((result.llm as any).provider).toBe("anthropic");
     expect((result.img as any).provider).toBe("stability");
   });
+
+  describe("image task defaults", () => {
+    const blank = { type: "image_model", provider: "", id: "", name: "" };
+    const meta = [{ name: "model", type: { type: "image_model" } }];
+    const imageDefault = { provider: "fal_ai", id: "fal-ai/flux/schnell", name: "FLUX.1 Schnell" };
+    const upscaleDefault = { provider: "fal_ai", id: "fal-ai/clarity-upscaler", name: "Clarity" };
+    const cutoutDefault = { provider: "fal_ai", id: "fal-ai/bria/background/remove", name: "Bria" };
+
+    it("fills Upscale and Remove Background from their own defaults", () => {
+      setDefaults({
+        image_model: imageDefault,
+        "image_model:upscale": upscaleDefault,
+        "image_model:remove_background": cutoutDefault
+      });
+      const upscaled = applyDefaultModels({ model: blank }, meta, "nodetool.image.Upscale");
+      const cutout = applyDefaultModels({ model: blank }, meta, "nodetool.image.RemoveBackground");
+      expect(upscaled.model).toEqual({ type: "image_model", ...upscaleDefault });
+      expect(cutout.model).toEqual({ type: "image_model", ...cutoutDefault });
+    });
+
+    it("falls back to the image default when the task has none", () => {
+      setDefaults({ image_model: imageDefault });
+      const result = applyDefaultModels({ model: blank }, meta, "nodetool.image.Upscale");
+      expect(result.model).toEqual({ type: "image_model", ...imageDefault });
+    });
+
+    it("keeps other image nodes on the image default", () => {
+      setDefaults({
+        image_model: imageDefault,
+        "image_model:upscale": upscaleDefault
+      });
+      const result = applyDefaultModels({ model: blank }, meta, "nodetool.image.TextToImage");
+      expect(result.model).toEqual({ type: "image_model", ...imageDefault });
+    });
+  });
 });
