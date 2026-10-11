@@ -7,7 +7,7 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { trpc, trpcClient } from "../../trpc/client";
 import {
-  Box,
+  AutoGrid,
   Card,
   Caption,
   EditorButton,
@@ -15,7 +15,8 @@ import {
   ResponsiveImage,
   SPACING,
   TabGroup,
-  Text
+  Text,
+  TYPOGRAPHY
 } from "../ui_primitives";
 import { newDocumentId } from "../../lib/newDocumentId";
 import {
@@ -100,13 +101,7 @@ const DashboardExampleSketches = () => {
         onChange={setCategory}
         size="small"
       />
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
-          gap: SPACING.xl
-        }}
-      >
+      <AutoGrid minItemWidth={360} gap={SPACING.xl}>
         {examples.map((example) => (
           <Card
             key={example.slug}
@@ -119,11 +114,12 @@ const DashboardExampleSketches = () => {
               alt={example.description}
               aspectRatio="4 / 3"
               loading="lazy"
+              preferThumbnail
             />
             <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl }}>
               <Caption>{example.category}</Caption>
-              <Text size="big">{example.name}</Text>
-              <Text color="secondary">{example.description}</Text>
+              <Text sx={TYPOGRAPHY.sans.label}>{example.name}</Text>
+              <Caption color="secondary">{example.description}</Caption>
               <EditorButton
                 disabled={install.isPending}
                 aria-label={`Open ${example.name}`}
@@ -139,7 +135,7 @@ const DashboardExampleSketches = () => {
             </FlexColumn>
           </Card>
         ))}
-      </Box>
+      </AutoGrid>
     </FlexColumn>
   );
 };

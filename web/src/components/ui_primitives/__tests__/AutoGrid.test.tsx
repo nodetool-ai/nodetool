@@ -31,7 +31,7 @@ describe("AutoGrid", () => {
 
     expect(firstElement(container)).toHaveStyle({
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))"
+      gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 200px), 1fr))"
     });
   });
 
@@ -43,7 +43,7 @@ describe("AutoGrid", () => {
     );
 
     expect(firstElement(container)).toHaveStyle({
-      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))"
+      gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))"
     });
   });
 

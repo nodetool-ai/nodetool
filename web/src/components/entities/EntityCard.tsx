@@ -11,8 +11,9 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import type { Entity } from "@nodetool-ai/protocol";
 import {
   Card,
-  Text,
   Caption,
+  TruncatedText,
+  TYPOGRAPHY,
   Chip,
   FlexRow,
   FlexColumn,
@@ -47,7 +48,7 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
       variant="outlined"
       padding="none"
       className="entity-card"
-      sx={{ overflow: "hidden", display: "flex", flexDirection: "column" }}
+      sx={{ overflow: "hidden" }}
     >
       <div
         style={{
@@ -75,16 +76,9 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
 
       <FlexColumn gap={SPACING.xs} sx={{ p: 1 }}>
         <FlexRow align="center" justify="space-between" gap={0.5}>
-          <Text
-            sx={{
-              fontWeight: 600,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap"
-            }}
-          >
+          <TruncatedText sx={{ ...TYPOGRAPHY.sans.label }}>
             {entity.name || "Untitled"}
-          </Text>
+          </TruncatedText>
           <Chip
             label={entity.kind}
             compact

@@ -50,8 +50,11 @@ import {
   SPACING,
   Text,
   TruncatedText,
+  TYPOGRAPHY,
   PanelHeader,
-  ToolbarIconButton
+  ToolbarIconButton,
+  focusRing,
+  selectableRowStyles
 } from "../ui_primitives";
 
 const DOCUMENT_TAB_TYPES = {
@@ -161,22 +164,17 @@ const DocumentTreeRow = ({
             minHeight: theme.spacing(8),
             padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.sm)}`,
             paddingLeft: theme.spacing(SPACING.xxl),
-            borderRadius: BORDER_RADIUS.md,
             color: active
               ? theme.vars.palette.text.primary
               : theme.vars.palette.text.secondary,
-            backgroundColor: active
-              ? theme.vars.palette.action.selected
-              : "transparent",
             textAlign: "left",
             cursor: "pointer",
+            ...selectableRowStyles(theme, { selected: active }),
             "&:hover": {
-              backgroundColor: theme.vars.palette.action.hover,
+              backgroundColor: active
+                ? theme.vars.palette.action.selected
+                : theme.vars.palette.action.hover,
               color: theme.vars.palette.text.primary
-            },
-            "&:focus-visible": {
-              outline: `2px solid ${theme.vars.palette.primary.main}`,
-              outlineOffset: -2
             }
           })}
         >
@@ -190,7 +188,7 @@ const DocumentTreeRow = ({
           <TruncatedText
             component="span"
             showTooltip
-            sx={{ minWidth: 0, flex: 1 }}
+            sx={{ ...TYPOGRAPHY.sans.label, minWidth: 0, flex: 1 }}
           >
             {leaf.name}
           </TruncatedText>
@@ -301,9 +299,9 @@ const DocumentTreeGroupRow = ({
           tabIndex={-1}
         />
         <Icon aria-hidden="true" sx={{ fontSize: "var(--fontSizeBig)" }} />
-        <Text size="small" truncate>
+        <TruncatedText component="span" sx={TYPOGRAPHY.sans.label}>
           {group.label}
-        </Text>
+        </TruncatedText>
         <Text size="smaller" color="secondary" sx={{ marginLeft: "auto" }}>
           {group.children.length}
         </Text>

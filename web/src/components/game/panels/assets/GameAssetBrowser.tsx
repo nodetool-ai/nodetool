@@ -5,7 +5,7 @@ import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { trpc, trpcClient } from "../../../../trpc/client";
 import ReportBugButton from "../../../support/ReportBugButton";
-import { Caption, Chip, Dialog, EditorButton, EmptyState, FlexColumn, FlexRow, Label, ScrollArea, SearchInput, SelectField,
+import { Caption, Chip, Dialog, EditorButton, EmptyState, FlexColumn, FlexRow, Label, LoadingSpinner, ScrollArea, SearchInput, SelectField,
   SelectableListItem, SPACING, TabGroup, Text, TextInput, TruncatedText } from "../../../ui_primitives";
 import GameAssetThumbnail from "./GameAssetThumbnail";
 import { GAME_ASSET_KIND_FILTERS, candidatesForSlot, panelGenerationKind, shortDigest, type GameAssetBrowserTab,
@@ -75,7 +75,7 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const queries = trpc.useUtils();
-  const { data: server } = trpc.games.assetBrowser.useQuery({ id: gameId }, { staleTime: 15_000 });
+  const { data: server, isLoading: serverLoading } = trpc.games.assetBrowser.useQuery({ id: gameId }, { staleTime: 15_000 });
   const catalog = useMemo(() => gameAssetCatalog(document), [document]);
   const filtered = useMemo(() => filterGameAssetCatalog(catalog, { query, kind: kind === "all" ? undefined : kind }), [catalog, query, kind]);
   const selected = catalog.assets.find((entry) => entry.slot === selectedSlot) ?? filtered.assets[0] ?? null;
@@ -145,7 +145,9 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
       </FlexColumn>
       {!entry.siblingOf && <FlexColumn gap={SPACING.xs}>
         <Label>Staged candidates</Label>
-        {candidates.length === 0 || !workspaceId
+        {serverLoading
+          ? <LoadingSpinner size="small" text="Loading candidates" />
+          : candidates.length === 0 || !workspaceId
           ? <Caption>No staged {entry.mediaKind} files. Generated and staged files appear here.</Caption>
           : candidates.map((candidate) => {
             const current = candidate.digest === entry.digest;

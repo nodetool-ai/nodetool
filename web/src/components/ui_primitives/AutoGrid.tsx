@@ -70,7 +70,7 @@ export const AutoGrid = memo(
           sx={[
             {
               display: "grid",
-              gridTemplateColumns: `repeat(auto-${fill}, minmax(${minItemWidth}px, 1fr))`,
+              gridTemplateColumns: `repeat(auto-${fill}, minmax(min(100%, ${minItemWidth}px), 1fr))`,
               gap: theme.spacing(resolveSpacing(gap))
             },
             // Compose caller sx as an array entry so the function form `(theme) =>

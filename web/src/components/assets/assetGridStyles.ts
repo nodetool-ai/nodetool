@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import { SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 
 export const assetGridStyles = (theme: Theme) => {
   return css({
@@ -81,47 +81,6 @@ export const assetGridStyles = (theme: Theme) => {
       padding: 0,
       margin: 0
     },
-    ".folder-item": {
-      position: "relative",
-      alignItems: "center",
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
-      marginLeft: 0,
-      borderRadius: BORDER_RADIUS.sm
-    },
-    ".folder-icon": {
-      marginRight: getSpacingPx(SPACING.micro),
-      color: theme.vars.palette.grey[500],
-      verticalAlign: "middle",
-      backgroundColor: "transparent"
-    },
-    ".folder-name": {
-      fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.grey[100],
-      verticalAlign: "middle"
-    },
-    ".folder-item.selected": {
-      backgroundColor: theme.vars.palette.c_overlay,
-      "& .folder-name": {
-        color: theme.vars.palette.grey[0],
-        fontWeight: 500
-      },
-      "& .folder-icon": {
-        color: theme.vars.palette.c_folder
-      }
-    },
-    ".root-folder": {
-      paddingLeft: getSpacingPx(SPACING.xs)
-    },
-    ".root-folder .folder-name": {
-      fontSize: theme.fontSizeSmall,
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      color: theme.vars.palette.grey[400],
-      fontWeight: 500
-    },
-    ".root-folder.selected .folder-name, .root-folder .folder-item.selected .folder-name": {
-      color: theme.vars.palette.grey[200]
-    },
     ".file-info": {
       display: "flex",
       flexDirection: "column",
@@ -149,72 +108,7 @@ export const assetGridStyles = (theme: Theme) => {
       ".header-info": {
         display: "none !important"
       }
-    },
-    // DOCKVIEW
-    "& .dv-tabs-and-actions-container": {
-      display: "none !important"
-    },
-    "& .dv-split-view-container .dv-view-container .dv-view": {
-      padding: "0"
-    },
-    // resize handle
-    "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
-      position: "relative",
-      backgroundColor: "transparent",
-      transition: MOTION.background,
-      borderRadius: BORDER_RADIUS.xs
-    },
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
-      {
-        width: "10px",
-        cursor: "ew-resize",
-        transform: "translate(0px, 0px)"
-      },
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash::after":
-      {
-        content: '""',
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
-        width: "2px",
-        height: "30%",
-        maxHeight: "100px",
-        backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: BORDER_RADIUS.xs,
-        opacity: 0.6,
-        transition: `${MOTION.background}, ${MOTION.opacity}`
-      },
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
-      height: "10px",
-      cursor: "ns-resize",
-      transform: "translate(0px, 0px)"
-    },
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash::after":
-      {
-        content: '""',
-        position: "absolute",
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
-        width: "30%",
-        maxWidth: "100px",
-        height: "2px",
-        backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: BORDER_RADIUS.xs,
-        opacity: 0.6,
-        transition: `${MOTION.background}, ${MOTION.opacity}`
-      },
-    "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash:hover::after":
-      {
-        backgroundColor: `${theme.vars.palette.primary.main} !important`,
-        opacity: 1
-      },
-    "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash:hover::after":
-      {
-        backgroundColor: `${theme.vars.palette.primary.main} !important`,
-        opacity: 1
-      }
+    }
   });
 };
 

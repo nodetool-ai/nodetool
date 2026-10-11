@@ -47,7 +47,7 @@ describe("PresetTileGrid", () => {
     const sample = cardOf(
       screen.getByRole("radio", { name: /Comic/ })
     ).querySelector("img");
-    expect(sample).toHaveAttribute("src", "https://assets.test/comic-sample");
+    expect(sample).toHaveAttribute("src", "https://assets.test/comic-sample_thumb.jpg");
   });
 
   // A plate holding the preset's own name says the same thing as the caption

@@ -3,7 +3,20 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useCallback } from "react";
-import { Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX, VirtualList } from "../ui_primitives";
+import {
+  Text,
+  MOTION,
+  BORDER_RADIUS,
+  EYEBROW,
+  SPACING,
+  TYPOGRAPHY,
+  getSpacingPx,
+  Z_INDEX,
+  VirtualList,
+  reducedMotion,
+  selectableRowStyles,
+  selectedRowStyles
+} from "../ui_primitives";
 import type { VirtualListHandle } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -50,30 +63,15 @@ const listStyles = (theme: Theme) =>
       margin: `0 0 ${getSpacingPx(SPACING.micro)}`,
       width: "100%",
       cursor: "pointer",
-      outline: "none",
       border: 0,
-      borderRadius: theme.rounded.md,
-      backgroundColor: "transparent",
-      transition: `background-color ${MOTION.normal}, color ${MOTION.normal}`,
+      ...selectableRowStyles(theme),
       "& .MuiCheckbox-root": {
         margin: `0 ${getSpacingPx(SPACING.lg)} 0 0`,
         padding: 0
       },
       position: "relative"
     },
-    ".workflow.current .name": {
-      color: theme.vars.palette.primary.light
-    },
-    ".workflow.selected, .workflow.current": {
-      backgroundColor: theme.vars.palette.action.selected
-    },
-    ".workflow:hover": {
-      backgroundColor: theme.vars.palette.action.hover
-    },
-    ".workflow:focus-visible": {
-      outline: `2px solid ${theme.vars.palette.primary.main}`,
-      outlineOffset: -2
-    },
+    ".workflow.selected, .workflow.current": selectedRowStyles(theme),
     ".workflow img": {
       width: "100%",
       height: "100%",
@@ -90,9 +88,7 @@ const listStyles = (theme: Theme) =>
       paddingRight: `calc(${getSpacingPx(SPACING.xxl)} * 2 + ${getSpacingPx(SPACING.xxxl)} + ${getSpacingPx(SPACING.xs)})` // was 84px
     },
     ".name": {
-      fontSize: theme.fontSizeSmall,
-      fontWeight: 600,
-      lineHeight: 1.35,
+      ...TYPOGRAPHY.sans.label,
       color: theme.vars.palette.text.primary,
       userSelect: "none",
       flex: "1",
@@ -101,14 +97,13 @@ const listStyles = (theme: Theme) =>
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      paddingRight: "0",
-      letterSpacing: "0.01em"
+      paddingRight: "0"
     },
     ".date-container": {
       position: "absolute",
       top: "50%",
       transform: "translateY(-50%)",
-      right: "0.75em",
+      right: getSpacingPx(SPACING.lg),
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-start",
@@ -142,7 +137,7 @@ const listStyles = (theme: Theme) =>
       position: "absolute",
       top: "50%",
       transform: "translateY(-50%)",
-      right: "0.35em",
+      right: getSpacingPx(SPACING.xs),
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-end",
@@ -150,6 +145,7 @@ const listStyles = (theme: Theme) =>
       zIndex: Z_INDEX.dropdown,
       opacity: 0,
       transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none }),
       background: `linear-gradient(to right, transparent, rgb(${theme.vars.palette.background.defaultChannel} / 0.96) 16px)`,
       paddingLeft: getSpacingPx(SPACING.xxl),
       button: {
@@ -166,8 +162,8 @@ const listStyles = (theme: Theme) =>
     },
     // Preview mode - actions overlay on top of preview with background
     ".workflow.with-preview .actions": {
-      top: "4px",
-      right: "4px",
+      top: getSpacingPx(SPACING.xs),
+      right: getSpacingPx(SPACING.xs),
       transform: "none",
       backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.sm,
@@ -177,28 +173,28 @@ const listStyles = (theme: Theme) =>
     },
     // Preview mode - date at top right with higher z-index
     ".workflow.with-preview .date-container": {
-      top: "5px",
-      right: "5px",
+      top: getSpacingPx(SPACING.xs),
+      right: getSpacingPx(SPACING.xs),
       transform: "none",
-      zIndex: Z_INDEX.base + 5,
+      zIndex: Z_INDEX.raised,
       backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.sm,
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`
     },
+    // The virtualizer gives header rows a fixed 16px, so the eyebrow keeps a
+    // tight line height to sit inside it.
     ".date-header-row": {
       width: "100%",
-      padding: `0 ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xs)} 0`,
-      alignItems: "flex-end",
-      borderBottom: "1px solid var(--palette-divider)"
+      padding: `0 ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.micro)}`,
+      alignItems: "flex-end"
     },
     ".date-header": {
-      fontSize: theme.fontSizeSmaller,
+      ...EYEBROW,
+      color: theme.vars.palette.text.secondary,
       flexShrink: 0,
       padding: 0,
       lineHeight: 1.1,
-      textAlign: "right",
-      letterSpacing: "0.02em",
-      textTransform: "uppercase",
+      textAlign: "left",
       whiteSpace: "nowrap"
     }
   });
@@ -309,10 +305,10 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
         return (
           <Text
             className="date-header"
-            size="small"
+            size="smaller"
             color="secondary"
             weight={400}
-            sx={{ lineHeight: 1.1, textTransform: "uppercase", textAlign: "right", width: "100%" }}
+            sx={{ ...EYEBROW, lineHeight: 1.1, width: "100%" }}
           >
             {item.label}
           </Text>

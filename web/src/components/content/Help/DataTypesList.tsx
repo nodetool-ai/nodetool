@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import { useMemo, type SyntheticEvent } from "react";
 
 import {
+  Caption,
   CollapsibleSection,
   FlexColumn,
   FlexRow,
@@ -41,23 +42,15 @@ const DataTypesList = ({
     },
     ".help-item": {
       padding: `${getSpacingPx(SPACING.md)} 0`,
-      borderBottom: "1px solid var(--palette-grey-600)"
-    },
-    h5: {
-      color: "var(--palette-grey-200)",
-      fontSize: "1em",
-      paddingLeft: getSpacingPx(SPACING.xl),
-      "&:hover": {
-        color: "var(--palette-grey-100)"
-      }
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
     }
-  }), []);
+  }), [theme]);
 
   return (
     <div className="datatypes" css={cssStyles}>
       <CollapsibleSection
         title={
-          <Text size="normal" weight={600} color="secondary">
+          <Text size="small" color="secondary">
             {title}
           </Text>
         }
@@ -75,7 +68,6 @@ const DataTypesList = ({
               gap={1}
               align="flex-start"
               fullWidth
-              sx={{ padding: `${getSpacingPx(SPACING.md)} 0`, borderBottom: "1px solid var(--palette-grey-600)" }}
             >
               <IconForType
                 iconName={type.value}
@@ -97,23 +89,22 @@ const DataTypesList = ({
                 sx={{
                   minWidth: "180px",
                   wordBreak: "break-word",
-                  color: theme.vars.palette.grey[0]
+                  color: theme.vars.palette.text.primary
                 }}
               >
                 {type.namespace && (
-                  <Text size="small" weight={400} sx={{ width: "100%" }}>
+                  <Caption color="secondary" sx={{ width: "100%" }}>
                     {type.namespace}
-                  </Text>
+                  </Caption>
                 )}
-                <Text size="big" weight={400} sx={{ width: "100%" }}>
+                <Text size="small" sx={{ width: "100%" }}>
                   {type.name}
                 </Text>
               </FlexColumn>
               <Text
                 size="small"
                 sx={{
-                  borderRight: "0",
-                  color: theme.vars.palette.grey[50],
+                  color: theme.vars.palette.text.secondary,
                   flex: 1
                 }}
               >

@@ -13,7 +13,21 @@ import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../ui_primitives";
+import {
+  ExpandCollapseButton,
+  EmptyState,
+  Text,
+  Box,
+  BORDER_RADIUS,
+  EYEBROW,
+  TYPOGRAPHY,
+  Z_INDEX,
+  getSpacingPx,
+  SPACING,
+  focusRing,
+  selectableRowStyles,
+  selectedRowStyles
+} from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { isCoarsePointer } from "../../utils/isCoarsePointer";
 import { useVideoThumbnail } from "../../hooks/useVideoThumbnail";
@@ -110,13 +124,13 @@ const styles = (theme: Theme) =>
       borderBottom: "2px solid ",
       cursor: "pointer",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800]
-      }
+        backgroundColor: theme.vars.palette.action.hover
+      },
+      "&:focus-visible": focusRing(theme)
     },
     ".asset-content-type-title": {
-      fontSize: theme.fontSizeNormal,
-      color: theme.vars.palette.grey[100],
-      textTransform: "uppercase",
+      ...EYEBROW,
+      color: theme.vars.palette.text.secondary,
       marginLeft: getSpacingPx(SPACING.md),
       flex: 1
     },
@@ -126,14 +140,8 @@ const styles = (theme: Theme) =>
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       cursor: "pointer",
-      transition: MOTION.background,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800]
-      },
-      "&.selected": {
-        backgroundColor: "var(--palette-primary-main)" + "22",
-        borderLeft: `1px solid ${"var(--palette-primary-main)"}`
-      }
+      ...selectableRowStyles(theme),
+      "&.selected": selectedRowStyles(theme)
     },
     ".asset-item-icon": {
       marginRight: getSpacingPx(SPACING.lg),
@@ -175,7 +183,7 @@ const styles = (theme: Theme) =>
         left: 0,
         right: 0,
         bottom: 0,
-        border: `1px solid ${theme.vars.palette.grey[500]}22`,
+        border: `1px solid ${theme.vars.palette.divider}`,
         borderRadius: BORDER_RADIUS.sm,
         pointerEvents: "none"
       }
@@ -183,16 +191,15 @@ const styles = (theme: Theme) =>
     ".asset-item-name": {
       flex: "1 1 200px",
       minWidth: "150px",
-      fontSize: theme.fontSizeNormal,
+      ...TYPOGRAPHY.sans.label,
       userSelect: "none",
-      color: theme.vars.palette.grey[0],
+      color: theme.vars.palette.text.primary,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
     ".asset-item-name.folder": {
-      fontWeight: 500,
-      color: "var(--palette-primary-main)"
+      color: theme.vars.palette.primary.main
     },
     ".asset-item-size": {
       flex: "0 0 80px",

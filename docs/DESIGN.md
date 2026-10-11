@@ -820,7 +820,48 @@ Do not restyle a `CollapsibleSection` header into a filled bar, a bright
 
 ---
 
-## 12. Migration Checklist
+## 12. Lists and grids
+
+A list shows rows: sidebar documents, workflows, assets, models, versions,
+threads. A grid shows tiles: assets, templates, examples, projects, setup
+choices, generated takes. Each shares one set of interaction states, from
+[`selectionStyles.ts`](../web/src/components/ui_primitives/selectionStyles.ts),
+so hover, selection and keyboard focus look the same everywhere.
+
+```tsx
+import { AutoGrid, selectableRowStyles, selectableTileStyles } from "../ui_primitives";
+
+<Box sx={(theme) => selectableRowStyles(theme, { selected })} />
+<AutoGrid minItemWidth={160}>
+  {items.map((item) => (
+    <Box key={item.id} component="button"
+      sx={(theme) => selectableTileStyles(theme, { selected: item.id === id })} />
+  ))}
+</AutoGrid>
+```
+
+| Part | Rule |
+|---|---|
+| Row states | `selectableRowStyles`: `action.hover` on hover, `action.selected` when picked, `BORDER_RADIUS.md` |
+| Tile states | `selectableTileStyles`: 1px `divider` frame, `BORDER_RADIUS.md`. Picked: `primary.main` frame plus a 1px ring. Hover: `action.hover` |
+| Focus | `focusRing`: 2px `primary.main`. Rows draw it inside (offset -2), because a scrolling list clips it. Tiles draw it outside (offset 2) |
+| Row title | `TYPOGRAPHY.sans.label` (13px / 500). A row's secondary line is `Caption` |
+| Tile title | `TYPOGRAPHY.sans.label`. Metadata under it is `Caption` |
+| Group headers | `EYEBROW` in `text.secondary`, left-aligned with the rows: date groups, providers, asset types, namespaces. `SectionHeader size="small"` renders it |
+| Grid | `AutoGrid`. It caps the minimum column at the container width, so one tile fits a narrow panel |
+| Long lists | `VirtualList` |
+| Media | `ResponsiveImage` with `preferThumbnail`, and `loading="lazy"` in a long list |
+| Empty, error, loading | `EmptyState` (with `variant="error"`) and `LoadingSpinner` |
+| Hover actions | `HoverActionGroup`, which also shows on keyboard focus |
+
+Do not use a raw `rgba(255, 255, 255, a)` hover, a primary-tinted selected row,
+a shadow or lift as the only hover cue, or a second selected treatment. The
+one exception is `SelectableListItem`, whose left bar marks a second,
+dashed state such as a comparison target in version history.
+
+---
+
+## 13. Migration Checklist
 
 When editing any UI file, scan for these violations and fix them in the same PR.
 
@@ -863,7 +904,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 13. Adding New Tokens
+## 14. Adding New Tokens
 
 1. **Spacing**: Only add a new `SPACING.*` step if the existing nine steps genuinely cannot express the design intent. Justify in the PR. Update `spacing.ts`.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
@@ -875,7 +916,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 14. Design Decisions and Tradeoffs
+## 15. Design Decisions and Tradeoffs
 
 Documented rationale for choices that differ from common defaults.
 

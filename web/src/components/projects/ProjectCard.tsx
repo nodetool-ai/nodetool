@@ -1,18 +1,19 @@
 import { memo, useCallback, useState, type DragEvent } from "react";
 
+import { useTheme } from "@mui/material/styles";
+
 import {
-  BORDER_RADIUS,
   Box,
   Card,
   Caption,
   FlexColumn,
   FlexRow,
-  MOTION,
   ResponsiveImage,
   SPACING,
   StatusPill,
   Text,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  selectableTileStyles
 } from "../ui_primitives";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
@@ -40,6 +41,7 @@ interface ProjectCardProps {
  * board that has stills — what it looks like.
  */
 const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
+  const theme = useTheme();
   const [dropActive, setDropActive] = useState(false);
   const { project, documents, spend } = detail;
   const stills = documents.flatMap((doc) => doc.thumbnails).slice(0, 3);
@@ -69,9 +71,7 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
       onDrop={handleDrop}
       sx={{
         overflow: "hidden",
-        borderRadius: BORDER_RADIUS.lg,
-        borderColor: dropActive ? "primary.main" : "divider",
-        transition: MOTION.border
+        ...selectableTileStyles(theme, { selected: dropActive })
       }}
     >
       <Box

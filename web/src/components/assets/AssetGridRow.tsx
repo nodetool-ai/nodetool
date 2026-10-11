@@ -8,7 +8,7 @@ import AssetItem from "./AssetItem";
 import { colorForType } from "../../config/data_types";
 import { IconForType } from "../../config/IconForType";
 import { Asset } from "../../stores/ApiTypes";
-import { Text, Tooltip, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, Tooltip, BORDER_RADIUS, EYEBROW, SPACING, getSpacingPx } from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -171,12 +171,9 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             showTooltip={false}
           />
           <Text
-            size="small"
-            weight={FONT_WEIGHT.semibold}
             style={{
-              color: theme.vars.palette.grey[100],
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
+              ...EYEBROW,
+              color: theme.vars.palette.text.secondary,
               lineHeight: 1,
               whiteSpace: "nowrap"
             }}
