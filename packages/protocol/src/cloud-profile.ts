@@ -243,6 +243,9 @@ export const NON_CLOUD_PROVIDER_IDS: readonly string[] = [
   // A logged-in Dreamina tab in the user's own Chrome, reached through the
   // NodeTool extension.
   "dreamina",
+  // A logged-in chatgpt.com tab in the user's own Chrome, reached through the
+  // NodeTool extension.
+  "chatgpt",
   // Test double, dev-gated at registration.
   "fake"
 ];

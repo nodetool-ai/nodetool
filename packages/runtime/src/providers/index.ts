@@ -34,6 +34,7 @@ import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { DreaminaProvider } from "./dreamina-provider.js";
+import { ChatGPTProvider } from "./chatgpt-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
 import { NodeLlamaCppProvider } from "./node-llama-cpp-provider.js";
@@ -229,6 +230,8 @@ export { HiggsfieldProvider };
 export { UseapiProvider };
 export { ClaudeAgentProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
+export { ChatGPTProvider, setChatGPTTab } from "./chatgpt-provider.js";
+export type { ExtensionTab } from "./extension-tab.js";
 export { GeminiProvider };
 export { LlamaProvider };
 export { NodeLlamaCppProvider };
@@ -515,6 +518,10 @@ registerBuiltinProvider(PROVIDER_IDS.CLAUDE_AGENT_SDK, ClaudeAgentProvider, {});
 // by the NodeTool Chrome extension. No credentials; it lists no models until an
 // extension is attached. Pruned from the cloud profile (NON_CLOUD_PROVIDER_IDS).
 registerBuiltinProvider(PROVIDER_IDS.DREAMINA, DreaminaProvider, {});
+// ChatGPT: chat and image generation through the user's logged-in chatgpt.com
+// tab, driven by the NodeTool Chrome extension. No credentials. Pruned from the
+// cloud profile (NON_CLOUD_PROVIDER_IDS).
+registerBuiltinProvider(PROVIDER_IDS.CHATGPT, ChatGPTProvider, {});
 registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, {
   GEMINI_API_KEY: ""
 });
