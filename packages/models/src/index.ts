@@ -306,11 +306,13 @@ export {
   storyboardStatus,
   storyboardThumbnails,
   summarizeProject,
+  summarizeProjectDocumentPage,
   summarizeSpend,
   timelineStatus
 } from "./project-summary.js";
 export type {
   CategorySpend,
+  ProjectDocumentPage,
   ProjectDocumentRef,
   ProjectEntitySummary,
   ProjectDocumentStatus,

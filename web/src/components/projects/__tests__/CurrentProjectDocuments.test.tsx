@@ -7,23 +7,27 @@ const openTab = jest.fn();
 let activeProjectId: string | null = "p1";
 let personalProjectId: string | null = "personal";
 let documentCount = 1;
-const getProject = jest.fn((input: { id: string }) => ({
-  data: {
-    project: {
-      id: input.id,
-      name: input.id === "p1" ? "First project" : "Personal"
-    },
-    documents: Array.from({ length: documentCount }, (_, index) => ({
+const documentPage = jest.fn(
+  (input: { id: string; offset: number; limit: number }) => {
+    const all = Array.from({ length: documentCount }, (_, index) => ({
       type: "storyboard",
       ref: `${input.id}-board-${index + 1}`,
       name: `${input.id} board${documentCount > 1 ? ` ${index + 1}` : ""}`,
       thumbnails: [],
       preview: null
-    }))
-  },
-  isPending: false,
-  error: null
-}));
+    }));
+    return {
+      data: {
+        documents: all.slice(input.offset, input.offset + input.limit),
+        total: all.length,
+        partial: false
+      },
+      isPending: false,
+      error: null
+    };
+  }
+);
+const prefetch = jest.fn();
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   LOOSE_PROJECT_ID: "default",
@@ -38,8 +42,12 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
 
 jest.mock("../../../trpc/client", () => ({
   trpc: {
+    useUtils: () => ({ projects: { documentPage: { prefetch } } }),
     projects: {
-      get: { useQuery: (input: { id: string }) => getProject(input) }
+      documentPage: {
+        useQuery: (input: { id: string; offset: number; limit: number }) =>
+          documentPage(input)
+      }
     }
   }
 }));
@@ -88,7 +96,7 @@ beforeEach(() => {
 
 it("shows and opens documents from the active project", async () => {
   renderDocuments();
-  expect(getProject).toHaveBeenCalledWith({ id: "p1" });
+  expect(documentPage).toHaveBeenCalledWith({ id: "p1", offset: 0, limit: 4 });
   expect(screen.getByRole("button", { name: "Switch project" })).toBeInTheDocument();
   const document = screen.getByRole("button", { name: "p1 board" });
   expect(document).toHaveAttribute("data-compact", "true");
@@ -104,7 +112,11 @@ it("shows and opens documents from the active project", async () => {
 it("uses the personal project when no project is selected", () => {
   activeProjectId = null;
   renderDocuments();
-  expect(getProject).toHaveBeenCalledWith({ id: "personal" });
+  expect(documentPage).toHaveBeenCalledWith({
+    id: "personal",
+    offset: 0,
+    limit: 4
+  });
   expect(
     screen.getByRole("button", { name: "personal board" })
   ).toBeInTheDocument();
@@ -115,11 +127,21 @@ it("shows four documents per page and resets to the first page for another proje
   const { rerender } = renderDocuments();
   expect(screen.getAllByRole("button", { name: /p1 board/ })).toHaveLength(4);
   expect(screen.getByText("1–4 of 9")).toBeInTheDocument();
+  // The next page is fetched ahead, so Next does not wait on the server.
+  expect(prefetch).toHaveBeenCalledWith(
+    { id: "p1", offset: 4, limit: 4 },
+    expect.anything()
+  );
   await userEvent.click(screen.getByRole("button", { name: "Next" }));
   expect(
     screen.getByRole("button", { name: "p1 board 5" })
   ).toBeInTheDocument();
   expect(screen.getByText("5–8 of 9")).toBeInTheDocument();
+  expect(documentPage).toHaveBeenLastCalledWith({
+    id: "p1",
+    offset: 4,
+    limit: 4
+  });
   activeProjectId = "p2";
   rerender(
     <ThemeProvider theme={mockTheme}>
@@ -133,4 +155,22 @@ it("shows four documents per page and resets to the first page for another proje
     screen.queryByRole("button", { name: "p2 board 5" })
   ).not.toBeInTheDocument();
   expect(screen.getByText("1–4 of 9")).toBeInTheDocument();
+});
+
+it("steps back to the last page when documents disappear", async () => {
+  documentCount = 9;
+  const { rerender } = renderDocuments();
+  await userEvent.click(screen.getByRole("button", { name: "Next" }));
+  await userEvent.click(screen.getByRole("button", { name: "Next" }));
+  expect(screen.getByText("9–9 of 9")).toBeInTheDocument();
+  documentCount = 5;
+  rerender(
+    <ThemeProvider theme={mockTheme}>
+      <CurrentProjectDocuments />
+    </ThemeProvider>
+  );
+  expect(
+    await screen.findByRole("button", { name: "p1 board 5" })
+  ).toBeInTheDocument();
+  expect(screen.getByText("5–5 of 5")).toBeInTheDocument();
 });

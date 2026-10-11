@@ -45,6 +45,7 @@ const CopyProjectDocumentAction = ({
     onSuccess: () => {
       setOpen(false);
       void utils.projects.get.invalidate();
+      void utils.projects.documentPage.invalidate();
       void utils.projects.summaries.invalidate();
     },
     onError: (error) => {

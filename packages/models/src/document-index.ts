@@ -31,6 +31,7 @@ import { getPortableDb } from "./db.js";
 import { entityFromAsset } from "./entity.js";
 import { applications } from "./schema/applications.js";
 import { assets } from "./schema/assets.js";
+import { games } from "./schema/games.js";
 import { imageDocuments } from "./schema/image-documents.js";
 import { jsScripts } from "./schema/js-scripts.js";
 import { scripts } from "./schema/scripts.js";
@@ -88,8 +89,9 @@ const log = createLogger("nodetool.models.document-index");
  * The document tables. They differ in everything but the five columns this
  * reads, which is why one query shape serves all of them.
  */
-type DocumentTable =
+export type DocumentTable =
   | typeof workflows
+  | typeof games
   | typeof applications
   | typeof imageDocuments
   | typeof scripts
@@ -97,7 +99,7 @@ type DocumentTable =
   | typeof timelineSequences
   | typeof jsScripts;
 
-interface NamedRow {
+export interface NamedRow {
   id: string;
   name: string;
   updated_at: string;
@@ -121,8 +123,8 @@ function listedRunModes(): SQL<unknown> {
   return condition;
 }
 
-/** The named rows of one table, newest first, one over the cap. */
-async function listNamed(
+/** The named rows of one table, newest first, up to `limit`. */
+export async function listNamed(
   table: DocumentTable,
   userId: string,
   projectId: string,
