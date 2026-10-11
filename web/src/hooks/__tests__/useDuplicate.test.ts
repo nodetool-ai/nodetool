@@ -55,6 +55,8 @@ describe("useDuplicateNodes", () => {
   };
 
   const mockGetNodesBounds = jest.fn();
+  const mockBeginGroup = jest.fn();
+  const mockEndGroup = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -67,7 +69,13 @@ describe("useDuplicateNodes", () => {
     // The hook reads nodes/edges lazily; keep the getter live so tests that
     // reassign `mockUseNodesReturn.edges` still take effect.
     (useNodeStoreRef as jest.Mock).mockReturnValue({
-      getState: () => mockUseNodesReturn
+      getState: () => mockUseNodesReturn,
+      temporal: {
+        getState: () => ({
+          beginGroup: mockBeginGroup,
+          endGroup: mockEndGroup
+        })
+      }
     });
     (useReactFlow as jest.Mock).mockReturnValue({
       getNodesBounds: mockGetNodesBounds,
@@ -113,6 +121,25 @@ describe("useDuplicateNodes", () => {
     expect(mockGenerateNodeIds).toHaveBeenCalledWith(1);
     expect(mockSetNodes).toHaveBeenCalled();
     expect(mockSetEdges).toHaveBeenCalled();
+  });
+
+  it("records the new nodes and edges as one undo entry", () => {
+    mockGetSelectedNodes.mockReturnValue([
+      { id: "node-1", position: { x: 0, y: 0 }, data: {} }
+    ]);
+    mockGetNodesBounds.mockReturnValue({ width: 50, height: 30, x: 0, y: 0 });
+
+    const { result } = renderHook(() => useDuplicateNodes(false));
+    act(() => {
+      result.current();
+    });
+
+    const [begin] = mockBeginGroup.mock.invocationCallOrder;
+    const [setNodes] = mockSetNodes.mock.invocationCallOrder;
+    const [setEdges] = mockSetEdges.mock.invocationCallOrder;
+    const [end] = mockEndGroup.mock.invocationCallOrder;
+    expect(begin).toBeLessThan(setNodes);
+    expect(setEdges).toBeLessThan(end);
   });
 
   it("duplicates selected nodes vertically", () => {

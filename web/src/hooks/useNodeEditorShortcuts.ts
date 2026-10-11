@@ -523,8 +523,10 @@ export const useNodeEditorShortcuts = (
       copy: { callback: handleCopy, preventDefault: false },
       cut: { callback: handleCut },
       paste: { callback: handlePaste, preventDefault: false },
-      undo: { callback: undoHistory },
-      redo: { callback: redoHistory },
+      // The combo passes its KeyboardEvent, which undo/redo would read as a
+      // step count and unwind the whole history.
+      undo: { callback: () => undoHistory() },
+      redo: { callback: () => redoHistory() },
       selectAll: { callback: selectAllNodes },
       align: { callback: handleAlign, active: selectedNodeCount > 0 },
       alignWithSpacing: {

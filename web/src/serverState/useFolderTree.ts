@@ -7,8 +7,11 @@ import {
 
 export function useFolderTree(sortBy: "name" | "updated_at" = "name") {
   const loadFolderTree = useAssetStore((state) => state.loadFolderTree);
-  const activeProjectId =
-    useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
+  // Same scope as useAssets, which creates the folders this tree lists.
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) =>
+      state.activeProjectId ?? state.personalProjectId ?? LOOSE_PROJECT_ID
+  );
 
   return useQuery({
     queryKey: ["folderTree", sortBy, activeProjectId],
