@@ -1,7 +1,7 @@
 name: User Journeys
 
-# Pull requests, nightly and on demand (browser journeys), plus every push to
-# main for the reliability-ring1 job below.
+# Browser journeys run nightly, on demand, and on labeled pull requests. The
+# reliability-ring1 job below also runs on every push to main.
 #
 # The journey suite drives whole flows through a real browser (build a graph and
 # run it, send a chat message, run a mini app, browse the library), so it is
@@ -48,10 +48,14 @@ concurrency:
 jobs:
   journeys:
     name: Drive the app the way a user does
-    # Advisory on pull requests and opt-in there: a PR runs this suite when
-    # the `browser-suites` label is added. Pushes to main, nightly and manual
-    # runs always run it.
-    if: ${{ github.event_name != 'pull_request' || github.event.label.name == 'browser-suites' }}
+    # Advisory, so it runs nightly, on dispatch, and on a PR when the
+    # `browser-suites` label is added, but not on pushes to main.
+    # fly-deploy.yml reads this workflow's conclusion per commit, so running it
+    # on push made a failing journey block the deploy that only Ring 1 gates.
+    if: >-
+      ${{ github.event_name == 'schedule'
+      || github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'pull_request' && github.event.label.name == 'browser-suites') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
