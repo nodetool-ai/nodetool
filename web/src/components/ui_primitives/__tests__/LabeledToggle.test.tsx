@@ -23,6 +23,12 @@ describe("LabeledToggle", () => {
     jest.clearAllMocks();
   });
 
+  // The tooltip opens after its enter delay. Fake timers let findByRole
+  // advance that delay instead of racing it against its own 1 s wait.
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it("renders with expand icon by default", () => {
     render(
       <ThemeProvider theme={mockTheme}>
@@ -105,6 +111,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
+    jest.useFakeTimers();
     fireEvent.mouseOver(screen.getByRole("button"));
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Show details");
   });
@@ -121,6 +128,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
+    jest.useFakeTimers();
     fireEvent.mouseOver(screen.getByRole("button"));
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Hide details");
   });
@@ -136,6 +144,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
+    jest.useFakeTimers();
     fireEvent.mouseOver(screen.getByRole("button"));
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Toggle details");
   });
@@ -147,6 +156,7 @@ describe("LabeledToggle", () => {
       </ThemeProvider>
     );
 
+    jest.useFakeTimers();
     fireEvent.mouseOver(screen.getByRole("button"));
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Show");
   });
