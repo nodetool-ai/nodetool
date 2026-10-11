@@ -482,9 +482,20 @@ const NewProjectSurface = ({
   // the handlers read this rather than the render's copy of the state.
   const setupTargetRef = useRef<SetupTarget | null>(setupTarget);
   // Whether this guided tab is the one on screen. The New Project tab itself
-  // (no `flowRef`) only finishes from a click, so it always is.
+  // (no `flowRef`) only finishes from a click, so it always is. The workflow
+  // build opens the flow's own document to reach its canvas, and a creator
+  // looking at that document is looking at the flow too.
   const guidedTabActive = useWorkspaceTabsStore(
-    (state) => !flowRef || state.activeTabId === tabId("guided-flow", flowRef)
+    (state) =>
+      !flowRef ||
+      state.activeTabId === tabId("guided-flow", flowRef) ||
+      (setupTarget !== null &&
+        setupTarget.kind in SETUP_TAB_TYPE &&
+        state.activeTabId ===
+          tabId(
+            SETUP_TAB_TYPE[setupTarget.kind as keyof typeof SETUP_TAB_TYPE],
+            setupTarget.id
+          ))
   );
   const guidedTabActiveRef = useRef(guidedTabActive);
   guidedTabActiveRef.current = guidedTabActive;
