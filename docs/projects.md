@@ -27,11 +27,11 @@ Each card shows:
 - A status line, such as `8 shots · stills 8/8 · voiced 12/14 · cut 6 clips · 0:30`.
 - What the project has cost, labelled "provider rates". A figure like `$4.12 · 2 unpriced` means two calls had no price. A leading `≥` marks a lower bound. See [Costs & Credits](costs-and-credits.md).
 
-Click a card to open the project. A dashed **Start a project** card opens the new-project surface.
+Click a card to open the project. The dashed **Start a project** card does the same as **+ New project**.
 
 ## Start a project
 
-**+ New project** opens the surface titled "What do you want to make?".
+**+ New project**, on the Projects page or at the top of the **Project** selector, asks for a project name. **Create project** adds the project to the list, makes it the active project, and opens its home surface, titled "What do you want to make?".
 
 ![Start a project](assets/screenshots/project-new.png)
 

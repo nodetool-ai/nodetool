@@ -27,13 +27,13 @@ import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import {
   useAssignDocument,
   useArchivedProjects,
-  useOpenNewProjectTab,
   useOpenProject,
   useProjectSummaries,
   useUnassignedDocuments
 } from "../../hooks/useProjects";
 import ProjectCard from "./ProjectCard";
 import ProjectLifecycleActions from "./ProjectLifecycleActions";
+import NewProjectDialog from "./NewProjectDialog";
 import { PROJECT_COLOR } from "./projectIdentity";
 import type { ProjectDetail } from "./projectStatus";
 
@@ -95,7 +95,9 @@ const ProjectListSurface = () => {
   const unassigned = useUnassignedDocuments();
   const assignDocument = useAssignDocument();
   const openProject = useOpenProject();
-  const openNewProject = useOpenNewProjectTab();
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const openNewProject = useCallback(() => setNewProjectOpen(true), []);
+  const closeNewProject = useCallback(() => setNewProjectOpen(false), []);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -333,6 +335,7 @@ const ProjectListSurface = () => {
           ))}
         </FlexColumn>
       )}
+      <NewProjectDialog open={newProjectOpen} onClose={closeNewProject} />
     </FlexColumn>
   );
 };

@@ -309,7 +309,7 @@ on one long-GOP 4K phone clip without a proxy:
 6. **Default flip.** Run the acceptance criteria and flip the setting. Decide on
    the worker move (D10) with the task-length measurement.
 
-Each phase is one PR and passes the [mandatory checks](../AGENTS.md#mandatory-post-change-verification).
+Each phase is one PR and passes the [mandatory checks](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification).
 
 ## Tests
 
