@@ -171,6 +171,7 @@ export default {
     "^.*components/asset_viewer/PDFViewer$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^wavesurfer\\.js$": "<rootDir>/src/__mocks__/wavesurfer.ts",
     "^monaco-editor$": "<rootDir>/src/__mocks__/emptyModule.ts",
+    "^\\./monacoWorkers$": "<rootDir>/src/__mocks__/monacoWorkers.ts",
     "^@monaco-editor/react$": "<rootDir>/src/__mocks__/emptyModule.ts"
   },
   setupFiles: ["<rootDir>/jest.setup.js"],
