@@ -320,6 +320,8 @@ export function audioBufferCacheKey(assetId: string, url: string): string {
 export class AudioGraph {
   private ctx: BaseAudioContext | null = null;
   private masterGain: GainNode | null = null;
+  /** Listener volume, linear 0..1. Applied after every mix decision. */
+  private masterVolume = 1;
   private trackChains = new Map<string, TrackChainState>();
   private clipGains = new Map<string, GainNode>();
   /**
@@ -350,9 +352,24 @@ export class AudioGraph {
     if (!this.ctx) {
       this.ctx = this.injectedContext ?? new AudioContext();
       this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = this.masterVolume;
       this.masterGain.connect(this.ctx.destination);
     }
     return this.ctx;
+  }
+
+  /**
+   * Set the listener volume (linear, clamped to 0..1). It scales the whole
+   * mix and does not change the document, so the export is not affected.
+   */
+  setMasterVolume(volume: number): void {
+    this.masterVolume = Math.min(1, Math.max(0, volume));
+    const ctx = this.ctx;
+    const gain = this.masterGain?.gain;
+    if (!ctx || !gain) return;
+    // A short glide avoids a click when the slider moves during playback.
+    gain.cancelScheduledValues(ctx.currentTime);
+    gain.setTargetAtTime(this.masterVolume, ctx.currentTime, 0.01);
   }
 
   get context(): BaseAudioContext | null {
