@@ -50,4 +50,7 @@ export interface GameRenderer {
 export { FixedTickClock } from "./fixed-tick-host.js";
 export { GameInput3D } from "./input3d.js";
 export { browserGamepads, GameInput, type GamepadLike, type TouchInputState } from "./input-bindings.js";
-export * from "./ui/index.js";
+export * from "./ui/layout.js";
+export * from "./ui/paint.js";
+export * from "./ui/hud2d.js";
+export * from "./ui/controller.js";

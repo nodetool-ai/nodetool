@@ -4,7 +4,8 @@ import type { GameUiFrame } from "@nodetool-ai/protocol";
 import { describe, expect, it } from "vitest";
 import { GameInput, type GamepadLike } from "../src/input-bindings.js";
 import { captureGameFrame } from "../src/node.js";
-import { GameUiController, layoutGameUi, nextGameUiFocus, type GameUiMeasureText } from "../src/ui/index.js";
+import { GameUiController } from "../src/ui/controller.js";
+import { layoutGameUi, nextGameUiFocus, type GameUiMeasureText } from "../src/ui/layout.js";
 import { hudWidgetsGame2D } from "./fixtures/hud-widgets.js";
 
 // Eight HUD pixels per character, so text sizes are exact.
