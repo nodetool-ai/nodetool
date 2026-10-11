@@ -92,6 +92,11 @@ describe("useSceneAiRender", () => {
       pending = result.current.render(request);
     });
     await waitFor(() => expect(sendMock).toHaveBeenCalled());
+    // Catch before the reply lands, so the rejection is never unhandled.
+    const outcome = pending.then(
+      () => null,
+      (error: unknown) => error
+    );
     const frame = lastFrame();
     await act(async () => {
       handlers.get(frame.request_id)!({
@@ -99,7 +104,9 @@ describe("useSceneAiRender", () => {
         error: { message: "Model does not accept input images" }
       });
     });
-    await expect(pending).rejects.toThrow("Model does not accept input images");
+    const error = await outcome;
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("Model does not accept input images");
     expect(deleteAsset).toHaveBeenCalledWith("capture-1");
   });
 
