@@ -10,7 +10,22 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import { DeleteButton, FavoriteButton, StatusPill, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import {
+  DeleteButton,
+  FavoriteButton,
+  StatusPill,
+  Text,
+  MOTION,
+  BORDER_RADIUS,
+  FONT_WEIGHT,
+  SHADOW,
+  SPACING,
+  getSpacingPx,
+  Z_INDEX,
+  focusRing,
+  reducedMotion,
+  selectedTileStyles
+} from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -38,10 +53,12 @@ const styles = (theme: Theme) =>
       // Without this a phone waits for a second tap before dispatching the
       // first click, and double-tap zooms the panel instead of opening.
       touchAction: "manipulation",
+      borderRadius: BORDER_RADIUS.md,
       boxSizing: "border-box",
       WebkitBoxSizing: "border-box",
       MozBoxSizing: "border-box"
     },
+    "&:focus-visible": focusRing(theme, 2),
     ".asset": {
       position: "relative",
       width: "100%",
@@ -50,17 +67,15 @@ const styles = (theme: Theme) =>
       top: 0,
       bottom: 0,
       background: `linear-gradient(180deg, rgb(${theme.vars.palette.common.whiteChannel} / 0.045) 0%, rgb(${theme.vars.palette.common.blackChannel} / 0.18) 100%), ${theme.vars.palette.grey[800]}`,
-      borderRadius: BORDER_RADIUS.lg,
+      borderRadius: BORDER_RADIUS.md,
       overflow: "hidden",
       contain: "layout style paint",
-      border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
-      boxShadow: `0 8px 18px ${theme.vars.palette.c_scrim_soft}`,
-      transition: `${MOTION.shadow}, ${MOTION.border}`
+      border: `1px solid ${theme.vars.palette.divider}`,
+      boxShadow: "none",
+      transition: `${MOTION.shadow}, ${MOTION.border}`,
+      ...reducedMotion({ transition: MOTION.none })
     },
-    "&.selected .asset": {
-      border: `2px solid ${theme.vars.palette.primary.main}`,
-      boxShadow: `0 8px 18px rgb(${theme.vars.palette.primary.mainChannel} / 0.25)`
-    },
+    "&.selected .asset": selectedTileStyles(theme),
     "&.selected::before": {
       content: '""',
       position: "absolute",
@@ -75,15 +90,17 @@ const styles = (theme: Theme) =>
       backgroundSize: "70% 70%",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      zIndex: Z_INDEX.tooltip,
-      boxShadow: `0 2px 6px ${theme.vars.palette.c_scrim}`
+      zIndex: Z_INDEX.raised,
+      boxShadow: SHADOW(theme).sm
     },
     ".asset::after": {
       content: '""',
       position: "absolute",
       inset: 0,
       pointerEvents: "none",
-      background: `linear-gradient(180deg, ${theme.vars.palette.c_overlay}, transparent 32%)`
+      background: `linear-gradient(180deg, ${theme.vars.palette.c_overlay}, transparent 32%)`,
+      transition: MOTION.background,
+      ...reducedMotion({ transition: MOTION.none })
     },
     ".asset .image, .asset .image-aspect-ratio": {
       position: "absolute",
@@ -101,9 +118,8 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[800],
       willChange: "opacity"
     },
-    "&:hover .asset": {
-      boxShadow: `0 16px 30px ${theme.vars.palette.c_scrim_soft}`,
-      borderColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.1)`
+    "&:not(.selected):hover .asset::after": {
+      backgroundColor: theme.vars.palette.action.hover
     },
     "&:hover .asset .image": {
       opacity: 1,
@@ -133,7 +149,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       pointerEvents: "none",
       fontSize: theme.fontSizeSmaller,
-      fontWeight: 600,
+      fontWeight: FONT_WEIGHT.normal,
       letterSpacing: "0.02em",
       color: theme.vars.palette.grey[0],
       margin: "0",
@@ -199,12 +215,12 @@ const styles = (theme: Theme) =>
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[100],
       fontSize: theme.fontSizeSmaller,
-      fontWeight: FONT_WEIGHT.medium
+      fontWeight: FONT_WEIGHT.normal
     },
     ".duration": {
       bottom: "2px",
       right: "0.25em",
-      color: "white"
+      color: theme.vars.palette.common.white
     },
     "img, video": {
       position: "absolute",
@@ -240,9 +256,10 @@ const styles = (theme: Theme) =>
       position: "absolute",
       bottom: getSpacingPx(SPACING.micro),
       left: getSpacingPx(SPACING.micro),
-      zIndex: Z_INDEX.modal,
+      zIndex: Z_INDEX.raised,
       opacity: 0,
-      transition: MOTION.opacity
+      transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none })
     },
     "&:hover .asset-favorite, &:focus-within .asset-favorite, .asset-favorite.is-favorite":
       {
@@ -301,10 +318,10 @@ const styles = (theme: Theme) =>
     },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {
-      color: "var(--palette-primary-main)"
+      color: theme.vars.palette.primary.main
     },
     ".folder-up-button.disabled": {
-      color: "gray"
+      color: theme.vars.palette.text.disabled
     },
     // DRAG HOVER
     "&.drag-hover": {
@@ -322,7 +339,7 @@ const styles = (theme: Theme) =>
       lineHeight: "1.1em",
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.error.main,
-      borderBottom: "1px solid" + theme.vars.palette.error.main,
+      borderBottom: `1px solid ${theme.vars.palette.error.main}`,
       width: "100%",
       height: "100%"
     }
@@ -333,7 +350,7 @@ const videoIconOverlayStyle: React.CSSProperties = {
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  color: "white",
+  color: "var(--palette-common-white)",
   fontSize: "3em",
   opacity: 0.8,
   filter: "drop-shadow(0px 0px 4px var(--palette-c_scrim))",
@@ -365,7 +382,7 @@ const deleteButtonOverlayStyle = css({
   position: "absolute",
   top: 4,
   right: 4,
-  zIndex: Z_INDEX.modal
+  zIndex: Z_INDEX.raised
 });
 
 const AssetItem: React.FC<AssetItemProps> = (props) => {
@@ -567,7 +584,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             ) : (
               <VideoFileIcon
                 className="placeholder"
-                style={{ color: `var(--c_${assetType})`, zIndex: Z_INDEX.modal }}
+                style={{ color: `var(--c_${assetType})`, zIndex: Z_INDEX.raised }}
                 titleAccess={asset.content_type || "Video file"}
               />
             )}
@@ -645,7 +662,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               position: "absolute",
               top: getSpacingPx(SPACING.xs),
               left: getSpacingPx(SPACING.xs),
-              zIndex: Z_INDEX.modal
+              zIndex: Z_INDEX.raised
             }}
           >
             Media offline
@@ -662,7 +679,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               style={{
                 color: `var(--c_${assetType}, var(--palette-grey-100))`,
                 textTransform: "uppercase",
-                zIndex: Z_INDEX.modal
+                zIndex: Z_INDEX.raised
               }}
             >
               {assetFileEnding}

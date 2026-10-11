@@ -280,6 +280,13 @@ export {
 
 // Shared styles for the sidebar document list panels
 export { listPanelStyles } from "./listPanelStyles";
+export {
+  focusRing,
+  selectableRowStyles,
+  selectedRowStyles,
+  selectableTileStyles,
+  selectedTileStyles
+} from "./selectionStyles";
 export { ListPanelItem } from "./ListPanelItem";
 export type { ListPanelItemProps } from "./ListPanelItem";
 export { DocumentListPanel } from "./DocumentListPanel";

@@ -14,7 +14,6 @@ import { EmptyState } from "./EmptyState";
 import { FlexColumn } from "./FlexColumn";
 import { listPanelStyles } from "./listPanelStyles";
 import { LoadingSpinner } from "./LoadingSpinner";
-import { Text } from "./Text";
 
 export interface DocumentListPanelDocument {
   id: string;
@@ -40,6 +39,8 @@ export interface DocumentListPanelProps<T extends DocumentListPanelDocument> {
   onCancelDelete: () => void;
   onConfirmDelete: () => void;
   renderItem: (document: T) => ReactNode;
+  /** Extra match for the search box, e.g. a description. The name always matches. */
+  matches?: (document: T, needle: string) => boolean;
 }
 
 export function DocumentListPanel<T extends DocumentListPanelDocument>({
@@ -54,7 +55,8 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
   deleteTarget,
   onCancelDelete,
   onConfirmDelete,
-  renderItem
+  renderItem,
+  matches
 }: DocumentListPanelProps<T>) {
   const theme = useTheme();
   const [filterValue, setFilterValue] = useState("");
@@ -73,7 +75,11 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
     const all = documents ?? [];
     const needle = filterValue.trim().toLowerCase();
     const filtered = needle
-      ? all.filter((item) => item.name.toLowerCase().includes(needle))
+      ? all.filter(
+          (item) =>
+            item.name.toLowerCase().includes(needle) ||
+            (matches?.(item, needle) ?? false)
+        )
       : all;
     // Parsed once per row instead of twice per comparison — this whole pass
     // re-runs on every keystroke in the filter box.
@@ -91,7 +97,7 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
       currentGroup = group;
       return { item, group, showHeader };
     });
-  }, [documents, filterValue]);
+  }, [documents, filterValue, matches]);
 
   return (
     <FlexColumn fullHeight fullWidth gap={0} css={listPanelStyles(theme)}>
@@ -151,14 +157,7 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
             <Fragment key={item.id}>
               {showHeader && (
                 <div className="date-header-row">
-                  <Text
-                    className="date-header"
-                    size="small"
-                    color="secondary"
-                    weight={400}
-                  >
-                    {group}
-                  </Text>
+                  <span className="date-header">{group}</span>
                 </div>
               )}
               {renderItem(item)}

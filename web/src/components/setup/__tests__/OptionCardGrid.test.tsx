@@ -130,6 +130,6 @@ describe("OptionCardGrid", () => {
     const art = screen
       .getByRole("radio", { name: /Horror/ })
       .querySelector("img");
-    expect(art).toHaveAttribute("src", "https://assets.test/horror-still");
+    expect(art).toHaveAttribute("src", "https://assets.test/horror-still_thumb.jpg");
   });
 });

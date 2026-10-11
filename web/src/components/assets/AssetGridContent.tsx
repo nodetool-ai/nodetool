@@ -29,7 +29,14 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import AssetListView from "./AssetListView";
-import { EmptyState, LoadingSpinner, getSpacingPx, SPACING } from "../ui_primitives";
+import {
+  BORDER_RADIUS,
+  EmptyState,
+  LoadingSpinner,
+  getSpacingPx,
+  SPACING,
+  focusRing
+} from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -57,7 +64,9 @@ const styles = (theme: Theme) =>
       padding: `${getSpacingPx(SPACING.md)} 0`,
       backgroundColor: "transparent",
       fontSize: theme.fontSizeSmall,
-      textTransform: "uppercase"
+      textTransform: "uppercase",
+      borderRadius: BORDER_RADIUS.md,
+      "&:focus-visible": focusRing(theme)
     },
     ".content-type-header button": {
       opacity: 0.6
@@ -336,9 +345,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
           width: "100%",
           height: "100%",
           borderLeft: isHorizontal
-            ? "1px solid" + theme.vars.palette.grey[600]
+            ? `1px solid ${theme.vars.palette.divider}`
             : "none",
-          paddingLeft: isHorizontal ? ".5em" : "0"
+          paddingLeft: isHorizontal ? getSpacingPx(SPACING.md) : "0"
         }}
       >
         <AssetListView
@@ -413,9 +422,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
         width: "100%",
         height: "100%",
         borderLeft: isHorizontal
-          ? "1px solid" + theme.vars.palette.grey[600]
+          ? `1px solid ${theme.vars.palette.divider}`
           : "none",
-        paddingLeft: isHorizontal ? ".5em" : "0"
+        paddingLeft: isHorizontal ? getSpacingPx(SPACING.md) : "0"
       }}
     >
       <div

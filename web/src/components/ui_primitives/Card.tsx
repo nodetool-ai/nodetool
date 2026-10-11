@@ -8,7 +8,8 @@
 import { memo, forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { MOTION } from "./tokens";
+import { MOTION, SHADOW, reducedMotion } from "./tokens";
+import { focusRing } from "./selectionStyles";
 import { activateOnKey } from "./keyboardActivation";
 import { isNumber } from "../../utils/typePredicates";
 
@@ -119,10 +120,15 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
         "&:hover": hoverable || clickable
           ? {
               transform: "translateY(-2px)",
-              boxShadow: `0 ${elevation + 4}px ${(elevation + 4) * 2}px rgba(0, 0, 0, 0.25)`,
+              boxShadow: SHADOW(theme).md,
               backgroundColor: theme.vars.palette.action.hover
             }
           : undefined,
+        ...reducedMotion({
+          transition: MOTION.none,
+          "&:hover": { transform: "none" }
+        }),
+        "&:focus-visible": clickable ? focusRing(theme, 2) : undefined,
         ...sx
       }}
       {...props}

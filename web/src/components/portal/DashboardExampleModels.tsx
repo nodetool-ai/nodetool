@@ -7,7 +7,7 @@ import {
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import {
-  Box,
+  AutoGrid,
   Card,
   Caption,
   EditorButton,
@@ -18,7 +18,8 @@ import {
   ResponsiveImage,
   SPACING,
   TabGroup,
-  Text
+  Text,
+  TYPOGRAPHY
 } from "../ui_primitives";
 import {
   EXAMPLE_MODEL_PACKS,
@@ -122,25 +123,15 @@ const DashboardExampleModels = () => {
           onAction={() => void catalog.refetch()}
         />
       ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, minmax(0, 1fr))",
-              md: "repeat(3, minmax(0, 1fr))"
-            },
-            gap: SPACING.xl
-          }}
-        >
+        <AutoGrid minItemWidth={240} gap={SPACING.xl}>
           {catalog.data.models.map((model) => {
             const opening =
               install.isPending && install.variables?.uri === model.uri;
             return (
               <Card key={model.uri} variant="outlined">
                 <FlexColumn gap={SPACING.sm} sx={{ height: "100%" }}>
-                  <Text size="normal">{model.name}</Text>
-                  <Text color="secondary">{model.use}</Text>
+                  <Text sx={TYPOGRAPHY.sans.label}>{model.name}</Text>
+                  <Caption color="secondary">{model.use}</Caption>
                   <Caption>
                     {model.triangles.toLocaleString()} triangles
                     {model.clips.length > 0
@@ -160,7 +151,7 @@ const DashboardExampleModels = () => {
               </Card>
             );
           })}
-        </Box>
+        </AutoGrid>
       )}
     </FlexColumn>
   );

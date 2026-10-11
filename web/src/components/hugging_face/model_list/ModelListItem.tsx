@@ -282,11 +282,11 @@ const ModelListItem: React.FC<
                   }
                   sx={{
                     background:
-                      "rgba(var(--palette-primary-main-channel) / 0.1)",
+                      "rgba(var(--palette-primary-mainChannel) / 0.1)",
                     cursor: "pointer",
                     "&:hover": {
                       background:
-                        "rgba(var(--palette-primary-main-channel) / 0.2)"
+                        "rgba(var(--palette-primary-mainChannel) / 0.2)"
                     },
                     "& .MuiChip-icon": {
                       color: "inherit",

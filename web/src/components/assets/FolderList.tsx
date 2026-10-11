@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 
 import {
   Box,
+  BORDER_RADIUS,
   MOTION,
   Accordion,
   AccordionSummary,
@@ -88,12 +89,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       height: ROW_HEIGHT_REM + "rem",
       gap: getSpacingPx(SPACING.xs),
-      borderRadius: ".5em"
-    },
-    ".row:hover": {
-      opacity: 0.9,
-
-      backgroundColor: theme.vars.palette.grey[900]
+      borderRadius: BORDER_RADIUS.md
     },
     ".expand-gutter": {
       // Button reset — keep the original gutter look.
