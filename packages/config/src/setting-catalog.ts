@@ -82,6 +82,11 @@ s(
   "Path to the Blender executable used by the nodetool.blender nodes. If not specified, the nodes look for blender on PATH and in the well-known install locations."
 );
 s(
+  "MANIMGX_PATH",
+  "Folders",
+  "Path to the manimgx executable used by the nodetool.manimgx nodes. If not specified, the nodes look for manimgx on PATH and in ~/.local/bin."
+);
+s(
   "VECTORSTORE_DB_PATH",
   "Folders",
   "Location of the sqlite-vec vector database file. Used to store and retrieve embeddings for semantic search and RAG applications."

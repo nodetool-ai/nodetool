@@ -8,7 +8,13 @@
  * It does NOT own the display canvas DOM element (React manages that).
  */
 
-import type { LayerContentBounds, LayerEffect, Selection, SketchDocument } from "../types";
+import type {
+  LayerContentBounds,
+  LayerEffect,
+  LayerImageObjectFit,
+  Selection,
+  SketchDocument
+} from "../types";
 
 // ─── Dirty rect for partial compositing ──────────────────────────────────────
 
@@ -200,12 +206,17 @@ export interface SketchRuntime {
   flattenVisible(doc: SketchDocument): string;
 
   // ─── Layer operations ────────────────────────────────────────────────
-  /** Load a data URL (or clear) into a layer canvas. Calls `onComplete` after the image loads. */
+  /**
+   * Load a data URL (or clear) into a layer canvas. Calls `onComplete` after
+   * the image loads. `imageFit` draws an image reference into the layer bounds
+   * with that fit; without it the image keeps its own size.
+   */
   setLayerData(
     layerId: string,
     data: string | null,
     bounds: LayerContentBounds,
-    onComplete?: () => void
+    onComplete?: () => void,
+    imageFit?: LayerImageObjectFit
   ): void;
 
   /** Overwrite a layer canvas from a source canvas (used by undo/redo). */

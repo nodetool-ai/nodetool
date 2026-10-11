@@ -4,6 +4,7 @@
 import {
   blendModeToComposite,
   checkerboardDocumentCellPx,
+  fitImageRect,
   PIXEL_GRID_MIN_ZOOM,
   PIXEL_GRID_FULL_OPACITY_ZOOM,
   PENCIL_PIXEL_CURSOR_MIN_ZOOM
@@ -96,5 +97,36 @@ describe("constants", () => {
 
   it("min zoom is less than full opacity zoom", () => {
     expect(PIXEL_GRID_MIN_ZOOM).toBeLessThan(PIXEL_GRID_FULL_OPACITY_ZOOM);
+  });
+});
+
+// Round 6 F3: a generated image smaller than its layer was drawn at its own
+// size in the top-left corner although the layer said "contain".
+describe("fitImageRect", () => {
+  it("keeps the image's own size when the layer names no fit", () => {
+    expect(fitImageRect(256, 256, 1024, 1024, undefined)).toEqual({
+      x: 0, y: 0, width: 256, height: 256
+    });
+  });
+
+  it("scales a contained image up to the layer and centers it", () => {
+    expect(fitImageRect(256, 256, 1024, 1024, "contain")).toEqual({
+      x: 0, y: 0, width: 1024, height: 1024
+    });
+    expect(fitImageRect(200, 100, 1024, 1024, "contain")).toEqual({
+      x: 0, y: 256, width: 1024, height: 512
+    });
+  });
+
+  it("covers the layer, cropping the overflow evenly", () => {
+    expect(fitImageRect(200, 100, 1024, 1024, "cover")).toEqual({
+      x: -512, y: 0, width: 2048, height: 1024
+    });
+  });
+
+  it("stretches a filled image to the layer", () => {
+    expect(fitImageRect(200, 100, 1024, 512, "fill")).toEqual({
+      x: 0, y: 0, width: 1024, height: 512
+    });
   });
 });

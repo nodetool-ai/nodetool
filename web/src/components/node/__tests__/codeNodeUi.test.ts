@@ -207,11 +207,17 @@ describe("codeNodeUi", () => {
     it("falls back to text for unknown node types", () => {
       expect(getCodeNodeLanguage("nodetool.text.Concat")).toBe("text");
     });
+
+    it("maps the ManimGX scene nodes to Python", () => {
+      expect(getCodeNodeLanguage("nodetool.manimgx.RenderScene")).toBe("python");
+      expect(getCodeNodeLanguage("nodetool.manimgx.InspectScene")).toBe("python");
+    });
   });
 
   describe("codeLanguageLabel", () => {
     it("returns a human label for known languages", () => {
       expect(codeLanguageLabel("javascript")).toBe("JavaScript");
+      expect(codeLanguageLabel("python")).toBe("Python");
       expect(codeLanguageLabel("text")).toBe("Code");
     });
   });

@@ -334,6 +334,7 @@ export {
   MODEL3D_NODES
 } from "@nodetool-ai/video-nodes/nodes/model3d";
 export { RenderImageNode, RenderPassesNode, RenderAnimationNode, PrepareForEngineNode, ExportModelNode, BLENDER_NODES } from "@nodetool-ai/blender-nodes";
+export { RenderSceneNode, InspectSceneNode, GenerateSceneNode, MANIMGX_NODES } from "@nodetool-ai/manimgx-nodes";
 export {
   YtDlpDownloadLibNode,
   LIB_YTDLP_NODES
@@ -487,6 +488,7 @@ import { DIRECTOR_NODES } from "@nodetool-ai/llm-nodes/nodes/director";
 import { SHOTS_NODES } from "@nodetool-ai/llm-nodes/nodes/shots";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
 import { BLENDER_NODES } from "@nodetool-ai/blender-nodes";
+import { MANIMGX_NODES } from "@nodetool-ai/manimgx-nodes";
 import { LIB_YTDLP_NODES } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
 import { LIB_GRID_NODES } from "@nodetool-ai/image-nodes/nodes/lib-grid";
 import { GAME_NODES as GAME_IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/game";
@@ -555,6 +557,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SHOTS_NODES,
   ...MODEL3D_NODES,
   ...BLENDER_NODES,
+  ...MANIMGX_NODES,
   ...LIB_YTDLP_NODES,
   ...LIB_GRID_NODES,
   ...GAME_IMAGE_NODES,
