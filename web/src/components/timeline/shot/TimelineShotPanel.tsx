@@ -40,7 +40,9 @@ import ShotTakesGallery from "../../storyboard/ShotTakesGallery";
 import ShotRenderDialog, {
   type ShotRenderStep
 } from "../../storyboard/ShotRenderDialog";
-import ShotStatusPill, { isShotGenerating } from "../../storyboard/ShotStatusPill";
+import ShotStatusPill, {
+  isShotGenerating
+} from "../../storyboard/ShotStatusPill";
 import {
   Caption,
   CollapsibleSection,
@@ -53,7 +55,11 @@ import {
   Text,
   SPACING
 } from "../../ui_primitives";
-import { InspectorSectionTitle } from "../Inspector/InspectorPrimitives";
+import {
+  InspectorCard,
+  InspectorDivider,
+  InspectorSectionTitle
+} from "../Inspector/InspectorPrimitives";
 import { usePersistedFold } from "../Inspector/usePersistedFold";
 import TimelineShotForm from "./TimelineShotForm";
 import DerivedShotSection from "./DerivedShotSection";
@@ -103,7 +109,7 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
   const link = useClipStoryboardLink(boardId, shot.id);
   const jobError = useStoryboardGenerationStore((state) => {
     const job = state.shotJobs[shot.id];
-    return job?.status === "failed" ? job.errorMessage ?? null : null;
+    return job?.status === "failed" ? (job.errorMessage ?? null) : null;
   });
   const [takesOpen, setTakesOpen] = usePersistedFold("shot-takes", true);
   const [formOpen, setFormOpen] = usePersistedFold("shot-form", true);
@@ -146,8 +152,8 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
 
   return (
     <ScrollArea sx={panelSx}>
-      <FlexColumn gap={SPACING.md} sx={bodySx}>
-        <FlexColumn gap={SPACING.xs}>
+      <FlexColumn gap={SPACING.none} sx={bodySx}>
+        <InspectorCard>
           <FlexRow align="center" gap={SPACING.sm}>
             <Caption color="secondary">{shotNumber}</Caption>
             <ShotStatusPill shot={shot} />
@@ -173,7 +179,7 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
               Unlink
             </EditorButton>
           </FlexRow>
-        </FlexColumn>
+        </InspectorCard>
 
         <CollapsibleSection
           title={
@@ -218,6 +224,8 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
           </FlexColumn>
         </CollapsibleSection>
 
+        <InspectorDivider />
+
         <CollapsibleSection
           title={
             <InspectorSectionTitle
@@ -234,20 +242,23 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
         </CollapsibleSection>
 
         {clip.mediaType === "video" && clip.currentAssetId && (
-          <CollapsibleSection
-            title={
-              <InspectorSectionTitle
-                title="Derived shot"
-                icon={<CallSplitOutlinedIcon />}
-              />
-            }
-            open={deriveOpen}
-            onToggle={setDeriveOpen}
-          >
-            <FlexColumn sx={{ py: SPACING.sm }}>
-              <DerivedShotSection clipId={clip.id} />
-            </FlexColumn>
-          </CollapsibleSection>
+          <>
+            <InspectorDivider />
+            <CollapsibleSection
+              title={
+                <InspectorSectionTitle
+                  title="Derived shot"
+                  icon={<CallSplitOutlinedIcon />}
+                />
+              }
+              open={deriveOpen}
+              onToggle={setDeriveOpen}
+            >
+              <FlexColumn sx={{ py: SPACING.sm }}>
+                <DerivedShotSection clipId={clip.id} />
+              </FlexColumn>
+            </CollapsibleSection>
+          </>
         )}
       </FlexColumn>
       {renderStep && (
@@ -272,7 +283,9 @@ const TimelineShotPanelInner = () => {
   );
   const shot = useStoryboardStore((state) =>
     boardId && shotId
-      ? state.boards[boardId]?.shots.find((candidate) => candidate.id === shotId)
+      ? state.boards[boardId]?.shots.find(
+          (candidate) => candidate.id === shotId
+        )
       : undefined
   );
   const { isError } = trpc.storyboards.get.useQuery(

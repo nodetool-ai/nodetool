@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { SelectField } from "../SelectField";
 import { FormField } from "../FormField";
+import { FieldDensityContext } from "../fieldDensity";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import userEvent from "@testing-library/user-event";
@@ -223,5 +224,25 @@ describe("SelectField", () => {
       />
     );
     expect(ref.current).toBeInstanceOf(HTMLDivElement);
+  });
+
+  it("matches TextInput on a compact surface: sans control text, not mono", () => {
+    renderWithTheme(
+      <FieldDensityContext.Provider value="compact">
+        <SelectField label="Fit" value="red" onChange={jest.fn()} options={options} />
+      </FieldDensityContext.Provider>
+    );
+    const style = getComputedStyle(screen.getByRole("combobox"));
+    expect(style.fontSize).toBe("var(--fontSizeSmall)");
+    expect(style.fontFamily).toBe("var(--fontFamily1)");
+  });
+
+  it("uses sans control text for the inspector appearance", () => {
+    renderWithTheme(
+      <SelectField label="Fit" value="red" onChange={jest.fn()} options={options} appearance="inspector" />
+    );
+    const style = getComputedStyle(screen.getByRole("combobox"));
+    expect(style.fontSize).toBe("var(--fontSizeSmall)");
+    expect(style.fontFamily).toBe("var(--fontFamily1)");
   });
 });

@@ -12,7 +12,7 @@ export interface InspectorSelectProps {
   grow?: boolean;
 }
 
-/** Compact mono select shared by document inspectors. */
+/** Compact select shared by document inspectors. */
 export const InspectorSelect = memo(function InspectorSelect({
   label, value, options, onChange, disabled, grow
 }: InspectorSelectProps) {

@@ -89,7 +89,7 @@ import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { VideoLandingStrip } from "../setup/video/VideoLandingStrip";
 import { useReattachSequenceJobs } from "../../hooks/timeline/useReattachSequenceJobs";
 import { PreviewArea } from "./preview/PreviewArea";
-import { SelectFieldDensityContext } from "../ui_primitives";
+import { FieldDensityContext } from "../ui_primitives";
 import { TimelineInstrumentsPanel } from "./TimelineInstrumentsPanel";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
 import { SourceViewerPanel } from "./SourceViewerPanel";
@@ -1068,7 +1068,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   );
 
   return (
-    <SelectFieldDensityContext.Provider value="compact">
+    <FieldDensityContext.Provider value="compact">
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {!workspaceHeader && headerActions}
       {conflictBanner}
@@ -1245,7 +1245,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       </Dialog>
 
     </FlexColumn>
-    </SelectFieldDensityContext.Provider>
+    </FieldDensityContext.Provider>
   );
 });
 

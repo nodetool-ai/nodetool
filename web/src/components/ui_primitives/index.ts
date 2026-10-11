@@ -404,7 +404,9 @@ export type { AutocompleteProps, AutocompleteOption } from "./Autocomplete";
 export { LabeledSwitch } from "./LabeledSwitch";
 export type { LabeledSwitchProps } from "./LabeledSwitch";
 
-export { SelectField, SelectFieldDensityContext } from "./SelectField";
+export { SelectField } from "./SelectField";
+export { FieldDensityContext, useFieldDensity } from "./fieldDensity";
+export type { FieldDensity } from "./fieldDensity";
 export type { SelectFieldProps, SelectOption } from "./SelectField";
 
 // Accessibility

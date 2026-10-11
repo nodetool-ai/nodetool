@@ -781,6 +781,27 @@ names the panel, as in the agent panels.
 Dialogs are not panels. A dialog title uses `TYPOGRAPHY.sans.title`
 (18px / 600), which the `Dialog` primitive applies.
 
+### Panel composition
+
+Tokens fix the parts. These rules fix how a panel puts them together. The
+`Patterns/Panels` stories in Storybook (`web/src/stories/Panels.stories.tsx`)
+render each rule at a docked width of 360px. Check a new panel against them.
+
+| Rule | How |
+|---|---|
+| One field density per panel | A dense panel provides `FieldDensityContext` `"compact"` once at its root. Every `TextInput` and `SelectField` below it then shares one look: 13px control text, `CONTROL.height.sm`, the inspector field surface. Do not mix compact and normal fields in one panel. |
+| Words in sans, numbers in mono | Selects and text fields show words in sans. Only numeric and timecode values (`InspectorValueInput`) use mono. |
+| The subject outranks the sections | The name of the selected item is the strongest text in the panel. Section and group headers are muted: `text.secondary`, uppercase. |
+| Frequent before rare | Properties of the selection come first. Generative and destructive actions come after them, and a long generative section starts collapsed. |
+| An action shows its state | A disabled action says why below the button ("Write an instruction"). The cost of a paid action sits on the same line, with two decimals. |
+| Text areas start short | A multiline input starts at one row (`minRows={1}`) and grows with its content. |
+| Description stays with its label | A setting row puts the label and its description in one column beside the control (`LabeledSwitch`). |
+| Three text sizes | A dense panel uses `title` (18px) for the subject, `label` (13px) for labels, values and buttons, and `caption` (11px) for metadata, hints and group headers. `SearchInput` follows the field density too. |
+| One control height | Fields, selects, one-row text areas and actions are all `CONTROL.height.sm` (28px). Use `size="small"` buttons in a compact panel. |
+| One left edge | Labels, values, section titles and actions start on the content edge. A `CollapsibleSection` in a dense panel uses `iconPosition="end"`. |
+| Field rhythm | A label sits 4px above its field. Fields in a form are 12px apart (`gap={3}`), so each label reads with its own field. |
+| Tabs fit the panel | Small `TabGroup` tabs must all fit at 360px. Shorten the labels or drop the icons before the strip has to scroll. |
+
 ---
 
 ## 11. Properties panels

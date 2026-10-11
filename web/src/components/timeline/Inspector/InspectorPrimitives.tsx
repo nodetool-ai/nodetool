@@ -126,12 +126,28 @@ InspectorHeader.displayName = "InspectorHeader";
 
 // ── Identity card ──────────────────────────────────────────────────────────
 
-const identityWrapStyles = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: getSpacingPx(SPACING.xs),
-  padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`
-});
+// A card sets the identity block (a clip, a shot) apart from the section list
+// below it.
+const inspectorCardStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexDirection: "column",
+    gap: getSpacingPx(SPACING.xs),
+    padding: getSpacingPx(SPACING.md),
+    marginBottom: getSpacingPx(SPACING.md),
+    backgroundColor: theme.vars.palette.background.paper,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    borderRadius: BORDER_RADIUS.lg
+  });
+
+/** The card at the top of an inspector panel that names what it edits. */
+export const InspectorCard: React.FC<{ children: React.ReactNode }> = memo(
+  ({ children }) => {
+    const theme = useTheme();
+    return <div css={inspectorCardStyles(theme)}>{children}</div>;
+  }
+);
+InspectorCard.displayName = "InspectorCard";
 
 const identityNameStyles = (theme: Theme) =>
   css({
@@ -179,7 +195,7 @@ export const ClipIdentityCard: React.FC<ClipIdentityCardProps> = memo(
     const theme = useTheme();
     const accent = accentColor ?? theme.vars.palette.secondary.main;
     return (
-      <div css={identityWrapStyles}>
+      <InspectorCard>
         <div css={identityNameStyles(theme)} title={name}>
           {name}
         </div>
@@ -190,7 +206,7 @@ export const ClipIdentityCard: React.FC<ClipIdentityCardProps> = memo(
           </div>
         )}
         {children}
-      </div>
+      </InspectorCard>
     );
   }
 );
