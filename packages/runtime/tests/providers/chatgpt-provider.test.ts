@@ -29,6 +29,7 @@ function fakeTab(states: PathNode[][], options: { signedIn?: boolean; models?: A
   let pathname = "/";
   let polls = 0;
   const tab: ExtensionTab = {
+    async download() { throw new Error("ChatGPT downloads in the page"); },
     async navigate(url) {
       page.navigations.push(url);
       pathname = new URL(url).pathname;
@@ -85,7 +86,8 @@ afterEach(() => {
 
 describe("ChatGPTProvider", () => {
   it("lists models without touching the tab", async () => {
-    setChatGPTTab({ evaluate: () => { throw new Error("listing must not reach the tab"); }, navigate: () => { throw new Error("listing must not reach the tab"); } });
+    const untouched = () => { throw new Error("listing must not reach the tab"); };
+    setChatGPTTab({ evaluate: untouched, navigate: untouched, download: untouched });
     const provider = new ChatGPTProvider();
     expect((await provider.getAvailableLanguageModels()).map((m) => m.id)).toEqual(["auto"]);
     expect(await provider.getAvailableImageModels()).toMatchObject([{ id: "chatgpt-image", supportedTasks: ["text_to_image", "image_to_image"] }]);

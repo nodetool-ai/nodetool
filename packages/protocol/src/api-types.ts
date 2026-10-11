@@ -1150,6 +1150,9 @@ export const PROVIDER_IDS = {
   // ChatGPT driven through the NodeTool Chrome extension in the user's own
   // logged-in chatgpt.com tab (no API key, local installs only).
   CHATGPT: "chatgpt",
+  // Gemini driven through the NodeTool Chrome extension in the user's own
+  // logged-in gemini.google.com tab (no API key, local installs only).
+  GEMINI_WEB: "gemini_web",
   GEMINI: "gemini",
   GROQ: "groq",
   MISTRAL: "mistral",

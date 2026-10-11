@@ -64,5 +64,6 @@ export const MEDIA_ONLY_EXEMPTIONS: Record<string, string> = {
  * suite checks that each one needs no secrets and stays off the cloud profile.
  */
 export const BROWSER_TAB_EXEMPTIONS: Record<string, string> = {
-  chatgpt: "Chat runs in the user's chatgpt.com tab; covered by chatgpt-provider.test.ts."
+  chatgpt: "Chat runs in the user's chatgpt.com tab; covered by chatgpt-provider.test.ts.",
+  gemini_web: "Chat runs in the user's gemini.google.com tab; covered by gemini-web-provider.test.ts."
 };

@@ -246,6 +246,9 @@ export const NON_CLOUD_PROVIDER_IDS: readonly string[] = [
   // A logged-in chatgpt.com tab in the user's own Chrome, reached through the
   // NodeTool extension.
   "chatgpt",
+  // A logged-in gemini.google.com tab in the user's own Chrome, reached through
+  // the NodeTool extension.
+  "gemini_web",
   // Test double, dev-gated at registration.
   "fake"
 ];
