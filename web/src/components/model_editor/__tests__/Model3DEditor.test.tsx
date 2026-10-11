@@ -74,6 +74,11 @@ jest.mock("../Model3DChatPanel", () => ({
   default: () => null
 }));
 
+jest.mock("../AiRenderPanel", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 const renderEditor = (
   props: Partial<React.ComponentProps<typeof Model3DEditor>> = {},
   wrap: (ui: React.ReactElement) => React.ReactElement = (ui) => ui

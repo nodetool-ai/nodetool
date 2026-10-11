@@ -218,7 +218,10 @@ export const generateMediaDataSchema = z
     capability: z.literal("reference_to_video").optional(),
     reference_asset_ids: z.array(z.string().trim().min(1)).optional(),
     entity_ids: z.array(z.string().trim().min(1)).optional(),
-    /** Ordered, owned assets with distinct image-reference and video-reference roles. */
+    /**
+     * Ordered, owned assets with distinct image-reference and video-reference
+     * roles. "image_edit" sends them to the model after `source_asset_id`.
+     */
     reference_images: z
       .array(
         z.object({
