@@ -230,8 +230,11 @@ skipping versions already present on the registry.
     }
     console.error(
       `\nA 404 on PUT for a package that exists means the npm token is not ` +
-        `authorized to write to the @nodetool-ai scope. Re-running this script ` +
-        `after fixing the token will publish only what is still missing.`
+        `authorized to write to the @nodetool-ai scope. EOTP means the token ` +
+        `requires two-factor authentication: use a granular token with ` +
+        `"Bypass two-factor authentication", or configure npm trusted ` +
+        `publishing for each package. Re-running this script after fixing ` +
+        `the token will publish only what is still missing.`
     );
     process.exit(1);
   }
