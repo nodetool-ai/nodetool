@@ -2,22 +2,11 @@ name: E2E Workflow Runner
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "web/e2e-runner.html"
-      - "web/src/e2e_runner/**"
-      - "web/tests/e2e-runner/**"
-      - "web/playwright.e2e-runner.config.ts"
-      - "web/tsconfig.playwright.json"
-      - "web/package.json"
-      # The suite exercises the whole backend execution stack, so trigger on any
-      # package change (kernel, runtime, node-sdk, base-nodes, agents, chat,
-      # websocket, …) — not just the harness's own server files.
-      - "packages/**"
-      - "examples/workflows/**"
-      - ".github/workflows/e2e-runner.yml"
+  # Nightly instead of on every push to main: the suite is advisory and gates
+  # no deploy, and per-push runs held a runner for each merge.
+  schedule:
+    # 03:45 UTC daily, after the user-journeys.yml nightly.
+    - cron: "45 3 * * *"
   pull_request:
     # Only the `browser-suites` label starts a pull-request run. Triggering
     # on opened/synchronize as well started a run on every PR push whose
@@ -54,8 +43,8 @@ jobs:
   e2e-workflow-runner:
     name: Run workflow suite in browser
     # Advisory on pull requests and opt-in there: a PR runs this suite when
-    # the `browser-suites` label is added. Pushes to main, nightly and manual
-    # runs always run it.
+    # the `browser-suites` label is added. Nightly and manual runs always run
+    # it.
     if: ${{ github.event_name != 'pull_request' || github.event.label.name == 'browser-suites' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
