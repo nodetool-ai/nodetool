@@ -19,7 +19,11 @@ on:
       - "examples/workflows/**"
       - ".github/workflows/e2e-runner.yml"
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    # Only the `browser-suites` label starts a pull-request run. Triggering
+    # on opened/synchronize as well started a run on every PR push whose
+    # jobs all skipped. To test later commits, re-add the label or dispatch
+    # this workflow on the PR branch.
+    types: [labeled]
     branches:
       - main
     paths:
@@ -49,14 +53,10 @@ concurrency:
 jobs:
   e2e-workflow-runner:
     name: Run workflow suite in browser
-    # Advisory on pull requests and opt-in there: a PR runs this suite only
-    # with the `browser-suites` label, which saves its runner time on the
-    # many PRs that do not need it. Pushes to main, nightly and manual runs
-    # always run it.
-    if: >-
-      ${{ github.event_name != 'pull_request'
-      || (contains(github.event.pull_request.labels.*.name, 'browser-suites')
-      && (github.event.action != 'labeled' || github.event.label.name == 'browser-suites')) }}
+    # Advisory on pull requests and opt-in there: a PR runs this suite when
+    # the `browser-suites` label is added. Pushes to main, nightly and manual
+    # runs always run it.
+    if: ${{ github.event_name != 'pull_request' || github.event.label.name == 'browser-suites' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
