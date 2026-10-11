@@ -3099,6 +3099,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "derive_shot_from_clip",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "62268429cf19",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-derive-shot.test.ts",
+    ],
+  },
+  {
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",

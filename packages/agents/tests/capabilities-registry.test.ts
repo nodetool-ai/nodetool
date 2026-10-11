@@ -43,6 +43,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   archive_email: "external",
   assemble_script_timeline: "write",
   assemble_storyboard_timeline: "write",
+  derive_shot_from_clip: "write",
   finish_storyboard: "write",
   layout_storyboard: "write",
   preview_storyboard_design: "read",
