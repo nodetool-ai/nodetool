@@ -13,6 +13,9 @@
 import type { CreativeContext, Screenplay, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardSetupStage } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 
+/** A stored model choice. Only the fields the renderer reads are named. */
+export type StoryboardModelSelection = { id?: unknown; provider?: unknown };
+
 export interface StoryboardDocument {
   screenplay: Screenplay | null;
   shots: Shot[];
@@ -24,9 +27,9 @@ export interface StoryboardDocument {
   aspectRatio: string;
   setupStage: StoryboardSetupStage;
   genre: string;
-  directorModel: Record<string, unknown> | null;
-  imageModel: Record<string, unknown> | null;
-  videoModel: Record<string, unknown> | null;
+  directorModel: StoryboardModelSelection | null;
+  imageModel: StoryboardModelSelection | null;
+  videoModel: StoryboardModelSelection | null;
   /** The board this one was recast from (design §2.1). */
   templateId?: string | null;
   /** The canonical substitution mapping that produced this copy. */

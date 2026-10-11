@@ -37,7 +37,10 @@ import {
 } from "@nodetool-ai/timeline";
 import type { CompiledProductionCandidate } from "@nodetool-ai/timeline";
 import type { ScriptLine } from "@nodetool-ai/protocol/api-schemas/scripts.js";
-import type { StoryboardDocument } from "./document.js";
+import type {
+  StoryboardDocument,
+  StoryboardModelSelection
+} from "./document.js";
 
 /** The wire shape the provider layer expands: descriptor text and one image. */
 export interface WireEntity {
@@ -119,7 +122,7 @@ export function boardRenderContext(
   const styleIds = new Set(
     entities.filter((e) => e.kind === "style").map((e) => e.id)
   );
-  const modelId = (selection: Record<string, unknown> | null): string =>
+  const modelId = (selection: StoryboardModelSelection | null): string =>
     stringField(selection, "id");
   return {
     aspect_ratio: doc.aspectRatio || "16:9",
@@ -148,7 +151,7 @@ const wireEntity = (entity: Entity): WireEntity => ({
 });
 
 const stringField = (
-  selection: { id?: unknown; provider?: unknown } | null,
+  selection: StoryboardModelSelection | null,
   key: "id" | "provider"
 ): string => {
   const value = selection?.[key];
