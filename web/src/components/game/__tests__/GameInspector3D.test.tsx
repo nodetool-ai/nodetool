@@ -151,7 +151,7 @@ describe("3D inspector removal", () => {
     const user = userEvent.setup();
     const changed = jest.fn();
     render(<Fixture onDocument={changed} />);
-    expect(screen.getByRole("button", { name: "Primitive" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /^Primitive/ })).toHaveAttribute("aria-expanded", "true");
     await user.click(screen.getByRole("button", { name: "Remove Primitive" }));
     expect(visual(changed.mock.lastCall?.[0])?.primitive).toBeUndefined();
     expect(screen.getByRole("button", { name: "Add Primitive" })).toBeVisible();
@@ -161,7 +161,7 @@ describe("3D inspector removal", () => {
     const user = userEvent.setup();
     const changed = jest.fn();
     render(<Fixture onDocument={changed} />);
-    expect(screen.getByRole("button", { name: "Primitive" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /^Primitive/ })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("button", { name: "Material" })).toHaveAttribute("aria-expanded", "true");
     await user.click(screen.getByRole("button", { name: "Remove Emissive" }));
     expect(visual(changed.mock.lastCall?.[0])?.primitive?.material.emissive).toBeUndefined();
@@ -172,7 +172,7 @@ describe("3D inspector removal", () => {
     const user = userEvent.setup();
     const changed = jest.fn();
     render(<Fixture onDocument={changed} entityId={null} music />);
-    expect(screen.getByRole("button", { name: "Music" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /^Music/ })).toHaveAttribute("aria-expanded", "true");
     await user.click(screen.getByRole("button", { name: "Remove Music" }));
     expect(changed.mock.lastCall?.[0].scenes[0].music).toBeUndefined();
     expect(changed.mock.lastCall?.[0].assets.music.mediaKind).toBe("audio");
@@ -183,7 +183,7 @@ describe("3D inspector removal", () => {
     const changed = jest.fn();
     render(<Fixture onDocument={changed} entityId={null} />);
     expect(screen.getByRole("button", { name: "Environment" })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: "Fog" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /^Fog/ })).toHaveAttribute("aria-expanded", "true");
     await user.click(screen.getByRole("button", { name: "Remove Fog" }));
     expect(changed.mock.lastCall?.[0].scenes[0].environment.fog).toBeUndefined();
   });

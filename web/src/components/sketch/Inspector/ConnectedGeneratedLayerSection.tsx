@@ -10,12 +10,13 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 
-import { CollapsibleSection, Text, SPACING, TYPOGRAPHY, FONT_SIZE_SANS} from "../../ui_primitives";
+import { CollapsibleSection, InspectorSectionTitle } from "../../ui_primitives";
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
 import { SketchAIToolbar } from "./SketchAIToolbar";
 import { VectorLayerPanel } from "./VectorLayerPanel";
 import { SketchInspector } from "./SketchInspector";
+import { sketchSectionSx } from "./sketchSectionSx";
 
 const ConnectedGeneratedLayerSectionInner: React.FC = () => {
   const theme = useTheme();
@@ -23,35 +24,11 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
   const binding = useLayerBinding(activeLayerId);
 
   const layer = useSketchStore((s) => s.document.layers.find((entry) => entry.id === activeLayerId));
-  const sectionSx = {
-    minHeight: 0,
-    flex: "1 0 auto",
-    "& > [role='button']": {
-      padding: theme.spacing(SPACING.md, SPACING.lg),
-      "&:focus-visible": {
-        outline: `2px solid ${theme.vars.palette.primary.main}`,
-        outlineOffset: "-2px"
-      }
-    }
-  };
-  // Match the other right-panel section headers (COLOR / LAYERS):
-  // small, bright, uppercase, letter-spaced — not the default body size.
-  const sectionTitle = (text: string): React.ReactNode => (
-    <Text
-      size="small"
-      sx={{
-        ...TYPOGRAPHY.sans.label,
-        color: "text.primary",
-        fontSize: FONT_SIZE_SANS.label
-      }}
-    >
-      {text}
-    </Text>
-  );
+  const sectionSx = { ...sketchSectionSx(theme), minHeight: 0, flex: "1 0 auto", borderBottom: 0 };
   if (layer?.type === "vector") {
     return (
       <CollapsibleSection
-        title={sectionTitle("Vector layer")}
+        title={<InspectorSectionTitle title="Vector layer" />}
         defaultOpen
         compact
         sx={sectionSx}
@@ -72,7 +49,7 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
 
   return (
     <CollapsibleSection
-      title={sectionTitle(titleText)}
+      title={<InspectorSectionTitle title={titleText} />}
       defaultOpen
       compact
       sx={sectionSx}

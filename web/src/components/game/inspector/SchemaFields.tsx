@@ -4,10 +4,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import { Box, Caption, Checkbox, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, InspectorToggleRow, InspectorValueInput, Label, SPACING, TextInput, ToolbarIconButton, TYPOGRAPHY } from "../../ui_primitives";
+import { Caption, Checkbox, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSection, InspectorSelect, InspectorToggleRow, InspectorValueInput, Label, SPACING, TextInput, ToolbarIconButton, TYPOGRAPHY } from "../../ui_primitives";
 import type { FieldSchema } from "./schemaForm";
 import { schemaDefault, schemaVariant } from "./schemaForm";
-import { COMPONENT_SECTION_SX } from "./componentSection";
 
 interface SchemaFieldsProps {
   schema: FieldSchema;
@@ -24,7 +23,7 @@ interface SchemaFieldsProps {
 
 const FIELD_WIDTH = { width: "100%", minWidth: 0 } as const;
 const ADD_FIELD_ROW_SX = { flexWrap: "wrap", pt: SPACING.xs } as const;
-const ADD_COMPONENT_ROW_SX = { flexWrap: "wrap", p: SPACING.md, borderTop: 1, borderColor: "divider" } as const;
+const ADD_COMPONENT_ROW_SX = { flexWrap: "wrap", py: SPACING.md, borderTop: 1, borderColor: "divider" } as const;
 
 function isObjectSchema(schema: FieldSchema): boolean {
   return schema.type === "object" || Boolean(schema.properties);
@@ -58,8 +57,11 @@ function fieldLabel(path: string): string {
   const parts = path.split(".");
   const key = parts.at(-1) ?? path;
   if (/^\d+$/.test(key)) return `Item ${Number(key) + 1}`;
-  return key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([a-z])([23])d\b/i, "$1 $2D")
-    .replace(/^./, (letter) => letter.toUpperCase()).replace(/\bId\b/g, "ID").replace(/\bHud\b/g, "HUD");
+  // Sentence case, as every inspector label: "castShadow" reads "Cast shadow".
+  // A lone capital stays, so "scaleX" reads "Scale X".
+  return key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/ ([A-Z])(?=[a-z])/g, (_, letter: string) => ` ${letter.toLowerCase()}`)
+    .replace(/([a-z])([23])d\b/i, "$1 $2D").replace(/^./, (letter) => letter.toUpperCase())
+    .replace(/\bid\b/gi, "ID").replace(/\bhud\b/gi, "HUD");
 }
 
 function trackCurve(easing: string): string {
@@ -180,21 +182,16 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         const optional = !schema.required?.includes(key);
         const remove = (): void => { const copy = { ...record }; delete copy[key]; onChange(copy); };
         if (isVectorSchema(child) && !optional) {
-          return <FlexRow key={key} sx={{ ...FIELD_WIDTH, px: componentSections ? SPACING.md : undefined }}>{field}</FlexRow>;
+          return <FlexRow key={key} sx={FIELD_WIDTH}>{field}</FlexRow>;
         }
         if (child.type === "object" || child.properties || child.type === "array" || (child.oneOf ?? child.anyOf)?.some(isObjectSchema)) {
           return componentSections
-            ? <Box key={key} sx={{ position: "relative", width: "100%" }}>
-              <CollapsibleSection title={fieldLabel(key)} compact sx={COMPONENT_SECTION_SX}>
-                <FlexColumn gap={SPACING.xs} sx={{ ...FIELD_WIDTH, px: SPACING.md, py: SPACING.sm }}>{field}</FlexColumn>
-              </CollapsibleSection>
-              {optional && <ToolbarIconButton icon={<CloseIcon fontSize="small" />} tooltip={`Remove ${fieldLabel(key)}`} onClick={remove}
-                sx={{ position: "absolute", top: SPACING.micro, right: SPACING.xs }} />}
-            </Box>
+            ? <InspectorSection key={key} title={fieldLabel(key)}
+              action={optional ? { icon: <CloseIcon />, label: `Remove ${fieldLabel(key)}`, onClick: remove } : undefined}>{field}</InspectorSection>
             : <CollapsibleSection key={key} title={<Label component="span" sx={{ mb: 0, color: "text.primary" }}>{fieldLabel(key)}</Label>} compact sx={{ width: "100%", pt: SPACING.xs }}><FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional &&
               <EditorButton onClick={remove}>Remove {fieldLabel(key)}</EditorButton>}</FlexColumn></CollapsibleSection>;
         }
-        return <FlexRow key={key} gap={SPACING.xs} align="flex-start" sx={{ ...FIELD_WIDTH, px: componentSections ? SPACING.md : undefined }}>
+        return <FlexRow key={key} gap={SPACING.xs} align="flex-start" sx={FIELD_WIDTH}>
           <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minWidth: 0 }}>{field}</FlexColumn>
           {optional && <ToolbarIconButton icon={<CloseIcon fontSize="small" />} tooltip={`Remove ${fieldLabel(key)}`} onClick={remove} />}
         </FlexRow>;

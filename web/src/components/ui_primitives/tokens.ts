@@ -124,6 +124,17 @@ export const TYPOGRAPHY = {
 } satisfies Record<"sans" | "mono", Record<string, TypeStyle>>;
 
 /**
+ * Group label inside a panel ("TRANSFORM", "MATERIAL", "I/O"): caption type,
+ * uppercase, slightly tracked. Pair it with `text.secondary`. `SectionHeader
+ * size="small"` and `InspectorSectionTitle` render it.
+ */
+export const EYEBROW = {
+  ...TYPOGRAPHY.sans.caption,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em"
+} as const;
+
+/**
  * Motion / transition timing constants.
  *
  * Always pair transitions with a `prefers-reduced-motion` override.

@@ -32,12 +32,13 @@ function Fixture({ onDocument, onSceneChange, selectedIds = ["hero"] }: { onDocu
 }
 
 describe("game inspector edits", () => {
-  it("indents fields under their section headings", () => {
+  it("aligns fields with their eyebrow section headings", () => {
     render(<Fixture onDocument={() => undefined} selectedIds={[]} />);
     const music = screen.getByRole("button", { name: "Music" });
+    expect(getComputedStyle(screen.getByText("Music").parentElement!).textTransform).toBe("uppercase");
     const body = music.parentElement?.querySelector(".MuiCollapse-wrapperInner > div");
     expect(body).toBeTruthy();
-    expect(getComputedStyle(body!).paddingLeft).toBe(mockTheme.spacing(SPACING.xxxl));
+    expect(getComputedStyle(body!).paddingLeft).not.toBe(mockTheme.spacing(SPACING.xxxl));
   });
 
   it("adds and removes a component through reducer operations", async () => {

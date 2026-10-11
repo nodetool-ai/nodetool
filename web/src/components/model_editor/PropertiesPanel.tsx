@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useRef, useState, type ReactNode } from "react";
+import { memo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import * as THREE from "three";
@@ -10,22 +10,24 @@ import TouchAppOutlinedIcon from "@mui/icons-material/TouchAppOutlined";
 import {
   Box,
   Caption,
-  Checkbox,
-  CollapsibleSection,
   EmptyState,
   FlexColumn,
   FlexRow,
+  InspectorFieldRow,
+  InspectorSection,
+  InspectorSelect,
+  InspectorToggleRow,
+  InspectorValueInput,
+  Label,
   NodeSlider,
-  NumericField,
-  PropertyFieldRow,
   ScrollArea,
-  SelectField,
-  Text,
   TextInput,
   ToolbarIconButton,
-  BORDER_RADIUS,
+  CONTROL,
   SPACING,
-  getSpacingPx
+  TYPOGRAPHY,
+  getSpacingPx,
+  type InspectorValueGesture
 } from "../ui_primitives";
 import ColorPicker from "../inputs/ColorPicker";
 import {
@@ -38,56 +40,12 @@ import {
 import type { RecordEdit, ValueEdit } from "./editorCommands";
 import { isBoolean, isNumber } from "../../utils/typePredicates";
 
-const styles = (theme: Theme) =>
+const headerStyles = (theme: Theme) =>
   css({
-    "&": { width: "100%", height: "100%", minHeight: 0 },
-    ".inspector-header": {
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)}`,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      flexShrink: 0
-    },
-    ".inspector-section": {
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      paddingBottom: getSpacingPx(SPACING.sm)
-    },
-    ".inspector-section > div:first-of-type": {
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`
-    },
-    ".select-field": {
-      flex: 1,
-      ".MuiSelect-select": {
-        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
-        fontSize: theme.fontSizeSmall
-      },
-      ".MuiSvgIcon-root": { fontSize: "var(--fontSizeNormal)" }
-    }
+    padding: getSpacingPx(SPACING.lg),
+    borderBottom: `1px solid ${theme.vars.palette.divider}`,
+    flexShrink: 0
   });
-
-const SectionTitle = ({ children }: { children: ReactNode }) => (
-  <Text
-    size="smaller"
-    sx={{ textTransform: "uppercase", letterSpacing: "0.06em", color: "text.secondary" }}
-  >
-    {children}
-  </Text>
-);
-
-const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-  <CollapsibleSection
-    className="inspector-section"
-    title={<SectionTitle>{title}</SectionTitle>}
-    defaultOpen
-    compact
-  >
-    <FlexColumn fullWidth gap={SPACING.micro}>
-      {children}
-    </FlexColumn>
-  </CollapsibleSection>
-);
-
-// Wide enough for "Frustum Cull" and "Render Order" on one line in the
-// 300px inspector.
-const LABEL_WIDTH = "36%";
 
 interface NumberRowProps {
   label: string;
@@ -99,52 +57,63 @@ interface NumberRowProps {
   integer?: boolean;
 }
 
-// Bounded params (both min and max defined) render as a slider with a compact
-// numeric readout; unbounded ones (dimensions, segments, intensity) stay as a
-// plain number field.
-const NumberRow = memo(({ label, value, onCommit, step, min, max, integer }: NumberRowProps) => {
+const formatNumber = (value: number): string => String(Math.round(value * 1000) / 1000);
+
+/**
+ * Commits a typed or scrubbed value. A scrub commits on every frame so the
+ * viewport follows the drag; `record` merges the frames into one undo entry.
+ */
+const useNumberCommit = (onCommit: (value: number) => void, integer?: boolean) => {
+  const commit = (raw: string | undefined) => {
+    const parsed = Number(raw);
+    if (raw !== undefined && raw.trim() !== "" && Number.isFinite(parsed)) {
+      onCommit(integer ? Math.round(parsed) : parsed);
+    }
+  };
+  const gesture: InspectorValueGesture = { begin: () => undefined, schedule: commit, commit };
+  return { commit, gesture };
+};
+
+// Bounded params (both min and max defined) add a slider before the value;
+// unbounded ones (dimensions, segments, intensity) are a value field alone.
+const NumberRow = memo(({ label, value, onCommit, step = 0.01, min, max, integer }: NumberRowProps) => {
   const isSlider = min !== undefined && max !== undefined;
+  const { commit, gesture } = useNumberCommit(onCommit, integer);
   return (
-    <PropertyFieldRow labelWidth={LABEL_WIDTH} label={label}>
-      <FlexRow align="center" gap={SPACING.md} fullWidth sx={{ minWidth: 0 }}>
-        {isSlider && (
-          <NodeSlider
-            aria-label={label}
-            value={value}
-            min={min}
-            max={max}
-            step={integer ? 1 : step ?? 0.01}
-            onChange={(_e, v) => onCommit(Array.isArray(v) ? v[0] : v)}
-            sx={{ flex: 1, minWidth: 0 }}
-          />
-        )}
-        <FlexRow sx={{ flex: isSlider ? "0 0 30%" : 1, minWidth: 0 }}>
-          <NumericField
-            label={label}
-            value={value}
-            onCommit={onCommit}
-            step={step}
-            min={min}
-            max={max}
-            integer={integer}
-          />
-        </FlexRow>
-      </FlexRow>
-    </PropertyFieldRow>
+    <InspectorFieldRow label={label}>
+      {isSlider && (
+        <NodeSlider
+          aria-label={label}
+          value={value}
+          min={min}
+          max={max}
+          step={integer ? 1 : step}
+          onChange={(_e, v) => onCommit(Array.isArray(v) ? v[0] : v)}
+          sx={{ flex: 1, minWidth: 0 }}
+        />
+      )}
+      <InspectorValueInput
+        ariaLabel={label}
+        value={formatNumber(value)}
+        onCommit={commit}
+        scrub={{ step: integer ? 1 : step, min, max }}
+        scrubGesture={gesture}
+        grow={!isSlider}
+        minWidth={CONTROL.height.xl + CONTROL.height.xs}
+      />
+    </InspectorFieldRow>
   );
 });
 NumberRow.displayName = "NumberRow";
 
-interface CheckboxRowProps {
+interface ToggleRowProps {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
 }
 
-const CheckboxRow = ({ label, checked, onChange }: CheckboxRowProps) => (
-  <PropertyFieldRow labelWidth={LABEL_WIDTH} label={label}>
-    <Checkbox size="small" compact inputProps={{ "aria-label": label }} checked={checked} onChange={(_e, c) => onChange(c)} />
-  </PropertyFieldRow>
+const ToggleRow = ({ label, checked, onChange }: ToggleRowProps) => (
+  <InspectorToggleRow label={label} checked={checked} onChange={onChange} />
 );
 
 /**
@@ -183,7 +152,7 @@ interface ColorRowProps {
 }
 
 const ColorRow = ({ label, color, record, mergeKey }: ColorRowProps) => (
-  <PropertyFieldRow labelWidth={LABEL_WIDTH} label={label} spacious>
+  <InspectorFieldRow label={label}>
     <ColorPicker
       showCustom
       color={`#${color.getHexString()}`}
@@ -194,7 +163,7 @@ const ColorRow = ({ label, color, record, mergeKey }: ColorRowProps) => (
         record(colorEdit(label, color, c, mergeKey));
       }}
     />
-  </PropertyFieldRow>
+  </InspectorFieldRow>
 );
 
 type Axis = "x" | "y" | "z";
@@ -214,60 +183,25 @@ interface AxisFieldProps {
 }
 
 /**
- * One vector component. Dragging the axis letter scrubs the value, as in
- * Blender and Unity: Shift for fine steps, Ctrl for coarse ones.
+ * One vector component. Dragging the field scrubs the value, as in Blender
+ * and Unity: Shift for coarse steps, Alt for fine ones.
  */
 const AxisField = ({ axis, label, value, step, onCommit }: AxisFieldProps) => {
-  const drag = useRef<{ x: number; value: number } | null>(null);
-  const endDrag = () => {
-    drag.current = null;
-  };
+  const { commit, gesture } = useNumberCommit(onCommit);
   return (
-    <FlexRow align="center" sx={{ flex: 1, minWidth: 0 }}>
-      <Box
-        component="span"
-        role="slider"
-        tabIndex={-1}
-        aria-label={`Drag to change ${label}`}
-        aria-valuenow={value}
-        onPointerDown={(e: React.PointerEvent<HTMLSpanElement>) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          drag.current = { x: e.clientX, value };
-        }}
-        onPointerMove={(e: React.PointerEvent<HTMLSpanElement>) => {
-          // No button held means the release was missed (a cancelled touch,
-          // a window switch). End the scrub instead of editing on hover.
-          if (!drag.current || e.buttons === 0) {
-            drag.current = null;
-            return;
-          }
-          const scale = e.shiftKey ? 0.1 : e.ctrlKey || e.metaKey ? 10 : 1;
-          const next = drag.current.value + (e.clientX - drag.current.x) * step * scale * 0.25;
-          onCommit(Math.round(next * 1000) / 1000);
-        }}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onLostPointerCapture={endDrag}
-        sx={{
-          flexShrink: 0,
-          // Without this a touch drag scrolls the Inspector instead of scrubbing.
-          touchAction: "none",
-          px: SPACING.xs,
-          alignSelf: "stretch",
-          display: "grid",
-          placeItems: "center",
-          cursor: "ew-resize",
-          userSelect: "none",
-          fontSize: "var(--fontSizeSmaller)",
-          fontWeight: 600,
-          color: AXIS_COLORS[axis],
-          borderRadius: BORDER_RADIUS.xs,
-          "&:hover": { bgcolor: "action.hover" }
-        }}
-      >
+    <FlexRow align="center" gap={SPACING.xs} sx={{ flex: 1, minWidth: 0 }}>
+      <Box component="span" aria-hidden sx={{ ...TYPOGRAPHY.mono.caption, color: AXIS_COLORS[axis], flexShrink: 0 }}>
         {axis.toUpperCase()}
       </Box>
-      <NumericField label={label} value={value} onCommit={onCommit} step={step} />
+      <InspectorValueInput
+        ariaLabel={label}
+        value={formatNumber(value)}
+        onCommit={commit}
+        scrub={{ step }}
+        scrubGesture={gesture}
+        grow
+        minWidth={0}
+      />
     </FlexRow>
   );
 };
@@ -307,9 +241,9 @@ const Vector3Row = ({
     });
   const isDefault = AXES.every((a) => Math.abs(vector[a] - resetValue) < 1e-9);
   return (
-    <FlexColumn fullWidth sx={{ px: SPACING.md, minWidth: 0 }}>
-      <FlexRow align="center" justify="space-between" sx={{ minHeight: 24 }}>
-        <Caption>{label}</Caption>
+    <FlexColumn fullWidth gap={SPACING.micro} sx={{ minWidth: 0 }}>
+      <FlexRow align="center" justify="space-between" sx={{ minHeight: CONTROL.height.xs }}>
+        <Label component="span" sx={{ mb: 0 }}>{label}</Label>
         <ToolbarIconButton
           icon={<RestartAltIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
           tooltip={`Reset ${label.toLowerCase()}`}
@@ -336,7 +270,7 @@ const Vector3Row = ({
             key={axis}
             axis={axis}
             label={`${label} ${axis.toUpperCase()}`}
-            value={Math.round(toDisplay(vector[axis]) * 1000) / 1000}
+            value={toDisplay(vector[axis])}
             step={step}
             onCommit={commit(axis)}
           />
@@ -398,22 +332,22 @@ const MATERIAL_NUMBER_FIELDS: readonly MaterialNumberSpec[] = [
   { key: "reflectivity", label: "Reflectivity", min: 0, max: 1, step: 0.05 },
   { key: "specularIntensity", label: "Specular", min: 0, max: 1, step: 0.05 },
   { key: "clearcoat", label: "Clearcoat", min: 0, max: 1, step: 0.05 },
-  { key: "clearcoatRoughness", label: "CC Rough", min: 0, max: 1, step: 0.05 },
+  { key: "clearcoatRoughness", label: "Clearcoat roughness", min: 0, max: 1, step: 0.05 },
   { key: "sheen", label: "Sheen", min: 0, max: 1, step: 0.05 },
-  { key: "sheenRoughness", label: "Sheen Rough", min: 0, max: 1, step: 0.05 },
+  { key: "sheenRoughness", label: "Sheen roughness", min: 0, max: 1, step: 0.05 },
   { key: "transmission", label: "Transmission", min: 0, max: 1, step: 0.05 },
   { key: "thickness", label: "Thickness", min: 0, step: 0.1 },
   { key: "iridescence", label: "Iridescence", min: 0, max: 1, step: 0.05 },
-  { key: "iridescenceIOR", label: "Irid IOR", min: 1, max: 2.333, step: 0.01 },
+  { key: "iridescenceIOR", label: "Iridescence IOR", min: 1, max: 2.333, step: 0.01 },
   { key: "dispersion", label: "Dispersion", min: 0, step: 0.1 }
 ];
 
 const MATERIAL_COLOR_FIELDS: readonly { key: string; label: string }[] = [
-  { key: "color", label: "Base Color" },
+  { key: "color", label: "Base color" },
   { key: "emissive", label: "Emissive" },
-  { key: "sheenColor", label: "Sheen Color" },
+  { key: "sheenColor", label: "Sheen color" },
   { key: "specularColor", label: "Specular" },
-  { key: "attenuationColor", label: "Atten Col" }
+  { key: "attenuationColor", label: "Attenuation color" }
 ];
 
 // `recompile` fields change the shader program and require needsUpdate = true.
@@ -424,10 +358,10 @@ const MATERIAL_FLAG_FIELDS: readonly {
 }[] = [
   { key: "transparent", label: "Transparent", recompile: true },
   { key: "wireframe", label: "Wireframe", recompile: false },
-  { key: "flatShading", label: "Flat Shading", recompile: true },
-  { key: "vertexColors", label: "Vertex Colors", recompile: true },
-  { key: "depthTest", label: "Depth Test", recompile: false },
-  { key: "depthWrite", label: "Depth Write", recompile: false }
+  { key: "flatShading", label: "Flat shading", recompile: true },
+  { key: "vertexColors", label: "Vertex colors", recompile: true },
+  { key: "depthTest", label: "Depth test", recompile: false },
+  { key: "depthWrite", label: "Depth write", recompile: false }
 ];
 
 const SIDE_OPTIONS = [
@@ -477,7 +411,7 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
     });
   return (
     <>
-      <Caption sx={{ px: SPACING.md, pb: SPACING.xs }}>
+      <Caption>
         {material.name ? `${material.name} · ${material.type}` : material.type}
       </Caption>
       {MATERIAL_COLOR_FIELDS.map(({ key: field, label }) => {
@@ -526,7 +460,7 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
         }
       />
       <NumberRow
-        label="Alpha Test"
+        label="Alpha test"
         value={material.alphaTest}
         min={0}
         max={1}
@@ -544,12 +478,10 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
           })
         }
       />
-      <PropertyFieldRow labelWidth={LABEL_WIDTH} label="Side">
-        <SelectField
-          className="select-field nodrag"
-          hideLabel
+      <InspectorFieldRow label="Side">
+        <InspectorSelect
+          grow
           label="Side"
-          size="small"
           value={String(material.side)}
           options={SIDE_OPTIONS}
           onChange={(v) =>
@@ -564,11 +496,11 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
             })
           }
         />
-      </PropertyFieldRow>
+      </InspectorFieldRow>
       {MATERIAL_FLAG_FIELDS.map(({ key: field, label, recompile }) => {
         const checked = getBoolProp(bagOf(material), field);
         return checked === undefined ? null : (
-          <CheckboxRow
+          <ToggleRow
             key={field}
             label={label}
             checked={checked}
@@ -603,12 +535,12 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
   const theme = useTheme();
   const [materialSlot, setMaterialSlot] = useState(0);
   // `tick` is intentionally a render trigger: bumping it re-renders this panel
-  // so NumericField inputs resync from objects mutated by gizmo drags.
+  // so value inputs resync from objects mutated by gizmo drags.
   void tick;
 
   if (!object) {
     return (
-      <FlexColumn css={styles(theme)} className="properties-panel" fullHeight>
+      <FlexColumn className="properties-panel" fullHeight sx={{ width: "100%", minHeight: 0 }}>
         <EmptyState
           variant="empty"
           size="small"
@@ -683,8 +615,8 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
     });
 
   return (
-    <FlexColumn css={styles(theme)} className="properties-panel" fullHeight>
-      <FlexColumn className="inspector-header" gap={SPACING.xs} key={`header-${uuid}`}>
+    <FlexColumn className="properties-panel" fullHeight sx={{ width: "100%", minHeight: 0 }}>
+      <FlexColumn css={headerStyles(theme)} gap={SPACING.xs} key={`header-${uuid}`}>
         <TextInput
           className="nodrag"
           label="Name"
@@ -707,9 +639,9 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
       </FlexColumn>
       <ScrollArea>
         {/* Remount fields only when the selected object changes; live value
-            updates from gizmo drags are handled by NumericField's value sync. */}
-        <FlexColumn key={uuid} fullWidth>
-          <Section title="Transform">
+            updates from gizmo drags are handled by InspectorValueInput's value sync. */}
+        <FlexColumn key={uuid} fullWidth sx={{ px: SPACING.lg }}>
+          <InspectorSection title="Transform" divider={false}>
             <Vector3Row label="Position" objectUuid={uuid} vector={object.position} step={0.1} resetValue={0} record={record} />
             <Vector3Row
               label="Rotation"
@@ -722,10 +654,10 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
               record={record}
             />
             <Vector3Row label="Scale" objectUuid={uuid} vector={object.scale} step={0.1} resetValue={1} record={record} />
-          </Section>
+          </InspectorSection>
 
           {light && (
-            <Section title="Light">
+            <InspectorSection title="Light">
               <ColorRow label="Color" color={light.color} record={record} mergeKey={`${uuid}:lightColor`} />
               <NumberRow
                 label="Intensity"
@@ -772,12 +704,12 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
                   />
                 </>
               )}
-            </Section>
+            </InspectorSection>
           )}
 
           {hasGeometry && mesh && geometryParams && isEditableGeometryType(geometryType) && (
-            <Section title="Geometry">
-              <Caption sx={{ px: SPACING.md, pb: SPACING.xs }}>{geometryType}</Caption>
+            <InspectorSection title="Geometry">
+              <Caption>{geometryType}</Caption>
               {GEOMETRY_PARAM_SPECS[geometryType].map((spec) => {
                 const isAngle = spec.kind === "angle";
                 const stored = geometryParams[spec.key];
@@ -796,18 +728,16 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
                   />
                 );
               })}
-            </Section>
+            </InspectorSection>
           )}
 
           {material && (
-            <Section title="Material">
+            <InspectorSection title="Material">
               {materials.length > 1 && (
-                <PropertyFieldRow labelWidth={LABEL_WIDTH} label="Slot">
-                  <SelectField
-                    className="select-field nodrag"
-                    hideLabel
+                <InspectorFieldRow label="Slot">
+                  <InspectorSelect
+                    grow
                     label="Material slot"
-                    size="small"
                     value={String(slot)}
                     options={materials.map((m, i) => ({
                       value: String(i),
@@ -815,29 +745,29 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
                     }))}
                     onChange={(v) => setMaterialSlot(Number(v))}
                   />
-                </PropertyFieldRow>
+                </InspectorFieldRow>
               )}
               <MaterialSection key={material.uuid} material={material} record={record} />
-            </Section>
+            </InspectorSection>
           )}
 
-          <Section title="Rendering">
-            <CheckboxRow label="Visible" checked={object.visible} onChange={(c) => setFlag("Visible", "visible", object, c)} />
+          <InspectorSection title="Rendering">
+            <ToggleRow label="Visible" checked={object.visible} onChange={(c) => setFlag("Visible", "visible", object, c)} />
             {mesh && (
               <>
-                <CheckboxRow label="Cast Shadow" checked={mesh.castShadow} onChange={(c) => setFlag("Cast shadow", "castShadow", mesh, c)} />
-                <CheckboxRow label="Receive Shadow" checked={mesh.receiveShadow} onChange={(c) => setFlag("Receive shadow", "receiveShadow", mesh, c)} />
+                <ToggleRow label="Cast shadow" checked={mesh.castShadow} onChange={(c) => setFlag("Cast shadow", "castShadow", mesh, c)} />
+                <ToggleRow label="Receive shadow" checked={mesh.receiveShadow} onChange={(c) => setFlag("Receive shadow", "receiveShadow", mesh, c)} />
               </>
             )}
-            <CheckboxRow label="Frustum Cull" checked={object.frustumCulled} onChange={(c) => setFlag("Frustum cull", "frustumCulled", object, c)} />
+            <ToggleRow label="Frustum cull" checked={object.frustumCulled} onChange={(c) => setFlag("Frustum cull", "frustumCulled", object, c)} />
             <NumberRow
-              label="Render Order"
+              label="Render order"
               value={object.renderOrder}
               integer
               step={1}
               onCommit={(v) => setNumber("Render order", "renderOrder", object, v)}
             />
-          </Section>
+          </InspectorSection>
         </FlexColumn>
       </ScrollArea>
     </FlexColumn>

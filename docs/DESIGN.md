@@ -774,7 +774,8 @@ import { PanelHeader, ToolbarIconButton } from "../ui_primitives";
 
 Below the header, the panel body pads `SPACING.lg` horizontally. A panel that
 groups rows uses `SectionHeader size="small"` for each group: caption type,
-uppercase, `text.secondary`. Omit `title` only when a tab strip above already
+uppercase, `text.secondary`. A properties panel uses `InspectorSection`, which
+draws the same title (see [Properties panels](#11-properties-panels)). Omit `title` only when a tab strip above already
 names the panel, as in the agent panels.
 
 Dialogs are not panels. A dialog title uses `TYPOGRAPHY.sans.title`
@@ -782,7 +783,44 @@ Dialogs are not panels. A dialog title uses `TYPOGRAPHY.sans.title`
 
 ---
 
-## 11. Migration Checklist
+## 11. Properties panels
+
+A properties panel edits the selected object: the node inspector, the timeline
+clip inspector, the 3D model and game inspectors, and the sketch side panel.
+They share one set of primitives, so a field looks and behaves the same in
+every editor.
+
+```tsx
+import { InspectorFieldRow, InspectorSection, InspectorValueInput } from "../ui_primitives";
+
+<InspectorSection title="Transform" divider={false}>
+  <InspectorFieldRow label="Opacity">
+    <InspectorValueInput value={String(opacity)} unit="%" onCommit={commitOpacity}
+      scrub={{ step: 1, min: 0, max: 100 }} />
+  </InspectorFieldRow>
+</InspectorSection>
+```
+
+| Part | Rule |
+|---|---|
+| Group | `InspectorSection`: a collapsible group with a 1px divider above it. Pass `divider={false}` for the first group |
+| Group title | `EYEBROW` (11px caption, uppercase, `0.06em`), `text.secondary`. `InspectorSectionTitle` renders it when the fold is not an `InspectorSection` |
+| Group extras | An activation checkbox (`checked`, `onCheckedChange`) or one trailing `action`, such as reset or remove |
+| Row | `InspectorFieldRow`: label left in `TYPOGRAPHY.sans.label`, controls right, `CONTROL.height.sm` tall |
+| Labels | Sentence case: "Cast shadow", not "Cast Shadow" |
+| Numbers | `InspectorValueInput`. Pass `scrub` for drag-to-change and `scrubGesture` to merge a drag into one undo entry |
+| Choices | `InspectorSelect` |
+| Booleans | `InspectorToggleRow` |
+| Body inset | The panel body pads `SPACING.lg` (12px) or `SPACING.md` (8px) horizontally, and sections sit inside that inset |
+
+Do not restyle a `CollapsibleSection` header into a filled bar, a bright
+`text.primary` title or a wider letter spacing. A nested object inside a group
+(a sub-object of a game component, for example) may keep a plain
+`Label` title, so the hierarchy stays two levels deep.
+
+---
+
+## 12. Migration Checklist
 
 When editing any UI file, scan for these violations and fix them in the same PR.
 
@@ -825,7 +863,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 12. Adding New Tokens
+## 13. Adding New Tokens
 
 1. **Spacing**: Only add a new `SPACING.*` step if the existing nine steps genuinely cannot express the design intent. Justify in the PR. Update `spacing.ts`.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
@@ -837,7 +875,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 13. Design Decisions and Tradeoffs
+## 14. Design Decisions and Tradeoffs
 
 Documented rationale for choices that differ from common defaults.
 
