@@ -8,11 +8,11 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "../../utils/isEqual";
 import { getIsElectronDetails } from "../../utils/browser";
 import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
+import useRuntimeStatusStore from "../../stores/RuntimeStatusStore";
 import {
   RUNTIME_LABELS,
   RUNTIME_TO_PACKAGE_ID,
-  ensureRuntimeStatuses,
-  getCachedRuntimeStatuses
+  ensureRuntimeStatuses
 } from "./NodeDependencyWarning.helpers";
 
 const warningStyles = (theme: Theme) =>
@@ -86,44 +86,35 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
 }) => {
   const theme = useTheme();
   const memoizedWarningStyles = useMemo(() => warningStyles(theme), [theme]);
-  const [missingRuntimes, setMissingRuntimes] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const statuses = useRuntimeStatusStore((s) => s.statuses);
+  const loaded = useRuntimeStatusStore((s) => s.loaded);
   const [installing, setInstalling] = useState(false);
   const { isElectron } = getIsElectronDetails();
   const openPackageManager = useOpenPackageManager();
 
-  const checkRuntimes = useCallback(async (forceRefresh = false) => {
-    // Only refresh statuses when cache is empty or explicitly forced.
-    await ensureRuntimeStatuses(forceRefresh);
-
-    const statuses = getCachedRuntimeStatuses();
-    const missing = requiredRuntimes.filter((rt) => {
-      const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
-      return statuses ? !statuses[pkgId] : true;
-    });
-    setMissingRuntimes(missing);
-    setLoading(false);
-  }, [requiredRuntimes]);
+  const missingRuntimes = useMemo(
+    () =>
+      requiredRuntimes.filter((rt) => {
+        const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
+        return statuses ? !statuses[pkgId] : true;
+      }),
+    [requiredRuntimes, statuses]
+  );
 
   useEffect(() => {
-    let cancelled = false;
-    checkRuntimes().then(() => {
-      if (cancelled) {return;}
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [checkRuntimes]);
+    void ensureRuntimeStatuses();
+  }, []);
 
-  // Re-check when window regains focus (e.g. after installing a runtime).
+  // Re-check when window regains focus (e.g. after installing a runtime
+  // outside the app).
   useEffect(() => {
     if (missingRuntimes.length === 0) {return;}
     const onFocus = () => {
-      checkRuntimes(true);
+      void ensureRuntimeStatuses(true);
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [missingRuntimes.length, checkRuntimes]);
+  }, [missingRuntimes.length]);
 
   const handleInstall = useCallback(async () => {
     const api = window.api;
@@ -134,16 +125,16 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
         const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
         await api.packages.installRuntime(pkgId);
       }
-      await checkRuntimes(true);
+      await ensureRuntimeStatuses(true);
     } catch {
       // fall back to the package manager on error
       openPackageManager();
     } finally {
       setInstalling(false);
     }
-  }, [missingRuntimes, checkRuntimes, openPackageManager]);
+  }, [missingRuntimes, openPackageManager]);
 
-  if (loading || missingRuntimes.length === 0) {
+  if (!loaded || missingRuntimes.length === 0) {
     return null;
   }
 

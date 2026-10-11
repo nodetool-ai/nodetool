@@ -247,6 +247,30 @@ describe("useAssetUpload", () => {
       expect(useAssetUpload.getState().isUploading).toBe(false);
     });
 
+    it("keeps uploading while a concurrent upload is still running", async () => {
+      let finishFirst: (asset: unknown) => void = () => undefined;
+      mockCreateAsset
+        .mockReturnValueOnce(
+          new Promise((resolve) => {
+            finishFirst = resolve;
+          })
+        )
+        .mockReturnValueOnce(new Promise(() => {}));
+
+      act(() => {
+        useAssetUpload.getState().uploadAsset({ file: new File(["a"], "a.txt") });
+        useAssetUpload.getState().uploadAsset({ file: new File(["b"], "b.txt") });
+      });
+
+      await act(async () => {
+        finishFirst({ id: "a" });
+      });
+
+      const state = useAssetUpload.getState();
+      expect(state.isUploading).toBe(true);
+      expect(state.files).toHaveLength(2);
+    });
+
     it("passes workflow_id and parent_id to createAsset", () => {
       const mockFile = new File(["test"], "test.txt", {
         type: "text/plain"

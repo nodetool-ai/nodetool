@@ -21,12 +21,35 @@ import {
 } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { useAsset } from "../../serverState/useAsset";
 
 interface TextItem {
   uri: string;
   type: string;
   asset_id?: string;
 }
+
+const filenameFromUri = (uri: string): string | undefined => {
+  try {
+    const filename = new URL(uri).pathname.split("/").pop();
+    return filename ? decodeURIComponent(filename) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/** `asset://<id>` has no path, so asset refs take the asset's own name. */
+const TextItemName = memo(function TextItemName({ text }: { text: TextItem }) {
+  const { asset } = useAsset({
+    document: { type: "document", uri: text.uri, asset_id: text.asset_id }
+  });
+  const name = asset?.name || filenameFromUri(text.uri) || "text file";
+  return (
+    <Text className="text-filename" title={name}>
+      {name}
+    </Text>
+  );
+});
 
 const styles = (theme: Theme) =>
   css({
@@ -187,17 +210,6 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
       texts.map((_, index) => () => handleRemoveText(index)),
     [texts, handleRemoveText]
   );
-
-  const getFilename = useCallback((uri: string) => {
-    try {
-      const url = new URL(uri);
-      const pathname = url.pathname;
-      const filename = pathname.split("/").pop() || "text file";
-      return decodeURIComponent(filename);
-    } catch {
-      return "text file";
-    }
-  }, []);
 
   // Handles both internal nodetool asset drops and external file drops.
   const onDrop = useCallback(
@@ -412,9 +424,7 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
             <div key={text.uri} className="text-item">
               <DescriptionIcon className="text-icon" />
               <div className="text-content">
-                <Text className="text-filename" title={getFilename(text.uri)}>
-                  {getFilename(text.uri)}
-                </Text>
+                <TextItemName text={text} />
               </div>
               <CloseButton
                 className="remove-button"

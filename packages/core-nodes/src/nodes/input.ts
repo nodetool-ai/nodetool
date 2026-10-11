@@ -32,6 +32,7 @@ import {
   hfModelDefault,
   imageModelDefault,
   imageRefDefault,
+  imageSizeDefault,
   languageModelDefault,
   messageRefDefault,
   model3DRefDefault,
@@ -383,7 +384,7 @@ export class ImageSizeInputNode extends BaseNode {
 
   @prop({
     type: "image_size",
-    default: null,
+    default: imageSizeDefault,
     title: "Value",
     description: "The image size to use as input.",
     required: true
@@ -394,7 +395,7 @@ export class ImageSizeInputNode extends BaseNode {
   declare description: string;
 
   async process(): Promise<ImageSizeInputNodeOutputs> {
-    return { output: this.value ?? {} };
+    return { output: this.value ?? imageSizeDefault };
   }
 }
 

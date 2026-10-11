@@ -29,6 +29,10 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>): boolean {
     shallow(a.data.exposedInputsHidden, b.data.exposedInputsHidden) &&
     a.position.x === b.position.x &&
     a.position.y === b.position.y &&
+    // Top-level width/height change only on a user resize or an explicit
+    // update; React Flow's measurement writes `measured`, which is ignored.
+    a.width === b.width &&
+    a.height === b.height &&
     a.parentId === b.parentId
   );
 }

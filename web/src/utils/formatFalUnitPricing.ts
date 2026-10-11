@@ -53,12 +53,56 @@ export function formatFalPerRunEstimate(totalCost: number, currency: string): st
   return `~${formatMoney(totalCost, currency)} per run (historical avg)`;
 }
 
-/** Compact label for node chrome (fal monetary `unit_price`). */
+const UNIT_ABBREVIATIONS: Record<string, string> = {
+  second: "s",
+  seconds: "s",
+  megapixel: "MP",
+  megapixels: "MP",
+  minute: "min",
+  minutes: "min",
+  characters: "chars"
+};
+
+const COUNT_ABBREVIATIONS: Record<string, string> = {
+  "1000": "1K",
+  "1m": "1M"
+};
+
+/**
+ * Compact form of a fal `billing_unit` for the chip: "seconds" -> "s",
+ * "megapixels" -> "MP", "images" -> "image", "1000 characters" -> "1K chars".
+ * Empty when the unit is blank or a bare count.
+ */
+function falUnitSuffix(billingUnit: string): string {
+  const words = billingUnit.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0 || (words.length === 1 && /^\d+$/.test(words[0]))) {
+    return "";
+  }
+  const counted = /^\d/.test(words[0]);
+  if (counted) {
+    words[0] = COUNT_ABBREVIATIONS[words[0]] ?? words[0];
+  }
+  const last = words.length - 1;
+  const abbreviation = UNIT_ABBREVIATIONS[words[last]];
+  if (abbreviation) {
+    words[last] = abbreviation;
+  } else if (!counted && /[^s]s$/.test(words[last])) {
+    words[last] = words[last].slice(0, -1);
+  }
+  return words.join(" ");
+}
+
+/**
+ * Compact label for node chrome: `unit_price` with its unit ("$0.07 / s"),
+ * since most fal endpoints bill per second or megapixel, not per run.
+ */
 export function formatFalUnitPricingShort(p: FalUnitPricing): string {
   if (isFalVagueBillingSummary(p)) {
     return "pricing varies";
   }
-  return formatMoney(p.unit_price, p.currency);
+  const money = formatMoney(p.unit_price, p.currency);
+  const unit = falUnitSuffix(p.billing_unit);
+  return unit === "" ? money : `${money} / ${unit}`;
 }
 
 /** Snapshot age for tooltip (uses `checked_at`). */

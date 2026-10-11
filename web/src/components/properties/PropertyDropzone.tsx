@@ -16,6 +16,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "../../utils/isEqual";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
@@ -227,7 +228,28 @@ const PropertyDropzone = ({
     e.currentTarget.volume = 1;
   }, []);
 
-  const { uploadAsset: uploadAssetFn } = useAssetUpload();
+  const uploadAssetFn = useAssetUpload((state) => state.uploadAsset);
+  const addNotification = useNotificationStore((state) => state.addNotification);
+  const [pickerUploading, setPickerUploading] = useState(false);
+
+  // Picked files report failures like dropped ones do (useFileDrop).
+  const uploadPickedFile = useCallback(
+    (file: File) => {
+      setPickerUploading(true);
+      uploadAssetFn({
+        file,
+        onCompleted: (next) => {
+          setPickerUploading(false);
+          emitRef(next);
+        },
+        onFailed: (error) => {
+          setPickerUploading(false);
+          addNotification({ type: "error", alert: true, content: error });
+        }
+      });
+    },
+    [uploadAssetFn, emitRef, addNotification]
+  );
 
   const getAcceptAttribute = useCallback(() => {
     const type = contentType.split("/")[0];
@@ -255,22 +277,13 @@ const PropertyDropzone = ({
       return;
     }
 
-    const file = files[0];
-    uploadAssetFn({
-      file,
-      onCompleted: (next) => {
-        emitRef(next);
-      },
-      onFailed: (error) => {
-        console.error("Failed to upload asset:", error);
-      }
-    });
+    uploadPickedFile(files[0]);
 
     // Reset input so same file can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, [emitRef, uploadAssetFn]);
+  }, [uploadPickedFile]);
 
   const handleNativeFilePicker = useCallback(async () => {
     if (!window.api?.dialog?.openFile) {
@@ -327,20 +340,12 @@ const PropertyDropzone = ({
 
         const file = new File([fileData.buffer as BlobPart], fileName, { type: fileData.mimeType });
 
-        uploadAssetFn({
-          file,
-          onCompleted: (next) => {
-            emitRef(next);
-          },
-          onFailed: (error) => {
-            console.error("Failed to upload asset:", error);
-          }
-        });
+        uploadPickedFile(file);
       }
     } catch (error) {
       console.error("Error opening file picker:", error);
     }
-  }, [contentType, emitRef, uploadAssetFn]);
+  }, [contentType, uploadPickedFile]);
 
   const handleDropzoneClick = useCallback(() => {
     if (isElectron && window.api?.dialog?.openFile) {
@@ -544,7 +549,9 @@ const PropertyDropzone = ({
             </>
           ) : (
             <Tooltip title="Click to select a file or drag and drop">
-              <p className="prop-drop centered uppercase">Click or drop {contentType}</p>
+              <p className="prop-drop centered uppercase">
+                {pickerUploading ? "Uploading…" : `Click or drop ${contentType}`}
+              </p>
             </Tooltip>
           )}
         </div>

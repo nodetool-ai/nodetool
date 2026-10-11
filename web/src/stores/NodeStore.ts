@@ -50,13 +50,13 @@ import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
-import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
+import { COMMENT_NODE_TYPE, PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespokeNodeSizes";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 import { edgesFrom, edgesTargeting } from "../hooks/nodes/edgeIndex";
-import { isFunction } from "../utils/typePredicates";
+import { isFunction, isString } from "../utils/typePredicates";
 import { rebaseDocumentSnapshots } from "./documentMerge";
 import { workflowMergeAdapter, type WorkflowMergeDoc } from "./workflowMerge";
 
@@ -90,7 +90,9 @@ const MEASUREMENT_RESET_KEYS = new Set(["height", "width", "measured"]);
 
 /**
  * Generates a default name for input nodes based on their type.
- * For example, "nodetool.input.StringInput" becomes "string_input_1"
+ * For example, "nodetool.input.StringInput" becomes "string_input_1".
+ * Takes the lowest suffix no other node's name uses: the name is the
+ * parameter key, so two inputs sharing it collapse into one port.
  */
 const generateInputNodeName = (
   nodeType: string,
@@ -98,26 +100,22 @@ const generateInputNodeName = (
 ): string => {
   // Extract the input type from the node type (e.g., "StringInput" from "nodetool.input.StringInput")
   const match = nodeType.match(/nodetool\.input\.(\w+)Input$/);
-  if (!match) {
-    // Handle special cases like Folder
-    const folderMatch = nodeType.match(/nodetool\.input\.(\w+)$/);
-    if (folderMatch) {
-      const baseName = folderMatch[1].toLowerCase();
-      const existingCount = existingNodes.filter(
-        (n) => n.type === nodeType
-      ).length;
-      return `${baseName}_${existingCount + 1}`;
-    }
-    return "input_1";
+  // Handle special cases like Folder
+  const folderMatch = match ? null : nodeType.match(/nodetool\.input\.(\w+)$/);
+  const baseName = match
+    ? `${match[1].toLowerCase()}_input`
+    : folderMatch
+      ? folderMatch[1].toLowerCase()
+      : "input";
+
+  const usedNames = new Set(
+    existingNodes.map((n) => n.data.properties?.name).filter(isString)
+  );
+  let suffix = 1;
+  while (usedNames.has(`${baseName}_${suffix}`)) {
+    suffix += 1;
   }
-
-  const inputType = match[1].toLowerCase();
-  const baseName = `${inputType}_input`;
-
-  // Count existing input nodes of the same type
-  const existingCount = existingNodes.filter((n) => n.type === nodeType).length;
-
-  return `${baseName}_${existingCount + 1}`;
+  return `${baseName}_${suffix}`;
 };
 
 /** UUID v4, falling back to a manual implementation when crypto.randomUUID is absent. */
@@ -952,7 +950,7 @@ export const createNodeStore = (
                 (nodeUpdate as Record<string, unknown>)[key] === undefined
             );
 
-            set((state) => {
+            const applyUpdate = (): void => set((state) => {
               const nodeIndex = state.nodes.findIndex((n) => n.id === id);
               if (nodeIndex === -1) {
                 return state;
@@ -994,6 +992,12 @@ export const createNodeStore = (
               }
               return { ...state, nodes: newNodes };
             });
+            // A measurement reset clears `height`, which undo compares.
+            if (isOnlyMeasurementReset) {
+              withoutHistory(applyUpdate);
+            } else {
+              applyUpdate();
+            }
 
             // Only mark as dirty if this is not just a selection change or a
             // measurement reset
@@ -1400,9 +1404,18 @@ export const createNodeStore = (
               return { minX, minY, maxX, maxY };
             };
 
-            const originalBounds = getBounds(selectedNodes);
+            // Children keep group-relative positions from ELK, so the offset
+            // is measured and applied on top-level nodes only.
+            const isTopLevel = (node: Node<NodeData>): boolean =>
+              !node.parentId;
+            const originalBounds = getBounds(selectedNodes.filter(isTopLevel));
             const layoutedNodes = await autoLayout(edges, selectedNodes);
-            const layoutBounds = getBounds(layoutedNodes);
+            const layoutBounds = getBounds(layoutedNodes.filter(isTopLevel));
+            const resizedGroupIds = new Set(
+              selectedNodes.flatMap((node) =>
+                node.parentId ? [node.parentId] : []
+              )
+            );
 
             const dx = originalBounds.minX - layoutBounds.minX;
             const dy = originalBounds.minY - layoutBounds.minY;
@@ -1417,16 +1430,25 @@ export const createNodeStore = (
             // removed, or changed nodes) are preserved.
             const updatedNodes = get().nodes.map((node) => {
               const layoutedNode = layoutedNodeMap.get(node.id);
-              if (layoutedNode) {
-                return {
-                  ...node,
-                  position: {
-                    x: layoutedNode.position.x + dx,
-                    y: layoutedNode.position.y + dy
-                  }
-                };
+              if (!layoutedNode) {
+                return node;
               }
-              return node;
+              const offset = isTopLevel(node) ? { x: dx, y: dy } : { x: 0, y: 0 };
+              const laidOut = {
+                ...node,
+                position: {
+                  x: layoutedNode.position.x + offset.x,
+                  y: layoutedNode.position.y + offset.y
+                }
+              };
+              return resizedGroupIds.has(node.id)
+                ? {
+                    ...laidOut,
+                    width: layoutedNode.width,
+                    height: layoutedNode.height,
+                    measured: layoutedNode.measured
+                  }
+                : laidOut;
             });
 
             get().setNodes(updatedNodes);
@@ -1729,7 +1751,13 @@ export const createNodeStore = (
             get().setWorkflowDirty(true);
           },
           toggleBypassSelected: (): void => {
-            const selectedNodes = get().getSelectedNodes();
+            // The kernel bypasses only runnable nodes, so a flagged group or
+            // comment would look disabled while its contents still run.
+            const isBypassable = (n: Node<NodeData>): boolean =>
+              n.type !== GROUP_NODE_TYPE && n.type !== COMMENT_NODE_TYPE;
+            const selectedNodes = get()
+              .getSelectedNodes()
+              .filter(isBypassable);
             if (selectedNodes.length === 0) {
               return;
             }
@@ -1742,7 +1770,7 @@ export const createNodeStore = (
 
             set((state) => ({
               nodes: state.nodes.map((n) =>
-                n.selected
+                n.selected && isBypassable(n)
                   ? {
                       ...n,
                       className: reactFlowNodeChromeClassName({

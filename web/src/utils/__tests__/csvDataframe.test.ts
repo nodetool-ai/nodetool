@@ -1,8 +1,10 @@
 import {
   csvDelimiterFor,
   dataframeToCsv,
-  parseCsvToDataframe
+  parseCsvToDataframe,
+  removeDataframeColumn
 } from "../csvDataframe";
+import type { DataframeRef } from "../../stores/ApiTypes";
 
 describe("csvDelimiterFor", () => {
   it("uses tabs for .tsv and commas otherwise", () => {
@@ -34,5 +36,31 @@ describe("CSV round-trip", () => {
       ["Lin", "28"]
     ]);
     expect(out.split(/\r\n|\n/)[0]).toBe("name,age");
+  });
+});
+
+describe("removeDataframeColumn", () => {
+  it("removes the column from every row so later values keep their column", () => {
+    const df: DataframeRef = {
+      type: "dataframe",
+      uri: "",
+      columns: [
+        { name: "name", data_type: "string" },
+        { name: "age", data_type: "int" },
+        { name: "city", data_type: "string" }
+      ],
+      data: [
+        ["Ann", 30, "Oslo"],
+        ["Bo", 41, "Bergen"]
+      ]
+    };
+
+    const next = removeDataframeColumn(df, 0);
+
+    expect(next.columns?.map((c) => c.name)).toEqual(["age", "city"]);
+    expect(next.data).toEqual([
+      [30, "Oslo"],
+      [41, "Bergen"]
+    ]);
   });
 });

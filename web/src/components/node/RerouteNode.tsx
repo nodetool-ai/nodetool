@@ -101,10 +101,12 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
 
   const commitTitle = useCallback(
     (value: string) => {
-      updateNodeData(id, { title: value });
+      if (value !== title) {
+        updateNodeData(id, { title: value });
+      }
       setIsEditing(false);
     },
-    [id, updateNodeData]
+    [id, title, updateNodeData]
   );
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {

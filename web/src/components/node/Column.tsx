@@ -6,7 +6,6 @@ import { NodeTextField, NodeSelect, NodeMenuItem, DeleteButton } from "../ui_pri
 interface ColumnProps {
   index: number;
   field: ColumnDef;
-  inputRef: (el: HTMLInputElement | null) => void;
   handleNameChange: (index: number, name: string) => void;
   handleDataTypeChange: (index: number, type: string) => void;
   handleDescriptionChange: (index: number, description: string) => void;
@@ -18,7 +17,6 @@ interface ColumnProps {
 const Column: React.FC<ColumnProps> = ({
   index,
   field,
-  inputRef,
   handleNameChange,
   handleDataTypeChange,
   handleDescriptionChange,
@@ -29,7 +27,6 @@ const Column: React.FC<ColumnProps> = ({
   <div className="column">
     <div className="item-name">
       <NodeTextField
-        inputRef={inputRef}
         className="textfield"
         margin="dense"
         value={field.name}

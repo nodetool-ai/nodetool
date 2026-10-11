@@ -1,4 +1,10 @@
 import useModelPreferencesStore from "../stores/ModelPreferencesStore";
+import type { DefaultModel } from "../stores/ModelPreferencesStore";
+import {
+  IMAGE_TASK_BY_NODE_TYPE,
+  VIDEO_TASK_BY_NODE_TYPE,
+  modelMatchesTask
+} from "../hooks/modelTaskMatching";
 import { isString } from "./typePredicates";
 
 // Property types stamped with the user's default model on node creation.
@@ -36,6 +42,40 @@ function defaultKeyFor(modelType: string, nodeType: string | undefined): string 
   return modelType;
 }
 
+function requiredTasks(
+  modelType: string,
+  nodeType: string | undefined
+): string[] {
+  if (!nodeType) {
+    return [];
+  }
+  const task =
+    modelType === "image_model"
+      ? IMAGE_TASK_BY_NODE_TYPE[nodeType]
+      : modelType === "video_model"
+        ? VIDEO_TASK_BY_NODE_TYPE[nodeType]
+        : undefined;
+  if (task === undefined) {
+    return [];
+  }
+  return Array.isArray(task) ? task : [task];
+}
+
+// Same rule as the node's model picker. A pin saved without its tasks is not
+// checked.
+function supportsNodeTask(
+  model: DefaultModel,
+  modelType: string,
+  nodeType: string | undefined
+): boolean {
+  const tasks = requiredTasks(modelType, nodeType);
+  if (tasks.length === 0 || model.supported_tasks === undefined) {
+    return true;
+  }
+  return tasks.some((task) => modelMatchesTask(model.supported_tasks, task));
+}
+
+/** Fill empty model properties with the user's pinned defaults. */
 export function applyDefaultModels(
   properties: Record<string, unknown>,
   propertyMetadata: PropertyMeta[],
@@ -62,7 +102,11 @@ export function applyDefaultModels(
 
     const userDefault =
       defaults[defaultKeyFor(modelType, nodeType)] ?? defaults[modelType];
-    if (isEmpty && userDefault) {
+    if (
+      isEmpty &&
+      userDefault &&
+      supportsNodeTask(userDefault, modelType, nodeType)
+    ) {
       result[prop.name] = {
         type: modelType,
         provider: userDefault.provider,

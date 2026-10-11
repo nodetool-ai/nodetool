@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
+import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 
 /**
  * Toggles the collapsed (header-only) state of one or more nodes, applying the
@@ -28,14 +29,14 @@ export const useToggleCollapse = (): ((nodeIds?: string[]) => void) => {
       }
 
       const next = !targets[0].data.collapsed;
-      for (const node of targets) {
-        const { data: dataPatch, node: nodePatch } = getCollapseTogglePatches(
-          node,
-          next
-        );
-        updateNodeData(node.id, dataPatch);
-        updateNode(node.id, nodePatch);
-      }
+      runAsOneUndoEntry(nodeStore, () => {
+        for (const node of targets) {
+          const { data: dataPatch, node: nodePatch } =
+            getCollapseTogglePatches(node, next);
+          updateNodeData(node.id, dataPatch);
+          updateNode(node.id, nodePatch);
+        }
+      });
     },
     [nodeStore]
   );

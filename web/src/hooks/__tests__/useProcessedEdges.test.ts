@@ -162,6 +162,55 @@ describe("useProcessedEdges", () => {
       // The edge should have the string color since both source and target are str type
       expect(result.current.processedEdges[0].style?.stroke).toBe("#3f51b5");
     });
+
+    it("recolors an edge when a dynamic output keeps its name but changes type", () => {
+      const sourceWithOutput = (type: string): Node<NodeData> =>
+        createMockNode("node1", "test.Dynamic", {
+          data: {
+            properties: {},
+            dynamic_properties: {},
+            selectable: true,
+            workflow_id: "test-workflow",
+            dynamic_outputs: {
+              var_1: { type, optional: false, type_args: [] }
+            }
+          }
+        });
+      const edges = [createMockEdge("edge1", "node1", "node2", "var_1", "value")];
+      const getMetadata = (nodeType: string): NodeMetadata | undefined =>
+        stub<NodeMetadata>({
+          node_type: nodeType,
+          namespace: "test",
+          title: nodeType,
+          properties:
+            nodeType === "test.Sink"
+              ? [{ name: "value", type: { type: "any" } }]
+              : [],
+          outputs: []
+        });
+
+      const { result, rerender } = renderHook(
+        ({ nodes }: { nodes: Node<NodeData>[] }) =>
+          useProcessedEdges({
+            edges,
+            nodes,
+            dataTypes: mockDataTypes,
+            getMetadata
+          }),
+        {
+          initialProps: {
+            nodes: [sourceWithOutput("any"), createMockNode("node2", "test.Sink")]
+          }
+        }
+      );
+      expect(result.current.processedEdges[0].data?.dataTypeLabel).toBe("Any");
+
+      rerender({
+        nodes: [sourceWithOutput("image"), createMockNode("node2", "test.Sink")]
+      });
+
+      expect(result.current.processedEdges[0].data?.dataTypeLabel).toBe("Image");
+    });
   });
 
   describe("reroute node handling", () => {

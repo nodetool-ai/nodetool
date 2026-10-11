@@ -12,7 +12,12 @@ jest.mock("../../stores/ModelPreferencesStore", () => {
 
 import modelPreferencesStore from "../../stores/ModelPreferencesStore";
 
-const setDefaults = (defaults: Record<string, { provider: string; id: string; name: string }>) => {
+const setDefaults = (
+  defaults: Record<
+    string,
+    { provider: string; id: string; name: string; supported_tasks?: string[] }
+  >
+) => {
   (modelPreferencesStore as any)._setState({ defaults });
 };
 
@@ -146,6 +151,48 @@ describe("applyDefaultModels", () => {
       });
       const result = applyDefaultModels({ model: blank }, meta, "nodetool.image.TextToImage");
       expect(result.model).toEqual({ type: "image_model", ...imageDefault });
+    });
+  });
+
+  describe("task check", () => {
+    const blank = { type: "video_model", provider: "", id: "", name: "" };
+    const meta = [{ name: "model", type: { type: "video_model" } }];
+    const textToVideo = {
+      provider: "fal_ai",
+      id: "kling-t2v",
+      name: "Kling T2V",
+      supported_tasks: ["text_to_video"]
+    };
+
+    it("skips a pinned model that does not support the node's task", () => {
+      setDefaults({ video_model: textToVideo });
+      const result = applyDefaultModels(
+        { model: blank },
+        meta,
+        "nodetool.video.ReferenceToVideo"
+      );
+      expect(result.model).toEqual(blank);
+    });
+
+    it("applies a pinned model that supports the node's task", () => {
+      setDefaults({ video_model: textToVideo });
+      const result = applyDefaultModels(
+        { model: blank },
+        meta,
+        "nodetool.video.TextToVideo"
+      );
+      expect((result.model as { id: string }).id).toBe("kling-t2v");
+    });
+
+    it("applies a pin saved without tasks, as before", () => {
+      const { supported_tasks: _tasks, ...legacy } = textToVideo;
+      setDefaults({ video_model: legacy });
+      const result = applyDefaultModels(
+        { model: blank },
+        meta,
+        "nodetool.video.ReferenceToVideo"
+      );
+      expect((result.model as { id: string }).id).toBe("kling-t2v");
     });
   });
 });

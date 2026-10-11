@@ -19,6 +19,8 @@ interface AddDynamicOutputDialogProps {
   open: boolean;
   onClose: () => void;
   onAdd: (name: string, type: TypeMetadata) => void;
+  /** Static and dynamic output names on the node; adding one would replace it. */
+  takenNames?: readonly string[];
 }
 
 const TYPE_OPTIONS = [
@@ -31,7 +33,8 @@ const TYPE_OPTIONS = [
 const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
   open,
   onClose,
-  onAdd
+  onAdd,
+  takenNames = []
 }) => {
   const titleId = useId();
   const [name, setName] = useState("");
@@ -56,10 +59,14 @@ const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
       setNameError(validation.error);
       return;
     }
+    if (takenNames.includes(trimmed)) {
+      setNameError(`An output named "${trimmed}" already exists`);
+      return;
+    }
     onAdd(trimmed, { type, type_args: [], optional: false });
     reset();
     onClose();
-  }, [name, type, onAdd, reset, onClose]);
+  }, [name, type, takenNames, onAdd, reset, onClose]);
 
   return (
     <Dialog

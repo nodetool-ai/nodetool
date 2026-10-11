@@ -12,9 +12,10 @@ import {
   DialogActions
 } from "../ui_primitives";
 import Add from "@mui/icons-material/Add";
-import { useState, useCallback, memo, useId } from "react";
+import { useState, useCallback, memo, useId, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import isEqual from "../../utils/isEqual";
+import useMetadataStore from "../../stores/MetadataStore";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { validateIdentifierName } from "../../utils/identifierValidation";
@@ -35,10 +36,20 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   supportsDynamicOutputs,
   dynamicOutputs,
   onAddProperty,
-  nodeType: _nodeType
+  nodeType
 }) => {
   const theme = useTheme();
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
+  const staticOutputs = useMetadataStore((state) =>
+    nodeType ? state.metadata[nodeType]?.outputs : undefined
+  );
+  const takenOutputNames = useMemo(
+    () => [
+      ...(staticOutputs ?? []).map((output) => output.name),
+      ...Object.keys(dynamicOutputs)
+    ],
+    [staticOutputs, dynamicOutputs]
+  );
   const inputDialogTitleId = useId();
   const [showOutputDialog, setShowOutputDialog] = useState(false);
   const [showInputDialog, setShowInputDialog] = useState(false);
@@ -130,6 +141,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             open={showOutputDialog}
             onClose={handleHideOutputDialog}
             onAdd={handleAddOutput}
+            takenNames={takenOutputNames}
           />
         </>
       )}

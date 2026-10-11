@@ -929,6 +929,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
           {supportsDynamicOutputs && (
             <AddDynamicOutputButton
               id={id}
+              nodeType={nodeMetadata.node_type}
               dynamicOutputs={data.dynamic_outputs ?? {}}
             />
           )}

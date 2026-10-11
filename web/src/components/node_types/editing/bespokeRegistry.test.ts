@@ -1,6 +1,7 @@
 import {
   BESPOKE_BODY_REGISTRY,
-  getBespokeBody
+  getBespokeBody,
+  rendersExposedInputHandles
 } from "./bespokeRegistry";
 import { stub } from "../../../test-utils/doubles";
 import BlurBody from "./BlurBody";
@@ -167,5 +168,15 @@ describe("bespokeRegistry", () => {
       const m = meta(t);
       expect(getBespokeBody(m)).toBe(SynthModuleBody);
     }
+  });
+
+  it("reports which bodies draw user-promoted input handles", () => {
+    expect(rendersExposedInputHandles(meta("nodetool.image.Blur"))).toBe(
+      false
+    );
+    expect(rendersExposedInputHandles(meta("nodetool.image.Painter"))).toBe(
+      true
+    );
+    expect(rendersExposedInputHandles(meta("test.GenericNode"))).toBe(true);
   });
 });

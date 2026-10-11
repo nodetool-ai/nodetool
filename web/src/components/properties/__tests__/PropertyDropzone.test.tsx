@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
@@ -14,11 +14,19 @@ jest.mock("../../../hooks/handlers/useFileDrop", () => ({
   }),
 }));
 
-jest.mock("../../../serverState/useAssetUpload", () => ({
-  useAssetUpload: () => ({
-    uploadAsset: mockUploadAsset,
-    isUploading: false,
-  }),
+jest.mock("../../../serverState/useAssetUpload", () => {
+  const state = { uploadAsset: mockUploadAsset, isUploading: false };
+  return {
+    useAssetUpload: (selector?: (s: typeof state) => unknown) =>
+      selector ? selector(state) : state,
+  };
+});
+
+const mockAddNotification = jest.fn();
+jest.mock("../../../stores/NotificationStore", () => ({
+  useNotificationStore: (
+    selector: (s: { addNotification: jest.Mock }) => unknown
+  ) => selector({ addNotification: mockAddNotification }),
 }));
 
 // Mock browser utils - this needs to be done before importing the component
@@ -63,6 +71,7 @@ describe("PropertyDropzone", () => {
   beforeEach(() => {
     mockOnChange.mockClear();
     mockUploadAsset.mockReset();
+    mockAddNotification.mockReset();
     mockIsElectron = false;
     // Reset window.api
     delete (window as any).api;
@@ -188,6 +197,39 @@ describe("PropertyDropzone", () => {
       uri: "asset://87c6124bc9684facabb8cb3575dcb8ad",
       asset_id: "87c6124bc9684facabb8cb3575dcb8ad"
     });
+  });
+
+  it("shows the upload in progress and reports a failed picker upload", () => {
+    let fail: ((error: string) => void) | undefined;
+    mockUploadAsset.mockImplementation(({ onFailed }) => {
+      fail = onFailed;
+    });
+
+    renderWithTheme(
+      <PropertyDropzone
+        asset={undefined}
+        uri={undefined}
+        onChange={mockOnChange}
+        contentType="image"
+        props={mockProps as any}
+      />
+    );
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["bytes"], "big.png", { type: "image/png" });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(screen.getByText("Uploading…")).toBeInTheDocument();
+
+    act(() => fail?.("File too large"));
+
+    expect(mockAddNotification).toHaveBeenCalledWith({
+      type: "error",
+      alert: true,
+      content: "File too large"
+    });
+    expect(screen.queryByText("Uploading…")).toBeNull();
+    expect(mockOnChange).not.toHaveBeenCalled();
   });
 
   // A source the backend refuses (a dropped file outside the allowed roots, a

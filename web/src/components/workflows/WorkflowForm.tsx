@@ -133,25 +133,23 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     return Array.from(allTags).sort();
   }, [availableTags]);
 
-  // Persist the form's metadata onto the workflow. When the workflow is open in
-  // the editor we merge onto its live node-store graph so a concurrent canvas
-  // edit isn't clobbered by the form's stale graph snapshot; otherwise we save
-  // the form's own copy.
+  // Persist the fields edited in this form onto the workflow. When the workflow
+  // is open in the editor we merge onto its live node-store copy, so a canvas
+  // edit or a rename from the tab since the form opened is kept; otherwise we
+  // save the form's own copy. A settings change is not a version checkpoint.
   const pendingRef = useRef<Workflow | null>(null);
+  const editedRef = useRef<Set<keyof Workflow>>(new Set());
   const persist = useCallback(
     (next: Workflow) => {
       pendingRef.current = null;
+      const edited = [...editedRef.current];
+      editedRef.current = new Set();
       const store = getNodeStore(next.id);
       const base = store ? store.getState().getWorkflow() : next;
-      saveWorkflow({
-        ...base,
-        name: next.name,
-        description: next.description,
-        tags: next.tags,
-        run_mode: next.run_mode,
-        tool_name: next.tool_name,
-        workspace_id: next.workspace_id ?? null
-      }).catch((err) => {
+      const patch: Partial<Workflow> = Object.fromEntries(
+        edited.map((key) => [key, next[key]])
+      );
+      saveWorkflow({ ...base, ...patch }, { snapshot: false }).catch((err) => {
         // Surface autosave failures instead of swallowing them — a silent
         // failure here is exactly what "my setting didn't save" looks like.
         addNotification({
@@ -190,6 +188,9 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     (patch: Partial<Workflow>, immediate = false) => {
       const next = { ...latestRef.current, ...patch };
       latestRef.current = next;
+      for (const key of Object.keys(patch) as Array<keyof Workflow>) {
+        editedRef.current.add(key);
+      }
       setLocalWorkflow(next);
       if (immediate) {
         debouncedPersist.cancel();

@@ -39,7 +39,10 @@ import {
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import {
+  useWorkflowManager,
+  useWorkflowManagerStore
+} from "../../contexts/WorkflowManagerContext";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { WorkflowVersion } from "../../stores/ApiTypes";
@@ -402,31 +405,29 @@ export const PanelBodyContent = memo(function PanelBodyContent({
   const activeNodeStore = useWorkflowManager((state) =>
     currentWorkflowId ? state.nodeStores[currentWorkflowId] : undefined
   );
+  const workflowManagerStore = useWorkflowManagerStore();
 
   const handleRestoreVersion = useCallback(
     async (version: WorkflowVersion, restored: RestoredWorkflowTokens) => {
       if (!activeNodeStore || !currentWorkflowId) {
         return;
       }
+      const { restoreWorkflowVersion } = await import(
+        "./restoreWorkflowVersion"
+      );
+      const closedTabKeys = restoreWorkflowVersion(
+        activeNodeStore,
+        currentWorkflowId,
+        version.graph
+      );
+      if (closedTabKeys.length > 0) {
+        workflowManagerStore.setState((state) => {
+          const nodeStores = { ...state.nodeStores };
+          closedTabKeys.forEach((key) => delete nodeStores[key]);
+          return { nodeStores };
+        });
+      }
       const storeState = activeNodeStore.getState();
-      const workflow = storeState.getWorkflow();
-
-      const [{ graphNodeToReactFlowNode }, { graphEdgeToReactFlowEdge }] =
-        await Promise.all([
-          import("../../stores/graphNodeToReactFlowNode"),
-          import("../../stores/graphEdgeToReactFlowEdge")
-        ]);
-
-      const graph = version.graph;
-      const newNodes = graph.nodes.map((n) =>
-        graphNodeToReactFlowNode(workflow, n)
-      );
-      const newEdges = graph.edges.map((e) =>
-        graphEdgeToReactFlowEdge(e)
-      );
-
-      storeState.setNodes(newNodes);
-      storeState.setEdges(newEdges);
       // The restore rewrote the row on the server. Without its new tokens
       // the next save fails as an optimistic-concurrency conflict.
       if (restored.updated_at) {
@@ -434,14 +435,14 @@ export const PanelBodyContent = memo(function PanelBodyContent({
       }
       storeState.setWorkflowDirty(true);
     },
-    [activeNodeStore, currentWorkflowId]
+    [activeNodeStore, currentWorkflowId, workflowManagerStore]
   );
 
   const closeView = useBottomPanelStore((s) => s.closePanel);
 
   switch (activeView) {
     case "logs":
-      return <PanelErrorBoundary panelName="Run logs"><TracePanel view="logs" /></PanelErrorBoundary>;
+      return <PanelErrorBoundary panelName="Run logs"><TracePanel view="logs" workflowId={currentWorkflowId} /></PanelErrorBoundary>;
     case "queue":
       return (
         <FlexColumn
@@ -480,7 +481,7 @@ export const PanelBodyContent = memo(function PanelBodyContent({
         />
       );
     case "trace":
-      return <PanelErrorBoundary panelName="Run trace"><TracePanel /></PanelErrorBoundary>;
+      return <PanelErrorBoundary panelName="Run trace"><TracePanel workflowId={currentWorkflowId} /></PanelErrorBoundary>;
     default:
       return null;
   }

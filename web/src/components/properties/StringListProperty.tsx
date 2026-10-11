@@ -91,6 +91,7 @@ const StringListProperty = (props: PropertyProps<string[]>) => {
         id={id}
         multiple
         freeSolo
+        autoSelect
         size="small"
         options={[]}
         value={strings}

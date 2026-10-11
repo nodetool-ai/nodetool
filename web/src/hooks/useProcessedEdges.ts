@@ -70,13 +70,18 @@ function useStructurallyProcessedEdges({
       let cached = structureCache.get(n.data);
       if (cached === undefined) {
         changed = true;
+        // Slot types, not only names: an output that keeps its name but
+        // changes type (Prompt passthrough, Get Variable) recolors its edges.
         const dynamicOutputs = n.data.dynamic_outputs
-          ? Object.keys(n.data.dynamic_outputs).join(",")
+          ? JSON.stringify(n.data.dynamic_outputs)
+          : "";
+        const dynamicInputs = n.data.dynamic_inputs
+          ? JSON.stringify(n.data.dynamic_inputs)
           : "";
         const dynamicProps = n.data.dynamic_properties
           ? Object.keys(n.data.dynamic_properties).join(",")
           : "";
-        cached = `${dynamicOutputs}:${dynamicProps}`;
+        cached = `${dynamicOutputs}:${dynamicInputs}:${dynamicProps}`;
         structureCache.set(n.data, cached);
       }
       parts.push(`${n.id}:${n.type}:${cached}`);

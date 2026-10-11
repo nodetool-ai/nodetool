@@ -160,6 +160,9 @@ const QuickViewButton: React.FC<QuickViewButtonProps> = ({
 
 const EMPTY_MODELS: never[] = [];
 
+const modelKey = (model: ModelSelectorModel): string =>
+  `${model.provider ?? ""}:${model.id ?? ""}`;
+
 function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   open,
   onClose,
@@ -387,36 +390,57 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   );
 
   // Keyboard navigation: the search input forwards arrow/enter keys here so the
-  // list can be driven without the mouse. activeIndex points into
-  // filteredModelsAdvanced; navigation skips unavailable rows.
+  // list can be driven without the mouse. The highlight is held by
+  // `provider:id` so it survives the list re-sorting or refetching; with no
+  // highlighted model (or one no longer listed) the first available row is
+  // highlighted, so Enter selects the top-ranked match right after typing.
   const getAvailability = useModelAvailability();
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
 
   const isRowAvailable = useCallback(
     (index: number) => getAvailability(filteredModelsAdvanced[index]).available,
     [filteredModelsAdvanced, getAvailability]
   );
 
-  // Highlight the first available row whenever the visible list changes so that
-  // Enter selects the top-ranked match right after typing.
-  React.useEffect(() => {
-    setActiveIndex(
-      firstAvailableIndex(filteredModelsAdvanced.length, isRowAvailable)
-    );
-  }, [filteredModelsAdvanced.length, isRowAvailable]);
+  const activeIndex = useMemo(() => {
+    if (activeKey !== null) {
+      const index = filteredModelsAdvanced.findIndex(
+        (model) => modelKey(model) === activeKey
+      );
+      if (index >= 0 && isRowAvailable(index)) {
+        return index;
+      }
+    }
+    return firstAvailableIndex(filteredModelsAdvanced.length, isRowAvailable);
+  }, [activeKey, filteredModelsAdvanced, isRowAvailable]);
 
   const stepActiveIndex = useCallback(
     (dir: 1 | -1) => {
-      setActiveIndex((current) =>
-        nextAvailableIndex(
-          filteredModelsAdvanced.length,
-          current,
-          dir,
-          isRowAvailable
-        )
+      const next = nextAvailableIndex(
+        filteredModelsAdvanced.length,
+        activeIndex,
+        dir,
+        isRowAvailable
       );
+      const model = filteredModelsAdvanced[next];
+      if (model) {
+        setActiveKey(modelKey(model));
+      }
     },
-    [filteredModelsAdvanced.length, isRowAvailable]
+    [filteredModelsAdvanced, activeIndex, isRowAvailable]
+  );
+
+  // A new search term re-highlights the top match, and typing leaves the
+  // Favorites or Recent view, which does not filter by the term.
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+      setActiveKey(null);
+      if (value.trim() !== "") {
+        setCustomView(null);
+      }
+    },
+    [setSearch]
   );
 
   const handleArrowDown = useCallback(() => {
@@ -489,6 +513,13 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       });
     }
   }, [anchorEl]);
+
+  React.useEffect(() => {
+    if (open) {
+      setCustomView(null);
+      setActiveKey(null);
+    }
+  }, [open]);
 
   React.useLayoutEffect(() => {
     if (open) {
@@ -728,7 +759,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         <FlexRow gap={isMobile ? 1 : 2} align="center" sx={{ flex: 1 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <SearchInput
-              onSearchChange={setSearch}
+              onSearchChange={handleSearchChange}
               placeholder={searchPlaceholder}
               debounceTime={150}
               // Autofocusing on mobile raises the keyboard over the list.
