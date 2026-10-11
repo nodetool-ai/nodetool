@@ -189,7 +189,8 @@ describe("useInvalidateProjects", () => {
       archived: { invalidate: jest.fn() },
       summaries: { invalidate: jest.fn() },
       unassigned: { invalidate: jest.fn() },
-      get: { invalidate: jest.fn() }
+      get: { invalidate: jest.fn() },
+      documentPage: { invalidate: jest.fn() }
     };
     useUtils.mockReturnValue({ projects: invalidate });
 
@@ -203,5 +204,7 @@ describe("useInvalidateProjects", () => {
     expect(invalidate.summaries.invalidate).toHaveBeenCalledTimes(1);
     expect(invalidate.unassigned.invalidate).toHaveBeenCalledTimes(1);
     expect(invalidate.get.invalidate).toHaveBeenCalledTimes(1);
+    // The start page's document cards read the same documents.
+    expect(invalidate.documentPage.invalidate).toHaveBeenCalledTimes(1);
   });
 });

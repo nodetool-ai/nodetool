@@ -27,13 +27,24 @@ import { readEntityMarker, type EntityMarker } from "@nodetool-ai/protocol";
 import { Application } from "./application.js";
 import { Game } from "./game.js";
 import { Asset } from "./asset.js";
-import { listProjectWorkflows } from "./document-index.js";
+import {
+  listNamed,
+  listProjectWorkflows,
+  type DocumentTable
+} from "./document-index.js";
 import { ImageDocument } from "./image-document.js";
 import { JsScript } from "./js-script.js";
 import { Prediction } from "./prediction.js";
 import { Script, type ScriptDocument } from "./script.js";
 import { Storyboard, type StoryboardDocument } from "./storyboard.js";
 import { TimelineSequence } from "./timeline-sequence.js";
+import { applications } from "./schema/applications.js";
+import { games } from "./schema/games.js";
+import { imageDocuments } from "./schema/image-documents.js";
+import { jsScripts } from "./schema/js-scripts.js";
+import { scripts } from "./schema/scripts.js";
+import { storyboards } from "./schema/storyboards.js";
+import { timelineSequences } from "./schema/timeline-sequences.js";
 
 /**
  * The document kinds a project groups, spelled as the workspace tab type that
@@ -619,6 +630,64 @@ function spendByDocument(
   return perDocument;
 }
 
+/** What a card draws beyond its name: status, stills, and preview. */
+interface DocumentCard {
+  status: ProjectDocumentStatus | null;
+  thumbnails: ProjectThumbnail[];
+  preview: ProjectDocumentPreview | null;
+}
+
+const EMPTY_CARD: DocumentCard = { status: null, thumbnails: [], preview: null };
+
+const storyboardCard = (row: Storyboard): DocumentCard => {
+  const doc = row.toDocument();
+  return {
+    status: storyboardStatus(doc),
+    thumbnails: storyboardThumbnails(doc),
+    preview: null
+  };
+};
+
+const scriptCard = (row: Script): DocumentCard => {
+  const doc = row.toDocument();
+  return {
+    status: scriptStatus(doc),
+    thumbnails: [],
+    preview: scriptPreview(doc)
+  };
+};
+
+const timelineCard = (row: TimelineSequence): DocumentCard => {
+  const doc = row.toDocument();
+  return {
+    status: timelineStatus(doc.clips.length, row.duration_ms),
+    thumbnails: [],
+    preview: timelinePreview(doc.tracks, doc.clips, row.duration_ms)
+  };
+};
+
+// A sketch keeps a rendered thumbnail on its row; nothing else does.
+const sketchCard = (row: ImageDocument): DocumentCard => ({
+  status: null,
+  thumbnails: row.thumbnail_asset_id
+    ? [{ asset_id: row.thumbnail_asset_id }]
+    : [],
+  preview: null
+});
+
+const withSpend = (
+  ref: Omit<ProjectDocumentRef, "type"> & { type: ProjectSummaryDocumentType },
+  card: DocumentCard,
+  spend: { usd: number; unpriced: number } | undefined
+): ProjectDocumentSummary => ({
+  ...ref,
+  status: card.status,
+  spendUsd: spend?.usd ?? 0,
+  unpricedCount: spend?.unpriced ?? 0,
+  thumbnails: card.thumbnails,
+  preview: card.preview
+});
+
 /**
  * The overview's payload: every document with its derived status and its share
  * of the ledger, plus the project's spend split by category.
@@ -648,60 +717,27 @@ export async function summarizeProject(
 
   const summarize = (
     ref: Omit<ProjectDocumentRef, "type"> & { type: ProjectSummaryDocumentType },
-    status: ProjectDocumentStatus | null,
-    thumbnails: ProjectThumbnail[] = [],
-    preview: ProjectDocumentPreview | null = null
-  ): ProjectDocumentSummary => {
-    const spend = perDocument.get(ref.ref);
-    return {
-      ...ref,
-      status,
-      spendUsd: spend?.usd ?? 0,
-      unpricedCount: spend?.unpriced ?? 0,
-      thumbnails,
-      preview
-    };
-  };
+    card: DocumentCard = EMPTY_CARD
+  ): ProjectDocumentSummary =>
+    withSpend(ref, card, perDocument.get(ref.ref));
 
   const documents = newestFirst<ProjectDocumentSummary>([
-    ...rows.storyboards.map((row) => {
-      const doc = row.toDocument();
-      return summarize(
-        toRef("storyboard", row),
-        storyboardStatus(doc),
-        storyboardThumbnails(doc)
-      );
-    }),
-    ...rows.scripts.map((row) => {
-      const doc = row.toDocument();
-      return summarize(
-        toRef("script", row),
-        scriptStatus(doc),
-        [],
-        scriptPreview(doc)
-      );
-    }),
-    ...rows.timelines.map((row) => {
-      const doc = row.toDocument();
-      return summarize(
-        toRef("timeline", row),
-        timelineStatus(doc.clips.length, row.duration_ms),
-        [],
-        timelinePreview(doc.tracks, doc.clips, row.duration_ms)
-      );
-    }),
-    // A sketch keeps a rendered thumbnail on its row; nothing else does.
-    ...rows.sketches.map((row) =>
-      summarize(
-        toRef("sketch", row),
-        null,
-        row.thumbnail_asset_id ? [{ asset_id: row.thumbnail_asset_id }] : []
-      )
+    ...rows.storyboards.map((row) =>
+      summarize(toRef("storyboard", row), storyboardCard(row))
     ),
-    ...rows.applications.map((row) => summarize(toRef("application", row), null)),
-    ...rows.jsScripts.map((row) => summarize(toRef("jsscript", row), null)),
-    ...rows.games.map((row) => summarize(toRef("game", row), null)),
-    ...rows.workflows.map((row) => summarize(toRef("workflow", row), null))
+    ...rows.scripts.map((row) =>
+      summarize(toRef("script", row), scriptCard(row))
+    ),
+    ...rows.timelines.map((row) =>
+      summarize(toRef("timeline", row), timelineCard(row))
+    ),
+    ...rows.sketches.map((row) =>
+      summarize(toRef("sketch", row), sketchCard(row))
+    ),
+    ...rows.applications.map((row) => summarize(toRef("application", row))),
+    ...rows.jsScripts.map((row) => summarize(toRef("jsscript", row))),
+    ...rows.games.map((row) => summarize(toRef("game", row))),
+    ...rows.workflows.map((row) => summarize(toRef("workflow", row)))
   ]);
 
   return {
@@ -709,5 +745,106 @@ export async function summarizeProject(
     documentsPartial: rows.partial,
     entities,
     spend: summarizeSpend(ledger, ledgerPartial)
+  };
+}
+
+// ── One page of cards ────────────────────────────────────────────────────────
+
+/** A slice of a project's documents, newest first, with the count of all of them. */
+export interface ProjectDocumentPage {
+  documents: ProjectDocumentSummary[];
+  /** Every document the listing found, not only this page. */
+  total: number;
+  /** True when a document table hit {@link DOCUMENTS_PER_TYPE}. */
+  partial: boolean;
+}
+
+/** The tables a project's documents live in, by the type that opens each. */
+const DOCUMENT_TABLES: ReadonlyArray<
+  [Exclude<ProjectSummaryDocumentType, "workflow">, DocumentTable]
+> = [
+  ["storyboard", storyboards],
+  ["script", scripts],
+  ["timeline", timelineSequences],
+  ["sketch", imageDocuments],
+  ["application", applications],
+  ["jsscript", jsScripts],
+  ["game", games]
+];
+
+/** The full row behind a card, for the kinds whose card reads the document. */
+async function loadCard(
+  type: ProjectSummaryDocumentType,
+  id: string
+): Promise<DocumentCard> {
+  switch (type) {
+    case "storyboard": {
+      const row = await Storyboard.findById(id);
+      return row ? storyboardCard(row) : EMPTY_CARD;
+    }
+    case "script": {
+      const row = await Script.findById(id);
+      return row ? scriptCard(row) : EMPTY_CARD;
+    }
+    case "timeline": {
+      const row = await TimelineSequence.findById(id);
+      return row ? timelineCard(row) : EMPTY_CARD;
+    }
+    case "sketch": {
+      const row = await ImageDocument.findById(id);
+      return row ? sketchCard(row) : EMPTY_CARD;
+    }
+    default:
+      return EMPTY_CARD;
+  }
+}
+
+/**
+ * The cards on one page of a project's documents.
+ *
+ * {@link summarizeProject} reads every document whole, every entity and the
+ * whole ledger, which is what the project overview needs. A page of four
+ * cards needs none of that: the listing reads three columns per table, and
+ * only the documents on the page are read whole and have their spend summed.
+ * The order and the per-card fields match the overview's.
+ */
+export async function summarizeProjectDocumentPage(
+  userId: string,
+  projectId: string,
+  page: { offset: number; limit: number },
+  documentsPerType = DOCUMENTS_PER_TYPE
+): Promise<ProjectDocumentPage> {
+  const cap = documentsPerType + 1;
+  const lists = await Promise.all([
+    ...DOCUMENT_TABLES.map(async ([type, table]) => ({
+      type,
+      rows: await listNamed(table, userId, projectId, cap)
+    })),
+    listProjectWorkflows(userId, projectId, cap).then((rows) => ({
+      type: "workflow" as const,
+      rows
+    }))
+  ]);
+  const partial = lists.some(({ rows }) => rows.length > documentsPerType);
+  const refs = newestFirst(
+    lists.flatMap(({ type, rows }) =>
+      rows.slice(0, documentsPerType).map((row) => toRef(type, row))
+    )
+  );
+  const visible = refs.slice(page.offset, page.offset + page.limit);
+  const [cards, spend] = await Promise.all([
+    Promise.all(visible.map((ref) => loadCard(ref.type, ref.ref))),
+    Prediction.spendByDocuments(
+      userId,
+      projectId,
+      visible.map((ref) => ref.ref)
+    )
+  ]);
+  return {
+    documents: visible.map((ref, index) =>
+      withSpend(ref, cards[index]!, spend.get(ref.ref))
+    ),
+    total: refs.length,
+    partial
   };
 }

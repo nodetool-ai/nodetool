@@ -59,6 +59,7 @@ export const useInvalidateProjects = () => {
     // Every id — an open overview tab has no refetch trigger of its own, so a
     // targeted invalidate (rather than this blanket one) would leave it stale.
     void utils.projects.get.invalidate();
+    void utils.projects.documentPage.invalidate();
   }, [utils]);
 };
 

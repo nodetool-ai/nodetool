@@ -23,6 +23,7 @@ import {
   storyboardStatus,
   storyboardThumbnails,
   summarizeProject,
+  summarizeProjectDocumentPage,
   summarizeSpend,
   timelinePreview,
   timelineStatus,
@@ -756,6 +757,110 @@ describe("summarizeProject", () => {
         status: null
       })
     ]);
+  });
+});
+
+describe("summarizeProjectDocumentPage", () => {
+  beforeEach(initProjectFixtures);
+
+  const seedMixedProject = async (): Promise<void> => {
+    for (let i = 0; i < 3; i += 1) {
+      const board = await Storyboard.create<Storyboard>({
+        user_id: "u1",
+        project_id: "p1",
+        name: `Board ${i}`,
+        document: JSON.stringify(
+          storyboardDoc([
+            shot("a", { keyframe: { type: "image", uri: `asset://${i}` } }),
+            shot("b")
+          ])
+        )
+      });
+      await Prediction.create<Prediction>({
+        user_id: "u1",
+        project_id: "p1",
+        document_id: board.id,
+        cost: 0.5 + i
+      });
+      await Prediction.create<Prediction>({
+        user_id: "u1",
+        project_id: "p1",
+        document_id: board.id,
+        cost: null
+      });
+    }
+    await Script.create<Script>(doc("u1"));
+    await ImageDocument.create<ImageDocument>({
+      ...doc("u1"),
+      thumbnail_asset_id: "thumb"
+    });
+    await Application.create<Application>(doc("u1"));
+    await Workflow.create<Workflow>({ ...doc("u1"), name: "Flow" });
+    // Neither another project's documents nor another user's reach the page.
+    await Storyboard.create<Storyboard>(doc("u1", "p2"));
+    await Storyboard.create<Storyboard>(doc("u2", "u2-p1"));
+  };
+
+  it("pages the same cards the overview lists, in the same order", async () => {
+    await seedMixedProject();
+    const overview = await summarizeProject("u1", "p1");
+
+    const pages = [];
+    for (let offset = 0; offset < overview.documents.length; offset += 3) {
+      const page = await summarizeProjectDocumentPage("u1", "p1", {
+        offset,
+        limit: 3
+      });
+      expect(page.total).toBe(overview.documents.length);
+      expect(page.partial).toBe(false);
+      pages.push(...page.documents);
+    }
+
+    expect(overview.documents).toHaveLength(7);
+    expect(pages).toEqual(overview.documents);
+  });
+
+  it("sums each card's spend, counting unpriced calls apart", async () => {
+    await seedMixedProject();
+    const page = await summarizeProjectDocumentPage("u1", "p1", {
+      offset: 0,
+      limit: 50
+    });
+    const boards = page.documents.filter((d) => d.type === "storyboard");
+    expect(boards.map((d) => d.spendUsd).sort()).toEqual([0.5, 1.5, 2.5]);
+    expect(boards.every((d) => d.unpricedCount === 1)).toBe(true);
+  });
+
+  it("returns an empty page past the end, with the total intact", async () => {
+    await seedMixedProject();
+    const page = await summarizeProjectDocumentPage("u1", "p1", {
+      offset: 40,
+      limit: 4
+    });
+    expect(page.documents).toEqual([]);
+    expect(page.total).toBe(7);
+  });
+
+  it("marks the listing partial when a table fills its cap", async () => {
+    await Promise.all(
+      Array.from({ length: 4 }, (_, i) =>
+        Storyboard.create<Storyboard>({ ...doc("u1"), name: `Board ${i}` })
+      )
+    );
+    const capped = await summarizeProjectDocumentPage(
+      "u1",
+      "p1",
+      { offset: 0, limit: 10 },
+      3
+    );
+    expect(capped).toMatchObject({ total: 3, partial: true });
+    const whole = await summarizeProjectDocumentPage(
+      "u1",
+      "p1",
+      { offset: 0, limit: 10 },
+      4
+    );
+    expect(whole).toMatchObject({ total: 4, partial: false });
   });
 });
 

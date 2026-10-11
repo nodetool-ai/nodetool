@@ -266,6 +266,23 @@ export const projectDetail = z.object({
 });
 export type ProjectDetail = z.infer<typeof projectDetail>;
 
+/** One page of a project's document cards, newest first. */
+export const projectDocumentPageInput = z.object({
+  id: z.string(),
+  offset: z.number().int().min(0).default(0),
+  limit: z.number().int().min(1).max(50).default(12)
+});
+export type ProjectDocumentPageInput = z.infer<typeof projectDocumentPageInput>;
+
+export const projectDocumentPage = z.object({
+  documents: z.array(projectDocumentSummary),
+  /** Every document in the project, not only this page. */
+  total: z.number(),
+  /** True when a document table hit its per-type cap, so documents are missing. */
+  partial: z.boolean()
+});
+export type ProjectDocumentPage = z.infer<typeof projectDocumentPage>;
+
 /**
  * What a project holds. `entity` is not a {@link projectDocumentType}: nothing
  * opens an entity as a tab, so it has no tab type to be spelled as.
