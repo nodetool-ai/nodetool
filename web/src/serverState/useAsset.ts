@@ -4,6 +4,7 @@ import { useAssetStore } from "../stores/AssetStore";
 import { useQuery } from "@tanstack/react-query";
 import { fileUriToHttpUrl } from "../utils/localFile";
 import { assetIdFromLocator } from "../utils/mediaRef";
+import { resolveStaticMediaUri } from "../utils/resolveMediaUri";
 
 type UseAssetProps = {
   audio?: Audio;
@@ -52,7 +53,7 @@ export function useAsset(props: UseAssetProps) {
     }
   }, [assetId, getAsset]);
 
-  const { data: asset } = useQuery({
+  const { data: asset, isPending } = useQuery({
     queryKey: ["asset", assetId],
     queryFn: load,
     enabled: Boolean(assetId)
@@ -64,11 +65,24 @@ export function useAsset(props: UseAssetProps) {
   // `/api/files/local` streaming endpoint, same as the output-rendering path's
   // `useSignedUrl`.
   const fileHttpUrl = fileUriToHttpUrl(resourceUri);
+  // A `/api/storage/<key>` uri is one the server derived from the asset id. Its
+  // key can be stale (flat, `.bin`) and the cloud backends serve the bytes only
+  // through a signed URL, so the asset's own `get_url` wins whenever there is
+  // an id to look up.
+  const derivedFromAsset =
+    !resourceUri ||
+    resourceUri.startsWith("asset://") ||
+    (assetId !== undefined && resourceUri.startsWith("/api/storage/"));
+  // While the lookup is in flight there is no URL yet. Rendering the stored one
+  // meanwhile fetched a URL known to fail and logged a broken image.
+  const lookupPending = assetId !== undefined && isPending;
   const uri =
     fileHttpUrl ??
-    (!resourceUri || resourceUri.startsWith("asset://")
-      ? asset?.get_url || resourceUri || undefined
-      : resourceUri);
+    (derivedFromAsset
+      ? asset?.get_url ||
+        (lookupPending ? undefined : resolveStaticMediaUri(resourceUri)) ||
+        undefined
+      : resolveStaticMediaUri(resourceUri) || undefined);
 
   return { asset, uri };
 }
