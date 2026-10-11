@@ -11,7 +11,7 @@
  * Scene placement, lighting, graphics and script lines stay on the board.
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Shot } from "@nodetool-ai/protocol";
 
 import {
