@@ -8,6 +8,7 @@ import { stub } from "../../../test-utils/doubles";
 import WorkflowForm from "../WorkflowForm";
 
 const saveWorkflow = jest.fn(async () => undefined);
+const updateWorkflow = jest.fn();
 let liveWorkflow: Workflow;
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
@@ -15,6 +16,7 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: <T,>(selector: (state: unknown) => T) =>
     selector({
       saveWorkflow,
+      updateWorkflow,
       getNodeStore: () => ({ getState: () => ({ getWorkflow: () => liveWorkflow }) })
     })
 }));
@@ -61,6 +63,13 @@ describe("WorkflowForm", () => {
         description: "new description"
       }),
       { snapshot: false }
+    );
+    // The open editor gets the same values, so its next save keeps them.
+    expect(updateWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Renamed in tab",
+        description: "new description"
+      })
     );
   });
 });

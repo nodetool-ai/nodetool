@@ -39,7 +39,8 @@ export const useAddNodeFromAsset = () => {
   const createDataframeNode = useCallback(
     (csvContent: string, position: XYPosition, nodeMetadata: NodeMetadata) => {
       const res = Papa.parse<string[]>(csvContent, {
-        header: false
+        header: false,
+        skipEmptyLines: "greedy"
       });
 
       if (res.data.length > 0) {

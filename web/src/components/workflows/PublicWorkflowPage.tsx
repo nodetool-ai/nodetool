@@ -25,6 +25,7 @@ import {
   useDuplicateSharedWorkflow,
   usePublicSharedWorkflow
 } from "../../serverState/useWorkflowSharing";
+import { rememberPostLoginReturn } from "../../utils/postLoginReturn";
 
 /** `graphNodeToReactFlowNode` stamps this onto each node; nothing reads it back. */
 const PREVIEW_WORKFLOW_ID = "public-share-preview";
@@ -45,6 +46,8 @@ const PublicWorkflowPage = () => {
       return;
     }
     if (!signedIn) {
+      // Sign-in returns to the start page; bring the user back here.
+      rememberPostLoginReturn(`/view/${token}`);
       navigate("/login");
       return;
     }

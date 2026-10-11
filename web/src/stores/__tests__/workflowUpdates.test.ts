@@ -140,8 +140,7 @@ describe("mergeNodeUpdateProperties", () => {
     const merged = mergeNodeUpdateProperties({
       updateProperties: { prompt: "stale prompt", temperature: 0.9 },
       existingStatic: { prompt: "edited prompt", temperature: 0.2 },
-      existingDynamic: {},
-      isDynamicSchemaNode: false
+      existingDynamic: {}
     });
 
     expect(merged.staticProperties).toEqual({
@@ -154,8 +153,7 @@ describe("mergeNodeUpdateProperties", () => {
     const merged = mergeNodeUpdateProperties({
       updateProperties: { seed: 42 },
       existingStatic: { prompt: "edited prompt" },
-      existingDynamic: {},
-      isDynamicSchemaNode: false
+      existingDynamic: {}
     });
 
     expect(merged.staticProperties).toEqual({
@@ -164,16 +162,26 @@ describe("mergeNodeUpdateProperties", () => {
     });
   });
 
-  it("skips dynamic overwrites for dynamic schema nodes", () => {
+  it("keeps a dynamic input edited during the run", () => {
     const merged = mergeNodeUpdateProperties({
-      updateProperties: { prompt: "stale dynamic value" },
-      existingStatic: {},
-      existingDynamic: { prompt: "edited dynamic value" },
-      isDynamicSchemaNode: true
+      updateProperties: { template: "Hi {{name}}", name: "Bob" },
+      existingStatic: { template: "Hi {{name}}" },
+      existingDynamic: { name: "Alice" },
+      declaredStatic: new Set(["template"])
     });
 
-    expect(merged.dynamicProperties).toEqual({
-      prompt: "edited dynamic value"
+    expect(merged.dynamicProperties).toEqual({ name: "Alice" });
+    expect(merged.staticProperties).toEqual({ template: "Hi {{name}}" });
+  });
+
+  it("does not turn a dynamic input deleted during the run into a property", () => {
+    const merged = mergeNodeUpdateProperties({
+      updateProperties: { template: "Hi", old_var: "x" },
+      existingStatic: { template: "Hi" },
+      existingDynamic: {},
+      declaredStatic: new Set(["template", "seed"])
     });
+
+    expect(merged.staticProperties).toEqual({ template: "Hi" });
   });
 });

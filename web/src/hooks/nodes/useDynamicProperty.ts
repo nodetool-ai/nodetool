@@ -8,6 +8,8 @@ import {
   valueFitsType
 } from "../../utils/dynamicSlots";
 import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
+import useMetadataStore from "../../stores/MetadataStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 interface UseDynamicPropertyResult {
   handleDeleteProperty: (propertyName: string) => void;
@@ -46,6 +48,30 @@ export const useDynamicProperty = (
     [findNode, nodeId]
   );
 
+  // A slot named like a static property would replace that property's value
+  // when the node runs, and two handles would share one id.
+  const nameTaken = useCallback(
+    (name: string): boolean => {
+      const node = findNode(nodeId);
+      const staticNames = node?.type
+        ? (useMetadataStore.getState().getMetadata(node.type)?.properties ?? [])
+        : [];
+      return (
+        Object.hasOwn(dynamicProperties, name) ||
+        Object.hasOwn(currentSlots(), name) ||
+        staticNames.some((property) => property.name === name)
+      );
+    },
+    [currentSlots, dynamicProperties, findNode, nodeId]
+  );
+  const reportTaken = useCallback((name: string) => {
+    useNotificationStore.getState().addNotification({
+      type: "warning",
+      alert: true,
+      content: `This node already has an input named "${name}"`
+    });
+  }, []);
+
   const handleDeleteProperty = useCallback(
     (propertyName: string) => {
       const updatedDynamicProperties = { ...dynamicProperties };
@@ -83,6 +109,10 @@ export const useDynamicProperty = (
 
   const handleAddProperty = useCallback(
     (propertyName: string, type?: TypeMetadata) => {
+      if (nameTaken(propertyName)) {
+        reportTaken(propertyName);
+        return;
+      }
       const updatedDynamicProperties = {
         ...dynamicProperties,
         [propertyName]: type ? defaultValueForType(type) : ""
@@ -98,15 +128,16 @@ export const useDynamicProperty = (
         dynamic_inputs: updatedSlots
       });
     },
-    [currentSlots, dynamicProperties, nodeId, updateNodeData]
+    [currentSlots, dynamicProperties, nameTaken, nodeId, reportTaken, updateNodeData]
   );
 
   const handleUpdatePropertyName = useCallback(
     (oldPropertyName: string, newPropertyName: string) => {
-      if (
-        oldPropertyName === newPropertyName ||
-        Object.hasOwn(dynamicProperties, newPropertyName)
-      ) {
+      if (oldPropertyName === newPropertyName) {
+        return;
+      }
+      if (nameTaken(newPropertyName)) {
+        reportTaken(newPropertyName);
         return;
       }
       const updatedDynamicProperties = { ...dynamicProperties };
@@ -132,8 +163,10 @@ export const useDynamicProperty = (
     [
       currentSlots,
       dynamicProperties,
+      nameTaken,
       nodeId,
       nodeStore,
+      reportTaken,
       updateEdgeHandle,
       updateNodeData
     ]

@@ -5,7 +5,8 @@ import { ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import { REROUTE_NODE_TYPE } from "../../constants/nodeTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodeStoreRef, useNodes } from "../../contexts/NodeContext";
+import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -36,6 +37,12 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
   const isLink = useNodes((state) =>
     state.links.some((link) => link.id === edgeId)
   );
+  // A reroute forwards data, so it cannot sit on an agent's control edge.
+  const isControlEdge = useNodes((state) => {
+    const edge = edgeId ? state.findEdge(edgeId) : undefined;
+    return edge?.type === "control" || edge?.data?.edge_type === "control";
+  });
+  const nodeStore = useNodeStoreRef();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const reactFlowInstance = useReactFlow();
 
@@ -71,8 +78,6 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
     }
 
     const rerouteNode = createNode(rerouteMetadata, flowPosition);
-    addNode(rerouteNode);
-    deleteEdge(edgeId);
 
     // Create new edges: source -> reroute -> target
     const sourceToReroute = {
@@ -91,8 +96,13 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
       targetHandle: edge.targetHandle
     };
 
-    addEdge(sourceToReroute);
-    addEdge(rerouteToTarget);
+    // One undo step, so Ctrl+Z restores the original edge in one go.
+    runAsOneUndoEntry(nodeStore, () => {
+      addNode(rerouteNode);
+      deleteEdge(edgeId);
+      addEdge(sourceToReroute);
+      addEdge(rerouteToTarget);
+    });
 
     closeContextMenu();
   }, [
@@ -105,6 +115,7 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
     deleteEdge,
     getMetadata,
     reactFlowInstance,
+    nodeStore,
     closeContextMenu
   ]);
 
@@ -137,12 +148,14 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
       maxHeight="400px"
       minWidth="200px"
     >
-      <ContextMenuItem
-        onClick={handleInsertReroute}
-        IconComponent={<RouteIcon />}
-        label="Insert Reroute"
-        tooltip="Insert a reroute node at this position"
-      />
+      {!isControlEdge && (
+        <ContextMenuItem
+          onClick={handleInsertReroute}
+          IconComponent={<RouteIcon />}
+          label="Insert Reroute"
+          tooltip="Insert a reroute node at this position"
+        />
+      )}
       <ContextMenuItem
         onClick={handleDeleteEdge}
         IconComponent={<DeleteIcon />}

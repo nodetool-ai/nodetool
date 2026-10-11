@@ -411,7 +411,10 @@ const addWorkflowLink: CapabilityExport = {
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,
       existing.updated_at,
-      { graph: { ...graph, links: added.value.links } }
+      { graph: { ...graph, links: added.value.links } },
+      // With ops, an open editor with unsaved edits merges the link in
+      // instead of reporting the whole document as replaced.
+      { ops: [{ tool: "add_workflow_link", input: params }] }
     );
     if (!updated) {
       return {
@@ -439,7 +442,8 @@ const removeWorkflowLink: CapabilityExport = {
       existing.updated_at,
       {
         graph: removed.value.length > 0 ? { ...rest, links: removed.value } : rest
-      }
+      },
+      { ops: [{ tool: "remove_workflow_link", input: params }] }
     );
     if (!updated) {
       return {

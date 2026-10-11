@@ -218,7 +218,11 @@ const SubgraphTabContent = ({ tab, active }: SubgraphTabContentProps) => {
                   </div>
                   {nested && (
                     <div style={{ position: "absolute", inset: 0 }}>
-                      <SubgraphTabContent tab={nested} active={active} />
+                      <SubgraphTabContent
+                        key={nested.key}
+                        tab={nested}
+                        active={active}
+                      />
                     </div>
                   )}
                 </div>

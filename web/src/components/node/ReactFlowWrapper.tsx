@@ -737,9 +737,14 @@ const ReactFlowWrapper = ({
   const onEdgeClick = useCallback(
     (event: ReactMouseEvent, edge: Edge) => {
       setSuppressNodeDrivenEdgeSelection(false);
+      // A link stays selected only with a modifier, or Delete would remove
+      // it along with this edge.
+      if (!event.shiftKey && !event.metaKey && !event.ctrlKey) {
+        setLinkSelection([]);
+      }
       onEdgeClickBase(event, edge);
     },
-    [onEdgeClickBase]
+    [onEdgeClickBase, setLinkSelection]
   );
 
   const {
@@ -754,9 +759,18 @@ const ReactFlowWrapper = ({
     onSelectionEnd
   } = useDragHandlers();
 
+  // A box selection starts a new selection, links included.
+  const onSelectionStartClearingLinks = useCallback(
+    (event: ReactMouseEvent) => {
+      setLinkSelection([]);
+      onSelectionStart(event);
+    },
+    [onSelectionStart, setLinkSelection]
+  );
+
   const selectionEvents = useSelectionEvents({
     reactFlowInstance,
-    onSelectionStartBase: onSelectionStart,
+    onSelectionStartBase: onSelectionStartClearingLinks,
     onSelectionEndBase: onSelectionEnd,
     onSelectionDragStartBase: onSelectionDragStart,
     onSelectionDragStopBase: onSelectionDragStop,
@@ -1069,6 +1083,9 @@ const ReactFlowWrapper = ({
 
   // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
   const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);
+  // Edges selected because an endpoint node was selected, so they can be
+  // deselected again with that node. Edges the user clicked are not in here.
+  const nodeDrivenEdgeIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (isSelecting) {
@@ -1097,19 +1114,26 @@ const ReactFlowWrapper = ({
     prevSelectedNodeIdsRef.current = new Set(selectedNodeIds);
 
     const selectionUpdates: Record<string, boolean> = {};
+    const previousNodeDriven = nodeDrivenEdgeIdsRef.current;
+    const nextNodeDriven = new Set<string>();
 
     for (const edge of currentEdges) {
       const isEdgeAlreadySelected = Boolean(edge.selected);
       const nodeDrivenSelection =
-        selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target);
-      const shouldSelect =
-        isEdgeAlreadySelected ||
-        (!suppressNodeDrivenEdgeSelection && nodeDrivenSelection);
+        !suppressNodeDrivenEdgeSelection &&
+        (selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target));
+      const selectedDirectly =
+        isEdgeAlreadySelected && !previousNodeDriven.has(edge.id);
+      const shouldSelect = selectedDirectly || nodeDrivenSelection;
+      if (nodeDrivenSelection && !selectedDirectly) {
+        nextNodeDriven.add(edge.id);
+      }
 
       if (isEdgeAlreadySelected !== shouldSelect) {
         selectionUpdates[edge.id] = shouldSelect;
       }
     }
+    nodeDrivenEdgeIdsRef.current = nextNodeDriven;
 
     if (Object.keys(selectionUpdates).length > 0) {
       setEdgeSelectionState(selectionUpdates);

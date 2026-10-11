@@ -15,7 +15,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { shallow } from "zustand/shallow";
 import type { GraphLink } from "@nodetool-ai/protocol";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodeStoreRef, useNodes } from "../../contexts/NodeContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { TYPOGRAPHY } from "../ui_primitives";
 
@@ -221,6 +221,7 @@ const LinkLayer: React.FC = () => {
       }),
       shallow
     );
+  const nodeStore = useNodeStoreRef();
 
   const handleSelect = useCallback(
     (id: string, additive: boolean) => {
@@ -233,9 +234,20 @@ const LinkLayer: React.FC = () => {
         return;
       }
       setSelectedNodes([]);
+      // Clear edge selection too, or Delete would remove those edges as well.
+      const { edges, setEdgeSelectionState } = nodeStore.getState();
+      const deselect: Record<string, boolean> = {};
+      for (const edge of edges) {
+        if (edge.selected) {
+          deselect[edge.id] = false;
+        }
+      }
+      if (Object.keys(deselect).length > 0) {
+        setEdgeSelectionState(deselect);
+      }
       setLinkSelection([id]);
     },
-    [selectedLinkIds, setLinkSelection, setSelectedNodes]
+    [nodeStore, selectedLinkIds, setLinkSelection, setSelectedNodes]
   );
 
   if (links.length === 0) {

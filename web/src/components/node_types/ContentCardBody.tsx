@@ -736,8 +736,10 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
 
   const isDynamic = !!nodeMetadata.supports_dynamic_inputs;
   const supportsDynamicOutputs = !!nodeMetadata.supports_dynamic_outputs;
+  // A declared slot whose value was never set is still an input to show.
   const hasDynamicProps =
-    Object.keys(data.dynamic_properties ?? {}).length > 0;
+    Object.keys(data.dynamic_properties ?? {}).length > 0 ||
+    Object.keys(data.dynamic_inputs ?? {}).length > 0;
 
   // Two-pass field classification per field-classification.md:
   // 1. inlineFields: rendered as full editors in normal flow

@@ -25,7 +25,8 @@ export const useCreateDataframe = (
             if (event.target && isString(event.target.result)) {
               const csv = event.target.result;
               const res = Papa.parse<string[]>(csv, {
-                header: false
+                header: false,
+                skipEmptyLines: "greedy"
               });
 
               if (res.data.length > 0) {

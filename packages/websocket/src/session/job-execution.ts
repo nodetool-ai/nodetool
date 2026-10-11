@@ -1752,7 +1752,10 @@ export class JobExecutionManager {
             name: req.job_name ?? "",
             started_at: new Date().toISOString(),
             params: req.params ?? {},
-            graph,
+            // The graph as submitted, not the hydrated one: hydration drops
+            // editor-only nodes (groups, comments), and "Open as it was when
+            // made" reopens this graph in the editor.
+            graph: rawGraph,
             project_id: projectId ?? "default",
             runner_instance: instanceId
           });

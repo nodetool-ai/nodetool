@@ -62,7 +62,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     updateNodeData,
     updateNode,
     selectNodesByType,
-    deleteNode,
+    deleteNodes,
     getSelectedNodes,
     toggleBypass,
     nodes,
@@ -71,7 +71,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode,
     selectNodesByType: state.selectNodesByType,
-    deleteNode: state.deleteNode,
+    deleteNodes: state.deleteNodes,
     getSelectedNodes: state.getSelectedNodes,
     toggleBypass: state.toggleBypass,
     nodes: state.nodes,
@@ -138,15 +138,17 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   }, [closeContextMenu, node?.type, selectNodesByType]);
 
   const handleDeleteNode = useCallback(() => {
-    if (selectedNodes.length > 1) {
-      selectedNodes.forEach((selected) => {
-        deleteNode(selected.id);
-      });
-    } else if (nodeId) {
-      deleteNode(nodeId);
+    if (nodeId) {
+      // Act on the selection only when the clicked node is part of it.
+      const inSelection = selectedNodes.some((n) => n.id === nodeId);
+      deleteNodes(
+        inSelection && selectedNodes.length > 1
+          ? selectedNodes.map((n) => n.id)
+          : [nodeId]
+      );
     }
     closeContextMenu();
-  }, [closeContextMenu, deleteNode, nodeId, selectedNodes]);
+  }, [closeContextMenu, deleteNodes, nodeId, selectedNodes]);
 
   const handleConvertToInput = useCallback(() => {
     if (!node || !nodeId) {

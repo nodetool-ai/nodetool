@@ -137,6 +137,10 @@ export const createNodeHasher = (ctx: HasherContext): NodeHasher => {
   const classify = (id: string): NodeKind => {
     const node = ctx.findNode(id);
     if (!node?.type) return "computed";
+    // A bypassed node passes its input through when it runs, so neither its
+    // config (constant) nor its old generations (generative) stand for its
+    // output.
+    if (node.data?.bypassed) return "computed";
     if (isConstantType(node.type)) return "constant";
     if (ctx.getMetadata(node.type)?.auto_save_asset) return "generative";
     return "computed";

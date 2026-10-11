@@ -9,14 +9,14 @@
 
 import { graph as graphSchema } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
+import { replaceCanvasGraph } from "../../components/panels/restoreWorkflowVersion";
 import type { WorkflowManagerState } from "../../stores/WorkflowManagerStore";
-import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
-import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { queueWorkflowSave } from "./useWorkflowSetup";
 
 export interface ImportedWorkflowGraph {
   nodes: unknown[];
   edges: unknown[];
+  links?: unknown[];
 }
 
 /** The one place that decides what a picked workflow file becomes. */
@@ -52,7 +52,8 @@ export async function readWorkflowFile(
       `${file.name} has no workflow graph in it: expected { nodes, edges }.`
     );
   }
-  return { nodes: result.data.nodes, edges: result.data.edges };
+  const { nodes, edges, links } = result.data;
+  return links ? { nodes, edges, links } : { nodes, edges };
 }
 
 /**
@@ -78,13 +79,11 @@ export async function importWorkflowGraph(
   state.updateWorkflow(next);
   const nodeStore = state.getNodeStore(workflowId)?.getState();
   const canvasBefore = nodeStore
-    ? { nodes: nodeStore.nodes, edges: nodeStore.edges }
+    ? { nodes: nodeStore.nodes, edges: nodeStore.edges, links: nodeStore.links }
     : null;
-  if (nodeStore) {
-    nodeStore.setNodes(
-      graph.nodes.map((node) => graphNodeToReactFlowNode(next, node))
-    );
-    nodeStore.setEdges(graph.edges.map(graphEdgeToReactFlowEdge));
+  const nodeStoreApi = state.getNodeStore(workflowId);
+  if (nodeStoreApi) {
+    replaceCanvasGraph(nodeStoreApi, graph);
   }
   try {
     // Behind any setup save on the wire, which carries the same
@@ -102,6 +101,7 @@ export async function importWorkflowGraph(
     if (nodeStore && canvasBefore) {
       nodeStore.setNodes(canvasBefore.nodes);
       nodeStore.setEdges(canvasBefore.edges);
+      nodeStore.setLinks(canvasBefore.links);
     }
     throw cause;
   }

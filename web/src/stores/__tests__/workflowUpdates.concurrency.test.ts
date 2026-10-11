@@ -194,11 +194,27 @@ describe("F60: a node error in a sibling run", () => {
     expect(status("B")).toBe("error");
   });
 
-  it("still fails the runner when its own job errors", () => {
+  it("keeps its own run stoppable after a node error until the job fails", () => {
     const { runnerStore, send } = startTwoRuns();
 
     send(nodeUpdate("A", "error", { error: "boom" }));
+    expect(runnerStore.getState().state).toBe("running");
 
+    // Another branch of the same job still animates its edges.
+    send(
+      stub<EdgeUpdate>({
+        type: "edge_update",
+        job_id: "A",
+        workflow_id: "wf",
+        edge_id: "e2",
+        status: "completed"
+      })
+    );
+    expect(
+      useResultsStore.getState().edges[edgeKey("wf", "A", "e2")]
+    ).toMatchObject({ status: "completed" });
+
+    send(jobUpdate("A", "failed", 3));
     expect(runnerStore.getState().state).toBe("error");
   });
 });

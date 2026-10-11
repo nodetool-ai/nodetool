@@ -38,7 +38,8 @@ const isClipboardData = (value: unknown): value is ClipboardData =>
 interface UseCopyPasteResult {
   handleCopy: (nodeId?: string) => Promise<{ nodesToCopy: Node<NodeData>[]; connectedEdges: Edge[] }>;
   handleCut: (nodeId?: string) => Promise<void>;
-  handlePaste: () => Promise<void>;
+  /** `at` is the screen point to paste at; the mouse position otherwise. */
+  handlePaste: (at?: { x: number; y: number }) => Promise<void>;
 }
 
 export const useCopyPaste = (): UseCopyPasteResult => {
@@ -155,7 +156,7 @@ export const useCopyPaste = (): UseCopyPasteResult => {
     [handleCopy, nodeStore]
   );
 
-  const handlePaste = useCallback(async () => {
+  const handlePaste = useCallback(async (at?: { x: number; y: number }) => {
     // Skip paste handling if user is typing in a text field (should use native paste instead)
     if (isTextInputActive()) {
       return;
@@ -216,7 +217,7 @@ export const useCopyPaste = (): UseCopyPasteResult => {
       return;
     }
 
-    const mousePosition = getMousePosition();
+    const mousePosition = at ?? getMousePosition();
     if (!mousePosition) {
       console.warn("Mouse position not available");
       return;

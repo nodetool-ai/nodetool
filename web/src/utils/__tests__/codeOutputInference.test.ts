@@ -172,6 +172,32 @@ describe("deriveCodeIOUpdates", () => {
     });
   });
 
+  it("keeps the declared type of an output the body still returns", () => {
+    const str = { type: "str", type_args: [], optional: false };
+    expect(
+      deriveCodeIOUpdates("return { output: 'x', extra: 1 };", {}, { output: str })
+        .dynamic_outputs
+    ).toEqual({
+      output: str,
+      extra: { type: "any", type_args: [], optional: false }
+    });
+  });
+
+  it("keeps a connected output the body does not name yet", () => {
+    const image = { type: "image", type_args: [], optional: false };
+    expect(
+      deriveCodeIOUpdates(
+        "return { out: 1 };",
+        {},
+        { image, stale: image },
+        new Set(["image"])
+      ).dynamic_outputs
+    ).toEqual({
+      out: { type: "any", type_args: [], optional: false },
+      image
+    });
+  });
+
   it("does not wipe existing IO when the body does not parse", () => {
     const existingOutputs = {
       result: { type: "str", type_args: [], optional: false }

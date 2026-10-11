@@ -101,7 +101,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
 
   const handleDuplicateNodes = useCallback(() => {
     duplicateNodes();
-  }, [duplicateNodes]);
+    closeContextMenu();
+  }, [duplicateNodes, closeContextMenu]);
 
   const handleDelete = useCallback(() => {
     if (selectedNodes?.length) {
@@ -129,17 +130,20 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const handleAlignNodes = useCallback(
     (arrangeSpacing: boolean) => {
       alignNodes({ arrangeSpacing });
+      closeContextMenu();
     },
-    [alignNodes]
+    [alignNodes, closeContextMenu]
   );
 
   const handleSurroundWithGroup = useCallback(() => {
     surroundWithGroup({ selectedNodes });
-  }, [surroundWithGroup, selectedNodes]);
+    closeContextMenu();
+  }, [surroundWithGroup, selectedNodes, closeContextMenu]);
 
   const handleRemoveFromGroup = useCallback(() => {
     removeFromGroup(selectedNodes);
-  }, [removeFromGroup, selectedNodes]);
+    closeContextMenu();
+  }, [removeFromGroup, selectedNodes, closeContextMenu]);
 
   const handleCopyNodes = useCallback(() => {
     handleCopy();
