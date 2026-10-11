@@ -58,7 +58,7 @@ describe("dataUrlToFile", () => {
     const file = dataUrlToFile("data:image/png;base64,iVBORw==", "view.png");
     expect(file.name).toBe("view.png");
     expect(file.type).toBe("image/png");
-    expect(file.size).toBe(5);
+    expect(file.size).toBe(4);
   });
 
   it("rejects a data URL that is not base64", () => {
