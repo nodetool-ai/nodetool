@@ -1,13 +1,13 @@
 import { ogImage, ogSize, ogContentType } from "../../lib/og";
 
-export const alt = "Agents for creative work";
+export const alt = "NodeTool, the open-source creative harness";
 export const size = ogSize;
 export const contentType = ogContentType;
 
 export default function Image() {
   return ogImage(
-    "An art director that never sleeps",
-    "Drop an agent on the canvas, hand it a brief, watch it ship the work.",
-    { image: "screen_canvas.png", accent: "rose", eyebrow: "Agents" }
+    "The open-source creative harness",
+    "Your agent gets the generation tools and the editors. You keep the work.",
+    { image: "screen_canvas.png", accent: "rose", eyebrow: "Creative harness" }
   );
 }

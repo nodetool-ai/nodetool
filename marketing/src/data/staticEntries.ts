@@ -26,7 +26,7 @@ export const staticEntries: PageEntry[] = [
   // The landing page for "node based workflow" searches: why the graph can be
   // trusted with paid runs, with the rendered workflow reel as its hero.
   { route: "/node-based-workflows", title: "Node-based workflows", description: "Node-based workflows you can check, run, and rerun.", priority: 0.9, changeFrequency: "monthly", indexable: true },
-  { route: "/agents", title: "AI Agents", description: "Build planning agents on a visual canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
+  { route: "/agents", title: "Open-source creative harness", description: "The tools, editors, and limits your AI agent works inside.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/developers", title: "For Developers", description: "Give your coding agent images, video, speech, and workflows over MCP.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/libraries/browser", title: "@nodetool-ai/browser", description: "Drive one Chrome page over CDP, headless or in your own signed-in tab.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/libraries/sandbox-compiler", title: "@nodetool-ai/sandbox-compiler", description: "Check whether an npm package runs in a QuickJS sandbox before you load it.", priority: 0.6, changeFrequency: "monthly", indexable: true },

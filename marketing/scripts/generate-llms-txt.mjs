@@ -148,10 +148,10 @@ Ask the agent to save the steps as a workflow. You can open the graph in Studio,
 Read the [MCP setup guide](https://docs.nodetool.ai/mcp-server), the [workflow API](https://docs.nodetool.ai/workflow-api), the [JavaScript sandbox reference](https://docs.nodetool.ai/javascript-sandbox), and the [developer guide](https://docs.nodetool.ai/developer/) to write custom nodes.`,
   },
   "agents.md": {
-    title: "NodeTool Agents",
+    title: "NodeTool, the Open-Source Creative Harness",
     description:
-      "Agents build and revise editable workflows, apps, and projects.",
-    body: `NodeTool agents can operate editable workflows, apps, and projects through tools exposed by its editors. You can inspect tool calls, results, errors, and interventions, then revise and reuse the workflow. Compatible external agents can use the tools over MCP.
+      "The tools, editors, and limits an AI agent works inside for creative work.",
+    body: `NodeTool is an open-source creative harness: the tools, editors, models, keys, and run record an AI agent works inside. NodeTool agents can operate editable workflows, apps, and projects through tools exposed by its editors. You can inspect tool calls, results, errors, and interventions, then revise and reuse the workflow. Compatible external agents can use the tools over MCP.
 
 Read the [agent documentation](https://docs.nodetool.ai/agents/index.md) for installation, schema discovery, validation, execution, and job monitoring.`,
   },
