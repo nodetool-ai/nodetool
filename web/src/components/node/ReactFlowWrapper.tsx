@@ -110,19 +110,10 @@ import {
   scheduleNodeInternalsRefresh,
   withEdgeNeighborNodeIds
 } from "../../utils/scheduleNodeInternalsRefresh";
-import { edgeKey, type EdgeKey, type NodeKey } from "../../stores/nodeKey";
+import { edgeKey } from "../../stores/nodeKey";
 import FirstWorkflowGuide from "../node_editor/FirstWorkflowGuide";
 import { Slugify } from "../../utils/TypeHandler";
 import { PortLabelVisibilityContext } from "../../contexts/PortLabelVisibilityContext";
-
-/**
- * The dynamic slot tables the layout fingerprint reads a key set from. Only the
- * key names matter — a value change never moves a handle.
- */
-type DynamicSlotTable =
-  | NodeData["dynamic_properties"]
-  | NodeData["dynamic_inputs"]
-  | NodeData["dynamic_outputs"];
 
 type ResultsState = ReturnType<typeof useResultsStore.getState>;
 type StatusState = ReturnType<typeof useStatusStore.getState>;
@@ -170,7 +161,18 @@ import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 import LinkLayer from "../node_editor/LinkLayer";
 import { usePlaceholderNodeTypes } from "../node_types/usePlaceholderNodeTypes";
-import { isNumber, isString } from "../../utils/typePredicates";
+import {
+  branchNodeIds,
+  changedLayoutIds,
+  createRunScopedSelector,
+  firstWorkflowReadiness as firstWorkflowReadinessOf,
+  markComprehensionEdges,
+  nodeComprehensionClasses,
+  nodeDrivenEdgeSelection,
+  nodeLayoutSignature,
+  sameIdSet,
+  type ComprehensionContext
+} from "./reactFlowGraphModel";
 
 const ReactFlowWrapper = ({
   workflowId
@@ -306,30 +308,16 @@ const ReactFlowWrapper = ({
     });
   }, []);
 
-  const firstWorkflowReadiness = useMemo(() => {
-    const inputIds = new Set(
-      nodes
-        .filter((node) => node.type === "nodetool.input.StringInput")
-        .map((node) => node.id)
-    );
-    const outputIds = new Set(
-      nodes
-        .filter((node) => node.type === "nodetool.output.Output")
-        .map((node) => node.id)
-    );
-    return {
-      input: inputIds.size > 0,
-      output: outputIds.size > 0,
-      connection: edges.some(
-        (edge) => inputIds.has(edge.source) && outputIds.has(edge.target)
+  const firstWorkflowReadiness = useMemo(
+    () =>
+      firstWorkflowReadinessOf(
+        nodes,
+        edges,
+        workflowIsDirty,
+        Object.values(workflowRuns ?? {})
       ),
-      saved:
-        inputIds.size > 0 && outputIds.size > 0 && !workflowIsDirty,
-      run: Object.values(workflowRuns ?? {}).some(
-        (run) => run.state === "completed"
-      )
-    };
-  }, [edges, nodes, workflowIsDirty, workflowRuns]);
+    [edges, nodes, workflowIsDirty, workflowRuns]
+  );
   const [ghostPosition, setGhostPosition] = useState<{
     x: number;
     y: number;
@@ -445,14 +433,6 @@ const ReactFlowWrapper = ({
   const nodeLayoutFingerprint = useMemo(() => {
     const keysCache = sortedKeysCache.current;
     const sigCache = perNodeSigCache.current;
-    const getSortedKeys = (obj: DynamicSlotTable): string => {
-      if (!obj) return "";
-      const cached = keysCache.get(obj);
-      if (cached !== undefined) return cached;
-      const result = Object.keys(obj).sort().join(",");
-      keysCache.set(obj, result);
-      return result;
-    };
 
     let changed = nodes.length !== prevFingerprintCountRef.current;
     const parts: string[] = [];
@@ -460,19 +440,7 @@ const ReactFlowWrapper = ({
       let sig = sigCache.get(n.data);
       if (sig === undefined) {
         changed = true;
-        const sh = n.style?.height;
-        const stylePart =
-          isNumber(sh)
-            ? String(sh)
-            : isString(sh)
-              ? sh.trim()
-              : "";
-        const exposedPart = [
-          ...(n.data.exposedInputs ?? []),
-          ...(n.data.exposedInputsLabeled ?? []),
-          ...(n.data.exposedInputsHidden ?? [])
-        ].join(",");
-        sig = `${n.id}:${n.height != null ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${getSortedKeys(n.data.dynamic_properties)}:${getSortedKeys(n.data.dynamic_inputs)}:${getSortedKeys(n.data.dynamic_outputs)}`;
+        sig = `${n.id}:${nodeLayoutSignature(n, keysCache)}`;
         sigCache.set(n.data, sig);
       }
       parts.push(sig);
@@ -485,52 +453,11 @@ const ReactFlowWrapper = ({
   }, [nodes]);
 
   useEffect(() => {
-    const cache = sortedKeysCache.current;
-    const getSortedKeys = (obj: DynamicSlotTable): string => {
-      if (!obj) return "";
-      const cached = cache.get(obj);
-      if (cached !== undefined) return cached;
-      const result = Object.keys(obj).sort().join(",");
-      cache.set(obj, result);
-      return result;
-    };
-
-    const currentNodes = nodesRef.current;
-    const next = new Map<string, string>();
-    for (const n of currentNodes) {
-      const sh = n.style?.height;
-      const stylePart =
-        isNumber(sh)
-          ? String(sh)
-          : isString(sh)
-            ? sh.trim()
-            : "";
-      const exposedPart = [
-        ...(n.data.exposedInputs ?? []),
-        ...(n.data.exposedInputsLabeled ?? []),
-        ...(n.data.exposedInputsHidden ?? [])
-      ].join(",");
-      const dynPropsPart = getSortedKeys(n.data.dynamic_properties);
-      const dynInputsPart = getSortedKeys(n.data.dynamic_inputs);
-      const dynOutputsPart = getSortedKeys(n.data.dynamic_outputs);
-      next.set(
-        n.id,
-        `${n.height != null ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
-      );
-    }
-    const changedIds: string[] = [];
-    for (const [id, sig] of next) {
-      const prev = nodeLayoutSigRef.current.get(id);
-      if (prev !== sig) {
-        changedIds.push(id);
-        nodeLayoutSigRef.current.set(id, sig);
-      }
-    }
-    for (const id of [...nodeLayoutSigRef.current.keys()]) {
-      if (!next.has(id)) {
-        nodeLayoutSigRef.current.delete(id);
-      }
-    }
+    const changedIds = changedLayoutIds(
+      nodesRef.current,
+      nodeLayoutSigRef.current,
+      sortedKeysCache.current
+    );
 
     if (nodeLayoutFingerprintSkipFirstRef.current) {
       nodeLayoutFingerprintSkipFirstRef.current = false;
@@ -821,72 +748,24 @@ const ReactFlowWrapper = ({
   // each subscription to the focused run's key prefix via a cached selector
   // that returns the SAME record reference unless an entry under that prefix
   // changed, so status writes from other workflows/jobs are no-ops here.
-  const edgeStatusesSelector = useMemo(() => {
-    let lastSource: ResultsState["edges"] | null = null;
-    let lastResult: ResultsState["edges"] = {};
-    let lastCount = 0;
-    return (state: ResultsState) => {
-      if (state.edges === lastSource) return lastResult;
-      lastSource = state.edges;
-      if (!runPrefix) {
-        if (lastCount !== 0) {
-          lastResult = {};
-          lastCount = 0;
-        }
-        return lastResult;
-      }
-      const next: ResultsState["edges"] = {};
-      let count = 0;
-      let changed = false;
-      for (const key in state.edges) {
-        if (key.startsWith(runPrefix)) {
-          next[key as EdgeKey] = state.edges[key as EdgeKey];
-          count++;
-          if (lastResult[key as EdgeKey] !== next[key as EdgeKey]) {
-            changed = true;
-          }
-        }
-      }
-      if (!changed && count === lastCount) return lastResult;
-      lastResult = next;
-      lastCount = count;
-      return next;
-    };
-  }, [runPrefix]);
+  const edgeStatusesSelector = useMemo(
+    () =>
+      createRunScopedSelector(
+        runPrefix,
+        (state: ResultsState) => state.edges
+      ) as (state: ResultsState) => ResultsState["edges"],
+    [runPrefix]
+  );
   const edgeStatuses = useResultsStore(edgeStatusesSelector);
 
-  const nodeStatusesSelector = useMemo(() => {
-    let lastSource: StatusState["statuses"] | null = null;
-    let lastResult: StatusState["statuses"] = {};
-    let lastCount = 0;
-    return (state: StatusState) => {
-      if (state.statuses === lastSource) return lastResult;
-      lastSource = state.statuses;
-      if (!runPrefix) {
-        if (lastCount !== 0) {
-          lastResult = {};
-          lastCount = 0;
-        }
-        return lastResult;
-      }
-      const next: StatusState["statuses"] = {};
-      let count = 0;
-      let changed = false;
-      for (const key in state.statuses) {
-        if (key.startsWith(runPrefix)) {
-          next[key as NodeKey] = state.statuses[key as NodeKey];
-          count++;
-          if (lastResult[key as NodeKey] !== next[key as NodeKey]) {
-            changed = true;
-          }
-        }
-      }
-      if (!changed && count === lastCount) return lastResult;
-      lastResult = next;
-      lastCount = count;
-      return next;
-    };
-  }, [runPrefix]);
+  const nodeStatusesSelector = useMemo(
+    () =>
+      createRunScopedSelector(
+        runPrefix,
+        (state: StatusState) => state.statuses
+      ) as (state: StatusState) => StatusState["statuses"],
+    [runPrefix]
+  );
   const nodeStatuses = useStatusStore(nodeStatusesSelector);
 
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
@@ -939,46 +818,12 @@ const ReactFlowWrapper = ({
       return set;
     };
   }, []);
-  const selectedNodeIds = useNodes(selectedNodeIdsSelector, (a, b) => {
-    if (a.size !== b.size) return false;
-    for (const id of a) if (!b.has(id)) return false;
-    return true;
-  });
+  const selectedNodeIds = useNodes(selectedNodeIdsSelector, sameIdSet);
 
-  const branchNodeIds = useMemo(() => {
-    if (selectedNodeIds.size === 0) {
-      return new Set<string>();
-    }
-    const incoming = new Map<string, string[]>();
-    const outgoing = new Map<string, string[]>();
-    for (const edge of edges) {
-      const sources = incoming.get(edge.target) ?? [];
-      sources.push(edge.source);
-      incoming.set(edge.target, sources);
-      const targets = outgoing.get(edge.source) ?? [];
-      targets.push(edge.target);
-      outgoing.set(edge.source, targets);
-    }
-    const result = new Set(selectedNodeIds);
-    const collectDirection = (adjacency: Map<string, string[]>) => {
-      const queue = [...selectedNodeIds];
-      const visited = new Set(selectedNodeIds);
-      for (let index = 0; index < queue.length; index += 1) {
-        const nodeId = queue[index];
-        for (const neighbor of adjacency.get(nodeId) ?? []) {
-          if (visited.has(neighbor)) {
-            continue;
-          }
-          visited.add(neighbor);
-          result.add(neighbor);
-          queue.push(neighbor);
-        }
-      }
-    };
-    collectDirection(incoming);
-    collectDirection(outgoing);
-    return result;
-  }, [edges, selectedNodeIds]);
+  const branchIds = useMemo(
+    () => branchNodeIds(selectedNodeIds, edges),
+    [edges, selectedNodeIds]
+  );
 
   // After a run reports which If/Switch output fired, dim the nodes and edges
   // on the untaken branch. Node types come from the ref so position-only
@@ -1012,6 +857,15 @@ const ReactFlowWrapper = ({
     >()
   );
 
+  const comprehensionContext = useMemo<ComprehensionContext>(
+    () => ({
+      selectionActive: selectedNodeIds.size > 0,
+      branch: branchIds,
+      notRun: untakenBranch.nodeIds
+    }),
+    [branchIds, selectedNodeIds.size, untakenBranch]
+  );
+
   const comprehensionNodes = useMemo(() => {
     if (selectedNodeIds.size === 0 && untakenBranch.nodeIds.size === 0) {
       return nodes;
@@ -1025,17 +879,9 @@ const ReactFlowWrapper = ({
         result: Node<NodeData>;
       }
     >();
+    const context = comprehensionContext;
     const mapped = nodes.map((node) => {
-      const extra: string[] = [];
-      if (selectedNodeIds.size > 0) {
-        extra.push(
-          branchNodeIds.has(node.id) ? "branch-related" : "branch-dimmed"
-        );
-      }
-      if (untakenBranch.nodeIds.has(node.id)) {
-        extra.push("not-run");
-      }
-      const classes = extra.join(" ");
+      const classes = nodeComprehensionClasses(node.id, context);
       if (!classes) {
         return node;
       }
@@ -1053,33 +899,17 @@ const ReactFlowWrapper = ({
     });
     comprehensionNodeCacheRef.current = next;
     return mapped;
-  }, [branchNodeIds, nodes, selectedNodeIds.size, untakenBranch]);
+  }, [comprehensionContext, nodes, selectedNodeIds.size, untakenBranch]);
 
-  const comprehensionEdges = useMemo(() => {
-    if (selectedNodeIds.size === 0 && untakenBranch.edgeIds.size === 0) {
-      return processedEdges;
-    }
-    return processedEdges.map((edge) => {
-      const extra: string[] = [];
-      if (selectedNodeIds.size > 0) {
-        extra.push(
-          branchNodeIds.has(edge.source) && branchNodeIds.has(edge.target)
-            ? "branch-related"
-            : "branch-dimmed"
-        );
-      }
-      if (untakenBranch.edgeIds.has(edge.id)) {
-        extra.push("not-run");
-      }
-      if (extra.length === 0) {
-        return edge;
-      }
-      return {
-        ...edge,
-        className: [edge.className, ...extra].filter(Boolean).join(" ")
-      };
-    });
-  }, [branchNodeIds, processedEdges, selectedNodeIds.size, untakenBranch]);
+  const comprehensionEdges = useMemo(
+    () =>
+      markComprehensionEdges(processedEdges, {
+        selectionActive: selectedNodeIds.size > 0,
+        branch: branchIds,
+        notRun: untakenBranch.edgeIds
+      }),
+    [branchIds, processedEdges, selectedNodeIds.size, untakenBranch]
+  );
 
   // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
   const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);
@@ -1097,46 +927,23 @@ const ReactFlowWrapper = ({
       return;
     }
 
-    // Skip if selected node IDs haven't changed (shallow comparison of sets)
+    // Skip if the selected node ids have not changed.
     const prevIds = prevSelectedNodeIdsRef.current;
-    if (prevIds !== null && prevIds.size === selectedNodeIds.size) {
-      let hasChanged = false;
-      for (const id of selectedNodeIds) {
-        if (!prevIds.has(id)) {
-          hasChanged = true;
-          break;
-        }
-      }
-      if (!hasChanged) {
-        return; // Selection hasn't changed, skip edge processing
-      }
+    if (prevIds !== null && sameIdSet(prevIds, selectedNodeIds)) {
+      return;
     }
     prevSelectedNodeIdsRef.current = new Set(selectedNodeIds);
 
-    const selectionUpdates: Record<string, boolean> = {};
-    const previousNodeDriven = nodeDrivenEdgeIdsRef.current;
-    const nextNodeDriven = new Set<string>();
+    const { updates, nodeDriven } = nodeDrivenEdgeSelection(
+      currentEdges,
+      selectedNodeIds,
+      nodeDrivenEdgeIdsRef.current,
+      suppressNodeDrivenEdgeSelection
+    );
+    nodeDrivenEdgeIdsRef.current = nodeDriven;
 
-    for (const edge of currentEdges) {
-      const isEdgeAlreadySelected = Boolean(edge.selected);
-      const nodeDrivenSelection =
-        !suppressNodeDrivenEdgeSelection &&
-        (selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target));
-      const selectedDirectly =
-        isEdgeAlreadySelected && !previousNodeDriven.has(edge.id);
-      const shouldSelect = selectedDirectly || nodeDrivenSelection;
-      if (nodeDrivenSelection && !selectedDirectly) {
-        nextNodeDriven.add(edge.id);
-      }
-
-      if (isEdgeAlreadySelected !== shouldSelect) {
-        selectionUpdates[edge.id] = shouldSelect;
-      }
-    }
-    nodeDrivenEdgeIdsRef.current = nextNodeDriven;
-
-    if (Object.keys(selectionUpdates).length > 0) {
-      setEdgeSelectionState(selectionUpdates);
+    if (Object.keys(updates).length > 0) {
+      setEdgeSelectionState(updates);
     }
   }, [
     setEdgeSelectionState,
