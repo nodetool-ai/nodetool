@@ -54,6 +54,7 @@ import { mergeWorkflowDocuments } from "./workflowMerge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
 import { reportDocumentConflicts } from "./documentConflictReporter";
+import { noteWorkflowCreatedHere } from "./workflowsCreatedHere";
 import type { Node, Edge } from "@xyflow/react";
 import type { NodeData } from "./NodeData";
 
@@ -822,6 +823,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         } catch (err) {
           throw createErrorMessage(err, "Failed to create workflow");
         }
+        noteWorkflowCreatedHere(data.id);
         if (data.tags === undefined) {
           data.tags = [];
         }

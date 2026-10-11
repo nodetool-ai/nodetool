@@ -84,6 +84,9 @@ strokes.
 **Fakes.** Drawing by hand needs no provider. Generation returns the
 gradient.
 
+**Known behavior.** "New sketch" opens a white canvas with white ink, so the
+first stroke is invisible until the participant picks a colour (round 7).
+
 ## `storyboard`
 
 | Packet | Value |
@@ -195,22 +198,23 @@ gradient. The blank-room starts skip the language model, so they are the
 likeliest path to a playable game on the fakes. Judge mechanics, not the
 design.
 
+**Known behavior.** The game editor shows a layout row and, on every panel,
+"Drag", "Move … panel", "Position … panel" and "Hide" controls (round 7).
+
 ## `voice-script`
 
 | Packet | Value |
 |---|---|
 | Kind | `task` |
 | Limits | 50 actions, 10 minutes |
-| State | `--state empty` with real providers only |
-| Credentials | A real key, with the user's approval for provider spend |
+| State | `--state empty` |
+| Credentials | One OpenAI test key |
 
 **Goal.** "Write three short lines for a narrator in this app, and have the
 app read them aloud."
 
-**Fixture.** The fake runtime has no text-to-speech model, and its provider
-throws on speech. Run this only with `NODETOOL_FAKE_PROVIDERS=0` and the
-user's approval for spend, or after a fake speech model is added to
-`fake-runtime.ts`. Otherwise mark it `not run`.
+**Fakes.** "Test Voice Model" voices each line as silence whose length
+follows the text. The script writer's lines and speaker read "fake".
 
 **Pass.** Each line shows a voiced clip with a duration. The runner cannot
 hear audio, so judge the visible player, waveform, or duration.

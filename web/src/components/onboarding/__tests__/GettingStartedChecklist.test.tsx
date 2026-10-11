@@ -70,6 +70,23 @@ describe("GettingStartedChecklist", () => {
     expect(handlers.onOpenExamples).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the connected provider step as the way back to the provider dialog", async () => {
+    // Replacing a revoked key starts from here: a disabled pill sent people
+    // hunting for another route to the dialog.
+    const user = userEvent.setup();
+    const handlers = renderChecklist({ hasConfiguredProvider: true });
+    const step = screen.getByRole("button", { name: "AI provider connected" });
+    expect(step).toBeEnabled();
+    await user.click(step);
+    expect(handlers.onConnectProvider).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the other steps once they are done", () => {
+    useOnboardingStore.getState().markStep("start-guided-flow");
+    renderChecklist();
+    expect(screen.getByRole("button", { name: "Start a guided flow" })).toBeDisabled();
+  });
+
   it("hides after dismissal", async () => {
     const user = userEvent.setup();
     renderChecklist();

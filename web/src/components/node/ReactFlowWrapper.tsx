@@ -76,6 +76,7 @@ import {
   type UntakenBranch
 } from "../../utils/untakenBranches";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
+import { useFitToScreenRequest } from "../../hooks/useFitToScreenRequest";
 import { useNodeDragDiagnostics } from "../../hooks/useNodeDragDiagnostics";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
@@ -952,20 +953,10 @@ const ReactFlowWrapper = ({
     suppressNodeDrivenEdgeSelection
   ]);
 
-  // The store starts with `shouldFitToScreen` set, but the viewport is
-  // restored from stored state, so only later requests (Auto Layout) fit.
-  const initialFitRequestHandledRef = useRef(false);
-  useEffect(() => {
-    if (!shouldFitToScreen) {
-      initialFitRequestHandledRef.current = true;
-      return;
-    }
-    setShouldFitToScreen(false);
-    if (initialFitRequestHandledRef.current) {
-      void reactFlowInstance.fitView({ duration: 400, padding: 0.1 });
-    }
-    initialFitRequestHandledRef.current = true;
-  }, [shouldFitToScreen, setShouldFitToScreen, reactFlowInstance]);
+  const fitToScreen = useCallback(() => {
+    void reactFlowInstance.fitView({ duration: 400, padding: 0.1 });
+  }, [reactFlowInstance]);
+  useFitToScreenRequest(shouldFitToScreen, nodeStore, fitToScreen);
 
   const snapGrid = useMemo(
     () => [gridSnap, gridSnap] as [number, number],

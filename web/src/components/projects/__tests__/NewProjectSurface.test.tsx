@@ -754,6 +754,35 @@ describe("NewProjectSurface", () => {
     });
   });
 
+  it("keeps a non-image out of the reference images and says so", async () => {
+    createAsset.mockResolvedValue({
+      id: "reference-asset",
+      name: "lamp.png",
+      content_type: "image/png",
+      thumb_url: "https://example.test/lamp-thumb.png",
+      get_url: "https://example.test/lamp.png"
+    });
+    renderSurface();
+    // A person can switch the file picker's image filter off.
+    const user = userEvent.setup({ applyAccept: false });
+    await user.upload(screen.getByLabelText("Reference images"), [
+      new File(["notes"], "trip-notes.txt", { type: "text/plain" }),
+      new File(["image bytes"], "lamp.png", { type: "image/png" })
+    ]);
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Ref images · 1" })).toBeInTheDocument()
+    );
+    expect(createAsset).toHaveBeenCalledTimes(1);
+    expect(createAsset.mock.calls[0]?.[0]).toMatchObject({ name: "lamp.png" });
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "warning",
+        content: "Reference images take pictures only. trip-notes.txt was not added."
+      })
+    );
+  });
+
   // A card started mid-upload would take only the images already uploaded,
   // and say it took them all.
   it("holds the entry cards while reference images upload", async () => {
@@ -997,6 +1026,27 @@ describe("NewProjectSurface", () => {
     hasConfiguredProvider = true;
     refresh();
     await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+  });
+
+  // QA round 7: once the key verified, the model menu opened over the still
+  // open provider dialog, and the dialog stayed over the started chat.
+  it("closes the provider dialog when the parked start resumes", async () => {
+    hasConfiguredProvider = false;
+    selectedModel = { provider: "empty", id: "gpt-4o" };
+    const { refresh } = renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/30-second launch spot/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
+    expect(useProviderOnboardingStore.getState().open).toBe(true);
+
+    hasConfiguredProvider = true;
+    refresh();
+    expect(
+      await screen.findByRole("button", { name: "Pick Claude" })
+    ).toBeInTheDocument();
+    expect(useProviderOnboardingStore.getState().open).toBe(false);
   });
 
   // A configured provider does not mean a model was picked.

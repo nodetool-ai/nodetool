@@ -36,8 +36,10 @@ import {
   type BaseProvider,
   type CredentialCheckResult,
   type ImageModel,
+  type EncodedAudioResult,
   type LanguageModel,
   type ProviderCapability,
+  type TTSModel,
   type ImageToImageParams,
   type ProviderStreamItem,
   type TextToImageParams
@@ -104,6 +106,30 @@ function placeholderPng(): Buffer {
   return encodePng(size, size, rgb);
 }
 
+/**
+ * A silent mono 16-bit WAV, a quarter second per word with one second at
+ * least, so a voiced line shows a duration that grows with its text.
+ */
+export function silentWav(text: string): Buffer {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const sampleRate = 8000;
+  const samples = Math.max(sampleRate, Math.round(words * 0.25 * sampleRate));
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + samples * 2, 4);
+  header.write("WAVEfmt ", 8);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(samples * 2, 40);
+  return Buffer.concat([header, Buffer.alloc(samples * 2)]);
+}
+
 /** Bytes every faked image output and fake `textToImage` call returns. */
 export const FAKE_IMAGE_PNG_BASE64 = placeholderPng().toString("base64");
 
@@ -162,11 +188,18 @@ export function assertValidFakeChunk(chunk: unknown): void {
  */
 const FAKE_MODEL_CATALOG: Record<
   string,
-  { language: string[]; image: string[] }
+  { language: string[]; image: string[]; speech: string[] }
 > = {
-  openai: { language: ["Test Chat Model"], image: ["Test Image Model"] },
-  anthropic: { language: ["Test Assistant Model"], image: [] }
+  openai: {
+    language: ["Test Chat Model"],
+    image: ["Test Image Model"],
+    speech: ["Test Voice Model"]
+  },
+  anthropic: { language: ["Test Assistant Model"], image: [], speech: [] }
 };
+
+/** Voices the fake speech model offers. */
+const FAKE_VOICES = ["alloy", "verse"];
 
 /**
  * The Workflow planner's answer. Schema-shaped "fake" strings make a plan the
@@ -236,11 +269,33 @@ export class FakeProvider extends ScriptedProvider {
     );
   }
 
+  override async getAvailableTTSModels(): Promise<TTSModel[]> {
+    return (FAKE_MODEL_CATALOG[this.fakeProviderId]?.speech ?? []).map(
+      (name) => ({
+        id: modelId(name),
+        name,
+        provider: this.fakeProviderId,
+        voices: [...FAKE_VOICES]
+      })
+    );
+  }
+
   /** Image pickers and the image step read this, not the model list. */
   protected override declaredCapabilities(): readonly ProviderCapability[] {
-    return (FAKE_MODEL_CATALOG[this.fakeProviderId]?.image.length ?? 0) > 0
-      ? ["text_to_image", "image_to_image"]
-      : [];
+    const catalog = FAKE_MODEL_CATALOG[this.fakeProviderId];
+    return [
+      ...((catalog?.image.length ?? 0) > 0
+        ? (["text_to_image", "image_to_image"] as const)
+        : []),
+      ...((catalog?.speech.length ?? 0) > 0 ? (["text_to_speech"] as const) : [])
+    ];
+  }
+
+  /** Speech is silence whose length follows the text. */
+  override async textToSpeechEncoded(
+    args: Parameters<BaseProvider["textToSpeechEncoded"]>[0]
+  ): Promise<EncodedAudioResult> {
+    return { data: new Uint8Array(silentWav(args.text)), mimeType: "audio/wav" };
   }
 
   override async textToImage(_params: TextToImageParams): Promise<Uint8Array> {
