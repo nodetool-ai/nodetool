@@ -78,6 +78,8 @@ jest.mock("../../utils/MousePosition", () => ({
   getMousePosition: () => ({ x: 10, y: 20 })
 }));
 
+const mockUndo = jest.fn();
+const mockRedo = jest.fn();
 const { renderHook } = nodeStoreRenderers(
   makeNodeStore(
     {
@@ -92,7 +94,7 @@ const { renderHook } = nodeStoreRenderers(
       getSelectedNodes: () => [],
       workflow: { id: "wf-1" }
     },
-    { undo: jest.fn(), redo: jest.fn() }
+    { undo: mockUndo, redo: mockRedo }
   )
 );
 jest.mock("../../stores/NodeMenuStore", () => ({
@@ -378,6 +380,25 @@ describe("useNodeEditorShortcuts", () => {
 
     expect(mockCloseDocument).toHaveBeenCalledWith(tab);
     expect(useWorkspaceTabsStore.getState().tabs).toEqual([tab]);
+  });
+
+  it("undoes and redoes one step when the shortcut passes its key event", () => {
+    renderHook(() => useNodeEditorShortcuts(true));
+    const callbackFor = (combo: string) => {
+      const callback = jest
+        .mocked(registerComboCallback)
+        .mock.calls.find(([registered]) => registered === combo)?.[1]?.callback;
+      if (!callback) {
+        throw new Error(`${combo} callback was not registered`);
+      }
+      return callback;
+    };
+
+    callbackFor("control+z")(new KeyboardEvent("keydown", { key: "z" }));
+    callbackFor("control+shift+z")(new KeyboardEvent("keydown", { key: "z" }));
+
+    expect(mockUndo).toHaveBeenCalledWith();
+    expect(mockRedo).toHaveBeenCalledWith();
   });
 
   it("does not register keyboard shortcuts when editor is inactive", () => {

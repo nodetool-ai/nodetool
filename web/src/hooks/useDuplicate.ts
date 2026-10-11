@@ -4,6 +4,7 @@ import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
+import { runAsOneUndoEntry } from "../utils/runAsOneUndoEntry";
 
 /**
  * Hook for duplicating selected nodes and their connected edges.
@@ -144,8 +145,10 @@ export const useDuplicateNodes = (
       selected: false
     }));
 
-    setNodes([...updatedNodes, ...newNodes]);
-    setEdges([...updatedEdges, ...newEdges]);
+    runAsOneUndoEntry(nodeStore, () => {
+      setNodes([...updatedNodes, ...newNodes]);
+      setEdges([...updatedEdges, ...newEdges]);
+    });
   }, [
     vertical,
     keepUpstreamConnections,
