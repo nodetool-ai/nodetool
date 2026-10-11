@@ -877,6 +877,20 @@ function SettingsPage() {
 
                       <SearchItem
                         search={search}
+                        keywords="timeline preview video decoder webcodecs frame exact"
+                      >
+                        <LabeledSwitch
+                          label="Decode Timeline Preview with WebCodecs"
+                          checked={settings.timelinePreviewDecoder === "webcodecs"}
+                          onChange={(checked) =>
+                            updateSettings({ timelinePreviewDecoder: checked ? "webcodecs" : "element" })
+                          }
+                          description="Draw the exact frame for the playhead in the timeline preview. Clips that WebCodecs cannot decode keep using the browser video player."
+                        />
+                      </SearchItem>
+
+                      <SearchItem
+                        search={search}
                         keywords="execution max concurrent jobs runs queue concurrency parallel"
                       >
                         <ServerNumberSetting

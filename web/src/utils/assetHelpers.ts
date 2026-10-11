@@ -72,3 +72,12 @@ export function getAssetPreviewUrl(asset: unknown): string | null {
   }
   return getAssetMediaUrl(asset);
 }
+
+/** Whether `url` is the asset's ready preview proxy (all-intra H.264). */
+export function isAssetPreviewProxyUrl(asset: unknown, url: string): boolean {
+  return (
+    isObjectLike(asset) &&
+    asset["proxy_status"] === "ready" &&
+    asset["proxy_url"] === url
+  );
+}

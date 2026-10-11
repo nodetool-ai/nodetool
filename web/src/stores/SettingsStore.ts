@@ -67,6 +67,12 @@ export interface Settings {
   audioBufferMs: number;
   /** Which editor's keyboard layout the timeline follows. */
   timelineKeyboardPreset: "nodetool" | "premiere" | "fcp";
+  /**
+   * Where the timeline preview gets its video frames. `"element"` plays
+   * `<video>` elements, `"webcodecs"` decodes with WebCodecs. A clip with a
+   * ready proxy decodes with WebCodecs under both values.
+   */
+  timelinePreviewDecoder: "element" | "webcodecs";
   autosave: AutosaveSettings;
 }
 
@@ -116,6 +122,7 @@ export const defaultSettings: Settings = {
   largeRunThreshold: 5,
   audioBufferMs: 100,
   timelineKeyboardPreset: "nodetool",
+  timelinePreviewDecoder: "element",
   autosave: { ...defaultAutosaveSettings }
 };
 
