@@ -1,6 +1,29 @@
+import { resolve } from "path";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // Tests import this package by name. Resolve that to src/ rather than the
+  // built dist/, so tests run the current source and coverage lands on it.
+  resolve: {
+    alias: [
+      {
+        find: /^@nodetool-ai\/llm-nodes\/gemini$/,
+        replacement: resolve(__dirname, "src/nodes/gemini.ts")
+      },
+      {
+        find: /^@nodetool-ai\/llm-nodes\/openai$/,
+        replacement: resolve(__dirname, "src/nodes/openai.ts")
+      },
+      {
+        find: /^@nodetool-ai\/llm-nodes\/xai$/,
+        replacement: resolve(__dirname, "src/nodes/xai.ts")
+      },
+      {
+        find: /^@nodetool-ai\/llm-nodes$/,
+        replacement: resolve(__dirname, "src/index.ts")
+      }
+    ]
+  },
   test: {
     include: ["tests/**/*.test.ts"],
     passWithNoTests: true,

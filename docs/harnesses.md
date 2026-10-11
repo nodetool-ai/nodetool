@@ -1996,12 +1996,20 @@ npm run crap -- --lcov packages/kernel/coverage/lcov.info --json packages/kernel
   `Card`), top-level object-literal members, and every class member. A route
   callback (`app.get("/users", handler)`) is its own entry, `GET /users`.
   Other nested callbacks count toward their enclosing function, so a store
-  built inside `create((set) => …)` is one entry.
+  built inside `create((set) => …)` is one entry, and its score is the sum of
+  every action. A component's score likewise includes its inline handlers.
+  Move an action or handler to a module-level function to score it alone.
 - **Coverage** is LCOV. A function with `BRDA` branch records is scored by
   branches, otherwise by line hits. A function the report leaves out scores
   0%. By default the tool reads `coverage/lcov.info` in each workspace that
   owns an analyzed file. `--run-coverage` first runs that workspace's related
-  tests (`vitest related` or `jest --findRelatedTests`) with LCOV output.
+  tests (`vitest related` or `jest --findRelatedTests`) with LCOV output, and
+  Vitest writes the report even when a test fails. When several reports cover
+  one file, a line or branch counts as covered if any report hit it.
+- Coverage lands on `src/` only when tests load the source. A test that
+  imports its own package by name resolves to `dist/` and records nothing for
+  `src/`. A package whose tests import it by name aliases that name to
+  `src/index.ts` in its `vitest.config.ts`.
 - Test files, declaration files, and `tests/`, `__tests__/`, `dist/`, and
   `node_modules/` are skipped. Rules are pinned by
   `scripts/__tests__/crap-score.test.mjs`.
