@@ -122,6 +122,7 @@ const NAMESPACE_GROUPS = {
   "nodetool.timeline": "Video",
   "nodetool.script": "Video",
   "nodetool.creative": "Video",
+  "nodetool.manimgx": "Video",
   "lib.video": "Video",
   "gemini.video": "Video",
 
@@ -216,6 +217,7 @@ const DESCRIPTIONS = {
   "nodetool.image": "Load, save, resize, crop, composite and upscale images, plus text to image and image to image.",
   "nodetool.input": "Workflow inputs of every type, filled in when the workflow runs.",
   "nodetool.model3d": "Convert, repair, transform and render 3D models, plus text to 3D and image to 3D.",
+  "nodetool.manimgx": "Write, inspect and render ManimGX math and 3D animation scenes in Python.",
   "nodetool.output": "Mark a value as a workflow output.",
   "nodetool.script": "Load voiceover scripts and convert them to subtitles, timelines and voiced audio.",
   "nodetool.sketch": "Create, layer and render sketch documents.",

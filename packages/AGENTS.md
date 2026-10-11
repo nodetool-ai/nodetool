@@ -59,6 +59,7 @@ first, then the overlay for the package you are touching.
 - [`kie-codegen`](kie-codegen/AGENTS.md) — KIE config & manifest generator
 - [`kie-nodes`](kie-nodes/AGENTS.md) — KIE node factory
 - [`llm-nodes`](llm-nodes/AGENTS.md) — LLM, image, TTS & agent nodes
+- [`manimgx-nodes`](manimgx-nodes/AGENTS.md) — ManimGX math and 3D animation scenes
 - [`models`](models/AGENTS.md) — persistence layer, tables, migrations
 - [`mutator`](mutator/AGENTS.md) — mutation testing tool
 - [`node-sdk`](node-sdk/AGENTS.md) — `BaseNode`, `NodeRegistry`, type system

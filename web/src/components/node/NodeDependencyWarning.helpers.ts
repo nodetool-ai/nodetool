@@ -6,6 +6,7 @@ export const RUNTIME_LABELS: Record<string, string> = {
   python: "Python",
   nodejs: "Node.js",
   "yt-dlp": "yt-dlp",
+  manimgx: "ManimGX",
   pandoc: "Pandoc",
   pdftotext: "PDF Tools (Poppler)",
 };
@@ -18,6 +19,7 @@ export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   pandoc: "pandoc",
   pdftotext: "pdftotext",
   "yt-dlp": "yt-dlp",
+  manimgx: "manimgx",
 };
 
 // Concurrent loads share one request. A forced refresh queues behind an

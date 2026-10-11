@@ -3,6 +3,7 @@ import type { RuntimePackageId } from "../../types.d";
 import { CondaRuntimePackage } from "./CondaRuntimePackage";
 import { NpmRuntimePackage } from "./NpmRuntimePackage";
 import { ElectronRuntimePackage } from "./ElectronRuntimePackage";
+import { UvToolRuntimePackage } from "./UvToolRuntimePackage";
 import type { RuntimePackage } from "./types";
 import { MIN_UV_VERSION } from "../../torchruntime";
 
@@ -98,6 +99,22 @@ export const RUNTIME_PACKAGES = {
     versionRange: "*",
     condaPackages: ["yt-dlp"],
     verifyBinary: "yt-dlp",
+  }),
+
+  // ManimGX needs Python 3.13, newer than the conda environment's Python, so
+  // uv installs it as a tool on a Python of its own.
+  manimgx: new UvToolRuntimePackage({
+    id: "manimgx",
+    name: "ManimGX",
+    description:
+      "Math and 3D animation engine with Manim's Python API. Required for the ManimGX scene nodes.",
+    category: "tool",
+    versionRange: "*",
+    toolSpec: "manimgx",
+    python: "3.13",
+    verifyBinary: "manimgx",
+    approxSizeMB: 150,
+    homepage: "https://github.com/academa-labs/manimgx",
   }),
 
   "transformers-js": new NpmRuntimePackage({
