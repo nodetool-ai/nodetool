@@ -586,11 +586,25 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           className="compare-dialog"
           open={compareDialogOpen}
           onClose={handleCloseCompare}
-          title="Compare images"
-          maxWidth="xl"
-          fullWidth
+          maxWidth={false}
+          aria-label="Compare outputs"
         >
-          <Box sx={{ height: "75vh", position: "relative" }}>
+          <Box sx={{ width: "90vw", height: "90vh", position: "relative" }}>
+            <ToolbarIconButton
+              title="Close image comparison dialog"
+              onClick={handleCloseCompare}
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                zIndex: Z_INDEX.dropdown,
+                backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+                color: theme.vars.palette.common.white,
+                "&:hover": { backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)` }
+              }}
+            >
+              <ClearIcon />
+            </ToolbarIconButton>
             <ImageComparer
               imageA={compareImages[0]}
               imageB={compareImages[1]}

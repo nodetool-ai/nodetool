@@ -778,8 +778,44 @@ uppercase, `text.secondary`. A properties panel uses `InspectorSection`, which
 draws the same title (see [Properties panels](#11-properties-panels)). Omit `title` only when a tab strip above already
 names the panel, as in the agent panels.
 
-Dialogs are not panels. A dialog title uses `TYPOGRAPHY.sans.title`
-(18px / 600), which the `Dialog` primitive applies (see [Dialogs](#12-dialogs)).
+### Dialogs
+
+Dialogs are not panels. Every modal dialog uses the `Dialog` primitive. It
+owns the shell, so a dialog only supplies a title, a body and its actions.
+
+```tsx
+import { Dialog, Text } from "../ui_primitives";
+
+<Dialog
+  open={open}
+  onClose={close}
+  title="Delete model?"
+  maxWidth="xs"
+  fullWidth
+  onConfirm={remove}
+  confirmText="Delete"
+  destructive
+  isLoading={removing}
+>
+  <Text size="small">Nodes that use this model stop working.</Text>
+</Dialog>
+```
+
+| Part | Rule |
+|---|---|
+| Shell | Paper background, 1px `divider` border, `theme.rounded.dialog` radius, glass backdrop. Do not restyle it through `slotProps`, `PaperProps` or `css`. Caller slot props merge onto the shell |
+| Width | `maxWidth="xs"`, `"sm"`, `"md"` or `"lg"` with `fullWidth`. No pixel `minWidth` |
+| Title | A sentence-case string in `title`, `TYPOGRAPHY.sans.title` (18px / 600). The close button appears when `onClose` is set. Header extras go in `titleActions` |
+| Body | Children render inside the padded content area. Never pass `DialogTitle`, `DialogContent` or `DialogActions` as children |
+| Footer | `onConfirm` with a verb in `confirmText`, plus `destructive`, `isLoading`, `confirmDisabled`. Other footers go in `actions` as a fragment of `Button`s: secondary `variant="text" color="inherit"`, the primary last with `variant="contained"` |
+| Destructive | Delete, remove, revoke and discard pass `destructive`. Their title is a question and the body states the consequence |
+| Feedback | Errors and warnings inside a dialog use `AlertBanner` |
+| Confirm only | `ConfirmDialog` for a title, a sentence and two buttons. Never `window.confirm` or `window.prompt` |
+| Fullscreen | Media viewers and reading views pass `variant="fullscreen"` |
+
+Full-screen editors with their own resize and history (the text, dataframe,
+sketch and compositor editors) are workspaces, not dialogs, and keep their own
+shells.
 
 ---
 
@@ -820,48 +856,7 @@ Do not restyle a `CollapsibleSection` header into a filled bar, a bright
 
 ---
 
-## 12. Dialogs
-
-Every modal dialog uses the `Dialog` primitive. It owns the shell, so a dialog
-only supplies a title, a body and its actions.
-
-```tsx
-import { Dialog, Text } from "../ui_primitives";
-
-<Dialog
-  open={open}
-  onClose={close}
-  title="Delete model?"
-  maxWidth="xs"
-  fullWidth
-  onConfirm={remove}
-  confirmText="Delete"
-  destructive
-  isLoading={removing}
->
-  <Text size="small">Nodes that use this model stop working.</Text>
-</Dialog>
-```
-
-| Part | Rule |
-|---|---|
-| Shell | Paper background, 1px `divider` border, `theme.rounded.dialog` radius, glass backdrop. Do not restyle it through `slotProps`, `PaperProps` or `css`. Caller slot props merge onto the shell |
-| Width | `maxWidth="xs"`, `"sm"`, `"md"` or `"lg"` with `fullWidth`. No pixel `minWidth` |
-| Title | A sentence-case string in `title`, `TYPOGRAPHY.sans.title` (18px / 600). The close button appears when `onClose` is set. Header extras go in `titleActions` |
-| Body | Children render inside the padded content area. Never pass `DialogTitle`, `DialogContent` or `DialogActions` as children |
-| Footer | `onConfirm` with a verb in `confirmText`, plus `destructive`, `isLoading`, `confirmDisabled`. Other footers go in `actions` as a fragment of `Button`s: secondary `variant="text" color="inherit"`, the primary last with `variant="contained"` |
-| Destructive | Delete, remove, revoke and discard pass `destructive`. Their title is a question and the body states the consequence |
-| Feedback | Errors and warnings inside a dialog use `AlertBanner` |
-| Confirm only | `ConfirmDialog` for a title, a sentence and two buttons. Never `window.confirm` or `window.prompt` |
-| Fullscreen | Media viewers and reading views pass `variant="fullscreen"` |
-
-Full-screen editors with their own resize and history (the text, dataframe,
-sketch and compositor editors) are workspaces, not dialogs, and keep their own
-shells.
-
----
-
-## 13. Migration Checklist
+## 12. Migration Checklist
 
 When editing any UI file, scan for these violations and fix them in the same PR.
 
@@ -901,11 +896,10 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 | `overflow: "auto"` container | `<ScrollArea>` |
 | `textOverflow: "ellipsis"` | `<TruncatedText>` |
 | Hand-built panel title row | `<PanelHeader>` |
-| Hand-built dialog title, footer or paper override | `Dialog` props (see [Dialogs](#12-dialogs)) |
 
 ---
 
-## 14. Adding New Tokens
+## 13. Adding New Tokens
 
 1. **Spacing**: Only add a new `SPACING.*` step if the existing nine steps genuinely cannot express the design intent. Justify in the PR. Update `spacing.ts`.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
@@ -917,7 +911,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 15. Design Decisions and Tradeoffs
+## 14. Design Decisions and Tradeoffs
 
 Documented rationale for choices that differ from common defaults.
 
