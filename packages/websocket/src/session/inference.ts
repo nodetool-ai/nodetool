@@ -109,6 +109,10 @@ export interface DirectMediaGenerationRequest {
   sourceContext?: DirectMediaSourceContext;
   timelineContext?: { sequenceId: string; sourceClipId?: string; targetClipId?: string };
   capability?: "reference_to_video";
+  /**
+   * Ordered image references. `reference_to_video` and `video_edit` take
+   * them as such; `image_edit` passes them to the model after the source.
+   */
   referenceImages?: unknown[];
   referenceAssetIds?: readonly string[];
   entityIds?: readonly string[];
@@ -760,7 +764,9 @@ export class DirectInferenceHandler {
         );
       }
     } else if (
-      (req.referenceImages?.length && req.mode !== "video_edit") ||
+      (req.referenceImages?.length &&
+        req.mode !== "video_edit" &&
+        req.mode !== "image_edit") ||
       req.referenceVideos?.length ||
       req.useReferenceVideoAudio !== undefined
     ) {
@@ -1496,6 +1502,14 @@ export class DirectInferenceHandler {
       if (!sourceBytes) {
         throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
       }
+      // Style or subject references ride after the source, so a
+      // multi-image edit model reads the first image as the one to change.
+      const referenceBytes = await resolveReferenceAssets(
+        userId,
+        req.referenceImages ?? [],
+        "image"
+      );
+      const editImages = [sourceBytes, ...referenceBytes, ...entityImageBytes];
       const params: ImageToImageParams = {
         model: imageModel,
         prompt,
@@ -1517,12 +1531,12 @@ export class DirectInferenceHandler {
           strength: req.strength ?? null,
           num_inference_steps: req.numInferenceSteps ?? null,
           num_images: variations,
-          images: [sourceBytes, ...entityImageBytes]
+          images: editImages
         },
         {},
         (abort) =>
           provider.imageToImages(
-            [sourceBytes, ...entityImageBytes],
+            editImages,
             { ...params, signal: abort },
             variations
           )
