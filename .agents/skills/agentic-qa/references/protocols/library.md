@@ -36,6 +36,49 @@ and whether another surface said it was empty.
 **Fakes.** Every generated image is a 256 × 256 colour gradient from "Test
 Image Model".
 
+## `image-reuse`
+
+| Packet | Value |
+|---|---|
+| Kind | `task` |
+| Limits | 70 actions, 15 minutes |
+| State | `--state empty` |
+| Credentials | One OpenAI test key |
+| Goal | The `image-reuse` row in [journeys.md](../journeys.md#outcome-goals) |
+
+**Pass.** A generated image and an edit made from it, both reached again after
+a reload through visible navigation.
+
+**Checks.**
+
+- Check that each image fills the layer it was placed in. An image in the
+  top-left corner of a larger canvas is a regression of round 6's fit fix.
+- Record which Generate the participant pressed for the edit: the layer's
+  own button in the inspector, or the tool bar's.
+
+**Routes.**
+
+- The "Sketch" guided flow, then "Generate your image". In the editor, the
+  layers panel's "From image" adds an image-to-image layer with the image as
+  its source. Its prompt and Generate button are in the inspector.
+- Opening a result as a variation in the editor, then the same layer.
+
+**Fakes.** The brief arrives with "fake" in all five fields, and retyping them
+costs about 15 actions, which is why the limits here are higher than a
+standard task's. The edit is the same 256 × 256 gradient as the original. The
+Editor Assistant has no tool calls on the fakes, so asking it for an edit gets
+a chat reply.
+
+**Known behavior.**
+
+- The tool bar's Generate opens a new text-to-image form and ignores a
+  selected generation layer. This is an open product decision (round 6 D3).
+  Round 6 brought the layer's own Generate into view when its prompt is
+  focused.
+- The tool bar's Generate form names the model by its id
+  ("test-image-model"), while the inspector shows "Test Image Model".
+- The layer inspector shows a raw storage path under a placed image.
+
 ## `photo`
 
 | Packet | Value |
@@ -92,6 +135,28 @@ text files should be documents is an open product question.
 
 **Regression.** `web/tests/journeys/text-file.spec.ts` checks that quickly
 typed text arrives intact.
+
+## `rename`
+
+| Packet | Value |
+|---|---|
+| Kind | `task` |
+| Limits | 50 actions, 10 minutes |
+| State | `--state empty` |
+| Credentials | One OpenAI test key |
+| Goal | The `rename` row in [journeys.md](../journeys.md#outcome-goals) |
+
+**Pass.** After a reload, the new name on every surface that lists the item,
+and the old name on none.
+
+**Checks.** Read the tab, the Documents panel, the Library, and the Home strip
+after the reload. Search the screenshots after the rename for the old name.
+
+**Routes.** Double-clicking the item's tab, or "Rename" in the tab's context
+menu. The save notice repeats the new name.
+
+**Known behavior.** None open. In round 6 a workflow renamed twice by its tab
+showed only the new name everywhere after a reload.
 
 ## `organize`
 
