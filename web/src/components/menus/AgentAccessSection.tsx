@@ -21,7 +21,9 @@ import {
   Dialog,
   FlexColumn,
   FlexRow,
+  FormField,
   NavButton,
+  SectionHeader,
   SelectField,
   Text,
   TextInput,
@@ -189,7 +191,7 @@ const AgentAccessSection = () => {
 
   return (
     <div className="settings-section" style={{ marginTop: getSpacingPx(SPACING.xxl) }}>
-      <Text sx={{ fontWeight: 500, mb: 0.5 }}>Connect an agent remotely</Text>
+      <SectionHeader size="small" title="Connect an agent remotely" />
       <Text className="description" sx={{ mb: 1 }}>
         Point Claude Code, Claude Desktop, or any MCP client at this server over
         HTTP. Create a token below and paste the configuration it produces.
@@ -211,17 +213,16 @@ const AgentAccessSection = () => {
         </AlertBanner>
       )}
 
-      <FlexColumn gap={1} sx={{ mb: 2 }}>
-        <Caption>Server URL</Caption>
+      <FormField label="Server URL" sx={{ mb: 2 }}>
         <FlexRow align="center" gap={1}>
           <div css={codeBox} style={{ flex: 1 }}>
             {url}
           </div>
           <CopyButton value={url} tooltip="Copy the server URL" />
         </FlexRow>
-      </FlexColumn>
+      </FormField>
 
-      <FlexRow align="flex-end" gap={1} sx={{ mb: 1 }}>
+      <FlexRow align="flex-end" gap={SPACING.lg} sx={{ mb: 1 }}>
         <TextInput
           label="Token name"
           placeholder="Claude Code on my laptop"
@@ -289,10 +290,7 @@ const AgentAccessSection = () => {
               <FlexRow align="center" justify="space-between" fullWidth>
                 <FlexColumn gap={0}>
                   <Text sx={{ fontWeight: 500 }}>{token.name}</Text>
-                  <Text
-                    className="description"
-                    sx={{ fontSize: "var(--fontSizeSmall) !important" }}
-                  >
+                  <Text className="description">
                     Created {formatStamp(token.created_at)} · Last used{" "}
                     {formatStamp(token.last_used_at)} ·{" "}
                     {token.expires_at
@@ -329,10 +327,7 @@ const AgentAccessSection = () => {
             <FlexRow align="center" justify="space-between" fullWidth>
               <FlexColumn gap={0}>
                 <Text sx={{ fontWeight: 500 }}>{grant.client_name}</Text>
-                <Text
-                  className="description"
-                  sx={{ fontSize: "var(--fontSizeSmall) !important" }}
-                >
+                <Text className="description">
                   Connected {formatStamp(grant.created_at)} · {grant.client_id}
                 </Text>
               </FlexColumn>

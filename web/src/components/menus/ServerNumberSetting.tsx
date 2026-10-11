@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TextInput, Text } from "../ui_primitives";
+import { TextInput } from "../ui_primitives";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { formatRangeHint } from "./NumberSetting";
@@ -85,24 +85,23 @@ export const ServerNumberSetting = React.memo(function ServerNumberSetting({
   );
 
   return (
-    <>
-      <TextInput
-        type="number"
-        autoComplete="off"
-        slotProps={{ htmlInput: { min, max } }}
-        id={id}
-        label={label}
-        value={local}
-        onChange={(e) => setLocal(e.target.value)}
-        onBlur={commit}
-        onKeyDown={handleKeyDown}
-        variant="standard"
-        size="small"
-      />
-      <Text className="description">
-        {description} {formatRangeHint(min, max, defaultValue)}
-      </Text>
-    </>
+    <TextInput
+      type="number"
+      autoComplete="off"
+      slotProps={{ htmlInput: { min, max } }}
+      id={id}
+      label={label}
+      helperText={
+        <>
+          {description} {formatRangeHint(min, max, defaultValue)}
+        </>
+      }
+      value={local}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={handleKeyDown}
+      size="small"
+    />
   );
 });
 

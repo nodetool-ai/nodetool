@@ -9,7 +9,8 @@ import {
   Chip,
   Dialog,
   EditorButton,
-  Label,
+  FormSection,
+  SectionHeader,
   SPACING,
   TextInput,
   SelectField,
@@ -333,7 +334,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
         )}
 
         <FlexColumn gap={SPACING.xs}>
-          <Label sx={{ mb: 0 }}>Existing profiles</Label>
+          <SectionHeader size="small" title="Existing profiles" />
           {profiles.length === 0 ? (
             <Caption size="small">
               No profiles yet. Create one below.
@@ -366,14 +367,11 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
           )}
         </FlexColumn>
 
-        <FlexColumn gap={SPACING.md}>
-          <FlexColumn gap={SPACING.micro}>
-            <Label sx={{ mb: 0 }}>Create a profile</Label>
-            <Caption size="small">
-              A profile is a saved template. Provisioning it rents one GPU box
-              and connects this app to it.
-            </Caption>
-          </FlexColumn>
+        <FormSection label="Create a profile">
+          <Caption size="small">
+            A profile is a saved template. Provisioning it rents one GPU box
+            and connects this app to it.
+          </Caption>
 
           <TextInput
             label="Name"
@@ -467,11 +465,8 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             compact
           />
 
-          <CollapsibleSection
-            title={<Label sx={{ mb: 0 }}>Advanced</Label>}
-            defaultOpen={false}
-          >
-            <FlexColumn gap={SPACING.md} sx={{ pt: SPACING.xs }}>
+          <CollapsibleSection title="Advanced" defaultOpen={false}>
+            <FlexColumn gap={SPACING.lg} sx={{ pt: SPACING.xs }}>
               <SelectField
                 label="Worker image preset"
                 value={
@@ -515,7 +510,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
               />
             </FlexColumn>
           </CollapsibleSection>
-        </FlexColumn>
+        </FormSection>
       </FlexColumn>
     </Dialog>
   );

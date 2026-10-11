@@ -7,7 +7,9 @@ import {
   FlexColumn,
   FlexRow,
   Dialog,
-  ConfirmDialog
+  ConfirmDialog,
+  AlertBanner,
+  SPACING
 } from "../ui_primitives";
 
 const DEFAULT_VAULT_ID = "default";
@@ -113,91 +115,89 @@ const VaultsSettings: React.FC = () => {
       <Text size="big" id="vaults" className="settings-heading">
         Vaults
       </Text>
-      <Text className="description">
-        A vault is a separate, isolated data store with its own database,
-        assets, and RAG collections. Switch vaults to keep different sets of
-        workflows and data apart. Switching restarts the backend and reloads the
-        app.
-      </Text>
-
-      <FlexColumn gap={1} style={{ marginTop: 8 }}>
-        {vaults.map((vault) => {
-          const isActive = vault.id === activeVaultId;
-          const isDefault = vault.id === DEFAULT_VAULT_ID;
-          return (
-            <FlexRow
-              key={vault.id}
-              align="center"
-              justify="space-between"
-              gap={1}
-              style={{ flexWrap: "wrap" }}
-            >
-              <Text>
-                {vault.name}
-                {isActive ? " — active" : ""}
-              </Text>
-              <FlexRow gap={1} align="center">
-                {!isActive && (
-                  <EditorButton
-                    variant="contained"
-                    size="small"
-                    disabled={busy}
-                    onClick={() => handleSwitch(vault.id)}
-                  >
-                    Switch
-                  </EditorButton>
-                )}
-                <EditorButton
-                  variant="outlined"
-                  size="small"
-                  disabled={busy || isDefault}
-                  onClick={() => handleRename(vault)}
-                >
-                  Rename
-                </EditorButton>
-                <EditorButton
-                  variant="outlined"
-                  size="small"
-                  color="error"
-                  disabled={busy || isDefault || isActive}
-                  onClick={() => setDeleteTarget(vault)}
-                >
-                  Delete
-                </EditorButton>
-              </FlexRow>
-            </FlexRow>
-          );
-        })}
-      </FlexColumn>
-
-      <FlexRow gap={1} align="flex-end" style={{ marginTop: 12 }}>
-        <TextInput
-          label="New vault name"
-          value={newName}
-          autoComplete="off"
-          disabled={busy}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleCreate();
-            }
-          }}
-        />
-        <EditorButton
-          variant="contained"
-          size="small"
-          disabled={busy || newName.trim().length === 0}
-          onClick={handleCreate}
-        >
-          Create
-        </EditorButton>
-      </FlexRow>
-
-      {error && (
-        <Text color="error" style={{ marginTop: 8 }}>
-          {error}
+      <FlexColumn gap={SPACING.lg}>
+        <Text className="description">
+          A vault is a separate, isolated data store with its own database,
+          assets, and RAG collections. Switch vaults to keep different sets of
+          workflows and data apart. Switching restarts the backend and reloads the
+          app.
         </Text>
-      )}
+
+        <FlexColumn gap={1}>
+          {vaults.map((vault) => {
+            const isActive = vault.id === activeVaultId;
+            const isDefault = vault.id === DEFAULT_VAULT_ID;
+            return (
+              <FlexRow
+                key={vault.id}
+                align="center"
+                justify="space-between"
+                gap={1}
+                style={{ flexWrap: "wrap" }}
+              >
+                <Text>
+                  {vault.name}
+                  {isActive ? " — active" : ""}
+                </Text>
+                <FlexRow gap={1} align="center">
+                  {!isActive && (
+                    <EditorButton
+                      variant="contained"
+                      size="small"
+                      disabled={busy}
+                      onClick={() => handleSwitch(vault.id)}
+                    >
+                      Switch
+                    </EditorButton>
+                  )}
+                  <EditorButton
+                    variant="outlined"
+                    size="small"
+                    disabled={busy || isDefault}
+                    onClick={() => handleRename(vault)}
+                  >
+                    Rename
+                  </EditorButton>
+                  <EditorButton
+                    variant="outlined"
+                    size="small"
+                    color="error"
+                    disabled={busy || isDefault || isActive}
+                    onClick={() => setDeleteTarget(vault)}
+                  >
+                    Delete
+                  </EditorButton>
+                </FlexRow>
+              </FlexRow>
+            );
+          })}
+        </FlexColumn>
+
+        <FlexRow gap={1} align="flex-end">
+          <TextInput
+            label="New vault name"
+            value={newName}
+            autoComplete="off"
+            disabled={busy}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleCreate();
+              }
+            }}
+          />
+          <EditorButton
+            variant="contained"
+            size="small"
+            disabled={busy || newName.trim().length === 0}
+            onClick={handleCreate}
+          >
+            Create
+          </EditorButton>
+        </FlexRow>
+
+        {error && <AlertBanner severity="error">{error}</AlertBanner>}
+      </FlexColumn>
 
       <Dialog
         open={renameTarget !== null}

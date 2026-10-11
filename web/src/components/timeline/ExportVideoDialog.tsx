@@ -14,7 +14,6 @@
 import React, { useCallback, useState } from "react";
 
 import {
-  Caption,
   Dialog,
   FlexColumn,
   LabeledSwitch,
@@ -94,16 +93,14 @@ export const ExportVideoDialog: React.FC<ExportVideoDialogProps> = ({
       onConfirm={handleExport}
       confirmText="Export"
     >
-      <FlexColumn gap={SPACING.md}>
+      <FlexColumn gap={SPACING.lg}>
         <SelectField
           label="Format"
           value={format}
           onChange={handleFormatChange}
           options={FORMAT_OPTIONS}
+          description={FORMAT_NOTE[format]}
         />
-        <Caption size="small" color="secondary">
-          {FORMAT_NOTE[format]}
-        </Caption>
         <LabeledSwitch
           id="timeline-export-alpha"
           size="small"

@@ -51,7 +51,7 @@ const SaveToMyNodesDialogInner: React.FC<SaveToMyNodesDialogProps> = ({
         onConfirm({ name: name.trim(), category: category.trim() })
       }
     >
-      <FlexColumn gap={SPACING.md}>
+      <FlexColumn gap={SPACING.lg}>
         {askName ? (
           <TextInput
             label="Node name"

@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { Text, FlexRow, EditorButton } from "../ui_primitives";
+import { Text, FlexRow, EditorButton, FormField } from "../ui_primitives";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
 import ImageModelSelect from "../properties/ImageModelSelect";
@@ -31,41 +31,41 @@ const RemoveBackgroundModelSelect = React.memo(
 const MODEL_TYPE_CONFIG = [
   {
     type: "language_model",
-    label: "Language Model",
+    label: "Language model",
     Select: LanguageModelSelect
   },
-  { type: "image_model", label: "Image Model", Select: ImageModelSelect },
+  { type: "image_model", label: "Image model", Select: ImageModelSelect },
   {
     type: IMAGE_TASK_DEFAULTS["nodetool.image.Upscale"],
-    label: "Upscale Model",
+    label: "Upscale model",
     Select: UpscaleModelSelect,
     hint: "Fills Upscale nodes. Falls back to the image model when unset."
   },
   {
     type: IMAGE_TASK_DEFAULTS["nodetool.image.RemoveBackground"],
-    label: "Remove Background Model",
+    label: "Remove background model",
     Select: RemoveBackgroundModelSelect,
     hint: "Fills Remove Background nodes. Falls back to the image model when unset."
   },
   {
     type: "embedding_model",
-    label: "Embedding Model",
+    label: "Embedding model",
     Select: EmbeddingModelSelect
   },
   {
     type: "tts_model",
-    label: "Text-to-Speech Model",
+    label: "Text-to-speech model",
     Select: TTSModelSelect
   },
   {
     type: "asr_model",
-    label: "Speech Recognition Model",
+    label: "Speech recognition model",
     Select: ASRModelSelect
   },
-  { type: "video_model", label: "Video Model", Select: VideoModelSelect },
+  { type: "video_model", label: "Video model", Select: VideoModelSelect },
   {
     type: CODE_MODEL_PREFERENCE,
-    label: "Code Generation",
+    label: "Code generation",
     Select: LanguageModelSelect,
     // The submission is a tool call, so non-tool-capable models are hidden.
     selectProps: { placeholder: "Use chat model", requireToolSupport: true },
@@ -161,22 +161,20 @@ function DefaultModelRow({
 
   return (
     <div className="default-model-row" id={`default-model-${modelType}`}>
-      <div>
-        <Text weight={600}>{label}</Text>
-        {hint && <Text className="description">{hint}</Text>}
-      </div>
-      <FlexRow align="center" gap={1}>
-        <Select
-          onChange={handleChange}
-          value={current?.id || ""}
-          {...selectProps}
-        />
-        {current && (
-          <EditorButton size="small" onClick={handleClear}>
-            Clear
-          </EditorButton>
-        )}
-      </FlexRow>
+      <FormField label={label} helperText={hint}>
+        <FlexRow align="center" gap={1}>
+          <Select
+            onChange={handleChange}
+            value={current?.id || ""}
+            {...selectProps}
+          />
+          {current && (
+            <EditorButton size="small" onClick={handleClear}>
+              Clear
+            </EditorButton>
+          )}
+        </FlexRow>
+      </FormField>
     </div>
   );
 }
