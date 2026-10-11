@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addGraphLink,
+  mergeGraphLinks,
   pruneGraphLinks,
   removeGraphLink,
   workflowDocumentRevision
@@ -48,5 +49,18 @@ describe("graph links", () => {
     expect(
       workflowDocumentRevision("wf", [], [], [{ id: "1", source: "a", target: "b" }])
     ).not.toBe(without);
+  });
+});
+
+describe("mergeGraphLinks", () => {
+  const link = (id: string) => ({ id, source: "a", target: "b" });
+
+  it("keeps local edits and applies remote adds and deletes", () => {
+    const base = [link("kept"), link("remote-deleted"), link("local-deleted")];
+    const local = [link("kept"), link("remote-deleted"), link("local-added")];
+    const remote = [link("kept"), link("local-deleted"), link("remote-added")];
+    expect(
+      mergeGraphLinks(base, local, remote).map((l) => l.id)
+    ).toEqual(["kept", "local-added", "remote-added"]);
   });
 });

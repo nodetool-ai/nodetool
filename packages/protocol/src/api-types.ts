@@ -6,7 +6,12 @@
  * Used by both the backend HTTP handlers and the frontend stores.
  */
 
-import type { Edge, InputMode, OutputCorrelation } from "./graph.js";
+import type {
+  Edge,
+  GraphLink,
+  InputMode,
+  OutputCorrelation
+} from "./graph.js";
 import type { NodeEffect } from "./platform.js";
 
 // ---------------------------------------------------------------------------
@@ -443,6 +448,8 @@ export interface AssetUpdateRequest {
 export interface WorkflowGraph {
   nodes: Node[];
   edges: Edge[];
+  /** Lineage links: no value, no execution order. See `GraphLink`. */
+  links?: GraphLink[];
 }
 
 export interface Workflow {
@@ -986,6 +993,7 @@ export interface Node {
 export interface Graph {
   nodes: Node[];
   edges: Edge[];
+  links?: GraphLink[];
 }
 
 // ---------------------------------------------------------------------------

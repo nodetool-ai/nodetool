@@ -25,7 +25,12 @@ import { customEquality } from "./customEquality";
 import isEqual from "../utils/isEqual";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
-import { migrateGraphNodeTypes } from "@nodetool-ai/protocol";
+import {
+  addGraphLink,
+  migrateGraphNodeTypes,
+  pruneGraphLinks,
+  type GraphLink
+} from "@nodetool-ai/protocol";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
@@ -153,6 +158,17 @@ export interface NodeStoreState {
   hoveredNodes: string[];
   setHoveredNodes: (ids: string[]) => void;
   edges: Edge[];
+  /**
+   * Lineage links: drawn between nodes, saved with the graph, never read by
+   * the runner. Kept out of `edges` so no data-flow code sees them.
+   */
+  links: GraphLink[];
+  /** Ids of links selected on the canvas. Not saved and not in undo history. */
+  selectedLinkIds: string[];
+  /** Link two nodes. Returns the new or existing link, or null when refused. */
+  addLink: (source: string, target: string) => GraphLink | null;
+  setLinks: (links: GraphLink[]) => void;
+  setLinkSelection: (ids: string[]) => void;
   edgeUpdateSuccessful: boolean;
   generateNodeId: () => string;
   generateNodeIds: (count: number) => string[];
@@ -231,7 +247,9 @@ export interface NodeStoreState {
   applyExternalGraph: (
     nodes: Node<NodeData>[],
     edges: Edge[],
-    token?: { etag?: string; updatedAt?: string }
+    token?: { etag?: string; updatedAt?: string },
+    /** Links after the merge; omitted keeps the current links. */
+    links?: GraphLink[]
   ) => void;
   validateConnection: (
     connection: Connection,
@@ -280,7 +298,7 @@ const withTokens = <T extends WorkflowAttributes>(
 
 export type PartializedNodeStore = Pick<
   NodeStoreState,
-  "workflow" | "nodes" | "edges"
+  "workflow" | "nodes" | "edges" | "links"
 >;
 
 export type NodeStore = UseBoundStore<
@@ -375,6 +393,10 @@ export const createNodeStore = (
           unsanitizedEdges,
           metadata
         );
+        const initialLinks = pruneGraphLinks(
+          new Set(sanitizedNodes.map((node) => node.id)),
+          migratedGraph?.links ?? []
+        );
 
         // Record missing node types by name in one call. The surfaces that
         // build ReactFlow's `nodeTypes` prop map them to `PlaceholderNode`;
@@ -459,6 +481,44 @@ export const createNodeStore = (
           workflowIsDirty: false,
           nodes: sanitizedNodes,
           edges: sanitizedEdges,
+          links: initialLinks,
+          selectedLinkIds: [],
+          addLink: (source: string, target: string): GraphLink | null => {
+            const result = addGraphLink(
+              new Set(get().nodes.map((node) => node.id)),
+              get().links,
+              { source, target },
+              () => generateUUID().replace(/-/g, "")
+            );
+            if (!result.ok) {
+              console.warn(`Cannot link ${source} to ${target}: ${result.error}`);
+              return null;
+            }
+            if (result.value.links.length !== get().links.length) {
+              set({ links: result.value.links });
+              get().setWorkflowDirty(true);
+            }
+            return result.value.link;
+          },
+          setLinks: (links: GraphLink[]): void => {
+            set({
+              links: pruneGraphLinks(
+                new Set(get().nodes.map((node) => node.id)),
+                links
+              )
+            });
+            get().setWorkflowDirty(true);
+          },
+          setLinkSelection: (ids: string[]): void => {
+            const current = get().selectedLinkIds;
+            if (
+              ids.length === current.length &&
+              ids.every((id, index) => id === current[index])
+            ) {
+              return;
+            }
+            set({ selectedLinkIds: ids });
+          },
           edgeUpdateSuccessful: false,
           hoveredNodes: [],
           shouldFitToScreen: state?.shouldFitToScreen ?? true,
@@ -1140,25 +1200,40 @@ export const createNodeStore = (
             useErrorStore.getState().clearErrors(workflowId, idSetForClear);
             useResultsStore.getState().clearResults(workflowId, idSetForClear);
 
+            const remainingIds = new Set(nodes.map((node) => node.id));
             set({
               nodes,
               edges: get().edges.filter(
                 (edge) =>
                   !foundIdSet.has(edge.source) && !foundIdSet.has(edge.target)
-              )
+              ),
+              links: pruneGraphLinks(remainingIds, get().links)
             });
             get().setWorkflowDirty(true);
           },
+          // A link id is accepted too: the canvas, the edge context menu and
+          // Delete-selected treat a link like any other connection.
           deleteEdge: (id: string): void => {
-            set({ edges: get().edges.filter((e) => e.id !== id) });
-            get().setWorkflowDirty(true);
+            get().deleteEdges([id]);
           },
           deleteEdges: (ids: string[]): void => {
             if (ids.length === 0) {
               return;
             }
             const idSet = new Set(ids);
-            set({ edges: get().edges.filter((edge) => !idSet.has(edge.id)) });
+            const { edges, links, selectedLinkIds } = get();
+            const nextLinks = links.filter((link) => !idSet.has(link.id));
+            // One `set`, so a delete is one undo step.
+            const next: Partial<NodeStoreState> = {
+              edges: edges.filter((edge) => !idSet.has(edge.id))
+            };
+            if (nextLinks.length !== links.length) {
+              next.links = nextLinks;
+              next.selectedLinkIds = selectedLinkIds.filter(
+                (id) => !idSet.has(id)
+              );
+            }
+            set(next);
             get().setWorkflowDirty(true);
           },
           addEdge: (edge: Edge): void => {
@@ -1251,15 +1326,19 @@ export const createNodeStore = (
               };
             });
             const settings = workflow.settings || {};
+            const links = pruneGraphLinks(
+              new Set(nodes.map((node) => node.id)),
+              get().links
+            );
 
-            return {
-              ...workflow,
-              settings,
-              graph: {
-                edges: edges.map(reactFlowEdgeToGraphEdge),
-                nodes: nodes.map(reactFlowNodeToGraphNode)
-              }
+            const graph: Workflow["graph"] = {
+              edges: edges.map(reactFlowEdgeToGraphEdge),
+              nodes: nodes.map(reactFlowNodeToGraphNode)
             };
+            if (links.length > 0) {
+              graph.links = links;
+            }
+            return { ...workflow, settings, graph };
           },
           setWorkflowDirty: (dirty: boolean): void => {
             if (get().workflowIsDirty === dirty) {
@@ -1288,7 +1367,7 @@ export const createNodeStore = (
               set({ workflow });
             });
           },
-          applyExternalGraph: (nodes, edges, token) => {
+          applyExternalGraph: (nodes, edges, token, links) => {
             const temporalApi = getTemporalApi();
             const current = get();
             const before: WorkflowMergeDoc = {
@@ -1336,6 +1415,7 @@ export const createNodeStore = (
                     ...snapshot,
                     nodes: typedGraph.nodes,
                     edges,
+                    links: pruneGraphLinks(nodeIds, snapshot.links ?? []),
                     workflow: withTokens(snapshot.workflow, token ?? {})
                   };
                 });
@@ -1346,7 +1426,14 @@ export const createNodeStore = (
               });
             }
             withoutHistory(() => {
-              set({ nodes, edges });
+              set({
+                nodes,
+                edges,
+                links: pruneGraphLinks(
+                  new Set(nodes.map((node) => node.id)),
+                  links ?? current.links
+                )
+              });
               if (!token?.etag && !token?.updatedAt) return;
               set((state) => {
                 const workflow = { ...state.workflow };
@@ -1775,8 +1862,8 @@ export const createNodeStore = (
         // saved like any other edit.
         onRestore: (state) => state.setWorkflowDirty(true),
         partialize: (state): PartializedNodeStore => {
-          const { workflow, nodes, edges } = state;
-          return { workflow, nodes, edges };
+          const { workflow, nodes, edges, links } = state;
+          return { workflow, nodes, edges, links };
         }
       }
     )

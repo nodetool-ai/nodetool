@@ -79,11 +79,14 @@ export function toApiEdge(edge: Edge): ApiEdge {
  * Convert a full GraphData to an ApiGraph, stripping runtime-only fields.
  */
 export function toApiGraph(graph: GraphData): ApiGraph {
-  return {
+  const api: ApiGraph = {
     nodes: graph.nodes.map(toApiNode),
-    edges: graph.edges.map(toApiEdge),
-    ...(graph.links?.length ? { links: graph.links } : {})
+    edges: graph.edges.map(toApiEdge)
   };
+  if (graph.links?.length) {
+    api.links = graph.links;
+  }
+  return api;
 }
 
 /**

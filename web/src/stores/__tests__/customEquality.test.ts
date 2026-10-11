@@ -40,6 +40,7 @@ describe("customEquality", () => {
   ): PartializedNodeStore => ({
     nodes: [],
     edges: [],
+    links: [],
     workflow: {
       id: "workflow-1",
       name: "Test",

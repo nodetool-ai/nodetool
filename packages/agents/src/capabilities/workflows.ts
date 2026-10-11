@@ -395,10 +395,10 @@ const addWorkflowLink: CapabilityExport = {
     const id = String(params["workflow_id"]);
     const existing = await findOwnedWorkflow(run, id);
     if (!existing) return notYours(id);
-    const graph = existing.graph as unknown as Record<string, unknown>;
+    const graph = existing.graph;
     const added = addGraphLink(
       nodeIdsOf(graph),
-      linksOf(graph),
+      graph.links ?? [],
       {
         source: String(params["source"]),
         target: String(params["target"]),
@@ -411,9 +411,7 @@ const addWorkflowLink: CapabilityExport = {
     const updated = await Workflow.updateFieldsIfUnchanged(
       id,
       existing.updated_at,
-      { graph: { ...graph, links: added.value.links } } as Parameters<
-        typeof Workflow.updateFieldsIfUnchanged
-      >[2]
+      { graph: { ...graph, links: added.value.links } }
     );
     if (!updated) {
       return {
@@ -431,9 +429,9 @@ const removeWorkflowLink: CapabilityExport = {
     const id = String(params["workflow_id"]);
     const existing = await findOwnedWorkflow(run, id);
     if (!existing) return notYours(id);
-    const graph = existing.graph as unknown as Record<string, unknown>;
+    const graph = existing.graph;
     const linkId = String(params["link_id"]);
-    const removed = removeGraphLink(linksOf(graph), linkId);
+    const removed = removeGraphLink(graph.links ?? [], linkId);
     if (!removed.ok) return { error: removed.error };
     const { links: _old, ...rest } = graph;
     const updated = await Workflow.updateFieldsIfUnchanged(
@@ -441,7 +439,7 @@ const removeWorkflowLink: CapabilityExport = {
       existing.updated_at,
       {
         graph: removed.value.length > 0 ? { ...rest, links: removed.value } : rest
-      } as Parameters<typeof Workflow.updateFieldsIfUnchanged>[2]
+      }
     );
     if (!updated) {
       return {

@@ -64,5 +64,14 @@ export function customEquality(
     }
   }
 
+  const previousLinks = previous.links ?? [];
+  const currentLinks = current.links ?? [];
+  if (
+    previousLinks.length !== currentLinks.length ||
+    previousLinks.some((link, i) => link.id !== currentLinks[i].id)
+  ) {
+    return false;
+  }
+
   return shallow(previous.workflow, current.workflow);
 }
