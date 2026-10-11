@@ -569,7 +569,6 @@ describe("OpenAICompatProvider inherits OpenAI's catalog guard", () => {
   // keeps `whisper-1` / `gpt-image-2` out of their pickers.
   it.each([
     ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
-    ["meta", new MetaProvider({ META_API_KEY: "k" })],
     ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })],
     ["evolink", new EvolinkProvider({ EVOLINK_API_KEY: "k" })]
   ])("%s serves no OpenAI TTS, ASR or embedding models", async (_id, p) => {
@@ -596,10 +595,24 @@ describe("OpenAICompatProvider inherits OpenAI's catalog guard", () => {
 
   it.each([
     ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
-    ["meta", new MetaProvider({ META_API_KEY: "k" })],
     ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })]
   ])("%s serves no OpenAI image or video models", async (_id, p) => {
     expect(await p.getAvailableImageModels()).toEqual([]);
     expect(await p.getAvailableVideoModels()).toEqual([]);
+  });
+
+  // Meta serves its own Muse Image, SAM and transcription models, none of
+  // OpenAI's catalog.
+  it("meta serves no OpenAI TTS, embedding or video models", async () => {
+    const p = new MetaProvider({ META_API_KEY: "k" });
+    expect(await p.getAvailableTTSModels()).toEqual([]);
+    expect(await p.getAvailableEmbeddingModels()).toEqual([]);
+    expect(await p.getAvailableVideoModels()).toEqual([]);
+    const ids = [
+      ...(await p.getAvailableImageModels()),
+      ...(await p.getAvailableASRModels())
+    ].map((m) => m.id);
+    expect(ids).not.toContain("gpt-image-2");
+    expect(ids).not.toContain("whisper-1");
   });
 });
