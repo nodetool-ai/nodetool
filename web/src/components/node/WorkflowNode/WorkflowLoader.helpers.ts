@@ -1,8 +1,15 @@
+import { WORKFLOW_NODE_TYPE } from "../../../constants/nodeTypes";
 import type { TypeMetadata } from "../../../stores/ApiTypes";
+import useMetadataStore from "../../../stores/MetadataStore";
 import type { DynamicSlotDeclaration } from "../../../stores/NodeData";
-import { isObjectLike } from "../../../utils/typePredicates";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
-/** Map input node types to TypeMetadata types */
+const INPUT_PREFIX = "nodetool.input.";
+
+/**
+ * Fallback types for input nodes whose metadata is not loaded. Ports come
+ * from every named `nodetool.input.*` node, typed from its metadata output.
+ */
 export const INPUT_TYPE_MAP: Record<string, string> = {
   "nodetool.input.StringInput": "str",
   "nodetool.input.IntegerInput": "int",
@@ -76,16 +83,26 @@ export function extractDynamicIO(workflow: DynamicIOSource): DynamicIO {
       (nodeData.title as string | undefined) ??
       typeNameFallback;
 
-    if (INPUT_TYPE_MAP[nodeType]) {
-      const resolvedType = INPUT_TYPE_MAP[nodeType];
+    // An input node is any `nodetool.input.*` node with a `name`, which is
+    // the parameter key the sub-workflow run matches. The mapped types keep
+    // their type-name fallback for nodes saved without a name.
+    const isInput =
+      nodeType.startsWith(INPUT_PREFIX) &&
+      (INPUT_TYPE_MAP[nodeType] !== undefined || isString(properties.name)) &&
+      inputName !== "";
+    if (isInput) {
+      const metadataType = useMetadataStore.getState().getMetadata(nodeType)
+        ?.outputs[0]?.type;
       dynamic_inputs[inputName] = {
-        type: {
-          type: resolvedType,
-          optional: true,
-          values: null,
-          type_args: [] as TypeMetadata[],
-          type_name: null
-        },
+        type: metadataType
+          ? { ...metadataType, optional: true }
+          : {
+              type: INPUT_TYPE_MAP[nodeType] ?? "any",
+              optional: true,
+              values: null,
+              type_args: [] as TypeMetadata[],
+              type_name: null
+            },
         description: (properties.description as string) ?? ""
       };
       dynamic_properties[inputName] = properties.value ?? "";
@@ -106,4 +123,72 @@ export function extractDynamicIO(workflow: DynamicIOSource): DynamicIO {
   }
 
   return { dynamic_inputs, dynamic_outputs, dynamic_properties };
+}
+
+type GraphSource = DynamicIOSource["graph"];
+
+/** The workflows a graph's Workflow nodes run, with the copy each one stores. */
+const workflowNodeRefs = (
+  graph: GraphSource
+): Array<{ id: string; graph: GraphSource }> => {
+  if (!graph?.nodes) {
+    return [];
+  }
+  const nodes = Array.isArray(graph.nodes)
+    ? graph.nodes
+    : Object.values(graph.nodes);
+  const refs: Array<{ id: string; graph: GraphSource }> = [];
+  for (const node of nodes) {
+    if (!isObjectLike(node) || node.type !== WORKFLOW_NODE_TYPE) {
+      continue;
+    }
+    const data = isObjectLike(node.data) ? node.data : {};
+    const properties = isObjectLike(data.properties) ? data.properties : data;
+    const json = isObjectLike(properties.workflow_json)
+      ? properties.workflow_json
+      : {};
+    const id = isString(properties.workflow_id) && properties.workflow_id !== ""
+      ? properties.workflow_id
+      : json.id;
+    if (isString(id)) {
+      refs.push({
+        id,
+        graph: isObjectLike(json.graph) ? (json.graph as GraphSource) : null
+      });
+    }
+  }
+  return refs;
+};
+
+/**
+ * Whether running `workflow` from a Workflow node in `hostId` would reach
+ * `hostId` again. Follows each nested Workflow node through its stored copy
+ * and, for open workflows, through `liveGraph`.
+ */
+export function createsWorkflowCycle(
+  hostId: string,
+  workflow: { id: string } & DynamicIOSource,
+  liveGraph: (workflowId: string) => GraphSource | undefined
+): boolean {
+  if (workflow.id === hostId) {
+    return true;
+  }
+  // Stored copies are finite trees. A live graph is rebuilt on every call,
+  // so each open workflow is expanded once.
+  const expanded = new Set<string>([workflow.id]);
+  const pending: GraphSource[] = [workflow.graph];
+  while (pending.length > 0) {
+    const graph = pending.pop();
+    for (const ref of workflowNodeRefs(graph)) {
+      if (ref.id === hostId) {
+        return true;
+      }
+      pending.push(ref.graph);
+      if (!expanded.has(ref.id)) {
+        expanded.add(ref.id);
+        pending.push(liveGraph(ref.id));
+      }
+    }
+  }
+  return false;
 }

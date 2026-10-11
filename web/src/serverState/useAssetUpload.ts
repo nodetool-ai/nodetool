@@ -84,6 +84,10 @@ export const useAssetUpload = create<UploadState>((set, get) => ({
       (file) => file.status === undefined
     );
     if (nextUploadIndex === -1) {
+      // Another upload is still running; its own completion clears the queue.
+      if (files.some((file) => file.status === "uploading")) {
+        return;
+      }
       set({
         files: [],
         isUploading: false,

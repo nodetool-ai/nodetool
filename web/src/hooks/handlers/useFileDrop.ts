@@ -43,7 +43,7 @@ const DOCUMENT_FILE_TYPES = new Set([
 /**
  * Matched on the top-level part of the content type, so a document dropzone
  * takes any `application/*` or `text/*` asset — deliberately looser than
- * {@link acceptsFile}, which admits three MIME types.
+ * {@link acceptsFile}, which admits PDF, Word and `text/*` files.
  */
 const acceptsAsset = (contentType: string, accept: AcceptedType): boolean => {
   if (accept === "all") return true;
@@ -57,7 +57,10 @@ const acceptsAsset = (contentType: string, accept: AcceptedType): boolean => {
 const acceptsFile = (file: File, accept: AcceptedType): boolean => {
   if (accept === "all") return true;
   if (file.type.startsWith(`${accept}/`)) return true;
-  return accept === "document" && DOCUMENT_FILE_TYPES.has(file.type);
+  return (
+    accept === "document" &&
+    (DOCUMENT_FILE_TYPES.has(file.type) || file.type.startsWith("text/"))
+  );
 };
 
 const invalidTypeNotification = (accept: AcceptedType) => ({

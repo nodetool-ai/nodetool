@@ -895,15 +895,25 @@ const TextEditorModal = ({
     [readOnly]
   );
 
+  // Callers pass inline onChange handlers, so the debounce reads the latest
+  // one through a ref instead of being recreated (and cancelled) per render.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   const debouncedExternalOnChange = useMemo(
     () =>
       debounce((text: string) => {
-        if (onChange) {
-          onChange(text);
-        }
+        onChangeRef.current?.(text);
       }, 300),
-    [onChange]
+    []
   );
+
+  // Declared before the undo-group effect so unmount sends the last edit
+  // before the group closes.
+  useEffect(() => {
+    return () => {
+      debouncedExternalOnChange.flush();
+    };
+  }, [debouncedExternalOnChange]);
 
   // Everything typed while the editor is open undoes as one step.
   const { begin: beginUndoGroup, end: endUndoGroup } = useUndoGroup();
@@ -1125,12 +1135,6 @@ const TextEditorModal = ({
       decorations
     );
   }, [isCodeEditor, editorReady, currentText, includeSingle, language, monacoRef]);
-
-  useEffect(() => {
-    return () => {
-      debouncedExternalOnChange.cancel();
-    };
-  }, [debouncedExternalOnChange]);
 
   const { handleFind, handleReplace, handleNavigateNext, handleNavigatePrevious } =
     useEditorActions({

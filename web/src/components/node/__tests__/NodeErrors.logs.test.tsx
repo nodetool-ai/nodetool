@@ -7,6 +7,7 @@ import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import useLogsStore from "../../../stores/LogStore";
 import { createNodeStore } from "../../../stores/NodeStore";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import useTraceStore from "../../../stores/TraceStore";
 import { useBottomPanelStore } from "../../../stores/BottomPanelStore";
 import mockTheme from "../../../__mocks__/themeMock";
 import NodeErrors from "../NodeErrors";
@@ -16,6 +17,7 @@ jest.mock("../../../contexts/NodeContext");
 
 describe("NodeErrors log filtering", () => {
   beforeEach(() => {
+    useTraceStore.getState().clear();
     useLogsStore.setState({ logs: [], logsByNode: {}, filter: null });
     useWorkflowRunsStore.setState({
       runs: {},
@@ -50,10 +52,11 @@ describe("NodeErrors log filtering", () => {
       screen.getByRole("button", { name: "View logs for this node and run" })
     );
 
-    expect(useLogsStore.getState().filter).toEqual({
-      workflowId: "workflow-1",
-      jobId: "job-1",
-      nodeId: "node-1"
+    expect(useTraceStore.getState()).toMatchObject({
+      selectedRunId: "job-1",
+      selectedRunWorkflowId: "workflow-1",
+      pendingNodeId: "node-1",
+      view: "logs"
     });
     expect(useBottomPanelStore.getState().panel).toMatchObject({
       activeView: "logs",

@@ -13,6 +13,8 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
+import { nodeErrorToDisplayString } from "../../stores/ErrorStore";
+import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -50,9 +52,7 @@ interface NodeInfo {
   namespace: string;
   description: string | undefined;
   position: { x: number; y: number };
-  hasError: boolean;
-  errorMessage: string | undefined;
-  executionStatus: "pending" | "running" | "completed" | "error" | undefined;
+  errorMessage: string;
 }
 
 const PANEL_WIDTH = 320;
@@ -200,7 +200,7 @@ const styles = (theme: Theme) =>
 const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
   ({ inspectedNodeId }) => {
   const theme = useTheme();
-  const { getNode, setCenter, flowToScreenPosition } = useReactFlow();
+  const { setCenter, flowToScreenPosition } = useReactFlow();
   const { x: viewportX, y: viewportY, zoom } = useViewport();
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
   const panelStyles = useMemo(() => styles(theme), [theme]);
@@ -274,30 +274,46 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
     windowSize
   ]);
 
-  const nodeInfo = useMemo((): NodeInfo | null => {
-    if (!inspectedNodeId) {
-      return null;
-    }
-    const node = getNode(inspectedNodeId);
+  // Subscribed, so a move, a type change or a deletion reaches the panel.
+  const inspectedNode = useNodes((state) => {
+    const node = state.findNode(inspectedNodeId);
     if (!node) {
       return null;
     }
-
-    const nodeType = node.type || "unknown";
-    const metadata = getMetadata(nodeType);
-
     return {
       id: node.id,
+      type: node.type || "unknown",
+      workflowId: node.data.workflow_id,
+      x: node.position.x,
+      y: node.position.y
+    };
+  }, shallow);
+  const nodeError = useNodeError(
+    inspectedNode?.workflowId ?? "",
+    inspectedNodeId
+  );
+
+  useEffect(() => {
+    if (!inspectedNode) {
+      setInspectedNodeId(null);
+    }
+  }, [inspectedNode, setInspectedNodeId]);
+
+  const nodeInfo = useMemo((): NodeInfo | null => {
+    if (!inspectedNode) {
+      return null;
+    }
+    const metadata = getMetadata(inspectedNode.type);
+    return {
+      id: inspectedNode.id,
       label: metadata?.title || "",
-      type: nodeType,
+      type: inspectedNode.type,
       namespace: metadata?.namespace || "",
       description: metadata?.description || undefined,
-      position: node.position,
-      hasError: (node.data.hasError as boolean) || false,
-      errorMessage: node.data.errorMessage as string | undefined,
-      executionStatus: node.data.executionStatus as "pending" | "running" | "completed" | "error" | undefined
+      position: { x: inspectedNode.x, y: inspectedNode.y },
+      errorMessage: nodeErrorToDisplayString(nodeError)
     };
-  }, [getNode, inspectedNodeId, getMetadata]);
+  }, [inspectedNode, getMetadata, nodeError]);
 
   const parsedDescription = useMemo(() => {
     if (!nodeInfo?.description) {
@@ -419,7 +435,7 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
           </>
         )}
 
-        {nodeInfo.hasError && (
+        {nodeInfo.errorMessage && (
           <Box className="error-message">
             <Text className="error-text">{nodeInfo.errorMessage}</Text>
           </Box>

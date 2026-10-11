@@ -143,29 +143,38 @@ const validDataTypes = ["string", "float", "int", "datetime"];
 interface ColumnsManagerProps {
   columns: ColumnDef[];
   onChange: (newColumns: ColumnDef[]) => void;
+  /**
+   * Replaces `onChange` for deletes, so an owner of positional row data can
+   * remove the same index from every row in one write.
+   */
+  onDeleteColumn?: (index: number) => void;
 }
 
 const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   columns,
-  onChange
+  onChange,
+  onDeleteColumn
 }: ColumnsManagerProps) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const [localColumns, setLocalColumns] = useState(columns);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // Rows are keyed by position-stable ids, not by name: a name key remounts
+  // the row on every keystroke and drops the caret.
+  const nextRowIdRef = useRef(0);
+  const rowIdsRef = useRef<number[]>([]);
+  const rowIds = rowIdsRef.current;
+  while (rowIds.length < localColumns.length) {
+    rowIds.push(nextRowIdRef.current++);
+  }
+  rowIds.length = localColumns.length;
 
   useEffect(() => {
     setLocalColumns(columns);
   }, [columns]);
 
   const handleNameChange = useCallback((index: number, newName: string) => {
-    if (
-      newName.trim() === "" ||
-      localColumns.some((col) => col.name === newName)
-    ) {
-      console.warn(
-        "Invalid column name. Column names must be unique and non-empty."
-      );
+    if (localColumns.some((col, i) => i !== index && col.name === newName)) {
+      return;
     }
     const newColumns = localColumns.map((col, i) =>
       i === index ? { ...col, name: newName } : col
@@ -173,10 +182,6 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
 
     setLocalColumns(newColumns);
     onChange(newColumns);
-
-    setTimeout(() => {
-      inputRefs.current[index]?.focus();
-    }, 0);
   }, [localColumns, onChange]);
 
   const handleDescriptionChange = useCallback((index: number, newDescription: string) => {
@@ -205,9 +210,14 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   const handleDelete = useCallback((index: number) => {
     const newColumns = localColumns.filter((_, i) => i !== index);
 
+    rowIdsRef.current.splice(index, 1);
     setLocalColumns(newColumns);
-    onChange(newColumns);
-  }, [localColumns, onChange]);
+    if (onDeleteColumn) {
+      onDeleteColumn(index);
+    } else {
+      onChange(newColumns);
+    }
+  }, [localColumns, onChange, onDeleteColumn]);
 
   const deleteHandlers = useMemo(
     () => localColumns.map((_, i) => () => handleDelete(i)),
@@ -222,12 +232,9 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
       </div>
       {localColumns.map((field, index) => (
         <Column
-          key={field.name}
+          key={rowIds[index]}
           index={index}
           field={field}
-          inputRef={(el: HTMLInputElement | null) =>
-            (inputRefs.current[index] = el)
-          }
           handleNameChange={handleNameChange}
           handleDataTypeChange={handleDataTypeChange}
           handleDescriptionChange={handleDescriptionChange}

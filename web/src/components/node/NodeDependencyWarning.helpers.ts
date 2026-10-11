@@ -1,4 +1,5 @@
 import { trpcClient } from "../../trpc/client";
+import useRuntimeStatusStore from "../../stores/RuntimeStatusStore";
 
 export const RUNTIME_LABELS: Record<string, string> = {
   ffmpeg: "FFmpeg & Codecs",
@@ -19,11 +20,8 @@ export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   "yt-dlp": "yt-dlp",
 };
 
-/**
- * Cache runtime statuses across all instances so we don't call IPC per-node.
- * Refreshed once per mount cycle (first component to mount triggers the fetch).
- */
-let cachedStatuses: Record<string, boolean> | null = null;
+// Concurrent loads share one request. A forced refresh queues behind an
+// in-flight load rather than reusing its (possibly pre-install) answer.
 let fetchPromise: Promise<void> | null = null;
 
 function toStatusMap(
@@ -46,26 +44,41 @@ function toStatusMap(
  * PATH is the one that decides whether a node can run.
  */
 export async function refreshRuntimeStatuses(): Promise<void> {
+  const store = useRuntimeStatusStore.getState();
   const api = window.api;
   if (api?.packages?.getRuntimeStatuses) {
     try {
-      cachedStatuses = toStatusMap(await api.packages.getRuntimeStatuses());
+      store.setStatuses(toStatusMap(await api.packages.getRuntimeStatuses()));
     } catch {
       // If IPC fails, assume nothing is installed so warnings stay visible.
+      store.markLoaded();
     }
     return;
   }
   try {
     const res = await trpcClient.packs.runtimeStatuses.query();
-    cachedStatuses = toStatusMap(res.statuses);
+    store.setStatuses(toStatusMap(res.statuses));
   } catch {
-    // Server unreachable or too old for the endpoint: leave the cache empty,
-    // which keeps the warnings visible.
+    // Server unreachable or too old for the endpoint: leave the statuses
+    // empty, which keeps the warnings visible.
+    store.markLoaded();
   }
 }
 
 export function getCachedRuntimeStatuses(): Record<string, boolean> | null {
-  return cachedStatuses;
+  return useRuntimeStatusStore.getState().statuses;
+}
+
+function startFetch(after: Promise<void> | null): Promise<void> {
+  const promise: Promise<void> = (after ?? Promise.resolve())
+    .then(refreshRuntimeStatuses)
+    .finally(() => {
+      if (fetchPromise === promise) {
+        fetchPromise = null;
+      }
+    });
+  fetchPromise = promise;
+  return promise;
 }
 
 /**
@@ -75,12 +88,12 @@ export function getCachedRuntimeStatuses(): Record<string, boolean> | null {
 export async function ensureRuntimeStatuses(
   forceRefresh = false
 ): Promise<void> {
-  if (!cachedStatuses || forceRefresh) {
-    if (!fetchPromise) {
-      fetchPromise = refreshRuntimeStatuses().finally(() => {
-        fetchPromise = null;
-      });
-    }
-    await fetchPromise;
+  if (forceRefresh) {
+    await startFetch(fetchPromise);
+    return;
   }
+  if (useRuntimeStatusStore.getState().statuses) {
+    return;
+  }
+  await (fetchPromise ?? startFetch(null));
 }

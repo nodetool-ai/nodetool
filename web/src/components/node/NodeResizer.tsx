@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, MOTION } from "../ui_primitives";
 import { memo, useMemo } from "react";
+import { useUndoGroup } from "../../hooks/useUndoGroup";
 
 interface NodeResizerProps {
   minWidth: number;
@@ -39,9 +40,15 @@ const styles = (theme: Theme) =>
 const NodeResizer: React.FC<NodeResizerProps> = memo(function NodeResizer({ minWidth, minHeight }) {
   const theme = useTheme();
   const resizerStyles = useMemo(() => styles(theme), [theme]);
+  const resizeUndoGroup = useUndoGroup();
   return (
     <Box className="node-resizer" css={resizerStyles}>
-      <ReactFlowNodeResizer minWidth={minWidth} minHeight={minHeight} />
+      <ReactFlowNodeResizer
+        minWidth={minWidth}
+        minHeight={minHeight}
+        onResizeStart={resizeUndoGroup.begin}
+        onResizeEnd={resizeUndoGroup.end}
+      />
     </Box>
   );
 });

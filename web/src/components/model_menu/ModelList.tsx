@@ -331,6 +331,11 @@ function ModelList<TModel extends ModelSelectorModel>({
                   provider={m.provider}
                   id={m.id}
                   name={m.name}
+                  supportedTasks={
+                    "supported_tasks" in m && Array.isArray(m.supported_tasks)
+                      ? m.supported_tasks
+                      : undefined
+                  }
                   size="small"
                 />
               </ListItemIcon>

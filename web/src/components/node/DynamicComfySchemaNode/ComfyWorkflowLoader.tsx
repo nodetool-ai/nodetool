@@ -23,7 +23,7 @@ import {
   SPACING,
   getSpacingPx
 } from "../../ui_primitives";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import {
@@ -34,6 +34,7 @@ import {
   type ComfyDynInput
 } from "../../../utils/comfyDynamicSchema";
 import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
+import { replaceDynamicSlots } from "../../../utils/replaceDynamicSlots";
 import { isString } from "../../../utils/typePredicates";
 
 /** Wait this long after the last keystroke before parsing pasted JSON. */
@@ -56,6 +57,7 @@ interface ComfyWorkflowLoaderProps {
 export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
   ({ nodeId, data }) => {
     const updateNodeData = useNodes((state) => state.updateNodeData);
+    const nodeStore = useNodeStoreRef();
     const [open, setOpen] = useState(false);
     const [text, setText] = useState("");
     const [error, setError] = useState<string | null>(null);
@@ -192,7 +194,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
       for (const key of Object.keys(dynamic_properties)) {
         if (key in existing) dynamic_properties[key] = existing[key];
       }
-      updateNodeData(nodeId, {
+      replaceDynamicSlots(nodeStore, nodeId, {
         properties: {
           ...data.properties,
           workflow: JSON.stringify(schema.prompt)
@@ -202,7 +204,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
         dynamic_properties
       });
       setOpen(false);
-    }, [schema, selected, data, nodeId, updateNodeData]);
+    }, [schema, selected, data, nodeId, nodeStore]);
 
     const summary = useMemo(() => {
       if (!schema) return null;

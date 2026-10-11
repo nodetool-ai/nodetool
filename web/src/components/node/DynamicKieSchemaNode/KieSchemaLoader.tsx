@@ -1,11 +1,12 @@
 import React, { useCallback, useState, memo } from "react";
 import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 import { resolveKieSchemaClient } from "../../../utils/kieDynamicSchema";
 import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
+import { replaceDynamicSlots } from "../../../utils/replaceDynamicSlots";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
@@ -22,7 +23,7 @@ interface KieSchemaLoaderProps {
  */
 export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
   ({ nodeId, data }) => {
-    const updateNodeData = useNodes((state) => state.updateNodeData);
+    const nodeStore = useNodeStoreRef();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -105,7 +106,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
         const dynamic_properties = force
           ? resolved.dynamic_properties
           : { ...resolved.dynamic_properties, ...(existingDynamicPropsRef.current ?? {}) };
-        updateNodeData(nodeId, {
+        replaceDynamicSlots(nodeStore, nodeId, {
           dynamic_properties,
           dynamic_inputs:
             Object.keys(dynamic_inputs).length > 0
@@ -123,7 +124,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
       } finally {
         setLoading(false);
       }
-    }, [nodeId, modelInfo, updateNodeData]);
+    }, [nodeId, modelInfo, nodeStore]);
 
     React.useEffect(() => {
       if (!modelInfo) {

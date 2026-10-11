@@ -64,6 +64,11 @@ export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[]
   return useCallback(
     (options?: { padding?: number; nodeIds?: string[] }) => {
       const padding = options?.padding ?? 0.1;
+      // `node.position` is relative to the parent group; frame the canvas
+      // position React Flow computed instead.
+      const absolutePosition = (node: Node<NodeData>): XYPosition =>
+        reactFlowInstance.getInternalNode(node.id)?.internals
+          .positionAbsolute ?? node.position;
       const explicitNodeIds = options?.nodeIds ?? [];
       const { nodes, getSelectedNodes, setSelectedNodes, setViewport } =
         nodeStore.getState();
@@ -95,9 +100,10 @@ export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[]
         const offsetX = (boundsWidth - nodeWidth) / 2;
         const offsetY = (boundsHeight - nodeHeight) / 2;
         
+        const position = absolutePosition(node);
         const singleNodeBounds = {
-          x: node.position.x - offsetX,
-          y: node.position.y - offsetY,
+          x: position.x - offsetX,
+          y: position.y - offsetY,
           width: boundsWidth,
           height: boundsHeight
         };
@@ -116,16 +122,12 @@ export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[]
         }, TRANSITION_DURATION - 300);
       }
 
-      const nodesById = nodes.reduce((acc, node) => {
-        const pos = {
-          x: node.position.x,
-          y: node.position.y
-        };
-        acc[node.id] = pos;
-        return acc;
-      }, {} as Record<string, XYPosition>);
-
-      const boundsInfo = getNodesBounds(nodesToFit, nodesById);
+      const absoluteNodes = nodesToFit.map((node) => ({
+        ...node,
+        position: absolutePosition(node),
+        parentId: undefined
+      }));
+      const boundsInfo = getNodesBounds(absoluteNodes, {});
       if (!boundsInfo) {
         return;
       }

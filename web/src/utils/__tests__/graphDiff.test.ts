@@ -207,6 +207,58 @@ describe("graphDiff", () => {
       expect(diff.modifiedNodes).toHaveLength(1);
       expect(diff.modifiedNodes[0].changes.some(c => c.key === "ui_properties")).toBe(true);
     });
+
+    it("detects a changed dynamic input value", () => {
+      const oldNode: Node = {
+        ...createNode("1"),
+        dynamic_properties: { topic: "cats" }
+      };
+      const newNode: Node = {
+        ...createNode("1"),
+        dynamic_properties: { topic: "dogs" }
+      };
+
+      const diff = computeGraphDiff(
+        createGraph([oldNode], []),
+        createGraph([newNode], [])
+      );
+
+      expect(diff.modifiedNodes[0]?.changes).toEqual([
+        { key: "topic", oldValue: "cats", newValue: "dogs" }
+      ]);
+    });
+
+    it("detects a node moved into a group", () => {
+      const newNode: Node = { ...createNode("1"), parent_id: "group-1" };
+
+      const diff = computeGraphDiff(
+        createGraph([createNode("1")], []),
+        createGraph([newNode], [])
+      );
+
+      expect(diff.modifiedNodes[0]?.changes.map((c) => c.key)).toEqual([
+        "parent_id"
+      ]);
+    });
+
+    it("ignores selection and stacking order", () => {
+      const newNode: Node = {
+        ...createNode("1"),
+        ui_properties: {
+          position: { x: 0, y: 0 },
+          selected: true,
+          selectable: true,
+          zIndex: 5
+        }
+      };
+
+      const diff = computeGraphDiff(
+        createGraph([createNode("1")], []),
+        createGraph([newNode], [])
+      );
+
+      expect(diff.hasChanges).toBe(false);
+    });
   });
 
 });

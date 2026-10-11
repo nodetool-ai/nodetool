@@ -24,6 +24,7 @@ import {
 import { NodeData } from "../../stores/NodeData";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "../../utils/isEqual";
+import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 import {
   parse,
   alpha,
@@ -364,8 +365,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     const isBypassed = childNodes.some((n) => n.data.bypassed);
     const shouldBypass = !isBypassed;
 
-    childNodes.forEach((node) => {
-      setBypass(node.id, shouldBypass);
+    runAsOneUndoEntry(store, () => {
+      childNodes.forEach((node) => {
+        setBypass(node.id, shouldBypass);
+      });
     });
   }, [props.id, setBypass, store]);
 

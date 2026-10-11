@@ -10,6 +10,9 @@ import {
 import { stub } from "../../test-utils/doubles";
 import { Workflow } from "../ApiTypes";
 import { DEFAULT_NODE_WIDTH } from "../nodeUiDefaults";
+import useMetadataStore from "../MetadataStore";
+import useModelPreferencesStore from "../ModelPreferencesStore";
+import type { NodeMetadata } from "../ApiTypes";
 
 describe("graphNodeToReactFlowNode", () => {
   const createMockWorkflow = (overrides: Partial<Workflow> = {}): Workflow => stub<Workflow>({
@@ -599,5 +602,33 @@ describe("graphNodeToReactFlowNode", () => {
       expect(result.data.dynamic_inputs).toBeUndefined();
       expect(result.data.dynamic_properties).toEqual({ anything: "" });
     });
+  });
+
+  it("fills an empty model with the pinned default on load", () => {
+    useMetadataStore.getState().setMetadata({
+      "nodetool.text.Agent": stub<NodeMetadata>({
+        node_type: "nodetool.text.Agent",
+        properties: [{ name: "model", type: { type: "language_model" } }]
+      })
+    });
+    useModelPreferencesStore.setState({
+      defaults: {
+        language_model: { provider: "anthropic", id: "claude", name: "Claude" }
+      }
+    });
+    const empty = { type: "language_model", provider: "empty", id: "", name: "" };
+
+    const result = graphNodeToReactFlowNode(
+      createMockWorkflow(),
+      createMockGraphNode({ type: "nodetool.text.Agent", data: { model: empty } })
+    );
+
+    expect(result.data.properties.model).toMatchObject({
+      type: "language_model",
+      provider: "anthropic",
+      id: "claude"
+    });
+    useModelPreferencesStore.setState({ defaults: {} });
+    useMetadataStore.getState().setMetadata({});
   });
 });

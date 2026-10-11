@@ -23,7 +23,7 @@ Represents a fixed image size constant in the workflow.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `image_size` |  | null |
+| value | `image_size` |  | - |
 
 ## Outputs
 

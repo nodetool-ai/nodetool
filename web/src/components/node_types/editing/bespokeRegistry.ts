@@ -138,6 +138,23 @@ export {
   BESPOKE_DEFAULT_HEIGHTS
 } from "./bespokeNodeSizes";
 
+/** Bespoke bodies that draw handles for user-promoted `exposedInputs`. */
+const BODIES_WITH_EXPOSED_HANDLES: ReadonlySet<string> = new Set([
+  PAINTER_NODE_TYPE,
+  LIST_GENERATOR_NODE_TYPE
+]);
+
+/**
+ * False for a bespoke body that draws only its own fixed handles, so a
+ * property moved to the top handle would show nothing.
+ */
+export const rendersExposedInputHandles = (
+  metadata: NodeMetadata | undefined
+): boolean => {
+  const t = metadata?.node_type;
+  return !t || !BESPOKE_BODY_REGISTRY[t] || BODIES_WITH_EXPOSED_HANDLES.has(t);
+};
+
 export const getBespokeBody = (
   metadata: NodeMetadata | undefined
 ): BespokeBodyComponent | undefined => {
