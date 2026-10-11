@@ -71,11 +71,16 @@ describeOnPosix("micromamba commands", () => {
       installCondaPackageBySpec("/env", ["git"]),
     ]);
 
-    expect(fs.readFileSync(callLog, "utf8").trim().split("\n")).toEqual([
-      "start ffmpeg",
-      "end ffmpeg",
-      "start git",
-      "end git",
+    // Each call probes micromamba before it joins the queue, so either
+    // command may run first. Neither may start before the other ends.
+    const calls = fs.readFileSync(callLog, "utf8").trim().split("\n");
+    const first = calls[0] === "start git" ? "git" : "ffmpeg";
+    const second = first === "git" ? "ffmpeg" : "git";
+    expect(calls).toEqual([
+      `start ${first}`,
+      `end ${first}`,
+      `start ${second}`,
+      `end ${second}`,
     ]);
   });
 
