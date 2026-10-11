@@ -679,6 +679,35 @@ describe("Canvas2DRuntime", () => {
       }
     });
 
+    // Round 6 F3: a generated image smaller than its layer sat in the
+    // top-left corner although the layer's image reference said "contain".
+    it("draws an image reference into the layer with the reference's fit", () => {
+      const mocked = mockCanvas2DContext();
+      try {
+        const ctx = document
+          .createElement("canvas")
+          .getContext("2d") as unknown as { drawImage: jest.Mock };
+        ctx.drawImage.mockClear();
+        runtime.setLayerData(
+          "generated",
+          "data:image/png;base64,iVBOR...",
+          { x: 0, y: 0, width: 64, height: 64 },
+          undefined,
+          "contain"
+        );
+        // The stub image is 1×1, so "contain" scales it to the whole layer.
+        expect(ctx.drawImage).toHaveBeenCalledWith(
+          expect.anything(),
+          0,
+          0,
+          64,
+          64
+        );
+      } finally {
+        mocked.restore();
+      }
+    });
+
     it("restores serialized raster bounds when setting encoded layer data", () => {
       const mocked = mockCanvas2DContext();
       try {

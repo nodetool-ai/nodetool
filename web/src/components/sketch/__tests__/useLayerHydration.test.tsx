@@ -55,7 +55,8 @@ describe("useLayerHydration", () => {
       layer.id,
       layer.imageReference.uri,
       expect.any(Object),
-      expect.any(Function)
+      expect.any(Function),
+      layer.imageReference.objectFit
     );
   });
 
@@ -107,7 +108,8 @@ describe("useLayerHydration", () => {
       layer.id,
       "asset://input-layer.png",
       expect.any(Object),
-      expect.any(Function)
+      expect.any(Function),
+      layer.imageReference.objectFit
     );
   });
 
