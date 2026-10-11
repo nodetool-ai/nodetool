@@ -249,6 +249,15 @@ const seeds: FaqSeed[] = [
     surfaces: ["agents", "developers"],
   },
   {
+    slug: "what-is-a-creative-harness",
+    question: "What is a creative harness?",
+    answerMd:
+      "A harness is what an AI agent works inside: the tools it can call, the documents it can change, the models and keys it may use, and the record of what it did. NodeTool is a creative harness. It gives the built-in agent, or a coding agent such as Claude Code over **MCP**, image, video, and audio generation and the same editors you use. The agent runs on your provider accounts, every tool call is logged, and the work stays as editable workflows and projects. NodeTool is open source under AGPL-3.0.",
+    category: "general",
+    relatedRoute: "/agents",
+    surfaces: ["agents"],
+  },
+  {
     slug: "what-is-a-planning-agent",
     question: "What is a planning agent?",
     answerMd:
