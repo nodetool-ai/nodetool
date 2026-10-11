@@ -11,8 +11,9 @@ import type {
 } from "react";
 
 import { FlexColumn } from "./FlexColumn";
+import { Caption } from "./Caption";
 import { FlexRow } from "./FlexRow";
-import { Text } from "./Text";
+import { TYPOGRAPHY } from "./tokens";
 import { TruncatedText } from "./TruncatedText";
 
 export interface ListPanelItemProps {
@@ -21,24 +22,25 @@ export interface ListPanelItemProps {
   /** Shown in place of an empty name, e.g. "Untitled sketch". */
   fallbackName: string;
   /** What the rename input announces, e.g. "Sketch name". */
-  renameLabel: string;
+  renameLabel?: string;
   /** Leading icon component, rendered with the `list-panel-icon` class. */
   icon: ElementType<{ className?: string }>;
   active: boolean;
-  editing: boolean;
+  /** True while the rename input replaces the row. */
+  editing?: boolean;
   /** Second line under the name, e.g. "2 operations". */
   secondary?: string;
   draggable?: boolean;
   onDragStart?: (event: DragEvent<HTMLButtonElement>) => void;
   onDragEnd?: (event: DragEvent<HTMLButtonElement>) => void;
   onOpen: (id: string, name: string) => void;
-  onContextMenu: (
+  onContextMenu?: (
     event: MouseEvent<HTMLButtonElement>,
     id: string,
     name: string
   ) => void;
-  onCommitRename: (id: string, newName: string) => void;
-  onCancelRename: () => void;
+  onCommitRename?: (id: string, newName: string) => void;
+  onCancelRename?: () => void;
 }
 
 export const ListPanelItem = memo(function ListPanelItem({
@@ -48,7 +50,7 @@ export const ListPanelItem = memo(function ListPanelItem({
   renameLabel,
   icon: Icon,
   active,
-  editing,
+  editing = false,
   secondary,
   draggable,
   onDragStart,
@@ -60,23 +62,23 @@ export const ListPanelItem = memo(function ListPanelItem({
 }: ListPanelItemProps) {
   const handleClick = useCallback(() => onOpen(id, name), [id, name, onOpen]);
   const handleContextMenu = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => onContextMenu(event, id, name),
+    (event: MouseEvent<HTMLButtonElement>) => onContextMenu?.(event, id, name),
     [id, name, onContextMenu]
   );
   const handleRenameKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
       event.stopPropagation();
       if (event.key === "Enter") {
-        onCommitRename(id, event.currentTarget.value);
+        onCommitRename?.(id, event.currentTarget.value);
       } else if (event.key === "Escape") {
-        onCancelRename();
+        onCancelRename?.();
       }
     },
     [id, onCommitRename, onCancelRename]
   );
   const handleRenameBlur = useCallback(
     (event: FocusEvent<HTMLInputElement>) => {
-      onCommitRename(id, event.currentTarget.value);
+      onCommitRename?.(id, event.currentTarget.value);
     },
     [id, onCommitRename]
   );
@@ -118,7 +120,7 @@ export const ListPanelItem = memo(function ListPanelItem({
       className={`list-panel-item ${active ? "active" : ""}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      onContextMenu={handleContextMenu}
+      onContextMenu={onContextMenu ? handleContextMenu : undefined}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -127,16 +129,13 @@ export const ListPanelItem = memo(function ListPanelItem({
       <FlexRow align="center" gap={1} fullWidth>
         <Icon className="list-panel-icon" />
         <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
-          <TruncatedText
-            component="span"
-            sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}
-          >
+          <TruncatedText component="span" sx={TYPOGRAPHY.sans.label}>
             {name || fallbackName}
           </TruncatedText>
           {secondary && (
-            <Text size="small" color="secondary">
+            <Caption color="secondary" noWrap>
               {secondary}
-            </Text>
+            </Caption>
           )}
         </FlexColumn>
       </FlexRow>

@@ -19,12 +19,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
-  BORDER_RADIUS,
   Box,
-  MOTION,
   PADDING,
   Tooltip,
-  reducedMotion
+  selectableTileStyles
 } from "../ui_primitives";
 
 export interface SetupCardFrameOptions {
@@ -63,34 +61,17 @@ export const setupCardSx = (
   textAlign: "left" as const,
   width: "100%",
   padding,
-  // A picked card has to read as picked across a grid of twelve identical
-  // neighbours, where a 1px border change is invisible: the ring doubles the
-  // edge and the tint lifts the whole card off the grid.
+  // The shared tile frame: a picked card doubles its primary edge with a ring
+  // and tints, so it reads as picked across a grid of identical neighbours.
+  ...selectableTileStyles(theme, { selected, disabled }),
   backgroundColor: selected
     ? theme.vars.palette.action.selected
     : theme.vars.palette.background.paper,
-  border: `1px solid ${
-    selected ? theme.vars.palette.primary.main : theme.vars.palette.divider
-  }`,
-  boxShadow: selected
-    ? `0 0 0 1px ${theme.vars.palette.primary.main}`
-    : "none",
-  borderRadius: BORDER_RADIUS.md,
   color: theme.vars.palette.text.primary,
   font: "inherit",
   overflow: "hidden",
   opacity: disabled ? 0.5 : 1,
   cursor: disabled ? "not-allowed" : "pointer",
-  transition: `${MOTION.border}, ${MOTION.background}`,
-  ...reducedMotion({ transition: MOTION.none }),
-  "&:hover":
-    !disabled && !selected
-      ? { backgroundColor: theme.vars.palette.action.hover }
-      : undefined,
-  "&:focus-visible": {
-    outline: `2px solid ${theme.vars.palette.primary.main}`,
-    outlineOffset: 2
-  },
   // A card's art is part of its click target. A native image drag starts on
   // the smallest pointer movement and swallows the click, so a press on the
   // picture would do nothing while the same press on the title picks it.

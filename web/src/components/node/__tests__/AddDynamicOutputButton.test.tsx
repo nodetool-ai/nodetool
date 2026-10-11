@@ -27,13 +27,13 @@ describe("AddDynamicOutputButton", () => {
       </ThemeProvider>
     );
 
-    expect(screen.queryByText("Add Output")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Add output" }));
-    expect(screen.getByText("Add Output")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveTextContent("Add output");
 
     await user.type(screen.getByLabelText("Name"), "summary");
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add output" }));
 
     expect(updateNodeData).toHaveBeenCalledWith("node-1", {
       dynamic_outputs: {
@@ -58,7 +58,7 @@ describe("AddDynamicOutputButton", () => {
 
     await user.click(screen.getByRole("button", { name: "Add output" }));
     await user.type(screen.getByLabelText("Name"), "summary");
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add output" }));
 
     expect(updateNodeData).toHaveBeenCalledWith("node-1", {
       dynamic_outputs: {
@@ -95,7 +95,7 @@ describe("AddDynamicOutputButton", () => {
 
     await user.click(screen.getByRole("button", { name: "Add output" }));
     await user.type(screen.getByLabelText("Name"), name);
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Add output" }));
 
     expect(updateNodeData).not.toHaveBeenCalled();
     expect(screen.getByText(/already exists/)).toBeInTheDocument();

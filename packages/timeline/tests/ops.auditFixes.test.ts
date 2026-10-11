@@ -480,3 +480,19 @@ describe("move_clip on a group", () => {
     expect(at("group")).toBe(500);
   });
 });
+
+describe("op dispatch", () => {
+  it.each(["no_such_op", "toString", "__proto__"])(
+    "refuses the unknown op %s and leaves the document alone",
+    async (name) => {
+      const before = state([video()]);
+      const outcome = await applyTimelineOp(
+        before,
+        { op: name } as unknown as TimelineOp,
+        context()
+      );
+      expect(outcome.error).toBe(`Unknown timeline op "${name}".`);
+      expect(outcome.state).toBe(before);
+    }
+  );
+});

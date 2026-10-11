@@ -31,7 +31,6 @@ import {
 } from "../../ui_primitives";
 import {
   SETUP_CONTENT_WIDTH,
-  SETUP_FIELD_WIDTH,
   SETUP_MEDIA_WIDTH
 } from "../layout";
 import { GalleryFrame } from "../MediaGallery";
@@ -291,13 +290,14 @@ const GenerateReferenceDialog = ({
       open={open}
       onClose={handleClose}
       title="Generate a reference image"
-      showActions
+      maxWidth="sm"
+      fullWidth
       onConfirm={() => void handleGenerate()}
-      confirmText={generating ? "Generating" : "Generate reference"}
+      confirmText={generating ? "Generating…" : "Generate reference"}
       confirmDisabled={generating || !prompt.trim() || !model || !provider}
       isLoading={generating}
     >
-      <FlexColumn gap={GAP.comfortable} sx={{ minWidth: SETUP_FIELD_WIDTH }}>
+      <FlexColumn gap={GAP.comfortable}>
         <Caption color="secondary">
           Choose a view, then edit the prompt to refine the image.
         </Caption>

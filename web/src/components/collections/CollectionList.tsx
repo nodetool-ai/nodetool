@@ -9,7 +9,6 @@ import { useShallow } from "zustand/react/shallow";
 import {
   CreateFab,
   Dialog,
-  EditorButton,
   EmptyState,
   FlexColumn,
   FlexRow,
@@ -18,7 +17,8 @@ import {
   LoadingSpinner,
   Surface,
   Text,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING
 } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 
@@ -42,34 +42,39 @@ const CollectionList = () => {
     handleDragOver: storeHandleDragOver,
     handleDragLeave: storeHandleDragLeave,
     handleDrop: storeHandleDrop
-  } = useCollectionStore(useShallow((state) => ({
-    collections: state.collections,
-    isLoading: state.isLoading,
-    error: state.error,
-    deleteTarget: state.deleteTarget,
-    deletingCollection: state.deletingCollection,
-    showForm: state.showForm,
-    dragOverCollection: state.dragOverCollection,
-    indexProgress: state.indexProgress,
-    indexErrors: state.indexErrors,
-    setDeleteTarget: state.setDeleteTarget,
-    setShowForm: state.setShowForm,
-    setIndexErrors: state.setIndexErrors,
-    fetchCollections: state.fetchCollections,
-    confirmDelete: state.confirmDelete,
-    cancelDelete: state.cancelDelete,
-    handleDragOver: state.handleDragOver,
-    handleDragLeave: state.handleDragLeave,
-    handleDrop: state.handleDrop
-  })));
+  } = useCollectionStore(
+    useShallow((state) => ({
+      collections: state.collections,
+      isLoading: state.isLoading,
+      error: state.error,
+      deleteTarget: state.deleteTarget,
+      deletingCollection: state.deletingCollection,
+      showForm: state.showForm,
+      dragOverCollection: state.dragOverCollection,
+      indexProgress: state.indexProgress,
+      indexErrors: state.indexErrors,
+      setDeleteTarget: state.setDeleteTarget,
+      setShowForm: state.setShowForm,
+      setIndexErrors: state.setIndexErrors,
+      fetchCollections: state.fetchCollections,
+      confirmDelete: state.confirmDelete,
+      cancelDelete: state.cancelDelete,
+      handleDragOver: state.handleDragOver,
+      handleDragLeave: state.handleDragLeave,
+      handleDrop: state.handleDrop
+    }))
+  );
 
   useEffect(() => {
     fetchCollections();
   }, [fetchCollections]);
 
-  const handleDeleteClick = useCallback((collectionName: string) => {
-    setDeleteTarget(collectionName);
-  }, [setDeleteTarget]);
+  const handleDeleteClick = useCallback(
+    (collectionName: string) => {
+      setDeleteTarget(collectionName);
+    },
+    [setDeleteTarget]
+  );
 
   const handleShowForm = useCallback(() => {
     setShowForm(true);
@@ -98,7 +103,10 @@ const CollectionList = () => {
   );
 
   const dropHandlers = useMemo(() => {
-    const handlers: Record<string, (e: React.DragEvent<HTMLDivElement>) => void> = {};
+    const handlers: Record<
+      string,
+      (e: React.DragEvent<HTMLDivElement>) => void
+    > = {};
     if (collections?.collections) {
       for (const collection of collections.collections) {
         handlers[collection.name] = (e: React.DragEvent<HTMLDivElement>) => {
@@ -140,7 +148,12 @@ const CollectionList = () => {
               <LoadingSpinner size="large" text="Loading collections" />
             </FlexColumn>
           ) : error ? (
-            <FlexColumn gap={2} justify="center" align="center" sx={{ mt: 4, px: 2 }}>
+            <FlexColumn
+              gap={2}
+              justify="center"
+              align="center"
+              sx={{ mt: 4, px: 2 }}
+            >
               <EmptyState
                 variant="error"
                 title="Couldn't load collections"
@@ -163,19 +176,21 @@ const CollectionList = () => {
               })}
             >
               <ListGroup>
-                {collections?.collections.map((collection: CollectionResponse) => (
-                  <CollectionItem
-                    key={collection.name}
-                    collection={collection}
-                    dragOverCollection={dragOverCollection}
-                    indexProgress={indexProgress}
-                    onDelete={handleDeleteClick}
-                    onDrop={dropHandlers[collection.name]}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    deletingCollection={deletingCollection}
-                  />
-                ))}
+                {collections?.collections.map(
+                  (collection: CollectionResponse) => (
+                    <CollectionItem
+                      key={collection.name}
+                      collection={collection}
+                      dragOverCollection={dragOverCollection}
+                      indexProgress={indexProgress}
+                      onDelete={handleDeleteClick}
+                      onDrop={dropHandlers[collection.name]}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      deletingCollection={deletingCollection}
+                    />
+                  )
+                )}
               </ListGroup>
             </Surface>
           )}
@@ -189,7 +204,6 @@ const CollectionList = () => {
         title="Delete this collection?"
         onConfirm={confirmDelete}
         confirmText="Delete"
-        cancelText="Cancel"
         destructive
       >
         This will permanently delete the collection &quot;{deleteTarget}
@@ -197,12 +211,14 @@ const CollectionList = () => {
       </Dialog>
 
       {indexErrors.length > 0 && (
-        <Dialog open={true} onClose={handleClearIndexErrors} title="Indexing report">
-          <FlexColumn gap={2}>
-            <Text>
-              The following files encountered errors during indexing:
-            </Text>
-            <ListGroup compact flush sx={{ pl: 2 }}>
+        <Dialog
+          open={true}
+          onClose={handleClearIndexErrors}
+          title="Indexing report"
+        >
+          <FlexColumn gap={SPACING.md}>
+            <Text>The following files encountered errors during indexing:</Text>
+            <ListGroup compact flush sx={{ pl: SPACING.md }}>
               {indexErrors.map((error) => (
                 <ListItemRow
                   key={error.file}
@@ -212,11 +228,6 @@ const CollectionList = () => {
                 />
               ))}
             </ListGroup>
-            <FlexRow justify="flex-end">
-              <EditorButton onClick={handleClearIndexErrors}>
-                Close
-              </EditorButton>
-            </FlexRow>
           </FlexColumn>
         </Dialog>
       )}

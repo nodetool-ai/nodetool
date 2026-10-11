@@ -1632,6 +1632,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 ? existingMessages.slice(0, overlapIndex)
                 : [];
               const existingIds = new Set(existingMessages.map((m) => m.id));
+              // A finished reply keeps its local placeholder id (the final
+              // frame carries no id), and the page above already holds it.
+              const runtimeStatus = getThreadRuntime(state, threadId).status;
+              const replyInFlight =
+                runtimeStatus !== "idle" && runtimeStatus !== "error";
               const updatedMessages = cursor
                 ? [
                     ...messages.filter((m) => !existingIds.has(m.id)),
@@ -1642,6 +1647,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                     ...messages,
                     ...existingMessages.filter(
                       (m) =>
+                        replyInFlight &&
                         isString(m.id) &&
                         m.id.startsWith("local-stream-")
                     )

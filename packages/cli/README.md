@@ -10,6 +10,33 @@ Ships two executables: `nodetool` for managing workflows, jobs, assets, models, 
 npm install -g @nodetool-ai/cli
 ```
 
+## Agents and headless machines
+
+The CLI needs Node.js 22 or later and nothing else: no repository, no `.env`,
+and no desktop session. Provider keys are read from the environment.
+
+```bash
+# Run as an MCP server over stdio for Claude Code, Codex, or any MCP client
+npx -y -p @nodetool-ai/cli nodetool mcp serve
+
+# Serve the HTTP + WebSocket API (health check at /health)
+npx -y -p @nodetool-ai/cli nodetool serve --port 7777
+
+# Run a workflow file and print its outputs as JSON
+OPENAI_API_KEY=sk-... npx -y -p @nodetool-ai/cli nodetool \
+  workflows run workflow.json --params '{"prompt":"hello"}' --json
+```
+
+Keep `-p @nodetool-ai/cli nodetool`. The package installs two executables, so
+`npx @nodetool-ai/cli` cannot tell which one to run.
+
+On a machine without a system keychain (a container, CI, or a server without
+a D-Bus session) the encrypted secret store stays locked. The API server, the
+MCP server, and workflow runs still start, and stored secrets are unavailable.
+To store secrets there, set `SECRETS_MASTER_KEY` to a base64
+32-byte key, for example from `openssl rand -base64 32`, and keep the same
+value for every run.
+
 ## Executables
 
 | Command | Description |

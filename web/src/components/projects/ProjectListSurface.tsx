@@ -1,11 +1,14 @@
 import { useCallback, useMemo, useState, type DragEvent } from "react";
 
 import {
-  BORDER_RADIUS,
+  AutoGrid,
   Box,
+  CONTROL,
   Caption,
   Divider,
+  EYEBROW,
   EditorButton,
+  EmptyState,
   FlexColumn,
   FlexRow,
   Label,
@@ -14,7 +17,9 @@ import {
   ScrollArea,
   SearchInput,
   Text,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  activateOnKey,
+  selectableTileStyles
 } from "../ui_primitives";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { isRecord, isString } from "../../utils/typePredicates";
@@ -43,6 +48,12 @@ import type { ProjectDetail } from "./projectStatus";
  * is showing only those.
  */
 const LOOSE_STRIP_LIMIT = 12;
+
+/**
+ * Narrowest project card: one column on a phone, two on a tablet, three on a
+ * laptop-wide screen.
+ */
+const PROJECT_CARD_MIN_WIDTH = 360;
 
 /** Page gutter: the desktop margin wastes a phone's width. */
 const PAGE_PX = { xs: SPACING.lg, sm: SPACING.xxl };
@@ -147,6 +158,17 @@ const ProjectListSurface = () => {
     [addNotification, assignDocument]
   );
 
+  const handleOpenLoose = useCallback(
+    (document: LooseDocument) =>
+      openTab({
+        type: document.type,
+        ref: document.ref,
+        title: document.name,
+        projectId: LOOSE_PROJECT_ID
+      }),
+    [openTab]
+  );
+
   const handleDragStart = useCallback(
     (event: DragEvent<HTMLDivElement>, document: LooseDocument) => {
       event.dataTransfer.effectAllowed = "move";
@@ -203,18 +225,21 @@ const ProjectListSurface = () => {
         {summaries.isPending ? (
           <LoadingSpinner />
         ) : summaries.error ? (
-          <Caption color="error">Could not load projects</Caption>
+          <EmptyState
+            variant="error"
+            title="Could not load projects"
+            description={summaries.error.message}
+          />
+        ) : search.trim() && matches.length === 0 ? (
+          <EmptyState
+            variant="no-results"
+            title="No matching projects"
+            description="Try a different search term."
+          />
         ) : (
-          <Box
-            sx={{
-              display: "grid",
-              gap: { xs: SPACING.lg, sm: SPACING.xl },
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, minmax(0, 1fr))",
-                lg: "repeat(3, minmax(0, 1fr))"
-              }
-            }}
+          <AutoGrid
+            minItemWidth={PROJECT_CARD_MIN_WIDTH}
+            sx={{ gap: { xs: SPACING.lg, sm: SPACING.xl } }}
           >
             {matches.map((detail) => (
               <ProjectCard
@@ -224,23 +249,20 @@ const ProjectListSurface = () => {
                 onDropDocument={handleDropDocument}
               />
             ))}
-            <Box
+            <FlexColumn
               component="button"
-              type="button"
               onClick={openNewProject}
-              sx={{
-                minHeight: { xs: "160px", sm: "268px" },
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: SPACING.lg,
-                border: (theme) => `1px dashed ${theme.vars.palette.divider}`,
-                borderRadius: BORDER_RADIUS.lg,
+              align="center"
+              justify="center"
+              gap={SPACING.lg}
+              sx={(theme) => ({
+                ...selectableTileStyles(theme),
+                minHeight: { xs: 160, sm: 268 },
+                borderStyle: "dashed",
                 background: "transparent",
                 color: "text.secondary",
                 cursor: "pointer"
-              }}
+              })}
             >
               <Box sx={{ color: PROJECT_COLOR, fontSize: "var(--fontSizeBig)" }}>
                 +
@@ -249,8 +271,8 @@ const ProjectListSurface = () => {
               <Caption color="muted">
                 Say what you want made, and an agent builds its documents
               </Caption>
-            </Box>
-          </Box>
+            </FlexColumn>
+          </AutoGrid>
         )}
       </ScrollArea>
 
@@ -262,10 +284,7 @@ const ProjectListSurface = () => {
             gap={SPACING.lg}
             sx={{ pt: SPACING.lg, pb: SPACING.md }}
           >
-            <Caption
-              color="muted"
-              sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
-            >
+            <Caption color="secondary" sx={EYEBROW}>
               Not in a project
             </Caption>
             {looseTotal > loose.length && (
@@ -282,28 +301,24 @@ const ProjectListSurface = () => {
             {loose.map((document) => (
               <FlexRow
                 key={`${document.type}:${document.ref}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${document.name}`}
                 align="center"
                 gap={SPACING.md}
                 draggable
                 onDragStart={(event: DragEvent<HTMLDivElement>) =>
                   handleDragStart(event, document)
                 }
-                onClick={() =>
-                  openTab({
-                    type: document.type,
-                    ref: document.ref,
-                    title: document.name,
-                    projectId: LOOSE_PROJECT_ID
-                  })
-                }
-                sx={{
+                onClick={() => handleOpenLoose(document)}
+                onKeyDown={activateOnKey(() => handleOpenLoose(document))}
+                sx={(theme) => ({
+                  ...selectableTileStyles(theme),
                   px: SPACING.lg,
-                  height: "30px",
+                  height: CONTROL.height.md,
                   cursor: "grab",
-                  bgcolor: "background.paper",
-                  border: (theme) => `1px solid ${theme.vars.palette.divider}`,
-                  borderRadius: BORDER_RADIUS.md
-                }}
+                  bgcolor: "background.paper"
+                })}
               >
                 <Box
                   component="span"
@@ -324,7 +339,7 @@ const ProjectListSurface = () => {
       {(archived.data?.length ?? 0) > 0 && (
         <FlexColumn gap={SPACING.md} sx={{ px: PAGE_PX, pb: SPACING.xl }}>
           <Divider />
-          <Caption color="muted" sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <Caption color="secondary" sx={EYEBROW}>
             Archived projects
           </Caption>
           {archived.data?.map((project) => (

@@ -12,6 +12,10 @@ import {
   Text,
   Caption,
   BORDER_RADIUS,
+  EYEBROW,
+  TYPOGRAPHY,
+  selectableRowStyles,
+  selectedRowStyles,
   SPACING,
   getSpacingPx,
   ListItemButton,
@@ -72,14 +76,14 @@ const listStyles = (theme: Theme) =>
     maxHeight: 600,
     "& .MuiListItemButton-root": { py: 0.5 },
     "& .MuiListItemText-primary": {
-      fontSize: theme.vars.fontSizeNormal,
-      color: theme.vars.palette.text.primary,
-      fontWeight: 500
+      ...TYPOGRAPHY.sans.label,
+      color: theme.vars.palette.text.primary
     },
     "& .MuiListItemText-secondary": {
-      color: theme.vars.palette.text.secondary,
-      fontSize: theme.vars.fontSizeSmall
+      ...TYPOGRAPHY.sans.caption,
+      color: theme.vars.palette.text.secondary
     },
+    "& .model-menu__model-item": selectableRowStyles(theme),
     "& .model-menu__model-item.is-unavailable": {
       opacity: 0.55,
       cursor: "not-allowed"
@@ -101,10 +105,7 @@ const listStyles = (theme: Theme) =>
         opacity: 1
       }
     },
-    "& .model-menu__model-item.is-active": {
-      background: theme.vars.palette.action.selected,
-      boxShadow: `inset 3px 0 0 ${theme.vars.palette.primary.main}`
-    }
+    "& .model-menu__model-item.is-active": selectedRowStyles(theme)
   });
 
 /**
@@ -214,7 +215,6 @@ function ModelList<TModel extends ModelSelectorModel>({
       borderRadius: BORDER_RADIUS.xs,
       background: theme.vars.palette.action.hover,
       color: theme.vars.palette.text.secondary,
-      letterSpacing: 0.2,
       border: "none"
     }),
     [theme.vars.palette.action.hover, theme.vars.palette.text.secondary]
@@ -437,15 +437,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                 height: "100%"
               }}
             >
-              <Text
-                sx={{
-                  fontSize: "var(--fontSizeSmall)",
-                  fontWeight: 600,
-                  color: "text.secondary",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5
-                }}
-              >
+              <Text sx={{ ...EYEBROW, color: "text.secondary" }}>
                 Available to download
               </Text>
               {downloadTargetLabel && (
@@ -453,11 +445,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                   title={`Downloads land on ${downloadTargetLabel} — where models run in this session.`}
                 >
                   <Caption
-                    sx={{
-                      fontSize: "var(--fontSizeSmaller)",
-                      color: "text.secondary",
-                      whiteSpace: "nowrap"
-                    }}
+                    sx={{ color: "text.secondary", whiteSpace: "nowrap" }}
                   >
                     → {downloadTargetLabel}
                   </Caption>

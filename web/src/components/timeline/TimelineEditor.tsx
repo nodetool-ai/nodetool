@@ -30,6 +30,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import {
+  AlertBanner,
+  Button,
   Caption,
   ConflictBanner,
   Dialog,
@@ -43,7 +45,6 @@ import {
   SPACING,
   TabGroup,
   type TabItem,
-  Text,
   ToolbarIconButton,
   BORDER_RADIUS,
   MOTION,
@@ -1041,19 +1042,16 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
 
   // Export dialog action button — memoized so re-renders unrelated to export
   // state (e.g. the tracks-resize drag) don't allocate a fresh element that
-  // would defeat Dialog's memo.
+  // would defeat Dialog's memo. A failed export closes from the title X.
   const hasExportError = exportError != null;
   const exportDialogActions = useMemo(
-    () => (
-      <EditorButton
-        variant={isExporting ? "outlined" : "contained"}
-        size="small"
-        onClick={isExporting ? cancelExport : clearExportError}
-      >
-        {isExporting ? "Cancel" : "Close"}
-      </EditorButton>
-    ),
-    [isExporting, cancelExport, clearExportError]
+    () =>
+      isExporting ? (
+        <Button variant="text" color="inherit" onClick={cancelExport}>
+          Cancel
+        </Button>
+      ) : undefined,
+    [isExporting, cancelExport]
   );
 
   // External writes that the dirty draft refused — offered per merge unit.
@@ -1218,9 +1216,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       >
         {exportError != null ? (
           <FlexColumn gap={SPACING.md}>
-            <Text size="small" sx={{ color: "error.main" }}>
-              {exportError}
-            </Text>
+            <AlertBanner severity="error">{exportError}</AlertBanner>
             <ReportBugButton
               context={{
                 source: "operation-failure",
@@ -1230,7 +1226,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
             />
           </FlexColumn>
         ) : (
-          <FlexColumn gap={1} sx={{ py: 1 }}>
+          <FlexColumn gap={SPACING.xs}>
             <ProgressBar
               value={Math.round((exportProgress?.ratio ?? 0) * 100)}
               progressVariant={

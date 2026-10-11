@@ -4,7 +4,16 @@ import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, type ReactNode, type Ref } from "react";
 import type { SerializedStyles } from "@emotion/react";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  MOTION,
+  BORDER_RADIUS,
+  CONTROL,
+  SPACING,
+  TYPOGRAPHY,
+  focusRing,
+  getSpacingPx,
+  reducedMotion
+} from "../ui_primitives";
 
 /** Shared horizontal rhythm for the Examples page: a centered column that
  *  section borders bleed past, while content stays aligned. */
@@ -38,15 +47,12 @@ const headerStyles = (theme: Theme) =>
       gap: `${theme.spacing(1)}`
     },
     ".sec-title h2": {
-      fontSize: "var(--fontSizeBig)",
-      fontWeight: 500,
-      letterSpacing: "-0.012em",
+      ...TYPOGRAPHY.sans.title,
       margin: 0,
       color: theme.vars.palette.text.primary
     },
     ".sec-count": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.disabled
     },
     ".sec-actions": {
@@ -56,17 +62,17 @@ const headerStyles = (theme: Theme) =>
     }
   });
 
-interface SectionHeaderProps {
+interface DashboardSectionHeaderProps {
   title: string;
   count?: string;
   children?: ReactNode;
 }
 
-export const SectionHeader = memo(function SectionHeader({
+export const DashboardSectionHeader = memo(function DashboardSectionHeader({
   title,
   count,
   children
-}: SectionHeaderProps) {
+}: DashboardSectionHeaderProps) {
   const theme = useTheme();
   return (
     <div css={headerStyles(theme)}>
@@ -84,14 +90,15 @@ const searchStyles = (theme: Theme) =>
     display: "flex",
     alignItems: "center",
     gap: `${theme.spacing(1)}`,
-    height: 32,
+    height: CONTROL.height.md,
     padding: `0 ${theme.spacing(SPACING.sm)}`,
     background: theme.vars.palette.c_node_bg,
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.sm,
     color: theme.vars.palette.text.secondary,
     minWidth: 240,
-    transition: `border-color ${MOTION.fast}`,
+    transition: MOTION.border,
+    ...reducedMotion({ transition: MOTION.none }),
     "&:focus-within": {
       borderColor: theme.vars.palette.primary.main
     },
@@ -103,17 +110,15 @@ const searchStyles = (theme: Theme) =>
       outline: "none",
       color: theme.vars.palette.text.primary,
       font: "inherit",
-      fontSize: "var(--fontSizeNormal)",
+      ...TYPOGRAPHY.sans.body,
       "&::placeholder": { color: theme.vars.palette.text.disabled }
     },
     ".kbd": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.secondary,
       padding: `${theme.spacing(SPACING.none)} ${theme.spacing(SPACING.xs)}`,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.xs,
-      lineHeight: 1.4
+      borderRadius: BORDER_RADIUS.xs
     },
     ".search-clear": {
       display: "grid",
@@ -127,11 +132,13 @@ const searchStyles = (theme: Theme) =>
       background: "transparent",
       color: theme.vars.palette.text.disabled,
       cursor: "pointer",
-      transition: `color ${MOTION.fast}, background ${MOTION.fast}`,
+      transition: `color ${MOTION.fast}, ${MOTION.background}`,
+      ...reducedMotion({ transition: MOTION.none }),
       "&:hover": {
         color: theme.vars.palette.text.primary,
         background: theme.vars.palette.action.hover
-      }
+      },
+      "&:focus-visible": focusRing(theme, 0)
     },
     [theme.breakpoints.down("sm")]: {
       minWidth: 0,
@@ -217,13 +224,17 @@ const linkStyles = (theme: Theme) =>
     display: "inline-flex",
     alignItems: "center",
     gap: `${theme.spacing(SPACING.xs)}`,
-    fontSize: "var(--fontSizeSmall)",
+    ...TYPOGRAPHY.sans.label,
     color: theme.vars.palette.primary.main,
     background: "none",
     border: "none",
+    borderRadius: BORDER_RADIUS.xs,
     padding: 0,
     cursor: "pointer",
-    "&:hover": { color: theme.vars.palette.primary.light }
+    transition: `color ${MOTION.fast}`,
+    ...reducedMotion({ transition: MOTION.none }),
+    "&:hover": { color: theme.vars.palette.primary.light },
+    "&:focus-visible": focusRing(theme, 2)
   });
 
 interface SectionLinkProps {

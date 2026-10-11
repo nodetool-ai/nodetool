@@ -494,22 +494,14 @@ export const ExternalMcpServersSection = memo(
           open={dialogOpen}
           onClose={handleClose}
           fullWidth
-          title={
-            <Text size="big">
-              {editingId ? "Edit MCP server" : "Add MCP server"}
-            </Text>
-          }
+          title={editingId ? "Edit MCP server" : "Add MCP server"}
           onConfirm={handleSave}
-          onCancel={handleClose}
           confirmText={editingId ? "Save" : "Add"}
-          cancelText="Cancel"
           confirmDisabled={
             Boolean(draftIdError) || Boolean(transportError) || duplicateId
           }
         >
-          <FlexColumn
-            sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}
-          >
+          <FlexColumn gap={SPACING.lg}>
             <TextInput
               label="Name"
               value={draft.name}
@@ -633,10 +625,11 @@ export const ExternalMcpServersSection = memo(
 
         <ConfirmDialog
           open={Boolean(pendingDelete)}
-          title="Remove server"
+          title="Remove server?"
           content={`Remove ${pendingDelete?.name ?? ""}? Its tools leave the agent's toolbelt.`}
           confirmText="Remove"
           cancelText="Cancel"
+          destructive
           onConfirm={confirmDelete}
           onClose={handleCancelDelete}
         />

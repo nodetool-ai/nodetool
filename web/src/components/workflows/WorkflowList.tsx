@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
       height: "100%"
     },
     ".toolbar-header": {
-      padding: theme.spacing(0.75, 0, 1)
+      padding: theme.spacing(1, 0)
     },
     ".workflow-items": {
       flex: 1,

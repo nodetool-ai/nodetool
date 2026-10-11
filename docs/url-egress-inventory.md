@@ -145,6 +145,23 @@ requests inside the user's logged-in Dreamina browser tab. Cookies stay in
 that tab. Server-side result downloads use `fetchExternalMedia`, which checks
 each redirect hop and sends no Dreamina credentials.
 
+**ChatGPT browser requests.**
+`packages/runtime/src/providers/chatgpt-provider.ts` runs every chatgpt.com
+request inside the user's logged-in ChatGPT tab, including generated-image
+downloads. Cookies and the session token stay in that tab. An input image given
+as a URL is fetched server-side with `fetchExternalMedia`, which checks each
+redirect hop and sends no credentials.
+
+**Gemini web browser requests.**
+`packages/runtime/src/providers/gemini-web-provider.ts` runs every
+gemini.google.com request inside the user's logged-in Gemini tab. The browser
+itself loads generated media with the user's Google cookies, through
+`ExtensionTab.download`. It loads only URLs that the Gemini response named: a
+`https://lh3.googleusercontent.com/gg-dl/` image or a
+`https://contribution.usercontent.google.com/download` video. A chat input
+image given as a URL is fetched server-side with `fetchExternalMedia`, which
+checks each redirect hop and sends no credentials.
+
 **Fixed provider hosts.** The URL is a constant in this repo, at most
 with a path or query interpolated — `api.elevenlabs.io`, `fal.run`,
 `generativelanguage.googleapis.com`, the OAuth token endpoints, the codegen

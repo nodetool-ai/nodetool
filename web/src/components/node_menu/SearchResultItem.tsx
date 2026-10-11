@@ -12,7 +12,10 @@ import {
   FONT_WEIGHT,
   Z_INDEX,
   SPACING,
-  getSpacingPx
+  TYPOGRAPHY,
+  focusRing,
+  getSpacingPx,
+  selectedRowStyles
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -80,11 +83,8 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         border: `1px solid ${theme.vars.palette.divider}`,
         zIndex: Z_INDEX.dropdown
       },
-      "&.keyboard-selected": {
-        backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-        border: `1px solid rgba(var(--palette-primary-mainChannel) / 0.4)`,
-        boxShadow: "0 0 0 2px rgba(var(--palette-primary-mainChannel) / 0.1)"
-      },
+      "&:focus-visible": focusRing(theme),
+      "&.keyboard-selected": selectedRowStyles(theme),
       ".result-header": {
         display: "flex",
         alignItems: "flex-start",
@@ -125,9 +125,8 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         }
       },
       ".result-description": {
-        fontSize: "var(--fontSizeSmall)",
+        ...TYPOGRAPHY.sans.caption,
         color: theme.vars.palette.text.secondary,
-        lineHeight: 1.4,
         marginTop: theme.spacing(1),
         whiteSpace: "nowrap",
         overflow: "hidden",
@@ -145,6 +144,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         borderRadius: BORDER_RADIUS.sm,
         color: theme.vars.palette.text.secondary,
         transition: `${MOTION.transform}, color ${MOTION.fast}`,
+        "&:focus-visible": focusRing(theme),
         "&.expanded": {
           transform: "rotate(180deg)",
           color: "var(--palette-primary-main)"

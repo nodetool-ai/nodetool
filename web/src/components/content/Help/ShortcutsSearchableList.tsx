@@ -1,6 +1,16 @@
 import React, { useMemo, useState } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { FlexColumn, FlexRow, Text, TextInput, Box, Z_INDEX } from "../../ui_primitives";
+import {
+  Caption,
+  EmptyState,
+  FlexColumn,
+  FlexRow,
+  SectionHeader,
+  Text,
+  TextInput,
+  Box,
+  Z_INDEX
+} from "../../ui_primitives";
 import {
   getShortcutTooltip,
   SHORTCUT_CATEGORIES,
@@ -55,6 +65,11 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
     return groups;
   }, [search, shortcuts]);
 
+  const hasResults = useMemo(
+    () => Array.from(groupedShortcuts.values()).some((list) => list.length > 0),
+    [groupedShortcuts]
+  );
+
   return (
     <FlexColumn
       sx={{
@@ -87,6 +102,14 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
           ...scrollSx
         }}
       >
+        {!hasResults && (
+          <EmptyState
+            variant="no-results"
+            size="small"
+            title="No matching shortcuts"
+            description="Try a different search term."
+          />
+        )}
         {categories.map((cat) => {
           const list = groupedShortcuts.get(cat);
           if (!list || !list.length) {
@@ -94,8 +117,13 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
           }
           return (
             <Box key={cat} sx={{ mb: 3 }}>
-              <Text size="big" color="secondary" sx={{ mb: 4 }}>{SHORTCUT_CATEGORIES[cat] ??
-                cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
+              <SectionHeader
+                size="small"
+                title={
+                  SHORTCUT_CATEGORIES[cat] ??
+                  cat.charAt(0).toUpperCase() + cat.slice(1)
+                }
+              />
               {list.map((s) => (
                 <FlexRow
                   key={s.slug}
@@ -107,15 +135,7 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
                     {getShortcutTooltip(s.slug, undefined, "combo", false, catalog)}
                   </Box>
                   {s.description ? (
-                    <Text
-                      size="small"
-                      sx={{
-                        color: "var(--palette-grey-200)",
-                        fontWeight: 400
-                      }}
-                    >
-                      {s.description}
-                    </Text>
+                    <Caption color="secondary">{s.description}</Caption>
                   ) : null}
                 </FlexRow>
               ))}

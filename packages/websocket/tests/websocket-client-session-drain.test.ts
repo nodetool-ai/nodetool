@@ -162,6 +162,55 @@ describe("a connection while the process drains", () => {
   });
 
   /**
+   * A detached turn has no client that could answer an approval or press Stop,
+   * and a draining process refuses the reconnect that would bring one back. Left
+   * running, it would hold `turns` above zero and the drain would never finish.
+   */
+  async function detachedTurn() {
+    const threadId = `t-drain-detached-${Date.now()}-${Math.random()}`;
+    const { provider } = gatedProvider();
+    const runner = new WebSocketClientSession({
+      resolveExecutor: noopExecutor,
+      resolveProvider: provider
+    });
+    const ws = new MockWS();
+    await runner.connect(ws);
+    await runner.handleCommand({
+      command: "chat_message",
+      data: { thread_id: threadId, content: "hi", provider: "mock", model: "m" }
+    });
+    await vi.waitFor(() => {
+      expect(sentMsgs(ws).some((m) => m.type === "chunk")).toBe(true);
+    });
+    return { runner, threadId };
+  }
+
+  it("stops a turn whose client left before the drain", async () => {
+    const { runner, threadId } = await detachedTurn();
+    await runner.disconnect();
+    expect(chatTurnRegistry.get("1", threadId)?.status).toBe("running");
+
+    startDrain();
+
+    await vi.waitFor(() => {
+      expect(chatTurnRegistry.get("1", threadId)?.status).toBe("finished");
+    });
+  });
+
+  it("stops a turn whose client leaves during the drain", async () => {
+    const { runner, threadId } = await detachedTurn();
+    startDrain();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(chatTurnRegistry.get("1", threadId)?.status).toBe("running");
+
+    await runner.disconnect();
+
+    await vi.waitFor(() => {
+      expect(chatTurnRegistry.get("1", threadId)?.status).toBe("finished");
+    });
+  });
+
+  /**
    * A socket that is still open mid-drain: it holds a running turn, which is
    * the only reason a command can still arrive after the drain began. An idle
    * one is closed before the client could send anything.

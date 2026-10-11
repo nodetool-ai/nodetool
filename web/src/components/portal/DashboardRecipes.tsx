@@ -13,9 +13,13 @@ import {
   LoadingSpinner,
   MOTION,
   SPACING,
-  getSpacingPx
+  TYPOGRAPHY,
+  focusRing,
+  getSpacingPx,
+  reducedMotion,
+  selectableRowStyles
 } from "../ui_primitives";
-import { useSectionWrap, SectionHeader } from "./dashboardChrome";
+import { useSectionWrap, DashboardSectionHeader } from "./dashboardChrome";
 
 type Recipe = recipeSchemas.ExampleRecipeSummary;
 type RecipeStep = recipeSchemas.ExampleRecipeStep;
@@ -37,7 +41,7 @@ const styles = (theme: Theme) =>
     paddingTop: getSpacingPx(SPACING.xxl),
     ".rcp-lede": {
       margin: `0 0 ${getSpacingPx(SPACING.sm)}`,
-      fontSize: "var(--fontSizeSmall)",
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary
     },
     ".rcp-list": {
@@ -47,7 +51,7 @@ const styles = (theme: Theme) =>
     },
     ".rcp": {
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.lg,
+      borderRadius: BORDER_RADIUS.md,
       background: theme.vars.palette.c_node_bg,
       overflow: "hidden"
     },
@@ -58,6 +62,7 @@ const styles = (theme: Theme) =>
       padding: getSpacingPx(SPACING.md)
     },
     ".rcp-toggle": {
+      ...selectableRowStyles(theme),
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.md),
@@ -66,12 +71,9 @@ const styles = (theme: Theme) =>
       textAlign: "left",
       padding: getSpacingPx(SPACING.xs),
       margin: `-${getSpacingPx(SPACING.xs)}`,
-      background: "transparent",
       border: "none",
-      borderRadius: BORDER_RADIUS.sm,
-      cursor: "pointer",
-      transition: `background ${MOTION.fast}`,
-      "&:hover": { background: theme.vars.palette.action.hover }
+      color: "inherit",
+      cursor: "pointer"
     },
     ".rcp-thumb": {
       flexShrink: 0,
@@ -84,12 +86,12 @@ const styles = (theme: Theme) =>
     ".rcp-text": { flex: 1, minWidth: 0 },
     ".rcp-name": {
       display: "block",
-      fontSize: "var(--fontSizeNormal)",
+      ...TYPOGRAPHY.sans.label,
       color: theme.vars.palette.text.primary
     },
     ".rcp-outcome": {
       display: "block",
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -97,8 +99,7 @@ const styles = (theme: Theme) =>
     },
     ".rcp-meta": {
       flexShrink: 0,
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.disabled,
       [theme.breakpoints.down("sm")]: { display: "none" }
     },
@@ -109,12 +110,14 @@ const styles = (theme: Theme) =>
       border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
       background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
       color: theme.vars.palette.primary.main,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.sans.caption,
       cursor: "pointer",
-      transition: `background ${MOTION.fast}`,
+      transition: MOTION.background,
+      ...reducedMotion({ transition: MOTION.none }),
       "&:hover": {
         background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.22)`
       },
+      "&:focus-visible": focusRing(theme, 2),
       "&:disabled": { cursor: "wait", opacity: 0.6 }
     },
     // The header button sits in a row; the one under the open chain sits in a
@@ -131,18 +134,17 @@ const styles = (theme: Theme) =>
     },
     ".rcp-app-name": {
       display: "block",
-      fontSize: "var(--fontSizeSmall)",
+      ...TYPOGRAPHY.sans.label,
       color: theme.vars.palette.text.primary
     },
     ".rcp-app-role": {
       display: "block",
-      fontSize: "var(--fontSizeSmaller)",
-      lineHeight: 1.6,
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary
     },
     ".rcp-steps-lede": {
       margin: 0,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.disabled
     },
     ".rcp-body": {
@@ -155,41 +157,36 @@ const styles = (theme: Theme) =>
     ".rcp-summary": {
       margin: 0,
       maxWidth: "72ch",
-      fontSize: "var(--fontSizeSmall)",
-      lineHeight: 1.6,
+      ...TYPOGRAPHY.sans.body,
       color: theme.vars.palette.text.secondary
     },
     ".rcp-step": {
+      ...selectableRowStyles(theme),
       display: "flex",
       alignItems: "flex-start",
       gap: getSpacingPx(SPACING.md),
       width: "100%",
       textAlign: "left",
       padding: getSpacingPx(SPACING.sm),
-      background: "transparent",
       border: "none",
-      borderRadius: BORDER_RADIUS.sm,
+      color: "inherit",
       cursor: "pointer",
-      transition: `background ${MOTION.fast}`,
-      "&:hover": { background: theme.vars.palette.action.hover },
       "&.loading": { cursor: "wait", pointerEvents: "none" }
     },
     ".rcp-index": {
       flexShrink: 0,
       width: 24,
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.primary.main
     },
     ".rcp-step-title": {
       display: "block",
-      fontSize: "var(--fontSizeSmall)",
+      ...TYPOGRAPHY.sans.label,
       color: theme.vars.palette.text.primary
     },
     ".rcp-step-text": {
       display: "block",
-      fontSize: "var(--fontSizeSmaller)",
-      lineHeight: 1.6,
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.secondary
     },
     ".rcp-models": {
@@ -199,8 +196,7 @@ const styles = (theme: Theme) =>
       paddingTop: getSpacingPx(SPACING.xs)
     },
     ".rcp-model": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
+      ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.disabled,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.sm,
@@ -208,8 +204,7 @@ const styles = (theme: Theme) =>
     },
     ".rcp-caveat": {
       margin: 0,
-      fontSize: "var(--fontSizeSmaller)",
-      lineHeight: 1.6,
+      ...TYPOGRAPHY.sans.caption,
       color: theme.vars.palette.text.disabled
     },
     ".rcp-loading, .rcp-empty": {
@@ -438,7 +433,7 @@ const DashboardRecipes: React.FC = () => {
   return (
     <section css={styles(theme)}>
       <div css={sectionWrap}>
-        <SectionHeader title="Recipes" count={`${recipes.length}`} />
+        <DashboardSectionHeader title="Recipes" count={`${recipes.length}`} />
         <p className="rcp-lede">
           Each one installs as an app that runs the whole chain, with the
           example workflows behind it in your library to edit.

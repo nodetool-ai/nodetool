@@ -41,6 +41,7 @@ import StraightenIcon from "@mui/icons-material/Straighten";
 import KeyboardIcon from "@mui/icons-material/Keyboard";
 import CircleIcon from "@mui/icons-material/Circle";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
+import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 
 import {
   AlertBanner,
@@ -72,6 +73,8 @@ import { resolveStaticMediaUri } from "../../utils/resolveMediaUri";
 import SceneOutliner, { type OutlinerAction } from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import Model3DChatPanel from "./Model3DChatPanel";
+import AiRenderPanel, { type ViewportCapture } from "./AiRenderPanel";
+import type { CapturePass } from "./aiRender";
 import EditorStatusBar from "./EditorStatusBar";
 import AnimationBar from "./AnimationBar";
 import ViewportHud from "./ViewportHud";
@@ -158,6 +161,15 @@ const ASSISTANT_OPEN_KEY = "model3d.assistantOpen";
 const readAssistantOpen = (): boolean => {
   try {
     return localStorage.getItem(ASSISTANT_OPEN_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
+
+const AI_RENDER_OPEN_KEY = "model3d.aiRenderOpen";
+const readAiRenderOpen = (): boolean => {
+  try {
+    return localStorage.getItem(AI_RENDER_OPEN_KEY) === "true";
   } catch {
     return false;
   }
@@ -439,6 +451,7 @@ const Model3DEditor = ({
   const [isDragging, setIsDragging] = useState(false);
   const [cameraRequest, setCameraRequest] = useState<CameraRequest | null>(null);
   const [showAssistant, setShowAssistant] = useState<boolean>(readAssistantOpen);
+  const [showAiRender, setShowAiRender] = useState<boolean>(readAiRenderOpen);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -453,6 +466,18 @@ const Model3DEditor = ({
       const next = !open;
       try {
         localStorage.setItem(ASSISTANT_OPEN_KEY, String(next));
+      } catch {
+        // Persistence is best-effort; ignore storage failures.
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleAiRender = useCallback(() => {
+    setShowAiRender((open) => {
+      const next = !open;
+      try {
+        localStorage.setItem(AI_RENDER_OPEN_KEY, String(next));
       } catch {
         // Persistence is best-effort; ignore storage failures.
       }
@@ -548,17 +573,29 @@ const Model3DEditor = ({
 
   // Live render handles published by <CaptureBridge> for screenshot capture.
   const captureRef = useRef<CaptureHandles | null>(null);
-  const captureView = useCallback((): string => {
-    const capture = captureRef.current;
-    if (!capture) {
-      throw new Error("3D viewport is not ready to capture yet.");
-    }
-    return captureModelOnly(
-      capture,
-      root,
-      new THREE.Color(theme.palette.grey[900])
-    );
-  }, [root, theme]);
+  const captureView = useCallback(
+    (pass: CapturePass = "shaded"): string => {
+      const capture = captureRef.current;
+      if (!capture) {
+        throw new Error("3D viewport is not ready to capture yet.");
+      }
+      return captureModelOnly(
+        capture,
+        root,
+        new THREE.Color(theme.palette.grey[900]),
+        pass
+      );
+    },
+    [root, theme]
+  );
+  const captureForAi = useCallback(
+    (pass: CapturePass): ViewportCapture => {
+      const image = captureView(pass);
+      const canvas = captureRef.current?.gl.domElement;
+      return { image, width: canvas?.width ?? 1024, height: canvas?.height ?? 1024 };
+    },
+    [captureView]
+  );
 
   // Load the GLB/GLTF into the editor root once per URL.
   useEffect(() => {
@@ -1356,6 +1393,14 @@ const Model3DEditor = ({
             size="small"
           />
           <ToolbarIconButton
+            icon={<PhotoCameraOutlinedIcon fontSize="small" />}
+            tooltip={showAiRender ? "Hide AI render" : "Render this view with AI"}
+            onClick={toggleAiRender}
+            active={showAiRender}
+            size="small"
+            ariaLabel="Render with AI"
+          />
+          <ToolbarIconButton
             icon={<AutoAwesomeIcon fontSize="small" />}
             tooltip={showAssistant ? "Hide assistant" : "Show assistant"}
             onClick={toggleAssistant}
@@ -1574,6 +1619,26 @@ const Model3DEditor = ({
           <PanelHeader title="Inspector" />
           <PropertiesPanel object={selectedObject} tick={tick + dragTick} record={record} />
         </FlexColumn>
+
+        {/* Kept mounted so a render in flight survives hiding the panel. */}
+        <div style={{ display: showAiRender && !loadError ? "contents" : "none" }}>
+          <ResizableSideDock
+            storageKey="model3d_ai_render"
+            defaultWidth={ASSISTANT_PANEL_WIDTH}
+            ariaLabel="Resize AI render panel"
+          >
+            <PanelHeader
+              title="Render with AI"
+              icon={<PhotoCameraOutlinedIcon />}
+              description="Turn the current view into a finished image with an image-edit model"
+              onClose={toggleAiRender}
+              closeLabel="Hide AI render"
+            />
+            <div className="panel-body">
+              <AiRenderPanel capture={captureForAi} />
+            </div>
+          </ResizableSideDock>
+        </div>
 
         {/* Kept mounted (toggled via display) so the chat connection and
             scroll state survive hiding the panel. */}

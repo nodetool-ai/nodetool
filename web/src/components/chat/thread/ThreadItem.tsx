@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from "react";
-import { Text, DeleteButton } from "../../ui_primitives";
+import { Caption, DeleteButton, TruncatedText } from "../../ui_primitives";
 import { ThreadItemProps } from "../types/thread.types";
 import { formatClockTime24 } from "../../../utils/formatUtils";
 
@@ -30,12 +30,12 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
         aria-current={isSelected ? "true" : undefined}
         onClick={handleSelect}
       >
-        <Text component="span" className="thread-title">
+        <TruncatedText component="span" className="thread-title">
           {thread.title || previewText}
-        </Text>
-        <Text component="span" className="thread-time">
+        </TruncatedText>
+        <Caption component="span" color="secondary" className="thread-time">
           {formatClockTime24(thread.updatedAt)}
-        </Text>
+        </Caption>
       </button>
       <DeleteButton onClick={handleDeleteClick} />
     </li>

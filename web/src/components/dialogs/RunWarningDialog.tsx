@@ -1,7 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useState } from "react";
 import { useRunWarningStore } from "../../stores/RunWarningStore";
-import { Dialog, Checkbox, Text, FlexColumn } from "../ui_primitives";
+import {
+  Dialog,
+  Checkbox,
+  Text,
+  FlexColumn,
+  SPACING
+} from "../ui_primitives";
 
 /**
  * Confirmation shown before a "Run Entire Workflow" action that would execute many
@@ -42,11 +48,9 @@ const RunWarningDialog: React.FC = () => {
           : "Run the entire workflow?"
       }
       onConfirm={handleConfirm}
-      onCancel={handleCancel}
       confirmText={isConcurrent ? "Start second run" : "Run anyway"}
-      cancelText="Cancel"
       content={
-        <FlexColumn gap={1.5}>
+        <FlexColumn gap={SPACING.sm}>
           {isConcurrent ? (
             <Text>
               This workflow is <strong>already running</strong>. Starting

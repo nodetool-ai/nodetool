@@ -1,6 +1,6 @@
 import { memo, useCallback } from "react";
 
-import { Caption, Dialog, FlexColumn, Text } from "../ui_primitives";
+import { Caption, Dialog, FlexColumn, SPACING, Text } from "../ui_primitives";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
 import useProviderSignInStore from "../../stores/ProviderSignInStore";
 import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialog";
@@ -33,9 +33,7 @@ const ProviderSignInDialog: React.FC = () => {
         open
         onClose={handleClose}
         title={`Sign in to ${provider.label} again`}
-        showActions
         onConfirm={oauth.connect}
-        onCancel={handleClose}
         confirmText={
           oauth.isConnecting
             ? "Waiting for sign-in…"
@@ -44,14 +42,15 @@ const ProviderSignInDialog: React.FC = () => {
         cancelText="Not now"
         confirmDisabled={oauth.isConnecting}
         isLoading={oauth.isConnecting}
-        minWidth="440px"
+        maxWidth="xs"
+        fullWidth
       >
-        <FlexColumn gap={2}>
+        <FlexColumn gap={SPACING.md}>
           <Text size="small">
             Your {provider.account} sign-in expired, so {provider.label} refused
             the request. Sign in again, then run the workflow again.
           </Text>
-          <Caption sx={{ opacity: 0.6 }}>
+          <Caption color="secondary">
             The sign-in opens in a new window. This dialog closes when it
             finishes.
           </Caption>

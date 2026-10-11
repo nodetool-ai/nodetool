@@ -1,7 +1,15 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { Caption, Dialog, FlexColumn, Text } from "../ui_primitives";
+import {
+  AlertBanner,
+  Button,
+  Caption,
+  Dialog,
+  FlexColumn,
+  SPACING,
+  Text
+} from "../ui_primitives";
 import useRuntimePackagePromptStore from "../../stores/RuntimePackagePromptStore";
 import useRuntimePackagesStore from "../../stores/RuntimePackagesStore";
 import { useOpenPackageManagerInNewTab } from "../../hooks/useOpenPackageManager";
@@ -77,15 +85,14 @@ const InstallRuntimePackageDialog: React.FC = () => {
         open
         onClose={dismiss}
         title={`${name} is not installed`}
-        showActions
         onConfirm={() => {
           openPackageManager();
           dismiss();
         }}
-        onCancel={dismiss}
         confirmText="Open Package Manager"
         cancelText="Close"
-        minWidth="440px"
+        maxWidth="xs"
+        fullWidth
       >
         <Text size="small">
           This needs {name}. Only the desktop app can install it. Install it
@@ -101,12 +108,13 @@ const InstallRuntimePackageDialog: React.FC = () => {
         open
         onClose={dismiss}
         title={`${name} is installed`}
-        showActions
-        onConfirm={dismiss}
-        onCancel={dismiss}
-        confirmText="Done"
-        cancelText="Close"
-        minWidth="440px"
+        maxWidth="xs"
+        fullWidth
+        actions={
+          <Button variant="contained" onClick={dismiss} autoFocus>
+            Done
+          </Button>
+        }
       >
         <Text size="small">Try again to use it.</Text>
       </Dialog>
@@ -118,27 +126,26 @@ const InstallRuntimePackageDialog: React.FC = () => {
       open
       onClose={phase === "installing" ? undefined : dismiss}
       title={`Install ${name}?`}
-      showActions
       onConfirm={handleInstall}
-      onCancel={dismiss}
       confirmText={phase === "installing" ? "Installing…" : "Install"}
       cancelText="Not now"
       confirmDisabled={phase === "installing"}
       cancelDisabled={phase === "installing"}
       isLoading={phase === "installing"}
-      minWidth="440px"
+      maxWidth="xs"
+      fullWidth
     >
-      <FlexColumn gap={2}>
+      <FlexColumn gap={SPACING.md}>
         <Text size="small">
           {name} is not installed. Install it now, then try again.
         </Text>
         {status?.description && (
-          <Caption sx={{ opacity: 0.7 }}>{status.description}</Caption>
+          <Caption color="secondary">{status.description}</Caption>
         )}
         {phase === "failed" && (
-          <Caption sx={{ color: "error.main" }}>
+          <AlertBanner severity="error" compact>
             {error ?? "The install failed. Try again from the Package Manager."}
-          </Caption>
+          </AlertBanner>
         )}
       </FlexColumn>
     </Dialog>

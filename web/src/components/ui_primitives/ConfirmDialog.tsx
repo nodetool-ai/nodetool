@@ -21,6 +21,8 @@ export interface ConfirmDialogProps {
   notificationMessage?: string;
   notificationType?: "success" | "error" | "info";
   alert?: boolean;
+  /** Renders the confirm button in the error color, for delete and remove. */
+  destructive?: boolean;
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = memo(
@@ -34,7 +36,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = memo(
     cancelText,
     notificationMessage,
     notificationType = "info",
-    alert
+    alert,
+    destructive
   }) {
     const addNotification = useNotificationStore(
       (state) => state.addNotification
@@ -69,6 +72,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = memo(
         onCancel={onClose}
         confirmText={confirmText}
         cancelText={cancelText}
+        destructive={destructive}
       />
     );
   }

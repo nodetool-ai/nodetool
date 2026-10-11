@@ -20,10 +20,11 @@ const WorkflowFormModal = ({
       className="workflow-form-modal"
       open={open}
       onClose={onClose}
+      title="Workflow settings"
       maxWidth="sm"
       fullWidth
     >
-        <WorkflowForm onClose={onClose} workflow={workflow} availableTags={availableTags} />
+      <WorkflowForm workflow={workflow} availableTags={availableTags} />
     </Dialog>
   );
 };

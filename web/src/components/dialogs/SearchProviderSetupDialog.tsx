@@ -7,6 +7,7 @@ import {
   TextInput,
   FlexColumn,
   SelectField,
+  SPACING,
   type SelectOption
 } from "../ui_primitives";
 import ExternalLink from "../common/ExternalLink";
@@ -123,13 +124,11 @@ const SearchProviderSetupDialog: React.FC = () => {
       onClose={dismiss}
       title="Set up web search"
       onConfirm={handleSave}
-      onCancel={dismiss}
       confirmText="Save & continue"
-      cancelText="Cancel"
       confirmDisabled={!allFilled}
       isLoading={saving}
       content={
-        <FlexColumn gap={2}>
+        <FlexColumn gap={SPACING.md}>
           <Text>
             {nodeNames
               ? `${nodeNames} uses a web-search tool, but no search provider is configured. `
@@ -155,7 +154,6 @@ const SearchProviderSetupDialog: React.FC = () => {
               label={formatSettingLabel(field)}
               value={credentials[field] ?? ""}
               onChange={handleCredentialChange(field)}
-              variant="standard"
               size="small"
               onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
             />

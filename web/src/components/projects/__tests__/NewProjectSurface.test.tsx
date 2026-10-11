@@ -358,10 +358,14 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
 }));
 
 const addNotification = jest.fn();
+const removeNotificationsByKey = jest.fn();
 jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: <T,>(
-    selector: (s: { addNotification: jest.Mock }) => T
-  ) => selector({ addNotification })
+    selector: (s: {
+      addNotification: jest.Mock;
+      removeNotificationsByKey: jest.Mock;
+    }) => T
+  ) => selector({ addNotification, removeNotificationsByKey })
 }));
 
 // The surface reads the chat's model selection to decide whether the project
@@ -1034,6 +1038,12 @@ describe("NewProjectSurface", () => {
     selectedModel = { provider: "anthropic", id: "claude-sonnet-5" };
     refresh();
     await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    // Round 6 F2: the "pick a model" notice stayed over the started chat.
+    const notice = addNotification.mock.calls
+      .map(([n]) => n)
+      .find((n) => n.content === "Pick a language model and the chat starts.");
+    expect(notice?.dedupeKey).toBeDefined();
+    expect(removeNotificationsByKey).toHaveBeenCalledWith(notice.dedupeKey);
   });
 
   // BUG F1: the refusal was a dead end — no picker on this screen, and a

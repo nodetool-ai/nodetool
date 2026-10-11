@@ -1,0 +1,13 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      // Whether ManimGX is installed decides whether the render suite runs or
+      // skips. Without these in the hash, a cached run that skipped it
+      // replays as a pass in a run that has ManimGX. NODETOOL_LOG_LEVEL is
+      // the root task's entry, repeated because this list replaces it.
+      "env": ["NODETOOL_LOG_LEVEL", "MANIMGX_PATH", "NODETOOL_REQUIRE_MANIMGX"]
+    }
+  }
+}

@@ -9,6 +9,7 @@ import {
   Caption,
   LoadingSpinner,
   EditorButton,
+  ConfirmDialog,
   Dialog,
   SelectField,
   StatusIndicator,
@@ -116,26 +117,17 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
       open={open}
       onClose={onClose}
       title="Start a worker"
-      minWidth={420}
-      actions={
-        <FlexRow gap={2}>
-          <EditorButton variant="text" onClick={onClose}>
-            Cancel
-          </EditorButton>
-          <EditorButton
-            variant="outlined"
-            onClick={handleProvision}
-            disabled={!effective || isProvisioning}
-          >
-            Provision
-          </EditorButton>
-        </FlexRow>
-      }
+      maxWidth="xs"
+      fullWidth
+      onConfirm={handleProvision}
+      confirmText="Provision"
+      confirmDisabled={!effective}
+      isLoading={isProvisioning}
     >
-      <FlexColumn gap={2} sx={{ pt: 1 }}>
+      <FlexColumn gap={SPACING.md}>
         {profileNames.length === 0 ? (
           <Caption size="small">
-            No worker profiles yet. Open <strong>Manage Profiles</strong> to
+            No worker profiles yet. Open <strong>Manage profiles</strong> to
             create one.
           </Caption>
         ) : (
@@ -347,6 +339,9 @@ const WorkersPanel: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orphanWarning, setOrphanWarning] = useState<OrphanWarning | null>(null);
+  const [terminateTargetId, setTerminateTargetId] = useState<string | null>(
+    null
+  );
   const now = Date.now();
 
   const shownInstances = useMemo(
@@ -410,23 +405,24 @@ const WorkersPanel: React.FC = () => {
     [resume, runAction]
   );
 
-  const handleTerminate = useCallback(
-    async (id: string) => {
-      // Destroying the volume loses the cached models — confirm first.
-      if (
-        !window.confirm(
-          "Terminate this worker? Its volume and all cached models are " +
-            "permanently deleted. This stops all billing."
-        )
-      ) {
-        return;
-      }
+  // Destroying the volume loses the cached models — confirm first.
+  const handleTerminate = useCallback((id: string) => {
+    setTerminateTargetId(id);
+  }, []);
+
+  const closeTerminateConfirm = useCallback(() => {
+    setTerminateTargetId(null);
+  }, []);
+
+  const handleConfirmTerminate = useCallback(() => {
+    const id = terminateTargetId;
+    if (id === null) return;
+    void (async () => {
       setStoppingId(id);
       await runAction(() => terminate(id));
       setStoppingId(null);
-    },
-    [terminate, runAction]
-  );
+    })();
+  }, [terminateTargetId, terminate, runAction]);
 
   const handleStopAll = useCallback(() => {
     void runAction(() => stopAll());
@@ -481,7 +477,7 @@ const WorkersPanel: React.FC = () => {
               onClick={() => setProfilesOpen(true)}
               aria-label="Manage profiles"
             >
-              Manage Profiles
+              Manage profiles
             </EditorButton>
             <EditorButton
               density="compact"
@@ -581,6 +577,17 @@ const WorkersPanel: React.FC = () => {
         createProfile={createProfile}
         deleteProfile={deleteProfile}
         apiKeyStatus={apiKeyStatus}
+      />
+
+      <ConfirmDialog
+        open={terminateTargetId !== null}
+        onClose={closeTerminateConfirm}
+        onConfirm={handleConfirmTerminate}
+        title="Terminate worker?"
+        content="Its volume and all cached models are permanently deleted. This stops all billing."
+        confirmText="Terminate"
+        cancelText="Cancel"
+        destructive
       />
     </FlexColumn>
   );

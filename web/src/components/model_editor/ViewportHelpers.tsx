@@ -13,6 +13,7 @@ import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import FlashlightOnIcon from "@mui/icons-material/FlashlightOn";
 
 import { BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
+import { depthRange, type CapturePass } from "./aiRender";
 
 export type ViewPreset = "front" | "back" | "right" | "left" | "top" | "bottom";
 
@@ -581,11 +582,16 @@ export const CaptureBridge = ({ targetRef }: CaptureBridgeProps) => {
 /**
  * Render the editor root alone: the grid, gizmos and helpers are hidden for
  * the frame, and a solid background replaces the transparent canvas.
+ *
+ * `depth` and `normal` swap every material for a depth or normal material
+ * for that one frame. Depth is drawn with near and far planes fitted to the
+ * scene, nearer surfaces brighter, on a black background.
  */
 export const captureModelOnly = (
   handles: CaptureHandles,
   root: THREE.Object3D,
-  background: THREE.Color
+  background: THREE.Color,
+  pass: CapturePass = "shaded"
 ): string => {
   const { gl, scene, camera } = handles;
   const hidden: THREE.Object3D[] = [];
@@ -596,11 +602,41 @@ export const captureModelOnly = (
     }
   }
   const previousBackground = scene.background;
-  scene.background = background;
+  const previousOverride = scene.overrideMaterial;
+  const projection =
+    camera instanceof THREE.PerspectiveCamera || camera instanceof THREE.OrthographicCamera
+      ? camera
+      : null;
+  const previousPlanes = projection ? { near: projection.near, far: projection.far } : null;
+  let override: THREE.Material | null = null;
+  if (pass === "depth") {
+    override = new THREE.MeshDepthMaterial();
+    scene.background = new THREE.Color(0x000000);
+    const range = depthRange(new THREE.Box3().setFromObject(root), camera);
+    if (projection && range) {
+      projection.near = range.near;
+      projection.far = range.far;
+      projection.updateProjectionMatrix();
+    }
+  } else if (pass === "normal") {
+    override = new THREE.MeshNormalMaterial();
+    // The normal of a surface facing the camera, so empty space reads as flat.
+    scene.background = new THREE.Color(0.5, 0.5, 1);
+  } else {
+    scene.background = background;
+  }
+  scene.overrideMaterial = override;
   try {
     gl.render(scene, camera);
     return gl.domElement.toDataURL("image/png");
   } finally {
+    scene.overrideMaterial = previousOverride;
+    override?.dispose();
+    if (projection && previousPlanes) {
+      projection.near = previousPlanes.near;
+      projection.far = previousPlanes.far;
+      projection.updateProjectionMatrix();
+    }
     scene.background = previousBackground;
     for (const child of hidden) {
       child.visible = true;

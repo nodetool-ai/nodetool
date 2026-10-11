@@ -8,7 +8,12 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { classifyPublishResult } from "../publish-packages.mjs";
+import {
+  classifyPublishResult,
+  publishOrder,
+  unmetDeps,
+  workspaceDeps
+} from "../publish-packages.mjs";
 
 /** The 404 that killed every release from 0.7.0-rc.38 onward. */
 const UNAUTHORIZED_404 = [
@@ -45,5 +50,58 @@ describe("classifyPublishResult", () => {
     expect(classifyPublishResult(1, "npm error 404 version 1.2.3 not found")).toBe(
       "failed"
     );
+  });
+});
+
+describe("workspaceDeps", () => {
+  it("collects workspace names from every dependency field", () => {
+    const names = new Set(["@nodetool-ai/a", "@nodetool-ai/b", "@nodetool-ai/c"]);
+    const pkg = {
+      name: "@nodetool-ai/c",
+      dependencies: { "@nodetool-ai/a": "*", chalk: "^5.0.0" },
+      peerDependencies: { "@nodetool-ai/b": "*" },
+      devDependencies: { "@nodetool-ai/c": "*" }
+    };
+    expect(workspaceDeps(pkg, names).sort()).toEqual([
+      "@nodetool-ai/a",
+      "@nodetool-ai/b"
+    ]);
+  });
+});
+
+describe("publishOrder", () => {
+  it("puts each package after its workspace dependencies", () => {
+    const order = publishOrder([
+      { name: "cli", deps: ["agents", "app-runtime"] },
+      { name: "agents", deps: ["app-runtime"] },
+      { name: "app-runtime", deps: [] },
+      { name: "protocol", deps: [] }
+    ]).map((p) => p.name);
+    expect(order).toEqual(["app-runtime", "protocol", "agents", "cli"]);
+  });
+
+  it("throws on a dependency cycle instead of looping", () => {
+    expect(() =>
+      publishOrder([
+        { name: "a", deps: ["b"] },
+        { name: "b", deps: ["a"] }
+      ])
+    ).toThrow(/cycle among: a, b/);
+  });
+});
+
+describe("unmetDeps", () => {
+  // The 0.8.2 release: app-runtime's PUT returned 404, then agents and cli
+  // published anyway and pointed at an app-runtime@0.8.2 that never existed.
+  it("blocks a package whose dependency failed to publish", () => {
+    const available = new Set(["protocol"]);
+    expect(unmetDeps({ name: "agents", deps: ["app-runtime", "protocol"] }, available)).toEqual([
+      "app-runtime"
+    ]);
+  });
+
+  it("lets a package through once every dependency is available", () => {
+    const available = new Set(["app-runtime", "protocol"]);
+    expect(unmetDeps({ name: "agents", deps: ["app-runtime", "protocol"] }, available)).toEqual([]);
   });
 });

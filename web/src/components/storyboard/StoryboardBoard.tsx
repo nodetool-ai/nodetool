@@ -62,6 +62,7 @@ import {
 import RenderCostSummary from "./RenderCostSummary";
 
 import {
+  AlertBanner,
   Box,
   Card,
   Caption,
@@ -1557,30 +1558,18 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             open={downloadFallbackError !== null}
             onClose={() => setDownloadFallbackError(null)}
             title="Latest changes could not be saved"
-            actions={
-              <FlexRow gap={SPACING.sm} align="center">
-                <EditorButton onClick={() => setDownloadFallbackError(null)}>
-                  Cancel
-                </EditorButton>
-                <EditorButton
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    setDownloadFallbackError(null);
-                    void downloadZip(false);
-                  }}
-                >
-                  Download last saved version
-                </EditorButton>
-              </FlexRow>
-            }
+            onConfirm={() => {
+              setDownloadFallbackError(null);
+              void downloadZip(false);
+            }}
+            confirmText="Download last saved version"
           >
-            <FlexColumn gap={SPACING.xs}>
+            <FlexColumn gap={SPACING.md}>
               <Text>
                 Downloading now would use the older version currently stored on
                 the server.
               </Text>
-              <Caption color="error">{downloadFallbackError}</Caption>
+              <AlertBanner severity="error">{downloadFallbackError}</AlertBanner>
             </FlexColumn>
           </Dialog>
 

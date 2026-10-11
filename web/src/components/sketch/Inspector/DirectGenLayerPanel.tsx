@@ -9,7 +9,7 @@
  * live on the binding itself.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import TvIcon from "@mui/icons-material/Tv";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -74,6 +74,12 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   const patchBinding = useSketchSessionStore((s) => s.patchBinding);
   const layers = useSketchStore((s) => s.document.layers);
   const { start, cancel } = useDirectGenJob();
+  // The inspector can put Generate below its fold, where the tool bar's own
+  // Generate (a separate text-to-image form) is the one in sight.
+  const generateRef = useRef<HTMLButtonElement>(null);
+  const revealGenerate = useCallback(() => {
+    generateRef.current?.scrollIntoView({ block: "nearest" });
+  }, []);
   // Written before the status flips to failed, so this render already has it.
   const failure =
     binding.status === "failed" ? directGenFailure(layer.id) : null;
@@ -169,6 +175,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
         <TextInput
           value={binding.prompt ?? ""}
           onChange={(e) => patchBinding(layer.id, { prompt: e.target.value })}
+          onFocus={revealGenerate}
           placeholder="Describe the image…"
           aria-label="Image prompt"
           sx={{ "& .MuiOutlinedInput-root": sketchFieldSx }}
@@ -252,6 +259,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           <EditorButton
             size="small"
             variant="contained"
+            ref={generateRef}
             disabled={!canGenerate}
             onClick={() => void start(layer.id)}
             data-testid="direct-gen-generate"

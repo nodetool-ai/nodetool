@@ -225,6 +225,9 @@ interface SubmenuAnchor {
  */
 type SetupTarget = GuidedFlowTarget;
 
+/** The notice asking for a model; dismissed once the model is picked. */
+const PICK_MODEL_NOTICE_KEY = "new-project-pick-model";
+
 const SETUP_TARGET_STORAGE_KEY = "nodetool-guided-setup-target";
 const SETUP_TARGET_KINDS: ReadonlySet<string> = new Set([
   "entity",
@@ -534,6 +537,9 @@ const NewProjectSurface = ({
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const removeNotificationsByKey = useNotificationStore(
+    (state) => state.removeNotificationsByKey
+  );
   const providerReadiness = useLanguageProviderReadiness();
   const hasConfiguredProvider = providerReadiness.ready;
   const selectedModel = useGlobalChatStore((state) => state.selectedModel);
@@ -744,7 +750,8 @@ const NewProjectSurface = ({
       addNotification({
         type: "info",
         alert: true,
-        content: "Pick a language model and the chat starts."
+        content: "Pick a language model and the chat starts.",
+        dedupeKey: PICK_MODEL_NOTICE_KEY
       });
       return;
     }
@@ -1770,8 +1777,9 @@ const NewProjectSurface = ({
       return;
     }
     setPendingModelStart(false);
+    removeNotificationsByKey(PICK_MODEL_NOTICE_KEY);
     void resumeProject.current();
-  }, [pendingModelStart, selectedModel]);
+  }, [pendingModelStart, selectedModel, removeNotificationsByKey]);
 
   // The handler rides the field wrapper, where MUI puts unknown props, and the
   // keydown reaches it by bubbling from the textarea. Both pickers only read

@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, Z_INDEX } from "../ui_primitives";
+import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, TYPOGRAPHY, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import WorkflowSelect from "./WorkflowSelect";
@@ -147,8 +147,8 @@ const CollectionItem = ({
       borderColor: "primary.main",
       borderRadius: BORDER_RADIUS.md,
       m: 0.5,
-      width: "calc(100% - 8px)",
-      boxShadow: "0 0 0 1px rgb(var(--mui-palette-primary-mainChannel) / 0.08)",
+      width: `calc(100% - ${getSpacingPx(SPACING.md)})`,
+      boxShadow: "0 0 0 1px rgb(var(--palette-primary-mainChannel) / 0.08)",
       "& > :not(.drop-zone-overlay)": {
         opacity: 0.12,
         filter: "blur(1px)"
@@ -171,7 +171,11 @@ const CollectionItem = ({
       sx={listItemSx}
       gap={2}
     >
-      <FlexRow justify="flex-end" sx={{ position: "absolute", top: 8, right: 8 }}>
+      <FlexRow justify="flex-end" sx={{
+          position: "absolute",
+          top: getSpacingPx(SPACING.md),
+          right: getSpacingPx(SPACING.md)
+        }}>
         {deletingCollection === collection.name ? (
           <LoadingSpinner size={20} inline />
         ) : (
@@ -198,15 +202,14 @@ const CollectionItem = ({
           }}
         >
           <Text
-            size="normal"
-            weight={600}
+            size="small"
             sx={{
               color: "primary.main",
               display: "flex",
               alignItems: "center",
               gap: 1.5,
               pointerEvents: "none",
-              textShadow: "0 0 10px rgb(var(--mui-palette-primary-mainChannel) / 0.2)"
+              textShadow: "0 0 10px rgb(var(--palette-primary-mainChannel) / 0.2)"
             }}
           >
             <UploadFileIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
@@ -217,11 +220,10 @@ const CollectionItem = ({
       <FlexRow align="center" gap={SPACING.lg} fullWidth>
         <Tooltip title={`Collection: ${collection.name}`}>
           <Text
-            weight={600}
+            size="small"
             truncate
             sx={{
               color: "text.primary",
-              fontSize: "var(--fontSizeBig)",
               flexShrink: 0,
               maxWidth: "150px"
             }}
@@ -236,21 +238,13 @@ const CollectionItem = ({
 
       <FlexRow align="center" gap={SPACING.lg} fullWidth>
         <Tooltip title="Number of documents in this collection">
-          <Text
-            size="small"
-            color="secondary"
-            sx={{
-              fontSize: "0.8em",
-              flexShrink: 0
-            }}
-          >
+          <Caption color="secondary" sx={{ flexShrink: 0 }}>
             {collection.count} item{collection.count === 1 ? "" : "s"}
-          </Text>
+          </Caption>
         </Tooltip>
         <Tooltip title="Model used for embedding documents">
           <Caption
             sx={{
-              fontSize: "0.8em",
               flexShrink: 1,
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -283,8 +277,8 @@ const CollectionItem = ({
             <EditorButton
               variant="text"
               sx={{
+                ...TYPOGRAPHY.sans.caption,
                 color: "text.secondary",
-                fontSize: "0.8em",
                 cursor: "pointer",
                 flexShrink: 1,
                 overflow: "hidden",

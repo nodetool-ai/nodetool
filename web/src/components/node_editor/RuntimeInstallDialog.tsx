@@ -17,6 +17,7 @@ import {
   Text,
   Chip,
   LoadingSpinner,
+  AlertBanner,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
@@ -182,14 +183,15 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
       open={open}
       onClose={handleDialogClose}
       title="Install required runtimes"
-      minWidth="min(440px, 100vw - 32px)"
+      maxWidth="xs"
+      fullWidth
       onConfirm={allInstalled ? onClose : handleInstall}
-      onCancel={onClose}
       confirmText={confirmText}
       cancelText="Later"
       isLoading={installing}
+      cancelDisabled={installing}
     >
-      <FlexColumn gap={2}>
+      <FlexColumn gap={SPACING.md}>
         <Text size="smaller" color="secondary">
           This workflow uses nodes that need{" "}
           <Text component="span" weight={500} color="inherit">
@@ -199,7 +201,7 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
         </Text>
 
         <FlexColumn
-          gap={0.5}
+          gap={SPACING.micro}
           sx={{
             backgroundColor: theme.vars.palette.action.disabledBackground,
             borderRadius: BORDER_RADIUS.md,
@@ -220,17 +222,9 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
         </FlexColumn>
 
         {allInstalled && (
-          <FlexRow gap={1} align="center">
-            <CheckCircleOutlineIcon
-              sx={{
-                fontSize: "var(--fontSizeNormal)",
-                color: theme.vars.palette.success.main,
-              }}
-            />
-            <Text size="smaller" color="success">
-              All runtimes installed. You can run this workflow now.
-            </Text>
-          </FlexRow>
+          <AlertBanner severity="success" compact>
+            All runtimes installed. You can run this workflow now.
+          </AlertBanner>
         )}
 
         {!allInstalled && (
@@ -266,7 +260,7 @@ interface RuntimeRowProps {
 const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
   return (
     <FlexRow
-      gap={1}
+      gap={SPACING.xs}
       align="center"
       justify="space-between"
       fullWidth
@@ -275,8 +269,8 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
         borderRadius: BORDER_RADIUS.sm,
       }}
     >
-      <FlexColumn gap={0.25}>
-        <FlexRow gap={1} align="center">
+      <FlexColumn gap={SPACING.micro}>
+        <FlexRow gap={SPACING.xs} align="center">
           {status === "installing" ? (
             <LoadingSpinner inline size={16} />
           ) : status === "installed" ? (
@@ -297,7 +291,7 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
           </Text>
         </FlexRow>
         {error && (
-          <Text size="smaller" color="error" sx={{ pl: 3 }}>{error}</Text>
+          <Text size="smaller" color="error" sx={{ pl: SPACING.lg }}>{error}</Text>
         )}
       </FlexColumn>
       <Chip

@@ -5,7 +5,10 @@ import {
   BORDER_RADIUS,
   SPACING_PX,
   getSpacingPx,
-  SPACING
+  SPACING,
+  TYPOGRAPHY,
+  focusRing,
+  reducedMotion
 } from "../../ui_primitives";
 
 const modelListItemStyles = (theme: Theme) =>
@@ -19,25 +22,27 @@ const modelListItemStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.c_overlay_subtle,
       transition: `${MOTION.background}, ${MOTION.border}`,
+      ...reducedMotion({ transition: MOTION.none }),
 
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
-        borderColor: "rgba(var(--palette-primary-main-channel) / 0.35)"
+        borderColor: "rgba(var(--palette-primary-mainChannel) / 0.35)"
       },
 
       "&.selectable": {
-        cursor: "pointer"
+        cursor: "pointer",
+        "&:focus-visible": focusRing(theme)
       },
       "&.selectable:hover": {
-        backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.06)",
-        borderColor: "rgba(var(--palette-primary-main-channel) / 0.55)"
+        backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.06)",
+        borderColor: "rgba(var(--palette-primary-mainChannel) / 0.55)"
       },
       "&.selectable.downloaded": {
-        borderColor: "rgba(var(--palette-success-main-channel) / 0.3)"
+        borderColor: "rgba(var(--palette-success-mainChannel) / 0.3)"
       },
       "&.selectable.downloaded:hover": {
-        backgroundColor: "rgba(var(--palette-success-main-channel) / 0.06)",
-        borderColor: "rgba(var(--palette-success-main-channel) / 0.6)"
+        backgroundColor: "rgba(var(--palette-success-mainChannel) / 0.06)",
+        borderColor: "rgba(var(--palette-success-mainChannel) / 0.6)"
       },
 
       "&.compact": {
@@ -48,20 +53,17 @@ const modelListItemStyles = (theme: Theme) =>
         },
         "& .model-name": {
           WebkitLineClamp: 1,
-          fontSize: "var(--fontSizeNormal)",
+          ...TYPOGRAPHY.sans.label,
+          letterSpacing: "normal",
           wordBreak: "normal",
           overflowWrap: "anywhere"
-        },
-        "& .model-owner": {
-          fontSize: "var(--fontSizeSmall)"
         },
         "& .actions-container": {
           minWidth: 0,
           gap: `${SPACING_PX.md}px`
         },
         "& .model-size": {
-          minWidth: 0,
-          fontSize: "var(--fontSizeSmaller)"
+          minWidth: 0
         },
         "& .model-info-container > .model-details": {
           display: "none"
@@ -125,9 +127,7 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-owner": {
         color: theme.vars.palette.text.secondary,
-        fontSize: "var(--fontSizeSmall)",
-        fontWeight: 500,
-        lineHeight: 1.3
+        ...TYPOGRAPHY.sans.label
       },
 
       "& .model-name": {
@@ -135,16 +135,14 @@ const modelListItemStyles = (theme: Theme) =>
         WebkitLineClamp: 2,
         WebkitBoxOrient: "vertical",
         overflow: "hidden",
-        fontSize: "var(--fontSizeBig)",
-        fontWeight: 600,
-        lineHeight: 1.3,
+        ...TYPOGRAPHY.sans.title,
         wordBreak: "break-word",
         letterSpacing: "-0.01em"
       },
       "& .model-path": {
         display: "block",
         color: theme.vars.palette.text.secondary,
-        fontSize: "var(--fontSizeSmall)"
+        ...TYPOGRAPHY.sans.caption
       },
       "& .model-details": {
         display: "flex",
@@ -156,7 +154,7 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-size": {
         color: theme.vars.palette.text.secondary,
-        fontSize: "var(--fontSizeSmall)",
+        ...TYPOGRAPHY.sans.caption,
         fontVariantNumeric: "tabular-nums",
         textAlign: "right",
         whiteSpace: "nowrap"

@@ -174,53 +174,45 @@ const groupStyles = css({
   minWidth: 0
 });
 
-const rowStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: getSpacingPx(SPACING.lg),
-    padding: `${getSpacingPx(SPACING.xs)} 0`,
-    borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    "&:last-of-type": { borderBottom: "none" }
-  });
+const rowSx = (theme: Theme) => ({
+  py: SPACING.xs,
+  borderBottom: `1px solid ${theme.vars.palette.divider}`,
+  "&:last-of-type": { borderBottom: "none" }
+});
 
 const groupTitleSx = {
   ...TYPOGRAPHY.sans.label,
   color: "text.secondary"
 } as const;
 
-const keysCellStyles = css({
-  display: "flex",
-  alignItems: "center",
-  gap: getSpacingPx(SPACING.xs),
-  flexShrink: 0
-});
-
 const ShortcutRow: React.FC<{ row: Row; preset: TimelineKeyboardPreset }> = ({
   row,
   preset
 }) => {
-  const theme = useTheme();
   const combos: string[][] = row.action
     ? TIMELINE_KEYMAPS[preset][row.action].map(bindingKeys)
     : row.keys
       ? [row.keys]
       : [];
   return (
-    <div css={rowStyles(theme)}>
+    <FlexRow
+      align="center"
+      justify="space-between"
+      gap={SPACING.lg}
+      sx={rowSx}
+    >
       <Text size="small" sx={{ minWidth: 0 }}>
         {row.label}
       </Text>
-      <div css={keysCellStyles}>
+      <FlexRow align="center" gap={SPACING.xs} sx={{ flexShrink: 0 }}>
         {combos.map((keys, i) => (
           <React.Fragment key={keys.join("+")}>
-            {i > 0 && <Caption sx={{ opacity: 0.6 }}>or</Caption>}
+            {i > 0 && <Caption color="secondary">or</Caption>}
             <ShortcutHint shortcut={keys} />
           </React.Fragment>
         ))}
-      </div>
-    </div>
+      </FlexRow>
+    </FlexRow>
   );
 };
 
@@ -252,9 +244,10 @@ export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
         open={open}
         onClose={onClose}
         title="Keyboard shortcuts"
-        minWidth="min(680px, 100vw - 32px)"
+        maxWidth="md"
+        fullWidth
       >
-        <FlexRow align="center" gap={1} sx={{ pb: 1 }}>
+        <FlexRow align="center" gap={SPACING.xs} sx={{ pb: SPACING.xs }}>
           <Caption sx={groupTitleSx}>Layout</Caption>
           <ToggleGroup
             value={preset}
@@ -276,11 +269,11 @@ export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
             gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
             gap: getSpacingPx(SPACING.xl),
             paddingTop: getSpacingPx(SPACING.sm),
-            "@media (max-width: 560px)": { gridTemplateColumns: "1fr" }
+            [theme.breakpoints.down("sm")]: { gridTemplateColumns: "1fr" }
           })}
         >
           {TIMELINE_SHORTCUT_GROUPS.map((group) => (
-            <FlexColumn key={group.title} gap={0.5} css={groupStyles}>
+            <FlexColumn key={group.title} gap={SPACING.micro} css={groupStyles}>
               <Caption sx={groupTitleSx}>{group.title}</Caption>
               {group.rows.map((row) => (
                 <ShortcutRow key={row.label} row={row} preset={preset} />
@@ -291,12 +284,16 @@ export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
         <FlexRow
           justify="center"
           align="center"
-          gap={0.5}
-          sx={{ pt: 2, mt: 1, borderTop: `1px solid ${theme.vars.palette.divider}` }}
+          gap={SPACING.micro}
+          sx={{
+            pt: SPACING.md,
+            mt: SPACING.xs,
+            borderTop: `1px solid ${theme.vars.palette.divider}`
+          }}
         >
-          <Caption sx={{ opacity: 0.7 }}>Press</Caption>
+          <Caption color="secondary">Press</Caption>
           <ShortcutHint shortcut={["?"]} />
-          <Caption sx={{ opacity: 0.7 }}>
+          <Caption color="secondary">
             any time to toggle this panel · Ctrl also responds to ⌘ on macOS
           </Caption>
         </FlexRow>
