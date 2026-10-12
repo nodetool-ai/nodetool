@@ -79,13 +79,14 @@ const errorStyles = (theme: Theme) =>
       marginTop: getSpacingPx(SPACING.sm),
       paddingRight: getSpacingPx(18),
     },
+    // In the flow above the text: absolutely placed, the buttons covered the
+    // first line of the error on a narrow node.
     ".error-actions": {
       display: "flex",
       alignItems: "center",
+      justifyContent: "flex-end",
+      flexWrap: "wrap",
       gap: getSpacingPx(SPACING.xs),
-      position: "absolute",
-      top: 10,
-      right: 10,
     },
   });
 
