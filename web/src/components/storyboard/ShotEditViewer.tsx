@@ -247,6 +247,9 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
   const acceptClipVersion = useStoryboardStore(
     (state) => state.acceptClipVersion
   );
+  const setShotKeyframe = useStoryboardStore(
+    (state) => state.setShotKeyframe
+  );
   const appendShotKeyframeVersion = useStoryboardStore(
     (state) => state.appendShotKeyframeVersion
   );
@@ -364,25 +367,21 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
     [shot.id]
   );
 
-  /** Upload a rendered still as a candidate without changing current media. */
+  /** Upload a rendered still and make it the shot's current still. */
   const addVersion = useCallback(
     (file: File, failure: string) =>
       uploadAsset({
         file,
         onCompleted: (asset) => {
           setBusy(false);
-          appendShotKeyframeVersion(
-            boardId,
-            shot.id,
-            mediaRefFromAsset(asset, "image")
-          );
+          setShotKeyframe(boardId, shot.id, mediaRefFromAsset(asset, "image"));
         },
         onFailed: (error) => {
           setBusy(false);
           reportFailure(error, failure);
         }
       }),
-    [uploadAsset, appendShotKeyframeVersion, boardId, shot.id]
+    [uploadAsset, setShotKeyframe, boardId, shot.id]
   );
 
   const handleStageKeyDown = useCallback(

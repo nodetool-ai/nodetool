@@ -283,7 +283,7 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     expect(storedShot().keyframe?.asset_id).toBe("still-1");
   });
 
-  it("adds the flip as a new take, leaving the still it mirrored in place", async () => {
+  it("makes the flip the current still and keeps the still it mirrored", async () => {
     renderViewer(seedShot());
 
     await userEvent.click(
@@ -302,7 +302,7 @@ describe("ShotEditViewer versions (criterion 15)", () => {
       "still-1",
       "still-2"
     ]);
-    expect(shot.keyframe?.asset_id).toBe("still-1");
+    expect(shot.keyframe?.asset_id).toBe("still-2");
   });
 
   it("opens the image editor on a copy, so the edit lands as a new take", async () => {

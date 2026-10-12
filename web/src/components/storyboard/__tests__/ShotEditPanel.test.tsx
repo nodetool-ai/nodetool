@@ -2,7 +2,7 @@
  * Criterion 14, against the real storyboard store: the panel edits every
  * field in § 7.7.2, `Save` is one undo step, closing dirty asks, `Regenerate`
  * renders from the saved values, dialogue is read-only on a linked board, and
- * the ERT chip toggles `duration_source`.
+ * the duration source chip toggles `duration_source`.
  *
  * The store is real because the undo assertion is the point: one `undo()` has
  * to put every edited field back, which a mocked `updateShot` cannot show.
@@ -25,7 +25,7 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
 }));
 
 // The linked script: one line, voiced with a 3.4 s take plus 250 ms silence,
-// so an unpinned ERT reads 4 s from the takes.
+// so an unpinned duration reads 4 s from the takes.
 let lineIsVoiced = true;
 jest.mock("../../../trpc/client", () => ({
   trpc: {
@@ -256,7 +256,7 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     seed([baseShot({ duration_seconds: 3 })]);
     renderPanel();
 
-    await typeInto("Estimated running time in seconds", "9");
+    await typeInto("Duration in seconds", "9");
 
     expect(mockCostShot?.duration_seconds).toBe(9);
   });
@@ -279,7 +279,7 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     await typeInto("End", "The lamp fills the frame");
     await typeInto("Sound", "Gulls and surf");
     await typeInto("Dialogue", "We are open.");
-    await typeInto("Estimated running time in seconds", "7");
+    await typeInto("Duration in seconds", "7");
     await choose("Size", "wide");
     await choose("Perspective", "low angle");
     await choose("Movement", "pan left");
@@ -319,7 +319,7 @@ describe("ShotEditPanel fields (criterion 14)", () => {
 
     await typeInto("Description", "A lighthouse at dawn");
     await choose("Size", "wide");
-    await typeInto("Estimated running time in seconds", "7");
+    await typeInto("Duration in seconds", "7");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(storedShot().camera?.framing).toBe("wide");
 
@@ -603,12 +603,12 @@ describe("ShotEditPanel on a linked board (PRD D9)", () => {
 
     // 3400 ms + 250 ms of silence, rounded up — the takes' own duration.
     expect(
-      screen.getByLabelText("Estimated running time in seconds")
+      screen.getByLabelText("Duration in seconds")
     ).toHaveAttribute("placeholder", "4");
-    expect(screen.getByText("from takes")).toBeInTheDocument();
+    expect(screen.getByText("From voice takes")).toBeInTheDocument();
 
-    await typeInto("Estimated running time in seconds", "9");
-    expect(screen.getByText("pinned")).toBeInTheDocument();
+    await typeInto("Duration in seconds", "9");
+    expect(screen.getByText("Set by hand")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(storedShot()).toMatchObject({
@@ -618,11 +618,11 @@ describe("ShotEditPanel on a linked board (PRD D9)", () => {
 
     // The chip hands timing back to the takes; the typed value stays put so
     // it can be pinned again.
-    await userEvent.click(screen.getByText("pinned"));
+    await userEvent.click(screen.getByText("Set by hand"));
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(storedShot().duration_source).toBe("audio");
     expect(
-      screen.getByLabelText("Estimated running time in seconds")
+      screen.getByLabelText("Duration in seconds")
     ).toHaveValue(9);
   });
 });

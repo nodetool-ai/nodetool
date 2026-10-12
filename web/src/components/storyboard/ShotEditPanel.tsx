@@ -210,7 +210,7 @@ const DRAFT_LABELS: Record<ShotDraftKey, string> = {
   lighting: "Scene lighting",
   action: "Description",
   dialogue: "Dialogue",
-  durationSeconds: "Estimated running time",
+  durationSeconds: "Duration",
   durationSource: "Duration source",
   framing: "Size",
   angle: "Perspective",

@@ -1414,7 +1414,7 @@ describe("still variants", () => {
     });
   });
 
-  it("lands the result beside the current still, not over it", async () => {
+  it("makes the result the current still and keeps the source still", async () => {
     const { result } = renderHook(() => useGenerateShot());
     await act(async () => {
       await result.current.generateStillVariant(BOARD, still, {
@@ -1441,9 +1441,10 @@ describe("still variants", () => {
       .getState()
       .getBoard(BOARD)
       ?.shots.find((item) => item.id === still.id);
-    expect(settled?.keyframe?.asset_id).toBe("still-1");
-    expect(
-      settled?.keyframe_versions?.some((v) => v.asset_id === "upscaled-1")
-    ).toBe(true);
+    expect(settled?.keyframe?.asset_id).toBe("upscaled-1");
+    expect(settled?.keyframe_versions?.map((v) => v.asset_id)).toEqual([
+      "still-1",
+      "upscaled-1"
+    ]);
   });
 });

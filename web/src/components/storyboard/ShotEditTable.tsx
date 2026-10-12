@@ -250,11 +250,11 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
               compact
               size="small"
               type="number"
-              label="ERT"
+              label="Duration (seconds)"
               placeholder={
                 !pinned && takesDuration != null
                   ? String(takesDuration)
-                  : "auto"
+                  : "Model default"
               }
               disabled={readOnly}
               value={draft.durationSeconds}
@@ -267,19 +267,19 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
               inputProps={{
                 min: 1,
                 step: 1,
-                "aria-label": "Estimated running time in seconds"
+                "aria-label": "Duration in seconds"
               }}
             />
             {linksLines && (
               <Chip
                 compact
                 variant="outlined"
-                label={pinned ? "pinned" : "from takes"}
+                label={pinned ? "Set by hand" : "From voice takes"}
                 sx={chipSx}
                 title={
                   pinned
-                    ? "Length is pinned to the shot's own value. Click to take it from the lines this shot covers."
-                    : "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own value."
+                    ? "The duration is the value you typed. Click to use the length of the voice takes for this shot's lines."
+                    : "The duration is the length of the voice takes for this shot's lines. Click to type your own value."
                 }
                 onClick={readOnly ? undefined : handleToggleDurationSource}
               />
