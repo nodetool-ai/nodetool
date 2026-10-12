@@ -26,6 +26,7 @@ import {
 import type { DocsTopic } from "../../config/docsLinks";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../lib/env";
+import { isCloudProfile } from "../../lib/runtimeConfig";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
@@ -491,9 +492,10 @@ function SettingsPage() {
   // Provider, …) then Folders; Servers (localhost) and the Nodetool API token
   // (hosted) follow.
   const integrationsSidebarSections = useMemo(() => {
+    // Folders are host paths, which the cloud neither shows nor accepts.
     const configItems = [
       ...getDisplayedSettingGroups(remoteSettings ?? []),
-      { id: "folders", label: "Folders" }
+      ...(isCloudProfile() ? [] : [{ id: "folders", label: "Folders" }])
     ];
     return [
       { category: "Configuration", items: configItems },
@@ -1110,7 +1112,8 @@ function SettingsPage() {
                   <div className="integrations-settings">
                   <RemoteSettingsMenuComponent search={searchTerm} />
 
-                  {matchesSearch(
+                  {!isCloudProfile() &&
+                    matchesSearch(
                     "folders assets workspace directory storage",
                     search
                   ) && (

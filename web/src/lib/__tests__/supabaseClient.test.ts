@@ -27,7 +27,8 @@ const LOCAL_CONFIG: RuntimeConfig = {
   authRedirectUrl: null,
   googleWorkspace: false,
   googleScopes: [],
-  version: null
+  version: null,
+  cloudProfile: false
 };
 
 const SUPABASE_URL = "https://project.supabase.co";

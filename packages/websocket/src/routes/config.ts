@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
 import { GOOGLE_WORKSPACE_SCOPES } from "@nodetool-ai/runtime";
 import { getVersion } from "./health.js";
+import { isCloudProfile } from "../lib/cloud-profile.js";
 
 /**
  * Public, non-secret runtime configuration for the web client.
@@ -60,8 +61,14 @@ const configRoute: FastifyPluginAsync = async (app) => {
     // token to /api/oauth/google/session.
     const googleWorkspace = isGoogleWorkspaceEnabled();
 
+    // The commercial cloud hides the surfaces that manage the server's own
+    // machine (model downloads, node packs, workers, host folders). A
+    // self-hosted install runs with the full profile and keeps them.
+    const cloudProfile = isCloudProfile();
+
     return reply.status(200).send({
       authMode,
+      cloudProfile,
       supabaseUrl,
       supabaseAnonKey,
       authRedirectUrl,

@@ -278,6 +278,36 @@ export function isSelfServeProvider(providerId: string): boolean {
 }
 
 /**
+ * Settings catalog groups the cloud product neither shows nor accepts.
+ *
+ * Each one configures the machine the server runs on rather than the user's
+ * account: a host path (`Folders`), a local engine's address or model folder,
+ * the Python worker's device, or the server's own deployment token. On a
+ * managed multi-tenant server the operator sets these in the environment, so a
+ * tenant reading them learns the operator's host layout, and a tenant writing
+ * them points server-side code at a path or address of their choosing.
+ */
+export const CLOUD_HIDDEN_SETTING_GROUPS: readonly string[] = [
+  "Folders",
+  "TransformersJs",
+  "vLLM",
+  "Ollama",
+  "LlamaCpp",
+  "NodeLlamaCpp",
+  "LMStudio",
+  "WhisperCpp",
+  "WhisperCppServer",
+  "Wan2GP",
+  "PythonNodes",
+  "Deployment"
+];
+
+/** Whether a settings catalog group is offered in the cloud product. */
+export function isCloudSettingGroup(group: string): boolean {
+  return !CLOUD_HIDDEN_SETTING_GROUPS.includes(group);
+}
+
+/**
  * Built-in node packs loaded under the cloud profile. `base` is required and
  * always loads; `fal` and `kie` are the only provider packs kept. Every other
  * provider pack (Replicate, Hugging Face, Together, MiniMax, Topaz, Reve,

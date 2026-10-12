@@ -10,7 +10,9 @@ const ENV_KEYS = [
   "SUPABASE_KEY",
   "SUPABASE_ANON_KEY",
   "AUTH_REDIRECT_URL",
-  "NODETOOL_GOOGLE_WORKSPACE"
+  "NODETOOL_GOOGLE_WORKSPACE",
+  "NODETOOL_NODE_PROFILE",
+  "NODETOOL_ENV"
 ] as const;
 
 describe("/api/config endpoint", () => {
@@ -54,6 +56,20 @@ describe("/api/config endpoint", () => {
     expect(body.supabaseAnonKey).toBe("anon-key");
   });
 
+  it("reports the cloud profile, and a self-hosted full profile as not cloud", async () => {
+    const get = async () =>
+      JSON.parse((await app.inject({ method: "GET", url: "/api/config" })).body)
+        .cloudProfile;
+    expect(await get()).toBe(false);
+    process.env.NODETOOL_ENV = "production";
+    expect(await get()).toBe(true);
+    process.env.NODETOOL_NODE_PROFILE = "full";
+    expect(await get()).toBe(false);
+    process.env.NODETOOL_NODE_PROFILE = "cloud";
+    delete process.env.NODETOOL_ENV;
+    expect(await get()).toBe(true);
+  });
+
   it("never exposes the service-role key", async () => {
     process.env.SUPABASE_URL = "https://x.supabase.co";
     process.env.SUPABASE_KEY = "super-secret-service-role-key";
@@ -64,6 +80,7 @@ describe("/api/config endpoint", () => {
     expect(Object.keys(JSON.parse(res.body)).sort()).toEqual([
       "authMode",
       "authRedirectUrl",
+      "cloudProfile",
       "googleScopes",
       "googleWorkspace",
       "supabaseAnonKey",

@@ -1410,6 +1410,8 @@ export const modelsRouter = router({
           >[0];
         return filterModelsByHfType(cached, input.model_type) as UnifiedModel[];
       }
+      // Scans the server's own HuggingFace cache, like huggingfaceList.
+      if (isProduction()) return [];
       try {
         return await getModelsByHfType(input.model_type);
       } catch {
@@ -1894,6 +1896,11 @@ export const modelsRouter = router({
     .input(hfFastCacheStatusInput)
     .output(hfFastCacheStatusOutput)
     .mutation(async ({ input }) => {
+      // The caches it probes are the server's, which production never offers
+      // to its users.
+      if (isProduction()) {
+        return input.map((item) => ({ key: item.key, downloaded: false }));
+      }
       return Promise.all(
         input.map(async (item) => {
           const allowPatterns = normalizePatterns(item.allow_patterns);

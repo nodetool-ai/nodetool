@@ -18,6 +18,7 @@ import type { NodeStoreState } from "../../stores/NodeStore";
 import { findBuiltinPackForNodeType } from "@nodetool-ai/protocol";
 import usePacksStore from "../../stores/PacksStore";
 import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
+import { isCloudProfile } from "../../lib/runtimeConfig";
 import {
   Box,
   EditorButton,
@@ -109,8 +110,7 @@ const styles = (theme: Theme) =>
         left: "-150%",
         width: "50%",
         height: "100%",
-        background:
-          `linear-gradient(120deg, transparent, ${theme.vars.palette.c_overlay_strong}, transparent)`,
+        background: `linear-gradient(120deg, transparent, ${theme.vars.palette.c_overlay_strong}, transparent)`,
         transform: "skewX(-20deg)",
         transition: `left ${MOTION.slow}`,
         ...reducedMotion({ transition: MOTION.none })
@@ -232,8 +232,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
 
   const mockProperties = useMemo(() => {
     const safeProperties =
-      nodeData?.properties &&
-      typeof nodeData.properties === "object"
+      nodeData?.properties && typeof nodeData.properties === "object"
         ? nodeData.properties
         : {};
     const props = Object.entries(safeProperties).map(([key, value]) => ({
@@ -258,8 +257,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   // Compute a better header title for missing node
   const computedHeaderTitle = useMemo(() => {
     const originalType = nodeData?.originalType;
-    const sourceType =
-      originalType || nodeType || nodeData?.node_type || "";
+    const sourceType = originalType || nodeType || nodeData?.node_type || "";
     const preferredTitle = nodeData?.title;
     const raw =
       preferredTitle && preferredTitle.trim().length > 0
@@ -332,38 +330,45 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         </Text>
       </Tooltip>
 
-      <FlexColumn gap={1} align="center" className="node-actions" sx={{ margin: `${getSpacingPx(SPACING.md)} 0` }}>
-        {disabledPack ? (
-          <Tooltip
-            title={`This node is part of the ${disabledPack.name} pack, which is currently disabled. Enable it to load the node.`}
-          >
-            <EditorButton
-              variant="contained"
-              density="compact"
-              className="install-button"
-              onClick={enablePack}
-              disabled={enabling}
-              startIcon={<ExtensionIcon />}
+      {/* Enabling and installing packs changes the server's own process, which
+          the cloud does not offer. */}
+      {!isCloudProfile() && (
+        <FlexColumn
+          gap={1}
+          align="center"
+          className="node-actions"
+          sx={{ margin: `${getSpacingPx(SPACING.md)} 0` }}
+        >
+          {disabledPack ? (
+            <Tooltip
+              title={`This node is part of the ${disabledPack.name} pack, which is currently disabled. Enable it to load the node.`}
             >
-              {enabling
-                ? "Enabling…"
-                : `Enable ${disabledPack.name} Nodes`}
-            </EditorButton>
-          </Tooltip>
-        ) : (
-          <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
-            <EditorButton
-              variant="contained"
-              density="compact"
-              className="install-button"
-              onClick={openPackageManager}
-              startIcon={<CloudDownloadIcon />}
-            >
-              Search Package Manager
-            </EditorButton>
-          </Tooltip>
-        )}
-      </FlexColumn>
+              <EditorButton
+                variant="contained"
+                density="compact"
+                className="install-button"
+                onClick={enablePack}
+                disabled={enabling}
+                startIcon={<ExtensionIcon />}
+              >
+                {enabling ? "Enabling…" : `Enable ${disabledPack.name} Nodes`}
+              </EditorButton>
+            </Tooltip>
+          ) : (
+            <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
+              <EditorButton
+                variant="contained"
+                density="compact"
+                className="install-button"
+                onClick={openPackageManager}
+                startIcon={<CloudDownloadIcon />}
+              >
+                Search Package Manager
+              </EditorButton>
+            </Tooltip>
+          )}
+        </FlexColumn>
+      )}
 
       {mockProperties.length > 0 && (
         <NodeInputs

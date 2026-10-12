@@ -39,6 +39,12 @@ export interface RuntimeConfig {
   googleScopes: string[];
   /** Backend version, for diagnostics. */
   version: string | null;
+  /**
+   * Whether the backend runs the commercial cloud profile. The cloud hides the
+   * surfaces that manage the server's own machine: model downloads, node
+   * packs, workers, host folders. A self-hosted install reports false.
+   */
+  cloudProfile: boolean;
 }
 
 /**
@@ -57,7 +63,8 @@ const fallbackConfig = (): RuntimeConfig => {
     authRedirectUrl: getBuildEnv("VITE_AUTH_REDIRECT_URL") ?? null,
     googleWorkspace: false,
     googleScopes: [],
-    version: null
+    version: null,
+    cloudProfile: false
   };
 };
 
@@ -93,9 +100,16 @@ const coerce = (data: unknown): RuntimeConfig => {
     authRedirectUrl: d.authRedirectUrl ?? null,
     googleWorkspace: d.googleWorkspace === true,
     googleScopes: Array.isArray(d.googleScopes) ? d.googleScopes : [],
-    version: d.version ?? null
+    version: d.version ?? null,
+    cloudProfile: d.cloudProfile === true
   };
 };
+
+/**
+ * True when the backend runs the commercial cloud profile, so surfaces that
+ * manage the server's own machine are hidden.
+ */
+export const isCloudProfile = (): boolean => current.cloudProfile;
 
 /** True when the backend offers the Google Workspace tools and nodes. */
 export const isGoogleWorkspaceEnabled = (): boolean => current.googleWorkspace;
