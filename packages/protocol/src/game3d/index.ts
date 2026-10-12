@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { gameEntityPropertyValue, gameEntityProps, gameEntityTags } from "../game-entity-metadata.js";
 import { gameEmitCommand } from "../game-script-events.js";
+import { gameSaveLoadedFrame } from "../game-saves.js";
 import type { GameStepTimings } from "../game-step.js";
 import { gameInteractionActor3DComponent } from "./components/interaction-actor.js";
 import { finite, positive, id, tick, color, layerBits } from "./components/common.js";
@@ -119,7 +120,9 @@ export function parseGameDocument(value: unknown): ParseGameDocumentResult {
 
 export const gameInputFrame3D = z.strictObject({
   pressed: z.array(id).max(64), justPressed: z.array(id).max(64).default([]),
-  axes: z.record(id, finite.min(-1).max(1)).default({}), look: z.strictObject({ x: finite, y: finite }).default({ x: 0, y: 0 })
+  axes: z.record(id, finite.min(-1).max(1)).default({}), look: z.strictObject({ x: finite, y: finite }).default({ x: 0, y: 0 }),
+  /** Finished save loads delivered to scripts this tick as `input.loaded`. Absent on frames without one. */
+  loaded: gameSaveLoadedFrame.optional()
 });
 
 export type GameInputFrame3D = z.infer<typeof gameInputFrame3D>;

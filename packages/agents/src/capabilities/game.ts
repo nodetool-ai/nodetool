@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, MissingGameDraftSourceError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
 import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAssetBinding, gameAssetBinding3D, anyGameDocument as gameDocument, gameInputFrame, shortResourceId, type AnyGameAssetBinding, type AnyGameDocument as GameDocument, type GameDocument as LegacyGameDocument, type GameDocument3D, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
-import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, createTopDownRoomGame, createNative3DGame, decodePreparedGameCollider3D, validateAnyGame, trackGameAuthoringEdits, anyGameDocumentOp as gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
+import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createMemoryGameSaveStorage, createScriptedGameSession, GamePlayerSaves, createTopDownRoomGame, createNative3DGame, decodePreparedGameCollider3D, validateAnyGame, trackGameAuthoringEdits, anyGameDocumentOp as gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import { assetKeyCandidates, assetObjectKey } from "@nodetool-ai/storage";
 import type { Workspace as RunWorkspace, StorageAdapter } from "@nodetool-ai/runtime";
@@ -665,6 +665,8 @@ const playtest: CapabilityExport = {
     let wallTimeLimited = false;
     let cancelled = false;
     let scriptError: { tick: number; message: string } | null = null;
+    // Script saves stay in memory for the playtest, so a run never reads or writes a player's saves.
+    const saves = new GamePlayerSaves(createMemoryGameSaveStorage());
     try {
       for (const input of inputs) {
         if (state.tick % 240 === 0) await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -672,7 +674,8 @@ const playtest: CapabilityExport = {
         if (Date.now() - started > 15_000) { wallTimeLimited = true; break; }
         let result;
         try {
-          result = session.step(input);
+          result = session.step(saves.withLoaded(input));
+          if (result.saveRequests) { saves.handle(result.saveRequests, () => session.snapshot()); await saves.idle(); }
         } catch (error) {
           scriptError = { tick: state.tick + 1, message: error instanceof Error ? error.message : String(error) };
           break;

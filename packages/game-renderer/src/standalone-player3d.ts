@@ -1,4 +1,4 @@
-import { createGameSession3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-runtime";
+import { createGameSession3D, decodePreparedGameCollider3D, GamePlayerSaves } from "@nodetool-ai/game-runtime";
 import { z } from "zod";
 import { gameDocument3D, resolveGameInputBindings, type GameInputFrame3D, type GameSnapshot3D, type GameInspection3D } from "@nodetool-ai/protocol";
 import { createGameRenderer3D } from "./browser3d.js";
@@ -8,6 +8,7 @@ import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
+import { createIndexedDbGameSaveStorage } from "./save-storage.js";
 
 declare global {
   interface Window {
@@ -18,6 +19,8 @@ declare global {
       readonly advance: (inputs: readonly GameInputFrame3D[]) => Promise<void>;
       readonly snapshot: () => GameSnapshot3D;
       readonly inspect: () => GameInspection3D;
+      /** Progress and settings saves of this game in IndexedDB. */
+      readonly saves: Pick<GamePlayerSaves, "save" | "load" | "remove" | "slots">;
     };
   }
 }
@@ -77,8 +80,11 @@ async function start(): Promise<void> {
   audio.preload(); audio.sync(session.snapshot());
   const budget = new GameFrameBudgetMonitor(game.performance?.budgets);
   for (const event of ["pointerdown", "keydown"] as const) { window.addEventListener(event, () => { void audio.unlock(); }, { signal: controller.signal }); }
+  // Script saves use per-game IndexedDB storage. Loaded data reaches scripts on the next frame.
+  const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage(game.id), { onError: (error) => status(error.message) });
   const step = (nextInput: GameInputFrame3D): void => {
-    const result = session.step(nextInput); frame = result.frame;
+    const result = session.step(saves.withLoaded(nextInput)); frame = result.frame;
+    saves.handle(result.saveRequests, () => session.snapshot());
     for (const event of result.events) { audio.handle(event); }
     audio.sync(session.snapshot());
   };
@@ -159,7 +165,7 @@ async function start(): Promise<void> {
   document.getElementById("reset")?.addEventListener("click", () => {
     paused = true;
     void open().then((replacement) => {
-      session.dispose(); session = replacement; audio.reset(session.snapshot()); frame = session.frame(); clock.reset(); release();
+      session.dispose(); session = replacement; saves.clear(); audio.reset(session.snapshot()); frame = session.frame(); clock.reset(); release();
       // Reset resumes play, so input dropped by an earlier pause is accepted again.
       paused = false; input.setEnabled(true);
       const pause = document.getElementById("pause");
@@ -180,7 +186,7 @@ async function start(): Promise<void> {
   window.nativeGame3DPlayer = Object.freeze({
     pause: () => { paused = true; release(); clock.reset(); },
     step: async (nextInput: GameInputFrame3D) => { paused = true; step(nextInput); await render(1); },
-    reset: async () => { paused = true; const replacement = await open(); session.dispose(); session = replacement; audio.reset(session.snapshot()); frame = session.frame(); release(); clock.reset(); await render(1); },
+    reset: async () => { paused = true; const replacement = await open(); session.dispose(); session = replacement; saves.clear(); audio.reset(session.snapshot()); frame = session.frame(); release(); clock.reset(); await render(1); },
     advance: async (inputs: readonly GameInputFrame3D[]) => {
       if (inputs.length > 10_000) { throw new Error("Recorded route exceeds 10000 ticks"); }
       paused = true;
@@ -188,7 +194,10 @@ async function start(): Promise<void> {
       await render(1);
     },
     snapshot: () => session.snapshot(),
-    inspect: () => session.inspect()
+    inspect: () => session.inspect(),
+    saves: Object.freeze({
+      save: saves.save.bind(saves), load: saves.load.bind(saves), remove: saves.remove.bind(saves), slots: saves.slots.bind(saves)
+    })
   });
   // A static HTTP host is required for browser modules and WASM.
   status(mouseFire ? "Ready. Click to capture the mouse and fire. WASD moves, F fires, Space jumps, Escape releases the mouse."

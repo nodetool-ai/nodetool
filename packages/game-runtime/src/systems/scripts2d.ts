@@ -168,7 +168,7 @@ export function stepScripts2D(context: GameSystemContext2D): void {
         ...metadataOf(state) }));
     // Each active entity's props travel once; scripts read them on `entity`, `world` and `world.get`.
     const legacyInput: GameScriptInput = { tick: context.tick, pressed: [...context.pressed], justPressed: context.input.justPressed,
-      events: context.previousEvents, world };
+      events: context.previousEvents, world, ...(context.input.loaded === undefined ? undefined : { loaded: context.input.loaded }) };
     const props: Record<string, GameEntityProps> = {};
     for (const state of context.states) {
       if (supportsMetadata && state.active && state.props !== undefined && Object.keys(state.props).length > 0) { props[state.definition.id] = state.props; }
@@ -181,6 +181,7 @@ export function stepScripts2D(context: GameSystemContext2D): void {
       worldAtStart
     );
     context.scriptLogs = batch.logs;
+    context.scriptSaves = batch.saves;
     const byId = new Map(context.states.map((state) => [state.definition.id, state]));
     for (const [index, item] of batch.results.entries()) {
       if (context.scriptCalls[index].lifecycle?.destroy) { assertDestroyCommands(item.commands, item.entityId, context.tick); }

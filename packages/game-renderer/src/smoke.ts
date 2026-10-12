@@ -87,7 +87,8 @@ export async function smokeStandaloneGame(directory: string, options: GameSmokeO
     });
     for (let frame = 0; frame < frames; frame += 1) {
       controller.signal.throwIfAborted();
-      const input: GameInputFrame3D = document.schemaVersion === 3
+      // Smoke frames never carry save loads. Leaving the recursive JSON type out keeps page.evaluate typeable.
+      const input: Omit<GameInputFrame3D, "loaded"> = document.schemaVersion === 3
         ? { pressed: frame % 60 === 0 ? ["jump"] : [], justPressed: frame % 60 === 0 ? ["jump"] : [],
           axes: { moveX: Math.floor(frame / 75) % 2 ? -0.5 : 0.5, moveZ: -0.5 }, look: { x: 0, y: 0 } }
         : { pressed: document.inputActions.filter(action => [Math.floor(frame / 75) % 2 ? "left" : "right", Math.floor(frame / 75) % 2 ? "a" : "d"].includes(action)), justPressed: [], axes: {}, look: { x: 0, y: 0 } };

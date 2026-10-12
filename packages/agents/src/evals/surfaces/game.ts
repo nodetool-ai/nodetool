@@ -167,6 +167,30 @@ function readsEventPoints(source: string): boolean {
   return names.includes("payload") && names.includes("points");
 }
 
+/**
+ * onStart loads progress slot main (scope omitted or progress) and writes settings slot audio with {volume: 0.8}
+ * and no snapshot, and onUpdate reads input.loaded.
+ */
+function savesAndLoads(source: string): boolean {
+  const object = lifecycleObject(source);
+  if (!object) { return false; }
+  const commands = scriptNodes(hookFunction(object, "onStart")).flatMap((node) => {
+    const command = objectProperties(node);
+    return command ? [command] : [];
+  });
+  const loads = commands.some((command) => constantValue(command.get("kind")) === "load" && constantValue(command.get("slot")) === "main"
+    && (!command.has("scope") || constantValue(command.get("scope")) === "progress"));
+  const saves = commands.some((command) => {
+    const data = objectProperties(command.get("data"));
+    return constantValue(command.get("kind")) === "save" && constantValue(command.get("slot")) === "audio"
+      && constantValue(command.get("scope")) === "settings" && data?.size === 1 && constantValue(data.get("volume")) === 0.8
+      && (command.get("snapshot") as ScriptNode | undefined)?.value !== true;
+  });
+  const readsLoaded = scriptNodes(hookFunction(object, "onUpdate")).some((node) => node.type === "MemberExpression"
+    && (node.computed !== true ? (node.property as ScriptNode).name : constantValue(node.property)) === "loaded");
+  return loads && saves && readsLoaded;
+}
+
 export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] = [{
   id: "entity-tags-properties",
   description: "Author native entity tags and nested JSON properties through public edit ops.",
@@ -439,6 +463,22 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
         const crate = collider("crate");
         return floor?.physicsMaterial === "ice" && floor.friction === 0.02 && floor.frictionCombine === "min" &&
           crate?.physicsMaterial === "rubber" && crate.restitution === 0.85 && crate.restitutionCombine === "max";
+      } }]
+  }
+}, {
+  id: "player-saves-script",
+  description: "Author a lifecycle script that loads a progress save, writes a separate settings save and reads the load result through public edit ops.",
+  objective: "Add a script behavior to the player written as a lifecycle object. Its onStart hook loads the progress save slot main and writes the settings save slot audio with the data {volume: 0.8}. Its onUpdate hook keeps the data of a finished load from input.loaded in its state. Keep the player's other behaviors.",
+  createBridge: () => createGameToolBridge(createTopDownRoomGame("saves-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole behaviors array. A script behavior is {kind: \"script\", source}. The source may be an object of hooks such as onStart and onUpdate, each returning {state?, commands?}. The save command is {kind: \"save\", slot, data, scope?: progress|settings, snapshot?} and the load command is {kind: \"load\", slot, scope?}; scope defaults to progress. A load result arrives on a later tick as input.loaded, a list of {scope, slot, data}.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "playerSaves", detail: "The player has no lifecycle script that loads progress slot main, saves settings slot audio with volume 0.8 and reads input.loaded, or lost a behavior.",
+      test: document => {
+        const behaviors = document.scenes[0].entities.find(entity => entity.id === "player")?.behaviors ?? [];
+        const source = behaviors.find(behavior => behavior.kind === "script")?.source ?? "";
+        return behaviors.some(behavior => behavior.kind === "movement") && behaviors.some(behavior => behavior.kind === "winWhenCollected")
+          && savesAndLoads(source);
       } }]
   }
 }];

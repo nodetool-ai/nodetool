@@ -19,13 +19,14 @@ import type {
   GameSnapshot,
   GameStepTimings
 } from "@nodetool-ai/protocol";
-import { gameSnapshot } from "@nodetool-ai/protocol";
+import { gameSaveLoadedFrame, gameSnapshot } from "@nodetool-ai/protocol";
 import {
   initialGameplayState,
   runGameplayTick
 } from "./gameplay/lifecycle.js";
 import { validateGame } from "./validate.js";
 import { withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
+import type { GameSaveRequest } from "./script-saves.js";
 import { hasGameScripts, prepareGameScripts, type GameScriptRunner, type GameScriptStats } from "./scripts.js";
 
 import { statefulGameSystem } from "./systems/pipeline.js";
@@ -43,6 +44,8 @@ export interface GameStepResult {
   readonly scriptStats?: GameScriptStats;
   /** Lines from script `log` commands this tick. They never enter snapshots, events or replay state. */
   readonly scriptLogs?: readonly GameScriptLogEntry[];
+  /** Script `save` and `load` requests this tick, for the host to perform after the step. Never simulation state. */
+  readonly saveRequests?: readonly GameSaveRequest[];
 }
 
 export interface GameInspection {
@@ -403,6 +406,7 @@ function createGameSessionWithRunner(
     queues: { despawns: new Set(), spawns: [] },
     scriptStats: undefined,
     scriptLogs: undefined,
+    scriptSaves: undefined,
     observations: new Map(),
     queuedDespawns: new Set(),
     queuedSpawns: [],
@@ -529,9 +533,11 @@ function createGameSessionWithRunner(
         throw new Error(`Unknown input action ${action}`);
       }
     }
+    // Loaded save data enters the simulation only through the frame, so a replay of recorded frames reproduces it.
+    const frame = input.loaded === undefined ? input : { ...input, loaded: gameSaveLoadedFrame.parse(input.loaded) };
     return runGameplayTick(
       ({ events, emit }) => {
-        systemContext.input = input;
+        systemContext.input = frame;
         systemContext.pressed = pressed;
         systemContext.queuedDespawns = new Set();
         systemContext.queuedSpawns = [];
@@ -539,6 +545,7 @@ function createGameSessionWithRunner(
         systemContext.scriptCalls = [];
         systemContext.scriptStats = undefined;
         systemContext.scriptLogs = undefined;
+        systemContext.scriptSaves = undefined;
         systemContext.result = undefined;
         systemContext.events = events;
         systemContext.emit = emit;

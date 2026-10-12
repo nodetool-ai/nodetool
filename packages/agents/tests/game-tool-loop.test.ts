@@ -303,3 +303,26 @@ it("scores physics materials authored through the public 3D edit surface", async
   expect(await edit.execute({ops:[{op:"set_game",physics_materials:{...materials.physics_materials,rubber:{restitution:0.85,restitutionCombine:"max"}}}]})).not.toHaveProperty("error");
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it("scores a player save script authored through the public edit surface and rejects incorrect ones", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="player-saves-script");
+  const predicate = candidate?.expect.finalState?.[0];
+  if (!candidate || !predicate) { throw new Error("Player saves eval case must inspect final state"); }
+  expect(predicate.test(candidate.createBridge().finalState())).toBe(false);
+  const score = async (source: string): Promise<boolean> => {
+    const bridge = candidate.createBridge();
+    const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+    if (!edit) { throw new Error("Native edit tool must exist"); }
+    const behaviors = bridge.finalState().scenes[0].entities.find(entity=>entity.id==="player")?.behaviors ?? [];
+    expect(await edit.execute({ops:[{op:"update_entity",entity_id:"player",set:{behaviors:[...behaviors,{kind:"script",source}]}}]})).not.toHaveProperty("error");
+    return predicate.test(bridge.finalState());
+  };
+  const onUpdate = "onUpdate(input) { return { state: input.loaded ? input.loaded[0].data : input.state }; }";
+  expect(await score(`({ onStart() { return { commands: [{ kind: "load", slot: "main" }, { kind: "save", slot: "audio", scope: "settings", data: { volume: 0.8 } }] }; }, ${onUpdate} })`)).toBe(true);
+  // An explicit progress scope, another key order and computed access to loaded are equivalent answers.
+  expect(await score(`({ "onStart": function () { const save = { data: { "volume": 0.8 }, scope: 'settings', slot: \`audio\`, kind: "save" }; return { commands: [{ scope: "progress", slot: "main", kind: "load" }, save] }; },
+    onUpdate: (input) => ({ state: input["loaded"] }) })`)).toBe(true);
+  expect(await score(`({ onStart() { return { commands: [{ kind: "load", slot: "main" }, { kind: "save", slot: "audio", data: { volume: 0.8 } }] }; }, ${onUpdate} })`)).toBe(false);
+  expect(await score(`({ onStart() { return { commands: [{ kind: "load", slot: "main", scope: "settings" }, { kind: "save", slot: "audio", scope: "settings", data: { volume: 0.8 } }] }; }, ${onUpdate} })`)).toBe(false);
+  expect(await score(`({ onStart() { return { commands: [{ kind: "load", slot: "main" }, { kind: "save", slot: "audio", scope: "settings", data: { volume: 0.8 } }] }; }, onUpdate(input) { return { state: input.state }; } })`)).toBe(false);
+});

@@ -149,6 +149,7 @@ export function stepScripts3D(context: GameSystemContext3D): void {
       context.rngState
     );
     context.scriptLogs = batch.logs;
+    context.scriptSaves = batch.saves;
     const byId = new Map(context.states.map((state) => [state.definition.id, state]));
     for (const [index, result] of batch.results.entries()) {
       if (context.calls[index].lifecycle?.destroy) { assertDestroyCommands(result.commands, result.entityId, context.tick); }

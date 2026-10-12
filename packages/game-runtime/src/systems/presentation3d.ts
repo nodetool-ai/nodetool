@@ -11,7 +11,7 @@ import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { type EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { animationPose3D } from "./animation-graph3d.js";
-type PresentationContext3D = Readonly<Pick<GameSystemContext3D, "tick" | "events" | "frame" | "scriptStats" | "scriptLogs" | "queues">> &
+type PresentationContext3D = Readonly<Pick<GameSystemContext3D, "tick" | "events" | "frame" | "scriptStats" | "scriptLogs" | "scriptSaves" | "queues">> &
   Pick<GameSystemContext3D, "presentationEvents" | "result">;
 export function stepPresentation3D(context: PresentationContext3D): void {
   context.presentationEvents = [...structuredClone(context.events), ...(context.queues.particles ?? [])];
@@ -25,6 +25,9 @@ export function stepPresentation3D(context: PresentationContext3D): void {
   }
   if (context.scriptLogs) {
     context.result.scriptLogs = context.scriptLogs;
+  }
+  if (context.scriptSaves) {
+    context.result.saveRequests = context.scriptSaves;
   }
 }
 export function readStepResult3D(context: GameSystemContext3D): NonNullable<GameSystemContext3D["result"]> {
