@@ -5,7 +5,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { discoverSandboxCatalog } from "@nodetool-ai/node-sdk";
-import { setProcessSandboxModuleCatalog } from "@nodetool-ai/runtime";
+import {
+  setProcessSandboxModuleCatalog,
+  type SandboxModuleCatalog
+} from "@nodetool-ai/runtime";
 import { createCachedNpmLookup } from "@nodetool-ai/sandbox-compiler/cache";
 import { z } from "zod";
 
@@ -32,23 +35,26 @@ function readPackageJsonTypesField(packageJsonPath: string): string | undefined 
  * so the CLI's validation and execution harnesses resolve sandbox modules
  * through the same instance the server uses. Discovery executes no pack code.
  * A failure leaves the CLI without a catalog rather than without a registry.
+ * Returns the installed catalog, or null when discovery failed.
  *
  * This path never compiles. npm-backed modules resolve only from the cache,
  * whose entries are re-verified against their inputs' current contents; a miss
  * becomes the `pending-compile` diagnostic naming `nodetool packs compile`.
  */
-export function installSandboxCatalog(): void {
+export function installSandboxCatalog(): SandboxModuleCatalog | null {
   try {
-    setProcessSandboxModuleCatalog(
-      discoverSandboxCatalog(undefined, { compiled: createCachedNpmLookup() })
-        .catalog
-    );
+    const { catalog } = discoverSandboxCatalog(undefined, {
+      compiled: createCachedNpmLookup()
+    });
+    setProcessSandboxModuleCatalog(catalog);
+    return catalog;
   } catch (error) {
     console.warn(
       `Sandbox module catalog unavailable: ${
         error instanceof Error ? error.message : String(error)
       }`
     );
+    return null;
   }
 }
 

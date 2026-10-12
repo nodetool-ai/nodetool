@@ -97,6 +97,24 @@ await output("ok", true);
     expect(message.toLowerCase()).toContain("align");
   });
 
+  it("leaves imports with no installed .d.ts to the catalog check", async () => {
+    // A pack that ships no types, a host-mounted capability facade, and a
+    // typed pack in the same body: only the typed pack is checked here.
+    const validation = await validateJsScriptDoc(
+      doc(`
+import "@nodetool-ai/sandbox-nodetool/flow";
+import { callNode } from "@nodetool-ai/sandbox-flow";
+import yaml from "@nodetool-ai/sandbox-yaml";
+import { video } from "@nodetool-ai/sandbox-timeline";
+const r = await callNode("nodetool.constant.String", { value: yaml.dump({}) });
+video({ width: 1080, height: 1920, fps: 30 });
+await output("ok", Boolean(r));
+`),
+      { packDtsSources }
+    );
+    expect(codes(validation)).not.toContain("js_script_type_error");
+  });
+
   it("skips the check entirely when no packDtsSources are given", async () => {
     const validation = await validateJsScriptDoc(
       doc(`
