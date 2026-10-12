@@ -1,6 +1,6 @@
 ---
 name: elevenlabs-audio-prompting
-description: Direct ElevenLabs speech, dialogue, sound effects and music — the bracketed audio tags v3 acts on and why the voice decides whether a tag lands, stability as the delivery dial, punctuation instead of SSML for pacing, the per-line dialogue format for several speakers, source-action-space sound-effect briefs with prompt_influence and looping, and the music composition plan that pins a song's sections. Use whenever the model id names an ElevenLabs generation endpoint (fal-ai/elevenlabs/tts/eleven-v3, fal-ai/elevenlabs/tts/multilingual-v2, fal-ai/elevenlabs/text-to-dialogue/eleven-v3, fal-ai/elevenlabs/sound-effects/v2, fal-ai/elevenlabs/music, elevenlabs/text-to-speech-multilingual-v2, elevenlabs/text-to-dialogue-v3, elevenlabs/v2-multilingual, elevenlabs/turbo-v2.5) on generate_speech, generate_music or a TextToSpeech node. Not for the transcription, dubbing or isolation endpoints, which take no prompt.
+description: Direct ElevenLabs speech, dialogue, sound effects and music — v3 audio tags and the voice that decides whether they land, stability as the delivery dial, punctuation for pacing, the per-line dialogue list, source-action-space sound-effect briefs, and the music composition plan. Use whenever the model id names an ElevenLabs generation endpoint (fal-ai/elevenlabs/tts/eleven-v3, fal-ai/elevenlabs/tts/multilingual-v2, fal-ai/elevenlabs/text-to-dialogue/eleven-v3, fal-ai/elevenlabs/sound-effects/v2, fal-ai/elevenlabs/music, elevenlabs/text-to-speech-multilingual-v2, elevenlabs/text-to-dialogue-v3, elevenlabs/v2-multilingual, elevenlabs/turbo-v2.5, direct eleven_v3, eleven_multilingual_v2, eleven_turbo_v2_5 and eleven_flash_v2_5) on generate_speech, generate_music, run_node or a TextToSpeech node. Not for Eleven v4, ElevenLabs Music v2 or v2.5, or the transcription, dubbing and isolation endpoints.
 ---
 
 # ElevenLabs → direct the read, don't just submit the text
@@ -10,9 +10,15 @@ sounds directed is the voice you picked, the stability you set, and the tags
 and punctuation carrying the performance.
 
 Reach speech with `find_model` for `text_to_speech`, then `generate_speech`;
-music with `find_model` for `text_to_music`, then `generate_music`. The
-sound-effects endpoint is not in either catalog — run its node with
-`search_nodes` and `invoke_node`.
+music with `find_model` for `text_to_music`, then `generate_music`.
+`generate_speech` forwards only the text, the voice and the speed, and
+`generate_music` only the prompt, lyrics and a duration. Stability,
+`language_code`, the dialogue list, `composition_plan`, `force_instrumental` and
+every sound-effect field below exist only on the route's own node:
+`elevenlabs.TextToSpeech` for the direct `eleven_*` models, the fal, kie or
+Replicate node for the others. Find it with `search_nodes`, read its fields with
+`get_node_info`, and run it with `run_node`. Each run is a paid generation, so
+confirm the scope with the user before running several.
 
 ## Voice first, then tags
 
@@ -26,9 +32,10 @@ covers the delivery you want, then direct within it.
 
 ## Stability is the delivery dial
 
-The single most consequential setting. ElevenLabs exposes it as three named
-settings; the numeric APIs take the same three values, and the dialogue
-endpoint rounds anything else to the nearest of them.
+The single most consequential setting. ElevenLabs names three points on it.
+The speech routes take any value from 0 to 1 (default 0.5). The dialogue routes
+take only the three named points, and fal's rounds anything else to the
+nearest of them.
 
 | Value | Behaviour | Use for |
 | :--- | :--- | :--- |
@@ -65,14 +72,19 @@ deliver inconsistently because there is no context to read the register from.
 
 ## Several speakers
 
-The dialogue endpoint takes a list of `inputs`, each with its own text and
-voice, rather than one block of text with names in it. Tag each line for its
-own delivery, and write interruptions as they happen:
+The dialogue endpoint takes a list of lines, each with its own text and
+voice, rather than one block of text with names in it. fal calls the list
+`inputs` and kie calls it `dialogue`. The speaker is the entry's voice, never a
+name in the text, because anything bracketed in the text is read as an audio
+tag. Tag each line for its own delivery, and write interruptions as they
+happen:
 
-```
-[Ana, voice A]  "You said you'd call." [flat]
-[Ruben, voice B] [defensive] "I did — twice —"
-[Ana, voice A]  [cutting in] "Once. And you hung up."
+```json
+[
+  {"text": "[flat] You said you'd call.", "voice": "<Ana's voice id>"},
+  {"text": "[defensive] I did — twice —", "voice": "<Ruben's voice id>"},
+  {"text": "[cutting in] Once. And you hung up.", "voice": "<Ana's voice id>"}
+]
 ```
 
 Distinct voices per speaker is what makes it a conversation; the same voice
@@ -107,11 +119,13 @@ instead: an ordered list of sections, each with its own `durationMs`,
 `positiveStyles` and `negativeStyles`. That is what makes an intro stay sparse
 and a drop actually land where you wanted it. `respect_sections_durations`
 enforces those lengths; `music_length_ms` applies only to the prompt path.
-`force_instrumental` guarantees no vocal — without it, a prompt that does not
-mention vocals may still come back sung.
+`force_instrumental` asks for no vocal. It defaults to false on fal, so a
+prompt that does not mention vocals may still come back sung, and to true on
+Replicate's `elevenlabs/music`.
 
-Naming an artist, a band or copyrighted lyrics is rejected outright; the error
-carries a rephrasing suggestion. Describe the sound instead of the reference.
+The vendor's guide says a prompt naming an artist, a band or copyrighted
+lyrics is rejected, with a rephrasing suggestion in the error. Describe the
+sound instead of the reference.
 
 ## Symptoms
 
@@ -120,7 +134,7 @@ carries a rephrasing suggestion. Describe the sound instead of the reference.
 | Tags do nothing | Lower stability to 0.5 or 0.0, and check the voice can do that delivery |
 | The read is flat | Add punctuation and a delivery tag; stop relying on the words alone |
 | Pauses are ignored | Use ellipses and line structure — SSML breaks are not supported |
-| Two speakers sound the same | Assign a different voice per `inputs` entry |
+| Two speakers sound the same | Assign a different voice per dialogue entry |
 | The effect is too variable | Raise `prompt_influence`, and set an explicit duration |
 | A loop clicks | Set `loop` true and regenerate rather than trimming |
 | A song ignores its structure | Move from a prompt to a `composition_plan` |

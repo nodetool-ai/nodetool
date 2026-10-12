@@ -1,7 +1,6 @@
 ---
 name: motion-background
 description: Build an ambient backdrop on a NodeTool timeline using shape gradients, procedural generator effects, slow loops, or generated video. Use for title cards, hero beds, end cards, lower-third plates, and quiet loops behind a subject.
-featured: true
 ---
 
 # Motion Background → the bed
@@ -10,7 +9,7 @@ A background that draws attention has failed. Slow, low contrast, looping with
 no visible join, and cheap enough that the picture in front of it still
 composites.
 
-`motion-graphics` carries the op contract for the calls named here.
+`timeline-edit-ops` carries the op contract for the calls named here.
 `color-motion` chooses the palette the bed is built from, and `motion-curves`
 writes the loop when no wrapping preset holds the seam.
 
@@ -44,7 +43,7 @@ a wrapping clip animation or match the endpoints in a rendered loop.
 
 ```json
 {"op": "set_effects", "target": "Bed", "effects": [
-  {"type": "generator", "mode": "meshGradient", "enabled": true,
+  {"type": "generator", "mode": "meshGradient",
    "colorA": "#10233c", "colorB": "#ec6b45", "scale": 6,
    "amount": 0.6, "seed": 9, "animate": true}]}
 ```
@@ -71,7 +70,8 @@ enough that no edge reads:
 {"op": "set_effects", "target": "Ellipse", "effects": [{"type": "blur", "radius": 120}]}
 ```
 
-Then give each blob a different `loop`: `float` with `amplitude` 0.02–0.05,
+Then give each blob a different `loop`: `float` with `amplitude` 0.01–0.015
+(a fraction of frame height each way, so at most 3% of travel),
 `breathe` at `intensity` 0.03–0.08, and cycle lengths that do not divide each
 other — 9000, 13000, 17000ms — so the composite never visibly repeats.
 

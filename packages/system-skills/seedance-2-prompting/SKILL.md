@@ -1,6 +1,6 @@
 ---
 name: seedance-2-prompting
-description: Prompt ByteDance's Seedance 2 video line — the Subject/Motion/Environment/Look/Camera/Audio formula, how dialogue in double quotes gets voiced and lip-synced, writing the sound mix instead of leaving it open, cutting between shots in one generation, the JSON beat-sheet brief that holds an arc across a whole piece, and giving physics a consequence to chase. Use whenever the model id contains seedance-2 (bytedance/seedance-2.0 and its fast and mini variants, bytedance/seedance-2.5, kie's bytedance/seedance-2, seedance-2-fast, seedance-2-mini, seedance-2-5, in text-to-video, image-to-video and reference-to-video form) on generate_video, animate_image or a TextToVideo node. Not for Seedance 1.x.
+description: Prompt ByteDance's Seedance 2 video line — the Subject/Motion/Environment/Look/Camera/Audio formula, how dialogue in double quotes gets voiced and lip-synced, writing the sound mix instead of leaving it open, cutting between shots in one generation, the JSON beat-sheet brief that holds an arc across a whole piece, and giving physics a consequence to chase. Use whenever the model id contains seedance-2 (bytedance/seedance-2.0 and its fast and mini variants, bytedance/seedance-2.5, kie's bytedance/seedance-2, seedance-2-fast, seedance-2-mini, seedance-2-5, in text-to-video, image-to-video and reference-to-video form) on generate_video, animate_image, generate_video_from_references or a TextToVideo node. Not for Seedance 1.x.
 ---
 
 # Seedance 2 → direct a scene, not a frame
@@ -19,9 +19,19 @@ be one generation, and the sound-design vocabulary that gets past the
 copyright filter.
 
 Reach it with `find_model` for `text_to_video` or `image_to_video`, then
-`generate_video` / `animate_image`. Duration set to auto lets the model pick a
-length to fit the content; pin it anywhere from 4 to 15 seconds instead when
-the cut matters.
+`generate_video` / `animate_image`; for the reference-to-video routes, use
+`find_model` for `reference_to_video`, then `generate_video_from_references`.
+Those forward the prompt, the media, a negative prompt (no Seedance 2 route
+has the field, so it is dropped), `duration_seconds`, the aspect ratio and the
+resolution. Audio references (`audio_urls` on fal, `reference_audios`
+elsewhere), the `generate_audio` switch and an automatic duration exist only on
+the route's own node: find it with `search_nodes`, read its fields with
+`get_node_info`, and run it with `run_node`. Each run is a paid generation,
+so confirm the scope with the user before rendering several.
+
+Pin the length from 4 to 15 seconds on 2.0, fast and mini, and up to 30 on
+2.5. An automatic length, which lets the model fit the content, is `auto` on
+fal and `-1` on AtlasCloud and Replicate; kie has none.
 
 ## The formula
 
@@ -114,9 +124,15 @@ the entire clip, then a timeline of beats, each one naming its function, its
 picture and its sound. The function label (`fn`) is what keeps the model from
 flattening the arc into eight equally-weighted shots.
 
+The JSON is the prompt string, not a request body. Its `duration` and
+`negative_prompt` are text the model reads; the clip's real length still comes
+from `duration_seconds` (or the route's `duration`), so set both to match.
+
 Six global fields, then the beats:
 
 - `duration` — the whole clip, within what the endpoint you called accepts.
+  The example below runs 25 s, which only the 2.5 routes accept; on 2.0, fast
+  and mini, keep it to 15 s.
 - `camera` — one move across the whole clip, not one per beat. A single
   continuous push-in reads as a shot; a new move every three seconds reads as
   a montage.

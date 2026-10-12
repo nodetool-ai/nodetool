@@ -81,9 +81,14 @@ export default function NodeToolHero() {
           <Layers className="h-4 w-4 shrink-0 text-fuchsia-400" aria-hidden />
           Editors for scripts, storyboards, drawing, video, 3D, and games
         </li>
-        <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
-          <KeyRound className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
-          Your own AI provider accounts, with no markup
+        <li>
+          <a
+            href="#subscription"
+            className="flex h-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-emerald-100 transition-colors hover:border-emerald-400 focus-ring"
+          >
+            <KeyRound className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
+            Your ChatGPT, Claude, or Gemini plan, or your own API keys
+          </a>
         </li>
         <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
           <Code2 className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />

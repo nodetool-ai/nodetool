@@ -106,6 +106,18 @@ export const languageFromAsset = (asset: TextAssetLike): string | undefined => {
 export const isTextAsset = (asset: TextAssetLike): boolean =>
   languageFromAsset(asset) !== undefined;
 
+const XLSX_CONTENT_TYPE =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+/**
+ * Whether an asset is an Excel workbook (.xlsx) the table editor can open.
+ * Legacy binary .xls and macro-enabled .xlsm are excluded: the workbook
+ * writer cannot round-trip them.
+ */
+export const isSpreadsheetAsset = (asset: TextAssetLike): boolean =>
+  asset.content_type === XLSX_CONTENT_TYPE ||
+  (asset.name ?? "").toLowerCase().endsWith(".xlsx");
+
 /** How a text asset should be rendered/edited, beyond raw language. */
 type PreviewKind = "markdown" | "csv" | "code" | "text";
 

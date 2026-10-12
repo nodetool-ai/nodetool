@@ -166,7 +166,7 @@ describe("nodetool.collections", () => {
     });
   });
 
-  it("names the missing tool when the belt lacks it", async () => {
+  it("names the methods that work when the belt lacks the vector tools", async () => {
     const { executeTool } = createFakeRouter();
     const session = makeSession([toolDef("list_collections")], executeTool);
     const obs = await runAction(
@@ -174,7 +174,8 @@ describe("nodetool.collections", () => {
       `return await nodetool.collections.search("foxes");`
     );
     expect(obs.ok).toBe(false);
-    expect(obs.error).toContain("vector_text_search");
+    expect(obs.error).toContain("nodetool.collections.search");
+    expect(obs.error).toContain("only list() and query(collection, text) work here");
   });
 });
 

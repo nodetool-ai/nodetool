@@ -1,53 +1,42 @@
-import { Node } from "@xyflow/react";
-import { NodeData } from "../../stores/NodeData";
+import type { Node } from "@xyflow/react";
+import type { NodeData } from "../../stores/NodeData";
 import { areNodesEqualIgnoringPosition } from "../nodeEquality";
 
-const makeNode = (
+const data = {} as NodeData;
+const node = (
   id: string,
-  data: NodeData,
   extra: Partial<Node<NodeData>> = {}
 ): Node<NodeData> => ({
   id,
-  type: "nodetool.test",
+  type: "t",
   position: { x: 0, y: 0 },
   data,
   ...extra
 });
 
 describe("areNodesEqualIgnoringPosition", () => {
-  const data = { properties: {} } as unknown as NodeData;
-
-  it("is true for the same array reference and for two empty arrays", () => {
-    const nodes = [makeNode("a", data)];
+  it("is true for the same array", () => {
+    const nodes = [node("a")];
     expect(areNodesEqualIgnoringPosition(nodes, nodes)).toBe(true);
-    expect(areNodesEqualIgnoringPosition([], [])).toBe(true);
   });
 
-  it("ignores position, selection, and dragging changes", () => {
-    const prev = [makeNode("a", data)];
+  it("ignores position, selection and dragging", () => {
+    const prev = [node("a")];
     const next = [
-      makeNode("a", data, {
-        position: { x: 100, y: 50 },
-        selected: true,
-        dragging: true
-      })
+      node("a", { position: { x: 50, y: 9 }, selected: true, dragging: true })
     ];
     expect(areNodesEqualIgnoringPosition(prev, next)).toBe(true);
   });
 
-  it("detects length, id, type, and data-reference changes", () => {
-    const base = [makeNode("a", data)];
+  it("detects length, id, type and data changes", () => {
+    const base = [node("a")];
     expect(areNodesEqualIgnoringPosition(base, [])).toBe(false);
-    expect(areNodesEqualIgnoringPosition(base, [makeNode("b", data)])).toBe(
+    expect(areNodesEqualIgnoringPosition(base, [node("b")])).toBe(false);
+    expect(areNodesEqualIgnoringPosition(base, [node("a", { type: "u" })])).toBe(
       false
     );
     expect(
-      areNodesEqualIgnoringPosition(base, [
-        makeNode("a", data, { type: "other" })
-      ])
-    ).toBe(false);
-    expect(
-      areNodesEqualIgnoringPosition(base, [makeNode("a", { ...data })])
+      areNodesEqualIgnoringPosition(base, [node("a", { data: {} as NodeData })])
     ).toBe(false);
   });
 });

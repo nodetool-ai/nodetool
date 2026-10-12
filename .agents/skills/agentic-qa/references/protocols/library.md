@@ -264,3 +264,39 @@ that project and not in the starting one, and the participant returned to it.
 **Known behavior.** A participant may expect the Library to follow the
 project. Record it as a comprehension finding only when it led to a wrong
 conclusion.
+
+## `upload-many`
+
+| Packet | Value |
+|---|---|
+| Kind | `task` |
+| Limits | 50 actions, 10 minutes |
+| State | `--state empty` |
+| Credentials | None |
+| Assets | Three photos with different names, for example `beach.jpg`, `forest.jpg`, and `city.jpg` |
+
+**Goal.** "You have three photos of your own. Put all three into this app and
+find a place where you can see them together. Then leave the page, come
+back, and check that all three are still there with their names."
+
+**Pass.** After a reload, one surface shows all three photos, each with its
+own name and its own picture.
+
+**Checks.**
+
+- Record whether the participant chose the three files in one file chooser
+  or one at a time, and how many actions the uploads took.
+- Read every thumbnail at full size. A placeholder icon in place of a
+  picture is a finding (compare round 7 F14).
+- Check that no photo appears twice and none is missing, before and after
+  the reload.
+- Count the toasts after the upload.
+
+**Routes.**
+
+- The rail's "Library" (assets) panel with "Upload files", or a drop onto
+  it.
+- The Home composer's attach control, which attaches to a message instead.
+  A participant that only attaches has not reached the Library.
+
+**Fakes.** None on this path. Uploads go to the test server's storage.

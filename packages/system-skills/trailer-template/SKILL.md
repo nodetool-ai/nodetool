@@ -1,6 +1,6 @@
 ---
 name: trailer-template
-description: Structure a trailer or teaser as eight audio-first beats — hook, setup, inciting incident, escalation, drop, climax, title, button — with a runtime-scaled timecode grid, event/reception shot pairs, a planted-and-harvested motif, and one unbroken music bed, then store it as a NodeTool storyboard with a character entity behind every recurring face. Use when someone asks for a trailer, teaser, sizzle or announcement cut structure, says a cut has no spine or no build, or needs to know where the drop and the title card go. Not for ads (commercial-beat-sheet) or music videos (music-video-treatment).
+description: Structure a trailer or teaser as eight audio-first beats — hook, setup, inciting incident, escalation, drop, climax, title, button — with a runtime-scaled timecode grid, event/reception shot pairs, a planted-and-harvested motif, and one unbroken music bed, then store it as a NodeTool storyboard with a character entity behind every recurring face. Use when someone asks for a trailer, teaser, sizzle or announcement cut structure, says a cut has no spine or no build, or needs to know where the drop and the title card go. Pairs with short-film, which sets the cast, look and blocking. Not for ads (commercial-beat-sheet) or music videos (music-video-treatment).
 ---
 
 You are a single agent. Take a title, a genre and a runtime and produce a complete, timecoded trailer plan as a NodeTool storyboard. You call the storyboard, entity and timeline capabilities directly. You do not build a workflow. You do not render or assemble unless asked.
@@ -201,12 +201,12 @@ const board = await create_storyboard({
   style: "<the grade in one line>",
   aspect_ratio: "16:9"
 });
-const boardId = board.storyboard_id;   // NOT board.id
+const boardId = board.storyboard_id;
 ```
 
 ### 2. Roster and models
 
-`edit_storyboard` takes five ops: `add_shot`, `update_shot`, `remove_shot`, `reorder_shot`, `set_board`. `set_board` accepts `{brief?, style?, aspect_ratio?, entity_ids?, image_model?, video_model?}` and refuses anything else. Models come from `find_model` — pass each result's `.ref`; there is no default, and an unset model fails the render. The full contract, including which entities each shot's prompt receives, is in `commercial-beat-sheet` § Tool contract.
+The full contract — the fifteen `edit_storyboard` ops, every key `set_board` accepts (`music_prompt` among them), and which fields and entities each shot's prompt receives — is in `storyboard-core` § Tool contract. Models come from `find_model` — pass each result's `.ref`; there is no default, and an unset model fails the render. For the cast, the look and the blocking, load `short-film`; this skill only sets where the beats go.
 
 ```js
 const stills = await find_model({ capability: "text_to_image" });
@@ -218,7 +218,7 @@ await edit_storyboard({
 });
 ```
 
-Each result also names a `prompting_skill`. Load it before step 3: the shot `action` and `motion` are the prompt the generator reads (`motion` first, then `action`, for a clip), and a trailer's receptions and its drop are worded differently for a line that wants beats in order (Hailuo), a shot list (Kling) or a sound brief (Seedance).
+Each result also names a `prompting_skill`. Load it before step 3: the shot `action`, `motion` and `camera` are the prompt the generator reads (`motion`, `action`, then the camera movement, for a keyframe clip), and a trailer's receptions and its drop are worded differently for a line that wants beats in order (Hailuo), a shot list (Kling) or a sound brief (Seedance).
 
 ### 3. One shot per row
 
@@ -249,7 +249,7 @@ Rules for the shot text:
 
 ### 4. The audio bed lives on the board, not on the shots
 
-Put the eight-line bed into the board's `brief` as a `MUSIC:` block, one line per beat with its timecode. Per-shot `narration` stays empty — native per-shot audio is fragments, the opposite of the clamp. If the board is open in a tab, `ui_storyboard_set_screenplay` writes the same text into `musicPrompt`, and `assemble_storyboard_timeline` then turns it into a draft music clip.
+Put the eight-line bed into the board's `brief` as a `MUSIC:` block, one line per beat with its timecode. Per-shot `narration` stays empty — native per-shot audio is fragments, the opposite of the clamp. `edit_storyboard` → `{op: "set_board", music_prompt}` writes the same text into the board's music prompt, headless, and `assemble_storyboard_timeline` then turns it into a draft music clip.
 
 ---
 
@@ -275,17 +275,17 @@ Run before showing anyone. Every line must be true of the board, not the plan.
 
 ## Render and cut (only on request)
 
-**Stills first.** `render_storyboard_stills` costs cents and you look at them. A wrong face is fixed at the entity, never in one shot's prompt.
+**Stills first.** `render_storyboard_stills` costs less than clips, and you look at them before any clip renders. A wrong face is fixed at the entity, never in one shot's prompt.
 
-**Generate every clip long.** Ask the video model for 4–5s per shot even where the plan says 1.5s — you want frames to choose from — and trim in the timeline. `render_storyboard_clips` has no duration override, so bump `duration_seconds` on `update_shot` before the render and restore it after. Shots render individually and mute their own audio; `analyze_video` on each clip gives the real length before you trim, because the model honours the request loosely.
+**Fuse or render long, and say which before the clip pass.** A 1.5s beat still buys the video model's shortest clip, often 5s or more, so a shot rendered on its own comes back long without bumping `duration_seconds`. Where consecutive beats share a setting — an event and its reception, a run of escalation cuts — render them as one generation and split it with `covered_by` (`storyboard-core` § Fusing shots): fewer clips for the same cut. Render a beat on its own and trim it where it needs a picture no neighbour can share. Report the clip count and get the user's go-ahead when it is more than the request implied. Clips mute their own audio; `analyze_video` on a clip gives its real length before you trim.
 
 **The bed is one clip.** After `assemble_storyboard_timeline`:
 
 1. `generate_music` once, for the full runtime, from the eight-line bed. One prompt, one clip.
-2. `edit_timeline` → `add_track` (audio), then `add_media_clip` for that one asset at 0:00. Remove any draft audio clips the assembly created per shot.
+2. `edit_timeline` → `add_track` (audio), then `add_media_clip` for that one asset at 0:00. Mute the per-shot "Shot Audio" clips the assembly created (`set_clip_params {muted: true}`), and delete its draft music clip if the board has a music prompt, so this bed is the only music.
 3. `detect_audio_events` on the bed, then `beat-sync-editing`: every picture cut moves to the nearest transient. The drop shot's in-point sits on the dip.
 4. The dip is a volume keyframe on the bed, not a cut. Never a gap.
 5. `caption-titles` for the title card, timed to the same frame as the title impact in the bed.
 6. `validate_timeline`, then `preview_timeline_frame` at the drop, the peak and the title.
 
-`motion-graphics` carries the timeline op contract, `video-audio-continuity` the case where a shot's own sound has to survive, `color-motion` the grade that makes shots from different scenes cut together, and `logo-reveal` a studio mark after the button.
+`timeline-edit-ops` carries the timeline op contract, `motion-graphics` the build loop, `video-audio-continuity` the case where a shot's own sound has to survive, `color-motion` the grade that makes shots from different scenes cut together, and `logo-reveal` a studio mark after the button.

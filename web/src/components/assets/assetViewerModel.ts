@@ -6,6 +6,7 @@
 import type { Asset } from "../../stores/ApiTypes";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { assetTabType } from "../workspace/assetTabType";
+import { isSpreadsheetAsset, previewKind } from "../../utils/assetLanguage";
 
 export type ViewerMedia = {
   isImage: boolean;
@@ -40,7 +41,7 @@ export function viewerMedia(
 export type EditAction =
   | {
       kind: "tab";
-      tabType: "image" | "svg" | "model3d" | "audio";
+      tabType: "image" | "svg" | "model3d" | "audio" | "text";
       title: string;
       tooltip: string;
     }
@@ -91,6 +92,14 @@ export function editActionFor(
       tooltip: asset.timeline_id
         ? "Edit Timeline"
         : "Create Timeline from Video"
+    };
+  }
+  if (isSpreadsheetAsset(asset) || previewKind(asset) === "csv") {
+    return {
+      kind: "tab",
+      tabType: "text",
+      title: asset.name || "Table",
+      tooltip: "Edit Table"
     };
   }
   return null;

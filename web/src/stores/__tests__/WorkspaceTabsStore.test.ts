@@ -907,6 +907,19 @@ describe("openTab with a project", () => {
     expect(useWorkspaceTabsStore.getState().tabs[0].projectId).toBeUndefined();
   });
 
+  it("scopes to the opened tab's project so the active tab is drawn", () => {
+    // QA round 8: after a reload with no project in scope, opening a saved
+    // workflow from Home set it active but the tab bar did not draw it.
+    reset([tab("workflow", "loose")], "workflow:loose");
+    useWorkspaceTabsStore
+      .getState()
+      .openTab({ type: "workflow", ref: "w1", projectId: "personal:1" });
+    const state = useWorkspaceTabsStore.getState();
+    const opened = state.tabs.find((t) => t.id === state.activeTabId);
+    expect(opened?.ref).toBe("w1");
+    expect(opened && isTabInScope(opened, state.activeProjectId)).toBe(true);
+  });
+
   it("leaves an existing tab's project alone when none is given", () => {
     useWorkspaceTabsStore
       .getState()

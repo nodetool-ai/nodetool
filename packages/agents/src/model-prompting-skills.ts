@@ -9,16 +9,17 @@
  * right one before the prompt is written rather than after the render comes
  * back wrong.
  *
- * Two paths reach the same skill. The always-on skill catalog names the model
- * ids in each description, so an agent that already knows its model can call
- * `load_skill` unprompted. `find_model` is the mechanical path: a matching
- * route carries `prompting_skill`, which is the step immediately before the
- * prompt gets written.
+ * `find_model` is how an agent reaches a guide: a matching route carries
+ * `prompting_skill`, which is the step immediately before the prompt gets
+ * written. None of the guides is featured, so the always-on catalog does not
+ * list them; their descriptions name the model ids so that a
+ * `list_skills({query})` search for a model finds its guide too.
  *
  * Matching is on the model id alone. Every provider qualifies its ids enough
  * to identify the line (`fal-ai/nano-banana-pro`, `google/nano-banana-pro/
- * text-to-image`, `nano-banana-pro`), so the provider adds nothing and a new
- * provider serving the same line is covered with no change here.
+ * text-to-image`, `nano-banana-pro`), so the provider adds nothing. A direct
+ * provider that names the line its own way (`gemini-3-pro-image`,
+ * `eleven_v3`, `T2V-01-Director`) needs its spelling added to the pattern.
  */
 
 /** One model line and the skill that teaches it. */
@@ -45,12 +46,15 @@ export const MODEL_PROMPTING_SKILLS: readonly ModelPromptingSkill[] = [
   {
     skill: "nano-banana-pro-prompting",
     line: "Nano Banana Pro",
-    pattern: /nano-banana-pro/
+    // Gemini's own API serves the same model as `gemini-3-pro-image`.
+    pattern: /nano-banana-pro|gemini-3-pro-image/
   },
   {
     skill: "gpt-image-2-prompting",
     line: "GPT Image 2",
-    pattern: /gpt-image-2(?![.\d])/
+    // GPT Image 2.5 is a different release with no guide: `gpt-image-2.5`
+    // on fal, AtlasCloud and OpenAI, `gpt-image-2-5-` on kie.
+    pattern: /gpt-image-2(?![.\d]|-5-)/
   },
   {
     skill: "flux-2-klein-prompting",
@@ -70,12 +74,15 @@ export const MODEL_PROMPTING_SKILLS: readonly ModelPromptingSkill[] = [
   {
     skill: "minimax-h3-prompting",
     line: "MiniMax H3",
-    pattern: /minimax\/h3(?![a-z0-9])/
+    // kie spells the family `minimax-h3/…`.
+    pattern: /minimax[/-]h3(?![a-z0-9.])/
   },
   {
     skill: "wan-2-6-prompting",
     line: "Wan 2.6",
-    pattern: /wan-?2[.-]6/
+    // The video routes only; AtlasCloud's Wan 2.6 image routes take a
+    // different prompt.
+    pattern: /wan-?2[.-]6(?!\/(?:text-to-image|image-edit))/
   },
   {
     // Kling from 2.5-turbo on: the versions with a shot list, tagged elements
@@ -88,10 +95,12 @@ export const MODEL_PROMPTING_SKILLS: readonly ModelPromptingSkill[] = [
   },
   {
     // MiniMax's earlier video line. H3 is a separate guide, and no Hailuo id
-    // carries `minimax/h3`, so the two never contend for the same model.
+    // carries `minimax/h3`, so the two never contend for the same model. The
+    // direct MiniMax provider names the video-01 Director and subject models
+    // `T2V-01-Director`, `I2V-01-Director` and `S2V-01`.
     skill: "hailuo-prompting",
     line: "MiniMax Hailuo",
-    pattern: /hailuo|minimax\/video-01/
+    pattern: /hailuo|minimax\/video-01|^[ist]2v-01(?![\d])/
   },
   {
     skill: "seedream-prompting",
@@ -107,21 +116,32 @@ export const MODEL_PROMPTING_SKILLS: readonly ModelPromptingSkill[] = [
   },
   {
     // Only the endpoints that take a prompt. Scribe, dubbing, isolation and
-    // voice-changer are ElevenLabs too and have nothing to prompt.
+    // voice-changer are ElevenLabs too and have nothing to prompt. The guide
+    // covers v3 and the v2 family, so Eleven v4 and Music v2/v2.5 are out.
+    // The direct provider's ids are `eleven_<model>`; v1 is left out.
     skill: "elevenlabs-audio-prompting",
     line: "ElevenLabs speech, dialogue, sound effects and music",
-    pattern: /elevenlabs\/(?:tts|music|sound-effects|text-to-speech|text-to-dialogue|v3|v2-multilingual|turbo|flash)/
+    pattern:
+      /elevenlabs\/(?:tts\/(?!eleven-v4)|music(?!\/v2)|sound-effects|text-to-speech|text-to-dialogue|v3|v2-multilingual|turbo|flash)|^eleven_(?:v3|multilingual_v2|turbo_v2|flash_v2)/
   },
   {
+    // 2.5 and 3. The original `fal-ai/stable-audio` is a different model.
     skill: "stable-audio-prompting",
     line: "Stable Audio",
-    pattern: /stable-audio/
+    pattern: /stable-audio-(?:25|2\.5|3)(?![\d.])/
   }
 ];
+
+/**
+ * Fine-tuning endpoints (`…-trainer`, `…/trainer`) take a dataset, not a
+ * prompt, so no prompting guide applies to them whatever line they train.
+ */
+const TRAINER = /trainer/;
 
 /** The skill covering `modelId`, or null when no shipped guide claims it. */
 export function promptingSkillFor(modelId: string): string | null {
   const id = modelId.toLowerCase();
+  if (TRAINER.test(id)) return null;
   const hit = MODEL_PROMPTING_SKILLS.find((entry) => entry.pattern.test(id));
   return hit ? hit.skill : null;
 }

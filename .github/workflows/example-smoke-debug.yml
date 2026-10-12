@@ -27,6 +27,9 @@ on:
     - cron: "15 4 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
     name: Smoke-run keyless examples

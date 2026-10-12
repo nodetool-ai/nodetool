@@ -8,6 +8,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { capabilitySpec } from "../src/capabilities/index.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
@@ -290,5 +291,16 @@ describe("the node capabilities read the run's registry", () => {
       {}
     )) as { total: number };
     expect(result.total).toBe(2);
+  });
+});
+
+describe("spec text the shipped skills rely on", () => {
+  it("get_node_info names the node-adding tools by their real names", () => {
+    const description = capabilitySpec("get_node_info")?.description ?? "";
+    expect(description).not.toMatch(/\badd_node\b/);
+    for (const name of ["create_workflow", "update_workflow"]) {
+      expect(capabilitySpec(name), name).toBeDefined();
+      expect(description).toContain(name);
+    }
   });
 });

@@ -7,8 +7,9 @@ description: "Call nodetool.timelines from a code action: create, read, edit or 
 
 A timeline is a sequence: tracks of clips — media, text, shapes, groups, 3D
 models and MIDI — with animations, transitions, masks, mattes, effects and
-markers. This skill is the call reference and the build loop. The op
-contract, the animation roles and the preset catalog are `motion-graphics`.
+markers. This skill is the call reference. The `edit` op contract, the
+animation roles and the preset catalog are `timeline-edit-ops`. The build
+loop and the choice between the code pack and edit ops are `motion-graphics`.
 The craft is in `motion-direction`, `motion-principles`, `motion-curves`,
 `frame-composition`, `color-motion` and `beat-sync-editing`.
 
@@ -74,8 +75,9 @@ Otherwise, or to attach code after the fact, `create`, then `code.set`.
 ## Three ways to build
 
 1. **In code, for motion graphics.** Import `@nodetool-ai/sandbox-timeline`:
-   scenes of shapes, text and images, keyframed in frames, and saved with
-   `saveTimeline` in one call. Read `nodetool.packs.docs("@nodetool-ai/sandbox-timeline")`
+   `const v = video({...})` builds scenes of shapes, text and images,
+   keyframed in frames, and `v.save(nodetool.timelines)` saves them in one
+   call. Read `nodetool.packs.docs("@nodetool-ai/sandbox-timeline")`
    first. This is the path for a dense, layered piece.
 2. **`setDocument`**, for a whole document you already hold. It replaces the
    stored document field for field, so read `get(id)` and send it back

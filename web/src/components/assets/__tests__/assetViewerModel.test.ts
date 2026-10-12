@@ -118,6 +118,23 @@ describe("editActionFor", () => {
         timeline_id: "t1"
       }),
       { kind: "video", tooltip: "Edit Timeline" }
+    ],
+    [
+      asset({ name: "sales.csv", content_type: "text/csv" }),
+      { kind: "tab", tabType: "text", title: "sales.csv", tooltip: "Edit Table" }
+    ],
+    [
+      asset({
+        name: "budget.xlsx",
+        content_type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      }),
+      {
+        kind: "tab",
+        tabType: "text",
+        title: "budget.xlsx",
+        tooltip: "Edit Table"
+      }
     ]
   ])("picks the editor for %#", (a, expected) => {
     expect(actionFor(a)).toEqual(expected);

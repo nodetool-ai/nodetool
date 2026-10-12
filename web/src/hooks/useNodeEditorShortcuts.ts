@@ -330,7 +330,7 @@ export const useNodeEditorShortcuts = (
       try {
         await saveWorkflow(workflow);
         addNotification({
-          content: `Workflow ${workflow.name} saved`,
+          content: `Workflow "${workflow.name}" saved`,
           type: "success",
           alert: true
         });

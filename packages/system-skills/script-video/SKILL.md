@@ -1,11 +1,13 @@
 ---
 name: script-video
-description: "Direct a NodeTool video whose timing follows written voiceover, such as an explainer or narrated b-roll. For on-camera creators, use ugc-video."
+description: "Direct a NodeTool video whose timing follows written voiceover, such as a narrated explainer or narrated b-roll: script, voice, and shots timed to the takes. For an explainer's beat structure, pair with explainer-storyboard. For on-camera creators, use ugc-video."
 ---
 
 **Load `/storyboard-core` first.** It carries the loop, the tool contract and
 the gating this skill assumes. This job type inverts the order of that loop, so read
-the sequence below before creating a board.
+the sequence below before creating a board. For a product explainer, load
+`/explainer-storyboard` as well: it sets the teaching arc and the beats, and this
+skill turns their voiceover into a script that times the shots.
 
 ## What makes this job type its own
 
@@ -24,12 +26,14 @@ becomes its own voiceover clip.
    before anything visual exists.
 2. `create_script {name}`.
 3. `edit_script {script_id, ops}` — `{"op": "add_speaker", "name": "Narrator"}`, then
-   one `{"op": "add_line", "text": "..."}` per sentence. One sentence per line: a line
-   is the unit that gets a take and times a shot, so a paragraph in one line gives you
-   a shot you cannot cut.
+   one `{"op": "add_line", "speaker": "Narrator", "text": "..."}` per sentence. A line
+   with no `speaker` has no voice to inherit and reads `no_voice` however the cast is
+   set. One sentence per line: a line is the unit that gets a take and times a shot,
+   so a paragraph in one line gives you a shot you cannot cut.
 4. **Give the narrator a voice:** `find_model` (`text_to_speech`) →
    `{"op": "set_speaker_voice", "target": "Narrator", "provider", "model", "voice"}`.
-   Without it every line reads `no_voice`.
+   Without it every line reads `no_voice`. `voice` is the provider's own voice name
+   (`Aoede`, `alloy`), not a model id.
 5. `derive_storyboard_from_script {script_id, provider, model}` — one shot per line, in
    reading order, each carrying the line ids it covers. Pass a language provider and
    model for a director pass that writes each shot's visuals over that scaffold; omit
@@ -37,6 +41,7 @@ becomes its own voiceover clip.
 6. **Rewrite the visuals.** The derived shots are a starting point. Go through with
    `edit_storyboard` `update_shot`, giving each an `action` that is concrete b-roll and
    a `motion` with a count. Set the board `style` and `entity_ids` with `set_board`.
+   Confirm the shot count and the models with the user before the first render.
 7. **Stills on every shot**, reviewed, before any clip.
 8. `voice_script_lines {script_id}` — defaults to every draft or stale line. Word
    timings come from a transcription pass (`transcribe: true` by default) and ride into
@@ -70,11 +75,10 @@ timeline as text clips, where they stay editable.
 
 ## Music
 
-Set the board's `music_prompt` only if the board is open in a browser tab —
-`ui_storyboard_set_screenplay` is the only writer for it, and assembly turns it into a
-draft audio clip. Headless, add a music track yourself: `generate_music`, then
-`edit_timeline` → `add_track` + `add_media_clip`, and set its `volumeDb` low enough to
-sit under the voiceover.
+`edit_storyboard` → `{op: "set_board", music_prompt: "..."}` sets the score direction,
+headless, and assembly turns it into a draft music clip under the voiceover. For a bed
+you generate yourself instead: `generate_music`, then `edit_timeline` → `add_track` +
+`add_media_clip`, with its `volumeDb` low enough to sit under the voiceover.
 
 ## Brief
 
@@ -85,8 +89,9 @@ and approval checkpoints apply only when the user adopts them.
 Research [TOPIC], then direct a faceless 16:9 explainer. No on-camera talent.
 
 Write the voiceover first, 150-165 words, one sentence per line, as a script:
-create_script, then edit_script to add a Narrator speaker and the lines. Give
-the narrator a voice with set_speaker_voice before anything else.
+create_script, then edit_script to add a Narrator speaker and the lines, each
+line with speaker Narrator. Give the narrator a voice with set_speaker_voice
+before anything else.
 
 Then derive_storyboard_from_script with a director pass, and rewrite each of the
 eight shots' action and motion as concrete b-roll to that voiceover.

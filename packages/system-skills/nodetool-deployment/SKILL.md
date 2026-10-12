@@ -1,241 +1,195 @@
 ---
 name: nodetool-deployment
-description: "Deploy or operate NodeTool servers and workers with Docker, SSH, Runpod, or cloud deployment configuration."
+description: "Self-host a NodeTool server with Docker Compose or nodetool deploy, rent a Runpod or Vast GPU worker with nodetool worker, or configure server auth. Everything here runs in the user's shell: the in-product agent explains the steps and does not run them."
 ---
 
-You help users deploy NodeTool to various environments. Choose the right deployment type based on requirements.
+You help users run NodeTool somewhere other than their desktop. Every command
+below runs in the user's shell. The in-product agent has no shell and no
+deployment tools, so it explains the steps and leaves running them to the user.
 
-# Decision Tree
+# Which one
 
-```
-Need GPU? ──yes──→ Own hardware? ──yes──→ Self-Hosted (Docker/SSH)
-    │                    │
-    no                   no──→ RunPod (serverless GPU)
-    │
-    ├── Need auth/storage? ──yes──→ Supabase + any deployment
-    │
-    └── Just API server? ──→ GCP Cloud Run or Self-Hosted
-```
+| Need | Use |
+|------|-----|
+| A long-lived server that people connect in to | Docker: `docker-compose.yml` from the repository, or `nodetool deploy` for a remote host over SSH |
+| A rented GPU that the user's NodeTool connects out to, billed by the minute | `nodetool worker` on Runpod or Vast |
 
-# Authentication Modes
+`nodetool deploy` supports one target type, `docker`. There is no SSH-service,
+Runpod-endpoint or Cloud Run deploy type. Runpod and Vast are `nodetool worker`.
 
-The server picks its mode from the Supabase credentials alone. It never reads
-`AUTH_PROVIDER`, `NODETOOL_SERVER_MODE`, or `SERVER_AUTH_TOKEN` to decide how
-to authenticate. The deploy tooling writes those into container environments,
-but they do not secure the server.
+# Server authentication
 
-| Mode | Enabled by | Behavior |
-|------|------------|----------|
-| Local | Default | Loopback runs as user `"1"` with no token. Other sources get `401` unless listed in `NODETOOL_TRUST_LOCAL_NETWORKS`. |
-| Supabase | `SUPABASE_URL` and `SUPABASE_KEY` both set | Every non-public request needs `Authorization: Bearer <supabase_jwt>`. |
+The server picks its auth mode from `SUPABASE_URL` and `SUPABASE_KEY` alone. It
+reads neither `AUTH_PROVIDER` nor `NODETOOL_SERVER_MODE`.
 
-A server that other people reach over a network needs Supabase mode. In Local
-mode, Docker's published port arrives from the bridge gateway, not loopback, so
-API calls return `401` until `NODETOOL_TRUST_LOCAL_NETWORKS` lists that range.
-Every listed source is trusted as user `"1"` with no password, so list only
-networks you control.
+| Mode | Enabled by | Accepted credentials |
+|------|------------|----------------------|
+| Local | Default, with the Supabase variables unset | Loopback connections run as user `"1"` with no token. `NODETOOL_TRUST_LOCALHOST=false` turns that off. Sources in `NODETOOL_TRUST_LOCAL_NETWORKS` (comma-separated CIDRs) also run as user `"1"` with no token. A bearer equal to `SERVER_AUTH_TOKEN` runs as user `"1"`. A token minted by `nodetool deploy users-add` runs as that API user. Anything else gets `401`. |
+| Supabase | `SUPABASE_URL` and `SUPABASE_KEY` both set | Every non-public request needs a valid Supabase JWT. `SERVER_AUTH_TOKEN`, `NODETOOL_TRUST_LOCAL_NETWORKS` and API-user tokens are ignored. Loopback is trusted only with `NODETOOL_TRUST_LOCALHOST=true`. |
 
-# Quick Start
+In both modes, an access token (`ntk_…`) created in **Settings → MCP → Connect
+an agent remotely** authenticates as the person who created it. Send any token
+as `Authorization: Bearer <token>`. A WebSocket client that cannot set headers
+passes `?api_key=<token>` on the `/ws` URL.
 
-```bash
-nodetool deploy init              # Create deployment.yaml
-nodetool deploy add <name>        # Add a deployment
-nodetool deploy list              # List deployments
-nodetool deploy show <name>       # Show config
-nodetool deploy plan <name>       # Preview changes
-nodetool deploy apply <name>      # Deploy
-nodetool deploy status <name>     # Check status
-nodetool deploy logs <name>       # View logs
-nodetool deploy destroy <name>    # Tear down
-```
+Docker NATs a published-port connection, so it arrives from the bridge gateway,
+not loopback. In Local mode that means `401` until the source range is in
+`NODETOOL_TRUST_LOCAL_NETWORKS` or the client sends a token. Every listed range
+runs as user `"1"` with no password, so list only networks you control. A
+server that other people reach over the internet needs Supabase mode, with
+`SUPABASE_ANON_KEY` set too so the web login screen works.
 
-# Environment Variables (All Deployments)
+# Docker Compose (single host)
+
+The repository's `docker-compose.yml` is the reference self-host setup.
 
 ```bash
-# Required
-NODETOOL_ENV=production
-
-# Auth: Supabase mode, required for network access by other users
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=<service-role-key>
-
-# Security
-SECRETS_MASTER_KEY=<strong-random-key>
-
-# Database
-DB_PATH=/workspace/nodetool.sqlite3
-
-# API Keys (as needed)
-OPENAI_API_KEY=<key>
-ANTHROPIC_API_KEY=<key>
-GEMINI_API_KEY=<key>
-HF_TOKEN=<token>
-FAL_API_KEY=<key>
-OLLAMA_API_URL=http://localhost:11434
+cp .env.example .env          # fill in the provider keys you use
+docker compose up -d          # serves http://localhost:17777
 ```
 
-# Self-Hosted: Docker
+- It runs in Local mode and trusts Docker's bridge ranges
+  (`172.16.0.0/12,192.168.65.0/24`) by default. Safe on a laptop, LAN or VPN.
+  Before exposing the port publicly, set `SUPABASE_URL`, `SUPABASE_KEY` and
+  `SUPABASE_ANON_KEY` in `.env`.
+- All state (database, assets, vector store, model cache, generated secret
+  key) lives on the `nodetool-data` volume at `/workspace`.
+- `NODETOOL_PORT` changes the host port. `NODETOOL_VERSION` pins an image tag.
 
-## deployment.yaml
+# `nodetool deploy` (remote Docker host)
+
+`deployment.yaml` lives in the user config directory, not the working directory.
+Open it with `nodetool deploy edit` rather than guessing the path.
+
+```bash
+nodetool deploy init                         # create deployment.yaml
+nodetool deploy add my-server --type docker  # describe one target
+nodetool deploy plan my-server               # review before touching the host
+nodetool deploy apply my-server              # --dry-run to print the steps only
+nodetool deploy status my-server
+nodetool deploy logs my-server --follow --tail 200
+nodetool deploy list                         # live state of every target
+nodetool deploy show my-server               # config only, no remote call
+nodetool deploy destroy my-server            # --force skips the confirmation
+```
+
 ```yaml
 deployments:
   my-server:
     type: docker
-    host: 192.168.1.10
+    host: 192.168.1.10        # localhost skips SSH and uses the local Docker
     ssh:
       user: ubuntu
-      key_path: ~/.ssh/id_rsa
-    container:
-      name: nodetool-server
-      port: 8000
-      gpu: "0"                    # GPU device ID, or omit
-    paths:
-      workspace: /data/nodetool
-      hf_cache: /data/hf-cache
+      key_path: ~/.ssh/id_ed25519
     image:
       name: ghcr.io/nodetool-ai/nodetool
       tag: latest
-```
-
-## Docker Run (manual)
-```bash
-docker run --gpus all --memory 8g --cpus 4 \
-  -p 7777:7777 \
-  -e NODETOOL_ENV=production \
-  -e SUPABASE_URL=https://your-project.supabase.co \
-  -e SUPABASE_KEY=<service-role-key> \
-  -e SECRETS_MASTER_KEY=<secret> \
-  -v $(pwd)/workspace:/workspace \
-  -v $(pwd)/hf-cache:/hf-cache:ro \
-  -e HF_HOME=/hf-cache \
-  nodetool:latest
-```
-
-## Resource Limits
-```yaml
-# Docker Compose
-services:
-  nodetool:
-    mem_limit: 8g
-    cpus: 4
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
-```
-
-# Self-Hosted: SSH
-
-```yaml
-deployments:
-  my-ssh:
-    type: ssh
-    host: 192.168.1.11
-    ssh:
-      user: ubuntu
-      key_path: ~/.ssh/id_rsa
-    port: 8000
-    service_name: nodetool-8000
+    container:
+      name: nodetool-server
+      port: 8000              # host port
+      gpu: "0"                # GPU device ids, or omit
+      environment:            # extra env, e.g. SUPABASE_URL, provider keys
+        OPENAI_API_KEY: "..."
     paths:
-      workspace: /home/ubuntu/nodetool
-      hf_cache: /home/ubuntu/.cache/huggingface
+      workspace: ~/nodetool_data/workspace
+      hf_cache: ~/nodetool_data/hf-cache
 ```
 
-# Self-Hosted: Local
+The CLI writes a generated `server_auth_token` and a
+`container.environment.SECRETS_MASTER_KEY` into `deployment.yaml` for any
+target that lacks them. `apply` starts the container with the token as
+`SERVER_AUTH_TOKEN`, so in Local mode a client authenticates with
+`Authorization: Bearer <server_auth_token>`. The container keeps its database,
+assets, vector store and API users under `/workspace`.
 
-```yaml
-deployments:
-  my-local:
-    type: local
-    host: localhost
-    port: 8000
-    paths:
-      workspace: /home/me/.nodetool-workspace
-      hf_cache: /home/me/.cache/huggingface/hub
-```
+## Remote workflows and API users
 
-# RunPod (Serverless GPU)
+These verbs send an admin bearer token: `--token <token>`, else
+`NODETOOL_ADMIN_TOKEN`, else an interactive prompt.
 
 ```bash
-export RUNPOD_API_KEY="your-key"
-nodetool deploy add my-runpod --type runpod
-nodetool deploy apply my-runpod
+nodetool deploy workflows sync my-server <workflow_id>   # assets and models must already be there
+nodetool deploy workflows list my-server
+nodetool deploy workflows run my-server <workflow_id> -p prompt="a red fox"
+nodetool deploy workflows delete my-server <workflow_id>
+
+nodetool deploy users-add my-server alice --role admin   # prints alice's token
+nodetool deploy users-list my-server
+nodetool deploy users-reset-token my-server alice
+nodetool deploy users-remove my-server alice
 ```
 
-Config fields: `template_id`, `endpoint_id`, `compute_type`, `gpu_types`, `gpu_count`, `workers_min`, `workers_max`, `env`
+API-user tokens work in Local mode only (§ Server authentication).
 
-# GCP Cloud Run
+# `nodetool worker` (rented GPU)
+
+A worker is a Runpod or Vast instance that the user's NodeTool attaches to for
+GPU nodes. It bills by the minute until stopped. Confirm the GPU type and the
+expected hours with the user before creating one, and always set an auto-stop
+guard.
+
+Store the provider key first: `nodetool secrets store RUNPOD_API_KEY` (or
+`VAST_API_KEY`).
 
 ```bash
-gcloud auth login
-nodetool deploy add my-gcp --type gcp
-nodetool deploy apply my-gcp
+nodetool worker profile add hf-a40 --target runpod \
+  --image ghcr.io/nodetool-ai/nodetool-worker:latest \
+  --gpu "NVIDIA A40" --idle-timeout 15 --max-lifetime 240
+nodetool worker create --profile hf-a40 --attach
+
+nodetool worker list
+nodetool worker status <instance-id>
+nodetool worker stop <instance-id>     # or --all
 ```
 
-Config fields: `service_name`, `region`, `registry`, `cpu`, `memory`, `gpu_type`, `gpu_count`, `min_instances`, `max_instances`, `concurrency`, `timeout`
+- `--idle-timeout <minutes>` stops an idle worker. `--max-lifetime <minutes>` is
+  a hard limit. Set both, since a forgotten worker keeps billing.
+- `--disk <gb>` sizes the persistent volume that holds the model cache
+  (default 100). `--ssh-key <path.pub>` opens SSH for debugging.
+- `--attach` prints `NODETOOL_WORKER_URL`. For another shell, export
+  `NODETOOL_WORKER_TOKEN=$(nodetool worker token <instance-id>)`.
+- `nodetool worker models download --repo-id <owner/name>` pulls weights onto
+  the attached worker before a run, so the first run does not pay for the
+  download on GPU time. `models list` and `models delete` manage the cache.
 
-# Supabase Integration
+# Environment
+
+| Variable | Purpose |
+|----------|---------|
+| `SUPABASE_URL`, `SUPABASE_KEY` | Turn on Supabase mode. `SUPABASE_KEY` is the service-role key |
+| `SUPABASE_ANON_KEY` | Public key the login screen uses. Without it no user can sign in |
+| `SECRETS_MASTER_KEY` | Encrypts stored secrets. Set it explicitly (`openssl rand -base64 32`). A lost key makes every stored secret unreadable |
+| `NODETOOL_TRUST_LOCAL_NETWORKS` | Local mode only: CIDRs that run as user `"1"` with no token |
+| `NODETOOL_TRUST_LOCALHOST` | Overrides whether loopback bypasses auth |
+| `NODETOOL_ENABLE_MCP=1` | Serves `/mcp` on a production server |
+| `NODETOOL_STORAGE_BACKEND` | `file` (default), `s3` or `supabase`, with `ASSET_BUCKET` and `TEMP_BUCKET` |
+| `DB_PATH`, `ASSET_FOLDER`, `VECTORSTORE_DB_PATH`, `HF_HOME` | Keep these on a persistent volume |
+| `HOST`, `PORT` | Bind address. The image binds `0.0.0.0` |
+| `NODETOOL_LOG_LEVEL` | Log level, default `info` |
+| Provider keys | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `HF_TOKEN`, `FAL_API_KEY` as needed |
+
+The image already sets `NODETOOL_ENV=production`. Production mode turns off the
+Python bridge, the file browser and `/mcp` (unless enabled), and loads only node
+packs on the allowlist. Do not set it on a desktop or development install.
+
+# Running the server directly
 
 ```bash
-# Environment variables
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-service-role-key
-ASSET_BUCKET=assets
-ASSET_TEMP_BUCKET=assets-temp
+nodetool serve                          # 127.0.0.1:7777
+nodetool serve --host 0.0.0.0 --port 8080
 ```
 
-**Setup steps:**
-1. Create Supabase project
-2. Create storage buckets: `assets`, `assets-temp`
-3. Set bucket policies (public or signed URLs)
-4. Copy service-role key (not anon key)
-5. Set environment variables
+Health checks: `GET /health` (liveness, no auth) and `GET /ready`.
 
-# Server Startup
+# Common pitfalls
 
-```bash
-# Development
-nodetool serve --host 127.0.0.1 --port 7777
-
-# Production
-nodetool serve --host 0.0.0.0 --port 7777
-
-# Custom port
-nodetool serve --port 8080
-
-# From a NodeTool checkout, against the TypeScript sources
-npm run build:packages && npm run dev:server
-# Or directly:
-PORT=7777 HOST=0.0.0.0 node packages/websocket/dist/server.js
-```
-
-# Workflow Sync
-
-```bash
-nodetool deploy workflows sync <deployment> <workflow-id>
-nodetool deploy workflows list <deployment>
-nodetool deploy workflows run <deployment> <workflow-id>
-```
-
-# Production Checklist
-
-- [ ] Set `NODETOOL_ENV=production`
-- [ ] Set strong `SECRETS_MASTER_KEY`
-- [ ] Set `SUPABASE_URL` and `SUPABASE_KEY` so every request needs a token
-- [ ] Never set `NODETOOL_TRUST_LOCAL_NETWORKS` on a reachable public port
-- [ ] Configure API keys for needed providers
-- [ ] Set resource limits (memory, CPU, GPU)
-- [ ] Mount persistent volumes for workspace and model cache
-- [ ] Set up health monitoring (`GET /health`, `GET /ready`)
-- [ ] Configure logging (`NODETOOL_LOG_LEVEL=info`)
-- [ ] Set up backups for `DB_PATH`
-
-# Common Pitfalls
-
-- **Using anon key for Supabase**: Use service-role key, not anon key
-- **No persistent volume**: Data lost on container restart without `-v` mount
-- **Port conflicts**: Check nothing else runs on 7777
-- **Missing SECRETS_MASTER_KEY**: Required for encrypted secret storage in prod
-- **Relying on `SERVER_AUTH_TOKEN` or `AUTH_PROVIDER`**: The server ignores both for auth. Only Supabase mode enforces tokens
-- **HF cache not mounted**: Models re-download on every container start
+- **UI loads but every API call returns `401` in Docker**: the published port
+  arrives from the bridge gateway. Add the bridge range to
+  `NODETOOL_TRUST_LOCAL_NETWORKS` or send a token.
+- **`SERVER_AUTH_TOKEN` or `NODETOOL_TRUST_LOCAL_NETWORKS` stops working after
+  adding Supabase**: Supabase mode ignores both. Clients must sign in or use an
+  access token.
+- **Anon key in `SUPABASE_KEY`**: the server needs the service-role key there.
+- **No persistent volume**: the database, assets and secrets key vanish when the
+  container is recreated.
+- **Worker left running**: `nodetool worker list`, then `nodetool worker stop --all`.

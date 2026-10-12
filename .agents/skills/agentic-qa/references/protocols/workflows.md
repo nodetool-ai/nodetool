@@ -183,3 +183,41 @@ the participant changed it.
 with a "Show" action. A runtime failure shows a toast with the error, the
 error on the node with "View logs for this node and run", "Report this as a
 bug", and "Copy to clipboard", and a line in the Logs tab.
+
+## `example-edit`
+
+| Packet | Value |
+|---|---|
+| Kind | `task` |
+| Limits | 50 actions, 10 minutes |
+| State | `--state empty` |
+| Credentials | One OpenAI test key |
+
+**Goal.** "Find something ready-made in this app that someone else set up as
+an example. Make your own version of it with one change of your choice, and
+keep it. Then leave the page, come back, and check that your version still
+has your change and that the original example is still the way it was."
+
+**Pass.** After a reload, the participant's copy is listed under its own name
+and shows the change, and opening the example again shows it unchanged.
+
+**Checks.**
+
+- Record the change and quote it, for example an edited text field, a
+  renamed node, or an added node. Read the node and edge counts in the
+  status bar before and after.
+- Open the example again after the reload and compare it with its first
+  screenshot.
+- Record whether the copy got a name that tells it apart from the example.
+
+**Routes.** More, then "Examples", or Home's "Browse examples". The
+Workflows tab's "Start from a template" copies the card into the current
+project and opens the copy. The rail's "Documents" panel lists the copy.
+
+**Fakes.** A run of the example is not required. If the participant runs
+it, the model steps answer with the fixed text.
+
+**Known behavior.** An example's Agent node needs its own model pick (see
+[`app`](#app)). Clicking an example card creates a copy with the
+example's exact name and opens it. In round 8 the participant then compared
+two copies and never reopened the example.

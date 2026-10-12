@@ -33,8 +33,9 @@ left out.
 
 - `{run: false}` checks the wiring only. It is free and takes milliseconds.
   Run it after every wiring change.
-- A full run executes the real workflows and spends real money. Run it to
-  confirm that the app works, not to explore.
+- A bare `debug(id)` is a full run: `run` defaults to true. A full run
+  executes the real workflows and spends real money. Run it to confirm that
+  the app works, not to explore.
 - `interact` scripts the user actions in order: `{set: {key, value}}`,
   `{click: <widget>}`, `{change: {…}}`, `{run: <operationId>}`,
   `{cancel: <operationId>}`, `{seedResource: {id, items}}`. A widget is named

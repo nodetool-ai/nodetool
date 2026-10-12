@@ -15,7 +15,7 @@ Every `id` is the full game id or its exact 12-character prefix.
 
 | Call | Does |
 | :--- | :--- |
-| `create(name, {project_id})` | Creates a game in a project and seeds a playable top-down room. Answers the full id and the revision. |
+| `create(name, {project_id, dimension, template})` | Creates a game in a project. `dimension` is `2d` (default, a playable top-down room) or `3d` (an exploration blockout). `template` is `topdown` or `exploration`. Answers the full id and the revision. |
 | `get(id, {source, revision, view, entity_id})` | Reads the draft (default) or a revision. `view` is `outline` (default), `entity` or `full`. |
 | `edit(id, ops, {base_updated_at})` | Applies ordered edits to the draft atomically. Issues come back with the op index and path. It does not publish. |
 | `setDocument(id, document, {base_updated_at})` | Writes a whole document as one `set_document` edit, validated atomically. |
@@ -26,19 +26,27 @@ Every `id` is the full game id or its exact 12-character prefix.
 | `playtest(id, {source, revision, seed, inputs, assertions, capture_ticks})` | Runs up to 18,000 ticks with run-length inputs and assertions, and captures up to 8 frames. |
 | `autoplay(id, {win, target_prefix, seed, player_id, max_ticks, source, revision})` | Searches for a route to a win or to an entity prefix. Answers replayable inputs, the win tick and level statistics. An exhausted budget is inconclusive. |
 | `capture(id, {ticks, inputs, seed, camera, overlays, scale, sheet, source, revision})` | Renders up to 8 frames for a visual review. |
-| `publish(id, {base_revision, message})` | Saves the draft as an immutable revision, only when the user asks. A stale `base_revision` is a conflict. |
+| `publish(id, {base_revision, message})` | Saves the draft as an immutable revision, only when the user asks. `base_revision` is required, and a stale one is a conflict. |
 | `build(id, {revision})` | Builds a standalone web player of a revision under `game-builds/<game-id>/<revision>` in the project workspace. |
 | `listExamples({query, limit})`, `getExample(slug, {view, entity_id})` | Lists and reads the shipped benchmark games, such as `kindle`. |
 | `installExample(slug, {project_id, name})` | Copies an example with its media into a project as a new game you own. |
 
 ## generateAsset
 
-`kind` is `image`, `audio` (speech), `music`, `sfx` or `font`.
+`kind` is `image`, `audio` (speech), `music`, `sfx`, `font`, `model` or
+`collider`. Each generation is billed, so confirm the slot list with the user
+before you generate assets for many slots.
 
 - Images can be prepared as aligned sprite sheets, edge tilesets or grade LUTs
   through `preparation`.
 - `sfx` needs a registered sound-effect `node_type` and its `params`.
 - `font` imports a TTF or OTF `input_file`.
+- `model` needs a provider `node_type` with `params`, or an owned glTF or GLB
+  `input_file`. `dependency_files` maps a glTF buffer or image URI to an owned
+  asset or workspace path. `collider` takes `preparation.shape`. 3D results
+  are candidates that `installAsset` must install.
+- `install: false` stages a 2D candidate and answers its binding without
+  binding it.
 - `reference_slot` keeps a new image in the style of an existing slot.
 - `provider` and `model` pick the model. `background: true` starts it and
   answers a `generation_id`; call again with `generation_id` and the same

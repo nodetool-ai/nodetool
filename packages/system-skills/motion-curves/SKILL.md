@@ -1,7 +1,6 @@
 ---
 name: motion-curves
 description: Write NodeTool timeline animation curves by hand or bake a JavaScript body into curves once. Use for overshoot, bounce, anticipation, arcs, path draw-on, style-property animation, or motion a preset cannot express.
-featured: true
 ---
 
 # Motion Curves → animation nobody had a preset for
@@ -12,7 +11,7 @@ host-side). Add `mask` when a curve drives `wipeProgress`. A stored document
 animation can instead carry `styleTracks` or `textAnimator` without numeric
 custom curves.
 
-`motion-graphics` carries the op contract and the preset catalog this file is
+`timeline-edit-ops` carries the op contract and the preset catalog this file is
 the escape hatch from. `motion-principles` gives the duration and the shape a
 curve should hit before you write its keyframes.
 
@@ -25,7 +24,7 @@ then call `set_timeline_document` with every existing document field. The
 
 ## When to write one
 
-Write curves as soon as a preset is close but not right. The catalog is seven
+Write curves as soon as a preset is close but not right. The catalog is eight
 entrance shapes and a handful of beats — where motion starts, not where it
 stops — and a piece whose every title arrives with `pop` reads like a template.
 A curve costs one field and a few numbers, and the recipes below are the shapes
@@ -68,8 +67,8 @@ second adds to the first or throws it away.
 
 | Fold | Channels | Identity | Result |
 |---|---|---|---|
-| add | `offsetX`, `offsetY`, `rotation` (radians), `blur` (px), `brightness` (−1..1), `hue` (deg), `temperature`, `tint` | 0 | Values sum |
-| multiply | `scale`, `scaleX`, `scaleY`, `opacity` (0..1), `saturation` (0..4), `contrast` (0..4) | 1 | Values multiply |
+| add | `offsetX`, `offsetY`, `rotation` (radians), `rotationX`, `rotationY` (deg), `blur` (px), `brightness` (−1..1), `hue` (deg), `temperature`, `tint`, `cameraAzimuth`, `cameraElevation`, `cameraFov` (deg, 3D clips only) | 0 | Values sum |
+| multiply | `scale`, `scaleX`, `scaleY`, `opacity` (0..1), `saturation` (0..4), `contrast` (0..4), `cameraZoom` (3D clips only) | 1 | Values multiply |
 | min | `wipeProgress` (0..1) | 1 | The tightest wipe wins |
 | replace | `positionX`, `positionY` (canvas px), `anchorX`, `anchorY` (0..1), `trimStart`, `trimEnd` (0..1) | none | The last animation in document order wins; the other is discarded |
 
@@ -109,8 +108,8 @@ This is one complete stored animation object to merge into an existing clip's
 
 `styleTracks` can accompany a preset, so a title can fade while its color
 changes. The `id` is required in the stored document; `animate_clip` creates
-one for its own inputs. Use `motion-graphics` for links, text animators, beat
-binding, and the document write boundary.
+one for its own inputs. Use `timeline-edit-ops` § Document motion fields for
+links, text animators, beat binding, and the document write boundary.
 
 ## The code body
 
@@ -189,7 +188,7 @@ return { curves: [{ property: "offsetY", keyframes: [
 
 **Shaped wiggle.** For a steady seeded wiggle, use a stored
 `animationLinks` entry with `kind: "wiggle"` as described in
-`motion-graphics`. Bake a curve when its amplitude must fade in or out. This
+`timeline-edit-ops` § Document motion fields. Bake a curve when its amplitude must fade in or out. This
 seeded generator reproduces the same shape on a re-bake.
 
 ```js

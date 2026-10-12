@@ -461,9 +461,13 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         const existing = get().tabs.find((t) => t.id === id);
         const project =
           projectId === undefined ? existing?.projectId : projectOf(projectId);
+        // The opened tab becomes the active one, so the scope follows its
+        // project as `setActiveTab` does. Keeping the old scope left an active
+        // tab the tab bar does not draw: Home lost its highlight and the
+        // workflow loaded with no tab to show it.
         const activeProjectId = foreground
           ? (project ?? null)
-          : get().activeProjectId;
+          : (project ?? get().activeProjectId);
         if (existing) {
           set((state) => {
             const movedBetweenProjects = existing.projectId !== project;
