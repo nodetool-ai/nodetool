@@ -83,6 +83,11 @@
       "types": "./dist/build3d.d.ts",
       "import": "./dist/build3d.js"
     },
+    "./build-tauri": {
+      "nodetool-dev": "./src/build-tauri.ts",
+      "types": "./dist/build-tauri.d.ts",
+      "import": "./dist/build-tauri.js"
+    },
     "./preparation3d": {
       "nodetool-dev": "./src/preparation3d.ts",
       "types": "./dist/preparation3d.d.ts",
