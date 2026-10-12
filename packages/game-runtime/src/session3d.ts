@@ -13,7 +13,8 @@ import {
   type GameRenderFrame3D,
   type GameScene3D,
   type GameSnapshot3D,
-  type GameStepResult3D
+  type GameStepResult3D,
+  type GameUiOverride
 } from "@nodetool-ai/protocol";
 import { initialGameplayState, runGameplayTick } from "./gameplay/lifecycle.js";
 import { withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
@@ -249,6 +250,7 @@ export async function createGameSession3D(
     let previousEvents = structuredClone(saved?.pendingEvents ?? []);
     let queries = structuredClone(saved?.queryResults ?? []);
     let hud = new Map((saved?.hud ?? []).map((label) => [label.id, structuredClone(label)]));
+    let ui = new Map<string, GameUiOverride>(Object.entries(structuredClone(saved?.ui ?? {})));
     let instances = structuredClone(saved?.prefabInstances ?? []);
     let music =
       saved?.music ??
@@ -289,7 +291,7 @@ export async function createGameSession3D(
     };
     const frame = (): GameRenderFrame3D => {
       assertAvailable();
-      return frame3D(document, currentScene(), states, camera, previousCamera, tick, score, won, hud);
+      return frame3D(document, currentScene(), states, camera, previousCamera, tick, score, won, hud, ui);
     };
     const snapshot = (): GameSnapshot3D => {
       assertAvailable();
@@ -298,7 +300,7 @@ export async function createGameSession3D(
       const contactsState = captureContacts();
       const animationState = captureAnimation();
       const physicsState = capturePhysics();
-      return {
+      const result: GameSnapshot3D = {
         dimension: "3d",
         schemaVersion: 3,
         engineVersion: "2",
@@ -323,6 +325,9 @@ export async function createGameSession3D(
         prefabInstances: gameplayState.prefabInstances,
         physics: physicsState.physics
       };
+      // Left out until a script changes the HUD tree, so snapshots of games without one keep their bytes.
+      if (gameplayState.ui) { result.ui = gameplayState.ui; }
+      return result;
     };
     let presentationEvents: (GameEvent3D | GameParticleEmission)[] = [];
     const captureScripts = () => ({
@@ -343,6 +348,7 @@ export async function createGameSession3D(
       spawnSequence,
       entities: states.map(snapshotEntity3D),
       hud: [...hud.values()].map((label) => ({ ...label })),
+      ...(ui.size > 0 ? { ui: structuredClone(Object.fromEntries(ui)) } : undefined),
       music: structuredClone(music),
       prefabInstances: structuredClone(instances)
     });
@@ -410,6 +416,7 @@ export async function createGameSession3D(
         won = state.won;
         spawnSequence = state.spawnSequence;
         hud = new Map(state.hud.map((label) => [label.id, structuredClone(label)]));
+        ui = new Map(Object.entries(structuredClone(state.ui ?? {})));
         music = structuredClone(state.music ?? (restoredScene.music
           ? { ...restoredScene.music, voiceId: `scene:${restoredScene.id}:music`, startTick: state.tick }
           : null));
@@ -562,6 +569,12 @@ export async function createGameSession3D(
       },
       set hud(value) {
         hud = value;
+      },
+      get ui() {
+        return ui;
+      },
+      set ui(value) {
+        ui = value;
       },
       rapier,
       prepared,

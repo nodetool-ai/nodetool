@@ -166,6 +166,7 @@ export function stepGameplay3D(context: GameSystemContext3D): void {
     context.instances = [];
     context.scriptState = {};
     context.hud = new Map();
+    context.ui = new Map();
     context.queries = [];
     context.music = context.scene.music
       ? {

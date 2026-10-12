@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, gameScriptLogsOf, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
-import { browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput3D } from "@nodetool-ai/game-renderer";
+import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { GameReplayHistory } from "./gameReplayHistory";
@@ -59,6 +59,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const audioRef = useRef<GameAudioPlayer | null>(null);
   const [scriptLogs] = useState(createGameScriptLogChannel);
   const [profiler] = useState(() => createGameProfiler());
+  const hudRef = useRef<GameUiController | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument3D | null>(null);
   const [frame, setFrame] = useState<GameRenderFrame3D | null>(null);
@@ -98,7 +99,9 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
         while (queue.latest && rendererRef.current === renderer) {
           const next = queue.latest;
           queue.latest = null;
-          const stats = await renderer.render(next.frame, next.alpha);
+          const hud = hudRef.current;
+          hud?.update(next.frame.ui, gameUiViewport3D(next.frame));
+          const stats = await renderer.render(hud ? hud.annotate(next.frame) : next.frame, next.alpha);
           profiler.recordRender(stats);
         }
       } catch (cause) {
@@ -283,11 +286,18 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     }
     inputRef.current.setEnabled(true);
     audioRef.current?.resume();
+    // HUD buttons press their input actions through the same input while the game plays. A locked pointer has
+    // no position, so HUD hits wait until the mouse is released.
+    const canvas = canvasRef.current;
+    const hud = new GameUiController(inputRef.current, browserGameUiMeasure(sessionDocument.id));
+    hudRef.current = hud;
+    const detachHud = canvas ? attachGameUiPointer(canvas, hud, () => gameUiViewport3D(sessionDocument),
+      () => window.document.pointerLockElement !== canvas) : undefined;
     const clock = new FixedTickClock(sessionDocument.tickRate);
     let request = 0;
     const animate = (now: number): void => {
       const alpha = clock.advance(now, () => {
-        inputRef.current.pollGamepads(browserGamepads());
+        inputRef.current.pollGamepads(hud.pollGamepads(browserGamepads()));
         step(inputRef.current.sample(sessionDocument));
       });
       const current = sessionRef.current;
@@ -300,7 +310,14 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     const release = (): void => { inputRef.current.release(); if (window.document.hidden) { setPlaying(false); } };
     window.document.addEventListener("visibilitychange", release);
     window.addEventListener("blur", release);
-    return () => { cancelAnimationFrame(request); window.document.removeEventListener("visibilitychange", release); window.removeEventListener("blur", release); };
+    return () => {
+      cancelAnimationFrame(request);
+      window.document.removeEventListener("visibilitychange", release);
+      window.removeEventListener("blur", release);
+      detachHud?.();
+      hud.release();
+      if (hudRef.current === hud) { hudRef.current = null; }
+    };
   }, [playing, active, playDocument, sessionDocument, step, display]);
 
   const beginPlay = (): void => {

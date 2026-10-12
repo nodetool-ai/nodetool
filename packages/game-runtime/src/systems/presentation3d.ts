@@ -1,11 +1,13 @@
 import {
+  resolveGameUiFrame,
   type GameCameraState3D,
   type GameDocument3D,
   type GameEntity3D,
   type GameHudLabel,
   type GameRenderFrame3D,
   type GameScene3D,
-  type GameTransform3D
+  type GameTransform3D,
+  type GameUiOverride
 } from "@nodetool-ai/protocol";
 import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { type EntityState3D } from "../spatial3d/state.js";
@@ -60,14 +62,15 @@ export function frame3D(
   tick: number,
   score: number,
   won: boolean,
-  hud: ReadonlyMap<string, GameHudLabel>
+  hud: ReadonlyMap<string, GameHudLabel>,
+  ui: ReadonlyMap<string, GameUiOverride>
 ): GameRenderFrame3D {
   const cameraDefinition = states.find((state) => state.definition.id === camera.entityId)?.definition.camera3d;
   const cullDistanceOf = states.some((state) => state.definition.renderCulling) ? cullDistanceResolver3D(document, states) : undefined;
   if (!cameraDefinition) {
     throw new Error(`Missing active camera ${camera.entityId}`);
   }
-  return {
+  const frame: GameRenderFrame3D = {
     dimension: "3d",
     gameId: document.id,
     sceneId: scene.id,
@@ -149,4 +152,14 @@ export function frame3D(
       hud
     )
   };
+  const uiFrame = resolveGameUiFrame(document.ui, scene.ui, ui, (entityId) => {
+    const state = states.find((candidate) => candidate.definition.id === entityId);
+    const health = state?.definition.behaviors.find((behavior) => behavior.kind === "health");
+    return state && health?.kind === "health" ? { value: state.health ?? 0, max: health.maximum } : undefined;
+  });
+  // Left out without a HUD tree, so frames of games without one keep their bytes.
+  if (uiFrame) {
+    frame.ui = uiFrame;
+  }
+  return frame;
 }
