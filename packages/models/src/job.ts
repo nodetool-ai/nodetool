@@ -6,7 +6,12 @@
 
 import { eq, and, desc, lt, inArray, notInArray, like } from "drizzle-orm";
 import { isShortResourceId } from "@nodetool-ai/protocol";
-import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import {
+  DBModel,
+  ModelChangeEvent,
+  ModelObserver,
+  createTimeOrderedUuid
+} from "./base-model.js";
 import { getPortableDb, getDatabase } from "./db.js";
 import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { jobs } from "./schema/jobs.js";
@@ -270,6 +275,42 @@ export class Job extends DBModel {
       )
       .returning({ id: jobs.id });
     return updated.length > 0;
+  }
+
+  /**
+   * Persist this run's settled state, unless the row already settled.
+   *
+   * A run that finishes after a cancel would otherwise overwrite the
+   * `cancelled` row with its own outcome: `save()` upserts the whole row, so
+   * the last writer wins, and a render that kept going reported "completed"
+   * after the user stopped it. This writes the same columns `save()` would,
+   * but only while the row is still active. When it is not, the instance is
+   * reloaded so the caller sees the status that stands.
+   *
+   * Returns whether this write landed.
+   */
+  async saveIfActive(): Promise<boolean> {
+    this.beforeSave();
+    const row = this.toRow();
+    delete row["id"];
+    delete row["user_id"];
+    delete row["created_at"];
+    const updated = await getPortableDb()
+      .update(jobs)
+      .set(row)
+      .where(
+        and(
+          eq(jobs.id, this.id),
+          notInArray(jobs.status, ["completed", "failed", "cancelled"])
+        )
+      )
+      .returning({ id: jobs.id });
+    if (updated.length === 0) {
+      await this.reload().catch(() => undefined);
+      return false;
+    }
+    ModelObserver.notify(this, ModelChangeEvent.UPDATED);
+    return true;
   }
 
   // ── Static queries ───────────────────────────────────────────────

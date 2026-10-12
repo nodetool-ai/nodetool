@@ -1,8 +1,8 @@
 /**
  * The `jobs` capability module.
  *
- * Three capabilities that used to be three `Tool` subclasses in
- * `../tools/mcp-tools.ts`: `list_jobs`, `get_job` and `get_job_logs`.
+ * `list_jobs`, `get_job` and `get_job_logs` used to be `Tool` subclasses in
+ * `../tools/mcp-tools.ts`; `cancel_job` joined them there as a name.
  * `start_background_job` reads the same table but starts a run, so it stays
  * with the run capabilities in `./workflows.ts`.
  *
@@ -155,16 +155,23 @@ const getJobLogs: CapabilityExport = {
  * to someone else and a job that already finished both come back `false`
  * without this code ever holding the row. It cannot clobber the cost and
  * timestamps a finishing run just wrote.
+ *
+ * The row is only the record. A background run executing in this process
+ * (`start_background_job`, `render_timeline`) is stopped through
+ * `cancelActiveRuns`, which aborts its context and with it every node's
+ * signal; it then finds the row cancelled and leaves it so.
  */
 const cancelJob: CapabilityExport = {
   spec: cancelJobSpec,
   impl: async (run, params) => {
     const { Job } = await import("@nodetool-ai/models");
     const jobId = String(params["job_id"]);
-    const cancelled = await Job.markCancelledIfActive(
-      jobId,
-      userIdOf(run.context)
-    );
+    const userId = userIdOf(run.context);
+    const cancelled = await Job.markCancelledIfActive(jobId, userId);
+    if (cancelled) {
+      const { cancelActiveRuns } = await import("@nodetool-ai/execution/service");
+      cancelActiveRuns(userId, [jobId]);
+    }
     return cancelled
       ? { job_id: jobId, status: "cancelled" }
       : {

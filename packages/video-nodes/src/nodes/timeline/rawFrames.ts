@@ -245,7 +245,10 @@ export function openVideoFrameStream(
   const { filePath, size, fps, startSec, speed } = opts;
   const filters = [
     speed !== 1 ? `setpts=PTS/${speed}` : null,
-    opts.nativeSampling ? null : `fps=${fps}`,
+    // `round=up` puts a source frame in the first output slot at or after
+    // its timestamp, so slot k holds the latest frame at or before k / fps:
+    // the frame a player, and the preview, shows at that instant.
+    opts.nativeSampling ? null : `fps=${fps}:round=up`,
     `scale=${size.width}:${size.height}`,
     "format=rgba"
   ].filter((f): f is string => f !== null);
@@ -537,6 +540,55 @@ export function openSourceFrameStream(opts: {
 }
 
 /**
+ * Source-time frames of a clip that plays forward at a constant rate: no time
+ * remap, no bake. One decode resampled to the timeline's frame rate covers the
+ * whole clip, and each request takes the nearest decoded frame.
+ *
+ * {@link openSourceFrameStream} only indexes a source whose packets sit on
+ * an exact grid, and seeks afresh for every other frame. Generated clips often
+ * do not: a Seedance or Dreamina file reports `r_frame_rate=60/1` with an
+ * average near 24, so every frame of the render respawned ffmpeg (320 ms a
+ * frame against 1.4 ms streamed). Resampling onto the output grid needs no
+ * source grid at all, and a forward clip never asks for an earlier frame.
+ */
+export function openForwardSourceFrameStream(opts: {
+  filePath: string;
+  size: RawSize;
+  /** The timeline's frame rate: the grid the decode is resampled onto. */
+  fps: number;
+  /** Source seconds at the clip's first frame. */
+  startSec: number;
+  /** Source seconds consumed per timeline second (`sourceRate`). */
+  speed: number;
+}): SourceFrameStream {
+  const { fps, startSec, speed } = opts;
+  const stream = openVideoFrameStream({
+    filePath: opts.filePath,
+    size: opts.size,
+    fps,
+    startSec,
+    speed
+  });
+  let closed = false;
+  return {
+    width: stream.width,
+    height: stream.height,
+    reopens: 0,
+    reverseWindowBytes: 0,
+    async frameAtSourceSec(sec: number): Promise<Uint8Array | null> {
+      if (closed) return null;
+      // Decoded frame k shows source time startSec + k * speed / fps.
+      const index = Math.max(0, Math.round(((sec - startSec) * fps) / speed));
+      return stream.frameAt(index);
+    },
+    close(): void {
+      closed = true;
+      stream.close();
+    }
+  };
+}
+
+/**
  * Pull exact-size frames out of a byte stream, with the read-ahead bounded by
  * pausing the stream — a 1080p frame is 8 MB, so an unbounded buffer would let
  * a fast decoder outrun the compositor into gigabytes of RAM.
@@ -638,7 +690,8 @@ class FrameReader {
 
 /** A running encoder that turns written RGBA frames into an output file. */
 export interface FrameEncoder {
-  write(rgba: Uint8Array): Promise<void>;
+  /** One frame: RGBA8 for {@link openFrameEncoder}, a PNG for {@link openPngFrameEncoder}. */
+  write(frame: Uint8Array): Promise<void>;
   /** Close the input and wait for the file to be finalized. */
   finish(): Promise<void>;
   abort(): void;
@@ -713,20 +766,42 @@ export function openFrameEncoder(opts: {
   /** Output codec arguments. Defaults to H.264 at `yuv420p`. */
   encoderArgs?: readonly string[];
 }): FrameEncoder {
-  const { outPath, width, height, fps } = opts;
-  const encoderArgs = opts.encoderArgs ?? defaultEncoderArgs();
+  const { width, height, fps } = opts;
+  return openPipeEncoder(
+    ["-f", "rawvideo", "-pix_fmt", "rgba", "-s", `${width}x${height}`, "-r", String(fps)],
+    opts.encoderArgs ?? defaultEncoderArgs(),
+    opts.outPath
+  );
+}
+
+/**
+ * Start encoding PNG frames written at `fps` into `outPath`. The headless
+ * browser render sends PNGs, which keep straight alpha losslessly, for the
+ * formats its WebCodecs cannot write (ProRes, and VP9 with alpha).
+ */
+export function openPngFrameEncoder(opts: {
+  outPath: string;
+  fps: number;
+  encoderArgs: readonly string[];
+}): FrameEncoder {
+  return openPipeEncoder(
+    ["-f", "image2pipe", "-c:v", "png", "-framerate", String(opts.fps)],
+    opts.encoderArgs,
+    opts.outPath
+  );
+}
+
+/** One long-running ffmpeg reading frames on stdin, described by `inputArgs`. */
+function openPipeEncoder(
+  inputArgs: readonly string[],
+  encoderArgs: readonly string[],
+  outPath: string
+): FrameEncoder {
   const child = spawnFfmpeg([
     "-y",
     "-v",
     "error",
-    "-f",
-    "rawvideo",
-    "-pix_fmt",
-    "rgba",
-    "-s",
-    `${width}x${height}`,
-    "-r",
-    String(fps),
+    ...inputArgs,
     "-i",
     "pipe:0",
     ...encoderArgs,
@@ -761,9 +836,9 @@ export function openFrameEncoder(opts: {
   );
 
   return {
-    async write(rgba: Uint8Array): Promise<void> {
+    async write(frame: Uint8Array): Promise<void> {
       if (failure) throw failure;
-      const ok = child.stdin.write(Buffer.from(rgba.buffer, rgba.byteOffset, rgba.byteLength));
+      const ok = child.stdin.write(Buffer.from(frame.buffer, frame.byteOffset, frame.byteLength));
       if (!ok) {
         await new Promise<void>((resolve, reject) => {
           const rejectPending = (error: Error): void => {

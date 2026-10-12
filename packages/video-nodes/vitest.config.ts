@@ -14,6 +14,10 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
-    passWithNoTests: true
+    passWithNoTests: true,
+    // RenderTimeline tries headless Chromium first. The node's own tests
+    // cover the Node compositor; the browser path has its own suite, which
+    // opts back in.
+    env: { NODETOOL_TIMELINE_RENDERER: "node" }
   }
 });

@@ -38,6 +38,11 @@ export {
 export type { WorkspaceFileChange } from "./workflow-workspace.js";
 
 export { createAppServerRunner } from "./app-run-server.js";
+export {
+  cancelActiveRuns,
+  isActiveRun,
+  registerActiveRun
+} from "./active-runs.js";
 export type { AppServerRunnerOptions } from "./app-run-server.js";
 
 export {

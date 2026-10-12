@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
+import { cancelActiveRuns } from "@nodetool-ai/execution/service";
 import { Job } from "@nodetool-ai/models";
 
 import { jobRunRegistry } from "./job-run-registry.js";
@@ -34,6 +35,23 @@ function pollIntervalMs(): number {
   if (raw === undefined) return 15_000;
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 15_000;
+}
+
+/**
+ * Stop this process's runs among `jobIds`: the WebSocket sessions in
+ * {@link jobRunRegistry} and the background runs `runWorkflow` started
+ * (render_timeline, start_background_job, MCP). Write the row first: a run
+ * that settles after this keeps the cancel, because its terminal write is
+ * conditional on the row still being active.
+ */
+export function cancelLocalRuns(
+  userId: string,
+  jobIds: ReadonlySet<string>
+): number {
+  return (
+    jobRunRegistry.cancelJobs(userId, jobIds) +
+    cancelActiveRuns(userId, jobIds)
+  );
 }
 
 interface RemoteCancelResult {

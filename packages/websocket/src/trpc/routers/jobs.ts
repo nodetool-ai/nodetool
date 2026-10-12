@@ -15,6 +15,7 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { rearmTrigger } from "../../triggers/settle.js";
+import { cancelLocalRuns } from "../../job-control.js";
 import { isRecord } from "../../lib/wire-values.js";
 import {
   listInput,
@@ -263,7 +264,11 @@ export const jobsRouter = router({
       }
       // A conditional write: a run that finished between the read above and
       // this cancel keeps its terminal status, cost and timestamps.
-      await Job.markCancelledIfActive(job.id, ctx.userId);
+      if (await Job.markCancelledIfActive(job.id, ctx.userId)) {
+        // The row is the record; this stops the run itself, when this
+        // process holds it. Another instance's poller picks up the row.
+        cancelLocalRuns(ctx.userId, new Set([job.id]));
+      }
       const current = (await Job.get(job.id)) as JobModel | null;
       return toBackgroundJobResponse(current ?? job);
     }),

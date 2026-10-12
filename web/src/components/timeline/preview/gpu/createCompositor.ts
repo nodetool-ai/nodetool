@@ -27,13 +27,14 @@ interface CreateCompositorResult {
  * load it. When WebGPU fails before it ever claims the canvas context — the
  * common case: no adapter — the same canvas is reused for Canvas2D. The
  * returned `compositor` is already initialised when `init.ok` is true; the
- * caller owns disposing it.
+ * caller owns disposing it. `webgpu: false` goes straight to Canvas2D.
  */
 export async function createCompositor(
   canvas: HTMLCanvasElement,
-  onFailure?: PreviewFailureHandler
+  onFailure?: PreviewFailureHandler,
+  options: { webgpu?: boolean } = {}
 ): Promise<CreateCompositorResult> {
-  if (typeof navigator !== "undefined" && navigator.gpu) {
+  if (options.webgpu !== false && typeof navigator !== "undefined" && navigator.gpu) {
     let gpu: TimelineCompositor | undefined;
     try {
       const { WebGPUCompositor } = await import("./compositor");

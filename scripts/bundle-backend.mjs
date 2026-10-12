@@ -230,6 +230,10 @@ const SERVER_OPTIONAL_PACKAGES = [
   // email-imap
   "imapflow",
   "mailparser",
+  // headless Chromium driver: RenderTimeline (packages/video-nodes
+  // browserRender.ts) and 3D game capture (packages/game-renderer node3d.ts).
+  // The image's Chromium is /usr/bin/chromium, through CHROME_PATH.
+  "playwright",
 ];
 
 const EXTERNAL_PACKAGES =
@@ -246,10 +250,8 @@ const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
   // unzipper requires this only inside its optional S3 source adapter but
   // does not declare it. Keep the optional branch unresolved unless used.
   "@aws-sdk/client-s3",
-  // 3D game capture (packages/game-renderer/src/node3d.ts). The desktop app
-  // installs it through the Package Manager, and the Docker image ships no
-  // browser automation runtime.
-  "playwright",
+  // Playwright's engine. `playwright` itself is an optional runtime package
+  // (below), and its own install brings this one.
   "playwright-core",
   // Optional runtime packages, installed on demand (see above). pdf-parse
   // must never be inlined: it hoisted `pdfjs-dist/legacy/build/pdf.mjs` into

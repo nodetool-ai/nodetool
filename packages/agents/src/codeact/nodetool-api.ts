@@ -109,7 +109,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "read_asset",
     "list_images"
   ],
-  jobs: ["list_jobs", "get_job", "get_job_logs"],
+  jobs: ["list_jobs", "get_job", "get_job_logs", "cancel_job"],
   runs: ["list_runs", "get_run", "get_run_trace", "get_run_logs", "await_run"],
   generations: [
     "list_generations",
@@ -1118,6 +1118,8 @@ const nodetool = (() => {
       get: (id) => __need("get_job")({ job_id: __jobId(id, "get") }),
       logs: (id, opts) =>
         __need("get_job_logs")(__merge(opts, { job_id: __jobId(id, "logs") })),
+      /** Stop a running job. A job that already finished is left as it is. */
+      cancel: (id) => __need("cancel_job")({ job_id: __jobId(id, "cancel") }),
       /**
        * Poll a background job until it settles, then return the job record.
        * Terminal statuses are completed / failed / cancelled / error (the
@@ -1350,8 +1352,10 @@ const nodetool = (() => {
           })
         ),
       /**
-       * Render the finished cut as a job. Returns {job_id} immediately;
-       * {wait: true} blocks and returns the rendered asset. Options:
+       * Render the finished cut as a job. Returns {job_id} immediately: poll
+       * nodetool.jobs.get(job_id) (progress is on the job while it runs) or
+       * nodetool.jobs.wait(job_id), and nodetool.jobs.cancel(job_id) stops
+       * it. {wait: true} blocks and returns the rendered asset. Options:
        * {format, alpha, video_codec, bitrate, motion_blur_samples,
        * shutter_angle, preview_scale, include_audio, wait, timeout_ms}.
        */
@@ -1754,7 +1758,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "jobs",
     skill: "api-workflows",
     doc: `- \`nodetool.jobs\` — \`list()\`, \`get(id)\`, \`logs(id)\`,
-  \`wait(idOrReceipt, {timeoutMs})\` (polls until the job settles).`
+  \`wait(idOrReceipt, {timeoutMs})\` (polls until the job settles),
+  \`cancel(id)\` (stops a running job).`
   },
   {
     namespace: "runs",
@@ -1802,7 +1807,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`), \`create(name, {fps,
   width, height})\`, \`get(id)\`, \`edit(id, ops)\`, \`setDocument(id, document)\`,
   \`validate(idOrDocument, {tier: "showcase"})\`, \`preview(idOrDocument,
-  {times_ms, range, sheet})\`, \`compare(a, b)\`, \`render(id)\`,
+  {times_ms, range, sheet})\`, \`compare(a, b)\`, \`render(id)\` (a job: poll
+  \`nodetool.jobs.get\` rather than blocking; \`nodetool.jobs.cancel\` stops it),
   \`bakeAudioAnimation(id, audioClipId, targetClipId, opts)\` (drive a
   property from measured audio), versions, \`examples.list/get/source\`,
   \`compositions.*\`. Build a motion-graphics piece in
