@@ -91,13 +91,14 @@ npm run still:cookbook                            # JPG thumbnails only (fast)
 The casts live in `web/src/demo/cookbook/` (one file per recipe, built from the
 shared metadata factories in `cookbook/builders.ts`). The per-recipe titles,
 camera beats, and captions live in `demo/src/cookbook.ts`. Every node type is a
-real registry type and the media is inline (`web/src/demo/assets/`), so they
-replay with no backend and no generation credits. The creative-pattern casts
-take their stills, clips, and variants from the shipped Voltra example
-timeline through `web/scripts/build-pattern-cast-media.mjs`, so each generator
-run shows media that differs from its input. Keep a progress ramp at one step
-per frame or two (for example 30 steps over a second) so the bar moves
-smoothly. `scripts/render-cookbook.ts` bundles the project once and renders
+real registry type and the media is inline (`web/src/demo/assets/`) or pinned
+under `demo/public/casts/<castId>/`, so they replay with no backend and no
+generation credits. The creative-pattern casts, the image-enhancement cast,
+and the color-boost workflow cast take their media from shipped example
+timelines and recipe inputs through `demo/scripts/build-pattern-cast-media.mjs`,
+so each generator run shows media that differs from its input. Keep a
+progress ramp at one step per frame or two (for example 30 steps over a
+second) so the bar moves smoothly. `scripts/render-cookbook.ts` bundles the project once and renders
 every recipe, which is far cheaper than a `remotion render` call per recipe.
 
 ## Workflow-gallery videos (no backend)

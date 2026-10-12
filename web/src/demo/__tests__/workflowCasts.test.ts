@@ -124,7 +124,7 @@ describe("workflow casts — replay lands the payoff state", () => {
     try {
       const wf = cast.workflow.id;
       engine.seekToTime(cast.durationMs - 100);
-      expect(uri(lastOutputs(wf, "assemble").output)).toContain("data:video/webm");
+      expect(uri(lastOutputs(wf, "assemble").output)).toBe("/demo-assets/graded.webm");
     } finally {
       engine.dispose();
     }

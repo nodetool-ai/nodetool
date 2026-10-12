@@ -5,14 +5,16 @@
  *
  * A straight transform chain: a photo flows through two PIL image filters, each
  * rendering its result in an image content card, and lands in an Output sink.
- * Fully synthetic — the kitten image stands in for the enhanced photo at every
- * stage, so it replays with no backend.
+ * Fully synthetic: a soft, flat photo, its sharpened version, and the
+ * contrast-stretched result come from the coffee recipe input
+ * (demo/public/casts/cookbook-image-enhancement).
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, prop } from "../castHelpers";
-import { PHOTO_LANDSCAPE_IMAGE_DATA_URI } from "../assets/cookbookImages";
 import {
   OUTPUT_NODE_TYPE,
+  assetRef,
+  castAssets,
   cookbookWorkflow,
   edge,
   fitViewport,
@@ -30,7 +32,9 @@ const WF = "wf-cookbook-image-enhancement";
 const JOB = "cookbook-image-enhancement-job";
 const m = castMessages(WF, JOB);
 
-const image = { type: "image", uri: PHOTO_LANDSCAPE_IMAGE_DATA_URI };
+const image = assetRef("image", "photo.jpg");
+const sharpened = assetRef("image", "sharpened.jpg");
+const enhanced = assetRef("image", "enhanced.jpg");
 
 const nodes = [
   node("photo", IMAGE_INPUT, 0, 170, 280, "Photo", { name: "photo", value: image }),
@@ -52,29 +56,29 @@ const events: CastEvent[] = [
   m.edgeUpdate(1700, "e1", "active"),
 
   m.nodeUpdate(2400, "sharpen", "Unsharp Mask", UNSHARP, "running"),
-  ...m.progress("sharpen", 10, 2800, 1500),
-  m.nodeUpdate(4500, "sharpen", "Unsharp Mask", UNSHARP, "completed", { output: image }),
+  ...m.progress("sharpen", 45, 2800, 1500),
+  m.nodeUpdate(4500, "sharpen", "Unsharp Mask", UNSHARP, "completed", { output: sharpened }),
   m.edgeUpdate(4700, "e1", "completed"),
   m.edgeUpdate(4900, "e2", "active"),
 
   m.nodeUpdate(5500, "contrast", "Auto Contrast", AUTO_CONTRAST, "running"),
-  ...m.progress("contrast", 10, 5900, 1500),
-  m.nodeUpdate(7600, "contrast", "Auto Contrast", AUTO_CONTRAST, "completed", { output: image }),
+  ...m.progress("contrast", 45, 5900, 1500),
+  m.nodeUpdate(7600, "contrast", "Auto Contrast", AUTO_CONTRAST, "completed", { output: enhanced }),
   m.edgeUpdate(7800, "e2", "completed"),
   m.edgeUpdate(8000, "e3", "active"),
 
   m.nodeUpdate(8600, "output", "Enhanced", OUTPUT_NODE_TYPE, "running"),
-  m.output(9000, "output", "Enhanced", "value", image, "image"),
-  m.nodeUpdate(9400, "output", "Enhanced", OUTPUT_NODE_TYPE, "completed", { value: image }),
+  m.output(9000, "output", "Enhanced", "value", enhanced, "image"),
+  m.nodeUpdate(9400, "output", "Enhanced", OUTPUT_NODE_TYPE, "completed", { value: enhanced }),
   m.edgeUpdate(9600, "e3", "completed"),
-  m.jobUpdate(9900, "completed", { outputs: { enhanced: image } }),
+  m.jobUpdate(9900, "completed", { outputs: { enhanced } }),
 ];
 
 export const imageEnhancementCast: DemoCast = {
   version: CAST_VERSION,
   id: "cookbook-image-enhancement",
   name: "Image Enhancement",
-  description: "A photo through two image filters — sharpen, then auto-contrast.",
+  description: "A photo through two image filters: sharpen, then auto-contrast.",
   createdAt: new Date(0).toISOString(),
   durationMs: 12000,
   fps: 30,
@@ -92,6 +96,6 @@ export const imageEnhancementCast: DemoCast = {
     [OUTPUT_NODE_TYPE]: outputMeta("Enhanced"),
   },
   events,
-  assets: [],
+  assets: castAssets(["photo.jpg", "sharpened.jpg", "enhanced.jpg"]),
   viewport: fitViewport(nodes),
 };

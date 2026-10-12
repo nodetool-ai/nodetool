@@ -8,21 +8,14 @@
  * prompt per shot, each prompt becomes a still and each still a clip, and the
  * clips are cut into one film. The shots overlap the way a streamed run does.
  * Fully synthetic: the stills, clips, and cut are frames from the shipped
- * Voltra example timeline (assets/patternMedia.ts), so every stage shows new
+ * Voltra example timeline (demo/public/casts/cookbook-shot-fan-out), so every stage shows new
  * media and the cast replays with no backend.
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, meta, out, prop } from "../castHelpers";
 import {
-  SHOT_CUT_CLIP,
-  SHOT_RIDER_CLIP,
-  SHOT_RIDER_STILL,
-  SHOT_RIDE_CLIP,
-  SHOT_RIDE_STILL,
-  SHOT_STREET_CLIP,
-  SHOT_STREET_STILL,
-} from "../assets/patternMedia";
-import {
+  assetRef,
+  castAssets,
   cookbookWorkflow,
   edge,
   fitViewport,
@@ -60,27 +53,25 @@ const SCREENPLAY_TOKENS = [
 ];
 const SCREENPLAY = SCREENPLAY_TOKENS.join("");
 
-const image = (uri: string) => ({ type: "image", uri });
-const video = (uri: string) => ({ type: "video", uri, metadata: { format: "webm" } });
 
 const SHOT_LIST = [
   {
     prompt: "Wide shot, steam over a wet neon street at night",
-    still: image(SHOT_STREET_STILL),
-    clip: video(SHOT_STREET_CLIP),
+    still: assetRef("image", "still-1.jpg"),
+    clip: assetRef("video", "clip-1.webm"),
   },
   {
     prompt: "Close-up, rider's visor reflecting neon signs",
-    still: image(SHOT_RIDER_STILL),
-    clip: video(SHOT_RIDER_CLIP),
+    still: assetRef("image", "still-2.jpg"),
+    clip: assetRef("video", "clip-2.webm"),
   },
   {
     prompt: "Tracking shot, electric bike racing down a rainy avenue",
-    still: image(SHOT_RIDE_STILL),
-    clip: video(SHOT_RIDE_CLIP),
+    still: assetRef("image", "still-3.jpg"),
+    clip: assetRef("video", "clip-3.webm"),
   },
 ];
-const CUT = video(SHOT_CUT_CLIP);
+const CUT = assetRef("video", "cut.webm");
 
 const nodes = [
   node("brief", STRING_INPUT, 0, 60, 280, "Brief", { name: "brief", value: BRIEF }),
@@ -221,6 +212,14 @@ export const shotFanOutCast: DemoCast = {
     [RENDER]: videoNodeMeta(RENDER, "Render Timeline", [prop("timeline", "timeline")]),
   },
   events,
-  assets: [],
+  assets: castAssets([
+    "still-1.jpg",
+    "still-2.jpg",
+    "still-3.jpg",
+    "clip-1.webm",
+    "clip-2.webm",
+    "clip-3.webm",
+    "cut.webm",
+  ]),
   viewport: fitViewport(nodes),
 };

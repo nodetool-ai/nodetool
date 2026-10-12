@@ -188,6 +188,77 @@ export const COOKBOOK: TutorialEntry[] = [
     ],
   }),
 
+  entry("brief-to-cut", {
+    castId: "cookbook-brief-to-cut",
+    title: "Brief to Cut",
+    subtitle: "Pattern 1 · A rendered film from one line",
+    replayWindowMs: 17600,
+    steps: [
+      { atMs: 1300, label: "Write the screenplay", focus: "director", zoom: 1.6 },
+      { atMs: 4800, label: "Film the shots in order", focus: "chain", zoom: 1.5 },
+      { atMs: 9700, label: "Render the cut", focus: "render", zoom: 1.4 },
+    ],
+    captions: [
+      { fromMs: 1400, toMs: 4600, text: "The Director turns a one-line brief into a screenplay, and Shot Batch splits it into shots." },
+      { fromMs: 4800, toMs: 9500, text: "Shot Chain films each shot from the last frame of the one before, so the cut holds together." },
+      { fromMs: 9700, toMs: 17000, text: "The clips land on a timeline, and Render Timeline writes the film." },
+    ],
+    outroTitle: "Brief to cut, unattended",
+    outroPoints: [
+      "One brief, one rendered film",
+      "Each shot continues the last",
+      "Re-run it for every new brief",
+    ],
+  }),
+
+  entry("entity-cast", {
+    castId: "cookbook-entity-cast",
+    title: "One Cast Across Many Assets",
+    subtitle: "Pattern 3 · The same product in every frame",
+    replayWindowMs: 13100,
+    steps: [
+      { atMs: 1300, label: "A brief and an entity", focus: "apply", zoom: 1.2 },
+      { atMs: 2300, label: "Season every prompt", focus: "apply", zoom: 1.6 },
+      { atMs: 4000, label: "Render each asset", focus: "image", zoom: 1.5 },
+      { atMs: 10000, label: "The set", focus: "output", zoom: 1.5 },
+    ],
+    captions: [
+      { fromMs: 1400, toMs: 2200, text: "An entity holds the product's descriptor and reference image." },
+      { fromMs: 2400, toMs: 3900, text: "Apply Entities pastes that descriptor into every prompt the List Generator streams." },
+      { fromMs: 4000, toMs: 9800, text: "Each prompt renders with the same shoe, so the set reads as one campaign." },
+      { fromMs: 10000, toMs: 12800, text: "Collect gathers the four assets." },
+    ],
+    outroTitle: "One cast, thirty frames",
+    outroPoints: [
+      "Describe the product once",
+      "Every prompt gets the same words",
+      "Image nodes take entities directly too",
+    ],
+  }),
+
+  entry("script-voice", {
+    castId: "cookbook-script-voice",
+    title: "Script to Voiced Cut",
+    subtitle: "Pattern 4 · A cut and captions from one script",
+    replayWindowMs: 14300,
+    steps: [
+      { atMs: 1200, label: "Voice each line", focus: "voice", zoom: 1.7 },
+      { atMs: 5600, label: "Write the subtitles", focus: "subtitles", zoom: 1.3 },
+      { atMs: 6500, label: "Render the cut", focus: "render", zoom: 1.4 },
+    ],
+    captions: [
+      { fromMs: 1300, toMs: 5400, text: "Voice Script records a take for every line, in that line's own voice." },
+      { fromMs: 5600, toMs: 6400, text: "Script To Subtitles writes an SRT from the takes' timings." },
+      { fromMs: 6500, toMs: 14000, text: "Script To Timeline places the takes, and the cut renders." },
+    ],
+    outroTitle: "The script is the source",
+    outroPoints: [
+      "Edit a line, re-voice only that line",
+      "Cut and captions stay in sync",
+      "One voiced master per language",
+    ],
+  }),
+
   entry("sketch-variants", {
     castId: "cookbook-sketch-variants",
     title: "Sketch as the Control Input",
@@ -233,6 +304,52 @@ export const COOKBOOK: TutorialEntry[] = [
       "Variety to pick from",
       "Images render while prompts stream",
       "Change the count, not the graph",
+    ],
+  }),
+
+  entry("derivatives", {
+    castId: "cookbook-derivatives",
+    title: "Derivatives from a Finished Cut",
+    subtitle: "Pattern 7 · One master, many deliverables",
+    replayWindowMs: 16000,
+    steps: [
+      { atMs: 1100, label: "Copy from the transcript", focus: "agent", zoom: 1.4 },
+      { atMs: 5100, label: "Retarget to 9:16", focus: "render", zoom: 1.4 },
+      { atMs: 7500, label: "Caption the vertical cut", focus: "subtitles", zoom: 1.3 },
+    ],
+    captions: [
+      { fromMs: 1200, toMs: 4900, text: "Transcript reads the cut's own lines, and an Agent writes a title, notes, and a post." },
+      { fromMs: 5100, toMs: 7400, text: "Retarget Timeline derives a 9:16 timeline from the approved cut and renders it." },
+      { fromMs: 7500, toMs: 15500, text: "Transcribe gives the timings, and Add Subtitles burns the captions in." },
+    ],
+    outroTitle: "Every shape from one master",
+    outroPoints: [
+      "Copy comes from the cut itself",
+      "Retargeting keeps every trim",
+      "Re-run after an edit to rebuild all",
+    ],
+  }),
+
+  entry("code-glue", {
+    castId: "cookbook-code-glue",
+    title: "Code Node Glue",
+    subtitle: "Pattern 8 · Deterministic steps in JavaScript",
+    replayWindowMs: 9000,
+    steps: [
+      { atMs: 1000, label: "Transcribe the clip", focus: "asr", zoom: 1.6 },
+      { atMs: 4100, label: "Slugify in code", focus: "code", zoom: 1.6 },
+      { atMs: 5000, label: "The file name", focus: "output", zoom: 1.7 },
+    ],
+    captions: [
+      { fromMs: 1100, toMs: 3900, text: "Extract Audio and speech recognition turn the clip's narration into text." },
+      { fromMs: 4100, toMs: 4900, text: "One Code node turns the text into a slug. No model needed." },
+      { fromMs: 5000, toMs: 8800, text: "The same input always gives the same file name." },
+    ],
+    outroTitle: "Code for the exact parts",
+    outroPoints: [
+      "Names, ordering, dedupe, packaging",
+      "Runs in the QuickJS sandbox",
+      "Validate a body before the run",
     ],
   }),
 

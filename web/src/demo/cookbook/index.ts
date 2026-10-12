@@ -18,11 +18,16 @@ import { textToVideoCast } from "./textToVideoCast";
 import { imageToVideoCast } from "./imageToVideoCast";
 import { talkingAvatarCast } from "./talkingAvatarCast";
 import { imageUpscalingCast } from "./imageUpscalingCast";
+import { briefToCutCast } from "./briefToCutCast";
 import { shotFanOutCast } from "./shotFanOutCast";
+import { entityCastCast } from "./entityCastCast";
+import { scriptVoiceCast } from "./scriptVoiceCast";
 import { sketchVariantsCast } from "./sketchVariantsCast";
 import { variantFanOutCast } from "./variantFanOutCast";
+import { derivativesCast } from "./derivativesCast";
+import { codeGlueCast } from "./codeGlueCast";
 
-/** Every cookbook cast, in cookbook (pattern) order. */
+/** Every cookbook cast. The creative-pattern casts follow docs/cookbook/patterns.md. */
 export const cookbookCasts: DemoCast[] = [
   imageEnhancementCast,
   imageToStoryCast,
@@ -35,7 +40,12 @@ export const cookbookCasts: DemoCast[] = [
   imageToVideoCast,
   talkingAvatarCast,
   imageUpscalingCast,
+  briefToCutCast,
   shotFanOutCast,
+  entityCastCast,
+  scriptVoiceCast,
   sketchVariantsCast,
   variantFanOutCast,
+  derivativesCast,
+  codeGlueCast,
 ];

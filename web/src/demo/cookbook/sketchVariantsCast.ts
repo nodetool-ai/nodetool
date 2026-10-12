@@ -7,20 +7,16 @@
  * Render Sketch flattens the sketch to an image, For Each streams one style at
  * a time, and Image To Image re-renders the same composition once per style.
  * Fully synthetic: the sketch is traced from the shipped Voltra hero shot and
- * each variant is a different grade of that shot (assets/patternMedia.ts), so
+ * each variant is a different grade of that shot (demo/public/casts/cookbook-sketch-variants), so
  * every render keeps the sketch's composition but looks different from it and
  * from the others.
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, meta, out, prop } from "../castHelpers";
 import {
-  SKETCH_IMAGE,
-  SKETCH_NOIR_RENDER,
-  SKETCH_RETRO_RENDER,
-  SKETCH_TEAL_RENDER,
-} from "../assets/patternMedia";
-import {
   OUTPUT_NODE_TYPE,
+  assetRef,
+  castAssets,
   cookbookWorkflow,
   edge,
   fitViewport,
@@ -41,11 +37,11 @@ const WF = "wf-cookbook-sketch-variants";
 const JOB = "cookbook-sketch-variants-job";
 const m = castMessages(WF, JOB);
 
-const sketch = { type: "image", uri: SKETCH_IMAGE };
+const sketch = assetRef("image", "sketch.jpg");
 const STYLES = [
-  { name: "Film noir, hard light", render: { type: "image", uri: SKETCH_NOIR_RENDER } },
-  { name: "Retro neon, red and green", render: { type: "image", uri: SKETCH_RETRO_RENDER } },
-  { name: "Teal night, wet asphalt", render: { type: "image", uri: SKETCH_TEAL_RENDER } },
+  { name: "Film noir, hard light", render: assetRef("image", "noir.jpg") },
+  { name: "Retro neon, red and green", render: assetRef("image", "retro.jpg") },
+  { name: "Teal night, wet asphalt", render: assetRef("image", "teal.jpg") },
 ];
 const STYLE_NAMES = STYLES.map((s) => s.name);
 const RENDERS = STYLES.map((s) => s.render);
@@ -184,6 +180,6 @@ export const sketchVariantsCast: DemoCast = {
     [OUTPUT_NODE_TYPE]: outputMeta("Variants"),
   },
   events,
-  assets: [],
+  assets: castAssets(["sketch.jpg", "noir.jpg", "retro.jpg", "teal.jpg"]),
   viewport: fitViewport(nodes),
 };

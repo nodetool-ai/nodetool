@@ -72,7 +72,7 @@ const events: CastEvent[] = [
   m.edgeUpdate(9700, "e2", "active"),
 
   m.nodeUpdate(10300, "speak", "Text To Speech", TTS, "running"),
-  ...m.progress("speak", 10, 10700, 2200),
+  ...m.progress("speak", 67, 10700, 2200),
   m.nodeUpdate(13200, "speak", "Text To Speech", TTS, "completed", { audio }),
   m.edgeUpdate(13400, "e2", "completed"),
   m.edgeUpdate(13600, "e3", "active"),

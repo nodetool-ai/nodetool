@@ -20,6 +20,10 @@ A line of brief becomes a rendered film: the Director writes the screenplay,
 `ShotChain` films the shots in order, and the clips land on a timeline that gets
 rendered.
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/brief-to-cut.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/brief-to-cut.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph LR
   brief["StringInput (Brief)"]
@@ -103,6 +107,10 @@ Entities are named characters, locations, styles, and props whose canonical
 descriptor is pasted verbatim into every prompt that uses them. That verbatim
 text is what holds a face or a palette steady across a batch.
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/entity-cast.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/entity-cast.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph LR
   brief["StringInput (Brief)"]
@@ -143,6 +151,10 @@ A script is a document with cast voices attached to its lines. `WriteScript`
 writes one from a brief, or a `Script` constant loads one you already have.
 `VoiceScript` synthesizes every line that is draft or stale, using each line's
 own voice, and saves the takes back onto the script.
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/script-voice.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/script-voice.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph LR
@@ -280,6 +292,10 @@ lines, so titles, show notes, and social copy come from the cut rather than from
 a second transcription pass. `RetargetTimeline` derives a new timeline on another
 aspect ratio from the approved cut and keeps every trim and placement.
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/derivatives.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/derivatives.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph LR
   tl["Timeline (constant)"]
@@ -329,6 +345,10 @@ ______________________________________________________________________
 
 Naming, ordering, deduping, packaging: deterministic work that a model does
 expensively and inconsistently. One `Code` node does it in JavaScript.
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/code-glue.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/code-glue.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph LR

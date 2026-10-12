@@ -8,20 +8,16 @@
  * An Agent turns the brief into a direction, a Prompt node states the count,
  * the List Generator streams that many poster prompts, and each prompt renders
  * as it arrives. Fully synthetic: the four posters are different shots from
- * the shipped Voltra example timeline (assets/patternMedia.ts), so the gallery
+ * the shipped Voltra example timeline (demo/public/casts/cookbook-variant-fan-out), so the gallery
  * shows four distinct variants.
  */
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, meta, out, prop } from "../castHelpers";
 import {
-  POSTER_HERO_IMAGE,
-  POSTER_RIDER_IMAGE,
-  POSTER_ROOFTOP_IMAGE,
-  POSTER_SIDE_IMAGE,
-} from "../assets/patternMedia";
-import {
   OUTPUT_NODE_TYPE,
+  assetRef,
+  castAssets,
   cookbookWorkflow,
   edge,
   fitViewport,
@@ -60,11 +56,11 @@ const DIRECTION = DIRECTION_TOKENS.join("");
 const ASK = `Write 4 distinct poster prompts. Direction: ${DIRECTION}`;
 
 const VARIANTS = [
-  { prompt: "The bike under neon signs, low three-quarter view", image: POSTER_HERO_IMAGE },
-  { prompt: "Parked on a rooftop, skyline glowing at dusk", image: POSTER_ROOFTOP_IMAGE },
-  { prompt: "Clean side profile on black, rim light", image: POSTER_SIDE_IMAGE },
-  { prompt: "The rider's helmet, city reflected in the visor", image: POSTER_RIDER_IMAGE },
-].map((v) => ({ prompt: v.prompt, image: { type: "image", uri: v.image } }));
+  { prompt: "The bike under neon signs, low three-quarter view", image: "poster-1.jpg" },
+  { prompt: "Parked on a rooftop, skyline glowing at dusk", image: "poster-2.jpg" },
+  { prompt: "Clean side profile on black, rim light", image: "poster-3.jpg" },
+  { prompt: "The rider's helmet, city reflected in the visor", image: "poster-4.jpg" },
+].map((v) => ({ prompt: v.prompt, image: assetRef("image", v.image) }));
 const PROMPTS = VARIANTS.map((v) => v.prompt);
 const POSTERS = VARIANTS.map((v) => v.image);
 
@@ -203,6 +199,6 @@ export const variantFanOutCast: DemoCast = {
     [OUTPUT_NODE_TYPE]: outputMeta("Posters"),
   },
   events,
-  assets: [],
+  assets: castAssets(["poster-1.jpg", "poster-2.jpg", "poster-3.jpg", "poster-4.jpg"]),
   viewport: fitViewport(nodes),
 };
