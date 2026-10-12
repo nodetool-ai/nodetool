@@ -364,6 +364,12 @@ export const registerHuggingFaceNodes = (_reg?: unknown) => {};
 // dsl
 export const workflowToDsl = (_graph?: unknown, _opts?: unknown) =>
   "// generated DSL";
+export const workflowToScript = (_graph?: unknown, _opts?: unknown) => ({
+  code: "// generated script",
+  inputs: [],
+  outputs: [],
+  unsupported: []
+});
 
 /**
  * Minimal stub for @nodetool-ai/dsl run().

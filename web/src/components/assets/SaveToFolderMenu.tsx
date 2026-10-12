@@ -8,15 +8,16 @@ import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 
 import {
-  Caption,
-  Text,
   TextInput,
   Popover,
-  MOTION,
-  BORDER_RADIUS,
   SPACING,
   SPACING_PX,
-  getSpacingPx
+  getSpacingPx,
+  menuGroupHeaderStyles,
+  menuItemStyles,
+  menuListStyles,
+  menuPaperStyles,
+  MENU_ICON_SIZE
 } from "../ui_primitives";
 import { useFolderTree } from "../../serverState/useFolderTree";
 import { useAssetStore, type AssetTreeNode } from "../../stores/AssetStore";
@@ -30,53 +31,46 @@ interface SaveToFolderMenuProps {
   onSelectFolder: (folderId: string | null) => void;
 }
 
+// A tree with an inline "new folder" field is not a plain list, so this stays
+// a Popover, drawn with the shared menu surface and row styles.
 const styles = (theme: Theme) =>
   css({
-    padding: `${getSpacingPx(SPACING.md)} 0`,
+    ...menuListStyles(theme),
     ".folder-menu-header": {
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs)}`,
-      color: theme.vars.palette.grey[400],
-      textTransform: "uppercase",
-      letterSpacing: 1
+      ...menuGroupHeaderStyles(theme),
+      display: "block"
     },
     ".folder-menu-scroll": {
       maxHeight: 320,
       overflowY: "auto"
     },
     ".folder-menu-item": {
+      ...menuItemStyles(theme),
       display: "flex",
       alignItems: "center",
-      gap: getSpacingPx(SPACING.md),
-      paddingTop: getSpacingPx(SPACING.sm),
-      paddingBottom: getSpacingPx(SPACING.sm),
-      paddingRight: getSpacingPx(SPACING.xl),
-      cursor: "pointer",
-      color: theme.vars.palette.grey[100],
-      transition: MOTION.background,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.c_overlay
-      }
+      cursor: "pointer"
     },
     ".folder-menu-icon": {
-      color: theme.vars.palette.grey[300],
-      display: "inline-flex"
+      display: "inline-flex",
+      color: theme.vars.palette.text.secondary,
+      "& .MuiSvgIcon-root": { fontSize: MENU_ICON_SIZE }
     },
     ".folder-menu-footer": {
       marginTop: getSpacingPx(SPACING.xs),
       paddingTop: getSpacingPx(SPACING.xs),
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`
+      borderTop: `1px solid ${theme.vars.palette.divider}`
     },
     ".folder-menu-new-input": {
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.md),
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`
     }
   });
 
 /**
- * Anchored asset-library folder chooser. A popover tree of folders (styled to
- * match the composer option menus) with an inline "new folder" affordance;
+ * Anchored asset-library folder chooser. A popover tree of folders (drawn
+ * with the shared menu styles) with an inline "new folder" affordance;
  * picking a row calls `onSelectFolder` with the folder id (or `null` for the
  * library root). Shared by the "Save as Asset" actions in the sketch and
  * timeline editors.
@@ -146,7 +140,7 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
         className="folder-menu-item"
         role="menuitem"
         tabIndex={0}
-        style={{ paddingLeft: SPACING_PX.lg + depth * SPACING_PX.xl }}
+        style={{ paddingLeft: SPACING_PX.md + depth * SPACING_PX.xl }}
         onClick={() => select(id)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -156,9 +150,7 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
         }}
       >
         <span className="folder-menu-icon">{icon}</span>
-        <Text size="normal" weight={500} sx={{ color: "inherit" }}>
-          {name}
-        </Text>
+        <span>{name}</span>
       </div>
     ),
     [select]
@@ -190,18 +182,10 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
       anchorEl={anchorEl}
       onClose={onClose}
       placement="bottom-right"
-      paperSx={{
-        backgroundColor: theme.vars.palette.grey[900],
-        border: `1px solid ${theme.vars.palette.grey[800]}`,
-        borderRadius: BORDER_RADIUS.sm,
-        minWidth: 240,
-        boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
-      }}
+      paperSx={[menuPaperStyles(theme), { minWidth: 240 }]}
     >
       <div css={cssStyles} role="menu">
-        <Caption className="folder-menu-header" size="small">
-          Save to folder
-        </Caption>
+        <span className="folder-menu-header">Save to folder</span>
         <div className="folder-menu-scroll">
           {renderRow(
             null,
@@ -244,7 +228,6 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
               className="folder-menu-item"
               role="menuitem"
               tabIndex={0}
-              style={{ paddingLeft: SPACING_PX.lg }}
               onClick={() => setCreating(true)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -256,9 +239,7 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
               <span className="folder-menu-icon">
                 <CreateNewFolderOutlinedIcon fontSize="small" />
               </span>
-              <Text size="normal" weight={500} sx={{ color: "inherit" }}>
-                New folder…
-              </Text>
+              <span>New folder…</span>
             </div>
           )}
         </div>

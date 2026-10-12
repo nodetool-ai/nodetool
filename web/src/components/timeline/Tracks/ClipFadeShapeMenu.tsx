@@ -32,7 +32,6 @@ export function ClipFadeShapeMenu({
       open
       position={position}
       onClose={onClose}
-      compact
       MenuListProps={{
         "aria-label": edge === "in" ? "Fade-in shape" : "Fade-out shape"
       }}
@@ -43,7 +42,6 @@ export function ClipFadeShapeMenu({
           label={CLIP_FADE_SHAPE_LABELS[shape]}
           tooltip={CLIP_FADE_SHAPE_HINTS[shape]}
           selected={shape === current}
-          compact
           onClick={() => {
             onSelect(shape);
             onClose();

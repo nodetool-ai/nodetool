@@ -13,7 +13,7 @@ import {
   FlexRow,
   Text,
   Caption,
-  Label,
+  SectionHeader,
   Chip,
   Divider,
   CopyButton,
@@ -149,7 +149,7 @@ const ShareWorkflowDialog = ({
 
         {activeShares.length > 0 && (
           <FlexColumn gap={SPACING.xs}>
-            <Label sx={{ mb: 0 }}>Active links</Label>
+            <SectionHeader size="small" title="Active links" />
             {activeShares.map((share) => (
               <FlexRow
                 key={share.id}
@@ -178,7 +178,7 @@ const ShareWorkflowDialog = ({
 
         <Divider />
 
-        <Label sx={{ mb: 0 }}>People with access</Label>
+        <SectionHeader size="small" title="People with access" />
         {collaborators.length === 0 && !query.isLoading && (
           <EmptyState
             variant="empty"

@@ -43,6 +43,7 @@ import NodeItem from "../node_menu/NodeItem";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useCodeGenFromHandle } from "../../hooks/useCodeGenFromHandle";
 import { isNumber } from "../../utils/typePredicates";
+import ContextMenuItem from "./ContextMenuItem";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -853,45 +854,6 @@ const InputContextMenu: React.FC = () => {
 
   const showStaticActions = searchTerm.trim().length === 0;
 
-  // Shared by every action row: serialize the sx object once, not once per row per render.
-  const actionRowStyles = useMemo(
-    () => ({
-      alignItems: "center",
-      backgroundColor: "transparent",
-      border: 0,
-      borderRadius: BORDER_RADIUS.md,
-      color: "text.primary",
-      cursor: "pointer",
-      display: "flex",
-      font: "inherit",
-      gap: getSpacingPx(SPACING.md),
-      margin: 0,
-      minHeight: "28px",
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
-      textAlign: "left",
-      width: "100%",
-      "&:hover": { backgroundColor: theme.vars.palette.action.hover },
-      ".icon-bg": {
-        alignItems: "center",
-        backgroundColor: theme.vars.palette.grey[900],
-        borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
-        boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
-        display: "flex",
-        flexShrink: 0,
-        height: "18px",
-        justifyContent: "center",
-        padding: getSpacingPx(SPACING.micro),
-        width: "18px"
-      },
-      ".icon-bg svg": {
-        color: theme.vars.palette.grey[100],
-        height: "13px",
-        width: "13px"
-      }
-    }),
-    [theme]
-  );
-
   if (!menuPosition) {
     return null;
   }
@@ -900,7 +862,7 @@ const InputContextMenu: React.FC = () => {
     ? `Create ${specializedListLabel}`
     : "Constant";
   const inputLabel = specializedListLabel
-    ? `Create ${specializedListLabel} Input`
+    ? `Create ${specializedListLabel} input`
     : "Input";
 
   return (
@@ -913,19 +875,10 @@ const InputContextMenu: React.FC = () => {
       transformOrigin={{ vertical: "top", horizontal: "left" }}
       marginThreshold={0}
       paperSx={{
-        borderRadius: BORDER_RADIUS.xl,
-        backgroundColor: theme.vars.palette.background.paper,
-        border: `1px solid ${theme.vars.palette.divider}`,
-        boxShadow: theme.shadows[8],
         maxHeight: `calc(100vh - ${menuPosition.y}px)`,
-        minWidth: "320px",
-        overflow: "hidden",
-        padding: getSpacingPx(SPACING.xs),
-        "& .MuiDivider-root": {
-          margin: `${getSpacingPx(SPACING.xs)} 0`,
-          borderColor: theme.vars.palette.divider
-        }
+        overflow: "hidden"
       }}
+      minWidth="320px"
       transitionDuration={200}
     >
       <Box sx={{ px: 1, py: 0.5 }}>
@@ -984,97 +937,53 @@ const InputContextMenu: React.FC = () => {
           }}
         />
       </Box>
-      {showStaticActions && (
-        <Box sx={{ px: 1, py: 0.5 }}>
-          {collectElementConstantNodeMetadata && (
-            <Box
-              component="button"
-              type="button"
-              className="create-collect-element-constant-node"
-              onClick={handleCreateCollectElementConstantNode}
-              sx={actionRowStyles}
-            >
-              <span className="icon-bg">
-                <PushPinIcon />
-              </span>
-              <Text size="small">
-                {`Create ${labelForType(collectElementType?.type || "")} Constant`}
-              </Text>
-            </Box>
-          )}
-          {collectElementInputNodeMetadata && (
-            <Box
-              component="button"
-              type="button"
-              className="create-collect-element-input-node"
-              onClick={handleCreateCollectElementInputNode}
-              sx={actionRowStyles}
-            >
-              <span className="icon-bg">
-                <InputIcon />
-              </span>
-              <Text size="small">
-                {`Create ${labelForType(collectElementType?.type || "")} Input`}
-              </Text>
-            </Box>
-          )}
-          {constantNodeMetadata && (
-            <Box
-              component="button"
-              type="button"
-              className="create-constant-node"
-              onClick={handleCreateConstantNode}
-              sx={actionRowStyles}
-            >
-              <span className="icon-bg">
-                <PushPinIcon />
-              </span>
-              <Text size="small">{constantLabel}</Text>
-            </Box>
-          )}
-          {inputNodeMetadata && (
-            <Box
-              component="button"
-              type="button"
-              className="create-input-node"
-              onClick={handleCreateInputNode}
-              sx={actionRowStyles}
-            >
-              <span className="icon-bg">
-                <InputIcon />
-              </span>
-              <Text size="small">{inputLabel}</Text>
-            </Box>
-          )}
-          {promptNodeMetadata && (
-            <Box
-              component="button"
-              type="button"
-              className="create-prompt-node"
-              onClick={handleCreatePromptNode}
-              sx={actionRowStyles}
-            >
-              <span className="icon-bg">
-                <EditNoteIcon />
-              </span>
-              <Text size="small">Prompt</Text>
-            </Box>
-          )}
-          {type != null && handleId != null && (
-            <Box
-              component="button"
-              type="button"
-              className="create-value-with-ai"
-              onClick={handleCreateValueWithAI}
-              sx={actionRowStyles}
-            >
-              <span className="icon-bg">
-                <AutoAwesomeIcon />
-              </span>
-              <Text size="small">Create value with AI…</Text>
-            </Box>
-          )}
-        </Box>
+      {showStaticActions && collectElementConstantNodeMetadata && (
+        <ContextMenuItem
+          className="create-collect-element-constant-node"
+          onClick={handleCreateCollectElementConstantNode}
+          label={`Create ${labelForType(collectElementType?.type || "")} constant`}
+          IconComponent={<PushPinIcon />}
+        />
+      )}
+      {showStaticActions && collectElementInputNodeMetadata && (
+        <ContextMenuItem
+          className="create-collect-element-input-node"
+          onClick={handleCreateCollectElementInputNode}
+          label={`Create ${labelForType(collectElementType?.type || "")} input`}
+          IconComponent={<InputIcon />}
+        />
+      )}
+      {showStaticActions && constantNodeMetadata && (
+        <ContextMenuItem
+          className="create-constant-node"
+          onClick={handleCreateConstantNode}
+          label={constantLabel}
+          IconComponent={<PushPinIcon />}
+        />
+      )}
+      {showStaticActions && inputNodeMetadata && (
+        <ContextMenuItem
+          className="create-input-node"
+          onClick={handleCreateInputNode}
+          label={inputLabel}
+          IconComponent={<InputIcon />}
+        />
+      )}
+      {showStaticActions && promptNodeMetadata && (
+        <ContextMenuItem
+          className="create-prompt-node"
+          onClick={handleCreatePromptNode}
+          label="Prompt"
+          IconComponent={<EditNoteIcon />}
+        />
+      )}
+      {showStaticActions && type != null && handleId != null && (
+        <ContextMenuItem
+          className="create-value-with-ai"
+          onClick={handleCreateValueWithAI}
+          label="Create value with AI…"
+          IconComponent={<AutoAwesomeIcon />}
+        />
       )}
       {showStaticActions && <Divider />}
       <Box
@@ -1087,9 +996,9 @@ const InputContextMenu: React.FC = () => {
           px: 0,
           "& .node-item-container": { py: 0 },
           "& .node": {
-            margin: 0,
+            margin: `0 ${getSpacingPx(SPACING.xs)}`,
             padding: `0 ${getSpacingPx(SPACING.micro)}`,
-            borderRadius: BORDER_RADIUS.md,
+            borderRadius: BORDER_RADIUS.sm,
             cursor: "pointer",
             "&:hover": { backgroundColor: theme.vars.palette.action.hover },
             ".node-button": { padding: 0 },

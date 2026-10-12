@@ -16,7 +16,6 @@
 import { useCallback, useState } from "react";
 
 import {
-  Caption,
   Dialog,
   FlexColumn,
   SPACING,
@@ -71,7 +70,7 @@ export const OAuthManualCompletionDialog = ({
       maxWidth="sm"
       fullWidth
     >
-      <FlexColumn gap={SPACING.md}>
+      <FlexColumn gap={SPACING.lg}>
         {prompt.input === "code" ? (
           <Text size="small">
             This server cannot receive the sign-in callback, so {label} shows
@@ -99,14 +98,16 @@ export const OAuthManualCompletionDialog = ({
           multiline
           rows={3}
           autoFocus
+          helperText={
+            <>
+              Sign-in window closed?{" "}
+              <TextLink href={prompt.authUrl} external>
+                Open it again
+              </TextLink>
+              . The link expires after 10 minutes.
+            </>
+          }
         />
-        <Caption color="secondary">
-          Sign-in window closed?{" "}
-          <TextLink href={prompt.authUrl} external>
-            Open it again
-          </TextLink>
-          . The link expires after 10 minutes.
-        </Caption>
       </FlexColumn>
     </Dialog>
   );

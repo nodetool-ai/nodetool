@@ -4,7 +4,13 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { BORDER_RADIUS, SPACING, Z_INDEX } from "../../../ui_primitives";
+import {
+  BORDER_RADIUS,
+  EYEBROW,
+  SPACING,
+  Z_INDEX,
+  menuPaperStyles
+} from "../../../ui_primitives";
 import type { Asset } from "../../../../stores/ApiTypes";
 import type { Entity } from "@nodetool-ai/protocol";
 import { MentionAssetTile } from "./MentionAssetTile";
@@ -17,10 +23,8 @@ const assetMentionMenuStyles = (theme: Theme) =>
     maxHeight: 320,
     display: "flex",
     flexDirection: "column",
-    background: theme.vars.palette.background.paper,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: BORDER_RADIUS.lg,
-    boxShadow: theme.shadows[6],
+    // Not an MUI Menu, so it takes the shared menu surface explicitly.
+    ...menuPaperStyles(theme),
     zIndex: Z_INDEX.tooltip,
     overflow: "hidden",
     ".mention-tabs": {
@@ -75,10 +79,7 @@ const assetMentionMenuStyles = (theme: Theme) =>
     },
     ".mention-entities-label": {
       flex: "0 0 100%",
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
-      textTransform: "uppercase",
-      letterSpacing: "0.06em",
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary,
       padding: `0 ${theme.spacing(0.5)}`
     }

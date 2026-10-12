@@ -60,6 +60,17 @@ declare function sandboxToAsset(value: unknown): Promise<unknown>;
 `;
 
 /**
+ * "Cannot find module" (a named import, then a side-effect import). Only packs
+ * that ship a `.d.ts` are on the paths here, so every other import — a pack
+ * with no types, a host-mounted `@nodetool-ai/sandbox-nodetool/*` facade —
+ * fails to resolve in this program while resolving fine in the sandbox.
+ * Whether a specifier exists is the catalog check's job
+ * (`code_package_unavailable`); this check only holds a typed pack to its
+ * own declarations, and an unresolved import is `any` to it.
+ */
+const UNRESOLVED_MODULE_CODES = new Set([2307, 2882]);
+
+/**
  * Type-check `code` (a script or Code-node body) as an ES module against the
  * `.d.ts` files in `packDtsSources`, keyed by the specifier a script imports
  * them under. Returns one `js_script_type_error` per diagnostic on the
@@ -131,7 +142,11 @@ export async function typeCheckAgainstPackDts(
 
     const diagnostics = ts
       .getPreEmitDiagnostics(program)
-      .filter((diagnostic) => diagnostic.file?.fileName === scriptPath);
+      .filter(
+        (diagnostic) =>
+          diagnostic.file?.fileName === scriptPath &&
+          !UNRESOLVED_MODULE_CODES.has(diagnostic.code)
+      );
 
     return diagnostics.map((diagnostic) => {
       const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, " ");

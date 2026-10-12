@@ -23,6 +23,7 @@
     "@nodetool-ai/agents": "*",
     "@nodetool-ai/atlascloud-nodes": "*",
     "@nodetool-ai/browser": "*",
+    "@nodetool-ai/app-export": "*",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/base-nodes": "*",
     "@nodetool-ai/chat": "*",

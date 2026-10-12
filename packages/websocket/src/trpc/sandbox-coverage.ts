@@ -1224,6 +1224,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "workflows.create": { capability: "create_workflow" },
   "workflows.delete": { capability: "delete_workflow" },
   "workflows.examples": { capability: "get_example_workflow" },
+  "workflows.exportScript": {
+    gap:
+      "No capability converts a workflow into a script yet. Sandboxed code " +
+      "can read the graph with get_workflow and call its nodes through " +
+      "@nodetool-ai/sandbox-flow itself."
+  },
   "workflows.get": { capability: "get_workflow" },
   "workflows.list": { capability: "list_workflows" },
   "workflows.recipes": {

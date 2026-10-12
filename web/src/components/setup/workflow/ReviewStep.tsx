@@ -63,7 +63,6 @@ import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore"
 import ReportBugButton from "../../support/ReportBugButton";
 import { PlanReview } from "../PlanReview";
 import {
-  EDITABLE_FIELD,
   REVIEW_BLOCK,
   REVIEW_CONTENT_WIDTH
 } from "../reviewStyles";
@@ -483,18 +482,11 @@ const StepRow: React.FC<StepRowProps> = ({
         </Text>
       </FlexRow>
 
-      <FlexColumn gap={GAP.normal} sx={{ flex: 1, minWidth: 0 }}>
+      <FlexColumn gap={GAP.comfortable} sx={{ flex: 1, minWidth: 0 }}>
         {/* The title is the field that edits it. A heading that repeated the
             title above the field that holds it made every step read twice. */}
         <FlexRow gap={GAP.normal} align="center">
-          <Box
-            sx={{
-              ...EDITABLE_FIELD,
-              flex: 1,
-              minWidth: 0,
-              "& .MuiInputBase-input": { fontWeight: 500 }
-            }}
-          >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             <TextInput
               compact
               label={`Step ${index + 1} title`}
@@ -534,21 +526,19 @@ const StepRow: React.FC<StepRowProps> = ({
           </FlexRow>
         </FlexRow>
 
-        <Box sx={EDITABLE_FIELD}>
-          <TextInput
-            compact
-            label={`Step ${index + 1} description`}
-            hideLabel
-            placeholder="What this step does"
-            value={step.summary}
-            disabled={readOnly}
-            multiline
-            minRows={2}
-            onChange={(event) =>
-              onChange(step.id, { summary: event.target.value })
-            }
-          />
-        </Box>
+        <TextInput
+          compact
+          label={`Step ${index + 1} description`}
+          hideLabel
+          placeholder="What this step does"
+          value={step.summary}
+          disabled={readOnly}
+          multiline
+          minRows={1}
+          onChange={(event) =>
+            onChange(step.id, { summary: event.target.value })
+          }
+        />
 
         {entry.unknownNodeType ? (
           <AlertBanner severity="error" title="No node for this step">

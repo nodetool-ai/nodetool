@@ -55,7 +55,7 @@ describe("DynamicSlotTypePicker", () => {
 
     await user.click(screen.getByRole("button", { name: "Slot type for picture" }));
 
-    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getByRole("menu")).toBeInTheDocument();
     await user.click(screen.getByText("image"));
 
     expect(onChange).toHaveBeenCalledWith(
@@ -87,7 +87,7 @@ describe("DynamicSlotTypePicker", () => {
 
     await user.click(screen.getByRole("button", { name: "Slot type for picture" }));
 
-    const options = screen.getByRole("listbox");
+    const options = screen.getByRole("menu");
     expect(options).toHaveTextContent("str");
     expect(options).toHaveTextContent("image");
     expect(options).not.toHaveTextContent("dataframe");

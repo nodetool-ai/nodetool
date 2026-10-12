@@ -45,7 +45,6 @@ import {
   Dialog,
   EditorButton,
   EditorMenu,
-  EditorMenuItem,
   FlexColumn,
   FlexRow,
   Label,
@@ -897,7 +896,6 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         onClose={() => setMenuAnchor(null)}
       >
         <MenuItemPrimitive
-          compact
           label={`${shot.clip ? "Re-render clip" : "Render clip"}${stepCost("Clip")}`}
           secondary={
             generating
@@ -909,18 +907,16 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           disabled={generating || clipNeedsStill}
           onClick={handleRenderClip}
         />
-        <EditorMenuItem
+        <MenuItemPrimitive
+          label="Move earlier in scene"
           onClick={() => handleNudge("up")}
           disabled={numbering.shot <= 1}
-        >
-          Move earlier in scene
-        </EditorMenuItem>
-        <EditorMenuItem
+        />
+        <MenuItemPrimitive
+          label="Move later in scene"
           onClick={() => handleNudge("down")}
           disabled={numbering.shot >= shotsInScene}
-        >
-          Move later in scene
-        </EditorMenuItem>
+        />
       </EditorMenu>
 
       {stillRenderShot && (

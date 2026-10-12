@@ -19,7 +19,6 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  FormField,
   SelectField,
   TextInput,
   SPACING
@@ -127,7 +126,7 @@ const TimelineShotFormInner = ({
   );
 
   return (
-    <FlexColumn gap={SPACING.sm} data-testid="timeline-shot-form">
+    <FlexColumn gap={SPACING.lg} data-testid="timeline-shot-form">
       <TextInput
         label="Name"
         value={draft.slug}
@@ -143,7 +142,7 @@ const TimelineShotFormInner = ({
         disabled={readOnly}
         placeholder="What the shot shows"
         multiline
-        minRows={2}
+        minRows={1}
         maxRows={8}
         compact
         fullWidth
@@ -177,59 +176,48 @@ const TimelineShotFormInner = ({
         compact
         fullWidth
       />
-      <FormField label="Size">
-        <SelectField
-          size="small"
-          label="Size"
-          hideLabel
-          disabled={readOnly}
-          value={draft.framing}
-          onChange={(value) => set({ framing: value })}
-          options={framingOptions}
-        />
-      </FormField>
-      <FormField label="Perspective">
-        <SelectField
-          size="small"
-          label="Perspective"
-          hideLabel
-          disabled={readOnly}
-          value={draft.angle}
-          onChange={(value) => set({ angle: value })}
-          options={angleOptions}
-        />
-      </FormField>
-      <FormField label="Movement">
-        <SelectField
-          size="small"
-          label="Movement"
-          hideLabel
-          disabled={readOnly}
-          value={draft.movement}
-          onChange={(value) => set({ movement: value })}
-          options={movementOptions}
-        />
-      </FormField>
-      <FormField label="Render from">
-        <SelectField
-          size="small"
-          label="Render from"
-          hideLabel
-          disabled={readOnly}
-          value={draft.renderMode}
-          onChange={(value) =>
-            set({ renderMode: value as ShotDraft["renderMode"] })
-          }
-          options={RENDER_MODE_OPTIONS}
-        />
-      </FormField>
+      <SelectField
+        size="small"
+        label="Size"
+        disabled={readOnly}
+        value={draft.framing}
+        onChange={(value) => set({ framing: value })}
+        options={framingOptions}
+      />
+      <SelectField
+        size="small"
+        label="Perspective"
+        disabled={readOnly}
+        value={draft.angle}
+        onChange={(value) => set({ angle: value })}
+        options={angleOptions}
+      />
+      <SelectField
+        size="small"
+        label="Movement"
+        disabled={readOnly}
+        value={draft.movement}
+        onChange={(value) => set({ movement: value })}
+        options={movementOptions}
+      />
+      <SelectField
+        size="small"
+        label="Render from"
+        disabled={readOnly}
+        value={draft.renderMode}
+        onChange={(value) =>
+          set({ renderMode: value as ShotDraft["renderMode"] })
+        }
+        options={RENDER_MODE_OPTIONS}
+      />
       <TextInput
         label="Length (s)"
         value={draft.durationSeconds}
         onChange={(event) => set({ durationSeconds: event.target.value })}
         disabled={readOnly}
-        error={durationInvalid}
-        helperText={durationInvalid ? "Enter a length in seconds." : undefined}
+        errorMessage={
+          durationInvalid ? "Enter a length in seconds." : undefined
+        }
         inputProps={{ inputMode: "decimal" }}
         compact
         fullWidth

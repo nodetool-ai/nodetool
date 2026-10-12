@@ -2,6 +2,7 @@ import { restFetch } from "../../lib/rest-fetch";
 import { stub } from "../../test-utils/doubles";
 import {
   exportApplicationBundle,
+  exportApplicationProject,
   importApplicationBundle
 } from "../applicationBundle";
 
@@ -100,6 +101,34 @@ describe("exportApplicationBundle", () => {
       fakeResponse({ ok: false, status: 404, text: "Application not found" })
     );
     await expect(exportApplicationBundle("missing", "x")).rejects.toThrow(
+      "Application not found"
+    );
+  });
+});
+
+describe("exportApplicationProject", () => {
+  it("downloads the zip the server names", async () => {
+    mockRestFetch.mockResolvedValue(
+      fakeResponse({
+        ok: true,
+        disposition: 'attachment; filename="copywriter.zip"'
+      })
+    );
+
+    await exportApplicationProject("app-1", "Copywriter");
+
+    expect(mockRestFetch).toHaveBeenCalledWith(
+      "/api/applications/app-1/export-project",
+      { method: "GET" }
+    );
+    expect(lastAnchor?.download).toBe("copywriter.zip");
+  });
+
+  it("throws when the server responds with an error", async () => {
+    mockRestFetch.mockResolvedValue(
+      fakeResponse({ ok: false, status: 404, text: "Application not found" })
+    );
+    await expect(exportApplicationProject("missing", "x")).rejects.toThrow(
       "Application not found"
     );
   });

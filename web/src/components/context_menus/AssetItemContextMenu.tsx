@@ -2,12 +2,7 @@ import type { MouseEvent } from "react";
 import { useCallback, useMemo, useState, memo } from "react";
 import { useNavigate } from "react-router-dom";
 
-import {
-  Text,
-  Divider,
-  ContextMenu,
-  MenuItem, getSpacingPx, SPACING
-} from "../ui_primitives";
+import { Divider, ContextMenu, ListSubheader } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
@@ -88,7 +83,7 @@ const AssetItemContextMenu = () => {
     selectedAssets.length === 2 &&
     selectedAssets.every((asset) => asset.content_type?.startsWith("image/"));
 
-  // Resolve the workspace tab type for a single selected asset ("Open as Tab").
+  // Resolve the workspace tab type for a single selected asset ("Open as tab").
   // Null when nothing is openable as a tab (multi-select, folder, or a content
   // type with no document surface, e.g. video).
   const openableTabType =
@@ -250,24 +245,20 @@ const AssetItemContextMenu = () => {
         open={menuPosition !== null}
         onClose={closeContextMenu}
         onContextMenu={(event) => event.preventDefault()}
-        style={{ padding: getSpacingPx(SPACING.xl) }}
         position={menuPosition}
         paperSx={singleAsset ? { display: "flex", overflow: "visible" } : undefined}
       >
-        <MenuItem disabled>
-          <Text className="title">
-            {isFolder
-              ? "Folder"
-              : `${selectedAssetIds.length} item${
-                  selectedAssetIds.length > 1 ? "s" : ""
-                }`}
-          </Text>
-        </MenuItem>
-        <Divider />
+        <ListSubheader className="title">
+          {isFolder
+            ? "Folder"
+            : `${selectedAssetIds.length} item${
+                selectedAssetIds.length > 1 ? "s" : ""
+              }`}
+        </ListSubheader>
         {hasSelectedAssets && (
           <ContextMenuItem
             onClick={toggleFavorite}
-            label={allFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            label={allFavorite ? "Remove from favorites" : "Add to favorites"}
             IconComponent={allFavorite ? <StarBorderIcon /> : <StarIcon />}
             tooltip={
               allFavorite
@@ -285,7 +276,7 @@ const AssetItemContextMenu = () => {
         {openableTabType && (
           <ContextMenuItem
             onClick={handleOpenAsTab}
-            label="Open as Tab"
+            label="Open as tab"
             IconComponent={<TabIcon />}
             tooltip="Open this asset in a new editor tab"
           />
@@ -296,7 +287,7 @@ const AssetItemContextMenu = () => {
               event?.stopPropagation();
               setSendingToWorkflow(true);
             }}
-            label="Send to Workflow"
+            label="Send to workflow"
             IconComponent={<AccountTreeOutlinedIcon />}
             tooltip="Add the selected media to a workflow canvas as constant nodes"
           />
@@ -304,7 +295,7 @@ const AssetItemContextMenu = () => {
         {singleVideo && (
           <ContextMenuItem
             onClick={handleEditVideo}
-            label={singleVideo.timeline_id ? "Edit Timeline" : "Create Timeline from Video"}
+            label={singleVideo.timeline_id ? "Edit timeline" : "Create timeline from video"}
             IconComponent={<MovieEditIcon />}
             tooltip={
               singleVideo.timeline_id
@@ -333,7 +324,7 @@ const AssetItemContextMenu = () => {
         <Divider />
         <ContextMenuItem
           onClick={downloadSelected}
-          label="Download Selected Assets"
+          label="Download selected assets"
           IconComponent={<FileDownloadIcon />}
           tooltip="Download selected assets to your Downloads folder"
         />
@@ -342,12 +333,12 @@ const AssetItemContextMenu = () => {
             onClick={copyToClipboard}
             label={
               selectedAssets[0]?.content_type?.startsWith("image/")
-                ? "Copy Image"
+                ? "Copy image"
                 : selectedAssets[0]?.content_type?.startsWith("video/")
-                ? "Copy Video Info"
+                ? "Copy video info"
                 : selectedAssets[0]?.content_type?.startsWith("audio/")
-                ? "Copy Audio Info"
-                : "Copy Content"
+                ? "Copy audio info"
+                : "Copy content"
             }
             IconComponent={<ContentCopyIcon />}
             tooltip={
@@ -364,17 +355,16 @@ const AssetItemContextMenu = () => {
         {isTwoImages && (
           <ContextMenuItem
             onClick={handleCompareImages}
-            label="Compare Images"
+            label="Compare images"
             IconComponent={<CompareIcon />}
             tooltip="Compare the two selected images side-by-side"
           />
         )}
         <Divider />
-        <div style={{ height: ".5em" }} />
         <ContextMenuItem
           onClick={openDeleteDialog}
           label="Delete"
-          addButtonClassName="delete"
+          destructive
           IconComponent={<RemoveCircleIcon />}
           tooltip="Delete selected assets"
         />

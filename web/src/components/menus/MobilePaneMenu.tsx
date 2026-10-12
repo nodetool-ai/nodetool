@@ -12,7 +12,9 @@ import {
   ListItem,
   ListItemButton,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  ListSubheader,
+  menuGroupHeaderStyles
 } from "../ui_primitives";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
@@ -54,28 +56,13 @@ const styles = (theme: Theme) =>
     },
     ".menu-item-icon": {
       minWidth: "40px",
-      color: theme.vars.palette.primary.main
+      color: theme.vars.palette.text.secondary
     },
-    ".menu-item-text": {
-      "& .MuiListItemText-primary": {
-        fontSize: "var(--fontSizeNormal)",
-        fontWeight: 500
-      },
-      "& .MuiListItemText-secondary": {
-        fontSize: "var(--fontSizeSmall)",
-        opacity: 0.7
-      }
-    },
-    ".menu-section-title": {
-      fontSize: "var(--fontSizeSmall)",
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: "0.05em",
-      color: theme.vars.palette.text.secondary,
-      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)}`,
-      "&:first-of-type": {
-        paddingTop: getSpacingPx(SPACING.xs)
-      }
+    "& .MuiListSubheader-root": {
+      ...menuGroupHeaderStyles(theme),
+      backgroundColor: "transparent",
+      paddingTop: getSpacingPx(SPACING.sm),
+      paddingBottom: getSpacingPx(SPACING.xs)
     }
   });
 
@@ -180,12 +167,12 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
     <MobileBottomSheet
       open={open}
       onClose={onClose}
-      title="Canvas Menu"
+      title="Canvas menu"
       ariaLabel="Canvas actions and node insertion"
     >
       <div className="menu-content" css={styles(theme)}>
         <List dense>
-          <div className="menu-section-title">Actions</div>
+          <ListSubheader disableSticky>Actions</ListSubheader>
           <ListItem className={`menu-item ${!isClipboardValid ? "disabled" : ""}`}>
             <ListItemButton onClick={handlePasteAction} disabled={!isClipboardValid}>
               <ListItemIcon className="menu-item-icon">
@@ -206,7 +193,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText 
                 className="menu-item-text"
-                primary="Fit Screen" 
+                primary="Fit screen" 
                 secondary="Center all nodes in view"
               />
             </ListItemButton>
@@ -214,7 +201,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
 
           <Divider sx={dividerSx} />
 
-          <div className="menu-section-title">AI Nodes</div>
+          <ListSubheader disableSticky>AI nodes</ListSubheader>
           <ListItem className="menu-item">
             <ListItemButton onClick={addAgentNode}>
               <ListItemIcon className="menu-item-icon">
@@ -222,7 +209,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText 
                 className="menu-item-text"
-                primary="Add Agent" 
+                primary="Add agent" 
                 secondary="AI agent for processing"
               />
             </ListItemButton>
@@ -230,7 +217,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
 
           <Divider sx={dividerSx} />
 
-          <div className="menu-section-title">Input Nodes</div>
+          <ListSubheader disableSticky>Input nodes</ListSubheader>
           <ListItem className="menu-item">
             <ListItemButton onClick={addInputNode} data-node-type="StringInput">
               <ListItemIcon className="menu-item-icon">
@@ -238,7 +225,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="String Input"
+                primary="String input"
                 secondary="Text input field"
               />
             </ListItemButton>
@@ -251,7 +238,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Integer Input"
+                primary="Integer input"
                 secondary="Whole number input"
               />
             </ListItemButton>
@@ -264,7 +251,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Float Input"
+                primary="Float input"
                 secondary="Decimal number input"
               />
             </ListItemButton>
@@ -277,7 +264,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Chat Input"
+                primary="Chat input"
                 secondary="Chat message input"
               />
             </ListItemButton>
@@ -290,7 +277,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Image Input"
+                primary="Image input"
                 secondary="Image file input"
               />
             </ListItemButton>
@@ -298,7 +285,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
 
           <Divider sx={dividerSx} />
 
-          <div className="menu-section-title">Organization</div>
+          <ListSubheader disableSticky>Organization</ListSubheader>
           <ListItem className="menu-item">
             <ListItemButton onClick={addComment}>
               <ListItemIcon className="menu-item-icon">
@@ -306,7 +293,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText 
                 className="menu-item-text"
-                primary="Add Comment" 
+                primary="Add comment" 
                 secondary="Text comment note"
               />
             </ListItemButton>
@@ -319,7 +306,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Add Group"
+                primary="Add group"
                 secondary="Group container for nodes"
               />
             </ListItemButton>

@@ -1,8 +1,9 @@
 import {
+  Box,
   FlexRow,
   Dialog,
   TextInput,
-  MenuItem,
+  SelectField,
   SPACING
 } from "../ui_primitives";
 import { useCallback, useState, memo } from "react";
@@ -71,7 +72,7 @@ const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
       onConfirm={handleSubmit}
       confirmText="Add output"
     >
-      <FlexRow gap={SPACING.md} align="flex-start">
+      <FlexRow gap={SPACING.lg} align="flex-start">
         <TextInput
           autoFocus
           label="Name"
@@ -93,21 +94,15 @@ const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
           helperText="Cannot start with a number"
           sx={{ flex: 1 }}
         />
-        <TextInput
-          select
-          label="Type"
-          size="small"
-          fullWidth={false}
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          sx={{ width: 140 }}
-        >
-          {TYPE_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </TextInput>
+        <Box sx={{ width: 140, flexShrink: 0 }}>
+          <SelectField
+            label="Type"
+            size="small"
+            value={type}
+            onChange={setType}
+            options={TYPE_OPTIONS}
+          />
+        </Box>
       </FlexRow>
     </Dialog>
   );

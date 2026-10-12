@@ -414,7 +414,7 @@ import { BORDER_RADIUS } from "../ui_primitives";
 | `BORDER_RADIUS.xs` | `var(--rounded-xs)` | 2px | Tight insets, dense list items |
 | `BORDER_RADIUS.sm` | `var(--rounded-sm)` | 4px | Input fields, small cards |
 | `BORDER_RADIUS.md` | `var(--rounded-md)` | 6px | Buttons, controls (`controlRadius`) |
-| `BORDER_RADIUS.lg` | `var(--rounded-lg)` | 8px | Panels, menus (`menuRadius`) |
+| `BORDER_RADIUS.lg` | `var(--rounded-lg)` | 8px | Panels, menus (`menuPaperStyles`) |
 | `BORDER_RADIUS.xl` | `var(--rounded-xl)` | 12px | Cards, modals |
 | `BORDER_RADIUS.xxl` | `var(--rounded-xxl)` | 16px | Large surfaces |
 | `BORDER_RADIUS.circle` | `var(--rounded-circle)` | 50% | Avatars, circular icons |
@@ -700,8 +700,6 @@ const { editor } = useTheme();
 | `editor.padXInspector` | `10px` | Inspector horizontal control padding |
 | `editor.padYInspector` | `6px` | Inspector vertical control padding |
 | `editor.controlRadius` | `6px` | Border radius for controls inside the editor (`BORDER_RADIUS.md`) |
-| `editor.menuRadius` | `8px` | Border radius for menus inside the editor (`BORDER_RADIUS.lg`) |
-| `editor.menuShadow` | `0 10px 30px rgba(0,0,0,0.5)` | Node context menu drop-shadow |
 
 The `EditorUiProvider` with `scope="node"` applies `heightNode` density; `scope="inspector"` applies `heightInspector` density. Components that are density-aware read these via the provider context.
 
@@ -817,6 +815,44 @@ Full-screen editors with their own resize and history (the text, dataframe,
 sketch and compositor editors) are workspaces, not dialogs, and keep their own
 shells.
 
+### Menus
+
+Context menus, dropdown menus, the list under a select and popover menus share
+one surface and one row style. The theme applies them to every MUI `Menu` and
+`MenuItem` from
+[`menuStyles.ts`](../web/src/components/ui_primitives/menuStyles.ts), so a menu
+only supplies its rows.
+
+```tsx
+import { ContextMenu, MenuItemPrimitive } from "../ui_primitives";
+
+<ContextMenu open={open} position={position} onClose={close}>
+  <MenuItemPrimitive label="Rename" icon={<EditIcon />} shortcut="F2" onClick={rename} />
+  <MenuItemPrimitive label="Duplicate" icon={<ContentCopyIcon />} onClick={duplicate} />
+  <MenuItemPrimitive label="Delete" icon={<DeleteIcon />} color="error" dividerBefore onClick={remove} />
+</ContextMenu>
+```
+
+| Part | Rule |
+|---|---|
+| Menu | `ContextMenu` with `position` for a right-click menu or `anchorEl` for a dropdown. `EditorMenu` in node and editor UI. A select uses `SelectField`, `NodeSelect` or `InspectorSelect`, never a custom list |
+| Surface | `menuPaperStyles`: `Paper.overlay` background, 1px `divider` frame, `BORDER_RADIUS.lg`, `SHADOW(theme).lg`, 4px list padding. Do not restyle it through `paperSx`, `slotProps` or `PaperProps`. Those set size and overflow only |
+| Width | At least `MENU_MIN_WIDTH` (180px), which `ContextMenu` sets |
+| Row | `MenuItemPrimitive`: `TYPOGRAPHY.sans.label` (13px / 500), 28px tall, inset 4px from the frame with `BORDER_RADIUS.sm`. One density. There is no compact or dense row |
+| States | Hover and keyboard focus `action.hover`. A picked option `action.selected`, not primary text |
+| Label | Sentence case, a verb or the option name: "Delete node", "Add input node". An ellipsis only when the row opens a dialog that asks for more |
+| Icon | Optional, 16px, `text.secondary`, 8px before the label. If one row in a group has an icon, give the others one too |
+| Secondary line | `secondary`, in caption type and `text.secondary` |
+| Shortcut | `shortcut`, right-aligned in `TYPOGRAPHY.mono.caption` and `text.secondary` |
+| Submenu | `hasSubmenu` draws the chevron at the end of the row |
+| Destructive | `color="error"` for delete and remove, last in the menu after a divider |
+| Groups | `Divider` between groups (4px above and below). A titled group uses `ListSubheader`, which the menu renders as `EYEBROW` in `text.secondary` on the label edge |
+| Disabled | `disabled`. Say why in `tooltip` when it is not obvious |
+| Popover menus | A popover that lists actions or options is a menu: build it with `ContextMenu` and `MenuItemPrimitive`. Keep `Popover` for content that is not a list of choices, such as a color picker or a form |
+
+Do not wrap a row in a `div` (it breaks arrow-key navigation), build a row
+from a button inside a `MenuItem`, or tint the hover with a raw color.
+
 ### Panel composition
 
 Tokens fix the parts. These rules fix how a panel puts them together. The
@@ -918,7 +954,45 @@ dashed state such as a comparison target in version history.
 
 ---
 
-## 13. Migration Checklist
+## 13. Forms
+
+A form collects input: the settings pages, workflow settings, collection and
+profile forms, and the fields inside dialogs and setup steps. Every field is
+built from `TextInput`, `SelectField` or `FormField`, so a label, a hint and an
+error look the same in every form.
+
+```tsx
+import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from "../ui_primitives";
+
+<FormSection label="Execution">
+  <SelectField label="Run mode" value={mode} onChange={setMode} options={MODES}
+    description="How the workflow starts" />
+  <TextInput label="Tool name" value={toolName} onChange={onToolName}
+    helperText="Letters, numbers and underscores" errorMessage={toolNameError} />
+  <FormField label="Workspace" helperText="Folder the agent can read">
+    <WorkspacePicker value={workspace} onChange={setWorkspace} />
+  </FormField>
+  <LabeledSwitch label="Autosave" description="Save after every change"
+    checked={autosave} onChange={setAutosave} />
+</FormSection>
+```
+
+| Part | Rule |
+|---|---|
+| Label | The `label` prop of `TextInput` or `SelectField`: `TYPOGRAPHY.sans.label` in `text.secondary`, 4px above the control. Any other control (a picker, slider, chip set) goes inside `FormField label`. Never a `Text`, `Caption` or `Label` placed beside the field. A field without a visible label still passes `label` with `hideLabel` |
+| One label | A labeled `FormField` already names its child. Do not also pass `label` to the `SelectField` or `TextInput` inside it, and do not wrap a `hideLabel` select in a `FormField` when the select can carry the label |
+| Hint | `helperText` on `TextInput` and `FormField`, `description` on `SelectField` and `LabeledSwitch`. Not a sibling `Caption` |
+| Error | A field error goes in `errorMessage` (`TextInput`) or `error` (`FormField`). An error about the whole form is an `AlertBanner` |
+| Rhythm | Fields are 12px apart: `FormSection`, or a column with `gap={SPACING.lg}` |
+| Groups | `FormSection label`: the `EYEBROW` style in `text.secondary`. `Label` names a field, never a group. No tinted or bordered box around a group of fields |
+| Booleans | `LabeledSwitch` with the explanation in `description`, not a bare `Switch` or `Checkbox` beside text |
+| Field chrome | Fields keep their primitive look. Do not override `.MuiOutlinedInput-*`, `.MuiInputBase-*`, `.MuiSelect-*` or `.MuiInputLabel-*` from a form's `css` or `sx`. A form may set a field's width only |
+| Variant | Outlined fields everywhere. A dense panel sets `FieldDensityContext` once (see [Panel composition](#panel-composition)) |
+| Text | Labels and options are sentence case ("Tool name", "Ask every time"). Acronyms keep their case ("API key", "ID") |
+
+---
+
+## 14. Migration Checklist
 
 When editing any UI file, scan for these violations and fix them in the same PR.
 
@@ -961,7 +1035,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 14. Adding New Tokens
+## 15. Adding New Tokens
 
 1. **Spacing**: Only add a new `SPACING.*` step if the existing nine steps genuinely cannot express the design intent. Justify in the PR. Update `spacing.ts`.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
@@ -973,7 +1047,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 15. Design Decisions and Tradeoffs
+## 16. Design Decisions and Tradeoffs
 
 Documented rationale for choices that differ from common defaults.
 

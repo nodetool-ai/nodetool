@@ -30,8 +30,8 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  FormField,
   GAP,
-  Label,
   Text
 } from "../../ui_primitives";
 import GenerationSummary from "../GenerationSummary";
@@ -260,16 +260,17 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       {/* The model and the rewrite belong together: picking a different
           writer is only useful next to the button that runs it. */}
       <FlexRow gap={GAP.normal} align="center" wrap>
-        <Label>Write with</Label>
-        <Box sx={{ width: MODEL_PICKER_WIDTH }}>
-          <LanguageModelSelect
-            value={writerModel?.id ?? ""}
-            provider={writerModel?.provider}
-            placeholder="Select writer model"
-            disabled={readOnly}
-            onChange={setWriterModel}
-          />
-        </Box>
+        <FormField label="Write with" direction="row">
+          <Box sx={{ width: MODEL_PICKER_WIDTH }}>
+            <LanguageModelSelect
+              value={writerModel?.id ?? ""}
+              provider={writerModel?.provider}
+              placeholder="Select writer model"
+              disabled={readOnly}
+              onChange={setWriterModel}
+            />
+          </Box>
+        </FormField>
         <EditorButton
           variant="outlined"
           size="small"

@@ -60,6 +60,7 @@ The viewport starts with the camera framing the whole model, shows a ground grid
 | Duplicate, delete | Act on the selected object and its children |
 | Keyboard shortcuts | Lists every shortcut |
 | Assistant | Shows or hides the chat panel. NodeTool remembers whether you left it open |
+| **Export** | Downloads the scene or the selected object as a file. See [Exporting](#exporting) |
 | **Save** | Writes the scene back to the asset. A dot next to the model name marks unsaved changes |
 | Close | Returns the tab to view mode. With unsaved changes, it asks before discarding them |
 
@@ -142,7 +143,20 @@ There is no entry for cameras. A camera that comes in with an imported model sho
 
 ### Importing a model
 
-To add another model to the scene, choose **Import model…** at the bottom of the **Add** menu, drop a `.glb` or `.gltf` file onto the viewport, or drag a model asset from the Asset Explorer onto the viewport. The model arrives as one group named after the file, centered on the view and resting on the ground, and is selected. Its objects are listed under that group, so it moves, hides, and deletes as one. Its animations are not imported. A `.gltf` file must be self-contained, with its buffers and textures embedded. Importing can be undone like any other edit.
+To add another model to the scene, choose **Import model…** at the bottom of the **Add** menu, drop a model file onto the viewport, or drag a model asset from the Asset Explorer onto the viewport. The model arrives as one group named after the file, centered on the view and resting on the ground, and is selected. Its objects are listed under that group, so it moves, hides, and deletes as one. Its animations are not imported. Importing can be undone like any other edit.
+
+| Format | Extensions | Notes |
+|---|---|---|
+| glTF | `.glb`, `.gltf` | Keeps materials, textures, lights, and editor settings |
+| Wavefront OBJ | `.obj` | Materials come from the `.mtl` file the OBJ names, when you pick it too |
+| FBX | `.fbx` | Units are not converted, so a file modeled in centimeters arrives 100 times too large. Scale the group down |
+| STL | `.stl` | Geometry only. Gets a grey material |
+| PLY | `.ply` | Keeps vertex colors. A PLY without faces arrives as a point cloud |
+| Collada | `.dae` | |
+| 3MF | `.3mf` | |
+| USD | `.usdz`, `.usda`, `.usdc` | |
+
+Pick or drop the files a model refers to together with it: the `.mtl` of an OBJ, the `.bin` of a `.gltf`, and texture images. The editor matches them to the model's references by file name. A model asset dragged from the Asset Explorer resolves its references next to the asset, so a `.gltf` asset must be self-contained. OBJ, Collada, and 3MF materials are converted to the PBR material the Inspector edits, keeping color, textures, and transparency.
 
 ---
 
@@ -257,7 +271,20 @@ If you prefer a graph, the Blender nodes (`nodetool.blender.RenderImage`, `Rende
 
 ## Exporting
 
-**Save** is the export. It serializes the scene to a `.glb` and updates the asset, then shows "Saved" with the asset name. Animations that came with an imported model are kept, also after you rename the animated object. Hidden objects are saved too, marked with a `nodetool_hidden` value in the node's `extras`, and come back hidden when the model is reopened. Other glTF tools ignore that value and show them. Names keep their spaces and punctuation. If saving fails, a banner over the viewport shows the error with a button to report it. Open the asset in the Asset Explorer to download or reuse the file like any other asset. See [Asset Management](asset-management.md).
+**Save** serializes the scene to a `.glb` and updates the asset, then shows "Saved" with the asset name. Animations that came with an imported model are kept, also after you rename the animated object. Hidden objects are saved too, marked with a `nodetool_hidden` value in the node's `extras`, and come back hidden when the model is reopened. Other glTF tools ignore that value and show them. Names keep their spaces and punctuation. If saving fails, a banner over the viewport shows the error with a button to report it. Open the asset in the Asset Explorer to download or reuse the file like any other asset. See [Asset Management](asset-management.md).
+
+**Export** downloads a file for another tool and leaves the asset alone. Pick **Scene as** a format to export everything, or **Selection as** a format to export the selected object and its children, placed where it sits in the scene. The Cmd+K menu lists the scene exports too. Hidden objects are left out. Unsaved edits are included. If an animation preview is playing, it stops first, so the file holds the rest pose.
+
+| Format | What it keeps |
+|---|---|
+| GLB | Geometry, materials, textures, lights, and, for the whole scene, the model's animations |
+| glTF | The same as GLB, as one JSON file with its data embedded |
+| OBJ | Geometry. No materials |
+| STL | Geometry, in binary STL, for 3D printing |
+| PLY | Geometry with vertex colors, in binary PLY |
+| USDZ | Geometry, materials, and textures, for Apple AR Quick Look |
+
+A selection exported to GLB or glTF has no animations. OBJ, STL, and PLY need at least one visible mesh. If an export fails, a banner over the viewport shows the error with a button to report it.
 
 ---
 
@@ -273,7 +300,7 @@ The editor has no direct link to the storyboard surface. Use a rendered image as
 
 ## Limits
 
-- Only `.glb` and `.gltf` files open in the editor.
+- Only `.glb` and `.gltf` assets open in the editor. Other formats can be imported into an open model.
 - You cannot add cameras from the **Add** menu, and you cannot add new materials or textures. You can change existing material values.
 - The viewport camera is not saved. It is for looking around, not for authoring a shot.
 - The editor has no render button. Rendering goes through the agent and needs Blender 5.2 or newer on the server, and it is unavailable on cloud deployments.

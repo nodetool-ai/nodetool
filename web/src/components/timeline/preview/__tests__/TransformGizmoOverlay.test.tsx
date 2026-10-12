@@ -181,7 +181,7 @@ describe("TransformGizmoOverlay", () => {
     const polygon = container.querySelector("polygon")!;
     fireEvent.contextMenu(polygon, { clientX: 100, clientY: 50 });
 
-    fireEvent.click(screen.getByText("Flip Horizontal"));
+    fireEvent.click(screen.getByText("Flip horizontal"));
     const [, next] = onChange.mock.calls.at(-1)!;
     expect(next.scale.x).toBeCloseTo(-1, 6);
     expect(next.scale.y).toBeCloseTo(1, 6);

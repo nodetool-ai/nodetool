@@ -71,6 +71,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps | `/api/applications/{id}` | `GET`, `PUT`, `PATCH`, `DELETE` | Session auth | no | Read, update, or delete one app |
 | Apps      | `/api/applications/{id}/released-document` | `GET`    | Session auth                     | no                          | The snapshot a published app should run, with each operation's pinned graph; `null` when nothing is published |
 | Apps      | `/api/applications/{id}/export-bundle` | `GET`        | Session auth                     | no                          | One app and the full graph of every workflow it binds, as a downloadable `ApplicationBundle` |
+| Apps      | `/api/applications/{id}/export-project` | `GET`       | Session auth                     | no                          | One app as a standalone JavaScript project (Vite UI plus a Node server that runs its workflows and scripts), as a `.zip` |
 | Apps | `/api/applications/import-bundle` | `POST` | Session auth | no | Create an app, and the workflows it binds, from an `ApplicationBundle` |
 | Apps      | `/api/applications/build`         | `POST`            | Session auth                     | no                          | Build a mini app from a prompt or a pinned spec; returns the `BuildReport`. `poll: true` returns a session id instead |
 | Apps      | `/api/applications/debug`         | `POST`            | Session auth                     | no                          | Simulate a saved app by `application_id`, or a draft posted inline as `document`; returns the compacted debug report |
@@ -80,7 +81,9 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/examples/{slug}/scripts/{key}/run` | `POST` | Session auth                | NDJSON with `Accept: application/x-ndjson` | Run a JS script an example bundle carries, without installing the example |
 | Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Session auth                     | streaming                   | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
 | Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Session auth                     | streaming                   | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
-| Timelines | `/api/timelines/import-zip`       | `POST`            | Session auth                     | no                          | Multipart upload of such a zip; stores the assets and creates a new timeline pointing at them |
+| Timelines | `/api/timelines/{id}/export-premiere` | `GET`          | Session auth                     | streaming                   | One sequence as a Premiere Pro XML (xmeml) plus its media and an export report, as a zip; `404` when the caller does not own it |
+| Timelines | `/api/timelines/{id}/export-media` | `GET`             | Session auth                     | streaming                   | Every clip's media file plus `clips.csv`, as a zip; `404` when the caller does not own it |
+| Timelines | `/api/timelines/import-zip`       | `POST`            | Session auth                     | no                          | Multipart upload of such a zip, or of a zip holding a Premiere Pro XML and its media; stores the assets and creates a new timeline pointing at them |
 | Providers | `/api/fal/credits`                | `GET`             | Session auth                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/fal/pricing`                | `GET`             | Session auth                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
 | Providers | `/api/fal/pricing/estimate`       | `POST`            | Session auth                     | no                          | What a fal.ai endpoint costs for a given quantity; `204` when no `FAL_API_KEY` is configured |
@@ -933,6 +936,28 @@ ship with the app, so none are packed. `foreign_refs` names ids that mean
 something only on the exporting install (workflows, storyboards, scripts, jobs);
 import carries them through untouched rather than trying to resolve them.
 
+`GET /api/timelines/{id}/export-premiere` writes the same sequence for Adobe
+Premiere Pro. The zip holds `<timeline name>.xml`, a Final Cut Pro 7 XML
+sequence that Premiere imports through **File > Import**, the active asset of
+every exported clip under `media/`, and `export-report.txt`, which lists each
+clip that needs baking or was left out. The XML points at its media with
+relative `media/<file>` paths. The response carries
+`x-nodetool-export-warnings` with the number of report entries, and is named
+`<timeline name>-premiere.zip` by the same rule as above.
+
+`GET /api/timelines/{id}/export-media` packs only the media: the original file
+of every video, image, and audio clip under `media/`, named as in the Premiere
+export, and `clips.csv` with one row per clip (`clip`, `track`, `media_type`,
+`start_s`, `end_s`, `in_s`, `file`). `x-nodetool-export-missing` counts the
+files that could not be read or packed. The zip is `<timeline name>-media.zip`.
+
+`POST /api/timelines/import-zip` also accepts a zip with no `manifest.json` that
+holds a Final Cut Pro 7 XML (xmeml) sequence, such as Premiere Pro's
+File > Export > Final Cut Pro XML zipped with its media. Media is matched by
+file name in any folder of the zip. The response adds `format: "premiere_xml"`,
+`missing_clips` (clips whose file was not in the zip), and `warnings` (what
+had no NodeTool counterpart, such as transitions or nested sequences).
+
 `POST /api/timelines/import-zip` reads the zip back as a multipart form. `file`
 is required; `project_id` defaults to `"default"` (no project) and `name`
 overrides the name in the bundle:
@@ -1576,6 +1601,24 @@ which answer you want to handle. `released-document` calls it a `200` with a
 
 An id the caller does not own is also a `404`. The CLI wraps the same call as
 `nodetool apps export-bundle <id> [-o file] [--released]`.
+
+### Exporting an App as a Standalone Project
+
+`GET /api/applications/{id}/export-project` returns the app as a JavaScript
+project that runs without NodeTool, zipped under a `<project-name>/` folder.
+`?released=1` exports the released snapshot, as for `export-bundle`.
+
+```bash
+curl "http://localhost:7777/api/applications/<application_id>/export-project" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -O -J
+```
+
+The response is `application/zip` with
+`content-disposition: attachment; filename="<project-name>.zip"`. The project
+layout is described in
+[`@nodetool-ai/app-export`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-export/README.md). The CLI
+equivalent is `nodetool apps export-project`.
 
 ### Building an App on the Server
 

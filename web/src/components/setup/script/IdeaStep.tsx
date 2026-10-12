@@ -34,8 +34,8 @@ import {
   FlexColumn,
   FlexRow,
   GAP,
-  Label,
   PADDING,
+  SectionHeader,
   Text,
   TextInput
 } from "../../ui_primitives";
@@ -127,7 +127,7 @@ const SourcePanel: React.FC<SourcePanelProps> = ({
     }}
   >
     <FlexColumn gap={GAP.micro}>
-      <Label>Your script, kept word for word</Label>
+      <SectionHeader size="small" title="Your script, kept word for word" />
       <Caption color="secondary" component="p">
         {sourceSummary(source)}
       </Caption>
@@ -183,7 +183,7 @@ const CarriedContext: React.FC<{
     component="section"
     aria-label="Brought from your project"
   >
-    <Label>Brought from your project</Label>
+    <SectionHeader size="small" title="Brought from your project" />
     <Caption color="secondary" component="p">
       {[
         attachments.length > 0
@@ -468,23 +468,17 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         fullWidth
         maxWidth="sm"
       >
-        <FlexColumn gap={GAP.normal}>
-          {sourceNote ? (
-            <Caption color="secondary" component="p">
-              {sourceNote}
-            </Caption>
-          ) : null}
-          <TextInput
-            value={pasted}
-            autoFocus
-            multiline
-            rows={12}
-            label="Your script"
-            hideLabel
-            placeholder="Paste it here. We'll split it into lines and leave the words alone."
-            onChange={(event) => setPasted(event.target.value)}
-          />
-        </FlexColumn>
+        <TextInput
+          value={pasted}
+          autoFocus
+          multiline
+          rows={12}
+          label="Your script"
+          hideLabel
+          placeholder="Paste it here. We'll split it into lines and leave the words alone."
+          helperText={sourceNote ?? undefined}
+          onChange={(event) => setPasted(event.target.value)}
+        />
       </Dialog>
     </Box>
   );

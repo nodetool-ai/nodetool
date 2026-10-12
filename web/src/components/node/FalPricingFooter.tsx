@@ -215,10 +215,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
         open={menuOpen}
         onClose={handleClose}
         placement={placement}
-        paperSx={{
-          minWidth: 220,
-          fontSize: "var(--fontSizeSmall)"
-        }}
+        paperSx={{ minWidth: 220 }}
       >
         <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
           <Caption
@@ -232,8 +229,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
             FAL pricing
           </Caption>
           <Text
+            size="small"
             sx={{
-              fontSize: "var(--fontSizeSmall)",
               mt: 0.5,
               whiteSpace: "pre-line",
               color: theme.vars.palette.text.secondary
@@ -245,8 +242,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
             <FlexRow gap={1} align="center" sx={{ mt: 1 }}>
               <LoadingSpinner size={12} />
               <Text
+                size="small"
                 sx={{
-                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.text.secondary
                 }}
               >
@@ -255,8 +252,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
             </FlexRow>
           ) : estimateData != null ? (
             <Text
+              size="small"
               sx={{
-                fontSize: "var(--fontSizeSmall)",
                 mt: 1,
                 fontWeight: 600,
                 color: theme.vars.palette.text.primary
@@ -287,8 +284,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
             <FlexRow gap={1} align="center" sx={{ mt: 0.5 }}>
               <LoadingSpinner size={12} />
               <Text
+                size="small"
                 sx={{
-                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.text.secondary
                 }}
               >
@@ -297,8 +294,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
             </FlexRow>
           ) : creditsData === "error" || creditsData === null ? (
             <Text
+              size="small"
               sx={{
-                fontSize: "var(--fontSizeSmall)",
                 color: theme.vars.palette.text.disabled,
                 mt: 0.5
               }}
@@ -308,8 +305,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           ) : creditsData.unavailable ? (
             <FlexColumn gap={0.5} sx={{ mt: 0.5 }}>
               <Text
+                size="small"
                 sx={{
-                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.warning.main,
                   lineHeight: 1.4,
                   wordBreak: "break-word"
@@ -329,8 +326,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
             </FlexColumn>
           ) : (
             <Text
+              size="small"
               sx={{
-                fontSize: "var(--fontSizeSmall)",
                 fontWeight: 600,
                 color: theme.vars.palette.success.main,
                 mt: 0.5
@@ -345,8 +342,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
 
         <MenuItemPrimitive
           label="View on fal.ai"
-          icon={<LaunchIcon sx={{ fontSize: 14 }} />}
-          compact
+          icon={<LaunchIcon />}
           onClick={() => {
             window.open(
               `https://fal.ai/models/${pricing.endpoint_id}`,

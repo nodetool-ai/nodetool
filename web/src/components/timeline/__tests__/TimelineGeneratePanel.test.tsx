@@ -125,7 +125,7 @@ async function chooseSpeech() {
   await userEvent.click(screen.getByRole("button", { name: "Video" }));
   expect(screen.getAllByRole("menuitemradio")).toHaveLength(3);
   await userEvent.click(
-    screen.getByRole("menuitemradio", { name: "Generate Speech" })
+    screen.getByRole("menuitemradio", { name: "Generate speech" })
   );
 }
 
@@ -159,7 +159,7 @@ describe("TimelineGeneratePanel", () => {
       act(() => instance.playback.getState().setTimeMs(2500));
       await userEvent.click(screen.getByRole("button", { name: "Video" }));
       await userEvent.click(
-        screen.getByRole("menuitemradio", { name: "Generate Music" })
+        screen.getByRole("menuitemradio", { name: "Generate music" })
       );
       await userEvent.type(
         screen.getByRole("textbox", { name: "Quick text-to-music prompt" }),
@@ -367,7 +367,7 @@ describe("TimelineGeneratePanel", () => {
     await pickSpeechModel();
     await userEvent.click(screen.getByRole("button", { name: "Speech" }));
     await userEvent.click(
-      screen.getByRole("menuitemradio", { name: "Generate Videos" })
+      screen.getByRole("menuitemradio", { name: "Generate videos" })
     );
     expect(
       screen.getByRole("button", { name: "Test video" })

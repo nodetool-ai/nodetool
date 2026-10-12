@@ -11,9 +11,9 @@ import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   Box,
-  Caption,
   FlexColumn,
   FlexRow,
+  FormField,
   GAP,
   Text,
   TextInput
@@ -231,15 +231,12 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
         onSelect={selectFormat}
       />
 
-      <FlexColumn gap={GAP.normal}>
-        <Caption color="secondary" component="p">
-          How long should it run?
-        </Caption>
-        <FlexRow gap={GAP.normal} align="center" wrap>
-          {/* One choice among four, so one tab stop and arrow keys between the
-              options — four cards announcing themselves as independent
-              toggles described the wrong control (F26). The seconds field is
-              not one of the options and stays outside the group. */}
+      <FlexRow gap={GAP.normal} align="flex-start" wrap>
+        {/* One choice among four, so one tab stop and arrow keys between the
+            options — four cards announcing themselves as independent toggles
+            described the wrong control (F26). The seconds field is not one of
+            the options and stays outside the group. */}
+        <FormField label="How long should it run?">
           <FlexRow role="radiogroup" aria-label="Length" gap={GAP.normal} wrap>
             {lengthOptions.map((option) => {
               const radio = radioProps(option);
@@ -258,34 +255,31 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
               );
             })}
           </FlexRow>
-          {custom ? (
-            <Box sx={{ width: CUSTOM_FIELD_WIDTH }}>
-              <TextInput
-                type="number"
-                label="Custom seconds"
-                value={customDraft}
-                slotProps={{
-                  htmlInput: {
-                    min: MIN_CUSTOM_SECONDS,
-                    max: MAX_CUSTOM_SECONDS,
-                    step: 1
-                  }
-                }}
-                placeholder="Custom"
-                disabled={readOnly}
-                error={customError !== null}
-                helperText={
-                  customError ??
-                  `${MIN_CUSTOM_SECONDS}–${MAX_CUSTOM_SECONDS} seconds`
+        </FormField>
+        {custom ? (
+          <Box sx={{ width: CUSTOM_FIELD_WIDTH }}>
+            <TextInput
+              type="number"
+              label="Custom seconds"
+              value={customDraft}
+              slotProps={{
+                htmlInput: {
+                  min: MIN_CUSTOM_SECONDS,
+                  max: MAX_CUSTOM_SECONDS,
+                  step: 1
                 }
-                onChange={handleCustom}
-                onBlur={commitCustom}
-                onKeyDown={handleCustomKeyDown}
-              />
-            </Box>
-          ) : null}
-        </FlexRow>
-      </FlexColumn>
+              }}
+              placeholder="Custom"
+              disabled={readOnly}
+              errorMessage={customError ?? undefined}
+              helperText={`${MIN_CUSTOM_SECONDS}–${MAX_CUSTOM_SECONDS} seconds`}
+              onChange={handleCustom}
+              onBlur={commitCustom}
+              onKeyDown={handleCustomKeyDown}
+            />
+          </Box>
+        ) : null}
+      </FlexRow>
     </FlexColumn>
   );
 };

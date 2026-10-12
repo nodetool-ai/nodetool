@@ -214,8 +214,6 @@ const mockTheme = createTheme({
     padXInspector: "10px",
     padYInspector: "6px",
     controlRadius: "6px",
-    menuRadius: "8px",
-    menuShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
   },
   // TanStack Virtual overscan — mirrors ThemeNodetool so virtualized
   // components (LogsTable, ChatThreadView) can read it under test.

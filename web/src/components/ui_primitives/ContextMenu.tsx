@@ -2,8 +2,8 @@
  * ContextMenu Component
  *
  * A semantic wrapper around MUI Menu for context menus and dropdown menus.
- * Provides simplified positioning and consistent styling.
- * Used in 20+ context menu files across the codebase.
+ * Adds right-click positioning. The theme gives every MUI Menu the shared menu
+ * surface and row style (`menuStyles.ts`); fill it with `MenuItemPrimitive`.
  */
 
 import React, { memo } from "react";
@@ -11,22 +11,19 @@ import {
   Menu as MuiMenu,
   MenuProps as MuiMenuProps,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import { SxProps, Theme } from "@mui/material";
-import { isNumber } from "../../utils/typePredicates";
 import { sxEntries } from "./tokens";
+import { MENU_MIN_WIDTH } from "./menuStyles";
 
 export interface ContextMenuProps extends Omit<MuiMenuProps, "anchorPosition"> {
   /** Position for right-click context menus */
   position?: { x: number; y: number } | null;
   /** Max height of the menu */
   maxHeight?: number | string;
-  /** Min width of the menu */
+  /** Min width of the menu. Defaults to `MENU_MIN_WIDTH` (180px) */
   minWidth?: number | string;
-  /** Additional sx for the paper element */
+  /** Additional sx for the paper element, for layout only (size, overflow) */
   paperSx?: SxProps<Theme>;
-  /** Compact spacing between items */
-  compact?: boolean;
 }
 
 /**
@@ -35,8 +32,8 @@ export interface ContextMenuProps extends Omit<MuiMenuProps, "anchorPosition"> {
  * @example
  * // Anchor-based dropdown menu
  * <ContextMenu open={open} anchorEl={anchorEl} onClose={handleClose}>
- *   <MenuItem onClick={handleEdit}>Edit</MenuItem>
- *   <MenuItem onClick={handleDelete}>Delete</MenuItem>
+ *   <MenuItemPrimitive label="Edit" onClick={handleEdit} />
+ *   <MenuItemPrimitive label="Delete" color="error" onClick={handleDelete} />
  * </ContextMenu>
  *
  * @example
@@ -45,40 +42,31 @@ export interface ContextMenuProps extends Omit<MuiMenuProps, "anchorPosition"> {
  *   open={open}
  *   position={mousePosition}
  *   onClose={handleClose}
- *   compact
  * >
- *   <MenuItem>Copy</MenuItem>
- *   <MenuItem>Paste</MenuItem>
+ *   <MenuItemPrimitive label="Copy" shortcut="⌘C" />
+ *   <MenuItemPrimitive label="Paste" shortcut="⌘V" />
  * </ContextMenu>
  *
  * @example
  * // With size constraints
  * <ContextMenu open={open} anchorEl={ref} onClose={close} maxHeight={300} minWidth={200}>
- *   {items.map(item => <MenuItem key={item.id}>{item.label}</MenuItem>)}
+ *   {items.map(item => <MenuItemPrimitive key={item.id} label={item.label} />)}
  * </ContextMenu>
  */
 const ContextMenuInternal: React.FC<ContextMenuProps> = ({
   position,
   maxHeight,
-  minWidth,
+  minWidth = MENU_MIN_WIDTH,
   paperSx,
-  compact = false,
   slotProps,
   children,
   ...props
 }) => {
-  const theme = useTheme();
-
   const anchorPosition = position
     ? { top: position.y, left: position.x }
     : undefined;
 
   const anchorReference = position ? "anchorPosition" as const : undefined;
-
-  // Compute border radius with type guard since borderRadius can be string | number
-  const borderRadiusValue = isNumber(theme.shape.borderRadius)
-    ? theme.shape.borderRadius / 4
-    : undefined;
 
   return (
     <MuiMenu
@@ -89,18 +77,7 @@ const ContextMenuInternal: React.FC<ContextMenuProps> = ({
         paper: {
           ...slotProps?.paper,
           sx: [
-            {
-              borderRadius: borderRadiusValue,
-              maxHeight,
-              minWidth,
-              ...(compact && {
-                "& .MuiMenuItem-root": {
-                  minHeight: "auto",
-                  py: 0.5,
-                  fontSize: theme.fontSizeSmall,
-                },
-              }),
-            },
+            { maxHeight, minWidth },
             ...sxEntries(paperSx),
           ],
         },

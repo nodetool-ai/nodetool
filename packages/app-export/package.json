@@ -1,0 +1,62 @@
+{
+  "name": "@nodetool-ai/app-export",
+  "version": "0.8.2",
+  "description": "Export a NodeTool mini app as a standalone JavaScript project: a Vite UI plus a local Node server that runs the app's workflows in process",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "embed-template": "node scripts/embed-template.mjs",
+    "embed-template:check": "node scripts/embed-template.mjs --check",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit && node ../../scripts/run-tsc.mjs --noEmit -p template/tsconfig.json"
+  },
+  "dependencies": {
+    "@nodetool-ai/app-runtime": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/app-export"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "mini-app",
+    "export",
+    "typescript"
+  ]
+}

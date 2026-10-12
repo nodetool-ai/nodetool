@@ -181,7 +181,6 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
       >
         {onRenderStill && (
           <MenuItemPrimitive
-            compact
             label="Render still…"
             icon={<ImageOutlinedIcon fontSize="small" />}
             disabled={renderDisabled}
@@ -190,7 +189,6 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         )}
         {onRenderClip && (
           <MenuItemPrimitive
-            compact
             label="Render clip…"
             icon={<MovieOutlinedIcon fontSize="small" />}
             disabled={renderDisabled}
@@ -199,7 +197,6 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         )}
         {useLastFrame && (
           <MenuItemPrimitive
-            compact
             label={useLastFrame.label}
             icon={<LastPageIcon fontSize="small" />}
             disabled={useLastFrame.disabled}
@@ -208,7 +205,6 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         )}
         {onDownload && (
           <MenuItemPrimitive
-            compact
             dividerBefore={hasRender}
             label={`Download ${what}`}
             icon={<DownloadIcon fontSize="small" />}
@@ -217,7 +213,6 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         )}
         {sendItems && (
           <MenuItemPrimitive
-            compact
             dividerBefore={hasRender && !onDownload}
             label="Send to workflow…"
             icon={<AccountTreeOutlinedIcon fontSize="small" />}
@@ -226,7 +221,6 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         )}
         {onDuplicate && (
           <MenuItemPrimitive
-            compact
             dividerBefore={hasRender && !onDownload && !sendItems}
             label="Duplicate shot"
             icon={<ContentCopyIcon fontSize="small" />}
@@ -235,7 +229,6 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         )}
         {onDelete && (
           <MenuItemPrimitive
-            compact
             color="error"
             dividerBefore={Boolean(
               hasRender || onDownload || sendItems || onDuplicate

@@ -6,14 +6,12 @@ import {
   Text,
   FlexRow,
   Box,
-  Popover,
-  ListGroup,
+  ContextMenu,
+  MenuItemPrimitive,
   MOTION,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  ListItemButton,
-  ListItemText,
   Z_INDEX,
   reducedMotion
 } from "../ui_primitives";
@@ -87,14 +85,6 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     },
     [zoomTo]
   );
-
-  const handlePresetClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    const presetValue = event.currentTarget.dataset.preset;
-    if (presetValue) {
-      const preset = parseFloat(presetValue) as ZoomPreset;
-      handlePresetZoom(preset);
-    }
-  }, [handlePresetZoom]);
 
   const handleOpenZoomMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
@@ -255,46 +245,23 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         ) : null}
       </FlexRow>
 
-      <Popover
+      <ContextMenu
         open={Boolean(zoomMenuAnchor)}
         anchorEl={zoomMenuAnchor}
         onClose={handleCloseZoomMenu}
-        placement="top-center"
-        paperSx={{
-          minWidth: 120,
-          py: SPACING.micro
-        }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
+        minWidth={120}
       >
-        <ListGroup compact flush>
-          {ZOOM_PRESETS.map((preset) => (
-            <ListItemButton
-              key={preset}
-              onClick={handlePresetClick}
-              data-preset={preset.toString()}
-              selected={preset === currentPreset}
-              sx={{
-                py: SPACING.micro,
-                px: SPACING.md,
-                "&.Mui-selected": {
-                  backgroundColor: theme.vars.palette.action.selected,
-                  "&:hover": {
-                    backgroundColor: theme.vars.palette.action.selected
-                  }
-                }
-              }}
-            >
-              <ListItemText
-                primary={`${Math.round(preset * 100)}%`}
-                primaryTypographyProps={{
-                  fontSize: "var(--fontSizeSmall)",
-                  fontFamily: "var(--fontFamily2)",
-                  textAlign: "center"
-                }}
-              />
-            </ListItemButton>
-          ))}
-        </ListGroup>
-      </Popover>
+        {ZOOM_PRESETS.map((preset) => (
+          <MenuItemPrimitive
+            key={preset}
+            label={`${Math.round(preset * 100)}%`}
+            selected={preset === currentPreset}
+            onClick={() => handlePresetZoom(preset)}
+          />
+        ))}
+      </ContextMenu>
     </>
   );
 };
