@@ -35,7 +35,6 @@ import {
   reducedMotion
 } from "../../ui_primitives";
 import { cn } from "../../editor_ui/editorUtils";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 const actionsRowStyles = (theme: Theme) =>
   css({
@@ -262,7 +261,6 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
                   ? "Starting…"
                   : "Generate layer from the bound workflow and overrides"
             }
-            delay={TOOLTIP_ENTER_DELAY}
             placement="top"
           >
             <span style={{ display: "inline-flex" }}>

@@ -10,7 +10,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { CopyButton, Dialog, ToolbarIconButton, Box, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../components/ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
-import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import "../styles/markdown/github-markdown.css";
 import "../styles/markdown/nodetool-markdown.css";
 
@@ -228,7 +227,6 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             <ToolbarIconButton
               className="fullscreen-button"
               tooltip="Enter fullscreen"
-              delay={TOOLTIP_ENTER_DELAY}
               onClick={handleEnterFullscreen}
               size="small"
               icon={<FullscreenIcon fontSize="small" />}

@@ -230,7 +230,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
                 variant="contained"
                 color="primary"
                 onClick={() => onEdit(shot.id)}
-                title="Open this shot's fields, takes and script lines under its card"
+                tooltip="Open this shot's fields, takes and script lines under its card"
               >
                 Edit
               </EditorButton>
@@ -239,7 +239,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
               onClick={() => setIterateOpen(true)}
               disabled={isGenerating || !shot.clip}
               sx={quietActionSx}
-              title={
+              tooltip={
                 shot.clip
                   ? "Re-render this clip with a note applied"
                   : "Render a clip first"
@@ -251,7 +251,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
               onClick={handleRegenerate}
               disabled={isGenerating}
               sx={quietActionSx}
-              title="Render a new still and pick its model"
+              tooltip="Render a new still and pick its model"
             >
               Regenerate
             </EditorButton>
@@ -259,7 +259,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
               onClick={() => setConfirmDelete(true)}
               disabled={isGenerating}
               sx={quietActionSx}
-              title="Remove this shot from the board"
+              tooltip="Remove this shot from the board"
             >
               Delete
             </EditorButton>

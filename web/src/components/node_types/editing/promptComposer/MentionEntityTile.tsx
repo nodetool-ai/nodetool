@@ -16,7 +16,8 @@ import {
   BORDER_RADIUS,
   MOTION,
   reducedMotion,
-  SPACING
+  SPACING,
+  Tooltip
 } from "../../../ui_primitives";
 import { ENTITY_KIND_COLOR, ENTITY_KIND_ICON } from "../../../entities/entityKind";
 
@@ -99,34 +100,35 @@ export const MentionEntityTile: React.FC<MentionEntityTileProps> = React.memo(({
   const kindPaletteKey = ENTITY_KIND_COLOR[entity.kind];
 
   return (
-    <button
-      type="button"
-      role="option"
-      aria-selected={selected}
-      css={tileStyles}
-      className={`mention-entity-tile${selected ? " selected" : ""}`}
-      title={entity.descriptor || entity.name}
-      // preventDefault keeps focus in the composer so selection inserts at the
-      // caret instead of blurring the editor.
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onSelect}
-      onMouseEnter={onMouseEnter}
-    >
-      {thumb ? (
-        <img className="entity-avatar" src={thumb} alt="" />
-      ) : (
-        <span className="entity-avatar-icon">
-          <Icon />
-        </span>
-      )}
-      <span className="entity-name">{entity.name || entity.id}</span>
-      <span
-        className="entity-kind"
-        style={{ color: theme.vars.palette[kindPaletteKey].main }}
+    <Tooltip title={entity.descriptor || entity.name} describeChild>
+      <button
+        type="button"
+        role="option"
+        aria-selected={selected}
+        css={tileStyles}
+        className={`mention-entity-tile${selected ? " selected" : ""}`}
+        // preventDefault keeps focus in the composer so selection inserts at the
+        // caret instead of blurring the editor.
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onSelect}
+        onMouseEnter={onMouseEnter}
       >
-        {entity.kind}
-      </span>
-    </button>
+        {thumb ? (
+          <img className="entity-avatar" src={thumb} alt="" />
+        ) : (
+          <span className="entity-avatar-icon">
+            <Icon />
+          </span>
+        )}
+        <span className="entity-name">{entity.name || entity.id}</span>
+        <span
+          className="entity-kind"
+          style={{ color: theme.vars.palette[kindPaletteKey].main }}
+        >
+          {entity.kind}
+        </span>
+      </button>
+    </Tooltip>
   );
 });
 

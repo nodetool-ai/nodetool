@@ -14,7 +14,6 @@ import {
   Toast,
   Tooltip
 } from "../../ui_primitives";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useRegenerateStaleLayers } from "../../../hooks/sketch/useRegenerateStaleLayers";
 import { CreateGeneratedLayerDialog } from "./CreateGeneratedLayerDialog";
@@ -65,8 +64,7 @@ const SketchAIToolbarInner: React.FC = () => {
         }}
       >
         <Tooltip
-          title="Generate Layer — bind a new layer to any workflow with an image output."
-          delay={TOOLTIP_ENTER_DELAY}
+          title="Generate a layer from any workflow with an image output"
           placement="bottom"
         >
           <span>
@@ -87,7 +85,6 @@ const SketchAIToolbarInner: React.FC = () => {
               ? "No stale layers."
               : `Re-generate ${staleCount} stale layer${staleCount === 1 ? "" : "s"} in dependency order.`
           }
-          delay={TOOLTIP_ENTER_DELAY}
           placement="bottom"
         >
           <span>

@@ -14,9 +14,12 @@ import {
   removeClassNamesFromElement
 } from "@lexical/utils";
 import { $patchStyleText } from "@lexical/selection";
-import { BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
+import { BORDER_RADIUS, getSpacingPx, SPACING, Tooltip } from "../ui_primitives";
+import { isMac } from "../../utils/platform";
 import { copyAsMarkdown } from "./exportMarkdown";
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
+
+const MOD_KEY = isMac() ? "⌘" : "Ctrl";
 
 const toolbarStyles = css`
   display: flex;
@@ -179,51 +182,56 @@ const ToolbarPlugin = () => {
 
   return (
     <div className="format-toolbar-actions" css={toolbarStyles}>
-      <button
-        type="button"
-        onClick={handleFormatBold}
-        className={isBold ? "active" : ""}
-        aria-label="Format Bold"
-        title="Bold (Ctrl+B / ⌘+B)"
-      >
-        <b>B</b>
-      </button>
-      <button
-        type="button"
-        onClick={handleFormatItalic}
-        className={isItalic ? "active" : ""}
-        aria-label="Format Italic"
-        title="Italic (Ctrl+I / ⌘+I)"
-      >
-        <i>I</i>
-      </button>
-      <button
-        type="button"
-        onClick={toggleFontSize}
-        className={isLargeFont ? "active" : ""}
-        aria-label="Toggle Large Font Size"
-        title="Toggle Large Font Size"
-      >
-        <FormatSizeIcon sx={{ fontSize: "1em" }} />
-      </button>
-      <button
-        type="button"
-        onClick={handleInsertHR}
-        aria-label="Insert Horizontal Rule"
-        title="Insert Horizontal Rule"
-        style={{ fontSize: "var(--fontSizeNormal)", fontWeight: 600 }}
-      >
-        ─
-      </button>
-      <button
-        type="button"
-        onClick={handleCopyAsMarkdown}
-        aria-label="Copy as Markdown"
-        title="Copy as Markdown"
-        className={copied ? "active" : ""}
-      >
-        <ContentCopyIcon sx={{ fontSize: "1em" }} />
-      </button>
+      <Tooltip title="Bold" shortcut={[MOD_KEY, "B"]} describeChild>
+        <button
+          type="button"
+          onClick={handleFormatBold}
+          className={isBold ? "active" : ""}
+          aria-label="Format Bold"
+        >
+          <b>B</b>
+        </button>
+      </Tooltip>
+      <Tooltip title="Italic" shortcut={[MOD_KEY, "I"]} describeChild>
+        <button
+          type="button"
+          onClick={handleFormatItalic}
+          className={isItalic ? "active" : ""}
+          aria-label="Format Italic"
+        >
+          <i>I</i>
+        </button>
+      </Tooltip>
+      <Tooltip title="Toggle large font size" describeChild>
+        <button
+          type="button"
+          onClick={toggleFontSize}
+          className={isLargeFont ? "active" : ""}
+          aria-label="Toggle Large Font Size"
+        >
+          <FormatSizeIcon sx={{ fontSize: "1em" }} />
+        </button>
+      </Tooltip>
+      <Tooltip title="Insert horizontal rule" describeChild>
+        <button
+          type="button"
+          onClick={handleInsertHR}
+          aria-label="Insert Horizontal Rule"
+          style={{ fontSize: "var(--fontSizeNormal)", fontWeight: 600 }}
+        >
+          ─
+        </button>
+      </Tooltip>
+      <Tooltip title="Copy as Markdown" describeChild>
+        <button
+          type="button"
+          onClick={handleCopyAsMarkdown}
+          aria-label="Copy as Markdown"
+          className={copied ? "active" : ""}
+        >
+          <ContentCopyIcon sx={{ fontSize: "1em" }} />
+        </button>
+      </Tooltip>
     </div>
   );
 };

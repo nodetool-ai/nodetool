@@ -10,7 +10,6 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
   Dialog,
   ToolbarIconButton,
-  Tooltip,
   TextInput,
   Checkbox,
   FlexColumn,
@@ -26,7 +25,6 @@ import {
 } from "../../ui_primitives";
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { NodeData } from "../../../stores/NodeData";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import {
   bytesToBase64,
   resolveComfyWorkflow,
@@ -218,23 +216,22 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
 
     return (
       <>
-        <Tooltip title="Load Workflow" arrow delay={TOOLTIP_ENTER_DELAY}>
-          <ToolbarIconButton
-            title="Load Workflow"
-            size="small"
-            onClick={() => setOpen(true)}
-            sx={{
-              padding: getSpacingPx(SPACING.xs),
-              color: "var(--palette-text-secondary)",
-              "&:hover": {
-                color: "var(--palette-text-primary)",
-                backgroundColor: "var(--palette-c_overlay)"
-              }
-            }}
-          >
-            <UploadFileIcon sx={{ fontSize: 16 }} />
-          </ToolbarIconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          title="Load workflow"
+          size="small"
+          onClick={() => setOpen(true)}
+          sx={{
+            padding: getSpacingPx(SPACING.xs),
+            color: "var(--palette-text-secondary)",
+            "&:hover": {
+              color: "var(--palette-text-primary)",
+              backgroundColor: "var(--palette-c_overlay)"
+            }
+          }}
+        >
+          <UploadFileIcon sx={{ fontSize: 16 }} />
+        </ToolbarIconButton>
+
         <Dialog
           open={open}
           onClose={() => setOpen(false)}

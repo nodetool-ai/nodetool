@@ -992,7 +992,43 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 
 ---
 
-## 14. Migration Checklist
+## 14. Controls
+
+Buttons, tooltips and the other small controls every surface shares.
+
+### Tooltips
+
+A tooltip names an icon button or explains a control. Every tooltip uses the
+`Tooltip` primitive or the `tooltip` prop of a button primitive
+(`ToolbarIconButton`, `EditorButton`, `CloseButton`), so it waits, looks and
+reads the same everywhere.
+
+```tsx
+import { EditorButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
+
+<ToolbarIconButton icon={<UndoIcon />} tooltip="Undo" shortcut={["Ctrl", "Z"]} onClick={undo} />
+<EditorButton tooltip="Render a new still and pick its model" onClick={regenerate}>
+  New still
+</EditorButton>
+<Tooltip title="Previous match" shortcut={["Shift", "Enter"]} describeChild>
+  <button type="button" aria-label="Previous match" onClick={previous} />
+</Tooltip>
+```
+
+| Part | Rule |
+|---|---|
+| Delay | `TOOLTIP_ENTER_DELAY` (500ms) to open and `TOOLTIP_ENTER_NEXT_DELAY` (100ms) when another tooltip just closed. The theme sets both on every MUI Tooltip, so pass no delay. A long description that would get in the way of a pointer passing over passes `TOOLTIP_DESCRIPTION_DELAY` (1s) |
+| Surface | The theme's: scrim background, 1px `divider` frame, `TYPOGRAPHY.sans.label`, 300px wide at most, no arrow. Do not restyle it through `slotProps`. A rich preview (an image card under a mention chip) may clear the padding and background |
+| Text | Sentence case, no closing period: "Reload schema", "Toggle panel". A verb for an action, a noun for a value |
+| Shortcut | Pass `shortcut` and the tooltip draws the keys as a `ShortcutHint` below the title. Do not write "(Ctrl+Z)", "\| Esc" or "(X)" into the text |
+| Native `title` | Not on a button or other control. A native title ignores the delay and the theme and never shows on keyboard focus. Use `tooltip` on `EditorButton` or wrap the element in `Tooltip` |
+| Label or description | An icon-only button takes its name from its `aria-label` or the tooltip. A button with a visible label passes `describeChild` (built into `EditorButton tooltip`), so the tooltip describes the button instead of renaming it |
+| Disabled | A disabled button shows no tooltip unless it sits in a wrapper. `EditorButton tooltip` adds the wrapper. Say why the button is disabled when the reason is not obvious |
+| One per control | Never nest a `Tooltip` around a primitive that already has `tooltip` or `title` |
+
+---
+
+## 15. Migration Checklist
 
 When editing any UI file, scan for these violations and fix them in the same PR.
 
@@ -1028,6 +1064,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 | `boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)"` | `SHADOW(theme).lg` |
 | Raw `#hex` / `rgb()` color in sx | `theme.vars.palette.*` token |
 | `<Typography>` | `<Text>`, `<Label>`, or `<Caption>` |
+| `title=` on a button, `delay={...}` on a tooltip, "(Ctrl+Z)" in tooltip text | `tooltip` / `Tooltip` with `shortcut` and the default delay |
 | `display: "flex"` in sx | `<FlexRow>` or `<FlexColumn>` |
 | `overflow: "auto"` container | `<ScrollArea>` |
 | `textOverflow: "ellipsis"` | `<TruncatedText>` |
@@ -1035,7 +1072,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 15. Adding New Tokens
+## 16. Adding New Tokens
 
 1. **Spacing**: Only add a new `SPACING.*` step if the existing nine steps genuinely cannot express the design intent. Justify in the PR. Update `spacing.ts`.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
@@ -1047,7 +1084,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 
 ---
 
-## 16. Design Decisions and Tradeoffs
+## 17. Design Decisions and Tradeoffs
 
 Documented rationale for choices that differ from common defaults.
 

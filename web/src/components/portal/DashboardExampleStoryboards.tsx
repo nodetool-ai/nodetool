@@ -16,7 +16,8 @@ import {
   SPACING,
   TYPOGRAPHY,
   getSpacingPx,
-  selectableTileStyles
+  selectableTileStyles,
+  Tooltip
 } from "../ui_primitives";
 import { DashboardSectionHeader, useSectionWrap } from "./dashboardChrome";
 
@@ -107,41 +108,42 @@ const StoryboardCard = memo(function StoryboardCard({
 }: StoryboardCardProps) {
   const stills = storyboard.stillUrls;
   return (
-    <button
-      type="button"
-      className={installing ? "board-card installing" : "board-card"}
-      aria-busy={installing}
-      title={`Add ${storyboard.name} to your storyboards`}
-      onClick={() => onInstall(storyboard)}
-    >
-      <span className="board-hero" aria-hidden>
-        {installing ? (
-          <LoadingSpinner size="medium" />
-        ) : storyboard.thumbnailUrl ? (
-          <img src={imageSrc(storyboard.thumbnailUrl)} alt="" loading="lazy" />
-        ) : (
-          <AutoStoriesOutlinedIcon />
+    <Tooltip title={`Add ${storyboard.name} to your storyboards`} describeChild>
+      <button
+        type="button"
+        className={installing ? "board-card installing" : "board-card"}
+        aria-busy={installing}
+        onClick={() => onInstall(storyboard)}
+      >
+        <span className="board-hero" aria-hidden>
+          {installing ? (
+            <LoadingSpinner size="medium" />
+          ) : storyboard.thumbnailUrl ? (
+            <img src={imageSrc(storyboard.thumbnailUrl)} alt="" loading="lazy" />
+          ) : (
+            <AutoStoriesOutlinedIcon />
+          )}
+        </span>
+        {stills.length > 1 && (
+          <span
+            className="board-stills"
+            css={{ gridTemplateColumns: `repeat(${Math.min(stills.length - 1, 3)}, minmax(0, 1fr))` }}
+            aria-hidden
+          >
+            {stills.slice(1, 4).map((url) => (
+              <img key={url} src={imageSrc(url)} alt="" loading="lazy" />
+            ))}
+          </span>
         )}
-      </span>
-      {stills.length > 1 && (
-        <span
-          className="board-stills"
-          css={{ gridTemplateColumns: `repeat(${Math.min(stills.length - 1, 3)}, minmax(0, 1fr))` }}
-          aria-hidden
-        >
-          {stills.slice(1, 4).map((url) => (
-            <img key={url} src={imageSrc(url)} alt="" loading="lazy" />
-          ))}
+        <span className="board-body">
+          <span className="board-name">{storyboard.name}</span>
+          <span className="board-description">{storyboard.description}</span>
+          <span className="board-meta">
+            {storyboard.shotCount} shot{storyboard.shotCount === 1 ? "" : "s"} · Stills included
+          </span>
         </span>
-      )}
-      <span className="board-body">
-        <span className="board-name">{storyboard.name}</span>
-        <span className="board-description">{storyboard.description}</span>
-        <span className="board-meta">
-          {storyboard.shotCount} shot{storyboard.shotCount === 1 ? "" : "s"} · Stills included
-        </span>
-      </span>
-    </button>
+      </button>
+    </Tooltip>
   );
 });
 

@@ -175,19 +175,20 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
 
     return (
       <>
-        <button
-          type="button"
-          css={triggerStyles(theme, compact, open)}
-          onClick={(event) => setAnchorEl(open ? null : event.currentTarget)}
-          aria-label="Timeline view"
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          aria-controls={open ? "timeline-view-controls" : undefined}
-          title="Timeline view"
-        >
-          <ViewTimelineOutlinedIcon fontSize="small" />
-          {!compact && <span>View</span>}
-        </button>
+        <Tooltip title="Timeline view" describeChild>
+          <button
+            type="button"
+            css={triggerStyles(theme, compact, open)}
+            onClick={(event) => setAnchorEl(open ? null : event.currentTarget)}
+            aria-label="Timeline view"
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            aria-controls={open ? "timeline-view-controls" : undefined}
+          >
+            <ViewTimelineOutlinedIcon fontSize="small" />
+            {!compact && <span>View</span>}
+          </button>
+        </Tooltip>
         <Popover
           open={open}
           anchorEl={anchorEl}
@@ -250,7 +251,7 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
                   <AddIcon />
                 </button>
                 {onZoomToFit && (
-                  <Tooltip title="Zoom to fit (Shift+Z)">
+                  <Tooltip title="Zoom to fit" shortcut={["Shift", "Z"]}>
                     <button
                       type="button"
                       css={stepButtonStyles(theme)}

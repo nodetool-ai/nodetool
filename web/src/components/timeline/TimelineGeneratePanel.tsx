@@ -389,7 +389,7 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
       data-testid="topbar-generate"
       aria-label={`Generate ${mode}`}
       // Native tooltip still fires on a disabled button: say why it is off.
-      title={
+      tooltip={
         canSubmit ? undefined : "Type a prompt and pick a model to generate"
       }
       sx={{ flexShrink: 0 }}

@@ -30,7 +30,6 @@ import {
   Box
 } from "./ui_primitives";
 import useNodeMenuStore from "../stores/NodeMenuStore";
-import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import FalPricingFooter from "./node/FalPricingFooter";
 import KieCreditsFooter from "./node/KieCreditsFooter";
 import { isKieNodeMetadata } from "../utils/isKieNode";
@@ -806,7 +805,6 @@ const Inspector: React.FC = () => {
                       <Tooltip
                         title="Mixed values across the selected nodes"
                         placement="top-start"
-                        delay={200}
                       >
                         <span className="mixed-indicator">
                           <WarningAmberOutlinedIcon fontSize="small" />
@@ -881,7 +879,6 @@ const Inspector: React.FC = () => {
             {metadata.namespace ? (
               <div className="inspector-namespace">
                 <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
                   title="Browse this namespace in the node menu"
                   placement="bottom-start"
                 >

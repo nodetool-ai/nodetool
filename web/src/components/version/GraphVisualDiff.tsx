@@ -316,7 +316,6 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
                     </Caption>
                   </FlexColumn>
                 }
-                arrow
               >
                 <g>
                   <MiniNode

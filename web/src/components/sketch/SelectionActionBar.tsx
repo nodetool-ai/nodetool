@@ -42,7 +42,6 @@ import {
 } from "../ui_primitives";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../stores/ApiTypes";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { getRememberedModel } from "../../stores/lastModelStore";
@@ -415,7 +414,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         <FlexRow gap={0} sx={{ flexShrink: 0, mr: 0.5 }}>
           <Tooltip
             title="Edit — transform the whole frame from your prompt (image-to-image, no mask)."
-            delay={TOOLTIP_ENTER_DELAY}
             placement={placeAbove ? "top" : "bottom"}
           >
             <EditorButton
@@ -429,7 +427,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           </Tooltip>
           <Tooltip
             title="Inpaint — regenerate only the selected region, using the selection as a mask."
-            delay={TOOLTIP_ENTER_DELAY}
             placement={placeAbove ? "top" : "bottom"}
           >
             <EditorButton
@@ -489,7 +486,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               ? "Inpaint — regenerate the selected region using your prompt and the selection as a mask."
               : "Edit — transform the whole frame from your prompt."
           }
-          delay={TOOLTIP_ENTER_DELAY}
           placement={placeAbove ? "top" : "bottom"}
         >
           <span>
@@ -514,7 +510,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
 
         <Tooltip
           title="Remove — clear the selected pixels from the active layer."
-          delay={TOOLTIP_ENTER_DELAY}
           placement={placeAbove ? "top" : "bottom"}
         >
           <span>
@@ -537,7 +532,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         {mode === "inpaint" && (
           <Tooltip
             title="Refine mask — feather, smooth, grow / shrink, or border the selection used for inpainting."
-            delay={TOOLTIP_ENTER_DELAY}
             placement={placeAbove ? "top" : "bottom"}
           >
             <EditorButton
