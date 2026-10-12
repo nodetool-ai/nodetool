@@ -74,11 +74,12 @@ Two ways to touch a timeline document. Pick by what changed, not by habit.
 **Code, for a new cut.** In a JS script or a Code node, `import { video } from
 "@nodetool-ai/sandbox-timeline"`. Its `video()` builds a document of scenes
 (`v.scene(name, seconds, fn)`, local time in seconds), lays them out with
-`v.series([...])`, and `v.save(nodetool.timelines, {...})` writes the whole
-document in one call and returns `{timeline_id, errors, warnings}`. A cut
+`v.series([...])`, and `v.save(nodetool.timelines, {...})` validates, creates
+the timeline, writes the whole document and validates again. It throws on any
+validation error and returns `{timeline_id, warnings}` plus `code`. A cut
 with hundreds of keyframed clips costs a handful of API calls this way,
 instead of one `edit_timeline` op per clip. NodeTool's shipped example
-timelines (Cadence, Kite, Prism, Voltra, Tidewater, T minus 30) are built with it. Its
+timelines (Cadence, Kite, Prism, Serein, Voltra, Tidewater, T minus 30) are built with it. Its
 full signatures, options and gotchas are the pack's own skill — read
 `nodetool.packs.docs("@nodetool-ai/sandbox-timeline")` before writing scenes,
 not this file. `frame-composition` covers how to lay out what goes inside a
@@ -195,8 +196,10 @@ full pass plus one revision, not just the build.
    cannot target a shipped example — both its sides must be your own timeline
    (an id, version or document) — so use it after a revision to prove which
    frames actually changed, not to judge against a reference.
-4. **Validate at the showcase tier.** `validate_timeline(id, {tier:
-   "showcase"})` returns `errors` and `warnings` — there is no `issues` field.
+4. **Validate at the showcase tier.** `validate_timeline` with
+   `{"timeline_id": "<id>", "tier": "showcase"}` (in code,
+   `nodetool.timelines.validate(id, {tier: "showcase"})`) returns `errors`
+   and `warnings` — there is no `issues` field.
    Every `showcase_*` warning is a hard stop: resolve it, or state the
    specific artistic exclusion to the user before rendering. Expect
    `showcase_scene_groups_missing`, `showcase_custom_motion_missing`,

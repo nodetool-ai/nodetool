@@ -1,6 +1,6 @@
 ---
 name: nodetool-troubleshooter
-description: "Diagnose a failing NodeTool run on any surface: workflows, mini apps, timelines, sketches, scripts, storyboards, and stuck media generations. Use diagnosing-bugs for repository code defects."
+description: "Diagnose a failing NodeTool run on any surface: workflows, mini apps, timelines, sketches, scripts, storyboards, stuck media generations, provider keys and server auth errors."
 featured: true
 ---
 
@@ -47,7 +47,7 @@ and its own replay harness. Checking the wrong one wastes the run.
 |---|---|---|---|
 | A workflow graph | `validate_workflow` | `debug_workflow` | `nodetool-workflow-builder` |
 | A mini app: dead button, blank widget | `debug_app {run: false}` | `debug_app {interact}` | `nodetool-app-builder` |
-| A timeline: wrong length, missing clip, bad font | `validate_timeline` | `timeline debug` | `nodetool-video-post` |
+| A timeline: wrong length, missing clip, bad font | `validate_timeline` | `timeline debug` | `timeline-edit-ops` |
 | A sketch: empty layer, wrong blend | `validate_sketch` | `sketch debug` | `nodetool-sketch` |
 | A JS script or Code node | `validate_js_script`, `validate_code` | `run_js_script`, `test_js_script` | `nodetool-js-scripting` |
 | A 3D model | `validate_model3d` | `render_model3d` | `nodetool-3d-scene` |
@@ -59,9 +59,9 @@ workflow reports that the app is broken: debug the graph as a graph first.
 
 # CLI Debug Harnesses
 
-The `nodetool` CLI has purpose-built harnesses that beat manual poking. From a
-NodeTool checkout the same commands run as `npm run dev:nodetool -- <command>`.
-Escalate in cost order:
+These run in the user's shell. The in-product agent uses the tools in the table
+above instead. From a NodeTool checkout the same commands run as
+`npm run dev:nodetool -- <command>`. Escalate in cost order:
 
 ```bash
 # 1. Static check (<1s, no run, no DB for file targets): unknown node types,
@@ -113,14 +113,14 @@ nodetool --trace-file trace.jsonl run workflow.ts
 
 When a user reports a problem, work through this in order:
 
-- [ ] **Connections**: Are all required inputs connected?
-- [ ] **Types**: Do connected types match? (hover edges to check)
+- [ ] **Connections**: Are all required inputs connected? `validate_workflow` reports the missing ones
+- [ ] **Types**: Do connected types match? `validate_workflow` reports mis-typed edges
 - [ ] **Preview nodes**: Add Preview nodes at each stage to inspect data
 - [ ] **Error messages**: Read red node error text carefully
-- [ ] **Model availability**: Is the model downloaded/API key set?
+- [ ] **Model availability**: Is the model downloaded, and is its provider key set?
 - [ ] **File paths**: Do referenced files exist and have correct permissions?
-- [ ] **API keys**: Are provider keys configured? (`nodetool secrets store KEY`)
-- [ ] **Logs**: Check `~/.nodetool/logs/` or run with `NODETOOL_LOG_LEVEL=debug`
+- [ ] **API keys**: `list_secrets` shows which keys are configured
+- [ ] **Logs**: The desktop log file (§ Log Inspection), or a server started with `NODETOOL_LOG_LEVEL=debug`
 
 # Node Status Colors
 
@@ -140,8 +140,8 @@ When a user reports a problem, work through this in order:
 **Check**:
 1. Is a model downloading? (first run can be slow)
 2. Is there an infinite loop? (check for cycles in connections)
-3. Is a node waiting for all inputs? (check `sync_mode`)
-4. Is the server running? (`nodetool serve`)
+3. Is a node waiting on an input whose upstream never emits?
+4. Is the server running? (`nodetool serve` in the user's shell)
 5. Network timeout on API call?
 
 **Fix**: Add Preview nodes before stuck node. Check server logs. Kill and restart if needed.
@@ -152,7 +152,7 @@ When a user reports a problem, work through this in order:
 
 **Fix**:
 - Hover over the edge to see source/target types
-- Use conversion nodes (e.g., `nodetool.text.ToString`, `nodetool.data.ToDataframe`)
+- Insert a conversion node (`search_nodes` finds one for the type pair), or a `nodetool.code.Code` node for anything else
 - Check `metadataOutputTypes` of source node matches expected input type
 
 ## Empty / Null Output
@@ -240,21 +240,20 @@ an animation does not play.
 2. Does the embedding model match between indexing and search?
 3. Test search directly with a simple query
 4. Review chunking — very small or very large chunks reduce quality
-5. For the Chroma backend, check `CHROMA_PATH` / `CHROMA_URL` (SQLite-vec, the default, needs no config)
 
 ## API Key Errors
 
 **Symptoms**: 401, 403, "API key invalid", "authentication failed"
 
-**Fix**:
-```bash
-# Store key
-nodetool secrets store OPENAI_API_KEY
-# Or via environment
-export OPENAI_API_KEY=sk-...
-```
+**Fix**: call `list_secrets` to see which keys are set, then `request_secret`
+with the missing name. It opens a dialog where the user types the value, so
+never ask for a key in chat. From a shell, the user can run
+`nodetool secrets store OPENAI_API_KEY` or export the variable instead.
 
 **Provider key names**: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `HF_TOKEN`, `FAL_API_KEY`
+
+A `401` from the NodeTool server itself, not from a provider, is server auth
+(§ Server Returns 401).
 
 ## Model Not Found
 
@@ -263,7 +262,7 @@ export OPENAI_API_KEY=sk-...
 **Check**:
 1. For local models: Is the model downloaded? (Models → Model Manager)
 2. For Ollama: Is Ollama running? (`ollama list`)
-3. For cloud: Is the model ID correct? (check provider docs)
+3. For cloud: Is the model ID real? Take ids from `find_model` or `list_provider_models`, never from memory
 4. For HuggingFace gated models: Accept terms on HF Hub
 
 ## Memory Issues
@@ -277,14 +276,36 @@ export OPENAI_API_KEY=sk-...
 - Use smaller model variants
 - For Docker: increase `--memory` limit
 
+## Server Returns 401
+
+**Symptoms**: The UI loads but API or WebSocket calls fail with `401`, or a
+client gets "Remote access requires authentication".
+
+The server picks its auth mode from `SUPABASE_URL` and `SUPABASE_KEY` alone. It
+reads neither `AUTH_PROVIDER` nor `NODETOOL_SERVER_MODE`.
+
+| Mode | Enabled by | Accepted credentials |
+|------|------------|----------------------|
+| Local | Default, with the Supabase variables unset | Loopback connections run as user `"1"` with no token. `NODETOOL_TRUST_LOCALHOST=false` turns that off. Sources in `NODETOOL_TRUST_LOCAL_NETWORKS` (comma-separated CIDRs) also run as user `"1"` with no token. A bearer equal to `SERVER_AUTH_TOKEN` runs as user `"1"`. A token minted by `nodetool deploy users-add` runs as that API user. Anything else gets `401`. |
+| Supabase | `SUPABASE_URL` and `SUPABASE_KEY` both set | Every non-public request needs a valid Supabase JWT. `SERVER_AUTH_TOKEN`, `NODETOOL_TRUST_LOCAL_NETWORKS` and API-user tokens are ignored. Loopback is trusted only with `NODETOOL_TRUST_LOCALHOST=true`. |
+
+In both modes, an access token (`ntk_…`) created in **Settings → MCP → Connect
+an agent remotely** authenticates as the person who created it. Send any token
+as `Authorization: Bearer <token>`. A WebSocket client that cannot set headers
+passes `?api_key=<token>` on the `/ws` URL.
+
+In Docker, the published port arrives from the bridge gateway, not loopback, so
+Local mode refuses it until that range is in `NODETOOL_TRUST_LOCAL_NETWORKS` or
+the client sends a token. Setup steps are in `nodetool-deployment`.
+
 ## Deployment Failures
 
 **Symptoms**: Deploy command fails, server won't start
 
-**Check**:
-1. `deployment.yaml` syntax (valid YAML?)
-2. All required env vars set? (`NODETOOL_ENV`, `AUTH_PROVIDER`, `SECRETS_MASTER_KEY`)
-3. Docker running? (`docker ps`)
+**Check** (the user runs these in their shell):
+1. `nodetool deploy show <name>` parses `deployment.yaml` without a remote call
+2. `nodetool deploy plan <name>` before `apply`
+3. Docker running on the host? (`docker ps`)
 4. Port already in use? (`lsof -i :7777`)
 5. Volume mount paths exist?
 6. SSH key permissions correct? (600)
@@ -298,16 +319,13 @@ Input → Preview(1) → Transform → Preview(2) → LLM → Preview(3) → Out
 Add Preview nodes at each stage to isolate where data breaks.
 
 ## Log Inspection
-```bash
-# Desktop app logs
-ls ~/.nodetool/logs/
 
-# CLI verbose mode (logging is controlled by an env var, not a serve flag)
-NODETOOL_LOG_LEVEL=debug nodetool serve
+The desktop app writes `nodetool.log` to `~/.local/share/nodetool/logs/` on
+macOS and Linux, and to `%LOCALAPPDATA%\nodetool\logs\` on Windows.
 
-# Browser DevTools
-# View → Developer Tools → Console tab
-```
+In the user's shell, `NODETOOL_LOG_LEVEL=debug nodetool serve` starts a server
+with verbose logs. Logging is set by that env var, not a `serve` flag. Browser
+errors are in the DevTools console (View → Developer Tools).
 
 ## JSON Export
 Export workflow as JSON (`File → Export`) to inspect:
@@ -316,6 +334,9 @@ Export workflow as JSON (`File → Export`) to inspect:
 - Node `type` strings for correctness
 
 ## Network Debugging
+
+In the user's shell:
+
 ```bash
 # Check server health
 curl http://localhost:7777/health
@@ -337,7 +358,7 @@ wscat -c ws://localhost:7777/ws
 | Repeated computations | Cache results, avoid redundant nodes |
 | Model loading time | Keep models in memory (server mode), pre-download |
 | High memory usage | Right-size models, use quantized variants |
-| Slow vector search | Optimize chunk size (200-500 tokens), use FAISS for speed |
+| Slow vector search | Optimize chunk size (200-500 tokens) |
 
 # Error Recovery Patterns
 

@@ -6,9 +6,9 @@ featured: true
 
 # Caption & Titles → Timeline Agent
 
-Work directly with timeline capabilities and open-timeline tools. Do not build a workflow, fabricate a cut, or render video.
+Work directly with timeline capabilities and open-timeline tools. Do not build a workflow or fabricate a cut.
 
-`motion-graphics` carries the op contract for every call named here. `motion-principles` gives the entry and exit durations and easing behind each tier's presets, `frame-composition` fixes the safe inset and where a tier sits, `color-motion` the scrim and contrast fixes when type does not read, and `logo-reveal` owns the brand mark at the head or tail.
+`timeline-edit-ops` carries the op contract for every call named here. `motion-principles` gives the entry and exit durations and easing behind each tier's presets, `frame-composition` fixes the safe inset and where a tier sits, `color-motion` the scrim and contrast fixes when type does not read, and `logo-reveal` owns the brand mark at the head or tail.
 
 ## Type is post, never a render prompt
 
@@ -16,7 +16,7 @@ Every board skill and every video prompting skill sends its on-screen copy here.
 
 ## Hard gate
 
-List and read the selected timeline first. It must contain picture clips. If it is missing or empty, stop and ask for a real cut; route users to storyboard or script-to-timeline work instead. Snapshot the timeline before editing with `create_timeline_version`.
+List and read the selected timeline first. When the job is to caption or title footage, the timeline must contain picture clips. If it is missing or has none, stop and ask for a real cut; route users to storyboard or script-to-timeline work instead. A typographic piece built from type and shapes alone, such as a title sequence, kinetic text or a standalone end card, needs no picture clips: build it through `motion-graphics` and use the tiers below for its type. Snapshot the timeline before editing with `create_timeline_version`.
 
 Read `fps`, `width` and `height` off `get_timeline` before setting a size: `fontSizePx` is authored against the sequence resolution, and the tiers below are fractions of `height`.
 
@@ -44,7 +44,7 @@ Every live-picture T2–T4 element gets a matching scrim unless the plate is dem
 
 ## Caption map
 
-Write the timed map before editing: tier, exact text, start/end, position, and scrim. Caption duration is at least `max(1200ms, words × 350ms)`. Titles/end cards hold at least 2000ms. Lower-thirds arrive about 500ms after a person appears and hold 2500–4000ms. One text idea per frame. Unknown facts use `[INPUT NEEDED: …]`.
+Write the timed map before editing: tier, exact text, start/end, position, and scrim. Caption duration is at least `max(1200ms, words × 350ms)`. Titles/end cards stay on screen at least 2000ms, which leaves the read hold `motion-principles` § Holds sets between their in and out. Lower-thirds arrive about 500ms after a person appears and hold 2500–4000ms. One text idea per frame. Unknown facts use `[INPUT NEEDED: …]`.
 
 ## Animate the letters and their content
 
@@ -82,7 +82,7 @@ curves, but does not accept `textAnimator` or `styleTracks`; those fields are
 dropped from that call. To author them, read the current document and use
 `set_timeline_document` with the animation fields in the clip. That call
 validates the complete document and snapshots the previous state. Preserve
-the other tracks and clips from the document. `motion-graphics` owns the full
+the other tracks and clips from the document. `timeline-edit-ops` owns the full
 tool contract.
 
 ## Build and verify
@@ -91,4 +91,4 @@ Add separate overlay and subtitle tracks. For each map item, add scrim before te
 
 Two facts about stacking decide whether the text is seen at all. The lowest track `index` draws on top, so the scrim's track index sits between the picture's and the text's — picture, scrim, text, in descending index. And word-level captions generated from a voiceover clip composite above every real track regardless of where that clip sits, so no title can cover them: time a T1 around the narration rather than over it.
 
-Verify in two passes, and they answer different questions. `validate_timeline` reads the document: `text_illegible` (size, or under 3:1 contrast against the text's own `background` plate or a full-frame shape behind it), `font_not_portable`, `stagger_compressed`, `animation_exceeds_clip`, overlaps, and clips shorter than a frame. Its contrast check refuses to guess — a translucent scrim, gradient type or a plate it cannot prove is behind the text produces no finding — so a silent pass is not a pass. Then `preview_timeline_frame` at each item's entry midpoint, a held moment, and its exit: that is where text over a busy plate, a scrim covering a face, or a caption still finishing when its clip ends shows up. Re-read the map against the frames: timing, reading floors, scrim ordering, one CTA at the end. Stop after authoring the text layer unless rendering is requested.
+Verify in two passes, and they answer different questions. `validate_timeline` reads the document: `text_illegible` (size, or under 3:1 contrast against the text's own `background` plate or a full-frame shape behind it), `font_not_portable`, `stagger_compressed`, `animation_exceeds_clip`, overlaps, and clips shorter than a frame. Its contrast check refuses to guess — a translucent scrim, gradient type or a plate it cannot prove is behind the text produces no finding — so a silent pass is not a pass. Then `preview_timeline_frame` at each item's entry midpoint, a held moment, and its exit: that is where text over a busy plate, a scrim covering a face, or a caption still finishing when its clip ends shows up. Re-read the map against the frames: timing, reading floors, scrim ordering, one CTA at the end. Then render with `render_timeline` before calling the layer done, as `timeline-edit-ops` § The render loop describes: the frames show one timecode, the render shows the timing at speed.

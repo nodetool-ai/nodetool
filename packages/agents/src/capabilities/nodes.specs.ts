@@ -108,7 +108,7 @@ export const getNodeInfoSpec: CapabilitySpec = {
   name: "get_node_info",
   description:
     "Get detailed metadata for a node type including all inputs, outputs, types, and defaults. " +
-    "Use this before add_node to verify exact property names and types.",
+    "Use this before adding a node to a graph (ui_add_node, create_workflow or update_workflow) to verify exact property names and types.",
   inputSchema: GET_NODE_INFO_INPUT_SCHEMA,
   category: "read",
   userMessage: (params) => `Getting info for node type ${params["node_type"]}`

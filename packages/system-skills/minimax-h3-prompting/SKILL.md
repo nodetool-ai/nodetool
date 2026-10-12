@@ -1,6 +1,6 @@
 ---
 name: minimax-h3-prompting
-description: Prompt MiniMax H3 — choosing between its text-to-video, first-and-last-frame and reference-to-video endpoints, assigning an explicit job to every reference image, clip and audio file, writing a timecoded shot list inside the prompt, art-directing the native stereo audio, and naming a change and its constraint together when editing a clip. Use whenever the model id starts with minimax/h3 (minimax/h3/text-to-video, minimax/h3/image-to-video, minimax/h3/reference-to-video, their /lora variants, minimax/h3-max/* and minimax/h3-max-turbo/*) on generate_video, animate_image or a TextToVideo node. Not for MiniMax Hailuo.
+description: Prompt MiniMax H3 — choosing between its text-to-video, first-and-last-frame and reference-to-video endpoints, assigning an explicit job to every reference image, clip and audio file, writing a timecoded shot list inside the prompt, art-directing the native stereo audio, and naming a change and its constraint together when editing a clip. Use whenever the model id names MiniMax H3 (minimax/h3/text-to-video, minimax/h3/image-to-video, minimax/h3/reference-to-video, their /lora variants, minimax/h3-max/*, minimax/h3-max-turbo/*, AtlasCloud's minimax/h3-fast and minimax/h3-developer, kie's minimax-h3/*) on generate_video, animate_image, generate_video_from_references or a TextToVideo node. Not for MiniMax Hailuo.
 ---
 
 # MiniMax H3 → one context, many references
@@ -9,12 +9,28 @@ H3 is a general-purpose multimodal video model rather than a set of task
 models. Text, images, video and audio all enter one context, so a single
 request can carry a character's identity from a photo, camera language and
 cutting rhythm from a clip, and a voice from a recording, and resolve them into
-one shot with native stereo audio. Output runs 5 to 15 seconds at 24 fps in 2K,
-and prompts run up to 7,000 characters — a full shot list with sound design
-fits in one request.
+one shot with native stereo audio. Base H3 runs 5 to 15 seconds in 2K on fal
+(4 to 15 on kie and AtlasCloud), with prompts up to 7,000 characters — a full
+shot list with sound design fits in one request. H3-Max and H3-Max-Turbo
+default to 768P and take prompts up to 50,000 characters.
 
-Reach it with `find_model` for `text_to_video` or `image_to_video`, then
-`generate_video` / `animate_image`.
+Reach text-to-video and image-to-video with `find_model` for `text_to_video`
+or `image_to_video`, then `generate_video` / `animate_image`. Reach
+reference-to-video with `find_model` for `reference_to_video`, then
+`generate_video_from_references`. Those forward the prompt, the media, the
+duration, the aspect ratio and the resolution. `generate_video_from_references`
+carries reference images and videos but no audio files, `animate_image` sends
+one image and no end frame, and none of them sets prompt expansion. Audio
+references, an end frame and the expansion switch exist only on the route's
+own node: find it with `search_nodes`, read its fields with `get_node_info`,
+and run it with `run_node`. Each run is a paid generation, so confirm the
+scope with the user before rendering several.
+
+**Turn prompt expansion off for a precise brief.** H3-Max, H3-Max-Turbo and
+the fal `/lora` routes set `prompt_expansion_mode` to `balanced` by default,
+and fal's `extend-video` and `insert-video` set `enable_prompt_expansion` true.
+An LLM then rewrites the prompt before generation, which can undo a timecoded
+shot list. AtlasCloud's `prompt_expansion` defaults to false.
 
 A timecoded shot list in one request is also what keeps the native audio
 continuous across the cuts — `video-audio-continuity` for when to fit a whole
@@ -28,12 +44,13 @@ The rule is mechanical:
   describe, and for letting the model invent the look rather than match one.
   Distinct hand-drawn styles carry surprisingly far on prompt alone.
 - **An image that is literally the first or last frame** → first and last
-  frame. One image for the opening, or two for opening and closing, with H3
-  generating the motion between. This is the one for animating a static poster,
+  frame, the image-to-video route. One image for the opening, or two for
+  opening and closing (`end_image_url` on fal, `end_image` on AtlasCloud),
+  with H3 generating the motion between. This is the one for animating a static poster,
   a UI mockup or key art. Output follows the uploaded image's aspect ratio.
 - **Anything you are treating as a reference** → reference to video. Up to 9
   images, 3 video clips of 2 to 15 seconds, and 3 audio clips, 12 files
-  maximum. Identity locking, motion and camera transfer, style matching, voice
+  maximum. Audio clips go in through the route's own node. Identity locking, motion and camera transfer, style matching, voice
   cloning, and editing an existing clip all live here. Default to it whenever
   you have an asset in hand.
 
@@ -59,8 +76,9 @@ burn, subtle room air, clothing movement, controlled breathing". For music,
 describe instrumentation and structure over time, including where the beat
 lands.
 
-**4. State what you do not want.** Negative direction is unusually effective
-and rewards being specific. "No soft dissolves or fluid morphs." "Do not
+**4. State what you do not want.** No H3 route has a `negative_prompt` field,
+so negative direction is prompt text. fal's guide calls it unusually effective
+when specific. "No soft dissolves or fluid morphs." "Do not
 introduce garbled characters or misspellings." "No tearing, black frames,
 obvious VFX, or compositing seams." These keep a stylized prompt from sliding
 into a neighbouring genre.
@@ -97,6 +115,11 @@ covers brand films and trailers, title sequences and motion-graphics collage,
 vertical short drama, product and e-commerce spots, game and web UI motion,
 character and motion transfer, voice cloning, and green-screen replacement — all
 from the same model.
+
+H3-Max also has single-purpose routes (`3d-to-video`, `camera-controls`,
+`multi-angle`, `insert-video`, `extend-video`, `lip-sync`, `styles/*`) with
+their own fields and defaults. This guide does not cover them, so read the
+route with `get_node_info` before using one.
 
 Two shapes worth stealing. For a title sequence: name the design language, the
 transition vocabulary, the credit typography rules ("each role and each name

@@ -1,7 +1,6 @@
 ---
 name: beat-sync-editing
 description: Cut a NodeTool timeline to music and shape its pacing — detect the beat grid, place cuts on phrases, pick a cut type, build speed ramps with time remap, and give the piece an arc. Use when clips should land on the music, when pacing drags or feels choppy, when a hit needs impact, or when transitions feel arbitrary. Not for what each shot contains.
-featured: true
 ---
 
 # Beat-Sync Editing → cuts, rhythm and retiming
@@ -10,7 +9,7 @@ Where a cut lands matters as much as what is on screen. This turns a track and a
 brief into millisecond cut points on the timeline.
 
 `motion-direction` sets the energy; this turns it into a grid and an arc.
-`motion-graphics` carries the op contract for the calls named here.
+`timeline-edit-ops` carries the op contract for the calls named here.
 `video-audio-continuity` decides where the bed comes from before there is a
 grid to read: a track you add yourself, or one generated clip carrying every
 scene.
@@ -47,12 +46,14 @@ At 120 BPM: 500ms a beat, 15 frames at 30fps, a 2000ms bar. Round each
 Lay the grid down so you can see it, then pull edges onto it:
 
 ```json
-{"op": "set_markers_from_beats", "onsets_ms": [0, 500, 1000], "count": 32}
+{"op": "set_markers_from_beats", "bpm": 120, "offset_ms": 0, "count": 32}
 {"op": "snap_to_beats", "targets": "all", "tolerance_ms": 60,
  "mode": "start", "action": "move"}
 ```
 
-Either takes `onsets_ms`, or a `bpm` with an `offset_ms`. The 60ms default
+Either takes `onsets_ms`, or a `bpm` with an `offset_ms`. With `bpm`,
+`set_markers_from_beats` also needs `count`, the number of beats to mark. An
+`onsets_ms` grid lays one marker per onset and ignores `count`. The 60ms default
 tolerance is about two frames at 30fps — close enough to read as on the beat,
 tight enough not to drag an edge onto a beat it was never near. `snap_to_beats`
 reports every target including the ones nothing was in reach of, with the reason.
@@ -148,7 +149,7 @@ clip whose impact sits at 1200ms:
   {"t": 1, "sourceMs": 2400}]}}
 ```
 
-Between 0.5 and 0.6 the source advances 100ms across 200ms of timeline: quarter
+Between 0.5 and 0.6 the source advances 100ms across 200ms of timeline: half
 speed on the hit. `t` that repeats or goes backwards is
 `time_remap_not_monotonic`, an error. `split_clip` and `trim_clip` refuse a
 remapped clip, because re-deriving the curve silently is how a ramp becomes a

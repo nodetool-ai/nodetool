@@ -1,7 +1,6 @@
 ---
 name: frame-composition
 description: Stage the frame on a NodeTool timeline — grids, focal placement, safe areas per aspect ratio, depth layers and parallax, camera moves, and where elements enter and leave. Use when placing titles, lower thirds, shapes or overlays, when a layout must survive 16:9 and 9:16, when adding a push or a parallax move, or when a frame reads flat or cramped. Not for what a clip says or when it cuts.
-featured: true
 ---
 
 # Frame Composition → staging on the timeline
@@ -10,7 +9,7 @@ Where things sit, how deep the frame is, and how the camera moves through it.
 `motion-graphics` is the build loop; `timeline-edit-ops` carries the op
 contract. This decides the coordinates you pass either.
 
-## Four coordinate spaces, and mixing them is the usual bug
+## Coordinate spaces, and mixing them is the usual bug
 
 | What | Space | Read as |
 |---|---|---|
@@ -140,7 +139,8 @@ changes its overlap order but not its camera distance.
 
 For flat parallax, run three speeds over one window. One `kenBurns` per layer
 with `zoom: 0` and a different drift is a `fullClip` preset, so all three
-cover the same span:
+cover the same span. Put the three on clips of the same length: the drift is
+spread over the clip, so its speed scales with clip length:
 
 ```json
 {"role": "loop", "preset": "kenBurns",

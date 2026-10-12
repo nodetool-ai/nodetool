@@ -16,7 +16,7 @@ layers to keep is `nodetool.media.generateImage`, not a sketch.
 | `create(name, {width, height, background_color, project_id, id})` | Creates a blank canvas. The defaults are 1024×1024 on `#ffffff`. An existing `id` you own is returned instead of a copy. | `{image_document_id, …}` |
 | `get(id)` | Reads the document: canvas, background, layers, bindings. Layer bitmaps stay opaque. | The document |
 | `edit(id, ops)` | Applies layer ops in order and saves. An open editor picks the change up live. | The result of each op |
-| `validate(idOrDocument)` | Checks the structure without a render. | `{ok, issues}` |
+| `validate(idOrDocument, {width, height, background_color})` | Checks the structure without a render. For an inline document, pass the canvas it is stored against so a mismatch is reported. | `{ok, issues}` |
 | `versions(id, {save_type, limit})`, `getVersion(id, n)` | Lists and reads whole-document snapshots. | Version rows, newest first |
 | `snapshot(id, {name})` | Saves a manual version. | The version number |
 | `restore(id, n)` | Rolls back. The state it replaces is snapshotted first. | The findings of the validation after the restore |

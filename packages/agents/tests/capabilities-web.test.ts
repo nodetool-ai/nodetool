@@ -9,6 +9,9 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { readFileSync as readSourceSync } from "node:fs";
+import { fileURLToPath as toSourcePath } from "node:url";
+import { capabilitySpec } from "../src/capabilities/index.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
 import { createCapabilityRun } from "../src/capabilities/invoke.js";
@@ -308,5 +311,19 @@ describe("behaviour through toolFromCapability", () => {
     await expect(
       tool.process(context, { query: "otters", search_type: "web" })
     ).rejects.toThrow(/no search backend is configured for search_type "images"/);
+  });
+});
+
+describe("spec text the shipped skills rely on", () => {
+  it("the browser tool sends search pages to web_search", async () => {
+    const spec = capabilitySpec("browser");
+    expect(spec?.description).toContain("`web_search`");
+    expect(spec?.description).not.toContain("google_search");
+    expect(capabilitySpec("google_search")).toBeUndefined();
+    const web = readSourceSync(
+      toSourcePath(new URL("../src/capabilities/web.ts", import.meta.url)),
+      "utf8"
+    );
+    expect(web).not.toContain("google_search");
   });
 });

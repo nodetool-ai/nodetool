@@ -1425,7 +1425,7 @@ type BoardOpName = (typeof BOARD_OPS)[number];
  *
  * The browser tool that casts entities is `ui_storyboard_set_entities`, so a
  * script written against it calls `{op: "set_entities", entity_ids: [...]}`
- * here and was refused — the rejection listed the five real ops without
+ * here and was refused — the rejection listed the real ops without
  * saying which one takes `entity_ids`, and the caller had to go read the tool
  * catalogue mid-task. The alias resolves to the op that already does the work.
  */

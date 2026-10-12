@@ -627,6 +627,10 @@ export interface SaveOptions {
   ops?: unknown[];
 }
 
+/**
+ * What `v.save` resolves with. A validation error throws instead, so `errors`
+ * is always empty here; `warnings` carries the final validation's warnings.
+ */
 export interface SaveResult {
   timeline_id: string;
   fps: number;
@@ -635,6 +639,11 @@ export interface SaveResult {
   durationMs: number;
   errors: unknown[];
   warnings: unknown[];
+  /**
+   * Set when the script was captured for code embedding: whether the program
+   * was embedded on the timeline, and why not when it was not.
+   */
+  code?: { embedded: boolean; warnings: string[] };
 }
 
 /** `v.midi`'s `[beat, pitch, lenBeats?, velocity?]` tuples — musical time, not seconds. */
@@ -657,6 +666,11 @@ export interface VideoBuilder {
   midi(trackId: string, notes: readonly MidiNoteTuple[], o?: MidiOptions): Clip;
   beats(o: BeatsOptions): unknown[];
   document(fields: { camera2d?: unknown; trackFolders?: unknown; tempo?: unknown }): VideoBuilder;
+  /**
+   * Create (or write to `timeline_id`), apply `ops`, validate, and resolve
+   * with the saved timeline. Throws, naming the timeline id once one exists,
+   * on any validation error or failed write.
+   */
   save(timelines: TimelinesBelt, o: SaveOptions): Promise<SaveResult>;
 }
 

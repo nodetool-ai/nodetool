@@ -1,6 +1,6 @@
 ---
 name: game-direction
-description: "Set the feel, level pacing, and art direction before building or revising a native game. Use for a new game, a showcase, a visual overhaul, or a game that plays correctly but feels flat."
+description: "Set the feel, level pacing, and art direction before building or revising a native game. Use for a new game, a showcase, a visual overhaul, or a game that plays correctly but feels flat. Pairs with native-game, which owns every tool and schema contract."
 ---
 
 # Direct a native game
@@ -23,9 +23,15 @@ the brief asks for a change. `native-game` owns the tool and schema contracts.
 | Proof route | Start scene, required targets, win signal, expected duration, and captures at the teaching beat and hardest section |
 
 For a small prototype, keep each row to one sentence and use only the layers
-and assets the brief needs. A showcase needs a visible depth plan and a finished
-art pass. Load `native-game` for the document fields and `list_example_games`
-and `get_example_game` for shipped references. Study Kindle for a platformer
+and assets the brief needs. The jump, coyote and layer rows assume a side-view
+platformer. For a top-down game (the 2D default), record movement speed,
+acceleration, braking and facing instead of jump rows, and replace the depth
+layers with ground, props, overhead decoration and lighting. For a 3D
+exploration game, record the controller speed, jump, follow-camera offset
+and pitch limits, and plan sky, lighting and landmarks instead of parallax layers.
+A showcase needs a visible depth plan and a finished art pass. Load
+`native-game` for the build loop, `native-game-reference` for the document
+fields, and `list_example_games` and `get_example_game` for shipped references. Study Kindle for a platformer
 with animated poses, terrain edges, parallax, lights, sound cues, and a grade.
 Use its decisions as a benchmark for the brief, without copying its theme.
 
@@ -33,7 +39,8 @@ Use its decisions as a benchmark for the brief, without copying its theme.
 
 Repeat the locked style string verbatim in every visual prompt. Add the asset's
 role, dimensions, framing, and transparency requirements after that string.
-Use one installed style reference when the selected model accepts references.
+Pass one installed style reference as `reference_slot` on `generate_game_asset`
+when the selected model accepts an input image.
 Changing the palette or edge treatment for one asset requires updating the
 spec and the related assets.
 
@@ -79,16 +86,14 @@ longest jump, moving platform timing, and respawn state individually.
 
 ## Finish and proof
 
-Use `autoplay_native_game` to obtain an executed input route and its observed
-win tick or target contacts. Replay its returned `route` with
-`playtest_native_game`, using the same seed. Autoplay supports standard
-direction actions and a jump action, and uses bounded steering. A stalled or
-budget-limited result does not prove a level impossible. For a custom scripted
-goal, supply `target_prefix` and separately assert the game's victory signal.
+Obtain the proof route with autoplay or a written route, replay it, and
+assert the win as `native-game` § Build and revise describes. For a custom
+scripted goal, assert the game's own victory signal, not only a target contact.
 
 Capture the start, a representative play section, the busiest frame, and the
-finish using the proof route. Inspect the images against the locked layer plan,
-silhouette contrast, terrain joins, foot alignment, HUD, lighting, and grade.
+finish using the proof route. Captures return image refs, so call
+`view_image` on each frame before judging it. Inspect the images against the
+locked layer plan, silhouette contrast, terrain joins, foot alignment, HUD, lighting, and grade.
 Schema validation proves structure. An executed route proves that route can
 reach its observed target. Visual quality requires inspecting the rendered
 frames. Report which of these checks passed and what remains unverified.

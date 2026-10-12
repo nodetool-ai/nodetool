@@ -1,7 +1,6 @@
 ---
 name: timeline-edit-ops
 description: Reference for editing a NodeTool timeline that already exists with edit_timeline ops — animate_clip roles and presets, the easing grammar, per-word/character stagger, set_clip_params limits, document-only fields (styleTracks, textAnimator, animationLinks, layout, camera2d, motionBlur, repeater), groups, transitions, masks and mattes, clip effects, time remap, compositions, beat-cutting ops, and validate_timeline's/preview_timeline_frame's full mechanics. Use for a few changes to a cut that already exists — retiming a clip, swapping a preset, nudging a stagger. For a new cut, or a scene with many clips, build it with the @nodetool-ai/sandbox-timeline pack instead; see motion-graphics.
-featured: true
 ---
 
 # Timeline edit ops → the `edit_timeline` reference
@@ -42,8 +41,8 @@ The `animate_clip` input accepts catalog presets or `custom` curves and code,
 plus `stagger` and a typewriter `caret`. It does **not** author `styleTracks`,
 `textAnimator`, or `beat`. `set_clip_params` does **not** author `layout`,
 `repeater`, `motionBlur`, `steppedTime`, `temporalEcho`, `animationLinks`, or
-`transform.depthPx`. Adding those keys to an op does not write those
-features. For those fields, read `get_timeline`'s `timeline` object, change
+`transform.depthPx`. `set_clip_params` refuses a call that names one of
+those keys, and `animate_clip` drops the fields it does not author. For those fields, read `get_timeline`'s `timeline` object, change
 the needed clip or sequence fields, and call `set_timeline_document` with a
 complete document assembled from it. Preserve tracks, clips, markers, tempo,
 setup, templateId, mediaTracks, transcript, scriptEnabled, and camera2d when
@@ -62,7 +61,7 @@ save.
 compositor turns the index into `z = 1000 - index`; `preview_timeline_frame`
 reports that `z_index` per layer and lists layers top of the stack first.
 
-Four track types, and the type is a role, not a restriction on what draws:
+Five track types, and the type is a role, not a restriction on what draws:
 
 | Type | Holds | Use for |
 |---|---|---|
@@ -70,6 +69,7 @@ Four track types, and the type is a role, not a restriction on what draws:
 | `overlay` | text and shape clips | titles, lower-thirds, scrims, callouts |
 | `audio` | sound | music, voiceover, effects — never drawn |
 | `subtitle` | text | burned-in captions |
+| `midi` | played notes | a synthesized part — never drawn |
 
 Rules that follow from the ordering:
 
@@ -116,7 +116,7 @@ Tracks are the z-order, so how they are made matters:
 ]
 ```
 
-`add_track` takes `type` (`video`, `audio`, `overlay`, `subtitle`) and an
+`add_track` takes `type` (`video`, `audio`, `overlay`, `subtitle`, `midi`) and an
 optional `name`, and **appends to the bottom** — the highest index, which draws
 last. A picture track added after the overlays therefore covers them. Add the
 overlays last, or move the picture down afterwards: `move_track` takes a
@@ -135,6 +135,7 @@ Four roles. A clip may carry several, one of each kind or more:
   means it finishes exactly as the clip ends. This is the one people get wrong.
 - **`emphasis`** — a beat mid-clip. `delayMs` from the clip's start.
 - **`loop`** — runs continuously; `durationMs` is one cycle, not the total.
+  `kenBurns` is the exception: it runs once across the whole clip and holds.
 
 ### The presets
 
@@ -162,15 +163,16 @@ whole text at once, with no caret.
 clip along the tangent, `startT`/`endT` pick a stretch of the path; writes
 `positionX`/`positionY`, so it replaces the clip's position).
 
-`loop` — `kenBurns` (3000ms; `zoom` 0–1 default 0.12, `direction` in/out,
-`driftX`/`driftY` −0.2–0.2), `float` (3000ms; `amplitude` 0–0.2, `frequency`
-cycles per period default 1, `seed` 0 = pure sine, else drift), `breathe`
-(3000ms; `intensity` 0–0.3), `rotate` (3000ms; `direction` cw/ccw),
+`loop` — `kenBurns` (`zoom` 0–1 default 0.12, `direction` in/out,
+`driftX`/`driftY` −0.2–0.2; one move over the whole clip, with `durationMs`,
+`delayMs` and `stagger` ignored, so the clip's length sets its speed),
+`float` (3000ms; `amplitude` 0–0.2, `frequency` cycles per period default 1,
+`seed` 0 = pure sine, else drift), `breathe` (3000ms; `intensity` 0–0.3), `rotate` (3000ms; `direction` cw/ccw),
 `hueShift` (3000ms; `direction` forward/reverse), `orbit` (3000ms; `degrees`
 default 360, `direction` cw/ccw) — which sweeps a 3D clip's camera and does
 nothing on any other clip.
 
-Named easing includes `linear`, `easeIn`, `easeOut`, `easeInOut`,
+Seventeen named easings: `linear`, `easeIn`, `easeOut`, `easeInOut`,
 `easeOutBack`, `easeOutElastic`, `easeOutBounce`, exponential, quintic, and
 circular variants (`easeOutExpo`, `easeInOutQuint`, `easeOutCirc`), and `hold`
 for a segment that keeps its prior keyframe value until the segment ends.
@@ -186,7 +188,7 @@ op like every other call here, not a tool of its own.
 
 ### Keyframes and the easing grammar
 
-`easing` takes more than the seven named ids. `cubic-bezier(x1,y1,x2,y2)` is
+`easing` takes more than the named ids. `cubic-bezier(x1,y1,x2,y2)` is
 the CSS curve: `cubic-bezier(0.16,1,0.3,1)` is the deceleration most entrances
 want. `spring(stiffness,damping,mass)` solves a real spring, so
 `spring(180,12,1)` settles with one small overshoot and `spring(180,26,1)` does
@@ -226,8 +228,8 @@ adds to the first or throws it away:
 
 | Fold | Channels | Result |
 |---|---|---|
-| add | `offsetX`, `offsetY`, `rotation`, `blur`, `brightness`, `hue`, `temperature`, `tint` | Values sum, so a shake and a slide both move the clip |
-| multiply | `scale`, `scaleX`, `scaleY`, `opacity`, `saturation`, `contrast` | Values multiply, so two half-opacity ramps give a quarter |
+| add | `offsetX`, `offsetY`, `rotation`, `rotationX`, `rotationY`, `blur`, `brightness`, `hue`, `temperature`, `tint`, `cameraAzimuth`, `cameraElevation`, `cameraFov` | Values sum, so a shake and a slide both move the clip |
+| multiply | `scale`, `scaleX`, `scaleY`, `opacity`, `saturation`, `contrast`, `cameraZoom` | Values multiply, so two half-opacity ramps give a quarter |
 | min | `wipeProgress` | The tightest wipe wins |
 | replace | `positionX`, `positionY`, `anchorX`, `anchorY`, `trimStart`, `trimEnd` | One value survives — the last animation in document order. The other is discarded |
 
@@ -246,8 +248,8 @@ title holds. What this contract adds is what the document refuses:
   after its `delayMs` is clamped or never runs, and `validate_timeline` says so
   as `animation_exceeds_clip`.
 - A `loop` on a clip shorter than one cycle shows a fragment of the motion.
-  `kenBurns` at its 3000ms default on a 2000ms clip is a slow drift that stops
-  halfway, not a Ken Burns move.
+  `kenBurns` is not cycled: it always spans the clip, so a short clip makes
+  its zoom and drift fast.
 
 ### Choosing motion that matches the cut
 
@@ -585,10 +587,11 @@ composition.
 1000. Read the tempo's `reliable` flag before building a grid from `bpm`:
 speech and room tone produce a confident-looking number from nothing.
 
-`{"op":"set_markers_from_beats","onsets_ms":[0,500,1000],"count":3}` lays the
-grid down so you can see it. `{"op": "snap_to_beats", "targets": "all",
+`{"op":"set_markers_from_beats","onsets_ms":[0,500,1000]}` lays the
+grid down so you can see it, one marker per onset. `{"op": "snap_to_beats", "targets": "all",
 "tolerance_ms": 60, "mode": "start", "action": "move"}` pulls clip edges onto
-it. Either takes `onsets_ms` or a `bpm` with an `offset_ms`.
+it. Either takes `onsets_ms`, or a `bpm` with an `offset_ms`; with `bpm`,
+`set_markers_from_beats` also needs `count`, which an `onsets_ms` grid ignores.
 
 The default 60ms tolerance is about two frames at 30fps: close enough that a
 cut reads as on the beat, tight enough that it will not drag an edge to a beat
@@ -617,6 +620,8 @@ not perform the motion you wrote:
 
 | Code | Severity | What to do about it |
 |---|---|---|
+| `unknown_animation_preset` | error | The stored `preset` is not one this build ships. Use an id from `list_animation_presets` |
+| `shape_path_invalid` | error | A `path` shape's `d` cannot be parsed, so the shape draws nothing. `add_shape_clip` stores the path unchecked, so this is where it surfaces. Fix the `d` |
 | `parent_cycle` | error | A `parentId` chain loops, so the group cannot be resolved at all. Break the loop |
 | `matte_source_missing` | error | The matte names a clip the document lacks, or itself. The layer draws unmatted, showing everything the matte was there to hide |
 | `time_remap_not_monotonic` | error | `t` repeats or goes backwards. `sourceMs` may descend — that is a reverse — but `t` may not |

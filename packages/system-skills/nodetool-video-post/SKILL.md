@@ -11,10 +11,11 @@ one clip of a **saved** timeline sequence, not on a storyboard shot and not on a
 loose asset.
 
 Directing a new piece belongs to `storyboard-core`
-and its job skills. Cutting, animating, transitions and titles belong to the
-`motion-graphics` system skill: load it with
-`load_skill {name: "motion-graphics"}` before the first `edit_timeline` call, as
-it carries the full op list, the presets and the preview contract.
+and its job skills. Cutting, animating, transitions and titles go through
+`edit_timeline`, whose op list, presets and preview contract live in
+`timeline-edit-ops`: load it with `load_skill {name: "timeline-edit-ops"}`
+before the first `edit_timeline` call. Building a new cut belongs to
+`motion-graphics`.
 
 ## Pick the operation
 
@@ -29,9 +30,15 @@ it carries the full op list, the presets and the preview contract.
 | The mouth does not match the new audio | `lip_sync` | An inactive video candidate |
 | A title or shape should move with the music | `bake_audio_animation` | A `custom` animation on the target clip |
 
-Every tool above except `bake_audio_animation` takes `provider` and `model` from
-`find_model`. There is no default: an unset model fails the call rather than
-spending on a model nobody chose.
+`isolate_subject` always runs FAL's BiRefNet video endpoint. It takes no
+`provider`, and its optional `model` is that endpoint's own enum (default
+`"General Use (Light)"`, `"Matting"` for hair, `"Portrait"` for people), not a
+`find_model` id. A clip with a current matte gets it back for free unless
+`regenerate: true`.
+
+Every other tool above except `bake_audio_animation` takes `provider` and
+`model` from `find_model`. There is no default: an unset model fails the call
+rather than spending on a model nobody chose.
 
 ## Nothing is applied until it is accepted
 

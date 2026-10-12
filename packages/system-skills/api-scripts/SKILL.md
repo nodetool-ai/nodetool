@@ -1,6 +1,6 @@
 ---
 name: api-scripts
-description: "Call nodetool.scripts from a code action: create a voice script, add speakers with voices and spoken lines, voice the lines as audio takes, and assemble the takes into a voiceover timeline with word timings. Load before the first call into nodetool.scripts."
+description: "Call nodetool.scripts from a code action: create a voice script (spoken lines, not JavaScript), add speakers with voices and spoken lines, voice the lines as audio takes, and assemble the takes into a voiceover timeline with word timings. Load before the first call into nodetool.scripts."
 ---
 
 # nodetool.scripts
@@ -51,7 +51,8 @@ refused.
 ## voice
 
 - Omit `targets` to voice every line that is unvoiced or stale. A whole script
-  is one call.
+  is one call. Each line is a paid TTS call plus a transcription call, so
+  confirm the scope with the user before you voice a long script.
 - `targets` takes line ids, indexes or exact texts.
 - Each line uses its own voice, else its speaker's. `provider`, `model` and
   `voice` together override every line. Pick the model with

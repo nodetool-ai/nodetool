@@ -160,7 +160,7 @@ export const browserSpec: CapabilitySpec = {
   description:
     "Fetches a web page and returns its readable text content (HTML " +
     "stripped). Returns plain text. Errors include a short reason. Search " +
-    "engine result pages are blocked — use `google_search` instead.",
+    "engine result pages are blocked — use `web_search` instead.",
   inputSchema: {
     type: "object",
     properties: {

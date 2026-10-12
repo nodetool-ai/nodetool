@@ -17,7 +17,7 @@ every session. Do not write one for a single job: do the job.
 | Lives in | A row in the user's account | `packages/system-skills/<name>/SKILL.md` in the build |
 | Written by | `create_skill`, `update_skill`, `delete_skill` | A file in a pull request |
 | Scope | That user | Every install, on day one, with no seeding migration |
-| Editable at runtime | Yes | No. Immutable, and the names are reserved so a user row cannot shadow one |
+| Editable at runtime | Yes | No. Immutable, and `create_skill`, `update_skill` and renames refuse a shipped name. A user row that already held the name before the skill shipped still shadows it |
 
 A repository skill under `.claude/skills/` is a third thing: it directs the
 coding agent working on the NodeTool repository, not the agent inside the
@@ -32,7 +32,7 @@ two drift; `npm run check:agents-docs` fails on one.
 
 ## The contract
 
-Both kinds are the same document.
+A system skill is one Markdown document with frontmatter:
 
 ```markdown
 ---
@@ -42,6 +42,10 @@ description: When to use this
 
 The instructions.
 ```
+
+A user skill has the same three parts as separate `create_skill` fields:
+`{name, description, content}`. `content` is the body only. Do not put
+frontmatter in it.
 
 - `name` is a lowercase slug, `a-z0-9-` only, at most 64 characters. It cannot
   contain `anthropic` or `claude`. A user's names must be unique per user.
@@ -57,8 +61,8 @@ The instructions.
 - The body must be non-empty. Frontmatter is parsed as scalar `key: value`
   pairs, not full YAML, and the fence is the first `---` line after the opening
   one, so a `---` rule inside the body survives.
-- `##` headings split the body into sections a loader can fetch one at a time.
-  Use them for material an agent needs only at one step.
+- `##` headings organize the body for the reader. `load_skill` returns the
+  whole document in one piece, so a section does not save context.
 
 Confirm the parse by listing it back: `list_skills` shows name and description,
 `load_skill {name}` returns the full instructions.
@@ -86,8 +90,9 @@ directory into `_skills/` beside the bundled `server.mjs`, and
 `scripts/verify-backend-bundle.mjs` fails a build that misses one. A new
 directory ships with no other change.
 
-Discovery order is `_skills/` beside the bundle, else `packages/system-skills`
-on the way up, else `NODETOOL_SYSTEM_SKILLS_DIR`. Only `SKILL.md` is read: a
+Discovery checks `NODETOOL_SYSTEM_SKILLS_DIR` first, and when it is set nothing
+else is searched. Otherwise it uses `_skills/` beside the bundle, else
+`packages/system-skills` on the way up. Only `SKILL.md` is read: a
 skill ships as one document, so material that would have been a `references/`
 file belongs in a `##` section of the body.
 
@@ -96,9 +101,11 @@ coding agent should reach it too.
 
 Two follow-ups a new system skill usually needs:
 
-- Nothing, for the tool names: `packages/agents/tests/shipped-skill-names.test.ts`
-  reads every snake_case call out of every shipped skill and checks it against
-  the registry, so a new directory is covered as soon as it exists. A skill
+- Check the tool names yourself. `packages/agents/tests/shipped-skill-names.test.ts`
+  reads snake_case calls out of every shipped skill and checks them against the
+  registry, but only names with a known verb prefix (`add_`, `create_`, `get_`,
+  `list_` and so on). Names such as `web_search`, `request_secret` or
+  `find_model` pass unchecked, and so do node types. A skill
   whose body names timeline calls can also go in that test's `SKILL_NAMES`,
   which matches them exactly against the capability specs and `edit_timeline`'s
   op list.
