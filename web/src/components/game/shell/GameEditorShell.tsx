@@ -111,8 +111,8 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
     }}>
     <GameToolbar {...toolbar} onCommandPalette={() => setPaletteOpen(true)}
       onExport={exportGame ? exporter.run : undefined} exporting={exporter.exporting !== null}
-      onBuildExecutable={canBuildExecutable && !executable.building ? executable.run : undefined} />
-    <GameLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />
+      onBuildExecutable={canBuildExecutable && !executable.building ? executable.run : undefined}
+      layoutMenu={<GameLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />} />
     {exporter.exporting && <Caption role="status" sx={{ px: SPACING.md, py: SPACING.xs }}>
       {exporter.exporting === "tauri" ? "Building the desktop app project from the published revision" : "Building the web player from the published revision"}
     </Caption>}
