@@ -182,3 +182,24 @@ export function gameParticleIssues(particles: GameParticles): { readonly path: (
   }
   return issues;
 }
+
+/**
+ * Particle draw settings a renderer of this dimension ignores. They are warnings, not errors: the document plays,
+ * and the field is simply unused there.
+ */
+export function gameParticleRenderWarnings(particles: GameParticles, dimension: "2d" | "3d"): { readonly path: (string | number)[]; readonly message: string }[] {
+  const warnings: { path: (string | number)[]; message: string }[] = [];
+  for (const [index, emitter] of particles.emitters.entries()) {
+    if (dimension === "2d") {
+      if (emitter.render !== undefined) {
+        warnings.push({ path: ["emitters", index, "render"], message: "2D particles ignore render, which only sets how 3D particles draw" });
+      }
+      if (emitter.softness !== undefined) {
+        warnings.push({ path: ["emitters", index, "softness"], message: "2D particles ignore softness, which only fades 3D billboards" });
+      }
+    } else if (emitter.render?.kind === "mesh" && emitter.softness !== undefined && emitter.softness > 0) {
+      warnings.push({ path: ["emitters", index, "softness"], message: "Mesh particles ignore softness, which only fades billboards" });
+    }
+  }
+  return warnings;
+}

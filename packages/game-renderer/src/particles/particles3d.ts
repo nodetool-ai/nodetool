@@ -111,6 +111,8 @@ export interface ParticleBatch3D {
   readonly lit: boolean;
   count: number;
   data: Float32Array;
+  /** Second buffer the farthest-first sort writes into before swapping it with `data`, kept so sorting does not allocate. */
+  spare: Float32Array | null;
 }
 
 /** The camera position and view direction, used to sort alpha-blended particles back to front. */
@@ -153,8 +155,8 @@ function batchKey(emitter: GameParticleEmitter): { key: string; shape: ParticleB
  * the result depends only on the field and the viewer. `previous` batches are reused when their capacity fits.
  */
 export function packParticleBatches3D(field: GameParticleField, viewer: ParticleViewer3D, previous: readonly ParticleBatch3D[] = []): PackedParticles3D {
-  const reusable = new Map(previous.map((batch) => [batch.key, batch]));
-  const batches = new Map<string, ParticleBatch3D>();
+  // A scene has a handful of batches, so linear lookups beat building maps every frame.
+  const batches: ParticleBatch3D[] = [];
   let drawn = 0;
   let soft = false;
   field.forEachParticle((particle) => {
@@ -163,12 +165,11 @@ export function packParticleBatches3D(field: GameParticleField, viewer: Particle
     }
     const emitter = particle.emitter;
     const kind = batchKey(emitter);
-    let batch = batches.get(kind.key);
+    let batch = batches.find((entry) => entry.key === kind.key);
     if (!batch) {
-      const reused = reusable.get(kind.key);
-      batch = reused ?? { ...kind, count: 0, data: new Float32Array(PARTICLE_INSTANCE_STRIDE_3D * 64) };
+      batch = previous.find((entry) => entry.key === kind.key) ?? { ...kind, count: 0, data: new Float32Array(PARTICLE_INSTANCE_STRIDE_3D * 64), spare: null };
       batch.count = 0;
-      batches.set(kind.key, batch);
+      batches.push(batch);
     }
     if ((batch.count + 1) * PARTICLE_INSTANCE_STRIDE_3D > batch.data.length) {
       const grown = new Float32Array(batch.data.length * 2);
@@ -199,30 +200,47 @@ export function packParticleBatches3D(field: GameParticleField, viewer: Particle
     drawn += 1;
     soft ||= softness > 0;
   });
-  for (const batch of batches.values()) {
+  for (const batch of batches) {
     if (batch.blend === "normal" && batch.count > 1) {
       sortFarthestFirst(batch, viewer);
     }
   }
-  return { batches: [...batches.values()], drawn, soft };
+  return { batches, drawn, soft };
 }
+
+/** Sort scratch shared by every batch. Packing is synchronous, so one set of arrays serves all of them. */
+let sortDepths = new Float64Array(0);
+let sortOrder = new Uint32Array(0);
 
 function sortFarthestFirst(batch: ParticleBatch3D, viewer: ParticleViewer3D): void {
   const stride = PARTICLE_INSTANCE_STRIDE_3D;
+  const count = batch.count;
   const source = batch.data;
-  const depths = new Float64Array(batch.count);
-  const order: number[] = [];
-  for (let index = 0; index < batch.count; index += 1) {
+  if (sortDepths.length < count) {
+    sortDepths = new Float64Array(Math.max(count, sortDepths.length * 2));
+    sortOrder = new Uint32Array(sortDepths.length);
+  }
+  const depths = sortDepths;
+  let sorted = true;
+  for (let index = 0; index < count; index += 1) {
     const base = index * stride;
     depths[index] = (source[base] - viewer.x) * viewer.forwardX + (source[base + 1] - viewer.y) * viewer.forwardY + (source[base + 2] - viewer.z) * viewer.forwardZ;
-    order.push(index);
+    sortOrder[index] = index;
+    sorted &&= index === 0 || depths[index] <= depths[index - 1];
   }
-  // Array.prototype.sort is stable, so equal depths keep field order.
-  order.sort((first, second) => depths[second] - depths[first]);
-  if (order.every((value, index) => value === index)) {
+  if (sorted) {
     return;
   }
-  const sorted = new Float32Array(source.length);
-  order.forEach((from, to) => sorted.set(source.subarray(from * stride, from * stride + stride), to * stride));
-  batch.data = sorted;
+  // The index tie-break keeps field order between equal depths whatever the engine's sort does.
+  const order = sortOrder.subarray(0, count).sort((first, second) => depths[second] - depths[first] || first - second);
+  let target = batch.spare;
+  if (!target || target.length < source.length) {
+    target = new Float32Array(source.length);
+  }
+  for (let to = 0; to < count; to += 1) {
+    const from = order[to] * stride;
+    target.set(source.subarray(from, from + stride), to * stride);
+  }
+  batch.spare = source;
+  batch.data = target;
 }

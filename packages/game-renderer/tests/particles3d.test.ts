@@ -190,6 +190,14 @@ describe("3D particle batches", () => {
     // Equal depths keep their field order.
     expect(order(0)).toEqual([1, 3, 2, 0]);
     expect(order(1)).toEqual([0, 1, 2, 3]);
+    // The next frame sorts into the batch's spare buffer instead of allocating one.
+    const first = packed.batches[0]!;
+    const buffers = [first.data, first.spare];
+    const again = packParticleBatches3D(field(depths.map((z, index) => view(normal, { z, rotation: index }))), VIEWER, packed.batches);
+    expect(again.batches[0]).toBe(first);
+    expect(buffers).toContain(again.batches[0]!.data);
+    expect(buffers).toContain(again.batches[0]!.spare);
+    expect(order(0)).toEqual([1, 3, 2, 0]);
   });
 
   it("grows a batch past its first capacity and reuses it on the next frame", () => {
@@ -211,14 +219,18 @@ describe("3D particle batches", () => {
 interface Recorded {
   readonly calls: string[];
   readonly context: RenderContext3D;
-  readonly renderer: { shadowMap: { autoUpdate: boolean }; target: unknown };
+  readonly renderer: { shadowMap: { autoUpdate: boolean }; target: unknown; info: { render: { calls: number; triangles: number } } };
+  /** The material each named scene mesh drew with in the depth pre-pass. */
+  readonly depthMaterials: Map<string, THREE.Material>;
 }
 
 /** A pipeline context whose renderer records the calls the particle pass makes. No WebGL is involved. */
 function recordingContext(scene: THREE.Scene, camera: THREE.PerspectiveCamera): Recorded {
   const calls: string[] = [];
+  const depthMaterials = new Map<string, THREE.Material>();
   const renderer = {
     shadowMap: { autoUpdate: true },
+    info: { render: { calls: 5, triangles: 100 } },
     target: null as unknown,
     getDrawingBufferSize: (size: THREE.Vector2) => size.set(64, 32),
     getRenderTarget() { return this.target; },
@@ -228,14 +240,18 @@ function recordingContext(scene: THREE.Scene, camera: THREE.PerspectiveCamera): 
     render(renderedScene: THREE.Scene) {
       if (renderedScene !== scene) { calls.push("hud"); return; }
       const group = renderedScene.getObjectByName("game-particles");
-      calls.push(`depth-render override=${renderedScene.overrideMaterial !== null} background=${renderedScene.background !== null} particles=${group?.visible} shadows=${this.shadowMap.autoUpdate}`);
+      calls.push(`depth-render background=${renderedScene.background !== null} particles=${group?.visible} shadows=${this.shadowMap.autoUpdate}`);
+      renderedScene.traverse((object) => { if (object instanceof THREE.Mesh && object.name && !Array.isArray(object.material)) { depthMaterials.set(object.name, object.material); } });
+      // A real renderer counts the pre-pass draws. The pass must take them back out.
+      this.info.render.calls += 3;
+      this.info.render.triangles += 36;
     }
   };
   const postProcessor = { render: (renderedScene: THREE.Scene) => {
     const group = renderedScene.getObjectByName("game-particles");
     calls.push(`scene particles=${group?.children.length ?? 0}`);
   } } as unknown as GamePostProcessor3D;
-  return { calls, renderer, context: { renderer: renderer as unknown as THREE.WebGLRenderer, scene, camera, hudScene: new THREE.Scene(), hudCamera: new THREE.OrthographicCamera(), postProcessor } };
+  return { calls, renderer, depthMaterials, context: { renderer: renderer as unknown as THREE.WebGLRenderer, scene, camera, hudScene: new THREE.Scene(), hudCamera: new THREE.OrthographicCamera(), postProcessor } };
 }
 
 describe("3D particle render pass", () => {
@@ -290,14 +306,37 @@ describe("3D particle render pass", () => {
     const scene = new THREE.Scene();
     const background = new THREE.Color("#203040");
     scene.background = background;
-    const pass = new GameParticlePass3D(pipeline, { scene, particles: () => field([view(emitter({ softness: 0.5 }), { z: -2 })]) });
+    const box = new THREE.BoxGeometry();
+    const solid = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
+    const cutout = new THREE.Texture();
+    // An alpha-tested cut-out whose opacity is below its cutoff draws nothing in the scene pass.
+    const masked = new THREE.MeshStandardMaterial({ alphaTest: 0.5, opacity: 0.2, map: cutout });
+    const glass = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.5 });
+    for (const [name, material] of [["solid", solid], ["masked", masked], ["glass", glass]] as const) {
+      const mesh = new THREE.Mesh(box, material);
+      mesh.name = name;
+      scene.add(mesh);
+    }
+    let particles: GameParticleField = field([view(emitter({ softness: 0.5 }), { z: -2 })]);
+    const pass = new GameParticlePass3D(pipeline, { scene, particles: () => particles });
     const camera = new THREE.PerspectiveCamera(60, 2, 0.25, 40);
     const recorded = recordingContext(scene, camera);
     await pipeline.render(recorded.context);
-    expect(recorded.calls).toEqual(["target:depth", "clear", "depth-render override=true background=false particles=false shadows=false",
+    expect(recorded.calls).toEqual(["target:depth", "clear", "depth-render background=false particles=false shadows=false",
       "target:canvas", "scene particles=1", "clearDepth", "hud"]);
+    expect(recorded.renderer.info.render).toEqual({ calls: 5, triangles: 100 });
+    const depth = (name: string): THREE.MeshBasicMaterial => {
+      const material = recorded.depthMaterials.get(name);
+      if (!(material instanceof THREE.MeshBasicMaterial)) { throw new Error(`${name} drew without a depth material`); }
+      return material;
+    };
+    expect(depth("solid")).toMatchObject({ colorWrite: false, visible: true, side: THREE.DoubleSide, alphaTest: 0 });
+    expect(depth("masked")).toMatchObject({ colorWrite: false, visible: true, alphaTest: 0.5, opacity: 0.2, map: cutout });
+    expect(depth("glass").visible).toBe(false);
+    for (const [name, material] of [["solid", solid], ["masked", masked], ["glass", glass]] as const) {
+      expect((scene.getObjectByName(name) as THREE.Mesh).material).toBe(material);
+    }
     expect(scene.background).toBe(background);
-    expect(scene.overrideMaterial).toBeNull();
     expect(recorded.renderer.shadowMap.autoUpdate).toBe(true);
     expect(scene.getObjectByName("game-particles")?.visible).toBe(true);
     const quads = scene.getObjectByName("particles:quad:normal") as THREE.Mesh<THREE.InstancedBufferGeometry, THREE.ShaderMaterial>;
@@ -307,6 +346,10 @@ describe("3D particle render pass", () => {
     const resolution: unknown = uniforms["depthResolution"]?.value;
     expect(resolution instanceof THREE.Vector2 ? resolution.toArray() : null).toEqual([64, 32]);
     expect([uniforms["cameraNear"]?.value, uniforms["cameraFar"]?.value, uniforms["orthographicCamera"]?.value]).toEqual([0.25, 40, 0]);
+    expect(pass.targetBytes).toBe(64 * 32 * 8);
+    // A frame without soft particles keeps the depth target for the next one.
+    particles = field([view(emitter({}), { z: -2 })]);
+    await pipeline.render(recorded.context);
     expect(pass.targetBytes).toBe(64 * 32 * 8);
     pass.dispose();
     expect(pass.targetBytes).toBe(0);

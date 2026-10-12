@@ -224,7 +224,8 @@ function validateCliDocument(value: unknown) {
   if (legacyVersion.success) { return validateGame(value); }
   const result = validateAnyGame(value);
   return { valid: result.valid, document: result.valid ? result.document : undefined, issues: result.diagnostics,
-    diagnostics: result.diagnostics, errors: result.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`) };
+    diagnostics: result.diagnostics, errors: result.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`),
+    warnings: result.valid ? result.warnings : [] };
 }
 
 /** Register native game validation and deterministic simulation commands. */
@@ -247,6 +248,7 @@ export function registerGameCommands(program: Command): void {
               ? "Game document is valid\n"
               : `${report.errors.join("\n")}\n`
           );
+          for (const warning of report.warnings ?? []) { process.stdout.write(`Warning ${warning.path.join(".")}: ${warning.message}\n`); }
         }
         if (!report.valid) process.exitCode = 1;
       } catch (error) {

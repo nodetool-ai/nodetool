@@ -351,8 +351,11 @@ take scene fog and post-processing such as bloom, so additive particles glow.
 `softness` (world units) fades a billboard out where it nears the geometry
 behind it, so smoke and glows do not cut a hard line through the floor. The
 renderer then draws the scene's depth once more per frame, so set it only on
-emitters that touch geometry. 3D particles ignore `sprite` and `layer`, and
-2D particles ignore `render` and `softness`. The 3D standalone player,
+emitters that touch geometry. That depth pass skips transparent materials,
+keeps alpha-tested cut-outs, and does not count toward the draw call and
+triangle budgets. 3D particles ignore `sprite` and `layer`, and
+2D particles ignore `render` and `softness`. Validation warns about `render` or
+`softness` on a 2D emitter and `softness` on a mesh emitter, without failing. The 3D standalone player,
 `nodetool game capture` and `capture_native_game_frame` draw 3D particles. The
 editor's 3D play view does not yet.
 

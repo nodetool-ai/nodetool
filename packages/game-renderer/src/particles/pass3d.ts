@@ -105,12 +105,15 @@ function withInstanceOpacity(material: THREE.MeshStandardMaterial | THREE.MeshBa
 
 interface QuadDraw {
   readonly kind: "quad";
+  /** The prepare call that last used this draw. */
+  frame: number;
   readonly mesh: THREE.Mesh<THREE.InstancedBufferGeometry, THREE.ShaderMaterial>;
   readonly buffer: THREE.InstancedInterleavedBuffer;
 }
 
 interface MeshDraw {
   readonly kind: "mesh";
+  frame: number;
   readonly mesh: THREE.InstancedMesh<THREE.BufferGeometry, THREE.MeshStandardMaterial | THREE.MeshBasicMaterial>;
   readonly opacity: THREE.InstancedBufferAttribute;
 }
@@ -130,8 +133,12 @@ export class GameParticlePass3D {
   private readonly draws = new Map<string, Draw>();
   private batches: readonly ParticleBatch3D[] = [];
   private readonly quadGeometry = new THREE.PlaneGeometry(1, 1);
-  private readonly depthMaterial = new THREE.MeshBasicMaterial({ colorWrite: false });
+  /** Depth-only stand-ins for scene materials, so the depth pre-pass keeps each material's cut-outs and skips what never writes depth. */
+  private readonly depthMaterials = new Map<THREE.Material, THREE.MeshBasicMaterial>();
+  private readonly depthSeen = new Set<THREE.Material>();
+  private readonly swapped: Array<[THREE.Mesh, THREE.Material | THREE.Material[]]> = [];
   private depthTarget: THREE.WebGLRenderTarget | null = null;
+  private frame = 0;
   private readonly size = new THREE.Vector2();
   private readonly cameraPosition = new THREE.Vector3();
   private readonly cameraForward = new THREE.Vector3();
@@ -151,7 +158,7 @@ export class GameParticlePass3D {
     pipeline.register({ name: GAME_PARTICLE_PASS_3D, order: GAME_PARTICLE_PASS_ORDER_3D, render: (context) => this.prepare(context) });
   }
 
-  /** Bytes of the scene depth target soft particles read, or 0 when no particle is soft. */
+  /** Bytes of the scene depth target soft particles read. It stays allocated once made, until the pass is disposed. */
   get targetBytes(): number {
     return this.depthTarget ? this.depthTarget.width * this.depthTarget.height * 8 : 0;
   }
@@ -161,7 +168,8 @@ export class GameParticlePass3D {
     this.draws.clear();
     this.group.removeFromParent();
     this.quadGeometry.dispose();
-    this.depthMaterial.dispose();
+    for (const material of this.depthMaterials.values()) { material.dispose(); }
+    this.depthMaterials.clear();
     this.depthTarget?.dispose();
     this.depthTarget = null;
   }
@@ -177,13 +185,12 @@ export class GameParticlePass3D {
       : { batches: [], drawn: 0, soft: false };
     this.batches = packed.batches;
     this.drawn = packed.drawn;
-    const used = new Set<string>();
+    this.frame += 1;
     for (const batch of packed.batches) {
-      used.add(batch.key);
       if (batch.shape === "quad") { this.updateQuads(batch); } else { this.updateMeshes(batch, batch.shape); }
     }
     for (const [key, draw] of this.draws) {
-      if (!used.has(key)) { this.release(draw); this.draws.delete(key); }
+      if (draw.frame !== this.frame) { this.release(draw); this.draws.delete(key); }
     }
     const depth = packed.soft ? this.renderDepth(renderer, scene, camera) : null;
     for (const draw of this.draws.values()) {
@@ -196,10 +203,14 @@ export class GameParticlePass3D {
       uniforms["cameraFar"]!.value = "far" in camera && typeof camera.far === "number" ? camera.far : 1000;
       uniforms["orthographicCamera"]!.value = camera instanceof THREE.OrthographicCamera ? 1 : 0;
     }
-    if (!packed.soft && this.depthTarget) { this.depthTarget.dispose(); this.depthTarget = null; }
   }
 
-  /** Renders the scene without particles into a depth texture, keeping every renderer setting it changes. */
+  /**
+   * Renders the scene's depth without particles into a texture, keeping every renderer and scene setting it changes.
+   * Each mesh draws with a depth-only copy of its material, so alpha-tested cut-outs keep their holes, and transparent
+   * or non-depth-writing materials are skipped as they write no depth in the scene pass either. The pre-pass draws are
+   * taken back out of the renderer's counters, so frame stats and budgets count only what the player sees.
+   */
   private renderDepth(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera): THREE.DepthTexture {
     const size = renderer.getDrawingBufferSize(this.size);
     if (!this.depthTarget) {
@@ -209,27 +220,61 @@ export class GameParticlePass3D {
     }
     const target = renderer.getRenderTarget();
     const background = scene.background;
-    const override = scene.overrideMaterial;
     const shadowUpdate = renderer.shadowMap.autoUpdate;
+    const counters = renderer.info.render;
+    const calls = counters.calls;
+    const triangles = counters.triangles;
     try {
       // The scene pass renders this frame's shadow maps. Depth needs none.
       renderer.shadowMap.autoUpdate = false;
       this.group.visible = false;
       scene.background = null;
-      scene.overrideMaterial = this.depthMaterial;
+      this.swapDepthMaterials(scene);
       renderer.setRenderTarget(this.depthTarget);
       renderer.clear();
       renderer.render(scene, camera);
     } finally {
+      for (const [mesh, material] of this.swapped) { mesh.material = material; }
+      this.swapped.length = 0;
       renderer.shadowMap.autoUpdate = shadowUpdate;
       this.group.visible = true;
       scene.background = background;
-      scene.overrideMaterial = override;
       renderer.setRenderTarget(target);
+      counters.calls = calls;
+      counters.triangles = triangles;
     }
     const depth = this.depthTarget.depthTexture;
     if (!depth) { throw new Error("Particle depth target has no depth texture"); }
     return depth;
+  }
+
+  private swapDepthMaterials(scene: THREE.Scene): void {
+    this.depthSeen.clear();
+    scene.traverse((object) => {
+      if (object === this.group || !(object instanceof THREE.Mesh)) { return; }
+      const material: THREE.Material | THREE.Material[] = object.material;
+      this.swapped.push([object, material]);
+      object.material = Array.isArray(material) ? material.map((entry) => this.depthVariant(entry)) : this.depthVariant(material);
+    });
+    for (const [material, variant] of this.depthMaterials) {
+      if (!this.depthSeen.has(material)) { variant.dispose(); this.depthMaterials.delete(material); }
+    }
+  }
+
+  private depthVariant(material: THREE.Material): THREE.MeshBasicMaterial {
+    this.depthSeen.add(material);
+    let variant = this.depthMaterials.get(material);
+    if (!variant) {
+      variant = new THREE.MeshBasicMaterial({ colorWrite: false });
+      this.depthMaterials.set(material, variant);
+    }
+    variant.visible = material.visible && material.depthWrite && !material.transparent;
+    variant.side = material.side;
+    variant.alphaTest = material.alphaTest;
+    variant.opacity = material.opacity;
+    variant.map = "map" in material && material.map instanceof THREE.Texture ? material.map : null;
+    variant.alphaMap = "alphaMap" in material && material.alphaMap instanceof THREE.Texture ? material.alphaMap : null;
+    return variant;
   }
 
   private updateQuads(batch: ParticleBatch3D): void {
@@ -240,6 +285,7 @@ export class GameParticlePass3D {
       this.draws.set(batch.key, draw);
     }
     if (draw.kind !== "quad") { return; }
+    draw.frame = this.frame;
     (draw.buffer.array as Float32Array).set(batch.data.subarray(0, batch.count * PARTICLE_INSTANCE_STRIDE_3D));
     draw.buffer.needsUpdate = true;
     draw.mesh.geometry.instanceCount = batch.count;
@@ -276,7 +322,7 @@ export class GameParticlePass3D {
     mesh.frustumCulled = false;
     mesh.name = `particles:${batch.key}`;
     this.group.add(mesh);
-    return { kind: "quad", mesh, buffer };
+    return { kind: "quad", frame: this.frame, mesh, buffer };
   }
 
   private updateMeshes(batch: ParticleBatch3D, shape: Exclude<ParticleBatchShape3D, "quad">): void {
@@ -287,6 +333,7 @@ export class GameParticlePass3D {
       this.draws.set(batch.key, draw);
     }
     if (draw.kind !== "mesh") { return; }
+    draw.frame = this.frame;
     const data = batch.data;
     const opacity = draw.opacity.array as Float32Array;
     for (let index = 0; index < batch.count; index += 1) {
@@ -328,7 +375,7 @@ export class GameParticlePass3D {
     mesh.frustumCulled = false;
     mesh.name = `particles:${batch.key}`;
     this.group.add(mesh);
-    return { kind: "mesh", mesh, opacity };
+    return { kind: "mesh", frame: this.frame, mesh, opacity };
   }
 
   private release(draw: Draw): void {

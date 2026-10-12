@@ -173,6 +173,21 @@ describe("3D particle capture", () => {
     expect(red(soft)).toBeLessThan(red(hard) - 60);
   }, 60_000);
 
+  it("does not fade a soft billboard against a cut-out that draws nothing", async () => {
+    const frame = particleFrame([{ id: "hard", blend: "additive" }, { id: "soft", blend: "additive", softness: 1 }]);
+    const box = frame.entities[0]!;
+    // Opacity below the mask cutoff discards every fragment, so the box is invisible and must write no depth.
+    frame.entities = [{ ...box, primitive: { ...box.primitive!, material: { ...box.primitive!.material, opacity: 0.2, alphaMode: "mask", alphaCutoff: 0.5 } } }, frame.entities[1]!];
+    const plain = await pixels(frame);
+    const empty = blockoutFrame();
+    empty.entities = [];
+    expect(plain.at(64, 64)).toEqual((await pixels(empty)).at(64, 64));
+    const hard = await pixels(frame, particleField(frame, [{ emitterId: "hard", z: 1.2, g: 0, b: 0 }]));
+    const soft = await pixels(frame, particleField(frame, [{ emitterId: "soft", z: 1.2, g: 0, b: 0 }]));
+    expect((hard.at(64, 64)[0] ?? 0) - (plain.at(64, 64)[0] ?? 0)).toBeGreaterThan(150);
+    expect(Math.abs((soft.at(64, 64)[0] ?? 0) - (hard.at(64, 64)[0] ?? 0))).toBeLessThanOrEqual(2);
+  }, 60_000);
+
   it("stretches a billboard along its screen velocity", async () => {
     const frame = particleFrame([{ id: "dot", blend: "additive" }, { id: "streak", blend: "additive", render: { kind: "stretched", length: 1, speedScale: 0.1 } }]);
     // Below the box over the background, moving along +X at 10 units per second: 1.3 units long and 0.3 wide.
