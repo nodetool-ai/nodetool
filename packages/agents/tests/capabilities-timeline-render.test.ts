@@ -217,9 +217,10 @@ describe.runIf(!skipReason)("render_timeline", () => {
 
     expect(result["job_error"]).toBeNull();
     expect(result["status"]).toBe("completed");
-    // The composited path is what proves the picture was rendered rather than
-    // the clips concatenated by ffmpeg, which ignores everything above.
-    expect(result["render_mode"]).toBe("composited");
+    // A compositor ran (the headless browser, or the Node fallback where no
+    // browser launches), not the ffmpeg rough cut, which ignores everything
+    // above.
+    expect(["browser", "composited"]).toContain(result["render_mode"]);
     expect(result["duration_ms"]).toBeGreaterThan(500);
 
     const assetId = result["asset_id"] as string;
