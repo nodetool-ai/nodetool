@@ -21,13 +21,14 @@ const API_MODEL = "minimax/h3";
 const TIERS = [
   ["fast", "MiniMax H3 Fast"],
   ["standard", "MiniMax H3 Standard"],
+  ["enhanced", "MiniMax H3 Enhanced"],
   ["quality", "MiniMax H3 Quality"]
 ] as const;
 type Tier = (typeof TIERS)[number][0];
 
 const DURATIONS = Array.from({ length: 12 }, (_, index) => index + 4);
 const RESOLUTIONS = ["480p", "768p"];
-const ASPECT_RATIOS = ["16:9", "9:16", "1:1"];
+const ASPECT_RATIOS = ["9:16", "2:3", "3:4", "1:1", "4:3", "3:2", "16:9", "21:9"];
 const IMAGE_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_REFERENCE_IMAGES = 9;
@@ -158,7 +159,9 @@ export class VgenvProvider extends BaseProvider {
     const body: Record<string, unknown> = {
       model: API_MODEL,
       tier: parseTier(params.model.id),
-      prompt: params.prompt ?? ""
+      prompt: params.prompt ?? "",
+      // /v2 rewrites prompts by default. NodeTool sends what the user wrote.
+      prompt_optimization: { mode: "raw" }
     };
     if (params.durationSeconds && params.durationSeconds > 0) {
       body.duration = Math.min(15, Math.max(4, Math.round(params.durationSeconds)));
@@ -219,33 +222,37 @@ export class VgenvProvider extends BaseProvider {
     const path = `${BASE_URL}/videos/${encodeURIComponent(created.id)}`;
     const deadline = Date.now() + (params.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000;
     let current = created;
-    while (!TERMINAL.has(current.status)) {
-      if (Date.now() >= deadline) {
-        await this.cancel(created.id);
-        throw new Error(`vgenv video ${created.id} timed out while ${current.status}`);
+    let timedOut = false;
+    try {
+      while (!TERMINAL.has(current.status)) {
+        if (Date.now() >= deadline) {
+          timedOut = true;
+          throw new Error(`vgenv video ${created.id} timed out while ${current.status}`);
+        }
+        await sleep(POLL_INTERVAL_MS, signal);
+        signal?.throwIfAborted();
+        current = await this.parse(
+          await fetchWithRetry(path, { headers: this.headers(), signal }),
+          "video status"
+        );
       }
-      await sleep(POLL_INTERVAL_MS, signal);
-      if (signal?.aborted) {
-        await this.cancel(created.id);
-        signal.throwIfAborted();
-      }
-      current = await this.parse(
-        await fetchWithRetry(path, { headers: this.headers(), signal }),
-        "video status"
-      );
+    } catch (error) {
+      // An abort can land in the sleep or inside the status request.
+      if (timedOut || signal?.aborted) await this.cancel(created.id);
+      throw error;
     }
     return current;
   }
 
   /**
-   * Best-effort cancellation. vgenv cancels only queued jobs and releases the
-   * reserved balance; a running job finishes and is billed, so a failure here
-   * must not mask the abort or timeout that triggered it.
+   * Best-effort cancellation. vgenv cancels only preparing and queued jobs
+   * and releases the reserved balance. A running job finishes and is billed,
+   * so a failure here must not mask the abort or timeout that triggered it.
    */
   private async cancel(id: string): Promise<void> {
     try {
-      await fetch(`${BASE_URL}/videos/${encodeURIComponent(id)}/cancel`, {
-        method: "POST",
+      await fetch(`${BASE_URL}/videos/${encodeURIComponent(id)}`, {
+        method: "DELETE",
         headers: this.headers()
       });
     } catch {

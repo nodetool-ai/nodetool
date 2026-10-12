@@ -51,6 +51,7 @@ describe("VgenvProvider", () => {
     expect(models.map((model) => model.id)).toEqual([
       "minimax/h3-fast",
       "minimax/h3-standard",
+      "minimax/h3-enhanced",
       "minimax/h3-quality"
     ]);
     expect(models[0].durations).toEqual([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
@@ -81,6 +82,7 @@ describe("VgenvProvider", () => {
       model: "minimax/h3",
       tier: "fast",
       prompt: "a paper city at sunrise",
+      prompt_optimization: { mode: "raw" },
       duration: 5,
       resolution: "480p",
       aspect_ratio: "9:16"
@@ -158,20 +160,62 @@ describe("VgenvProvider", () => {
       .rejects.toThrow("vgenv video creation failed: insufficient balance");
   });
 
-  it("cancels the job when the caller aborts while it is queued", async () => {
+  it("cancels the job when the caller aborts while it waits between polls", async () => {
     const controller = new AbortController();
-    const fetchMock = vi.fn(async (url: string) => {
-      if (url.endsWith("/cancel")) return reply({ id: "vid_6", status: "cancelled" });
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "DELETE") return reply({ id: "vid_6", status: "cancelled" });
       controller.abort();
       return reply({ id: "vid_6", status: "queued" });
     });
     vi.stubGlobal("fetch", fetchMock);
     await expect(settle(provider().textToVideo({ model: MODEL, prompt: "x", signal: controller.signal })))
       .rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock).toHaveBeenLastCalledWith(
-      "https://api.vgenv.com/v2/videos/vid_6/cancel",
-      expect.objectContaining({ method: "POST" })
+      "https://api.vgenv.com/v2/videos/vid_6",
+      expect.objectContaining({ method: "DELETE" })
     );
+  });
+
+  it("cancels the job when the abort lands during the status request", async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "DELETE") return reply({ id: "vid_7", status: "cancelled" });
+      if (init?.method === "POST") return reply({ id: "vid_7", status: "queued" });
+      controller.abort();
+      throw new DOMException("The operation was aborted.", "AbortError");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(settle(provider().textToVideo({ model: MODEL, prompt: "x", signal: controller.signal })))
+      .rejects.toThrow("aborted");
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "https://api.vgenv.com/v2/videos/vid_7",
+      expect.objectContaining({ method: "DELETE" })
+    );
+  });
+
+  it("cancels the job when polling runs past the timeout", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === "DELETE") return reply({ id: "vid_8", status: "cancelled" });
+      return reply({ id: "vid_8", status: "queued" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(settle(provider().textToVideo({ model: MODEL, prompt: "x", timeoutSeconds: 10 })))
+      .rejects.toThrow("timed out while queued");
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "https://api.vgenv.com/v2/videos/vid_8",
+      expect.objectContaining({ method: "DELETE" })
+    );
+  });
+
+  it("does not cancel when a status request fails without an abort", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(reply({ id: "vid_9", status: "queued" }))
+      .mockResolvedValueOnce(reply({ message: "video not found" }, 404));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(settle(provider().textToVideo({ model: MODEL, prompt: "x" })))
+      .rejects.toThrow("vgenv video status failed: video not found");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("rejects an unknown model id", async () => {
