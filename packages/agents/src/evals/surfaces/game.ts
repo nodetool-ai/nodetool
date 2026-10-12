@@ -441,6 +441,24 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AnyGameDocument>[] 
           crate?.physicsMaterial === "rubber" && crate.restitution === 0.85 && crate.restitutionCombine === "max";
       } }]
   }
+}, {
+  id: "particle-rendering-3d",
+  description: "Author 3D particle draw styles: an additive stretched-billboard emitter with soft depth fade and a velocity-aligned mesh emitter.",
+  objective: "Give the crate a particles component with two emitters. sparks blends additively, draws as stretched billboards 2 times their size long, and fades out over 0.5 units near geometry. debris draws small boxes that point along their velocity.",
+  createBridge: () => createGameToolBridge3D(createNative3DGame("particle-render-3d-eval")),
+  systemPrompt: "Use get_native_game and edit_native_game. update_entity sets the whole particles component as { emitters: [...] }. A 3D emitter takes blend (normal or additive), softness (world units) and render: { kind: \"billboard\" }, { kind: \"stretched\", length, speedScale } or { kind: \"mesh\", shape: box | sphere | tetrahedron | octahedron, align: world | velocity }.",
+  expect: {
+    requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,
+    finalState: [{ name: "crateParticles3D", detail: "The crate lacks an additive stretched sparks emitter 2 sizes long with softness 0.5, or a velocity-aligned box debris emitter, or the document fails validation.",
+      test: document => {
+        if (document.schemaVersion !== 3 || !validateGame3D(document).valid) { return false; }
+        const emitters = document.scenes[0].entities.find(entity => entity.id === "crate")?.particles?.emitters ?? [];
+        const sparks = emitters.find(emitter => emitter.id === "sparks");
+        const debris = emitters.find(emitter => emitter.id === "debris");
+        return sparks?.blend === "additive" && sparks.render?.kind === "stretched" && sparks.render.length === 2 && sparks.softness === 0.5 &&
+          debris?.render?.kind === "mesh" && debris.render.shape === "box" && debris.render.align === "velocity";
+      } }]
+  }
 }];
 
 /** Headless 3D game editor bridge that exercises the production 3D op reducer. */

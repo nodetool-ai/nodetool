@@ -59,6 +59,20 @@ export const gameParticleSprite = z.strictObject({
 
 export type GameParticleSprite = z.infer<typeof gameParticleSprite>;
 
+/**
+ * How a 3D particle draws. A `billboard` is a quad facing the camera. A `stretched` billboard lies along the particle's
+ * screen-space velocity and is `length` times its size plus `speedScale` seconds of travel long. A `mesh` particle is a
+ * small solid `shape`, `size` units across, that turns by the particle's rotation about world +Y (`align: "world"`) or
+ * points its +Y along its velocity and turns about it (`align: "velocity"`). 2D renderers ignore this field.
+ */
+export const gameParticleRender = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("billboard") }),
+  z.strictObject({ kind: z.literal("stretched"), length: finite.min(0).max(100).default(1), speedScale: finite.min(0).max(10).default(0.1) }),
+  z.strictObject({ kind: z.literal("mesh"), shape: z.enum(["box", "sphere", "tetrahedron", "octahedron"]), align: z.enum(["world", "velocity"]).default("world") })
+]);
+
+export type GameParticleRender = z.infer<typeof gameParticleRender>;
+
 export const gameParticleEmitter = z.strictObject({
   id,
   playOnStart: z.boolean().default(true),
@@ -92,7 +106,14 @@ export const gameParticleEmitter = z.strictObject({
   /** Opts out of scene lighting so particles keep their own colour in the dark. */
   unlit: z.boolean().optional(),
   /** 2D draw layer. Defaults to the entity's sprite layer, or 0 without a sprite. */
-  layer: z.number().int().optional()
+  layer: z.number().int().optional(),
+  /** 3D draw style. Defaults to a camera-facing billboard. */
+  render: gameParticleRender.optional(),
+  /**
+   * 3D soft-particle distance in world units. A billboard fades out over this distance in front of the scene geometry
+   * behind it instead of cutting a hard line where it intersects. 0 or absent keeps the hard edge.
+   */
+  softness: finite.min(0).max(100).optional()
 });
 
 export type GameParticleEmitter = z.infer<typeof gameParticleEmitter>;

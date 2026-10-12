@@ -93,6 +93,8 @@ function sessionOptions3D(run: CapabilityRun, user: string, document: GameDocume
 
 export async function captureFrames3D(run: CapabilityRun, user: string, document: GameDocument3D, ticks: readonly number[], inputs: readonly GameInputFrame3D[], seed: number, options: Record<string, unknown>): Promise<unknown> {
   const { captureGameFrame3D } = await import("@nodetool-ai/game-renderer/node3d");
+  const { GameParticles3D } = await import("@nodetool-ai/game-renderer");
+  const particles = new GameParticles3D(document.tickRate);
   const resolveAsset = ownedAssetResolver3D(run, user, document);
   const snapshotInput = options.snapshot === undefined ? undefined : gameSnapshot3D.safeParse(options.snapshot);
   if (snapshotInput && !snapshotInput.success) { return { error: "Invalid 3D capture snapshot" }; }
@@ -108,7 +110,9 @@ export async function captureFrames3D(run: CapabilityRun, user: string, document
         if (completedTick % 240 === 0) { await new Promise<void>((resolve) => setTimeout(resolve, 0)); }
         run.context.signal?.throwIfAborted();
         if (Date.now() >= deadline) { return { error: "3D capture time limit exceeded", frames }; }
-        completedTick = session.step(inputs[completedTick - initialTick] ?? gameInputFrame3D.parse({ pressed: [] })).tick;
+        const step = session.step(inputs[completedTick - initialTick] ?? gameInputFrame3D.parse({ pressed: [] }));
+        particles.tick(step.frame, session.takePresentationEvents());
+        completedTick = step.tick;
       }
       let frame = session.frame();
       if (options.camera !== undefined) {
@@ -120,7 +124,7 @@ export async function captureFrames3D(run: CapabilityRun, user: string, document
       const captureOptions: Parameters<typeof captureGameFrame3D>[1] = { resolveAsset: async (slot, signal) => {
         const bytes = await resolveAsset(slot, signal);
         return bytes ? { bytes, digest: document.assets[slot]?.digest } : null;
-      }, signal: run.context.signal, stateHash, interpolation: 1,
+      }, signal: run.context.signal, stateHash, interpolation: 1, particles,
       boundsOverlay: Array.isArray(options.overlays) && options.overlays.includes("bounds"), timeoutMs: Math.max(1, deadline - Date.now()) };
       const scale = z.number().positive().max(4).safeParse(options.scale);
       const size: { width?: number; height?: number } = {};

@@ -303,3 +303,24 @@ it("scores physics materials authored through the public 3D edit surface", async
   expect(await edit.execute({ops:[{op:"set_game",physics_materials:{...materials.physics_materials,rubber:{restitution:0.85,restitutionCombine:"max"}}}]})).not.toHaveProperty("error");
   expect(predicate.test(bridge.finalState())).toBe(true);
 });
+
+it("scores 3D particle draw styles authored through the public 3D edit surface", async () => {
+  const candidate = GAME_TOOL_LOOP_CASES.find(item=>item.id==="particle-rendering-3d");
+  if (!candidate) { throw new Error("3D particle rendering eval case must exist"); }
+  const bridge = candidate.createBridge();
+  const predicate = candidate.expect.finalState?.[0];
+  if (!predicate) { throw new Error("3D particle rendering eval must inspect final state"); }
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  const edit = bridge.tools.find(tool=>tool.name==="edit_native_game");
+  if (!edit) { throw new Error("Native edit tool must exist"); }
+  await expect(edit.execute({ops:[{op:"update_entity",entity_id:"crate",set:{particles:{emitters:[
+    {id:"sparks",render:{kind:"stretched",length:2},softness:-1}
+  ]}}}]})).rejects.toThrow("softness");
+  const sparks = {id:"sparks",blend:"additive",render:{kind:"stretched",length:2},softness:0.5};
+  expect(await edit.execute({ops:[{op:"update_entity",entity_id:"crate",set:{particles:{emitters:[sparks,
+    {id:"debris",render:{kind:"mesh",shape:"box"}}]}}}]})).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(false);
+  expect(await edit.execute({ops:[{op:"update_entity",entity_id:"crate",set:{particles:{emitters:[sparks,
+    {id:"debris",render:{kind:"mesh",shape:"box",align:"velocity"}}]}}}]})).not.toHaveProperty("error");
+  expect(predicate.test(bridge.finalState())).toBe(true);
+});

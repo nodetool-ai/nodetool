@@ -621,11 +621,16 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
   const inputs = await readInputs(options.inputs, gameInputFrame3D);
   const session = await createGameSession3D(document, seed, undefined, sessionAssetOptions3D(options.assetsDir));
   try {
-    for (let tick = 0; tick < ticks; tick++) { session.step(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] })); }
+    const { GameParticles3D } = await import("@nodetool-ai/game-renderer");
+    const particles = new GameParticles3D(document.tickRate);
+    for (let tick = 0; tick < ticks; tick++) {
+      const step = session.step(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] }));
+      particles.tick(step.frame, session.takePresentationEvents());
+    }
     const frame = session.frame();
     const stateHash = await hashGameSnapshot3D(session.snapshot());
     const { captureGameFrame3D } = await import("@nodetool-ai/game-renderer/node3d");
-    const captured = await captureGameFrame3D(frame, { stateHash, interpolation: 1,
+    const captured = await captureGameFrame3D(frame, { stateHash, interpolation: 1, particles,
       width: Math.round(document.presentation.hudWidth * scale), height: Math.round(document.presentation.hudHeight * scale),
       resolveAsset: async (slot) => {
         const binding = document.assets[slot];
@@ -636,7 +641,7 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
     await writeFile(path, captured.png);
     const { formatGameFrameBudgetOverrun, gameFrameBudgetOverruns, resolveGameFrameBudgets } = await import("@nodetool-ai/game-renderer");
     const limits = resolveGameFrameBudgets(document.performance?.budgets);
-    const overruns = gameFrameBudgetOverruns({ drawCalls: captured.stats.drawCalls, triangles: captured.stats.triangles }, limits);
+    const overruns = gameFrameBudgetOverruns({ drawCalls: captured.stats.drawCalls, triangles: captured.stats.triangles, particles: particles.count }, limits);
     const report = { dimension: "3d", path, tick: frame.tick, bytes: captured.png.byteLength, state_hash: stateHash,
       capabilities: captured.capabilities, stats: captured.stats, budget: { limits, overruns }, projected_bounds: captured.projectedBounds, diagnostics: [] };
     process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : `Captured tick ${report.tick} to ${report.path}\n`);
