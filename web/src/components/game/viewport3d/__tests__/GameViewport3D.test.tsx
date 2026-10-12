@@ -343,7 +343,7 @@ async function mountSceneViewport(selectedIds: string[]) {
       initializationMs: 0, missingFeatures: [] },
     render: jest.fn().mockResolvedValue(undefined), resize: jest.fn(), invalidateAsset: jest.fn(), pick: jest.fn(),
     setCameraOverride: jest.fn(), getScene: () => scene, getCamera: () => new PerspectiveCamera(),
-    getEntityObject: (id) => objects.get(id) ?? null, projectedBounds: () => [], setEditorCamera, dispose: jest.fn()
+    getEntityObject: (id) => objects.get(id) ?? null, projectedBounds: () => [], setEditorCamera, setEditorView: jest.fn(), dispose: jest.fn()
   };
   const host: GamePlaySession3D = {
     canvasRef: createRef<HTMLCanvasElement>(), rendererRef: { current: renderer }, inputRef: { current: new GameInput3D() },
