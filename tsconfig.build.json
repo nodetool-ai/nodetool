@@ -6,6 +6,7 @@
     { "path": "packages/timeline" },
     { "path": "packages/storyboard" },
     { "path": "packages/app-runtime" },
+    { "path": "packages/app-export" },
     { "path": "packages/image-editor" },
     { "path": "packages/model3d" },
     { "path": "packages/game-runtime" },
