@@ -27,7 +27,6 @@ import useErrorStore, {
   nodeErrorToDisplayString
 } from "../../../stores/ErrorStore";
 import { type NodeKey } from "../../../stores/nodeKey";
-import { Toast } from "../../ui_primitives";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipErrorState } from "../status/clipStatusReducer";
 import { useClipSourceDuration } from "./useClipSourceDuration";
@@ -45,6 +44,7 @@ import { ClipContextMenu } from "./ClipContextMenu";
 import { SendToWorkflowMenu } from "../../workflows/SendToWorkflowMenu";
 import type { WorkflowMediaItem } from "../../../hooks/handlers/useGenerationToCanvas";
 import { ReplaceClipAssetDialog } from "./ReplaceClipAssetDialog";
+import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 
 interface ClipProps {
   clipId: string;
@@ -242,10 +242,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const handleCloseWorkflowSend = useCallback(() => setWorkflowSend(null), []);
   // Raised by context-menu actions; they must outlive the menu's unmount.
   const [replaceOpen, setReplaceOpen] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const reportActionError = useAlertNotifier("error");
   const handleOpenReplace = useCallback(() => setReplaceOpen(true), []);
   const handleCloseReplace = useCallback(() => setReplaceOpen(false), []);
-  const handleClearError = useCallback(() => setActionError(null), []);
   const handleUnlink = useCallback(
     () => unlinkClip(clipId),
     [unlinkClip, clipId]
@@ -348,7 +347,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
           onSendToWorkflow={handleSendToWorkflow}
           onClose={handleCloseContextMenu}
           onRequestReplace={handleOpenReplace}
-          onError={setActionError}
+          onError={reportActionError}
         />
       )}
       {workflowSend && (
@@ -375,14 +374,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
           onClose={handleCloseReplace}
         />
       )}
-      <Toast
-        open={actionError !== null}
-        message={actionError ?? ""}
-        severity="error"
-        onClose={handleClearError}
-        vertical="top"
-        horizontal="center"
-      />
     </>
   );
 });

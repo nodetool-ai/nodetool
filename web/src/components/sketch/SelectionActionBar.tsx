@@ -36,7 +36,6 @@ import {
   MOTION,
   reducedMotion,
   TextInput,
-  Toast,
   Tooltip,
   Box
 } from "../ui_primitives";
@@ -55,6 +54,7 @@ import { getSelectionBounds } from "./selection";
 import type { Point } from "./types";
 import { SKETCH_Z_INDEX } from "./sketchStyles";
 import { RefineSelectionPopover } from "./tool-settings-panels/refine-selection";
+import { useAlertNotifier } from "../../hooks/useAlertNotifier";
 
 /** Gap in CSS px between the selection edge and the bar. */
 const BAR_GAP = 12;
@@ -153,7 +153,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   const [model, setModel] = useState(seed.model);
   const [provider, setProvider] = useState(seed.provider);
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const reportError = useAlertNotifier("warning");
 
   // start() resolves as soon as the RPC is sent — the actual generation runs
   // for seconds afterwards and only surfaces through the binding status. Track
@@ -224,16 +224,16 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         setJobLayerId(null);
         switch (result.reason) {
           case "no-selection":
-            setError("Make a selection first.");
+            reportError("Make a selection first.");
             break;
           case "no-document":
-            setError("No image document is open.");
+            reportError("No image document is open.");
             break;
           case "no-canvas":
-            setError("Canvas is not ready yet.");
+            reportError("Canvas is not ready yet.");
             break;
           case "error":
-            setError(result.message ?? "Generation failed.");
+            reportError(result.message ?? "Generation failed.");
             break;
         }
         return;
@@ -242,11 +242,11 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
       await start(result.layerId);
       setPrompt("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Generation failed.");
+      reportError(e instanceof Error ? e.message : "Generation failed.");
     } finally {
       setGenerating(false);
     }
-  }, [inpaintHere, start, prompt, provider, model, mode]);
+  }, [inpaintHere, start, prompt, provider, model, mode, reportError]);
 
   const handleRemove = useCallback(() => {
     if (clearActiveLayer) {
@@ -568,15 +568,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           onConvertSelectionToBorder={convertSelectionToBorderOutline}
         />
       )}
-
-      <Toast
-        open={error !== null}
-        message={error ?? ""}
-        severity="warning"
-        onClose={() => setError(null)}
-        vertical="top"
-        horizontal="center"
-      />
     </>
   );
 };
