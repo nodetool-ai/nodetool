@@ -65,7 +65,7 @@ type ${name}Contact = { otherId: string; phase: "enter" | "stay" | "exit"; senso
 /** A trigger event from the previous tick. \`entityId\` is the sender. \`target\` is absent for a broadcast. */
 type ${name}Event = { kind: "trigger"; event: string; entityId: string; payload?: JSONValue; target?: { entityId: string } | { tag: string } };
 type ${name}Result = { state?: unknown; commands?: ${command}[] } | undefined | void;
-type ${name}DestroyCommandKind = "hud" | "emit" | "spawn" | "despawn" | "sceneTransition";
+type ${name}DestroyCommandKind = "hud" | "emit" | "spawn" | "despawn" | "sceneTransition" | "log";
 /**
  * A script may be an object of hooks instead of a function. Within a tick they run in this order:
  * onStart (first call), onSceneEnter, onTriggerEnter, onTriggerExit and onContact (previous tick's contacts

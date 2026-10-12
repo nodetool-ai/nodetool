@@ -94,6 +94,14 @@ label. Font assets use `mediaKind: "font"`, `fontFormat: "ttf" | "otf"`, and
 play and capture. An optional font (`required: false`) reports a fallback before
 play. Export embeds the font bytes for offline use.
 
+`log {message, level?}` writes a line to the editor console in 2D and 3D.
+`level` is `"log"` (the default), `"warning"` or `"error"`. A log line never
+changes the simulation, snapshots or replay, and it does not count toward
+`maxCommands`. A tick keeps 32 lines and reports the rest as one dropped-lines
+warning. Messages longer than 1000 characters are truncated. Log text still
+counts toward the 64 KiB output limit of a script call. Lines logged before a
+script failure appear in the console ahead of the error.
+
 ### Script time limits
 
 `maxTickMs` counts the CPU time of the thread running the script, from just
@@ -164,7 +172,7 @@ one before it. Within a tick they run in this order:
 6. `onFixedUpdate` or `onUpdate`. They are aliases. Define one of them.
 
 `onDestroy` runs alone in the tick after the entity despawns. It may return
-only `hud`, `emit`, `spawn`, `despawn` and `sceneTransition` commands. A scene
+only `hud`, `emit`, `spawn`, `despawn`, `sceneTransition` and `log` commands. A scene
 transition discards behavior state without calling `onDestroy`.
 
 `after(ticks, name)` calls the object's method `name` once, `ticks` ticks

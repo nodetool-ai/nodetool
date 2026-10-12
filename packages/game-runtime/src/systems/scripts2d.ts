@@ -180,6 +180,7 @@ export function stepScripts2D(context: GameSystemContext2D): void {
       context.rngState,
       worldAtStart
     );
+    context.scriptLogs = batch.logs;
     const byId = new Map(context.states.map((state) => [state.definition.id, state]));
     for (const [index, item] of batch.results.entries()) {
       if (context.scriptCalls[index].lifecycle?.destroy) { assertDestroyCommands(item.commands, item.entityId, context.tick); }

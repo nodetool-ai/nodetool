@@ -3,6 +3,7 @@ export * from "./session.js";
 export * from "./sample.js";
 export * from "./document-ops.js";
 export * from "./script-types.js";
+export * from "./script-log.js";
 export * from "./autoplay.js";
 export * from "./validate3d.js";
 export * from "./document-ops3d.js";
