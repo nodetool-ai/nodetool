@@ -1593,7 +1593,7 @@ curl "http://localhost:7777/api/applications/<application_id>/export-project" \
 The response is `application/zip` with
 `content-disposition: attachment; filename="<project-name>.zip"`. The project
 layout is described in
-[`@nodetool-ai/app-export`](../packages/app-export/README.md). The CLI
+[`@nodetool-ai/app-export`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-export/README.md). The CLI
 equivalent is `nodetool apps export-project`.
 
 ### Building an App on the Server

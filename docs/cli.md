@@ -602,7 +602,7 @@ nodetool apps export-bundle <application_id> -o my.app.json --released
 
 Export an application as a standalone JavaScript project that runs without NodeTool: a Vite + React UI and a Node
 server that runs the app's workflows in process through `@nodetool-ai/execution`. Takes an application id from the local
-database or an exported `.app.json` bundle. See [`@nodetool-ai/app-export`](../packages/app-export/README.md) for what
+database or an exported `.app.json` bundle. See [`@nodetool-ai/app-export`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-export/README.md) for what
 the project contains.
 
 **Options:**
