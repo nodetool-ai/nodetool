@@ -1,4 +1,4 @@
-import type { GameSaveRecord, GameSaveStorage } from "@nodetool-ai/game-runtime";
+import type { GamePlayerSaves, GameSaveRecord, GameSaveStorage } from "@nodetool-ai/game-runtime";
 import type { GameSaveScope } from "@nodetool-ai/protocol";
 
 const DATABASE = "nodetool-game-saves";
@@ -74,4 +74,18 @@ export function createLocalGameSaveStorage(gameId: string, storage: GameSaveWebS
       return slotsUnder(keys, gameId, scope);
     }
   };
+}
+
+/**
+ * Reads the progress quick save. When the slot is empty, a snapshot saved under the player's earlier
+ * localStorage key is moved into the slot once and the old key is removed.
+ */
+export async function loadQuickSave(saves: GamePlayerSaves, slot: string, legacy: { readonly storage: GameSaveWebStorage; readonly key: string }): Promise<GameSaveRecord | null> {
+  const record = await saves.load("progress", slot);
+  if (record !== null) { return record; }
+  const stored = legacy.storage.getItem(legacy.key);
+  if (stored === null) { return null; }
+  await saves.save("progress", slot, {}, JSON.parse(stored) as unknown);
+  legacy.storage.removeItem(legacy.key);
+  return saves.load("progress", slot);
 }

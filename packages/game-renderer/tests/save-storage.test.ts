@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GamePlayerSaves } from "@nodetool-ai/game-runtime";
 
-import { createIndexedDbGameSaveStorage, createLocalGameSaveStorage, type GameSaveWebStorage } from "../src/save-storage.js";
+import { createIndexedDbGameSaveStorage, createLocalGameSaveStorage, loadQuickSave, type GameSaveWebStorage } from "../src/save-storage.js";
 
 /** The IndexedDB surface the adapter uses, backed by one shared map per database name. Callbacks fire asynchronously. */
 function fakeIndexedDb(): { factory: IDBFactory; rows: Map<string, unknown> } {
@@ -99,4 +99,37 @@ it("prefixes localStorage keys so other editor data is never listed as a slot", 
   await storage.write("progress", "main", { version: 1, data: {} });
   expect([...web.items.keys()]).toEqual(["nodetool.game.save.g1", "nodetool.game.saves/g1/progress/main"]);
   expect(await storage.slots("progress")).toEqual(["main"]);
+});
+
+describe("quick save migration", () => {
+  const legacyKey = "nodetool-game:g1:r1:save";
+
+  it("moves an old localStorage quick save into the empty IndexedDB slot once and removes the old key", async () => {
+    const backing = fakeIndexedDb();
+    const web = memoryWebStorage();
+    web.setItem(legacyKey, JSON.stringify({ tick: 42 }));
+    const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage("g1", backing.factory));
+    expect(await loadQuickSave(saves, "quicksave", { storage: web, key: legacyKey })).toEqual({ version: 1, data: {}, snapshot: { tick: 42 } });
+    expect(web.getItem(legacyKey)).toBeNull();
+    expect([...backing.rows.keys()]).toEqual(["g1/progress/quicksave"]);
+    expect(await loadQuickSave(saves, "quicksave", { storage: web, key: legacyKey })).toEqual({ version: 1, data: {}, snapshot: { tick: 42 } });
+  });
+
+  it("prefers the IndexedDB slot and leaves the old key alone when the slot has a save", async () => {
+    const web = memoryWebStorage();
+    web.setItem(legacyKey, JSON.stringify({ tick: 1 }));
+    const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage("g1", fakeIndexedDb().factory));
+    await saves.save("progress", "quicksave", {}, { tick: 7 });
+    expect((await loadQuickSave(saves, "quicksave", { storage: web, key: legacyKey }))?.snapshot).toEqual({ tick: 7 });
+    expect(web.getItem(legacyKey)).toBe(JSON.stringify({ tick: 1 }));
+  });
+
+  it("returns null with no save anywhere and keeps an unreadable old save in place", async () => {
+    const web = memoryWebStorage();
+    const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage("g1", fakeIndexedDb().factory));
+    expect(await loadQuickSave(saves, "quicksave", { storage: web, key: legacyKey })).toBeNull();
+    web.setItem(legacyKey, "{not json");
+    await expect(loadQuickSave(saves, "quicksave", { storage: web, key: legacyKey })).rejects.toThrow(SyntaxError);
+    expect(web.getItem(legacyKey)).toBe("{not json");
+  });
 });

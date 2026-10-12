@@ -9,7 +9,7 @@ import { gameUiViewport2D } from "./ui/hud2d.js";
 import { resolveGameInputBindings } from "@nodetool-ai/protocol";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
 import { GameParticles2D } from "./particles/render2d.js";
-import { createIndexedDbGameSaveStorage } from "./save-storage.js";
+import { createIndexedDbGameSaveStorage, loadQuickSave } from "./save-storage.js";
 
 declare global {
   interface Window {
@@ -155,6 +155,8 @@ async function start(): Promise<void> {
   // Script saves and the Save button share per-game IndexedDB storage. Loaded data reaches scripts on the next frame.
   const saves = new GamePlayerSaves(createIndexedDbGameSaveStorage(game.id), { onError: (error) => showStatus(error.message) });
   const QUICK_SAVE = "quicksave";
+  // Quick saves from before IndexedDB storage, moved into the quicksave slot on the first load.
+  const legacyQuickSave = { storage: localStorage, key: `nodetool-game:${game.id}:${game.revision}:save` };
   function stepSession(frame: GameInputFrame) {
     const result = session.step(saves.withLoaded(frame));
     saves.handle(result.saveRequests, () => session.snapshot());
@@ -265,7 +267,7 @@ async function start(): Promise<void> {
       .catch((error) => showStatus(error instanceof Error ? error.message : "Game could not be saved"));
   });
   element("load").addEventListener("click", () => {
-    void saves.load("progress", QUICK_SAVE).then(async (record) => {
+    void loadQuickSave(saves, QUICK_SAVE, legacyQuickSave).then(async (record) => {
       if (record?.snapshot === undefined) {
         showStatus("No saved game");
         return;
