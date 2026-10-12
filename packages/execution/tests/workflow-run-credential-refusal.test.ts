@@ -54,6 +54,9 @@ class FakeJob {
     this.error = message;
   }
   async save(): Promise<void> {}
+  async saveIfActive(): Promise<boolean> {
+    return true;
+  }
 }
 
 const jobCreate = vi.hoisted(() => vi.fn(async () => new FakeJob()));

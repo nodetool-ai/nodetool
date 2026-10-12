@@ -210,7 +210,7 @@ export const RUNTIME_PACKAGES = {
     id: "playwright",
     name: "Playwright",
     description:
-      "Browser automation library that captures frames of 3D games. The Chromium build it drives is a separate Playwright download.",
+      "Browser automation library that renders timelines in headless Chrome and captures frames of 3D games. It uses an installed Google Chrome, or the Chromium build Playwright downloads separately.",
     category: "library",
     versionRange: "1.60.x",
     npmPackages: ["playwright@1.60.0"],

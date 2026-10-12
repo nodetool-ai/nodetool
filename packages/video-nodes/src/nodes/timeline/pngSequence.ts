@@ -177,18 +177,26 @@ class StoredZipWriter {
   }
 }
 
+/** A PNG-sequence zip that takes frames already encoded as PNG. */
+export interface PngZipWriter {
+  addPng(png: Buffer): void;
+  /** Write the `manifest.json` and close the archive. */
+  finish(): Promise<void>;
+  abort(): void;
+}
+
 /**
- * Open a {@link FrameEncoder} that writes each frame as a PNG into the zip at
- * `outPath`, and closes with a `manifest.json` naming the rate, the size and
- * the frame count.
+ * Open the zip at `outPath` for PNG frames in order. The headless browser
+ * render hands over the PNGs its canvas encoded; {@link openPngSequenceEncoder}
+ * encodes RGBA itself and writes through the same archive.
  */
-export function openPngSequenceEncoder(opts: {
+export function openPngZipWriter(opts: {
   outPath: string;
   width: number;
   height: number;
   fps: number;
   alpha: boolean;
-}): FrameEncoder {
+}): PngZipWriter {
   const { outPath, width, height, fps, alpha } = opts;
   const stream = createWriteStream(outPath);
   const zip = new StoredZipWriter(stream);
@@ -196,9 +204,9 @@ export function openPngSequenceEncoder(opts: {
   let aborted = false;
 
   return {
-    async write(rgba: Uint8Array): Promise<void> {
+    addPng(png: Buffer): void {
       if (aborted) return;
-      zip.add(frameName(count), encodeRgbaPng(rgba, width, height));
+      zip.add(frameName(count), png);
       count += 1;
     },
     async finish(): Promise<void> {
@@ -221,5 +229,27 @@ export function openPngSequenceEncoder(opts: {
       aborted = true;
       stream.destroy();
     }
+  };
+}
+
+/**
+ * Open a {@link FrameEncoder} that writes each frame as a PNG into the zip at
+ * `outPath`, and closes with a `manifest.json` naming the rate, the size and
+ * the frame count.
+ */
+export function openPngSequenceEncoder(opts: {
+  outPath: string;
+  width: number;
+  height: number;
+  fps: number;
+  alpha: boolean;
+}): FrameEncoder {
+  const zip = openPngZipWriter(opts);
+  return {
+    async write(rgba: Uint8Array): Promise<void> {
+      zip.addPng(encodeRgbaPng(rgba, opts.width, opts.height));
+    },
+    finish: () => zip.finish(),
+    abort: () => zip.abort()
   };
 }

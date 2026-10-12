@@ -197,8 +197,9 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       lastFrameRef.current = initialFrame;
       setFrame(initialFrame);
       audio.reset(session.snapshot());
-      const { createGameRenderer3D } = await import("@nodetool-ai/game-renderer/browser3d");
+      const { createGameRenderer3D, createGameEditorPasses3D } = await import("@nodetool-ai/game-renderer/browser3d");
       rendererPromiseRef.current ??= createGameRenderer3D({ canvas, signal: rendererControllerRef.current.signal,
+        editorPasses: createGameEditorPasses3D,
         resolveModel: async (slot, signal) => {
           const bytes = await readAsset(slot, signal);
           return bytes ? { bytes, digest: sourceRef.current.assets[slot]?.digest } : null;

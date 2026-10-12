@@ -1542,6 +1542,11 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
         logs: [`job ${job.id} started`, `workflow ${job.workflow_id} scheduled`]
       };
     }),
+    tool("cancel_job", "Cancel a running job.", { job_id: s }, (params) => {
+      const job = world.jobs.get(str(params["job_id"]));
+      if (!job) throw new Error(`No job "${str(params["job_id"])}"`);
+      return { job_id: job.id, cancelled: true };
+    }),
     tool(
       "list_assets",
       "List assets.",

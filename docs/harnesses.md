@@ -2208,6 +2208,11 @@ npm run dev:nodetool -- jobs get <job_id>                        # Job details
 npm run dev:nodetool -- jobs get <job_id> --json
 ```
 
+Agents and MCP clients cancel a job with `cancel_job` (`nodetool.jobs.cancel(id)`
+in an action), and the web uses the `jobs.cancel` procedure. Both mark the row
+cancelled and stop a run executing in the server process, so a cancelled job
+is never overwritten as completed.
+
 ### nodetool assets
 
 ```bash

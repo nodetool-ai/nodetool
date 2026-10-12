@@ -1,19 +1,53 @@
-wiring-faults error missing_id Node of type "nodetool.output.StringOutput" has no id
-wiring-faults error slot_type_alias Dynamic input "extra" is typed "string", which is not a NodeTool type — use "str". A handle typed with an unknown name will not connect.
-wiring-faults error property Dynamic input "q" is declared as int but holds a string
-wiring-faults error fan_in Handle "value" on node "sink" receives 3 edges but its type "str" is not a list; the kernel's correlation analysis rejects this at run time. To gather several values into one list, wire each edge into a list-typed input instead: `value` on nodetool.constant.List accepts any number of edges and outputs them as one list. nodetool.control.Collect gathers the items of a single stream.
-wiring-faults error cycle Node "sum" is connected to itself by edge "e4"; self-loop edges are not supported and deadlock the run
-wiring-faults warning type_mismatch Edge "e1" connects nodetool.input.StringInput.output (str) → nodetool.text.Concat.n (int) — types may be incompatible
-wiring-faults error missing_handle Edge "e7" names no target handle on node "sink" — it cannot be routed
-wiring-faults error missing_handle Edge "e8" names no source handle on node "src" — it cannot be routed
-wiring-faults error dangling_edge Edge "e9" target node "nowhere" does not exist
-wiring-faults warning dynamic_type_mismatch Dynamic input "q" on node "mix" is declared as int but holds a string
-model-faults error property Property "model" requires a language_model to be selected — assign {type: "language_model", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim.
-model-faults error property Required property "prompt" is not set
-model-faults error property Required property "prompt" is not set
-model-faults error property Required property "prompt" is not set
-model-faults error property Property "model" requires a language_model to be selected — assign {type: "language_model", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim.
-model-faults error property Required property "prompt" is not set
-model-faults error missing_provider Property "model" selects model "gpt-5" but names no provider; the runtime cannot resolve a model id on its own
-model-faults error unknown_provider Property "model" selects provider "nope", which is not registered. Known providers: anthropic, openai
-model-faults error unknown_model Property "model" selects model "gpt-nop", which provider "openai" does not offer. Did you mean: gpt-5?
+linear-chain in error property Property "image" requires a image (asset, uri, or inline data)
+linear-chain up error property Property "image" requires a image (asset, uri, or inline data)
+linear-chain out error property Property "image" requires a image (asset, uri, or inline data)
+reactflow-shape a error property Property "image" requires a image (asset, uri, or inline data)
+reactflow-shape b error property Property "image" requires a image (asset, uri, or inline data)
+reactflow-shape c error property Property "image" requires a image (asset, uri, or inline data)
+code-node src error property Property "image" requires a image (asset, uri, or inline data)
+code-node code error property Property "image" requires a image (asset, uri, or inline data)
+code-node sink error property Property "image" requires a image (asset, uri, or inline data)
+model-reference prompt error property Property "image" requires a image (asset, uri, or inline data)
+model-reference llm error property Property "image" requires a image (asset, uri, or inline data)
+model-reference answer error property Property "image" requires a image (asset, uri, or inline data)
+wiring-faults - error missing_id Node of type "nodetool.output.StringOutput" has no id
+wiring-faults src error property Property "image" requires a image (asset, uri, or inline data)
+wiring-faults src2 error property Property "image" requires a image (asset, uri, or inline data)
+wiring-faults sum error property Property "image" requires a image (asset, uri, or inline data)
+wiring-faults sum error slot_type_alias Dynamic input "extra" is typed "string", which is not a NodeTool type — use "str". A handle typed with an unknown name will not connect.
+wiring-faults mix error property Property "image" requires a image (asset, uri, or inline data)
+wiring-faults mix error property Dynamic input "q" is declared as int but holds a string
+wiring-faults ghost error property Property "image" requires a image (asset, uri, or inline data)
+wiring-faults sink error property Property "image" requires a image (asset, uri, or inline data)
+wiring-faults sink error fan_in Handle "value" on node "sink" receives 3 edges but its type "str" is not a list; the kernel's correlation analysis rejects this at run time. To gather several values into one list, wire each edge into a list-typed input instead: `value` on nodetool.constant.List accepts any number of edges and outputs them as one list. nodetool.control.Collect gathers the items of a single stream.
+wiring-faults sum error cycle Node "sum" is connected to itself by edge "e4"; self-loop edges are not supported and deadlock the run
+wiring-faults sum warning type_mismatch Edge "e1" connects nodetool.input.StringInput.output (str) → nodetool.text.Concat.n (int) — types may be incompatible
+wiring-faults sink error missing_handle Edge "e7" names no target handle on node "sink" — it cannot be routed
+wiring-faults src error missing_handle Edge "e8" names no source handle on node "src" — it cannot be routed
+wiring-faults - error dangling_edge Edge "e9" target node "nowhere" does not exist
+wiring-faults mix warning dynamic_type_mismatch Dynamic input "q" on node "mix" is declared as int but holds a string
+asset-values asset-null error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-null error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-empty-object error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-empty-object error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-blank-fields error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-blank-fields error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-empty-data-array error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-empty-data-array error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-null-data error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-null-data error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-array error property Property "image" requires a image (asset, uri, or inline data)
+asset-values asset-array error property Property "image" requires a image (asset, uri, or inline data)
+model-faults no-provider error property Property "model" requires a language_model to be selected — assign {type: "language_model", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim.
+model-faults no-provider error property Required property "prompt" is not set
+model-faults no-provider error property Property "image" requires a image (asset, uri, or inline data)
+model-faults bad-provider error property Required property "prompt" is not set
+model-faults bad-provider error property Property "image" requires a image (asset, uri, or inline data)
+model-faults bad-model error property Required property "prompt" is not set
+model-faults bad-model error property Property "image" requires a image (asset, uri, or inline data)
+model-faults unset error property Property "model" requires a language_model to be selected — assign {type: "language_model", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim.
+model-faults unset error property Required property "prompt" is not set
+model-faults unset error property Property "image" requires a image (asset, uri, or inline data)
+model-faults no-provider error missing_provider Property "model" selects model "gpt-5" but names no provider; the runtime cannot resolve a model id on its own
+model-faults bad-provider error unknown_provider Property "model" selects provider "nope", which is not registered. Known providers: anthropic, openai
+model-faults bad-model error unknown_model Property "model" selects model "gpt-nop", which provider "openai" does not offer. Did you mean: gpt-5?
