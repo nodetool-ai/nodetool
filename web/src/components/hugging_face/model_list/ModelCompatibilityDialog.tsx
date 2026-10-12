@@ -159,20 +159,9 @@ const NodeList: React.FC<{
                 {isRecommended && (
                   <Chip
                     label="Best match"
-                    size="small"
+                    compact
                     color="primary"
                     variant="outlined"
-                    sx={{
-                      height: 16,
-                      fontSize: "var(--fontSizeSmaller)",
-                      fontWeight: 600,
-                      px: SPACING.micro,
-                      borderRadius: BORDER_RADIUS.xs,
-                      background:
-                        "rgba(var(--palette-primary-mainChannel) / 0.13)",
-                      borderColor:
-                        "rgba(var(--palette-primary-mainChannel) / 0.27)"
-                    }}
                   />
                 )}
               </FlexRow>

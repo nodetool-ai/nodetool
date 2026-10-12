@@ -39,13 +39,11 @@ import {
   Panel,
   Text,
   TextInput,
-  BORDER_RADIUS,
   CONTROL,
   SPACING,
   TYPOGRAPHY
 } from "../ui_primitives";
 import { colorForType } from "../../config/data_types";
-import { hexToRgba } from "../../utils/ColorUtils";
 
 interface ShotInspectorProps {
   boardId: string;
@@ -74,17 +72,6 @@ const quietActionSx = {
 } as const;
 
 /** A cross-document link chip, tinted by the document type it points at. */
-const linkChipSx = (color: string) =>
-  ({
-    height: `${CONTROL.height.xs}px`,
-    borderRadius: BORDER_RADIUS.md,
-    borderColor: hexToRgba(color, 0.35),
-    color
-  }) as const;
-
-const scriptChipSx = linkChipSx(SCRIPT_COLOR);
-const timelineChipSx = linkChipSx(TIMELINE_COLOR);
-
 const NO_ENTITY_IDS: string[] = [];
 
 const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
@@ -205,7 +192,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
             compact
             variant="outlined"
             label={timelineLink.label}
-            sx={timelineChipSx}
+            accent={TIMELINE_COLOR}
             onClick={timelineLink.open}
             title="Open the cut with this shot's clip selected"
           />
@@ -215,7 +202,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
             compact
             variant="outlined"
             label={scriptLink.label}
-            sx={scriptChipSx}
+            accent={SCRIPT_COLOR}
             onClick={handleOpenScript}
             title="Open the script this shot's lines come from"
           />

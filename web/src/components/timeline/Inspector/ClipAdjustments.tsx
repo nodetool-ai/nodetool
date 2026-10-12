@@ -48,6 +48,7 @@ import {
   sectionContentStyles
 } from "./InspectorPrimitives";
 import { parseFiniteNumber, parseSeconds } from "./InspectorPrimitives.helpers";
+import { ClipAudioEffects } from "./ClipAudioEffects";
 import { ClipEffectsList } from "./ClipEffectsList";
 import { ClipMaskMatte } from "./ClipMaskMatte";
 import { ClipTransitionSection } from "./ClipTransitionSection";
@@ -752,6 +753,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
             </CollapsibleSection>
           </>
         )}
+
+        {isSounding && <ClipAudioEffects clip={clip} />}
 
         {!isSounding && (
           <>

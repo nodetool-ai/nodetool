@@ -381,6 +381,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "name secrets. `save`/`probe` spawn or connect to one, so the whole " +
       "router is credential and host-process surface."
   },
+  "extension.installHost": {
+    withheld:
+      "Writes a native messaging host into the user's browser profiles " +
+      "and an executable wrapper into their home directory. Host setup the " +
+      "user asks for in the app, never something sandboxed code may do."
+  },
   "extension.status": {
     gap:
       "Browser-extension liveness; nothing a headless run acts on."

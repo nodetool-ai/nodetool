@@ -13,6 +13,7 @@ import ModelSupportSection from "../../components/ModelSupportSection";
 import ProductImage from "../../components/ProductImage";
 import RecipeShowcase from "../../components/RecipeShowcase";
 import StudioHero from "../../components/StudioHero";
+import SubscriptionSection from "../../components/SubscriptionSection";
 import StoryboardTeaser from "../../components/storyboards/StoryboardTeaser";
 import SurfaceShowcase from "../../components/SurfaceShowcase";
 import TimelineShowcase from "../../components/TimelineShowcase";
@@ -78,6 +79,8 @@ export default function StudioPage() {
         headingId="studio-hero-title"
         primaryAction={<StudioPrimaryAction />}
       />
+
+      <SubscriptionSection className="rhythm-section" />
 
       <section
         id="editable-project"

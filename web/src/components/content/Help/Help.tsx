@@ -9,8 +9,9 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  Tabs,
-  Tab
+  TabGroup,
+  TabPanel,
+  type TabItem
 } from "../../ui_primitives";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
@@ -23,11 +24,12 @@ import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
 import { Dialog } from "../../ui_primitives";
 
-interface TabPanelProps {
-  children: React.ReactNode;
-  index: number;
-  value: number;
-}
+// The header store keeps the help tab as an index into this list.
+const HELP_TABS: TabItem[] = [
+  { value: "shortcuts", label: "Shortcuts" },
+  { value: "keyboard", label: "Keyboard" },
+  { value: "datatypes", label: "Data types" }
+];
 
 const helpStyles = (theme: Theme) =>
   css({
@@ -49,34 +51,6 @@ const helpStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "space-between",
       margin: `0 ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`
-    },
-    ".help-tabs": {
-      paddingTop: "0",
-      lineHeight: "1.5",
-      flex: 1,
-      "& .MuiTabs-indicator": {
-        backgroundColor: "var(--palette-primary-main)",
-        height: "3px",
-        borderRadius: BORDER_RADIUS.xs
-      },
-      "& .MuiTab-root": {
-        color: theme.vars.palette.grey[200],
-        transition: `color ${MOTION.fast}`,
-        paddingBottom: `0`,
-        "&.Mui-selected": {
-          color: theme.vars.palette.grey[0]
-        },
-        "&:hover": {
-          color: theme.vars.palette.grey[0]
-        }
-      },
-      button: {
-        alignItems: "flex-start",
-        textAlign: "left",
-        paddingLeft: "0",
-        marginRight: getSpacingPx(SPACING.md),
-        minWidth: "unset"
-      }
     },
     ".tabpanel": {
       height: "calc(100% - 40px)",
@@ -166,21 +140,6 @@ const docsButtonStyles = (theme: Theme) =>
     }
   });
 
-const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
-  const { children, value, index } = props;
-  return (
-    <div
-      role="tabpanel"
-      className="tabpanel"
-      hidden={value !== index}
-      id={`help-tabpanel-${index}`}
-      aria-labelledby={`help-tab-${index}`}
-    >
-      {value === index && <Box className="tabpanel-content">{children}</Box>}
-    </div>
-  );
-});
-
 const Help = ({
   open,
   handleClose
@@ -190,8 +149,9 @@ const Help = ({
 }) => {
   const helpIndex = useAppHeaderStore((state) => state.helpIndex);
   const setHelpIndex = useAppHeaderStore((state) => state.setHelpIndex);
-  const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setHelpIndex(newValue);
+  const activeTab = HELP_TABS[helpIndex]?.value ?? HELP_TABS[0].value;
+  const handleChange = (newValue: string) => {
+    setHelpIndex(HELP_TABS.findIndex((tab) => tab.value === newValue));
   };
   const [expandedNodetool, setExpandedNodetool] = useState(true);
 
@@ -234,31 +194,34 @@ const Help = ({
       <div css={helpStyles(theme)}>
         <div className="help">
           <div className="tabs-row">
-            <Tabs
-              className="help-tabs"
-              value={helpIndex}
+            <TabGroup
+              tabs={HELP_TABS}
+              value={activeTab}
               onChange={handleChange}
               aria-label="help tabs"
-            >
-              <Tab label="Shortcuts" id="help-tab-0" />
-              <Tab label="Keyboard" id="help-tab-1" />
-              <Tab label="Data types" id="help-tab-2" />
-            </Tabs>
+              sx={{ flex: 1 }}
+            />
           </div>
           <div className="content">
-            <TabPanel value={helpIndex} index={0}>
-              <ControlsShortcutsTab />
+            <TabPanel value="shortcuts" activeValue={activeTab} className="tabpanel">
+              <Box className="tabpanel-content">
+                <ControlsShortcutsTab />
+              </Box>
             </TabPanel>
-            <TabPanel value={helpIndex} index={1}>
-              <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+            <TabPanel value="keyboard" activeValue={activeTab} className="tabpanel">
+              <Box className="tabpanel-content">
+                <KeyboardShortcutsView shortcuts={NODE_EDITOR_SHORTCUTS} />
+              </Box>
             </TabPanel>
-            <TabPanel value={helpIndex} index={2}>
-              <DataTypesList
-                title="Nodetool Data Types"
-                dataTypes={nodetoolTypes}
-                expanded={expandedNodetool}
-                onChange={handleAccordionChange("nodetool")}
-              />
+            <TabPanel value="datatypes" activeValue={activeTab} className="tabpanel">
+              <Box className="tabpanel-content">
+                <DataTypesList
+                  title="Nodetool Data Types"
+                  dataTypes={nodetoolTypes}
+                  expanded={expandedNodetool}
+                  onChange={handleAccordionChange("nodetool")}
+                />
+              </Box>
             </TabPanel>
           </div>
         </div>

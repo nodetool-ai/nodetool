@@ -55,6 +55,8 @@ import {
   timeRemapAudioSegments,
   type TimeRemapAudioSegment,
   type TimelineClip,
+  clipAudioTailSec,
+  type ClipAudioEffect,
   type TrackCompressorEffect,
   type TrackEffect,
   type TimelineSequence,
@@ -395,6 +397,7 @@ function audioClipFilter(
     steps.push(`volume=${clip.volumeDb}dB`);
   }
   steps.push(...clipFadeSteps(clip, 0));
+  steps.push(...clipEffectChainSteps(clip));
   const delay = Math.max(0, Math.round(clip.startMs));
   steps.push(`adelay=${delay}|${delay}`);
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
@@ -504,6 +507,92 @@ function audioEffectSteps(effect: TrackEffect): string[] {
     default:
       return [];
   }
+}
+
+/** Most taps an `aecho` is given, so a long feedback echo stays cheap. */
+const MAX_ECHO_TAPS = 32;
+/** A tap quieter than this (-60 dB) is left out. */
+const SILENT_TAP_GAIN = 0.001;
+/** Taps the reverb approximation spreads over its decay. */
+const REVERB_TAPS = 24;
+
+/** An `aecho` from a dry gain and taps of `[delayMs, gain]`. */
+function aechoStep(dryGain: number, taps: Array<[number, number]>): string {
+  const delays = taps.map(([ms]) => clampTo(Math.round(ms), 1, 90000));
+  const decays = taps.map(([, gain]) => clampTo(gain, 0.0001, 1).toFixed(5));
+  return `aecho=${clampTo(dryGain, 0.001, 1).toFixed(5)}:1:${delays.join("|")}:${decays.join("|")}`;
+}
+
+/**
+ * ffmpeg steps for one clip effect, matching `audioEffectNodes.ts` in the
+ * browser. The track DSP types reuse {@link audioEffectSteps}.
+ *
+ * An echo is a delay line feeding itself; unrolled, it is a tap at every
+ * multiple of the delay, each `feedback` times the one before, which is what
+ * `aecho` plays. A reverb in the browser convolves with decaying noise, and
+ * ffmpeg has no convolver without a second input stream, so here it is a
+ * spread of taps on the same -60 dB envelope: the same decay and level, with
+ * a grainier tail.
+ */
+function clipAudioEffectSteps(effect: ClipAudioEffect): string[] {
+  switch (effect.type) {
+    case "echo": {
+      const mix = clampTo(effect.mix, 0, 1);
+      const feedback = clampTo(effect.feedback, 0, 0.95);
+      const taps: Array<[number, number]> = [];
+      for (let k = 1; k <= MAX_ECHO_TAPS; k += 1) {
+        const gain = mix * Math.pow(feedback, k - 1);
+        if (k > 1 && gain < SILENT_TAP_GAIN) break;
+        taps.push([effect.delayMs * k, gain]);
+      }
+      return [aechoStep(1 - mix, taps)];
+    }
+    case "reverb": {
+      const mix = clampTo(effect.mix, 0, 1);
+      const decayMs = Math.max(50, effect.decaySec * 1000);
+      const times = Array.from(
+        { length: REVERB_TAPS },
+        (_, i) => 10 + decayMs * 0.8 * Math.pow((i + 1) / REVERB_TAPS, 1.6)
+      );
+      // ln(1000): -60 dB at the end of the decay.
+      const raw = times.map((ms) => Math.exp((-Math.log(1000) * ms) / decayMs));
+      const norm = Math.sqrt(raw.reduce((sum, g) => sum + g * g, 0));
+      return [
+        aechoStep(
+          1 - mix,
+          times.map((ms, i) => [ms, (mix * raw[i]) / norm])
+        )
+      ];
+    }
+    case "distortion": {
+      // tanh(k·x) / tanh(k), as the browser's wave shaper curve.
+      const drive = Math.pow(10, Math.max(0, effect.driveDb) / 20);
+      const normDb = -20 * Math.log10(Math.tanh(drive));
+      return [
+        `volume=${Math.max(0, effect.driveDb)}dB`,
+        "asoftclip=type=tanh",
+        `volume=${(effect.outputDb + normDb).toFixed(3)}dB`
+      ];
+    }
+    default:
+      return audioEffectSteps(effect);
+  }
+}
+
+/**
+ * A clip's real-time effects, after its gain and fades. The stream is padded
+ * by the effects' tail first, so an echo or reverb rings on past the clip's
+ * last sample instead of stopping with it.
+ */
+function clipEffectChainSteps(clip: TimelineClip): string[] {
+  const effects = (clip.audioEffects ?? []).filter((effect) => effect.enabled);
+  if (effects.length === 0) return [];
+  const tailSec = clipAudioTailSec(effects);
+  return [
+    `aresample=${EFFECT_SAMPLE_RATE}`,
+    ...(tailSec > 0 ? [`apad=pad_dur=${tailSec.toFixed(3)}`] : []),
+    ...effects.flatMap(clipAudioEffectSteps)
+  ];
 }
 
 /**
@@ -842,15 +931,21 @@ async function mixAudioInto(opts: {
     // So a faded remapped clip is mixed back into one stream first, at its
     // timeline offsets, and faded there. `normalize=0` keeps the level: the
     // stretches abut rather than overlap, so nothing is summed.
-    if (segmentLabels.length > 0 && hasClipFade(clip)) {
+    // Clip effects likewise run on the whole clip, after its fades.
+    const effectSteps = clipEffectChainSteps(clip);
+    if (
+      segmentLabels.length > 0 &&
+      (hasClipFade(clip) || effectSteps.length > 0)
+    ) {
       const faded = `a${i}_fade`;
+      const clipSteps = [...clipFadeSteps(clip, clip.startMs), ...effectSteps];
       const steps =
         segmentLabels.length > 1
           ? [
               `amix=inputs=${segmentLabels.length}:duration=longest:normalize=0`,
-              ...clipFadeSteps(clip, clip.startMs)
+              ...clipSteps
             ]
-          : clipFadeSteps(clip, clip.startMs);
+          : clipSteps;
       filters.push(`${segmentLabels.join("")}${steps.join(",")}[${faded}]`);
       labelsOf(clip).push(`[${faded}]`);
       continue;

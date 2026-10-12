@@ -1258,17 +1258,9 @@ const settleShotAsset = (
     if (!current) {
       return;
     }
-    // The first still belongs on the shot immediately. Later renders are
-    // alternate takes and must not replace a creator's current selection.
-    if (!current.keyframe && (current.keyframe_versions?.length ?? 0) === 0) {
-      storyboard.setShotKeyframe(context.boardId, context.shotId, keyframe);
-    } else {
-      storyboard.appendShotKeyframeVersion(
-        context.boardId,
-        context.shotId,
-        keyframe
-      );
-    }
+    // A new still becomes the shot's current still. The earlier stills stay
+    // in the versions, so the creator can pick one of them again.
+    storyboard.setShotKeyframe(context.boardId, context.shotId, keyframe);
     const shot = storyboard
       .getBoard(context.boardId)
       ?.shots.find((item) => item.id === context.shotId);

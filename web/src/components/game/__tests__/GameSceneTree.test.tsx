@@ -52,8 +52,8 @@ describe("GameSceneTree", () => {
     const child = screen.getByRole("button", { name: "Child" });
     const groupIndent = parseFloat(getComputedStyle(group.parentElement!).paddingLeft) +
       parseFloat(getComputedStyle(group).paddingLeft);
-    const parentIndent = parseFloat(getComputedStyle(parent).paddingLeft);
-    const childIndent = parseFloat(getComputedStyle(child).paddingLeft);
+    const parentIndent = parseFloat(getComputedStyle(parent.parentElement!).paddingLeft);
+    const childIndent = parseFloat(getComputedStyle(child.parentElement!).paddingLeft);
 
     expect(parent).toHaveStyle({ fontSize: "var(--fontSizeSmall)" });
     expect(parentIndent).toBeGreaterThan(groupIndent);
@@ -70,6 +70,16 @@ describe("GameSceneTree", () => {
     expect(screen.getByRole("button", { name: "Scene Arena" })).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(screen.getByRole("button", { name: "Scene Arena" }));
     expect(onSelectScene).toHaveBeenCalledWith("arena");
+    expect(screen.getByRole("button", { name: "Child" })).toBeInTheDocument();
+  });
+
+  it("collapses an entity's children", async () => {
+    renderTree();
+    expect(screen.queryByRole("button", { name: "Collapse Sibling" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Collapse Parent" }));
+    expect(screen.queryByRole("button", { name: "Child" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand Parent" })).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(screen.getByRole("button", { name: "Expand Parent" }));
     expect(screen.getByRole("button", { name: "Child" })).toBeInTheDocument();
   });
 

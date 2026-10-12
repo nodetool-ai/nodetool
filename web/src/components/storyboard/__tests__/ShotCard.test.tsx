@@ -286,6 +286,22 @@ describe("ShotCard", () => {
     expect(screen.getByText("A lighthouse at dusk")).toBeInTheDocument();
   });
 
+  it("shows the duration next to the shot number", () => {
+    renderCard(makeShot(), {
+      caption: "Scene 1 | Shot 1",
+      durationSeconds: 75
+    });
+    expect(screen.getByTestId("shot-card-duration")).toHaveTextContent(
+      "1m 15s"
+    );
+    expect(screen.getByLabelText("75 seconds")).toBeInTheDocument();
+  });
+
+  it("shows no duration when the board has none for the shot", () => {
+    renderCard(makeShot(), { caption: "Scene 1 | Shot 1" });
+    expect(screen.queryByTestId("shot-card-duration")).not.toBeInTheDocument();
+  });
+
   it("shows why the last render failed", () => {
     // Seed the job state directly: this suite mocks the storyboard store, so
     // the action that would write it has nothing to write to.
@@ -487,7 +503,10 @@ describe("ShotCard media viewer", () => {
       })
     );
 
-    expect(screen.getByRole("button", { name: "Play clip" })).toBeVisible();
+    const play = screen.getByRole("button", { name: "Play clip" });
+    expect(play).not.toBeVisible();
+    fireEvent.mouseEnter(play.closest(".video-player") as HTMLElement);
+    expect(play).toBeVisible();
   });
 
   it("does not show a clip play action for an unrendered shot", () => {

@@ -643,6 +643,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           onModelDownload={handleModelDownload}
           modelType={modelType}
           downloadTargetLabel={downloadTargetLabel}
+          onClose={onClose}
         />
       </Box>
     </FlexColumn>

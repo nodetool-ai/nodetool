@@ -99,6 +99,7 @@ export {
 export {
   EXTENSION_ID,
   installNativeHost,
+  isNativeHostInstalled,
   nativeHostManifestDirs,
   type InstallNativeHostOptions,
   type InstallNativeHostResult

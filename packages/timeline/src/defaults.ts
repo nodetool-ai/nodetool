@@ -29,7 +29,8 @@ import type {
   TrackVideoBlurEffect,
   TrackSharpenEffect,
   TrackVignetteEffect,
-  TrackChromaKeyEffect
+  TrackChromaKeyEffect,
+  ClipAudioEffect
 } from "./types.js";
 
 /** Default fill for authored text clips, stored as canvas-ready color data. */
@@ -313,6 +314,47 @@ export function makeTrackEffect(type: TrackEffect["type"]): TrackEffect {
         softness: 0.1,
         spill: 0.5
       } satisfies TrackChromaKeyEffect;
+  }
+}
+
+/**
+ * Create a {@link ClipAudioEffect} of the given type with the same defaults
+ * as {@link makeTrackEffect} for the shared types.
+ */
+export function makeClipAudioEffect(
+  type: ClipAudioEffect["type"]
+): ClipAudioEffect {
+  switch (type) {
+    case "echo":
+      return {
+        id: createTimeOrderedUuid(),
+        type: "echo",
+        enabled: true,
+        delayMs: 350,
+        feedback: 0.4,
+        mix: 0.35
+      };
+    case "reverb":
+      return {
+        id: createTimeOrderedUuid(),
+        type: "reverb",
+        enabled: true,
+        decaySec: 2,
+        mix: 0.3
+      };
+    case "distortion":
+      return {
+        id: createTimeOrderedUuid(),
+        type: "distortion",
+        enabled: true,
+        driveDb: 12,
+        outputDb: -3
+      };
+    case "gain":
+    case "eq3":
+    case "filter":
+    case "compressor":
+      return makeTrackEffect(type) as ClipAudioEffect;
   }
 }
 

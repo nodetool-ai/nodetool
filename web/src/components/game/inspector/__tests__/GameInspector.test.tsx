@@ -45,11 +45,10 @@ describe("game inspector edits", () => {
     const user = userEvent.setup();
     const onDocument = jest.fn();
     render(<Fixture onDocument={onDocument} />);
-    await user.click(screen.getByRole("combobox", { name: "Add component" }));
-    await user.click(screen.getByRole("option", { name: "Sprite" }));
     await user.click(screen.getByRole("button", { name: "Add component" }));
+    await user.click(screen.getByRole("menuitem", { name: "Sprite" }));
     expect(onDocument.mock.lastCall?.[0].scenes[0].entities[0].sprite.assetId).toBe("image");
-    await user.click(screen.getByRole("button", { name: "Remove component" }));
+    await user.click(screen.getByRole("button", { name: "Remove Sprite" }));
     expect(onDocument.mock.lastCall?.[0].scenes[0].entities[0].sprite).toBeUndefined();
   });
 
@@ -57,9 +56,8 @@ describe("game inspector edits", () => {
     const user = userEvent.setup();
     const onDocument = jest.fn();
     render(<Fixture onDocument={onDocument} />);
-    await user.click(screen.getByRole("combobox", { name: "Add behavior" }));
-    await user.click(screen.getByRole("option", { name: "Collectible" }));
     await user.click(screen.getByRole("button", { name: "Add behavior" }));
+    await user.click(screen.getByRole("menuitem", { name: "Collectible" }));
     expect(onDocument.mock.lastCall?.[0].scenes[0].entities[0].behaviors).toEqual([{ kind: "collectible", score: 1 }]);
     await user.click(screen.getByRole("button", { name: "Remove behavior" }));
     expect(onDocument.mock.lastCall?.[0].scenes[0].entities[0].behaviors).toEqual([]);
@@ -82,9 +80,8 @@ describe("game inspector edits", () => {
     const onDocument = jest.fn();
     render(<Fixture onDocument={onDocument} />);
     await user.click(screen.getByRole("tab", { name: "Game" }));
-    await user.click(screen.getByRole("combobox", { name: "Add effect" }));
-    await user.click(screen.getByRole("option", { name: "Bloom" }));
     await user.click(screen.getByRole("button", { name: "Add effect" }));
+    await user.click(screen.getByRole("menuitem", { name: "Bloom" }));
     expect(onDocument.mock.lastCall?.[0].renderEffects[0].kind).toBe("bloom");
   });
 

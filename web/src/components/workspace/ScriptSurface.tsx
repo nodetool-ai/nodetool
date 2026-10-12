@@ -190,7 +190,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
               <EditorButton
                 size="small"
                 variant="contained"
-                startIcon={<GroupsIcon fontSize="small" />}
+                startIcon={<GroupsIcon />}
                 onClick={() => openSheet("cast")}
               >
                 Cast
@@ -198,7 +198,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
               <EditorButton
                 size="small"
                 variant="contained"
-                startIcon={<AutoAwesomeIcon fontSize="small" />}
+                startIcon={<AutoAwesomeIcon />}
                 onClick={() => openSheet("assistant")}
               >
                 Assistant

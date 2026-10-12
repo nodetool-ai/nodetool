@@ -15,7 +15,7 @@ description: "Call nodetool.web or nodetool.email from a code action: search the
 | `browse(url)` | Fetches a page and strips the HTML. | The readable text |
 | `fetch(url, {method, headers, body})` | One raw HTTP request. `method` defaults to GET. | The response body as text |
 | `download(url, outputFile)` | Saves the bytes of a URL into the workspace. `url` may also be an `asset://` URI, a `/api/storage/` key or a `data:` URI. | The workspace path, an `asset_url`, and for media a `display_markdown` snippet |
-| `screenshot(url, outputFile)` | Renders the page in headless Chrome and saves a PNG. `outputFile` defaults to `screenshot.png`. | The workspace path |
+| `screenshot(url, outputFile, {full_page})` | Renders the page in headless Chrome and saves a PNG. `outputFile` defaults to `screenshot.png`. `full_page: true` captures the whole scrollable page. | The workspace path |
 
 Options for `search`, `news` and `images`:
 

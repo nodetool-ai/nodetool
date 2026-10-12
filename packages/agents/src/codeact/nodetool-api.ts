@@ -133,7 +133,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "create_native_game", "get_native_game", "edit_native_game", "publish_native_game",
     "install_native_game_asset", "playtest_native_game", "capture_native_game_frame",
     "generate_game_asset", "build_native_game", "list_example_games", "get_example_game",
-    "install_example_game", "autoplay_native_game", "preview_native_game_authoring", "apply_native_game_authoring"
+    "install_example_game", "autoplay_native_game", "preview_native_game_authoring", "apply_native_game_authoring",
+    "browse_native_game_assets"
   ],
   timelines: [
     "list_timelines",
@@ -230,7 +231,33 @@ export function nodetoolApiCoveredToolNames(
  * Guest-side prelude defining the global `nodetool`. Plain QuickJS-safe JS —
  * no host bridges of its own; every effect goes through `__callBeltTool`.
  */
+/**
+ * Longest a guest \`wait\` blocks in one call. A code action stops at
+ * \`DEFAULT_CODEACT_ACTION_TIMEOUT_MS\` (codeact-executor.ts), and a wait at or
+ * past that budget loses the race: the action is cancelled before the wait
+ * can report its own timeout and the id to resume with. Half the budget, as
+ * \`MAX_RENDER_TIMEOUT_MS\` does for renders. \`jobs.wait\`, \`agents.wait\` and
+ * \`generations.wait\` clamp to it; \`await_run\` already caps lower.
+ */
+export const CODEACT_GUEST_WAIT_MAX_MS = 5 * 60_000;
+
+/**
+ * Longest \`timeout_seconds\` a guest \`ffmpeg\` or \`downloadVideo\` call passes
+ * on. Their tools accept up to 600 and 900 s, which is at or past the action
+ * budget, so the binary's own timeout error could never arrive. One minute
+ * under the budget leaves the binary's error and its cleanup room to land.
+ */
+export const CODEACT_GUEST_BINARY_TIMEOUT_MAX_S = 540;
+
 export const NODETOOL_API_PRELUDE = `
+const __WAIT_MAX_MS = ${CODEACT_GUEST_WAIT_MAX_MS};
+const __BINARY_TIMEOUT_MAX_S = ${CODEACT_GUEST_BINARY_TIMEOUT_MAX_S};
+const __binaryArgs = (args) => {
+  if (typeof args.timeout_seconds === "number") {
+    args.timeout_seconds = Math.min(args.timeout_seconds, __BINARY_TIMEOUT_MAX_S);
+  }
+  return args;
+};
 const nodetool = (() => {
   // \`__toolNames\` is the belt, and the object model calls it through
   // \`__callBeltTool\` rather than through a global belt object — there is no
@@ -247,6 +274,25 @@ const nodetool = (() => {
     return __callBeltTool(name);
   };
   const __merge = (a, b) => Object.assign({}, a || {}, b || {});
+
+  /**
+   * The \`vector_*\` tools work on a collection the host binds to the run, and
+   * no chat or CLI host binds one, so their tools are on no production belt.
+   * The generic "not in this toolbelt" error sent callers hunting for a tool
+   * that does not exist; this one names the methods that do work.
+   */
+  const __vector = (name, method) => {
+    if (!__belt.has(name)) {
+      throw new Error(
+        "nodetool.collections." + method + ": this session has no collection " +
+        "bound for indexing or direct search, so only list() and " +
+        "query(collection, text) work here. Index documents with the vector " +
+        "nodes in a workflow or in the collections UI " +
+        "(skill: nodetool-rag-indexing)."
+      );
+    }
+    return __callBeltTool(name);
+  };
 
   /**
    * A \`create(name, opts)\` call's arguments, however the caller spelled them.
@@ -673,7 +719,10 @@ const nodetool = (() => {
           opts
             ? {
                 ids: opts.ids,
-                timeout_ms: opts.timeoutMs
+                timeout_ms:
+                  typeof opts.timeoutMs === "number"
+                    ? Math.min(opts.timeoutMs, __WAIT_MAX_MS)
+                    : undefined
               }
             : {}
         );
@@ -718,11 +767,10 @@ const nodetool = (() => {
        * without waiting for it. Pass it to nodetool.jobs.wait() and read the
        * settled job's outputs.
        */
-      start: (id, params) =>
-        __need("start_background_job")({
-          workflow_id: id,
-          params: params || {}
-        }),
+      start: (id, params, opts) =>
+        __need("start_background_job")(
+          __merge(opts, { workflow_id: id, params: params || {} })
+        ),
       debug: (id, params, opts) =>
         __need("debug_workflow")(
           __merge(opts, { workflow_id: id, params: params || {} })
@@ -976,12 +1024,15 @@ const nodetool = (() => {
           )
         ),
       /** Run ffmpeg on workspace files. \`args\` is argv after the binary name. */
-      ffmpeg: (args, opts) => __need("ffmpeg")(__merge(opts, { args: args })),
+      ffmpeg: (args, opts) =>
+        __need("ffmpeg")(__binaryArgs(__merge(opts, { args: args }))),
       /** Read a media file's format and streams with ffprobe. */
       ffprobe: (path, opts) => __need("ffprobe")(__merge(opts, { path: path })),
       /** Download a video with yt-dlp. */
       downloadVideo: (url, outputFile, opts) =>
-        __need("yt_dlp")(__merge(opts, { url: url, output_file: outputFile }))
+        __need("yt_dlp")(
+          __binaryArgs(__merge(opts, { url: url, output_file: outputFile }))
+        )
     },
 
     documents: {
@@ -1036,12 +1087,19 @@ const nodetool = (() => {
       /** Save a URL's bytes into the workspace. */
       download: (url, outputFile) =>
         __need("download_file")({ url: url, output_file: outputFile }),
-      /** Render a page in a remote browser and save the PNG. */
-      screenshot: (url, outputFile) =>
-        __need("take_screenshot")({
-          url: url,
-          output_file: outputFile || "screenshot.png"
-        })
+      /**
+       * Render a page and save the PNG. \`screenshot(url, outputFile, {full_page})\`
+       * or \`screenshot(url, {output_file, full_page})\`.
+       */
+      screenshot: (url, outputFile, opts) => {
+        const args =
+          outputFile && typeof outputFile === "object"
+            ? __merge(outputFile)
+            : __merge(opts, outputFile ? { output_file: outputFile } : {});
+        if (!args.output_file) args.output_file = "screenshot.png";
+        args.url = url;
+        return __need("take_screenshot")(args);
+      }
     },
 
     memory: {
@@ -1123,13 +1181,17 @@ const nodetool = (() => {
       /**
        * Poll a background job until it settles, then return the job record.
        * Terminal statuses are completed / failed / cancelled / error (the
-       * jobs API's own terminal set). Throws after timeoutMs, naming the job
-       * and the last status seen.
+       * jobs API's own terminal set). Throws after timeoutMs (at most
+       * __WAIT_MAX_MS, so the throw lands inside the action budget), naming
+       * the job and the last status seen.
        */
       async wait(id, opts) {
         const jobId = __jobId(id, "wait");
         const pollMs = Math.max(1000, (opts && opts.pollMs) || 3000);
-        const timeoutMs = (opts && opts.timeoutMs) || 600000;
+        const timeoutMs = Math.min(
+          (opts && opts.timeoutMs) || __WAIT_MAX_MS,
+          __WAIT_MAX_MS
+        );
         const terminal = ["completed", "failed", "cancelled", "error"];
         const deadline = Date.now() + timeoutMs;
         let status = "unknown";
@@ -1166,10 +1228,18 @@ const nodetool = (() => {
        * Wait for a generation started with background: true to settle and
        * return its record — cost and asset ids included.
        */
-      wait: (id, opts) =>
-        __need("await_generation")(
-          __merge(opts, { generation_id: __generationId(id, "wait") })
-        ),
+      wait: (id, opts) => {
+        const args = __merge(opts, {
+          generation_id: __generationId(id, "wait")
+        });
+        if (typeof args.timeout_seconds === "number") {
+          args.timeout_seconds = Math.min(
+            args.timeout_seconds,
+            __WAIT_MAX_MS / 1000
+          );
+        }
+        return __need("await_generation")(args);
+      },
       cancel: (id) =>
         __need("cancel_generation")({
           generation_id: __generationId(id, "cancel")
@@ -1200,18 +1270,22 @@ const nodetool = (() => {
         ),
       /** Index one chunk under a source id (re-indexing the same id updates it). */
       index: (text, sourceId, opts) =>
-        __need("vector_index")(
+        __vector("vector_index", "index")(
           __merge(opts, { text: text, source_id: sourceId })
         ),
       /** Index many at once: [{text, source_id, metadata?}, ...]. */
       indexBatch: (chunks, opts) =>
-        __need("vector_batch_index")(__merge(opts, { chunks: chunks })),
+        __vector("vector_batch_index", "indexBatch")(
+          __merge(opts, { chunks: chunks })
+        ),
       /** Semantic search over the indexed chunks. */
       search: (text, opts) =>
-        __need("vector_text_search")(__merge(opts, { text: text })),
+        __vector("vector_text_search", "search")(__merge(opts, { text: text })),
       /** Semantic + keyword search fused by reciprocal rank. */
       hybridSearch: (text, opts) =>
-        __need("vector_hybrid_search")(__merge(opts, { text: text }))
+        __vector("vector_hybrid_search", "hybridSearch")(
+          __merge(opts, { text: text })
+        )
     },
 
     apps: {
@@ -1240,6 +1314,9 @@ const nodetool = (() => {
       previewAuthoring: (id, opts) => __need("preview_native_game_authoring")(__merge(opts, { game_id: id })),
       applyAuthoring: (id, candidate) => __need("apply_native_game_authoring")({ game_id: id, candidate }),
       publish: (id, opts) => __need("publish_native_game")(__merge(opts, { game_id: id })),
+      /** Assets, their uses and staged candidates; {digest, slot} returns an installable binding. */
+      browseAssets: (id, opts) =>
+        __need("browse_native_game_assets")(__merge(opts, { game_id: id })),
       installAsset: (id, slot, binding, opts) =>
         __need("install_native_game_asset")(__merge(opts, { game_id: id, slot, binding })),
       playtest: (id, opts) => __need("playtest_native_game")(__merge(opts, { game_id: id })),
@@ -1248,7 +1325,7 @@ const nodetool = (() => {
         __need("generate_game_asset")(__merge(opts, { game_id: id, slot, kind, prompt })),
       build: (id, opts) => __need("build_native_game")(__merge(opts, { game_id: id })),
       listExamples: (opts) => __need("list_example_games")(__merge(opts)),
-      getExample: (slug) => __need("get_example_game")({ slug }),
+      getExample: (slug, opts) => __need("get_example_game")(__merge(opts, { slug })),
       installExample: (slug, opts) => __need("install_example_game")(__merge(opts, { slug })),
       autoplay: (id, opts) => __need("autoplay_native_game")(__merge(opts, { game_id: id }))
     },
@@ -1446,10 +1523,16 @@ const nodetool = (() => {
           image_document_id: id,
           version: version
         }),
-      validate: (target) =>
-        typeof target === "string"
-          ? __need("validate_sketch")({ image_document_id: target })
-          : __need("validate_sketch")({ document: target }),
+      /** {width, height, background_color} check an inline document against its canvas. */
+      validate: (target, opts) =>
+        __need("validate_sketch")(
+          __merge(
+            opts,
+            typeof target === "string"
+              ? { image_document_id: target }
+              : { document: target }
+          )
+        ),
       /** Apply layer-structure edits to a saved sketch, server-side. */
       edit: (id, ops) =>
         __need("edit_sketch")({ image_document_id: id, ops: ops })
@@ -1463,8 +1546,6 @@ const nodetool = (() => {
       get: (id) => __need("get_script")({ script_id: id }),
       voice: (id, opts) =>
         __need("voice_script_lines")(__merge(opts, { script_id: id })),
-      finish: (args) => __need("finish_storyboard")(args),
-      previewDesign: (args) => __need("preview_storyboard_design")(args),
       assembleTimeline: (id, opts) =>
         __need("assemble_script_timeline")(__merge(opts, { script_id: id })),
       /** Apply cast/line edits to a saved script, server-side. */
@@ -1497,8 +1578,11 @@ const nodetool = (() => {
         __need("assemble_storyboard_timeline")(
           __merge(opts, { storyboard_id: id })
         ),
-      /** Apply shot-list edits to a saved board, server-side. */
-      edit: (id, ops) => __need("edit_storyboard")({ storyboard_id: id, ops: ops })
+      /** Apply shot-list edits to a saved board, server-side. {expected_revision} guards a stale read. */
+      edit: (id, ops, opts) =>
+        __need("edit_storyboard")(
+          __merge(opts, { storyboard_id: id, ops: ops })
+        )
     }
   };
 
@@ -1509,7 +1593,7 @@ const nodetool = (() => {
    */
   const __GUEST_GLOBALS = {
     image: "Probing and editing pixels is \`image.*\`; generating a picture is \`nodetool.media.generateImage\`.",
-    audio: "Sample-level work is \`audio.*\`; generating speech or music is \`nodetool.media.generateSpeech\`/\`generateMusic\`.",
+    audio: "Sample-level work is \`audio.*\`; generating speech or music is \`nodetool.media.speak\`/\`generateMusic\`.",
     video: "Frame and container work is \`video.*\`; generating a clip is \`nodetool.media.generateVideo\`, and probing or encoding a file with a host binary is \`nodetool.media.ffprobe\`/\`ffmpeg\`.",
     canvas: "Drawing is \`canvas.*\`.",
     media: "The bare \`media.*\` global holds byte helpers; the tools are \`nodetool.media.*\`.",
@@ -1648,6 +1732,16 @@ interface PromptEntry {
   skill: string;
   /** Rendered doc lines for the prompt. */
   doc: string;
+  /**
+   * Methods documented only when the belt carries one of `tools`: a wrapper
+   * whose tool no production host binds stays out of the prompt there.
+   */
+  extra?: { tools: readonly string[]; doc: string };
+  /**
+   * Rendered whenever any namespace is: the namespace needs no belt tool
+   * (`nodetool.secrets` reads through the sandbox's own bridge).
+   */
+  withAnyNamespace?: true;
 }
 
 const NAMESPACE_DOCS: PromptEntry[] = [
@@ -1668,6 +1762,15 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.settings\` — \`list({group})\`, \`get(key)\`, \`set(key, value)\`,
   \`secrets()\` (names only), \`requestSecret(key, {reason, help_url})\`. A secret
   is never set from code: \`requestSecret\` opens a dialog for the user.`
+  },
+  {
+    namespace: "secrets",
+    skill: "api-settings",
+    withAnyNamespace: true,
+    doc: `- \`nodetool.secrets\` — \`get(name)\` (throws naming a missing secret),
+  \`tryGet(name)\`, \`list()\`. Values are readable only where the run has a
+  secret scope, such as a Code node. A chat or agent action has none, so
+  \`get\` throws there.`
   },
   {
     namespace: "nodes",
@@ -1758,7 +1861,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "jobs",
     skill: "api-workflows",
     doc: `- \`nodetool.jobs\` — \`list()\`, \`get(id)\`, \`logs(id)\`,
-  \`wait(idOrReceipt, {timeoutMs})\` (polls until the job settles),
+  \`wait(idOrReceipt, {timeoutMs})\` (polls until the job settles, at most 5
+  minutes per call; a timeout throws, so wait again in the next action),
   \`cancel(id)\` (stops a running job).`
   },
   {
@@ -1781,8 +1885,17 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "collections",
     skill: "api-collections",
     doc: `- \`nodetool.collections\` — vector search: \`list()\`, \`query(collection,
-  text)\`, \`index(text, sourceId)\`, \`indexBatch(chunks)\`, \`search(text)\`,
-  \`hybridSearch(text)\`.`
+  text)\`.`,
+    extra: {
+      tools: [
+        "vector_index",
+        "vector_batch_index",
+        "vector_text_search",
+        "vector_hybrid_search"
+      ],
+      doc: ` On this run's bound collection: \`index(text, sourceId)\`,
+  \`indexBatch(chunks)\`, \`search(text)\`, \`hybridSearch(text)\`.`
+    }
   },
   {
     namespace: "apps",
@@ -1797,9 +1910,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.games\` — built-in games: \`create(name, {project_id})\`,
   \`get(id)\`, \`edit(id, ops)\`, \`setDocument(id, document)\`,
   \`previewAuthoring(id, {program})\`, \`applyAuthoring(id, candidate)\`,
+  \`browseAssets(id, {query, kind, digest, slot})\` (before regenerating art),
   \`generateAsset(id, slot, kind, prompt)\`, \`installAsset\`, \`playtest(id)\`,
   \`autoplay(id, {win})\`, \`capture(id)\`, \`publish(id)\`, \`build(id)\`,
-  \`listExamples()\`, \`getExample(slug)\`, \`installExample(slug)\`.`
+  \`listExamples()\`, \`getExample(slug, {view, entity_id})\`, \`installExample(slug)\`.`
   },
   {
     namespace: "timelines",
@@ -1835,7 +1949,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.storyboards\` — shot lists: \`list()\`, \`create(name, {brief,
   style, aspect_ratio})\`, \`get(id)\`, \`edit(id, ops)\`, \`renderStills(id)\`
   (cheap), \`renderClips(id)\` (expensive), \`reviseClip(id, target,
-  instruction)\`, \`assembleTimeline(id)\`.`
+  instruction)\`, \`assembleTimeline(id)\`,
+  \`previewDesign({storyboardId, expectedStoryboardRevision})\` (free),
+  \`finish({storyboardId, expectedStoryboardRevision, ...})\` (graphics into
+  editable timeline layers, no media generation).`
   }
 ];
 
@@ -1987,12 +2104,22 @@ export function buildNodetoolApiPromptSection(
   options: NodetoolApiPromptOptions = {}
 ): string {
   const names = new Set(toolNames);
-  const active = NAMESPACE_DOCS.filter((entry) =>
-    NODETOOL_API_NAMESPACE_TOOLS[entry.namespace].some((tool) =>
-      names.has(tool)
+  const lit = (tools: readonly string[]): boolean =>
+    tools.some((tool) => names.has(tool));
+  if (
+    !NAMESPACE_DOCS.some(
+      (entry) =>
+        !entry.withAnyNamespace &&
+        lit(NODETOOL_API_NAMESPACE_TOOLS[entry.namespace])
     )
+  ) {
+    return "";
+  }
+  const active = NAMESPACE_DOCS.filter(
+    (entry) =>
+      entry.withAnyNamespace ||
+      lit(NODETOOL_API_NAMESPACE_TOOLS[entry.namespace])
   );
-  if (active.length === 0) return "";
 
   const sections: string[] = [
     NODETOOL_API_SECTION_HEADER,
@@ -2018,9 +2145,13 @@ namespace.`);
   }
   sections.push(
     active
-      .map((entry) =>
-        skills ? `${entry.doc} Skill: \`${entry.skill}\`.` : entry.doc
-      )
+      .map((entry) => {
+        const doc =
+          entry.extra && lit(entry.extra.tools)
+            ? entry.doc + entry.extra.doc
+            : entry.doc;
+        return skills ? `${doc} Skill: \`${entry.skill}\`.` : doc;
+      })
       .join("\n")
   );
   const choice = surfaceChoiceSection(options, names);

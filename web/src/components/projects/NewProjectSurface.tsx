@@ -188,20 +188,6 @@ const SUBMENU_WIDTH = 320;
 const SUBMENU_MAX_WIDTH = 340;
 
 /** A starter pill at rest: outlined, quiet, the project's colour on hover. */
-const starterPillSx = {
-  borderRadius: BORDER_RADIUS.pill,
-  color: "text.secondary",
-  "&:hover": { borderColor: PROJECT_COLOR, color: "text.primary" }
-} as const;
-
-/** The picked starter: drawn in the project colour on a tint of it. */
-const activeStarterPillSx = {
-  color: PROJECT_COLOR,
-  borderColor: PROJECT_COLOR,
-  backgroundColor: "rgba(var(--palette-info-lightChannel) / 0.12)",
-  "&:hover": { backgroundColor: "rgba(var(--palette-info-lightChannel) / 0.2)" }
-} as const;
-
 /** A context control in the composer's toolbar: quiet until pointed at. */
 const composerToolSx = {
   color: "text.secondary",
@@ -2207,25 +2193,19 @@ const NewProjectSurface = ({
                         describeChild
                       >
                         <Chip
-                          clickable
                           compact
-                          variant="outlined"
                           label={starterLabel(entry.name)}
-                          aria-pressed={active}
+                          active={active}
+                          // The picked starter is drawn in the project colour.
+                          accent={active ? PROJECT_COLOR : undefined}
                           onClick={() => handleToggleStarter(entry.name)}
-                          sx={{
-                            ...starterPillSx,
-                            ...(active && activeStarterPillSx)
-                          }}
                         />
                       </Tooltip>
                     );
                   })}
                   {(hiddenStarterCount > 0 || showAllStarters) && (
                     <Chip
-                      clickable
                       compact
-                      variant="outlined"
                       aria-expanded={showAllStarters}
                       label={
                         showAllStarters
@@ -2233,7 +2213,7 @@ const NewProjectSurface = ({
                           : `${hiddenStarterCount} more`
                       }
                       onClick={() => setShowAllStarters((shown) => !shown)}
-                      sx={{ ...starterPillSx, borderStyle: "dashed" }}
+                      sx={{ borderStyle: "dashed" }}
                     />
                   )}
                 </FlexRow>

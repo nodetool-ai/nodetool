@@ -364,7 +364,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
               generating ? (
                 <LoadingSpinner inline size={14} color="inherit" />
               ) : (
-                <AutoAwesomeIcon fontSize="small" />
+                <AutoAwesomeIcon />
               )
             }
             data-testid="sketch-gen-submit"

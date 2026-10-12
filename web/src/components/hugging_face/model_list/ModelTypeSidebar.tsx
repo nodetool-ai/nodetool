@@ -1,7 +1,6 @@
 import React, { useCallback } from "react";
 
 import {
-  Chip,
   ToolbarIconButton,
   Box,
   BORDER_RADIUS,
@@ -14,6 +13,7 @@ import {
   List,
   ListItem,
   ListItemButton,
+  Text,
   ListItemText
 } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -164,21 +164,9 @@ const ModelTypeSidebar: React.FC = () => {
                   }}
                 />
                 {modelCountsByType[type] !== undefined && (
-                  <Chip
-                    label={modelCountsByType[type]}
-                    size="small"
-                    sx={{
-                      height: 20,
-                      minWidth: 28,
-                      ...TYPOGRAPHY.sans.caption,
-                      ml: 1,
-                      backgroundColor: "transparent",
-                      color: theme.vars.palette.text.secondary,
-                      "& .MuiChip-label": {
-                        px: 1
-                      }
-                    }}
-                  />
+                  <Text size="smaller" color="secondary" sx={{ ml: 1 }}>
+                    {modelCountsByType[type]}
+                  </Text>
                 )}
               </ListItemButton>
             </ListItem>

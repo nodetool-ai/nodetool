@@ -381,7 +381,7 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
         busy ? (
           <LoadingSpinner inline size={14} color="inherit" />
         ) : (
-          <AutoAwesomeIcon fontSize="small" />
+          <AutoAwesomeIcon />
         )
       }
       data-testid="topbar-generate"

@@ -744,7 +744,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_node_info",
     module: "nodes",
     impl: "packages/agents/src/capabilities/nodes.ts",
-    contract: "15eadde2f065",
+    contract: "ee61a4038c57",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-nodes.test.ts",
@@ -1237,7 +1237,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "debug_app",
     module: "apps",
     impl: "packages/agents/src/capabilities/apps.ts",
-    contract: "32879e98374d",
+    contract: "5a5c4836f062",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-apps.test.ts",
@@ -1571,7 +1571,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "browser",
     module: "web",
     impl: "packages/agents/src/capabilities/web.ts",
-    contract: "f462e9c43b8e",
+    contract: "0ac8eba370a2",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-web.test.ts",
@@ -2253,7 +2253,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "a9cd2bd72bb8",
+    contract: "747859c2756e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -2758,7 +2758,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "05fd985c6b97",
+    contract: "2acc5a6ddcf6",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
@@ -3112,7 +3112,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "f38becbcfd51",
+    contract: "f8a51c6734fd",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",

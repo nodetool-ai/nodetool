@@ -242,6 +242,9 @@
     "sharp": "^0.35.3",
     "ts-node": "^10.9.2"
   },
+  "optionalDependencies": {
+    "office-text-extractor": "^4.0.0"
+  },
   "overrides": {
     "unzipper": ">=0.12.3",
     "sharp": "^0.35.3"

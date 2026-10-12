@@ -2074,8 +2074,9 @@ export abstract class BaseProvider {
     // Match 401/403 as standalone tokens, not as digits inside a larger number
     // (e.g. "model gpt-4-0403 not found") which would misclassify unrelated
     // errors as auth failures and skip a retry that should have happened.
-    return /\b401\b|\b403\b|unauthorized|forbidden|invalid.*api.*key|authentication/i.test(
-      msg
+    return (
+      /\b401\b|\b403\b|unauthorized|forbidden|authentication/i.test(msg) ||
+      mentionsInvalidApiKey(msg)
     );
   }
 
@@ -2386,3 +2387,20 @@ const EXT_TO_MIME: Record<string, string> = {
   ogg: "audio/ogg",
   pdf: "application/pdf"
 };
+
+/**
+ * Whether one line of `msg` holds "invalid", then "api", then "key" — the
+ * regex `/invalid.*api.*key/i` without its polynomial backtracking on
+ * provider-supplied error text.
+ */
+function mentionsInvalidApiKey(msg: string): boolean {
+  return msg
+    .toLowerCase()
+    .split(/[\n\r\u2028\u2029]/)
+    .some((line) => {
+      const invalid = line.indexOf("invalid");
+      if (invalid < 0) return false;
+      const api = line.indexOf("api", invalid + "invalid".length);
+      return api >= 0 && line.indexOf("key", api + "api".length) >= 0;
+    });
+}

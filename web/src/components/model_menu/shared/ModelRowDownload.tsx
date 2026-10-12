@@ -49,7 +49,7 @@ const ModelRowDownload: React.FC<ModelRowDownloadProps> = ({
       <EditorButton
         variant="outlined"
         onClick={handleClick}
-        startIcon={<DownloadIcon sx={{ fontSize: "1.1em" }} />}
+        startIcon={<DownloadIcon />}
         sx={{ flexShrink: 0 }}
       >
         Download

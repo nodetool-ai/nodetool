@@ -14,25 +14,39 @@ jest.mock("../../../hooks/audio/useSaveAudioToAsset", () => ({
 }));
 jest.mock("../WaveformView", () => ({
   __esModule: true,
-  default: ({ sample }: { sample: AudioSample }) => (
-    <div data-testid="sample">{Array.from(sample.channels[0]).join(",")}</div>
+  default: ({
+    sample,
+    selection
+  }: {
+    sample: AudioSample;
+    selection: { start: number; end: number } | null;
+  }) => (
+    <>
+      <div data-testid="sample">{Array.from(sample.channels[0]).join(",")}</div>
+      <div data-testid="selection">
+        {selection ? `${selection.start}-${selection.end}` : "none"}
+      </div>
+    </>
   )
 }));
 jest.mock("../AudioEditorToolbar", () => ({
   __esModule: true,
   default: ({
     onReverse,
+    onEffect,
     onUndo,
     onSave,
     canUndo
   }: {
     onReverse: () => void;
+    onEffect: (id: string) => void;
     onUndo: () => void;
     onSave: () => void;
     canUndo: boolean;
   }) => (
     <>
       <button onClick={onReverse}>Reverse</button>
+      <button onClick={() => onEffect("invert")}>Invert</button>
       <button onClick={onUndo} disabled={!canUndo}>
         Undo
       </button>
@@ -92,6 +106,10 @@ it("retains PCM and undo while inactive, suspends audio, and clears dirty only a
     );
     fireEvent.click(screen.getByText("Undo"));
     expect(screen.getByTestId("sample")).toHaveTextContent("0,0.5,1");
+    fireEvent.click(screen.getByText("Invert"));
+    expect(await screen.findByText("0,-0.5,-1")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Undo"));
+    expect(screen.getByTestId("sample")).toHaveTextContent("0,0.5,1");
     expect(mockDecode).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByText("Reverse"));
     mockSave.mockResolvedValueOnce(false);
@@ -108,6 +126,51 @@ it("retains PCM and undo while inactive, suspends audio, and clears dirty only a
     );
     result.unmount();
     expect(mockClose).toHaveBeenCalled();
+  } finally {
+    window.AudioContext = originalContext;
+    global.fetch = originalFetch;
+  }
+});
+
+it("saves through onSaveSample and opens on the initial selection", async () => {
+  const originalContext = window.AudioContext;
+  const originalFetch = global.fetch;
+  window.AudioContext = jest.fn(() => ({
+    decodeAudioData: jest.fn().mockResolvedValue({
+      sampleRate: 1,
+      numberOfChannels: 1,
+      length: 4,
+      getChannelData: () => new Float32Array([0, 0.25, 0.5, 1])
+    }),
+    suspend: mockSuspend,
+    close: mockClose
+  })) as unknown as typeof AudioContext;
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    arrayBuffer: async () => new ArrayBuffer(0)
+  });
+  mockSave.mockClear();
+  const onSaveSample = jest.fn().mockResolvedValue(true);
+  try {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <AudioSampleEditor
+          asset={{ id: "clip-audio", get_url: "https://example.test/a.wav" } as Asset}
+          onClose={() => undefined}
+          onSaveSample={onSaveSample}
+          initialSelection={{ start: 1, end: 9 }}
+        />
+      </ThemeProvider>
+    );
+    // The window is clamped to the 4-second sample.
+    expect(await screen.findByTestId("selection")).toHaveTextContent("1-4");
+    fireEvent.click(screen.getByText("Reverse"));
+    fireEvent.click(screen.getByText("Save"));
+    await waitFor(() => expect(onSaveSample).toHaveBeenCalledTimes(1));
+    expect(Array.from(onSaveSample.mock.calls[0][0].channels[0])).toEqual([
+      0, 1, 0.5, 0.25
+    ]);
+    expect(mockSave).not.toHaveBeenCalled();
   } finally {
     window.AudioContext = originalContext;
     global.fetch = originalFetch;

@@ -1,10 +1,8 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 
 import {
-  BORDER_RADIUS,
   Chip,
   ContextMenu,
-  MOTION,
   MenuItemPrimitive,
   TYPOGRAPHY,
   Tooltip
@@ -68,9 +66,7 @@ const DynamicSlotTypePickerImpl: React.FC<DynamicSlotTypePickerProps> = ({
 
   return (
     <>
-      <Tooltip
-        title={`Slot type for "${propertyName}"`}
-      >
+      <Tooltip title={`Slot type for "${propertyName}"`}>
         <Chip
           className="dynamic-slot-type-chip"
           compact
@@ -79,12 +75,8 @@ const DynamicSlotTypePickerImpl: React.FC<DynamicSlotTypePickerProps> = ({
           aria-label={`Slot type for ${propertyName}`}
           aria-haspopup="menu"
           onClick={handleOpen}
-          sx={{
-            borderRadius: BORDER_RADIUS.sm,
-            ...TYPOGRAPHY.mono.caption,
-            borderLeft: `2px solid ${color}`,
-            transition: `opacity ${MOTION.fast}`
-          }}
+          accent={color}
+          sx={TYPOGRAPHY.mono.caption}
         />
       </Tooltip>
       <ContextMenu

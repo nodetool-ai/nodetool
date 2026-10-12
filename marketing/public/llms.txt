@@ -83,6 +83,7 @@
 - [Can I use NodeTool from Claude Code, Codex, or Cursor?](https://nodetool.ai/faq/use-nodetool-from-claude-code)
 - [What is a creative harness?](https://nodetool.ai/faq/what-is-a-creative-harness)
 - [What does "bring your own keys" mean for me?](https://nodetool.ai/faq/what-is-byok)
+- [Can I use my ChatGPT, Claude, or Gemini subscription?](https://nodetool.ai/faq/use-chatgpt-claude-gemini-subscription)
 - [How much does NodeTool cost?](https://nodetool.ai/faq/how-much-does-nodetool-cost)
 - [Does NodeTool mark up model pricing?](https://nodetool.ai/faq/does-nodetool-mark-up-model-pricing)
 - [Studio or Cloud — which should I use?](https://nodetool.ai/faq/studio-or-cloud)

@@ -92,7 +92,7 @@ const events: CastEvent[] = [
   m.jobUpdate(0, "running"),
 
   m.nodeUpdate(300, "get", "Get Text", CODE, "running"),
-  ...m.progress("get", 5, 700, 1400),
+  ...m.progress("get", 42, 700, 1400),
   m.nodeUpdate(2400, "get", "Get Text", CODE, "completed", { output: README }),
   m.edgeUpdate(2600, "e1", "active"),
 

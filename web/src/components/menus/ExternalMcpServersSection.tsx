@@ -279,7 +279,7 @@ const ServerRow = memo(function ServerRow({
           variant="text"
           size="small"
           color="error"
-          startIcon={<DeleteIcon sx={{ fontSize: 14 }} />}
+          startIcon={<DeleteIcon />}
           onClick={handleDelete}
         >
           Remove
@@ -456,7 +456,7 @@ export const ExternalMcpServersSection = memo(
             density="compact"
             variant="outlined"
             size="small"
-            startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+            startIcon={<AddIcon />}
             onClick={handleAdd}
           >
             Add server

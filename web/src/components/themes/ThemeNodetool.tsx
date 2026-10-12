@@ -3,11 +3,20 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
 import { editorControlsComponents } from "./components/editorControls";
-import { CONTROL } from "../ui_primitives";
+import { CONTROL, MOTION } from "../ui_primitives";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
+
+const CHIP_TONES = [
+  "primary",
+  "secondary",
+  "success",
+  "warning",
+  "error",
+  "info"
+] as const;
 
 // Latin subsets only. The unsuffixed `@fontsource/<font>/<weight>.css` files
 // declare every subset the family ships (cyrillic, cyrillic-ext, greek,
@@ -261,7 +270,12 @@ const ThemeNodetool = createTheme({
           fontSize: theme.fontSizeSmall, // 13px — label
           lineHeight: 1.35,
           minHeight: CONTROL.height.sm
-        })
+        }),
+        // One icon size per button size, so call sites never size the icon
+        // they pass as startIcon or endIcon.
+        iconSizeSmall: { "& > *:nth-of-type(1)": { fontSize: 16 } },
+        iconSizeMedium: { "& > *:nth-of-type(1)": { fontSize: 18 } },
+        iconSizeLarge: { "& > *:nth-of-type(1)": { fontSize: 20 } }
       }
     },
     MuiFormLabel: {
@@ -349,6 +363,59 @@ const ThemeNodetool = createTheme({
             color: theme.vars.palette.background.paper
           })
         })
+      }
+    },
+    MuiChip: {
+      // One chip look for every tag, filter and count. Callers pick `size`,
+      // `variant` and `color`; they do not restyle height, radius or text.
+      styleOverrides: {
+        root: ({ theme }) => ({
+          height: CONTROL.height.sm,
+          borderRadius: theme.rounded.pill,
+          fontSize: theme.fontSizeSmall,
+          fontWeight: 400,
+          transition: `${MOTION.border}, ${MOTION.background}, color ${MOTION.normal}`,
+          "&.Mui-focusVisible": {
+            outline: `2px solid ${theme.vars.palette.primary.main}`,
+            outlineOffset: 1
+          },
+          variants: CHIP_TONES.map((tone) => ({
+            props: { variant: "outlined", color: tone },
+            style: {
+              color: theme.vars.palette[tone].main,
+              borderColor: `rgba(${theme.vars.palette[tone].mainChannel} / 0.5)`,
+              backgroundColor: `rgba(${theme.vars.palette[tone].mainChannel} / 0.12)`
+            }
+          }))
+        }),
+        sizeSmall: ({ theme }) => ({
+          height: CONTROL.height.xs,
+          fontSize: theme.fontSizeSmaller
+        }),
+        label: { paddingLeft: CONTROL.paddingX.normal, paddingRight: CONTROL.paddingX.normal },
+        labelSmall: { paddingLeft: CONTROL.paddingX.compact, paddingRight: CONTROL.paddingX.compact },
+        outlined: ({ theme, ownerState }) =>
+          ownerState.color === "default"
+            ? {
+                borderColor: theme.vars.palette.divider,
+                color: theme.vars.palette.text.secondary
+              }
+            : {},
+        clickable: ({ theme }) => ({
+          // Mouse only. iOS Safari reads a tap on an element whose :hover
+          // style changes as the hover and drops the click.
+          "@media (hover: hover)": {
+            "&.MuiChip-outlined.MuiChip-colorDefault:hover": {
+              borderColor: theme.vars.palette.text.secondary,
+              color: theme.vars.palette.text.primary,
+              backgroundColor: theme.vars.palette.action.hover
+            }
+          }
+        }),
+        icon: { fontSize: 16 },
+        iconSmall: { fontSize: 14 },
+        deleteIcon: { fontSize: 16 },
+        deleteIconSmall: { fontSize: 14 }
       }
     },
     MuiDivider: {

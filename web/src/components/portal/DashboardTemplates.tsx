@@ -23,16 +23,13 @@ import {
   AutoGrid,
   EmptyState,
   LoadingSpinner,
-  MOTION,
   BORDER_RADIUS,
-  CONTROL,
   SPACING,
   TYPOGRAPHY,
-  focusRing,
   getSpacingPx,
-  reducedMotion,
   selectableTileStyles,
-  Tooltip
+  Tooltip,
+  Chip
 } from "../ui_primitives";
 import {
   useSectionWrap,
@@ -59,29 +56,6 @@ const styles = (theme: Theme) =>
       flexWrap: "wrap",
       gap: getSpacingPx(SPACING.micro),
       paddingBottom: getSpacingPx(SPACING.sm)
-    },
-    ".cat": {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.xs),
-      height: CONTROL.height.xs,
-      padding: `0 ${getSpacingPx(SPACING.sm)}`,
-      background: theme.vars.palette.c_node_bg,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.pill,
-      color: theme.vars.palette.text.secondary,
-      ...TYPOGRAPHY.sans.caption,
-      cursor: "pointer",
-      transition: `${MOTION.background}, color ${MOTION.fast}, ${MOTION.border}`,
-      ...reducedMotion({ transition: MOTION.none }),
-      "&:hover": { color: theme.vars.palette.text.primary },
-      "&:focus-visible": focusRing(theme, 2),
-      // Neutral "All" active state; category pills override colours inline.
-      "&.on": {
-        background: theme.vars.palette.c_node_bg_group,
-        borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
-        color: theme.vars.palette.text.primary
-      }
     },
     ".cat-dot": {
       width: 7,
@@ -391,36 +365,26 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
         </DashboardSectionHeader>
 
         <div className="cats" role="group" aria-label="Filter by category">
-          <button
-            type="button"
-            className={`cat${category === "all" ? " on" : ""}`}
-            aria-pressed={category === "all"}
+          <Chip
+            compact
+            label="All"
+            active={category === "all"}
             onClick={() => setCategory("all")}
-          >
-            All
-          </button>
+          />
           {TOP_CATEGORIES.map((cat) => {
             const active = category === cat.id;
             return (
-              <button
+              <Chip
                 key={cat.id}
-                type="button"
-                className={`cat${active ? " on" : ""}`}
-                aria-pressed={active}
-                onClick={() => setCategory(cat.id)}
-                style={
-                  active
-                    ? {
-                        background: `${cat.color}24`,
-                        borderColor: `${cat.color}73`,
-                        color: cat.color
-                      }
-                    : undefined
+                compact
+                label={cat.label}
+                icon={
+                  <span className="cat-dot" style={{ background: cat.color }} />
                 }
-              >
-                <span className="cat-dot" style={{ background: cat.color }} />
-                {cat.label}
-              </button>
+                active={active}
+                accent={active ? cat.color : undefined}
+                onClick={() => setCategory(cat.id)}
+              />
             );
           })}
         </div>

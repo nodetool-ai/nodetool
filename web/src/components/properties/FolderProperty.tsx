@@ -6,7 +6,8 @@ import {
   TextInput,
   Popover,
   DialogTitle,
-  DialogContent
+  DialogContent,
+  LoadingSpinner
 } from "../ui_primitives";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { AssetList } from "../../stores/ApiTypes";
@@ -138,7 +139,7 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
         description={props.property.description}
         id={id}
       />
-      {isLoading && <p>Loading…</p>}
+      {isLoading && <LoadingSpinner size="small" />}
       {error && <p>Error: {error.message}</p>}
       <FlexRow align="center" gap={0.5}>
         <Select

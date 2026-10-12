@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState, type MouseEvent } from "react";
 
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
@@ -9,16 +9,20 @@ import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 import {
   Box,
   Caption,
+  EditorMenu,
+  EditorMenuItem,
   FlexRow,
   NodeSlider,
   ToolbarIconButton
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import { isNumber } from "../../utils/typePredicates";
+import { AUDIO_EFFECTS, EFFECT_GROUPS } from "./audioEffects";
 
 interface AudioEditorToolbarProps {
   isPlaying: boolean;
@@ -49,6 +53,8 @@ interface AudioEditorToolbarProps {
   onAmplify: () => void;
   onQuieten: () => void;
   onReverse: () => void;
+  /** Open (or, for one-click effects, apply) an effect from the catalogue. */
+  onEffect: (effectId: string) => void;
   onUndo: () => void;
   onRedo: () => void;
   onSave: () => void;
@@ -125,6 +131,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
   onAmplify,
   onQuieten,
   onReverse,
+  onEffect,
   onUndo,
   onRedo,
   onSave,
@@ -138,6 +145,21 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
       }
     },
     [maxZoom, minZoom, onZoomChange]
+  );
+
+  const [effectsAnchor, setEffectsAnchor] = useState<HTMLElement | null>(null);
+  const openEffectsMenu = useCallback(
+    (event: MouseEvent<HTMLElement>) =>
+      setEffectsAnchor(event.currentTarget),
+    []
+  );
+  const closeEffectsMenu = useCallback(() => setEffectsAnchor(null), []);
+  const pickEffect = useCallback(
+    (effectId: string) => {
+      setEffectsAnchor(null);
+      onEffect(effectId);
+    },
+    [onEffect]
   );
 
   return (
@@ -228,6 +250,42 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
       <EditorButton size="small" onClick={onReverse}>
         Reverse
       </EditorButton>
+      <EditorButton
+        size="small"
+        onClick={openEffectsMenu}
+        endIcon={<ArrowDropDownIcon />}
+        aria-haspopup="menu"
+        aria-expanded={effectsAnchor ? "true" : undefined}
+      >
+        Effects
+      </EditorButton>
+      <EditorMenu
+        anchorEl={effectsAnchor}
+        open={Boolean(effectsAnchor)}
+        onClose={closeEffectsMenu}
+      >
+        {EFFECT_GROUPS.flatMap((group) => [
+          <Caption
+            key={`group-${group}`}
+            component="li"
+            role="presentation"
+            color="secondary"
+            sx={{ px: 2, pt: 1, pb: 0.5 }}
+          >
+            {group}
+          </Caption>,
+          ...AUDIO_EFFECTS.filter((effect) => effect.group === group).map(
+            (effect) => (
+              <EditorMenuItem
+                key={effect.id}
+                onClick={() => pickEffect(effect.id)}
+              >
+                {effect.params.length > 0 ? `${effect.label}…` : effect.label}
+              </EditorMenuItem>
+            )
+          )
+        ])}
+      </EditorMenu>
 
       <Separator />
 

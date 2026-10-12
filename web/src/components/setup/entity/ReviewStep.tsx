@@ -12,7 +12,7 @@ import {
   ResponsiveImage,
   Text
 } from "../../ui_primitives";
-import { getEntityKindChipSx } from "../../entities/entityKind";
+import { ENTITY_KIND_COLOR } from "../../entities/entityKind";
 import { GalleryFrame } from "../MediaGallery";
 import { SETUP_CONTENT_WIDTH, SETUP_MEDIA_WIDTH } from "../layout";
 
@@ -63,7 +63,7 @@ export const ReviewStep = ({
         label={kind}
         compact
         variant="outlined"
-        sx={getEntityKindChipSx(kind)}
+        color={ENTITY_KIND_COLOR[kind]}
       />
     </FlexRow>
     <Text>{descriptor}</Text>

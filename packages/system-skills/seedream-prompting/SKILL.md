@@ -1,6 +1,6 @@
 ---
 name: seedream-prompting
-description: Prompt ByteDance's Seedream 4 and 5 image line — the six-layer brief it reads in order, the word budget past which it starts dropping clauses, quoting in-image copy and placing it, pinning what must not change before an edit, addressing up to ten references by content instead of by index, and the size to iterate at versus the size to deliver. Use whenever the model id names Seedream 4 or 5 (bytedance/seedream/v5/pro/text-to-image, bytedance/seedream/v5/lite/edit, fal-ai/bytedance/seedream/v4.5/edit, fal-ai/bytedance/seedream/v4/text-to-image, bytedance/seedream-v5.0-pro/edit, bytedance/seedream-v4.5, seedream/5-pro-image-to-image, seedream/4.5-text-to-image, bytedance/seedream-4.5) on generate_image, edit_image or a TextToImage node. Not for Seedream 3.
+description: Prompt ByteDance's Seedream 4 and 5 image line — the six-layer brief it reads in order, the word budget past which it starts dropping clauses, quoting in-image copy and placing it, pinning what must not change before an edit, addressing references by content instead of by index, and the size to iterate at versus the size to deliver. Use whenever the model id names Seedream 4 or 5 (bytedance/seedream/v5/pro/text-to-image, bytedance/seedream/v5/lite/edit, fal-ai/bytedance/seedream/v4.5/edit, fal-ai/bytedance/seedream/v4/text-to-image, bytedance/seedream-v5.0-pro/edit, bytedance/seedream-v4.5, seedream/5-pro-image-to-image, seedream/4.5-text-to-image, bytedance/seedream-4.5) on generate_image, edit_image or a TextToImage node. Not for Seedream 3.
 ---
 
 # Seedream → a production brief, not a caption
@@ -10,7 +10,12 @@ what the deliverable is, who is in it, where everything sits, how it is lit,
 what it says, and what it looks like. Captions get caption results.
 
 Reach it with `find_model` for `text_to_image` or `image_to_image`, then
-`generate_image` / `edit_image`.
+`generate_image` / `edit_image`. `generate_image` forwards only the prompt, a
+negative prompt, the size and a quality string, and `edit_image` only the
+images, the prompt, a negative prompt, a target size and a strength. The
+provider's own size field exists only on the route's node: find it with
+`search_nodes`, read its fields with `get_node_info`, and run it with
+`run_node`.
 
 ## Six layers, in this order
 
@@ -34,8 +39,9 @@ are centred, evenly lit and generic.
 
 ## Word budget
 
-Aim for 30–100 words on Seedream 4.x. Seedream 5 accepts a much longer brief
-and starts scattering attention past roughly 600 English words. Specificity
+fal's guide aims for 30–100 words on Seedream 4.x. Runware's guide says
+Seedream 5 accepts a much longer brief and starts scattering attention past
+roughly 600 English words. Specificity
 buys more than length: past the budget the model drops clauses, and which ones
 it drops is not yours to choose.
 
@@ -59,15 +65,19 @@ stay editable.
 
 ## Editing: pin before you change
 
-Reference-guided editing takes up to ten images — send more and only the last
-ten are used. The failure mode is not the edit — it is everything you did not mention drifting. State the pins:
+Reference-guided editing takes several images. fal's edit routes take up to
+ten and keep only the last ten when sent more. kie's `seedream/4.5-edit` and
+`seedream/5-lite-image-to-image` take up to 14, and kie's
+`seedream/5-pro-image-to-image` and `bytedance/seedream-v4-edit` up to 10. The
+failure mode is not the edit — it is everything you did not mention drifting. State the pins:
 
 > Change only the bottle's label to matte black with "SERIES 04" in white
 > sans-serif capitals. Keep the exact bottle silhouette, the exact camera
 > angle, the exact backdrop and the exact studio lighting from the reference.
 
 Address references by what they contain, not by position: "the tan leather
-journal", not "the second image". Content descriptions survive re-ordering and
+journal", not "the second image". This differs from the "image 1 / image 2"
+convention the Qwen-Image and GPT Image guides teach; it is Seedream's own. Content descriptions survive re-ordering and
 disambiguate two references that look alike. For product identity, feed
 packshots on white — a lifestyle photo carries a scene the model will try to
 keep.
@@ -78,8 +88,11 @@ be provably untouched.
 
 ## Size and tiers
 
-`image_size` runs from 1024×1024 to 2048×2048 total pixels, aspect ratios 1:16
-to 16:1, and defaults to `auto_2K`. Work the composition at the smaller tier
+The size field differs by provider. On fal's Seedream 5 routes, `image_size`
+defaults to `auto_2K`; the Pro and Flash routes run 1024×1024 to 2048×2048
+total pixels at aspect ratios 1:16 to 16:1. fal's 4 and 4.5 routes set no
+default. AtlasCloud takes `size` (default `2048*2048`), kie `aspect_ratio` or
+`image_size`, and Replicate `size` (default `2K`). Work the composition at the smaller tier
 while you iterate and render the deliverable at 2K. Match the ratio to the
 brief rather than defaulting to square: 3:4 for a cover, 9:16 for a poster, 4:3
 for a still life.

@@ -101,6 +101,7 @@ function writeValidBundle(dir: string): void {
     path.join(dir, "js-sandbox-worker", "worker-entry.js"),
     "export {};"
   );
+  fs.writeFileSync(path.join(dir, "native-host-bin.js"), "export {};");
 }
 
 /** One shipped recipe, naming the example workflow staged alongside it. */
@@ -393,6 +394,13 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(status).toBe(1);
     expect(output).toContain("assets/nodetool-base");
+  });
+
+  it("fails when the extension's native host is not staged", () => {
+    fs.rmSync(path.join(tempDir, "native-host-bin.js"));
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("native-host-bin.js");
   });
 
   it("fails when the webgpu dawn binary is not staged", () => {

@@ -72,7 +72,8 @@ and the model-line skill says how to write them.
   model supports. Measure with `analyze_video` before cutting to it.
 - **Frame.** Aspect ratio is not guaranteed — an image-to-video route often
   ignores a 9:16 source and emits 16:9. `analyze_video` reports it; fix it with
-  an `ffmpeg` crop to the target frame before compositing, not after.
+  an ffmpeg crop to the target frame (`nodetool.media.ffmpeg` in a code action;
+  `api-media` has its contract) before compositing, not after.
 - **The mix.** Judge it with `understand_video` (Gemini gets the audio; every
   other vision model is sent silent stills), `analyze_audio` for the levels, and
   `detect_video_scenes` to confirm the cuts landed where the beats said. Never
@@ -83,7 +84,7 @@ and the model-line skill says how to write them.
 
 ## Where the rest picks up
 
-`motion-graphics` carries the timeline op contract for laying the bed and muting
+`timeline-edit-ops` carries the timeline op contract for laying the bed and muting
 shot audio under a narration track. `beat-sync-editing` sits the cuts on that
 bed once it exists, and `caption-titles` times the type to it — a title card is
 never rendered into the clip, whichever build you chose.

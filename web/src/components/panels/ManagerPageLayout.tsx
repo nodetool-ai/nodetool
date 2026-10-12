@@ -141,7 +141,7 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
                 <EditorButton
                   variant="outlined"
                   density="normal"
-                  endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
+                  endIcon={<OpenInNewIcon />}
                   onClick={() =>
                     window.open(
                       resolvedDocsUrl,

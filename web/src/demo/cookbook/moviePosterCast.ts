@@ -128,7 +128,7 @@ const events: CastEvent[] = [
   m.edgeUpdate(18000, "e7", "active"),
 
   m.nodeUpdate(18600, "poster", "Movie Poster", TEXT_TO_IMAGE, "running"),
-  ...m.progress("poster", 12, 19000, 3600),
+  ...m.progress("poster", 109, 19000, 3600),
   m.nodeUpdate(22900, "poster", "Movie Poster", TEXT_TO_IMAGE, "completed", { output: poster }),
   m.edgeUpdate(23100, "e7", "completed"),
   m.jobUpdate(23400, "completed", { outputs: { poster } }),

@@ -1,6 +1,6 @@
 ---
 name: music-video-treatment
-description: Turn confirmed track metadata into a shootable, beat-synced music-video treatment and NodeTool storyboard. Use for music videos and promos, not workflows, pipelines, or finished renders.
+description: Turn confirmed track metadata into a shootable, beat-synced music-video treatment and NodeTool storyboard. Use for a music video cut to a track, not ads or promos (commercial-beat-sheet, motion-ad), workflows, pipelines, or finished renders.
 ---
 
 # Music Video Treatment → Storyboard Agent
@@ -23,18 +23,18 @@ For each section, provide timecode and bar range, musical and visual jobs, frami
 
 ## Persist the board
 
-Create a storyboard with `create_storyboard({ name, brief, style, aspect_ratio })`, using `storyboard_id` from its result, never `.id`. Put the full brief, lyrics, section map, bar grid, and roster in `brief`. The call shapes every board skill shares — entity id equals the asset id you passed in, the five `edit_storyboard` ops, what `set_board` accepts, what text the generator actually reads — are in `commercial-beat-sheet` § Tool contract.
+Create a storyboard with `create_storyboard({ name, brief, style, aspect_ratio })`, using `storyboard_id` from its result. Put the full brief, lyrics, section map, bar grid, and roster in `brief`. The call shapes every board skill shares — entity id equals the asset id you passed in, the fifteen `edit_storyboard` ops, what `set_board` accepts, what text the generator actually reads — are in `storyboard-core` § Tool contract.
 
-Attach entity ids with `edit_storyboard({ storyboard_id, ops: [{ op: "set_board", entity_ids, image_model, video_model }] })` (`set_entities` is only an alias). The two models are the `.ref` of a `find_model` call each, for `text_to_image` and `image_to_video`; load the `prompting_skill` each one names before writing shot text, since `motion` then `action` is the clip prompt verbatim and a performance section is worded differently for Kling's shot list, Hailuo's ordered beats or Seedance's sound brief.
+Attach entity ids with `edit_storyboard({ storyboard_id, ops: [{ op: "set_board", entity_ids, image_model, video_model }] })` (`set_entities` is only an alias). The two models are the `.ref` of a `find_model` call each, for `text_to_image` and `image_to_video`; load the `prompting_skill` each one names before writing shot text, since `motion`, `action` and the camera movement are the keyframe clip prompt and a performance section is worded differently for Kling's shot list, Hailuo's ordered beats or Seedance's sound brief.
 
-Add one `add_shot` op per section. Each action names visible entities in brackets, includes its sync point, and uses the section duration rounded to 0.5 seconds. The render attaches the artist or a prop to a shot only when its name appears in that shot's text (style and location always apply), so the artist's name goes in every performance shot, or on that shot's own `entity_ids`. Lyric text on screen is a note for the cut and goes on as a text clip after assembly (`caption-titles`), not into the render prompt.
+A section usually runs longer than one generated clip (a 20s chorus against a 5–10s clip), so give each section several `add_shot` ops, one per phrase or bar group, each with its slice of the section's duration rounded to 0.5 seconds and the section name in its `slug`. Each action names visible entities in brackets and includes its sync point. The render attaches the artist or a prop to a shot only when its name appears in that shot's text (style and location always apply), so the artist's name goes in every performance shot, or on that shot's own `entity_ids`. Lyric text on screen is a note for the cut and goes on as a text clip after assembly (`caption-titles`), not into the render prompt.
 
 Stop at the planned board unless asked to render. Report the directions, selected treatment, and entity roster.
 
 ## Render (only on request)
 
-Stills first with `render_storyboard_stills`; look at each with `view_image` asking what is wrong, and fix a drifting artist at the entity, never in one shot's prompt. Clips with `render_storyboard_clips`; ask for longer clips than the section needs (bump `duration_seconds` with `update_shot`, restore after) so the cut has frames to choose from on the beat. A clip wrong where its still was right is one `revise_storyboard_clip`. Then `assemble_storyboard_timeline`.
+Stills first with `render_storyboard_stills`; look at each with `view_image` asking what is wrong, and fix a drifting artist at the entity, never in one shot's prompt. Clips with `render_storyboard_clips` at each shot's own `duration_seconds`; the model snaps it to the lengths it offers, which usually leaves frames to trim on the beat. Asking for longer clips than the shots need buys footage the cut throws away: report the extra clip seconds and get the user's go-ahead first (`storyboard-core` § Fusing shots). A clip wrong where its still was right is one `revise_storyboard_clip`. Then `assemble_storyboard_timeline`.
 
 ## When the treatment becomes a cut
 
-The bar grid computed above is the plan; `beat-sync-editing` derives the real one from the track with `detect_audio_events` and snaps the cuts to it, so the two must agree before anything is trimmed. The track is the continuity here, so section clips render separately and mute their own audio — `video-audio-continuity` for the case where a piece has no track of its own. `motion-graphics` carries the timeline op contract, `color-motion` the per-section grade and any colour that moves on the drop, `frame-composition` the repeated hook framing across choruses, and `caption-titles` any lyric or artist card on screen.
+The bar grid computed above is the plan; `beat-sync-editing` derives the real one from the track with `detect_audio_events` and snaps the cuts to it, so the two must agree before anything is trimmed. The track is the continuity here, so section clips render separately and mute their own audio — `video-audio-continuity` for the case where a piece has no track of its own. `timeline-edit-ops` carries the timeline op contract, `motion-graphics` the build loop, `color-motion` the per-section grade and any colour that moves on the drop, `frame-composition` the repeated hook framing across choruses, and `caption-titles` any lyric or artist card on screen.

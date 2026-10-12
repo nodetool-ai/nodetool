@@ -6,7 +6,9 @@ const panelId = z.string().min(1).max(256);
 const group = z.object({
   id: panelId,
   panels: z.array(panelId).min(1).max(512),
-  activePanelId: panelId
+  activePanelId: panelId,
+  /** Share of its region's length, relative to the other groups there. Absent means 1. */
+  weight: z.number().finite().min(0.05).max(20).optional()
 }).strict();
 const groups = z.array(group).max(128);
 export const GAME_PANEL_REGIONS = ["left", "right", "bottom", "viewport"] as const;
@@ -49,7 +51,12 @@ export const gamePanelLayoutSchema = z.object({
 export type GamePanelLayout = z.infer<typeof gamePanelLayoutSchema>;
 export type GamePanelGroup = GamePanelLayout["regions"][GamePanelRegion][number];
 export type GamePanelLayoutAction =
-  | { readonly type: "move"; readonly panelId: string; readonly region: GamePanelRegion; readonly groupId: string; readonly index: number }
+  | {
+    readonly type: "move"; readonly panelId: string; readonly region: GamePanelRegion; readonly groupId: string; readonly index: number;
+    /** Where a new group goes in its region: beside this group, else at the end. */
+    readonly anchor?: { readonly groupId: string; readonly side: "before" | "after" };
+  }
+  | { readonly type: "resizeGroups"; readonly region: GamePanelRegion; readonly weights: Readonly<Record<string, number>> }
   | { readonly type: "activate"; readonly panelId: string }
   | { readonly type: "hide"; readonly panelId: string }
   | { readonly type: "reveal"; readonly panelId: string }
@@ -135,7 +142,8 @@ export function sameGamePanelLayout(a: GamePanelLayout, b: GamePanelLayout): boo
     && GAME_PANEL_REGIONS.every((region) => a.regions[region].length === b.regions[region].length
       && a.regions[region].every((entry, index) => {
         const other = b.regions[region][index];
-        return entry.id === other.id && entry.activePanelId === other.activePanelId && sameIds(entry.panels, other.panels);
+        return entry.id === other.id && entry.activePanelId === other.activePanelId && entry.weight === other.weight
+          && sameIds(entry.panels, other.panels);
       })));
 }
 
@@ -149,6 +157,13 @@ function applyGamePanelLayoutAction(layout: GamePanelLayout, action: GamePanelLa
   if (action.type === "preset") { return presetWithExtensions(layout, action.name); }
   if (action.type === "resize") {
     return gamePanelLayoutSchema.parse({ ...layout, sizes: { ...layout.sizes, [action.region]: action.size } });
+  }
+  if (action.type === "resizeGroups") {
+    const entries = layout.regions[action.region].map((entry) => {
+      const weight = action.weights[entry.id];
+      return weight === undefined ? entry : { ...entry, weight };
+    });
+    return gamePanelLayoutSchema.parse({ ...layout, regions: { ...layout.regions, [action.region]: entries } });
   }
   const sourceRegion = GAME_PANEL_REGIONS.find((region) => layout.regions[region].some((entry) => entry.panels.includes(action.panelId)));
   if (!sourceRegion) { throw new Error(`Game panel ${action.panelId} has no layout placement`); }
@@ -176,9 +191,14 @@ function applyGamePanelLayoutAction(layout: GamePanelLayout, action: GamePanelLa
   if (action.index > (target?.panels.length ?? 0)) { throw new Error("Panel insertion index exceeds group length"); }
   const panels = [...(target?.panels ?? [])];
   panels.splice(action.index, 0, action.panelId);
-  const moved = { id: action.groupId, panels, activePanelId: action.panelId };
-  regions[action.region] = target
-    ? regions[action.region].map((entry) => entry.id === target.id ? moved : entry)
-    : [...regions[action.region], moved];
+  const moved = target ? { ...target, panels, activePanelId: action.panelId } : { id: action.groupId, panels, activePanelId: action.panelId };
+  if (target) {
+    regions[action.region] = regions[action.region].map((entry) => entry.id === target.id ? moved : entry);
+  } else {
+    const entries = [...regions[action.region]];
+    const anchorIndex = action.anchor ? entries.findIndex((entry) => entry.id === action.anchor?.groupId) : -1;
+    entries.splice(anchorIndex < 0 ? entries.length : anchorIndex + (action.anchor?.side === "after" ? 1 : 0), 0, moved);
+    regions[action.region] = entries;
+  }
   return gamePanelLayoutSchema.parse({ ...layout, regions });
 }

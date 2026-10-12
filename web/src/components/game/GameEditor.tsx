@@ -15,7 +15,7 @@ import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutSto
 import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
 import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, CollapsibleSection, ConflictBanner, Dialog, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, ConflictBanner, Dialog, EmptyState, FlexColumn, FlexRow, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import GameRevisions from "./panels/revisions/GameRevisions";
@@ -444,13 +444,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
             onSelect={selectEntity} onSelectScene={selectScene} onOps={onOps} />
         </> },
       { id: "revisions", visible: !isMobile,
-        node: <>
-          <CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Revisions</Label>} compact defaultOpen={false}
-            sx={{ flexShrink: 0, maxHeight: "30%", overflowY: "auto", px: SPACING.md,
-              "& > [role='button'] > svg": { fontSize: FONT_SIZE_SANS.body } }}>
-          <GameRevisions revisions={revisions ?? []} busy={saving} onRestore={restoreRevision} />
-          </CollapsibleSection>
-        </> },
+        node: <GameRevisions revisions={revisions ?? []} busy={saving} onRestore={restoreRevision} /> },
       { id: "viewport", keyboardScope: true, node: <>
           <GameViewport canvasRef={canvasRef} frame={frame} document={document}
             sceneId={playDocument ? playState.sceneId || playDocument.entrySceneId : activeSceneId ?? document.entrySceneId}

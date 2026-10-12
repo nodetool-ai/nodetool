@@ -1,23 +1,22 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
+import LinkIcon from "@mui/icons-material/Link";
 import { Text, FlexRow, FlexColumn, NavButton, Chip, getSpacingPx, SPACING } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { trpcClient } from "../../trpc/client";
+import {
+  useExtensionStatus,
+  useInstallExtensionHost
+} from "../../serverState/useExtensionStatus";
 import { BASE_URL } from "../../stores/BASE_URL";
 
 const CHROME_EXTENSIONS_URL = "chrome://extensions";
-
-async function fetchExtensionStatus() {
-  return trpcClient.extension.status.query();
-}
 
 async function copyText(text: string): Promise<void> {
   if (window.api?.clipboard?.writeText) {
@@ -28,6 +27,7 @@ async function copyText(text: string): Promise<void> {
 }
 
 const STEPS: readonly string[] = [
+  "Click “Connect to Chrome” below once, so Chrome can start NodeTool’s browser bridge.",
   "Download the extension (or use the build folder below).",
   "Open chrome://extensions in the Chrome you use for the target sites.",
   "Enable “Developer mode” (top-right).",
@@ -41,12 +41,8 @@ const BrowserExtensionSettingsMenu = () => {
     (state) => state.addNotification
   );
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["extension-status"],
-    queryFn: fetchExtensionStatus,
-    refetchInterval: 3000,
-    refetchOnWindowFocus: true
-  });
+  const { status: data, isLoading } = useExtensionStatus();
+  const host = useInstallExtensionHost();
 
   const connected = data?.connected ?? false;
   const distPath = data?.distPath ?? "";
@@ -127,7 +123,24 @@ const BrowserExtensionSettingsMenu = () => {
           ))}
         </FlexColumn>
 
+        {host.error && (
+          <Text size="small" color="error" sx={{ mb: 1 }}>
+            {host.error}
+          </Text>
+        )}
+
         <FlexRow gap={1} sx={{ flexWrap: "wrap" }}>
+          {!isLoading && !data?.hostInstalled && (
+            <NavButton
+              icon={<LinkIcon />}
+              label={host.isInstalling ? "Connecting…" : "Connect to Chrome"}
+              color="primary"
+              onClick={() => host.install()}
+              disabled={host.isInstalling}
+              navSize="small"
+              sx={{ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`, minWidth: "unset" }}
+            />
+          )}
           <NavButton
             icon={<DownloadIcon />}
             label="Download extension"

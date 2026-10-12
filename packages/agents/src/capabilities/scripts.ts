@@ -1209,8 +1209,8 @@ function parseVoiceBinding(
     throw new Error(
       `A voice needs provider, model and voice together; this one has no ${missing.join(" and no ")}. ` +
         "`voice` is the voice's own name (e.g. \"Aoede\"), not a second model " +
-        "id — find_model with capability=text_to_speech lists the names a " +
-        "model takes."
+        "id. No tool lists a model's voices: reuse one get_script reports on " +
+        "this script's cast, or take the name from the provider's documentation."
     );
   }
   const binding: ScriptVoiceBinding = {

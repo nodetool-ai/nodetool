@@ -20,7 +20,8 @@ import {
   getSpacingPx,
   focusRing,
   selectableRowStyles,
-  selectedRowStyles
+  selectedRowStyles,
+  EmptyState
 } from "../ui_primitives";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -121,11 +122,6 @@ const styles = (theme: Theme) =>
     ".workflow-leaf.selected .leaf-name": {
       color: theme.vars.palette.text.primary
     },
-    ".empty-row": {
-      paddingLeft: getSpacingPx(SPACING.xxl),
-      color: theme.vars.palette.grey[500],
-      fontSize: theme.fontSizeSmaller
-    }
   });
 
 // Compact the shared SearchInput so it sits as a tree control, not a hero field.
@@ -214,7 +210,7 @@ const WorkflowTree: React.FC = () => {
         {isLoading ? (
           <LoadingSpinner size="small" />
         ) : workflows.length === 0 ? (
-          <div className="empty-row">No workflows</div>
+          <EmptyState size="small" title="No workflows" />
         ) : (
           workflows.map((workflow) => (
             <div

@@ -1,14 +1,16 @@
 /**
  * The model-line → prompting-skill table, checked against three things it can
  * silently disagree with: the skills actually shipped, the model ids the
- * providers actually serve, and the capability names the skills name in prose.
+ * providers actually serve (the four manifests plus the direct providers'
+ * own ids), and the capability names the skills name in prose.
  *
  * Every failure mode here is invisible at runtime. A table entry naming a
  * skill nobody shipped answers `find_model` with a `load_skill` call that
  * fails. A pattern that matches nothing is a guide that never triggers, and a
  * green test proves nothing unless it also proves the scan found ids at all. A
- * description that names an id its own pattern rejects makes the catalog and
- * the mechanical path disagree about which model a guide covers.
+ * description that names an id no provider serves, or one its own pattern
+ * rejects, makes `list_skills` and `find_model` disagree about which model a
+ * guide covers.
  */
 
 import { readFileSync, readdirSync } from "node:fs";
@@ -71,6 +73,39 @@ function manifestModelIds(): string[] {
   return [...ids];
 }
 
+/**
+ * Ids the direct providers name in their own model lists rather than through a
+ * manifest, keyed by the provider file that declares each. The test reads the
+ * file, so an id that is renamed there fails here instead of leaving a pattern
+ * and a description pointing at nothing.
+ */
+const DIRECT_PROVIDER_IDS: Record<string, readonly string[]> = {
+  "gemini-provider.ts": ["gemini-3-pro-image", "veo-3.1-generate-preview"],
+  "elevenlabs-provider.ts": [
+    "eleven_v3",
+    "eleven_multilingual_v2",
+    "eleven_turbo_v2_5",
+    "eleven_flash_v2_5"
+  ],
+  "minimax-provider.ts": [
+    "MiniMax-Hailuo-2.3",
+    "MiniMax-Hailuo-02",
+    "T2V-01-Director",
+    "I2V-01-Director",
+    "S2V-01"
+  ],
+  "kie-provider.ts": ["minimax-h3/reference-to-video"]
+};
+
+function directProviderSource(file: string): string {
+  return readFileSync(
+    fileURLToPath(
+      new URL(`../../runtime/src/providers/${file}`, import.meta.url)
+    ),
+    "utf8"
+  );
+}
+
 function shippedSkillNames(): Set<string> {
   const names = new Set<string>();
   for (const entry of readdirSync(SKILLS_DIR)) {
@@ -92,6 +127,14 @@ function skillBody(name: string): string {
 
 describe("the model-line prompting table", () => {
   const ids = manifestModelIds();
+
+  it.each(Object.entries(DIRECT_PROVIDER_IDS))(
+    "%s still declares the direct ids the table relies on",
+    (file, declared) => {
+      const source = directProviderSource(file);
+      expect(declared.filter((id) => !source.includes(`"${id}"`))).toEqual([]);
+    }
+  );
 
   it("reads model ids off the shipped manifests at all", () => {
     // Without this the two checks below pass on an empty list.
@@ -172,7 +215,24 @@ describe("the model-line prompting table", () => {
     ["elevenlabs/text-to-dialogue-v3", "elevenlabs-audio-prompting"],
     ["elevenlabs/music", "elevenlabs-audio-prompting"],
     ["fal-ai/stable-audio-25/text-to-audio", "stable-audio-prompting"],
-    ["stability-ai/stable-audio-2.5", "stable-audio-prompting"]
+    ["stability-ai/stable-audio-2.5", "stable-audio-prompting"],
+    ["fal-ai/stable-audio-3/medium/text-to-audio", "stable-audio-prompting"],
+    // Direct-provider spellings of lines a manifest also serves.
+    ["gemini-3-pro-image", "nano-banana-pro-prompting"],
+    ["eleven_v3", "elevenlabs-audio-prompting"],
+    ["eleven_multilingual_v2", "elevenlabs-audio-prompting"],
+    ["eleven_turbo_v2_5", "elevenlabs-audio-prompting"],
+    ["eleven_flash_v2_5", "elevenlabs-audio-prompting"],
+    ["T2V-01-Director", "hailuo-prompting"],
+    ["I2V-01-Director", "hailuo-prompting"],
+    ["S2V-01", "hailuo-prompting"],
+    ["MiniMax-Hailuo-02", "hailuo-prompting"],
+    ["veo-3.1-generate-preview", "veo-3-prompting"],
+    // kie spells H3 with a hyphen.
+    ["minimax-h3/reference-to-video", "minimax-h3-prompting"],
+    ["minimax/h3-fast/text-to-video", "minimax-h3-prompting"],
+    ["elevenlabs/v3", "elevenlabs-audio-prompting"],
+    ["fal-ai/elevenlabs/music", "elevenlabs-audio-prompting"]
   ])("routes %s to %s", (id, skill) => {
     expect(promptingSkillFor(id)).toBe(skill);
   });
@@ -202,7 +262,34 @@ describe("the model-line prompting table", () => {
     "fal-ai/elevenlabs/speech-to-text/scribe-v2",
     "fal-ai/elevenlabs/audio-isolation",
     "fal-ai/elevenlabs/dubbing",
-    "elevenlabs/scribe-v2"
+    "elevenlabs/scribe-v2",
+    // ElevenLabs releases the guide does not describe, and the direct v1.
+    "elevenlabs/tts/eleven-v4",
+    "elevenlabs/tts/eleven-v4-turbo",
+    "elevenlabs/music/v2",
+    "elevenlabs/music/v2.5",
+    "eleven_monolingual_v1",
+    // GPT Image 2.5, on every provider that serves it.
+    "gpt-image-2-5-flare-text-to-image",
+    "gpt-image-2-5-sunburst-image-to-image",
+    "openai/gpt-image-2.5/flare/edit",
+    "openai/gpt-image-2.5-sunburst/text-to-image",
+    "gpt-image-2.5-flare",
+    // Wan 2.6's image routes, which the video guide does not cover.
+    "alibaba/wan-2.6/text-to-image",
+    "alibaba/wan-2.6/image-edit",
+    // The original Stable Audio.
+    "fal-ai/stable-audio",
+    // Trainers take a dataset, not a prompt.
+    "fal-ai/flux-2-klein-4b-base-trainer",
+    "fal-ai/flux-2-klein-9b-base-trainer/edit",
+    "fal-ai/qwen-image-2512-trainer",
+    "qwen/qwen-image-lora-trainer-legacy",
+    "minimax/h3/t2v/trainer",
+    "fal-ai/stable-audio-3-trainer",
+    // Neighbours of the new direct spellings.
+    "image-01",
+    "tripo3d/h3.1/text-to-3d"
   ])("claims nothing for %s", (id) => {
     expect(promptingSkillFor(id)).toBeNull();
   });
@@ -212,25 +299,49 @@ describe("the shipped prompting skills", () => {
   const names = MODEL_PROMPTING_SKILLS.map((entry) => entry.skill);
 
   /**
-   * The catalog line is the other trigger: an agent that already knows its
-   * model reads the description and calls `load_skill` without going through
-   * `find_model`. A description naming an id the pattern rejects means the two
-   * paths disagree, and the one that reads as authoritative is the wrong one.
+   * None of these skills is featured, so the description surfaces only through
+   * a `list_skills({query})` search — and an agent that finds a guide there
+   * will pass the ids it names to `find_model`. Each id the description lists
+   * must therefore be one a provider serves and one `find_model` would attach
+   * this same guide to.
    */
-  it.each(names)("%s: every model id in its description matches it", (name) => {
+  const servedIds = new Set([
+    ...manifestModelIds(),
+    ...Object.values(DIRECT_PROVIDER_IDS).flat().map((id) => id.toLowerCase())
+  ]);
+  /**
+   * A listed id is served when it is a model id, the path prefix of one
+   * (`minimax/h3-max` for `minimax/h3-max/*`), or kie's short form of one
+   * (`seedance-2-fast` for `bytedance/seedance-2-fast`).
+   */
+  function isServed(token: string): boolean {
+    if (servedIds.has(token)) return true;
+    for (const id of servedIds) {
+      if (id.startsWith(`${token}/`) || id.endsWith(`/${token}`)) return true;
+    }
+    return false;
+  }
+
+  it.each(names)("%s: every model id in its description is served and routes to it", (name) => {
     const parsed = parseSkillMarkdown(skillBody(name));
     expect(parsed, `${name} has unreadable frontmatter`).not.toBeNull();
     const description = parsed?.description ?? "";
-    // Ids as the description writes them: a slash path, or a hyphenated slug
-    // carrying a digit. Bare prose words carry neither.
-    const quoted = [
-      ...description.matchAll(/\b[a-z0-9]+(?:[/-][a-z0-9.]+)+\b/g)
-    ].map((match) => match[0]);
-    expect(quoted.length, `${name} names no model ids`).toBeGreaterThan(2);
-    const wrong = quoted.filter(
-      (id) => promptingSkillFor(id) !== null && promptingSkillFor(id) !== name
+    // The ids sit in the description's parenthesised lists. Inside those, an
+    // id is a slash path or a hyphenated or underscored slug carrying a digit.
+    const listed = [...description.matchAll(/\(([^)]*)\)/g)].flatMap((group) =>
+      [...(group[1] ?? "").matchAll(/\b[a-z0-9]+(?:[/_-][a-z0-9.]+)+\b/g)]
+        .map((match) => match[0])
+        .filter((token) => token.includes("/") || /\d/.test(token))
     );
-    expect(wrong, "named in this description, routed elsewhere").toEqual([]);
+    expect(listed.length, `${name} names no model ids`).toBeGreaterThan(2);
+    expect(
+      listed.filter((id) => !isServed(id)),
+      "named in this description, served by no provider"
+    ).toEqual([]);
+    expect(
+      listed.filter((id) => promptingSkillFor(id) !== name),
+      "named in this description, not routed to it"
+    ).toEqual([]);
   });
 
   /**

@@ -126,7 +126,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "Ops: get_state, add_track, move_track, add_media_clip, add_text_clip, add_shape_clip, " +
         "add_group, split_clip, trim_clip, move_clip, duplicate_clip, delete_clip, " +
         "set_clip_params, set_parent, set_clip_binding, set_transition, set_mask, " +
-        "set_matte, set_time_remap, set_effects, animate_clip, stagger_animations, " +
+        "set_matte, set_generated_matte, set_time_remap, set_effects, animate_clip, stagger_animations, " +
         "set_baked_animation, " +
         "clear_animations, list_animation_presets, select_clip, seek, " +
         "add_marker, delete_marker, set_markers_from_beats, snap_to_beats, " +
@@ -217,7 +217,8 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "set_markers_from_beats and snap_to_beats both take a grid — " +
         '"onsets_ms" (detect_audio_events reports `onsets.times` in SECONDS, ' +
         'so multiply by 1000) or "bpm" with "offset_ms"?; ' +
-        'set_markers_from_beats also needs "count". snap_to_beats takes ' +
+        'set_markers_from_beats needs "count" with "bpm" (an "onsets_ms" ' +
+        "grid ignores it). snap_to_beats takes " +
         '"targets" (clip ids or names, or "all"), "tolerance_ms"? (default ' +
         '60), "mode"? ("start" | "end" | "both") and "action"? ("move" slides ' +
         'the clip, "trim" changes its length), and reports every target — ' +

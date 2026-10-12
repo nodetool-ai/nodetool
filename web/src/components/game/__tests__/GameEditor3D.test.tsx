@@ -298,7 +298,6 @@ it("confirms restore, flushes edits and uses the acknowledged token before reset
   const store = getGameDraftStore(mockDocument.id);
   expect(store.getState().commandHistory.past.length).toBeGreaterThan(0);
   await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
-  await user.click(screen.getByRole("button", { name: "Revisions" }));
   await user.click(screen.getByRole("button", { name: "Restore to draft" }));
   expect(mockRestore).not.toHaveBeenCalled();
   await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));

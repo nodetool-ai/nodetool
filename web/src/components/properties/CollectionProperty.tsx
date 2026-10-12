@@ -8,6 +8,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import Select from "../inputs/Select";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
+import { LoadingSpinner } from "../ui_primitives";
 
 interface CollectionValue {
   type: "collection";
@@ -58,7 +59,7 @@ const CollectionProperty = (props: PropertyProps<CollectionValue | null>) => {
         description={props.property.description}
         id={id}
       />
-      {isLoading && <p>Loading…</p>}
+      {isLoading && <LoadingSpinner size="small" />}
       {error && <p>Error: {error.message}</p>}
       <Select
         value={selectValue}

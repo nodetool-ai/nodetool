@@ -185,7 +185,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                 color="inherit"
                 disabled={!hasActiveSelection}
                 onClick={() => setRefineOpen(true)}
-                startIcon={<TuneIcon sx={{ fontSize: 14 }} />}
+                startIcon={<TuneIcon />}
                 sx={{
                   ...sketchButtonSmallSx,
                   minWidth: "76px",

@@ -1555,3 +1555,58 @@ describe("StoryboardBoard shot editing placement", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("StoryboardBoard quick search", () => {
+  const seedShots = (): void => {
+    const kettle = makeShot("s-kettle");
+    kettle.action = "A kettle boils on the stove";
+    const door = makeShot("s-door");
+    door.action = "The front door opens";
+    door.dialogue = "Anyone home?";
+    mockShots = [kettle, door];
+  };
+
+  it("shows only the shots that match and turns off reordering", async () => {
+    seedShots();
+    renderBoard(jest.fn());
+
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Search shots" }),
+      "anyone"
+    );
+
+    const cards = screen.getAllByTestId("shot-card");
+    expect(cards.map((card) => card.getAttribute("data-shot-id"))).toEqual([
+      "s-door"
+    ]);
+    expect(cards[0]).not.toHaveAttribute("data-draggable");
+    expect(screen.getByRole("status")).toHaveTextContent("1 of 2 shots");
+  });
+
+  it("says so when nothing matches", async () => {
+    seedShots();
+    renderBoard(jest.fn());
+
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Search shots" }),
+      "spaceship"
+    );
+
+    expect(screen.queryAllByTestId("shot-card")).toHaveLength(0);
+    expect(screen.getByText("No matching shots")).toBeInTheDocument();
+  });
+
+  it("selects and focuses the first match on Enter", async () => {
+    seedShots();
+    mockSelectShot.mockClear();
+    renderBoard(jest.fn());
+
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Search shots" }),
+      "door{Enter}"
+    );
+
+    expect(mockSelectShot).toHaveBeenCalledWith("board-1", "s-door");
+    expect(screen.getByRole("button", { name: "s-door" })).toHaveFocus();
+  });
+});

@@ -776,6 +776,22 @@ uppercase, `text.secondary`. A properties panel uses `InspectorSection`, which
 draws the same title (see [Properties panels](#11-properties-panels)). Omit `title` only when a tab strip above already
 names the panel, as in the agent panels.
 
+### Docked panel groups
+
+An editor whose panels the user rearranges (the game editor) docks them in
+groups. Each group draws a `DockTabStrip` and its body. The tab names the
+panel, so the panel draws no title strip of its own: its first row is a
+toolbar of controls, or its content.
+
+| Part | Rule |
+|---|---|
+| Tab strip | `DOCK_TAB_HEIGHT` (`CONTROL.height.sm`, 28px), `background.default`, 1px `divider` below |
+| Tab | Icon and sentence-case title in `TYPOGRAPHY.sans.label`. The active tab sits on the panel surface (`background.paper`) with a 2px top accent, `primary.main` while focus is inside the group |
+| Close | Shown on the active, hovered or focused tab. Middle click and Delete close too. A panel that must stay open passes `closable: false` |
+| Group menu | One `ToolbarIconButton` at the end of the strip and the same menu on right click or Shift+F10: close, maximize, split, reorder, move to another dock, add a hidden panel |
+| Drag | A tab drags after 4px of travel. `DockDropOverlay` previews the drop: the center adds a tab, an edge splits the group. Escape cancels |
+| Panel toolbar | `CONTROL.height.md` (32px), `SPACING.sm` inset, controls right-aligned, 1px `divider` below. Omit it when the panel has no controls |
+
 ### Dialogs
 
 Dialogs are not panels. Every modal dialog uses the `Dialog` primitive. It
@@ -995,7 +1011,7 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 
 ## 14. Controls
 
-Buttons, tooltips, notifications and the other small controls every surface shares.
+Buttons, tooltips, notifications, chips, empty and loading states, tabs and the other small controls every surface shares.
 
 ### Tooltips
 
@@ -1053,6 +1069,80 @@ reportError(err instanceof Error ? err.message : "Failed to generate");
 | Timeout | Leave `timeout` out. The store sizes it from the message length (3s to 12s). `0` keeps a notification until it is dismissed, and job completions use `NOTIFICATION_TIMEOUT_JOB_COMPLETED` |
 | Repeats | Pass a `dedupeKey` (with `replaceExisting` for a value that changes, such as progress) instead of stacking the same message |
 | Inline errors | An error about a form or a dialog stays inline as an `AlertBanner` in that surface, not in the stack |
+
+### Chips and pills
+
+A chip is a short tag, count or filter. Draw it with the `Chip` primitive. The
+theme's `MuiChip` override sets its height, radius, text and tone tints, so a
+call site picks props and adds only layout through `sx`, such as a margin or
+`flexShrink`.
+
+```tsx
+import { Chip } from "../ui_primitives";
+
+<Chip label="Installed" compact color="success" />
+<Chip label="Images" compact active={format === "image"} onClick={pickImages} />
+<Chip label={shot.slug} compact accent={BOARD_COLOR} onClick={openShot} />
+```
+
+| Part | Rule |
+|---|---|
+| Shape | Outlined pill, 28px tall, 24px with `compact`. Never set `height`, `borderRadius`, `fontSize` or label padding on a chip |
+| Tone | `color` picks a palette tone: text in the main colour, border at 50%, fill at 12%, as `StatusPill` draws it. A neutral chip is `text.secondary` on a `divider` border. A surface's own colour (a storyboard link, an entity kind, a type) goes in `accent`, never in `sx` |
+| Selected | A filter or toggle chip passes `active`. Selected takes its tone (primary when none is given) and unselected stays neutral. A clickable chip gets `aria-pressed` from it, so do not pass one |
+| Text | Sentence case, a few words. Values such as a type name or a hex colour may use `TYPOGRAPHY.mono.caption` |
+| Not a chip | A count or a value with no border is `Text`. A render state on a thumbnail is `StatusPill`. A command is a button, even when it is pill-shaped |
+| Hand-built | Do not build a pill from a `Box`, `span` or `button` with `BORDER_RADIUS.pill`. Use `Chip` with `icon` for a leading dot, spinner or icon |
+
+### Buttons
+
+A command is a button. Draw a text command with `EditorButton`, an icon-only
+command with `ToolbarIconButton`, and a close, delete, copy or similar action
+with its semantic button (`CloseButton`, `DeleteButton`, `CopyButton`). The
+theme's `MuiButton` override sets text size and icon size per button size, so
+a call site picks props and adds only layout through `sx`.
+
+```tsx
+import { CloseButton, EditorButton } from "../ui_primitives";
+
+<EditorButton variant="contained" onClick={install}>Install</EditorButton>
+<EditorButton variant="outlined" startIcon={<AddIcon />} onClick={add}>Add</EditorButton>
+<EditorButton variant="text" color="inherit" onClick={dismiss}>Dismiss</EditorButton>
+<CloseButton onClick={onClose} tooltip="Close documentation" />
+```
+
+| Part | Rule |
+|---|---|
+| Emphasis | `contained` for the one primary action in a view, `outlined` for secondary actions, `text` for tertiary ones such as Dismiss or Back. A muted tertiary action adds `color="inherit"` |
+| Size | `density` (24px compact, 28px normal) or `size` (28, 32, 36px). Never set `height`, `padding`, `borderRadius` or `fontSize` on a button |
+| Icons | `startIcon` and `endIcon` take a bare icon. The theme sizes it at 16, 18 or 20px for small, medium and large, so never pass `fontSize` to the icon |
+| Tooltip | Pass `tooltip` to the button instead of wrapping it in `Tooltip` |
+| Native button | Only for a tile, card or swatch whose whole surface is the hit target. It keeps a visible focus ring and `type="button"` |
+| Not a button | A tag or filter is a `Chip`. A command stays a button even when it is pill-shaped |
+
+### Empty, loading and tabs
+
+A panel or list with nothing to show draws `EmptyState`. A section that is
+still fetching draws `LoadingSpinner`. A row of views over one surface is
+`TabGroup` with a `TabPanel` per view.
+
+```tsx
+import { EmptyState, LoadingSpinner, TabGroup, TabPanel } from "../ui_primitives";
+
+<EmptyState size="small" title="No layers yet" description="Add one below." />
+<EmptyState size="small" variant="no-results" title="No matching nodes" />
+{isLoading && <LoadingSpinner size="small" />}
+<TabGroup tabs={tabs} value={view} onChange={setView} aria-label="Help sections" />
+```
+
+| Part | Rule |
+|---|---|
+| Size | `small` inside a list, menu panel or sidebar. `medium` fills a panel. `large` fills a page |
+| Text | The title says what is missing in a few words ("No runs yet"). A description says what to do next and is optional. A custom title shows no default description |
+| Icon | The variant picks a default. A passed `icon` takes the same size, so do not size it |
+| Search | A search or filter with no matches uses `variant="no-results"` |
+| Loading | Never bare "Loading…" text. A dropdown option may keep a disabled "Loading…" item |
+| Tabs | `TabGroup`, not raw `Tabs` and `Tab`. Workspace document tabs and the inspector's counted tabs are their own components |
 
 ---
 

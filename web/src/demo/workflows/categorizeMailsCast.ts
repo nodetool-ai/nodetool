@@ -71,7 +71,7 @@ const events: CastEvent[] = [
   m.jobUpdate(0, "running"),
 
   m.nodeUpdate(300, "gmail", "Gmail Search", CODE, "running"),
-  ...m.progress("gmail", 6, 600, 1000),
+  ...m.progress("gmail", 30, 600, 1000),
   m.nodeUpdate(1800, "gmail", "Gmail Search", CODE, "completed", { output: MESSAGES }),
   m.edgeUpdate(2000, "e1", "active"),
   m.edgeUpdate(2100, "e4", "active"),
@@ -82,7 +82,7 @@ const events: CastEvent[] = [
   m.edgeUpdate(3900, "e2", "active"),
 
   m.nodeUpdate(4500, "classifier", "Classifier", CLASSIFIER, "running"),
-  ...m.progress("classifier", 5, 4900, 2600),
+  ...m.progress("classifier", 79, 4900, 2600),
   m.nodeUpdate(7900, "classifier", "Classifier", CLASSIFIER, "completed", {
     output: CATEGORY,
     category: CATEGORY,

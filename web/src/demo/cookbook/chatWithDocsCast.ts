@@ -75,7 +75,7 @@ const events: CastEvent[] = [
   m.edgeUpdate(1700, "e2", "active"),
 
   m.nodeUpdate(2300, "search", "Hybrid Search", HYBRID_SEARCH, "running"),
-  ...m.progress("search", 8, 2600, 1400),
+  ...m.progress("search", 42, 2600, 1400),
   m.nodeUpdate(4300, "search", "Hybrid Search", HYBRID_SEARCH, "completed", { output: PASSAGES }),
   m.edgeUpdate(4500, "e2", "completed"),
   m.edgeUpdate(4700, "e3", "active"),

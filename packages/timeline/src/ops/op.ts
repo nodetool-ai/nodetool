@@ -21,6 +21,7 @@ import type {
 import type { ClipFadeShape } from "../audioFade.js";
 import type { ClipModel3DStylePatch } from "../authoredStyles.js";
 import type {
+  ClipAudioEffect,
   ClipCrop,
   ClipTransform,
   TimelineClip,
@@ -215,6 +216,8 @@ export interface SetClipParamsOp {
     fadeOutMs?: number;
     fadeInShape?: ClipFadeShape;
     fadeOutShape?: ClipFadeShape;
+    /** Replaces the clip's whole real-time audio chain. */
+    audioEffects?: ClipAudioEffect[];
     blendMode?: string;
     borderRadius?: number;
     /** Null clears the crop and puts the whole source back. */

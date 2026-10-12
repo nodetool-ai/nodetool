@@ -1,13 +1,13 @@
 ---
 name: nano-banana-pro-prompting
-description: Prompt Google's Nano Banana Pro image model — the art-director brief it plans against, the lock/change/amount/constraints shape every edit needs, and the patterns for typography, diagrams, product mockups and storyboards. Use whenever the model id contains nano-banana-pro (fal-ai/nano-banana-pro, fal-ai/nano-banana-pro/edit, google/nano-banana-pro/text-to-image, google/nano-banana-pro/edit, google/nano-banana-pro/edit-ultra, google/nano-banana-pro/text-to-image-ultra, kie's nano-banana-pro) on generate_image, edit_image or a TextToImage node. Not for Nano Banana 2 or plain Nano Banana.
+description: Prompt Google's Nano Banana Pro image model — the art-director brief it plans against, the lock/change/amount/constraints shape every edit needs, and the patterns for typography, diagrams, product mockups and storyboards. Use whenever the model id contains nano-banana-pro (fal-ai/nano-banana-pro, fal-ai/nano-banana-pro/edit, google/nano-banana-pro/text-to-image, google/nano-banana-pro/edit, google/nano-banana-pro/edit-ultra, google/nano-banana-pro/text-to-image-ultra, kie's nano-banana-pro, and Gemini's own gemini-3-pro-image) on generate_image, edit_image or a TextToImage node. Not for Nano Banana 2 or plain Nano Banana.
 ---
 
 # Nano Banana Pro → write the brief, not the adjectives
 
-Nano Banana Pro plans a composition before it paints one: it settles the layout
-and the lighting, and only then commits to pixels. Two things follow. It can
-reason a picture out — a solved equation on a whiteboard, a process diagram in
+Google describes Nano Banana Pro as planning a composition before it paints
+one: it settles the layout and the lighting, and only then commits to pixels.
+Two things follow. It can reason a picture out — a solved equation on a whiteboard, a process diagram in
 the right order — and it gets sharper the more it knows about the job, so one
 sentence of context beats one more adjective.
 
@@ -118,10 +118,12 @@ longer has to invent.
 
 ## What the model brings
 
-Resemblance holds for up to 5 people across generations and edits, so recurring
-characters in a campaign or a storyboard are workable. Up to 14 reference
-images combine in one generation for style or a multi-image scene. Text-to-image
-and edit are the same model. Outputs carry SynthID watermarking.
+The vendor's guide says resemblance holds for up to 5 people across
+generations and edits, so recurring characters in a campaign or a storyboard
+are workable. Several reference images combine in one generation for style or
+a multi-image scene: Replicate's `google/nano-banana-pro` takes up to 14 and
+kie's `nano-banana-pro` up to 8. Text-to-image and edit are the same model.
+Google states that outputs carry SynthID watermarking.
 
 Grade the result rather than eyeballing it: `critique_image` for a written
 read, `score_image_adherence` when you need the prompt checked against the

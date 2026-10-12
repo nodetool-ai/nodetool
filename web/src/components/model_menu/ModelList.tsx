@@ -183,6 +183,8 @@ interface ModelListProps<TModel extends ModelSelectorModel> {
    * shown on the download section header and each download button.
    */
   downloadTargetLabel?: string;
+  /** Close the picker. Called after Open Settings opens the Settings tab. */
+  onClose?: () => void;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
@@ -196,7 +198,8 @@ function ModelList<TModel extends ModelSelectorModel>({
   onDownloadStart,
   onModelDownload,
   modelType,
-  downloadTargetLabel
+  downloadTargetLabel,
+  onClose
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const getAvailability = useModelAvailability();
@@ -204,7 +207,8 @@ function ModelList<TModel extends ModelSelectorModel>({
 
   const handleOpenSettings = useCallback(() => {
     openSettingsTab("providers");
-  }, []);
+    onClose?.();
+  }, [onClose]);
 
   const badgeStyle = useMemo<React.CSSProperties>(
     () => ({

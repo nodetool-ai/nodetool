@@ -29,7 +29,8 @@ import {
   TextInput,
   BORDER_RADIUS,
   getSpacingPx,
-  SPACING
+  SPACING,
+  LoadingSpinner
 } from "../ui_primitives";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
@@ -318,7 +319,7 @@ const AgentAccessSection = () => {
 
       <FlexColumn gap={0} sx={{ mt: 2 }}>
         <Caption sx={{ mb: 0.5 }}>Connected MCP clients</Caption>
-        {grantsLoading && <Text sx={{ padding: `${SPACING.md}px` }}>Loading…</Text>}
+        {grantsLoading && <LoadingSpinner size="small" />}
         {!grantsLoading && grants.length === 0 && (
           <Text className="description">No MCP client has connected yet.</Text>
         )}

@@ -247,7 +247,7 @@ export const SelectionControls = memo(
               onClick={onClear}
               disabled={!hasSelection}
               size={size}
-              startIcon={<ClearIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+              startIcon={<ClearIcon />}
               sx={buttonSx}
             >
               {clearLabel}

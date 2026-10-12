@@ -1036,7 +1036,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onClick={() => addDirectGenLayer("text-to-image")}
               data-testid="layers-panel-add-text-to-image"
               startIcon={
-                <AutoAwesomeIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+                <AutoAwesomeIcon />
               }
               sx={GENERATE_ACTION_SX}
             >
@@ -1051,7 +1051,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onClick={() => addDirectGenLayer("image-to-image")}
               data-testid="layers-panel-add-image-to-image"
               startIcon={
-                <AutoFixHighIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
+                <AutoFixHighIcon />
               }
               sx={GENERATE_ACTION_SX}
             >
@@ -1071,7 +1071,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               aria-label="New layer"
               onClick={() => onAddLayer(null)}
               data-testid="layers-panel-new-layer"
-              startIcon={<AddIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
+              startIcon={<AddIcon />}
               sx={NEW_LAYER_ACTION_SX}
             >
               New layer

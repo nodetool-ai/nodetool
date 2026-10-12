@@ -1,6 +1,6 @@
 ---
 name: stable-audio-prompting
-description: Prompt Stability's Stable Audio line — the genre/instruments/mood/BPM order its training metadata expects, the TrackType and VocalType tags that separate music, stems and sound effects on Stable Audio 3, matching duration to what you described, which checkpoints guidance_scale and step count actually affect, and prompting the inpaint, outpaint and audio-to-audio variants where the surrounding audio outranks the prompt. Use whenever the model id names Stable Audio (fal-ai/stable-audio-25/text-to-audio, fal-ai/stable-audio-3/medium/text-to-audio, fal-ai/stable-audio-3/small/music/text-to-audio, fal-ai/stable-audio-3/small/sfx/text-to-audio, fal-ai/stable-audio-3/medium/audio-to-audio, fal-ai/stable-audio-25/inpaint, stability-ai/stable-audio-2.5) on generate_music or an audio generation node.
+description: Prompt Stability's Stable Audio line — the genre/instruments/mood/BPM order its training metadata expects, the TrackType and VocalType tags that separate music, stems and sound effects on Stable Audio 3, matching duration to what you described, which checkpoints guidance_scale and step count actually affect, and prompting the inpaint, outpaint and audio-to-audio variants where the surrounding audio outranks the prompt. Use whenever the model id names Stable Audio (fal-ai/stable-audio-25/text-to-audio, fal-ai/stable-audio-3/medium/text-to-audio, fal-ai/stable-audio-3/small/music/text-to-audio, fal-ai/stable-audio-3/small/sfx/text-to-audio, fal-ai/stable-audio-3/medium/audio-to-audio, fal-ai/stable-audio-25/inpaint, stability-ai/stable-audio-2.5) on generate_music, run_node or an audio generation node. Not for the original fal-ai/stable-audio.
 ---
 
 # Stable Audio → write the metadata, not a mood
@@ -10,9 +10,12 @@ shaped like library-music metadata: what the genre is, what is playing, how it
 feels, how fast it goes. Poetic descriptions of a feeling get a generic bed.
 
 Reach the music endpoints with `find_model` for `text_to_music`, then
-`generate_music`. The SFX checkpoints and the audio-to-audio, inpaint and
-outpaint variants are not in the music catalog — run those nodes with
-`search_nodes` and `invoke_node`.
+`generate_music`, which forwards only the prompt, lyrics and a duration. Every
+dial in the table below, and the SFX checkpoints and the audio-to-audio,
+inpaint and outpaint variants, need the route's own node: find it with
+`search_nodes`, read its fields with `get_node_info`, and run it with
+`run_node`. Each run is a paid generation, so confirm the scope with the
+user before rendering several.
 
 ## Music prompts
 
@@ -64,21 +67,23 @@ request for a door slam gets you a door slam followed by 28 seconds of room.
 Match the duration to what you described. The Stable Audio 3 medium checkpoint
 goes to 380 seconds, but a prompt describing a loop or a hit produces its best
 result when the length fits the description; for a music bed, 60–90 seconds is
-the range the guide recommends. Note the field changes name — `seconds_total`
-on 2.5, `duration` on 3 — and 2.5 defaults to 190 seconds, which is three
-minutes of audio nobody asked for.
+the range the guide recommends. On a node the field changes name —
+`seconds_total` on fal's 2.5, `duration` on Stable Audio 3 and on Replicate's
+`stability-ai/stable-audio-2.5` — and 2.5 defaults to 190 seconds on both,
+which is three minutes of audio nobody asked for. `generate_music`'s
+`duration_seconds` sets it for you.
 
 | Parameter | What it does | Where to sit |
 | :--- | :--- | :--- |
-| `num_inference_steps` | Sampling steps | The distilled checkpoints are tuned for the default 8 and gain little above it; raise it only on a `base` checkpoint |
-| `guidance_scale` | Prompt adherence | On Stable Audio 3, effective only on `base` (non-distilled) checkpoints — raising it on a distilled one changes nothing |
+| `num_inference_steps` | Sampling steps (`steps` on Replicate) | The distilled checkpoints default to 8, and the guide says they gain little above it; raise it on a `base` checkpoint (default 50) |
+| `guidance_scale` | Prompt adherence (fal only) | The guide says it is effective on Stable Audio 3 only on `base` (non-distilled) checkpoints, which default to 7; the distilled ones default to 1 |
 | `negative_prompt` | Qualities to avoid (Stable Audio 3 only) | Name the artifact you hear: "clipping", "muddy low end", "vocal chops" |
 | `enable_prompt_expansion` | LLM prompt rewrite | Off by default; useful for a three-word prompt, harmful once your prompt is already metadata |
 | `seed` | Comparability | Pin it while you change one element at a time |
 
-The `base` versus distilled split is the one that catches people: on a
-distilled Stable Audio 3 checkpoint the two dials most people reach for do
-nothing, and the prompt is the whole instrument.
+The `base` versus distilled split is the one that catches people: the guide
+says that on a distilled Stable Audio 3 checkpoint the two dials most people
+reach for do little, and the prompt is the whole instrument.
 
 ## Editing existing audio
 
@@ -102,7 +107,7 @@ ignoring you, widen the mask before rewriting the prompt.
 | A generic bed | Rewrite as genre, instruments with character, mood, BPM |
 | An unwanted vocal | Add `TrackType: Music, VocalType: Instrumental` to the prompt |
 | The effect is padded with room tone | Cut the duration to the length of the actual event |
-| Raising guidance changed nothing | You are on a distilled checkpoint — switch to `base` or fix the prompt |
+| Raising guidance changed nothing | You are probably on a distilled checkpoint — switch to `base` or fix the prompt |
 | An inpaint ignores the prompt | Widen the masked region |
 | Two takes are not comparable | Pin the seed and change one element |
 

@@ -28,7 +28,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  SHADOW
+  SHADOW,
+  EmptyState
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -383,7 +384,7 @@ const CostsDashboard: React.FC = () => {
           />
         ) : (
           <StateMessage>
-            <Text color="secondary">No cost data for this period.</Text>
+            <EmptyState variant="no-data" title="No cost data for this period" />
           </StateMessage>
         )}
       </Box>

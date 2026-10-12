@@ -2,84 +2,72 @@ import { renderHook } from "@testing-library/react";
 
 import {
   useFirstRunProviderSignIn,
-  shouldOfferFirstRunSignIn,
-  FIRST_RUN_SIGN_IN_REASON
+  shouldOfferFirstRunSignIn
 } from "../useFirstRunProviderSignIn";
-import { useLanguageModelProviders } from "../useProviders";
-import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
+import { useSecrets } from "../useSecrets";
+import { openSubscriptionOnboarding } from "../../stores/SubscriptionOnboardingStore";
 import useOnboardingStore from "../../stores/OnboardingStore";
-import type { ProviderInfo } from "../../stores/ApiTypes";
+import type { SecretResponse } from "../../stores/ApiTypes";
 
-jest.mock("../useProviders");
-jest.mock("../../stores/ProviderOnboardingStore", () => ({
-  openProviderOnboarding: jest.fn()
+jest.mock("../useSecrets");
+jest.mock("../../stores/SubscriptionOnboardingStore", () => ({
+  openSubscriptionOnboarding: jest.fn()
 }));
 jest.mock("../../lib/env", () => ({ isElectron: false, isLocalhost: true }));
 
-const mockUseLanguageModelProviders = jest.mocked(useLanguageModelProviders);
-const mockOpen = jest.mocked(openProviderOnboarding);
+const mockUseSecrets = jest.mocked(useSecrets);
+const mockOpen = jest.mocked(openSubscriptionOnboarding);
 
-const providersResult = (
-  overrides: Partial<ReturnType<typeof useLanguageModelProviders>> = {}
-): ReturnType<typeof useLanguageModelProviders> => ({
-  providers: [],
+const secret = (key: string, isConfigured: boolean): SecretResponse =>
+  ({ key, is_configured: isConfigured }) as SecretResponse;
+
+const secretsResult = (
+  overrides: Partial<ReturnType<typeof useSecrets>> = {}
+): ReturnType<typeof useSecrets> => ({
+  // The list also carries unconfigured catalog rows, which must not count.
+  secrets: [secret("OPENAI_API_KEY", false)],
   isLoading: false,
-  isFetching: false,
-  error: null,
+  isSuccess: true,
+  isApiKeySet: () => false,
   ...overrides
 });
-
-const languageProvider: ProviderInfo = {
-  provider: "openai",
-  capabilities: ["generate_message"],
-  access: "remote_api",
-  display_name: "OpenAI"
-} as ProviderInfo;
 
 beforeEach(() => {
   jest.clearAllMocks();
   useOnboardingStore.setState({ providerSignInOffered: false });
-  mockUseLanguageModelProviders.mockReturnValue(providersResult());
+  mockUseSecrets.mockReturnValue(secretsResult());
 });
 
 describe("useFirstRunProviderSignIn", () => {
-  it("offers the sign-in once when nothing is configured", () => {
+  it("opens the subscription onboarding once when no key is stored", () => {
     const { rerender } = renderHook(() => useFirstRunProviderSignIn());
-    expect(mockOpen).toHaveBeenCalledWith({
-      capability: "generate_message",
-      reason: FIRST_RUN_SIGN_IN_REASON
-    });
+    expect(mockOpen).toHaveBeenCalledTimes(1);
     expect(useOnboardingStore.getState().providerSignInOffered).toBe(true);
 
     rerender();
     expect(mockOpen).toHaveBeenCalledTimes(1);
   });
 
-  it("names Claude and OpenAI in the offer", () => {
-    expect(FIRST_RUN_SIGN_IN_REASON).toMatch(/Claude/);
-    expect(FIRST_RUN_SIGN_IN_REASON).toMatch(/OpenAI/);
-  });
-
-  it("stays quiet while the providers query is still loading", () => {
-    mockUseLanguageModelProviders.mockReturnValue(
-      providersResult({ isLoading: true })
+  it("stays quiet while the secrets query is still loading", () => {
+    mockUseSecrets.mockReturnValue(
+      secretsResult({ secrets: [], isLoading: true, isSuccess: false })
     );
     renderHook(() => useFirstRunProviderSignIn());
     expect(mockOpen).not.toHaveBeenCalled();
     expect(useOnboardingStore.getState().providerSignInOffered).toBe(false);
   });
 
-  it("stays quiet when the providers query failed", () => {
-    mockUseLanguageModelProviders.mockReturnValue(
-      providersResult({ error: new Error("offline") })
+  it("stays quiet when the secrets query failed", () => {
+    mockUseSecrets.mockReturnValue(
+      secretsResult({ secrets: [], isSuccess: false })
     );
     renderHook(() => useFirstRunProviderSignIn());
     expect(mockOpen).not.toHaveBeenCalled();
   });
 
-  it("stays quiet when a language model provider is already configured", () => {
-    mockUseLanguageModelProviders.mockReturnValue(
-      providersResult({ providers: [languageProvider] })
+  it("stays quiet when an API key is already stored", () => {
+    mockUseSecrets.mockReturnValue(
+      secretsResult({ secrets: [secret("ANTHROPIC_API_KEY", true)] })
     );
     renderHook(() => useFirstRunProviderSignIn());
     expect(mockOpen).not.toHaveBeenCalled();
@@ -90,7 +78,6 @@ describe("useFirstRunProviderSignIn", () => {
     renderHook(() => useFirstRunProviderSignIn());
     expect(mockOpen).not.toHaveBeenCalled();
   });
-
 });
 
 describe("shouldOfferFirstRunSignIn", () => {
@@ -99,10 +86,10 @@ describe("shouldOfferFirstRunSignIn", () => {
     offered: false,
     isLoading: false,
     hasError: false,
-    providerCount: 0
+    configuredKeyCount: 0
   };
 
-  it("offers on a first local launch with nothing configured", () => {
+  it("offers on a first local launch with no key stored", () => {
     expect(shouldOfferFirstRunSignIn(firstRun)).toBe(true);
   });
 
@@ -116,7 +103,7 @@ describe("shouldOfferFirstRunSignIn", () => {
     ["already offered", { offered: true }],
     ["still loading", { isLoading: true }],
     ["query failed", { hasError: true }],
-    ["a provider is configured", { providerCount: 1 }]
+    ["a key is stored", { configuredKeyCount: 1 }]
   ])("stays quiet when %s", (_label, overrides) => {
     expect(shouldOfferFirstRunSignIn({ ...firstRun, ...overrides })).toBe(
       false

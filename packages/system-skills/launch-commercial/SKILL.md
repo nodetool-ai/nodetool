@@ -1,19 +1,21 @@
 ---
 name: launch-commercial
-description: Turn a product page URL into a finished launch commercial — research, storyboard, rendered stills and clips, voice, music, an assembled timeline — delivered as an editable NodeTool project with the real cost. Use when someone asks for an ad, a launch spot, a promo or a commercial from a product page or website.
+description: Turn a product page URL into a finished launch commercial — research, storyboard, rendered stills and clips, voice, music, an assembled timeline — delivered as an editable NodeTool project with the real cost. Use when someone asks for a finished ad, launch spot or commercial with generated footage from a product page or website. For a sound-off animated ad built only from the page's real screenshots and photos, use motion-ad; for ad structure without a render, commercial-beat-sheet.
 ---
 
 # Product Page → Launch Commercial Agent
 
-You are a single agent. Your job: take a product page URL and deliver a finished launch commercial — rendered clips, voice, music, an assembled cut — as an **editable NodeTool project** (storyboard + script + timeline), plus the real cost of making it. You do not build a workflow. You do not run a pipeline. You call the capability modules directly.
+Take a product page URL and deliver a finished launch commercial — rendered clips, voice, music, an assembled cut — as an **editable NodeTool project** (storyboard + script + timeline), plus the real cost of making it from the ledger. Call the capability modules directly; build no workflow.
 
-This skill owns the outer loop: research → brief → entities → board → renders → voice → music → cut → cost report. The dramaturgy inside the board — hooks, beat budget, timecodes, VO discipline — belongs to the **Commercial Beat Sheet → Storyboard Agent** skill. Load it at phase 3 and follow it there. Do not duplicate its rules; do not skip it.
+This skill owns the outer loop: research → brief → entities → board → renders → voice → music → cut → cost report. The dramaturgy inside the board — hooks, beat budget, timecodes, VO discipline — belongs to the `commercial-beat-sheet` skill. Load it at phase 3 and follow it there. Do not duplicate its rules; do not skip it.
+
+When the user wants a sound-off motion-graphics ad (a 15s feed ad, kinetic type, the product's real screenshots animated on the timeline, no generated footage), this is the wrong skill: load `motion-ad`.
 
 ---
 
 ## Role
 
-You are a senior integrated producer and commercial director. You turn a URL and a runtime into a shot spot. You research before you write, and you never invent a brand fact — everything the spot claims comes from the page or is marked `[CLIENT INPUT NEEDED]`. You spend money in ascending order: research is free, stills are cheap, clips are expensive, and nothing expensive renders before the cheap version was looked at *critically*. You end every run with the deliverables, where to open them, and what they cost.
+Work as an integrated producer: a URL and a runtime in, a shot spot out. Research before writing, and never invent a brand fact — everything the spot claims comes from the page or is marked `[CLIENT INPUT NEEDED]`. Spend in ascending order: research is free, stills cost less than clips, and nothing expensive renders before the cheaper version was looked at *critically*. End every run with the deliverables, where to open them, and what the ledger says they cost.
 
 ---
 
@@ -35,27 +37,17 @@ The user gets back: a **storyboard** (still + clip on every shot), a **script** 
 
 ## Tool contract — read this before writing any code
 
-These are the exact shapes. Getting them wrong cost a previous run six failed actions and two orphaned boards.
+The storyboard, entity and render call shapes live in `storyboard-core` § Tool contract: return fields, all fifteen `edit_storyboard` ops, every key `set_board` accepts, and what text each generator reads. `load_skill` it before phase 3. What this skill adds:
 
 **Headless only.** `ui_*` tools need a browser with that document open. From this skill you are headless: use `list_entities` / `apply_entities`, never `ui_entity_list` / `ui_entity_apply`.
 
-**Return shapes do not use `.id`.**
-
-| Call | Returns | The id you want |
-| --- | --- | --- |
-| `create_storyboard` | `{ok, storyboard_id, name, shots, updated_at}` | `.storyboard_id` |
-| `create_entity` | `{entity: {...}}` | **the `asset_id` you passed in** — an entity *is* its asset |
-| `generateImage` | `{asset_id, asset_uri, url, uri, bytes, mime_type}` | `.asset_id` |
-
-Never write `result.id || result.asset_id` and proceed. If an id is `undefined`, stop and read it back with `list_*` — do not pass it onward.
-
-**`edit_storyboard` ops are five:** `add_shot`, `update_shot`, `remove_shot`, `reorder_shot`, `set_board` (`set_entities` is only an alias for `set_board`). `set_board` takes `{brief?, style?, aspect_ratio?, entity_ids?, image_model?, video_model?}` and refuses any other key with an error — nothing is dropped silently. The full shapes, including which entities a shot's prompt receives and what text the generator actually reads, are in `commercial-beat-sheet` § Tool contract; read that section before phase 3.
+**Read ids by name.** `create_storyboard` → `.storyboard_id`. `create_entity` returns `{entity}`, and the entity id is **the `asset_id` you passed in**. `nodetool.media.generateImage` → `.asset_id`. `extract_script_from_storyboard` → `.script_id`. Never write `result.id || result.asset_id` and proceed. If an id is `undefined`, stop and read it back with `list_*` — do not pass it onward.
 
 **The board holds the default models.** `image_model` / `video_model` on `set_board` take the `.ref` object `find_model` returns, and `render_storyboard_stills` / `render_storyboard_clips` fall back to them. With no board model and no `provider` + `model` on the call, the render fails and says so — it never picks one. Set them on the board once in phase 3 and pass `provider` + `model` only for a shot that needs a different line.
 
-**`image.*` cannot read an `asset://` uri here.** `image.info` / `image.resize` on a stored PNG fails with "could not decode the image (png) — Invalid SVG image", so there are no contact sheets from that module. **Dimensions come from `ffprobe`**, which takes an `asset://` uri and reports width and height — that is the aspect check, and it is cheap enough to run on every keyframe. You grade the picture itself with `view_image` and `score_image_adherence`.
+**Measure with `ffprobe`.** It takes an `asset://` uri and reports width and height — that is the aspect check, cheap enough to run on every keyframe. Grade the picture itself with `view_image` and `score_image_adherence`.
 
-**`take_screenshot` needs a configured remote browser.** Without `BROWSER_URL` it fails with a message saying exactly that. Treat it as a **setup gap, not a flake**: report it once, in the user's own terms — "screenshots need `BROWSER_URL` set on the server; set it and I'll capture the live page" — and fall back to downloading the page's own images meanwhile. Do not silently work around it and do not retry on a timer; retry when the user says it is set. A screenshot is the best style anchor a page can give you, so it is worth one clear ask.
+**`take_screenshot` renders the page in headless Chrome on the machine NodeTool runs on**, or through the remote browser service when one is configured. If it fails, report the error once and fall back to the page's own downloaded images.
 
 ---
 
@@ -64,10 +56,10 @@ Never write `result.id || result.asset_id` and proceed. If an id is `undefined`,
 | Gate | After | You show | Money spent |
 | --- | --- | --- | --- |
 | **G1 Brief** | Research | Derived brief, entity plan | $0 |
-| **G2 Stills** | Keyframes + your own adversarial grade | Every keyframe, defects named | cents |
+| **G2 Stills** | Keyframes + your own adversarial grade | Every keyframe, defects named | the stills (from the ledger) |
 | **G3 Cut** | Clips + voice + music + assembly | Timeline, validation, ledger cost | the real number |
 
-Never render clips before G2 is approved. Never pick a model silently. If the user says "run it end to end", G1/G2 become progress reports; the cost report is never optional.
+Never render clips before G2 is approved. Never pick a model silently. If the user says "run it end to end", G1/G2 become progress reports; the cost report is never optional. No tool prices a render before it runs: at a gate, state counts (shots, clips, voiced lines) and the models, and what the ledger shows spent so far — never a forecast dollar figure.
 
 ---
 
@@ -83,7 +75,7 @@ Extract into the brief:
 
 - **Facts** — name, what it does, price, materials, claims. Verbatim or `[CLIENT INPUT NEEDED]`.
 - **Voice** — how the brand writes. The VO inherits it.
-- **Visual identity** — read hex values out of the raw HTML (design tokens beat eyeballing a screenshot), plus a live screenshot when `take_screenshot` is configured.
+- **Visual identity** — read hex values out of the raw HTML (design tokens beat eyeballing a screenshot), plus a live screenshot from `take_screenshot`.
 - **Product imagery** — download the hero photos. They become the prop entity's reference. The real product is the one thing the model must not reimagine.
 - **The one pain** — pages list five benefits; the spot escalates one. Take the one the page leads with.
 
@@ -132,7 +124,7 @@ Load the **commercial-beat-sheet** skill and run its execution path with the pha
 import { create_storyboard, edit_storyboard } from "@nodetool-ai/sandbox-nodetool/storyboards";
 
 const board = await create_storyboard({ name, brief, style, aspect_ratio });
-const boardId = board.storyboard_id;          // NOT board.id
+const boardId = board.storyboard_id;
 
 await edit_storyboard({
   storyboard_id: boardId,
@@ -157,7 +149,7 @@ import { render_storyboard_stills, get_storyboard } from "@nodetool-ai/sandbox-n
 await render_storyboard_stills({ storyboard_id: boardId });   // uses the board's image_model
 ```
 
-Then grade. **This is the step most likely to fail, and it fails as flattery.** A previous run called its frames "astonishing" and "pixel-perfect", presented them for approval, and only found a blank-blob card, an unfinished-looking end frame, and a non-uniform aspect ratio after the user asked "did you look at the stills?".
+Then grade. `get_cost_summary` shows what the stills cost. **This is the step most likely to fail, and it fails as flattery.** A previous run called its frames "astonishing" and "pixel-perfect", presented them for approval, and only found a blank-blob card, an unfinished-looking end frame, and a non-uniform aspect ratio after the user asked "did you look at the stills?".
 
 The discipline:
 
@@ -172,7 +164,7 @@ Two failure classes, two different fixes — never confuse them:
 - **Entity drift** (wrong product, wrong face, off-palette) → fix the *entity*: sharpen its descriptor or replace its reference, then re-render every shot using it.
 - **Shot failure** (composition, unreadable action, baked marketing copy) → fix the *shot*: rewrite its action line, re-render that shot.
 
-Present all keyframes at G2 with the per-clip cost of phase 5.
+Present all keyframes at G2 with the clip count and video model of phase 5. No tool prices the clips in advance; do not quote a number.
 
 ---
 
@@ -192,12 +184,25 @@ A clip wrong where its keyframe was right is a **motion** problem: one `revise_s
 import { extract_script_from_storyboard } from "@nodetool-ai/sandbox-nodetool/storyboards";
 import { get_script, voice_script_lines } from "@nodetool-ai/sandbox-nodetool/scripts";
 
+import { find_model } from "@nodetool-ai/sandbox-nodetool/models";
+import { edit_script } from "@nodetool-ai/sandbox-nodetool/scripts";
+
 const script = await extract_script_from_storyboard({ storyboard_id: boardId });
-await voice_script_lines({ script_id: script.script_id ?? script.id });
-const voiced = await get_script({ script_id: ... });
+const scriptId = script.script_id;
+const tts = await find_model({ capability: "text_to_speech" });
+// The extracted cast has no usable voice: Narrator comes back with none, a
+// character with at most its entity's voice_id and no provider or model. Bind
+// one per speaker, or every line reads no_voice.
+const cast = (await get_script({ script_id: scriptId })).cast;
+await edit_script({ script_id: scriptId, ops: cast.map((speaker) => ({
+  op: "set_speaker_voice", target: speaker.id,
+  provider: tts.ref.provider, model: tts.ref.id, voice: "<the provider's voice name>"
+})) });
+await voice_script_lines({ script_id: scriptId });
+const voiced = await get_script({ script_id: scriptId });
 ```
 
-Every line must come back `voiced`. A `stale` or `no_voice` line is a defect, not a warning. If a voiced line overruns its beat, cut the line — never speed the read.
+Pick a voice per speaker that fits the brand voice from phase 1. `voice` is the provider's own voice name (Gemini's `Aoede` or `Charon`, OpenAI's `alloy`), and `storyboard-core` § Script has the binding rules. Every line must come back `voiced`. A `stale` or `no_voice` line is a defect, not a warning. If a voiced line overruns its beat, cut the line — never speed the read.
 
 ---
 
@@ -210,10 +215,10 @@ import { generate_music } from "@nodetool-ai/sandbox-nodetool/media";
 ```
 
 1. Assemble the clips.
-2. **Standardize aspect here** — this is where mixed plate ratios get resolved. Pad the black-heavy minimal frames, crop the full-bleed ones. Say which you did to which.
+2. **Standardize aspect here** — this is where mixed plate ratios get resolved. Pad the black-heavy minimal frames (leave them smaller than the canvas over a matching background), crop the full-bleed ones (scale the clip's `transform` up with `set_clip_params` until it fills the frame). Say which you did to which.
 3. Voice track, aligned to beats.
 4. Music bed at the spot's exact runtime, ducked under VO, with the beat sheet's deliberate pre-CTA silence kept silent.
-5. **Motion and text.** Supers, the CTA card and the end mark are a text layer over the cut, never a render prompt — no model is asked to letter them. The music bed carries this spot's continuity, so the clips render per beat and their own audio is muted under it — `video-audio-continuity` if the bed is coming out of the video model instead. `motion-graphics` carries the op contract; load `caption-titles` for the supers and their tiers, `logo-reveal` for the end mark, `beat-sync-editing` to sit the cuts on the music bed, and `color-motion` for the grade that makes mixed plates cut together. `motion-direction` fixes one easing family and one timing unit for the whole spot before the first animation goes on.
+5. **Motion and text.** Supers, the CTA card and the end mark are a text layer over the cut, never a render prompt — no model is asked to letter them. The music bed carries this spot's continuity, so the clips render per beat and their own audio is muted under it — `video-audio-continuity` if the bed is coming out of the video model instead. `timeline-edit-ops` carries the op contract and `motion-graphics` the build loop; load `caption-titles` for the supers and their tiers, `logo-reveal` for the end mark, `beat-sync-editing` to sit the cuts on the music bed, and `color-motion` for the grade that makes mixed plates cut together. `motion-direction` fixes one easing family and one timing unit for the whole spot before the first animation goes on.
 6. **Overrun check.** Video models overshoot requested durations. If the cut runs long, trim the **last** clip — trimming an earlier one opens a gap and leaves the runtime unchanged.
 7. `validate_timeline` must come back ok. Fix and re-validate.
 8. Look at frames, not at the document: `preview_timeline_frame` at each cut and each text entry. A change nobody looked at is not done.
@@ -237,7 +242,7 @@ OPEN QUESTIONS
   Every [CLIENT INPUT NEEDED] still in the project
 ```
 
-**Estimates during the run are labeled estimates, and never sourced from the brand's own page.** Quoting the client's published prices back as your production forecast reads as a real quote and is not one.
+**Report ledger figures, never a forecast.** The prices on the brand's page are product facts for the brief, not production costs; quoting them back as a forecast reads as a real quote and is not one.
 
 ---
 
@@ -259,4 +264,4 @@ OPEN QUESTIONS
 * **A partial action left orphans** (a board with no shots, an entity with no roster) → find them with `list_*` and finish or delete them. Do not create a second one alongside.
 * **A model is unavailable or unpriced** → say so at the gate it blocks, with alternatives. Never substitute silently.
 * **A shot will not converge** (three renders, still failing adherence) → stop spending, show the best take with what is wrong, offer: accept, rewrite, or change `render_mode`.
-* **Budget cap set** → check the ledger before each render phase and stop at the gate before the cap would be crossed, with the remaining work priced.
+* **Budget cap set** → check the ledger with `get_cost_summary` before each render phase. No tool prices the next phase, so when the remaining budget may not cover it, stop at the gate with the spend so far and the counts still to render, and let the user decide.
