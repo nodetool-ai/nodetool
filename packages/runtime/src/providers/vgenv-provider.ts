@@ -169,10 +169,9 @@ export class VgenvProvider extends BaseProvider {
   }
 
   private headers(json = false): Record<string, string> {
-    return {
-      Authorization: `Bearer ${this.apiKey}`,
-      ...(json ? { "Content-Type": "application/json" } : {})
-    };
+    const headers: Record<string, string> = { Authorization: `Bearer ${this.apiKey}` };
+    if (json) headers["Content-Type"] = "application/json";
+    return headers;
   }
 
   private async parse(response: Response, action: string): Promise<Video> {
