@@ -293,6 +293,36 @@ describe("Storyboard finishing", () => {
     expect(rerun.document.clips.map((clip) => clip.transform)).toEqual(first.document.clips.map((clip) => clip.transform));
   });
 
+  it("places unframed elements by role and sizes their text by role", () => {
+    const elements: NonNullable<Shot["graphics"]>["elements"] = [
+      { id: "logo", kind: "asset", role: "logo", asset_id: "a" },
+      { id: "headline", kind: "text", role: "headline", text: "H" },
+      { id: "cta", kind: "text", role: "cta", text: "C" },
+      { id: "product", kind: "asset", role: "product", asset_id: "b" },
+      { id: "even", kind: "text", text: "x" },
+      { id: "odd", kind: "text", text: "y" },
+      { id: "sized", kind: "text", text: "y", typography: { size: 0.1 } },
+      { id: "price", kind: "text", role: "price", text: "p" },
+      { id: "current", kind: "text", role: "price", direction: " Current Price ", text: "p" },
+      { id: "superseded", kind: "text", role: "price", direction: "superseded price", text: "p" },
+      { id: "direction-only", kind: "text", direction: "current price", text: "p" }
+    ];
+    const plain: Shot = { type: "shot", id: "s", index: 0, action: "a", status: "planned", duration_seconds: 4, graphics: { mode: "graphics_first", elements } };
+    const { document } = materializeStoryboard({ boardId: "b", shots: [plain], width: 1000, height: 2000 });
+    const placed = document.clips.map((clip) => [clip.storyboardElementId, clip.transform!.position.y, clip.transform!.scale.x, clip.textStyle?.fontSizePx]);
+    const expected = [
+      ["logo", -800, 0.18, undefined], ["headline", -640, 1, 65], ["cta", 680, 1, 65], ["product", -160, 0.65, undefined],
+      ["even", 320, 1, 65], ["odd", 520, 1, 65], ["sized", 320, 1, 100], ["price", 520, 1, 120],
+      ["current", 520, 1, 120], ["superseded", 300, 1, 55], ["direction-only", 320, 1, 65]
+    ];
+    expect(placed.map(([id]) => id)).toEqual(expected.map(([id]) => id));
+    for (const [row, want] of placed.map((value, i) => [value, expected[i]] as const)) {
+      expect(row[1] as number).toBeCloseTo(want[1] as number, 6);
+      expect(row[2]).toBeCloseTo(want[2] as number, 6);
+      expect(row[3]).toBe(want[3]);
+    }
+  });
+
   it("fits a product of known size between its headline and prices", () => {
     const args = input();
     const elements = args.shots[0].graphics!.elements!;
