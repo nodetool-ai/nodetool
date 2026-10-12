@@ -670,7 +670,7 @@ const ScriptLineRow = ({
             aria-label="Voice line"
             disabled={!voice}
             onClick={() => void onVoice()}
-            startIcon={<MicNoneIcon fontSize="small" />}
+            startIcon={<MicNoneIcon />}
             sx={{
               borderRadius: BORDER_RADIUS.pill,
               whiteSpace: "nowrap",

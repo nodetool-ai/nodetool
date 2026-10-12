@@ -485,7 +485,7 @@ const AddResourceForm: React.FC<{
       <EditorButton
         size="small"
         variant="outlined"
-        startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+        startIcon={<AddIcon />}
         onClick={submit}
       >
         Add resource
@@ -592,7 +592,7 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
             <EditorButton
               size="small"
               variant="outlined"
-              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+              startIcon={<AddIcon />}
               disabled={!workflowId}
               onClick={addOp}
             >
@@ -619,7 +619,7 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
             <EditorButton
               size="small"
               variant="outlined"
-              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
+              startIcon={<AddIcon />}
               onClick={addVar}
             >
               Add variable

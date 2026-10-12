@@ -1078,6 +1078,32 @@ import { Chip } from "../ui_primitives";
 | Not a chip | A count or a value with no border is `Text`. A render state on a thumbnail is `StatusPill`. A command is a button, even when it is pill-shaped |
 | Hand-built | Do not build a pill from a `Box`, `span` or `button` with `BORDER_RADIUS.pill`. Use `Chip` with `icon` for a leading dot, spinner or icon |
 
+### Buttons
+
+A command is a button. Draw a text command with `EditorButton`, an icon-only
+command with `ToolbarIconButton`, and a close, delete, copy or similar action
+with its semantic button (`CloseButton`, `DeleteButton`, `CopyButton`). The
+theme's `MuiButton` override sets text size and icon size per button size, so
+a call site picks props and adds only layout through `sx`.
+
+```tsx
+import { CloseButton, EditorButton } from "../ui_primitives";
+
+<EditorButton variant="contained" onClick={install}>Install</EditorButton>
+<EditorButton variant="outlined" startIcon={<AddIcon />} onClick={add}>Add</EditorButton>
+<EditorButton variant="text" color="inherit" onClick={dismiss}>Dismiss</EditorButton>
+<CloseButton onClick={onClose} tooltip="Close documentation" />
+```
+
+| Part | Rule |
+|---|---|
+| Emphasis | `contained` for the one primary action in a view, `outlined` for secondary actions, `text` for tertiary ones such as Dismiss or Back. A muted tertiary action adds `color="inherit"` |
+| Size | `density` (24px compact, 28px normal) or `size` (28, 32, 36px). Never set `height`, `padding`, `borderRadius` or `fontSize` on a button |
+| Icons | `startIcon` and `endIcon` take a bare icon. The theme sizes it at 16, 18 or 20px for small, medium and large, so never pass `fontSize` to the icon |
+| Tooltip | Pass `tooltip` to the button instead of wrapping it in `Tooltip` |
+| Native button | Only for a tile, card or swatch whose whole surface is the hit target. It keeps a visible focus ring and `type="button"` |
+| Not a button | A tag or filter is a `Chip`. A command stays a button even when it is pill-shaped |
+
 ---
 
 ## 15. Migration Checklist

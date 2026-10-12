@@ -88,7 +88,7 @@ function CollisionMatrixEditor({ document, onDocument }: CollisionMatrixEditorPr
         onClick={() => onDocument(removeCollisionLayer3D(document, layer), "Remove Collision Layer")} />
     </FlexRow>)}
     {renameError && <Caption color="error" role="alert">{renameError}</Caption>}
-    <EditorButton variant="outlined" startIcon={<AddIcon fontSize="small" />} disabled={layers.length >= MAX_COLLISION_LAYERS_3D} onClick={addLayer}>Add layer</EditorButton>
+    <EditorButton variant="outlined" startIcon={<AddIcon />} disabled={layers.length >= MAX_COLLISION_LAYERS_3D} onClick={addLayer}>Add layer</EditorButton>
     {layers.length > 0 && <ScrollArea direction="horizontal" thin>
       <Box role="group" aria-label="Collision matrix" sx={{ display: "grid", gridTemplateColumns: `minmax(0, max-content) repeat(${layers.length}, max-content)`,
         alignItems: "center", columnGap: SPACING.micro }}>{cells}</Box>

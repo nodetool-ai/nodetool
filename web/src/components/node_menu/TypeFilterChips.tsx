@@ -408,7 +408,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
           <EditorButton
             variant="outlined"
             className="more-filters-button"
-            startIcon={<FilterListIcon fontSize="small" />}
+            startIcon={<FilterListIcon />}
             onClick={handleOpenMenu}
           >
             Filters

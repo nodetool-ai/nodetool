@@ -95,7 +95,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         >
           <EditorButton
             density="normal"
-            startIcon={<Add fontSize="small" />}
+            startIcon={<Add />}
             onClick={handleShowInputDialog}
           >
             Add input
@@ -118,7 +118,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           >
             <EditorButton
               density="normal"
-              startIcon={<Add fontSize="small" />}
+              startIcon={<Add />}
               onClick={handleShowOutputDialog}
             >
               Add output

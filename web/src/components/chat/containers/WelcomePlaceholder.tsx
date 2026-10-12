@@ -225,7 +225,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
               variant="contained"
               color="primary"
               size="small"
-              startIcon={<KeyRoundedIcon sx={{ fontSize: "1.2em" }} />}
+              startIcon={<KeyRoundedIcon />}
               onClick={handleConnectProvider}
               sx={{ mt: SPACING.xs }}
             >

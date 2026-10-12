@@ -52,7 +52,7 @@ const JsScriptSecretsEditor = ({
           readOnly ? undefined : (
             <EditorButton
               density="compact"
-              startIcon={<AddIcon fontSize="small" />}
+              startIcon={<AddIcon />}
               onClick={() => onChange([...secrets, ""])}
             >
               Add

@@ -85,7 +85,7 @@ const EntityProperty = (props: PropertyProps<Entity | Entity[] | null>) => {
         ))}
         <EditorButton
           density="compact"
-          startIcon={<AddIcon fontSize="inherit" />}
+          startIcon={<AddIcon />}
           onClick={() => setPickerOpen(true)}
         >
           {addLabel}

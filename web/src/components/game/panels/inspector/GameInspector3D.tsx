@@ -134,7 +134,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
           {behavior.kind !== "script" && <SchemaFields schema={gameSchemaFields(gameEntity3D.shape.behaviors.unwrap().element)} value={behavior}
             onChange={(value) => onOps([gameDocumentOp3D.parse({ op: "update_behavior", scene_id: sceneId, entity_id: entity.id, index, behavior: value })])} />}
         </FlexColumn>)}
-        <EditorButton variant="outlined" startIcon={<AddIcon fontSize="small" />} onClick={() => onOps([{ op: "add_behavior", scene_id: sceneId, entity_id: entity.id,
+        <EditorButton variant="outlined" startIcon={<AddIcon />} onClick={() => onOps([{ op: "add_behavior", scene_id: sceneId, entity_id: entity.id,
           behavior: { kind: "script", source: '(input) => ({ state: input.state, commands: [] })' } }])}>Add script</EditorButton>
       </FlexColumn>
     </InspectorSection>

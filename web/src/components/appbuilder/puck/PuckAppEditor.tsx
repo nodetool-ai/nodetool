@@ -75,7 +75,7 @@ const SaveButton: React.FC<{ onSave: (data: Data) => void; saving?: boolean }> =
       size="small"
       variant="contained"
       color="primary"
-      startIcon={<SaveIcon sx={{ fontSize: 16 }} />}
+      startIcon={<SaveIcon />}
       onClick={handleClick}
       disabled={saving}
     >
@@ -211,7 +211,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
             <EditorButton
               size="small"
               variant={dataOpen ? "contained" : "text"}
-              startIcon={<TuneIcon sx={{ fontSize: 16 }} />}
+              startIcon={<TuneIcon />}
               onClick={onToggleData}
               aria-pressed={dataOpen}
             >
@@ -222,7 +222,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
             <EditorButton
               size="small"
               variant="text"
-              startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
+              startIcon={<CloseIcon />}
               onClick={onClose}
             >
               Back
