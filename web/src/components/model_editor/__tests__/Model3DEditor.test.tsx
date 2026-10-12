@@ -152,7 +152,8 @@ describe("Model3DEditor", () => {
     const { onSave, getByRole, findByRole } = renderEditor({ name: "chair.glb" });
     await waitFor(() => expect(getByRole("button", { name: "Save" })).toBeEnabled());
 
-    fireEvent.click(getByRole("button", { name: "Export" }));
+    // The tooltip text names the button: MUI's Tooltip sets it as aria-label.
+    fireEvent.click(getByRole("button", { name: /Download the scene/ }));
     expect(await findByRole("menuitem", { name: /Selection as OBJ/ })).toHaveAttribute(
       "aria-disabled",
       "true"
