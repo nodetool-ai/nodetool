@@ -18,9 +18,10 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  Label,
+  SectionHeader,
   Text,
   TextInput,
+  UploadButton,
   BORDER_RADIUS,
   SPACING
 } from "../ui_primitives";
@@ -188,8 +189,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
   }, []);
 
   const handleAttach = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const picked = Array.from(event.target.files ?? []);
+    (picked: File[]) => {
       const tooBig = picked.filter((file) => file.size > MAX_ATTACHMENT_BYTES);
       if (tooBig.length > 0) {
         addNotification({
@@ -202,7 +202,6 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         ...prev,
         ...picked.filter((file) => file.size <= MAX_ATTACHMENT_BYTES)
       ]);
-      event.target.value = "";
     },
     [addNotification]
   );
@@ -415,11 +414,11 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         />
 
         <FlexColumn gap={SPACING.sm}>
-          <Label>Attached data</Label>
-          <Caption>
-            API keys and inlined media are removed before the file is written.
-            Open any file to read it first.
-          </Caption>
+          <SectionHeader
+            size="small"
+            title="Attached data"
+            subtitle="API keys and inlined media are removed before the file is written. Open any file to read it first."
+          />
 
           {allSections.length === 0 ? (
             <Caption>Nothing was captured to attach to this report.</Caption>
@@ -488,20 +487,19 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         </FlexColumn>
 
         <FlexColumn gap={SPACING.sm}>
-          <Label>Screenshots and other files</Label>
-          <Caption>
-            A screenshot of the broken screen is the most useful thing you can
-            add.
-          </Caption>
-          <label>
-            <input
-              type="file"
-              multiple
-              onChange={handleAttach}
-              style={{ display: "block" }}
-              aria-label="Attach files to the bug report"
-            />
-          </label>
+          <SectionHeader
+            size="small"
+            title="Screenshots and other files"
+            subtitle="A screenshot of the broken screen is the most useful thing you can add."
+          />
+          <UploadButton
+            label="Add files"
+            tooltip="Attach files to the bug report"
+            iconVariant="file"
+            nodrag={false}
+            onFileSelect={handleAttach}
+            sx={{ alignSelf: "flex-start" }}
+          />
           {attachments.map((file) => (
             <FlexRow key={file.name} align="center" gap={SPACING.sm}>
               <Caption>

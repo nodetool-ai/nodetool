@@ -17,7 +17,6 @@ import {
   FlexColumn,
   FlexRow,
   FormField,
-  Label,
   Radio,
   RadioSet,
   SelectField,
@@ -137,6 +136,18 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
     isCreating ||
     (strategy === "track" && trackId === "");
 
+  const strategyHelp =
+    [
+      readyTracks.length === 0
+        ? "Track a subject first to use “Follow selected object.”"
+        : undefined,
+      smartUnavailable
+        ? "Smart reframe needs a current subject track or authored framing for every visual clip. Use Center until those signals exist."
+        : undefined
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
   return (
     <Dialog
       open={open}
@@ -170,62 +181,49 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
           </FlexColumn>
         </FormField>
 
-        <FlexColumn gap={SPACING.xs}>
-          <FormField label="Strategy">
-            <RadioSet value={strategy} onChange={handleStrategyChange}>
-              <Radio value="center" label="Center" size="small" />
-              <Radio
-                value="smart"
-                label="Smart reframe"
-                size="small"
-                disabled={smartUnavailable}
-              />
-              <Radio
-                value="track"
-                label="Follow selected object"
-                size="small"
-                disabled={readyTracks.length === 0}
-              />
-            </RadioSet>
-          </FormField>
-          {strategy === "track" && (
-            <SelectField
-              label="Reframe subject"
-              value={trackId}
-              onChange={setTrackId}
-              options={trackOptions}
+        <FormField label="Strategy" helperText={strategyHelp}>
+          <RadioSet value={strategy} onChange={handleStrategyChange}>
+            <Radio value="center" label="Center" size="small" />
+            <Radio
+              value="smart"
+              label="Smart reframe"
               size="small"
+              disabled={smartUnavailable}
             />
-          )}
-          {readyTracks.length === 0 && (
-            <Caption color="muted">
-              Track a subject first to use “Follow selected object.”
-            </Caption>
-          )}
-          {smartUnavailable && (
-            <Caption color="muted">
-              Smart reframe needs a current subject track or authored framing
-              for every visual clip. Use Center until those signals exist.
-            </Caption>
-          )}
-        </FlexColumn>
+            <Radio
+              value="track"
+              label="Follow selected object"
+              size="small"
+              disabled={readyTracks.length === 0}
+            />
+          </RadioSet>
+        </FormField>
+        {strategy === "track" && (
+          <SelectField
+            label="Reframe subject"
+            value={trackId}
+            onChange={setTrackId}
+            options={trackOptions}
+            size="small"
+          />
+        )}
 
-        <FlexColumn gap={SPACING.xs}>
-          <FlexRow justify="space-between" align="center">
-            <Label>Safe margin</Label>
+        <FormField label="Safe margin">
+          <FlexRow gap={SPACING.lg} align="center">
+            <Slider
+              value={safeMarginPercent}
+              min={0}
+              max={30}
+              step={1}
+              onChange={(_event, value) =>
+                setSafeMarginPercent(Array.isArray(value) ? value[0] : value)
+              }
+              aria-label="Safe margin"
+              sx={{ flex: 1 }}
+            />
             <Text size="small">{safeMarginPercent}%</Text>
           </FlexRow>
-          <Slider
-            value={safeMarginPercent}
-            min={0}
-            max={30}
-            step={1}
-            onChange={(_event, value) =>
-              setSafeMarginPercent(Array.isArray(value) ? value[0] : value)
-            }
-            aria-label="Safe margin"
-          />
-        </FlexColumn>
+        </FormField>
 
         {error && <AlertBanner severity="error">{error}</AlertBanner>}
         <Caption color="muted">

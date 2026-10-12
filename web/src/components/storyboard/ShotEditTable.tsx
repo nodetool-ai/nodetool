@@ -14,12 +14,10 @@
 import React, { memo, useCallback, useMemo } from "react";
 import {
   Box,
-  Card,
-  Caption,
   Chip,
   EditorButton,
   FlexColumn,
-  Label,
+  FormField,
   SelectField,
   FormSection,
   Text,
@@ -57,17 +55,6 @@ interface ShotEditTableProps {
   /** Opens the linked script at this shot's first line. Set when linked. */
   onEditInScript?: () => void;
 }
-
-/** One field: its label above the control. */
-const Cell: React.FC<{
-  label: string;
-  children: React.ReactNode;
-}> = ({ label, children }) => (
-  <FlexColumn gap={SPACING.xs} sx={{ minWidth: 0 }}>
-    <Label sx={{ color: "text.secondary" }}>{label}</Label>
-    {children}
-  </FlexColumn>
-);
 
 /** Two fields to a row, as the specs read in pairs. */
 const pairGridSx = {
@@ -139,216 +126,173 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   const pinned = draft.durationSource === "manual";
 
   return (
-    <FlexColumn gap={SPACING.lg} data-testid="shot-edit-table">
-      <Card variant="outlined" padding="normal">
-        <FlexColumn gap={SPACING.lg}>
-          <Cell label="Description">
-            <TextInput
-              compact
-              size="small"
-              multiline
-              minRows={4}
-              label="Description"
-              hideLabel
-              placeholder="What the shot shows"
-              disabled={readOnly}
-              value={draft.action}
-              onChange={(event) => set({ action: event.target.value })}
-            />
-          </Cell>
+    <FlexColumn gap={SPACING.xl} data-testid="shot-edit-table">
+      <FormSection>
+        <TextInput
+          compact
+          size="small"
+          multiline
+          minRows={1}
+          label="Description"
+          placeholder="What the shot shows"
+          disabled={readOnly}
+          value={draft.action}
+          onChange={(event) => set({ action: event.target.value })}
+        />
+        <TextInput
+          compact
+          size="small"
+          multiline
+          minRows={1}
+          label="Shot motion"
+          placeholder="What moves, and how the camera moves, over the clip"
+          disabled={readOnly}
+          value={draft.motion}
+          onChange={(event) => set({ motion: event.target.value })}
+        />
+        <TextInput
+          compact
+          size="small"
+          multiline
+          minRows={1}
+          label="End"
+          placeholder="The picture the shot ends on"
+          disabled={readOnly}
+          value={draft.endState}
+          onChange={(event) => set({ endState: event.target.value })}
+        />
+        <TextInput
+          compact
+          size="small"
+          multiline
+          minRows={1}
+          label="Sound"
+          placeholder="What is heard"
+          disabled={readOnly}
+          value={draft.sound}
+          onChange={(event) => set({ sound: event.target.value })}
+        />
 
-          <Cell label="Shot motion">
-            <TextInput
-              compact
-              size="small"
-              multiline
-              minRows={3}
-              label="Shot motion"
-              hideLabel
-              placeholder="What moves, and how the camera moves, over the clip"
-              disabled={readOnly}
-              value={draft.motion}
-              onChange={(event) => set({ motion: event.target.value })}
-            />
-          </Cell>
-
-          <Cell label="End">
-            <TextInput
-              compact
-              size="small"
-              multiline
-              minRows={2}
-              label="End"
-              hideLabel
-              placeholder="The picture the shot ends on"
-              disabled={readOnly}
-              value={draft.endState}
-              onChange={(event) => set({ endState: event.target.value })}
-            />
-          </Cell>
-
-          <Cell label="Sound">
-            <TextInput
-              compact
-              size="small"
-              multiline
-              minRows={2}
-              label="Sound"
-              hideLabel
-              placeholder="What is heard"
-              disabled={readOnly}
-              value={draft.sound}
-              onChange={(event) => set({ sound: event.target.value })}
-            />
-          </Cell>
-
-          <Cell label="Dialogue">
-            {linksLines ? (
-              <FlexColumn gap={SPACING.xs}>
-                <Text
-                  sx={{ whiteSpace: "pre-wrap" }}
-                  data-testid="shot-dialogue-readonly"
-                >
-                  {draft.dialogue || "—"}
-                </Text>
-                <Caption color="muted">The script owns these words.</Caption>
-                <EditorButton
-                  size="small"
-                  onClick={onEditInScript}
-                  sx={{ alignSelf: "flex-start" }}
-                >
-                  Edit in script
-                </EditorButton>
-              </FlexColumn>
-            ) : (
-              <TextInput
-                compact
+        {linksLines ? (
+          <FormField label="Dialogue" helperText="The script owns these words.">
+            <FlexColumn gap={SPACING.xs}>
+              <Text
+                sx={{ whiteSpace: "pre-wrap" }}
+                data-testid="shot-dialogue-readonly"
+              >
+                {draft.dialogue || "—"}
+              </Text>
+              <EditorButton
                 size="small"
-                multiline
-                minRows={2}
-                label="Dialogue"
-                hideLabel
-                placeholder="What is said in shot"
-                disabled={readOnly}
-                autoFocus={focusDialogue}
-                value={draft.dialogue}
-                onChange={(event) => set({ dialogue: event.target.value })}
+                onClick={onEditInScript}
+                sx={{ alignSelf: "flex-start" }}
+              >
+                Edit in script
+              </EditorButton>
+            </FlexColumn>
+          </FormField>
+        ) : (
+          <TextInput
+            compact
+            size="small"
+            multiline
+            minRows={1}
+            label="Dialogue"
+            placeholder="What is said in shot"
+            disabled={readOnly}
+            autoFocus={focusDialogue}
+            value={draft.dialogue}
+            onChange={(event) => set({ dialogue: event.target.value })}
+          />
+        )}
+      </FormSection>
+
+      {entities}
+
+      <FormSection label="Shot details">
+        <Box sx={pairGridSx}>
+          <SelectField
+            size="small"
+            label="Size"
+            disabled={readOnly}
+            value={draft.framing}
+            onChange={(value) => set({ framing: value })}
+            options={framingOptions}
+          />
+          <SelectField
+            size="small"
+            label="Focal length"
+            disabled={readOnly}
+            value={draft.lens}
+            onChange={(value) => set({ lens: value })}
+            options={lensOptions}
+          />
+          <SelectField
+            size="small"
+            label="Perspective"
+            disabled={readOnly}
+            value={draft.angle}
+            onChange={(value) => set({ angle: value })}
+            options={angleOptions}
+          />
+          <SelectField
+            size="small"
+            label="Movement"
+            disabled={readOnly}
+            value={draft.movement}
+            onChange={(value) => set({ movement: value })}
+            options={movementOptions}
+          />
+          <SelectField
+            size="small"
+            label="Equipment"
+            disabled={readOnly}
+            value={draft.equipment}
+            onChange={(value) => set({ equipment: value })}
+            options={equipmentOptions}
+          />
+          <FlexColumn gap={SPACING.xs}>
+            <TextInput
+              compact
+              size="small"
+              type="number"
+              label="ERT"
+              placeholder={
+                !pinned && takesDuration != null
+                  ? String(takesDuration)
+                  : "auto"
+              }
+              disabled={readOnly}
+              value={draft.durationSeconds}
+              onChange={handleDuration}
+              errorMessage={
+                isDurationInvalid(draft.durationSeconds)
+                  ? "Enter a length above 0 seconds"
+                  : undefined
+              }
+              inputProps={{
+                min: 1,
+                step: 1,
+                "aria-label": "Estimated running time in seconds"
+              }}
+            />
+            {linksLines && (
+              <Chip
+                compact
+                variant="outlined"
+                label={pinned ? "pinned" : "from takes"}
+                sx={chipSx}
+                title={
+                  pinned
+                    ? "Length is pinned to the shot's own value. Click to take it from the lines this shot covers."
+                    : "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own value."
+                }
+                onClick={readOnly ? undefined : handleToggleDurationSource}
               />
             )}
-          </Cell>
-        </FlexColumn>
-      </Card>
-
-      {entities && (
-        <Card variant="outlined" padding="normal">
-          {entities}
-        </Card>
-      )}
-
-      <Card variant="outlined" padding="normal">
-        <FormSection label="Shot details">
-          <Box sx={pairGridSx}>
-            <Cell label="Size">
-              <SelectField
-                size="small"
-                label="Size"
-                hideLabel
-                disabled={readOnly}
-                value={draft.framing}
-                onChange={(value) => set({ framing: value })}
-                options={framingOptions}
-              />
-            </Cell>
-            <Cell label="Focal length">
-              <SelectField
-                size="small"
-                label="Focal length"
-                hideLabel
-                disabled={readOnly}
-                value={draft.lens}
-                onChange={(value) => set({ lens: value })}
-                options={lensOptions}
-              />
-            </Cell>
-            <Cell label="Perspective">
-              <SelectField
-                size="small"
-                label="Perspective"
-                hideLabel
-                disabled={readOnly}
-                value={draft.angle}
-                onChange={(value) => set({ angle: value })}
-                options={angleOptions}
-              />
-            </Cell>
-            <Cell label="Movement">
-              <SelectField
-                size="small"
-                label="Movement"
-                hideLabel
-                disabled={readOnly}
-                value={draft.movement}
-                onChange={(value) => set({ movement: value })}
-                options={movementOptions}
-              />
-            </Cell>
-            <Cell label="Equipment">
-              <SelectField
-                size="small"
-                label="Equipment"
-                hideLabel
-                disabled={readOnly}
-                value={draft.equipment}
-                onChange={(value) => set({ equipment: value })}
-                options={equipmentOptions}
-              />
-            </Cell>
-            <Cell label="ERT">
-              <FlexColumn gap={SPACING.xs}>
-                <TextInput
-                  compact
-                  size="small"
-                  type="number"
-                  label="Estimated running time in seconds"
-                  hideLabel
-                  placeholder={
-                    !pinned && takesDuration != null
-                      ? String(takesDuration)
-                      : "auto"
-                  }
-                  disabled={readOnly}
-                  value={draft.durationSeconds}
-                  onChange={handleDuration}
-                  errorMessage={
-                    isDurationInvalid(draft.durationSeconds)
-                      ? "Enter a length above 0 seconds"
-                      : undefined
-                  }
-                  inputProps={{
-                    min: 1,
-                    step: 1,
-                    "aria-label": "Estimated running time in seconds"
-                  }}
-                />
-                {linksLines && (
-                  <Chip
-                    compact
-                    variant="outlined"
-                    label={pinned ? "pinned" : "from takes"}
-                    sx={chipSx}
-                    title={
-                      pinned
-                        ? "Length is pinned to the shot's own value. Click to take it from the lines this shot covers."
-                        : "Length comes from the takes of the lines this shot covers. Click to pin it to the shot's own value."
-                    }
-                    onClick={readOnly ? undefined : handleToggleDurationSource}
-                  />
-                )}
-              </FlexColumn>
-            </Cell>
-          </Box>
-        </FormSection>
-      </Card>
+          </FlexColumn>
+        </Box>
+      </FormSection>
     </FlexColumn>
   );
 };
@@ -360,31 +304,25 @@ const ShotAdvancedFieldsInner: React.FC<{
   readOnly?: boolean;
 }> = ({ draft, onChange, readOnly }) => (
   <Box sx={pairGridSx}>
-    <Cell label="Shot title">
-      <TextInput
-        compact
-        size="small"
-        label="Shot title"
-        hideLabel
-        placeholder="Untitled shot"
-        disabled={readOnly}
-        value={draft.slug}
-        onChange={(event) => onChange({ ...draft, slug: event.target.value })}
-      />
-    </Cell>
-    <Cell label="Render mode">
-      <SelectField
-        size="small"
-        label="Render mode"
-        hideLabel
-        disabled={readOnly}
-        value={draft.renderMode}
-        onChange={(value) =>
-          onChange({ ...draft, renderMode: value as ShotDraft["renderMode"] })
-        }
-        options={RENDER_MODE_OPTIONS}
-      />
-    </Cell>
+    <TextInput
+      compact
+      size="small"
+      label="Shot title"
+      placeholder="Untitled shot"
+      disabled={readOnly}
+      value={draft.slug}
+      onChange={(event) => onChange({ ...draft, slug: event.target.value })}
+    />
+    <SelectField
+      size="small"
+      label="Render mode"
+      disabled={readOnly}
+      value={draft.renderMode}
+      onChange={(value) =>
+        onChange({ ...draft, renderMode: value as ShotDraft["renderMode"] })
+      }
+      options={RENDER_MODE_OPTIONS}
+    />
   </Box>
 );
 

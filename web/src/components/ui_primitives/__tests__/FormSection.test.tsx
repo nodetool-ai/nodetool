@@ -35,7 +35,7 @@ describe("FormSection", () => {
     expect(ref.current).toBeInstanceOf(HTMLDivElement);
   });
 
-  it("renders the group label uppercase", () => {
+  it("renders the group label in the eyebrow style", () => {
     renderWithTheme(
       <FormSection label="Run settings">
         <div>Field</div>
@@ -45,7 +45,7 @@ describe("FormSection", () => {
     const label = screen.getByText("Run settings");
     expect(label).toHaveStyle({
       textTransform: "uppercase",
-      letterSpacing: "0.08em"
+      letterSpacing: "0.06em"
     });
   });
 

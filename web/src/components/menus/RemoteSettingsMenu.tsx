@@ -290,7 +290,7 @@ const SettingItem = memo(function SettingItem({
     [setting.env_var, onChange]
   );
 
-  const enumOptions = useMemo(
+  const selectOptions = useMemo(
     () =>
       (setting.enum ?? []).map((option: string) => ({
         value: option,
@@ -310,10 +310,10 @@ const SettingItem = memo(function SettingItem({
           <SelectField
             id={`${setting.env_var.toLowerCase()}-select`}
             label={formatSettingLabel(setting.env_var)}
-            variant="standard"
             value={value || ""}
             onChange={handleSelectChange}
-            options={enumOptions}
+            options={selectOptions}
+            description={setting.description || undefined}
           />
         </div>
       ) : (
@@ -322,17 +322,12 @@ const SettingItem = memo(function SettingItem({
           autoComplete="off"
           id={`${setting.env_var.toLowerCase()}-input`}
           label={formatSettingLabel(setting.env_var)}
+          helperText={setting.description || undefined}
           value={value || ""}
           onChange={handleChange}
-          variant="standard"
           size="small"
           onKeyDown={handleKeyDown}
         />
-      )}
-      {setting.description && (
-        <Text className="description">
-          {setting.description}
-        </Text>
       )}
       {SETTING_LINKS[setting.env_var] && (
         <div style={{ marginTop: getSpacingPx(SPACING.md) }}>

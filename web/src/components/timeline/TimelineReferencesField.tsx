@@ -18,7 +18,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  Label,
+  FormField,
   ResponsiveImage,
   ToolbarIconButton,
   TruncatedText,
@@ -144,37 +144,40 @@ const TimelineReferencesFieldInner: React.FC<TimelineReferencesFieldProps> = ({
 
   return (
     <FlexColumn gap={SPACING.lg} data-testid="timeline-references">
-      <FlexColumn gap={SPACING.sm}>
-        <Label sx={{ color: "text.secondary" }}>Reference images</Label>
-        {value.imageIds.length > 0 ? (
-          <FlexRow gap={SPACING.md} wrap>
-            {value.imageIds.map((assetId, index) => (
-              <ImageThumb
-                key={assetId}
-                assetId={assetId}
-                caption={`Image ${index + 1}`}
-                onRemove={disabled ? undefined : () => removeImage(assetId)}
-              />
-            ))}
-          </FlexRow>
-        ) : (
-          <Caption color="secondary">
-            Add images to condition the clip on. Write [Image 1], [Image 2], …
-            in the prompt to place each one.
-          </Caption>
-        )}
-        {!disabled && (
-          <FlexRow>
-            <EditorButton
-              variant="outlined"
-              startIcon={<AddPhotoAlternateOutlinedIcon />}
-              onClick={() => setImagePickerOpen(true)}
-            >
-              Add image
-            </EditorButton>
-          </FlexRow>
-        )}
-      </FlexColumn>
+      <FormField
+        label="Reference images"
+        helperText="Write [Image 1], [Image 2], … in the prompt to place each one."
+      >
+        <FlexColumn gap={SPACING.sm}>
+          {value.imageIds.length > 0 ? (
+            <FlexRow gap={SPACING.md} wrap>
+              {value.imageIds.map((assetId, index) => (
+                <ImageThumb
+                  key={assetId}
+                  assetId={assetId}
+                  caption={`Image ${index + 1}`}
+                  onRemove={disabled ? undefined : () => removeImage(assetId)}
+                />
+              ))}
+            </FlexRow>
+          ) : (
+            <Caption color="secondary">
+              Add images to condition the clip on.
+            </Caption>
+          )}
+          {!disabled && (
+            <FlexRow>
+              <EditorButton
+                variant="outlined"
+                startIcon={<AddPhotoAlternateOutlinedIcon />}
+                onClick={() => setImagePickerOpen(true)}
+              >
+                Add image
+              </EditorButton>
+            </FlexRow>
+          )}
+        </FlexColumn>
+      </FormField>
       <EntityTilesField
         label="Entities"
         entities={value.entities}

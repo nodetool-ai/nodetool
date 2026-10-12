@@ -137,7 +137,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
       confirmDisabled={!canSave}
       isLoading={saveEntity.isPending}
     >
-      <FlexColumn gap={SPACING.md}>
+      <FlexColumn gap={SPACING.lg}>
         <FormField label="Image">
           <FlexRow gap={SPACING.md} align="center">
             <div

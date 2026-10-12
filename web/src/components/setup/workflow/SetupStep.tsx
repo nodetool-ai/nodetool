@@ -34,8 +34,9 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  FormField,
+  FormSection,
   GAP,
-  Label,
   LoadingSpinner,
   SPACING,
   Text,
@@ -151,27 +152,20 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
         <ModelRoleRow key={role.role} role={role} />
       ))}
 
-      <FlexColumn gap={GAP.normal}>
-        <Text size="normal" component="h3">
-          How it runs
-        </Text>
-        <Caption color="secondary" component="p">
-          Building runs it once with the sample inputs. This is how you start it
-          after that.
-        </Caption>
+      <FormField
+        label="How it runs"
+        helperText="Building runs it once with the sample inputs. This is how you start it after that."
+      >
         <OptionCardGrid
           label="Run mode"
           options={runModeOptions}
           selectedId={runMode}
           onSelect={(id) => onRunModeChange(id as WorkflowSetupRunMode)}
         />
-      </FlexColumn>
+      </FormField>
 
       {sampleInputs.length > 0 ? (
-        <FlexColumn gap={GAP.normal}>
-          <Text size="normal" component="h3">
-            Sample inputs
-          </Text>
+        <FormSection label="Sample inputs">
           <Caption color="secondary" component="p">
             The values the test run uses. Change them to something of yours.
           </Caption>
@@ -186,7 +180,7 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
               }
             />
           ))}
-        </FlexColumn>
+        </FormSection>
       ) : null}
 
       <BuildDisclosure hasSamples={sampleInputs.length > 0} roles={roles} />
@@ -225,7 +219,9 @@ const BuildDisclosure: React.FC<{
         paddingTop: SPACING.lg
       }}
     >
-      <Label>Build places the nodes and then runs it once</Label>
+      <Text size="normal" weight={500}>
+        Build places the nodes and then runs it once
+      </Text>
       <Text size="small" color="secondary">
         {hasSamples
           ? "The graph is checked, and if it passes it runs once with the sample inputs above. That run calls the models below and can cost provider rates."
