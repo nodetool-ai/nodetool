@@ -63,13 +63,14 @@ export default function GameOrientationGizmo3D({ orientation, orthographic, onVi
   };
   const size = CONTROL.height.xl * 2;
   return <FlexColumn align="center" gap={SPACING.micro} sx={{ position: "absolute", top: SPACING.md, right: SPACING.md,
-    p: SPACING.micro, borderRadius: BORDER_RADIUS.md, bgcolor: "background.paper", opacity: 0.9 }}>
+    p: SPACING.micro, borderRadius: BORDER_RADIUS.md, bgcolor: "background.paper" }}>
     <Box component="svg" role="group" aria-label="Scene orientation" viewBox="-40 -40 80 80" width={size} height={size}
       sx={(theme) => ({ display: "block", overflow: "visible",
-        "& text": { ...TYPOGRAPHY.sans.caption, fill: theme.vars.palette.common.white, pointerEvents: "none", userSelect: "none" },
-        "& .axis-x": { color: theme.vars.palette.error.main },
-        "& .axis-y": { color: theme.vars.palette.success.main },
-        "& .axis-z": { color: theme.vars.palette.info.main },
+        "& text": { ...TYPOGRAPHY.sans.caption, pointerEvents: "none", userSelect: "none" },
+        // Each label uses its palette colour's contrast text, so it stays readable on the axis colour in both themes.
+        "& .axis-x": { color: theme.vars.palette.error.main, "& text": { fill: theme.vars.palette.error.contrastText } },
+        "& .axis-y": { color: theme.vars.palette.success.main, "& text": { fill: theme.vars.palette.success.contrastText } },
+        "& .axis-z": { color: theme.vars.palette.info.main, "& text": { fill: theme.vars.palette.info.contrastText } },
         "& [role=button]": { cursor: "pointer", outline: "none" },
         "& [role=button]:focus-visible circle": { stroke: theme.vars.palette.text.primary, strokeWidth: 2 } })}>
       {ends.map((end) => <g key={end.view} className={end.className} role="button" tabIndex={0} aria-label={VIEW_NAMES[end.view]}

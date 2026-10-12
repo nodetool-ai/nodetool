@@ -379,7 +379,7 @@ export default function GameViewport3D({ document, host, selectedIds = NO_IDS, h
       .flatMap((id) => { const world = worlds.get(id); return world ? [{ id, world }] : []; });
     if (entries.length === 0) { controls.gizmo.detach(); }
     else if (!controls.gizmo.dragging) {
-      gameGizmoPivot3D(entries, activeId, pivot).decompose(controls.target.position, controls.target.quaternion, controls.target.scale);
+      gameGizmoPivot3D(entries, activeId === undefined ? undefined : worlds.get(activeId), pivot).decompose(controls.target.position, controls.target.quaternion, controls.target.scale);
       controls.target.updateMatrixWorld(true);
       controls.gizmo.attach(controls.target);
     }
@@ -490,20 +490,23 @@ export default function GameViewport3D({ document, host, selectedIds = NO_IDS, h
   // Fly mode reads W, R and F as camera movement, so the editing shortcuts are off while it is on.
   const navigating = editing && !flyMode;
   const hasSelection = sceneSelection.length > 0;
+  // Keys that change the selection, the tool or the gizmo frame would change what a drag in progress commits, so they
+  // wait until the drag ends.
+  const idle = (run: () => void) => (): void => { if (controlsRef.current?.gizmo.dragging !== true) { run(); } };
   useGameCommandHandlers({
     "view.frameSelection": { run: frameSelection, enabled: navigating && hasSelection },
-    "view.toggleSnap": { run: () => settings.toggle("snap"), enabled: editing },
-    "tool.move": { run: () => setMode("translate"), enabled: navigating },
-    "tool.rotate": { run: () => setMode("rotate"), enabled: navigating },
-    "tool.scale": { run: () => setMode("scale"), enabled: navigating },
-    "tool.toggleSpace": { run: settings.toggleSpace, enabled: navigating },
-    "tool.cyclePivot": { run: settings.cyclePivot, enabled: navigating },
-    "tool.toggleSurfaceSnap": { run: () => settings.toggle("surfaceSnap"), enabled: editing },
-    "edit.selectAll": { run: () => onSelectMany?.([...sceneEntityIds]), enabled: editing && Boolean(onSelectMany) },
-    "edit.deselectAll": { run: () => onSelectMany?.([]), enabled: editing && Boolean(onSelectMany) && hasSelection },
-    "edit.alignToGround": { run: alignToGround, enabled: editing && hasSelection },
+    "view.toggleSnap": { run: idle(() => settings.toggle("snap")), enabled: editing },
+    "tool.move": { run: idle(() => setMode("translate")), enabled: navigating },
+    "tool.rotate": { run: idle(() => setMode("rotate")), enabled: navigating },
+    "tool.scale": { run: idle(() => setMode("scale")), enabled: navigating },
+    "tool.toggleSpace": { run: idle(settings.toggleSpace), enabled: navigating },
+    "tool.cyclePivot": { run: idle(settings.cyclePivot), enabled: navigating },
+    "tool.toggleSurfaceSnap": { run: idle(() => settings.toggle("surfaceSnap")), enabled: editing },
+    "edit.selectAll": { run: idle(() => onSelectMany?.([...sceneEntityIds])), enabled: editing && Boolean(onSelectMany) },
+    "edit.deselectAll": { run: idle(() => onSelectMany?.([])), enabled: editing && Boolean(onSelectMany) && hasSelection },
+    "edit.alignToGround": { run: idle(alignToGround), enabled: editing && hasSelection },
     "view.orbitSelection": { run: () => settings.toggle("orbitSelection"), enabled: editing },
-    "view.toggleOrthographic": { run: () => settings.toggle("orthographic"), enabled: editing },
+    "view.toggleOrthographic": { run: idle(() => settings.toggle("orthographic")), enabled: editing },
     ...Object.fromEntries(AXIS_VIEWS.map(({ view, command }) => [command, { run: () => viewAlong(view), enabled: navigating }]))
   });
   const toolShortcuts = { "tool.move": useGameCommandShortcut("tool.move"), "tool.rotate": useGameCommandShortcut("tool.rotate"),

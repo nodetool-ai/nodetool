@@ -69,16 +69,17 @@ export interface GameGizmoEntry3D {
 }
 
 /**
- * The gizmo's start frame. It sits at the selection centre (the mean of the entities' origins), or at the active entity
- * for `active`. It takes the active entity's orientation so local space follows that entity. Its scale is one, so a
- * scale drag reads as a factor.
+ * The gizmo's start frame. It sits at the selection centre (the mean of the entries' origins), or at the active entity
+ * for `active`. It takes the active entity's orientation so local space follows that entity. `activeWorld` is the active
+ * entity's world matrix, which may belong to an entity that is not an entry, such as a selected child of a selected
+ * parent. Without it the last entry is active. Its scale is one, so a scale drag reads as a factor.
  */
-export function gameGizmoPivot3D(entries: readonly GameGizmoEntry3D[], activeId: string | undefined, pivot: GameGizmoPivot3D): Matrix4 {
-  const active = entries.find((entry) => entry.id === activeId) ?? entries.at(-1);
-  if (!active) { return new Matrix4(); }
+export function gameGizmoPivot3D(entries: readonly GameGizmoEntry3D[], activeWorld: Matrix4 | undefined, pivot: GameGizmoPivot3D): Matrix4 {
+  const active = activeWorld ?? entries.at(-1)?.world;
+  if (!active || entries.length === 0) { return new Matrix4(); }
   const activePosition = new Vector3();
   const rotation = new Quaternion();
-  active.world.decompose(activePosition, rotation, new Vector3());
+  active.decompose(activePosition, rotation, new Vector3());
   let position = activePosition;
   if (pivot !== "active") {
     position = new Vector3();

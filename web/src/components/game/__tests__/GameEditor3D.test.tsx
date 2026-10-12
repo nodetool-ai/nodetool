@@ -75,8 +75,8 @@ jest.mock("../viewport3d/GameViewport3D", () => ({ __esModule: true, default: (p
 } }));
 jest.mock("../panels/hierarchy/GameHierarchy3D", () => ({
   __esModule: true, default: ({ onSelect }: ComponentProps<typeof GameHierarchy3D>) => <>
-    <button onClick={() => onSelect("player")}>Select player</button>
-    <button onClick={() => onSelect("player-visual")}>Select visual</button>
+    <button onClick={() => onSelect("player", false)}>Select player</button>
+    <button onClick={() => onSelect("player-visual", false)}>Select visual</button>
   </>
 }));
 jest.mock("../panels/inspector/GameInspector3D", () => ({

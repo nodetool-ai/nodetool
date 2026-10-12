@@ -57,14 +57,14 @@ describe("grouped transforms", () => {
   const entries: GameGizmoEntry3D[] = [{ id: "a", world: at(0, 0, 0) }, { id: "b", world: at(4, 0, 0, QUARTER_Y) }];
 
   it("places the gizmo at the selection centre or the active entity with the active entity's orientation", () => {
-    const center = gameGizmoPivot3D(entries, "b", "center");
+    const center = gameGizmoPivot3D(entries, entries[1].world, "center");
     expect(position(center)).toEqual([2, 0, 0]);
     expect(new Quaternion().setFromRotationMatrix(center).angleTo(QUARTER_Y)).toBeCloseTo(0);
-    expect(position(gameGizmoPivot3D(entries, "a", "active"))).toEqual([0, 0, 0]);
+    expect(position(gameGizmoPivot3D(entries, entries[0].world, "active"))).toEqual([0, 0, 0]);
   });
 
   it("moves every entity by the gizmo's translation", () => {
-    const start = gameGizmoPivot3D(entries, "a", "center");
+    const start = gameGizmoPivot3D(entries, entries[0].world, "center");
     const current = start.clone().premultiply(new Matrix4().makeTranslation(0, 3, 0));
     const result = gameGroupTransform3D(entries, start, current, "center", "world");
     expect(position(result.get("a"))).toEqual([0, 3, 0]);
@@ -72,7 +72,7 @@ describe("grouped transforms", () => {
   });
 
   it("rotates around the selection centre for the centre pivot and in place for individual origins", () => {
-    const start = gameGizmoPivot3D(entries, "a", "center");
+    const start = gameGizmoPivot3D(entries, entries[0].world, "center");
     // The gizmo starts unrotated at x=2. A half turn about world Y swaps the two entities' positions.
     const current = new Matrix4().compose(new Vector3(2, 0, 0), new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI),
       new Vector3(1, 1, 1));
@@ -88,7 +88,7 @@ describe("grouped transforms", () => {
   });
 
   it("moves each entity along its own axes for individual origins in local space", () => {
-    const start = gameGizmoPivot3D(entries, "a", "individual");
+    const start = gameGizmoPivot3D(entries, entries[0].world, "individual");
     const current = start.clone().multiply(new Matrix4().makeTranslation(1, 0, 0));
     const result = gameGroupTransform3D(entries, start, current, "individual", "local");
     expect(position(result.get("a"))).toEqual([1, 0, 0]);
@@ -96,8 +96,34 @@ describe("grouped transforms", () => {
     expect(position(result.get("b"))).toEqual([4, 0, -1]);
   });
 
+  it("puts the active pivot on an active entity that is not a selection root", () => {
+    // A selected child of a selected parent is not an entry, but it is still the active entity the gizmo sits on.
+    const child = at(4, 2, 1, QUARTER_Y);
+    const pivot = gameGizmoPivot3D(entries, child, "active");
+    expect(position(pivot)).toEqual([4, 2, 1]);
+    expect(new Quaternion().setFromRotationMatrix(pivot).angleTo(QUARTER_Y)).toBeCloseTo(0);
+    expect(position(gameGizmoPivot3D(entries, undefined, "active"))).toEqual([4, 0, 0]);
+  });
+
+  it("turns each entity about its own local axis for individual origins in local space", () => {
+    const start = gameGizmoPivot3D(entries, entries[0].world, "individual");
+    const turn = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+    const current = start.clone().multiply(new Matrix4().makeRotationFromQuaternion(turn));
+    const result = gameGroupTransform3D(entries, start, current, "individual", "local");
+    for (const entry of entries) {
+      const before = new Quaternion();
+      const origin = new Vector3();
+      entry.world.decompose(origin, before, new Vector3());
+      const after = new Quaternion();
+      result.get(entry.id)?.decompose(new Vector3(), after, new Vector3());
+      expect(position(result.get(entry.id))).toEqual(origin.toArray());
+      // A local turn multiplies on the right of the entity's own rotation.
+      expect(after.angleTo(before.clone().multiply(turn))).toBeCloseTo(0);
+    }
+  });
+
   it("scales around the pivot", () => {
-    const start = gameGizmoPivot3D(entries, "a", "center");
+    const start = gameGizmoPivot3D(entries, entries[0].world, "center");
     const current = start.clone().multiply(new Matrix4().makeScale(2, 2, 2));
     const result = gameGroupTransform3D(entries, start, current, "center", "world");
     expect(position(result.get("a"))).toEqual([-2, 0, 0]);

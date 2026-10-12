@@ -523,3 +523,45 @@ it("edits snap increments and pivot from the gizmo settings and keeps them as pr
     expect(fixture.controls.object?.position.toArray()).toEqual([0, 0.8, -2]);
   } finally { fixture.view.unmount(); fixture.session.dispose(); }
 });
+
+it("ignores selection, tool and gizmo-frame keys during a drag so the drag commits one undo step", async () => {
+  const user = userEvent.setup();
+  const fixture = await mountSceneViewport(["crate", "pickup"]);
+  try {
+    // Focus without a click, because a click on empty space would clear the selection before the drag.
+    act(() => screen.getByLabelText("3D game viewport").focus());
+    const target = fixture.controls.object;
+    if (!target) { throw new Error("Gizmo missing"); }
+    act(() => {
+      fixture.controls.emit("dragging-changed", true);
+      target.position.x += 2;
+      fixture.controls.emit("objectChange");
+    });
+    for (const key of ["{Escape}", "e", "x", ".", "{Control>}a{/Control}", "{End}"]) { await user.keyboard(key); }
+    expect(fixture.store.getState().selectedIds).toEqual(["crate", "pickup"]);
+    expect(screen.getByRole("button", { name: "Move" })).toHaveAttribute("aria-pressed", "true");
+    expect(getGameViewportSettings3DStore(null).getState()).toMatchObject({ space: "world", pivot: "center" });
+    act(() => { fixture.controls.emit("dragging-changed", false); });
+    expect(fixture.onOps).toHaveBeenCalledTimes(1);
+    const [ops, , action] = fixture.onOps.mock.calls[0];
+    expect(action).toBe("Move");
+    expect(ops.map((op) => op.op === "update_entity" ? op.entity_id : op.op)).toEqual(["crate", "pickup"]);
+    expect(fixture.entity("crate").transform3d.position.x).toBeCloseTo(3.5);
+    expect(fixture.entity("pickup").transform3d.position.x).toBeCloseTo(2);
+    expect(fixture.store.getState().commandHistory.past).toHaveLength(1);
+    // After the drag the same keys work again.
+    await user.keyboard("{Escape}");
+    expect(fixture.store.getState().selectedIds).toEqual([]);
+  } finally { fixture.view.unmount(); fixture.session.dispose(); }
+});
+
+it("places the active pivot on a selected child that follows its selected parent", async () => {
+  getGameViewportSettings3DStore(null).getState().setPivot("active");
+  const fixture = await mountSceneViewport(["player", "player-visual"]);
+  try {
+    const visual = fixture.host.frame?.entities.find((entity) => entity.entityId === "player-visual");
+    if (!visual) { throw new Error("Fixture visual missing"); }
+    const { x, y, z } = visual.transform.position;
+    expect(fixture.controls.object?.position.toArray().map((value) => Number(value.toFixed(6)))).toEqual([x, y, z]);
+  } finally { fixture.view.unmount(); fixture.session.dispose(); }
+});
