@@ -318,10 +318,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
             </FlexColumn>
           </CollapsibleSection>} />        </> },
       { id: "revisions",
-        node: <CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Revisions</Label>} compact defaultOpen={false}
-          sx={{ flexShrink: 0, maxHeight: "30%", overflowY: "auto", px: SPACING.md }}>
-          <GameRevisions revisions={revisions ?? []} busy={restoring || saveStatus === "saving"} onRestore={restoreRevision} />
-        </CollapsibleSection> },
+        node: <GameRevisions revisions={revisions ?? []} busy={restoring || saveStatus === "saving"} onRestore={restoreRevision} /> },
       { id: "viewport", keyboardScope: true, node: <>
         <GameViewport3D document={document} host={host} selectedId={selected?.id} highlightedIds={highlightedIds} sceneId={activeSceneId} onSelect={select} onOps={onViewportOps} onGestureStart={beginGesture} onGestureEnd={endGesture} />
       </> },

@@ -1,4 +1,7 @@
 import { useMemo, useState } from "react";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import UndoIcon from "@mui/icons-material/Undo";
 import type { AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import { applyAnyGameOps as applyGameOps, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
 
@@ -8,7 +11,7 @@ import { useConflictStore } from "../../../../stores/ConflictStore";
 import { diffAnyGameDocuments as diffGameDocuments } from "../../../../stores/game/diffAnyGameDocuments";
 import { getGameDraftStore } from "../../../../stores/game/GameDraftStore";
 import { acceptServerAnyGameUnit as acceptServerGameUnit, anyGameMergeAdapter as gameMergeAdapter } from "../../../../stores/game/anyMerge";
-import { Caption, EditorButton, FlexColumn, FlexRow, SPACING, Text } from "../../../ui_primitives";
+import { Caption, CONTROL, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, SPACING, Text, ToolbarIconButton } from "../../../ui_primitives";
 
 interface GameChangesProps {
   gameId: string;
@@ -68,16 +71,30 @@ export default function GameChanges({ gameId, document, onOps, onHover, onFocusM
   };
 
   if (groups.length === 0) return null;
-  return <FlexColumn gap={SPACING.xs} sx={{ maxHeight: "25%", overflowY: "auto" }}>
-    <Text>Changes</Text>
-    {error && <Caption color="error" role="alert">{error}</Caption>}
-    {groups.map((group) => <FlexRow key={group.id} gap={SPACING.sm} align="center"
-      onMouseEnter={() => onHover([...new Set(group.entityIds)])} onMouseLeave={() => onHover([])}>
-      <Caption>{group.summary.join("; ")}</Caption>
-      {group.threadId && group.messageId && <EditorButton onClick={() => {
-        if (group.threadId && group.messageId) onFocusMessage(group.threadId, group.messageId);
-      }}>View in chat</EditorButton>}
-      <EditorButton disabled={undoing !== null} onClick={() => void undo(group)}>Undo</EditorButton>
-    </FlexRow>)}
+  return <FlexColumn role="region" aria-label="Agent changes" sx={{ flexShrink: 0, maxHeight: CONTROL.height.lg * 6,
+    borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+    <FlexRow align="center" gap={SPACING.xs} sx={{ flexShrink: 0, minHeight: CONTROL.height.sm, px: SPACING.md }}>
+      <AutoAwesomeOutlinedIcon aria-hidden="true" sx={{ fontSize: FONT_SIZE_SANS.body, color: "text.secondary" }} />
+      <Label component="span" sx={{ mb: 0, color: "text.secondary" }}>Agent changes</Label>
+      <Caption>{groups.length}</Caption>
+    </FlexRow>
+    {error && <Caption color="error" role="alert" sx={{ px: SPACING.md, pb: SPACING.xs }}>{error}</Caption>}
+    <FlexColumn role="list" aria-label="Agent changes list" sx={{ minHeight: 0, overflowY: "auto", px: SPACING.xs, pb: SPACING.xs }}>
+      {groups.map((group) => {
+        const summary = group.summary.join("; ");
+        return <FlexRow key={group.id} role="listitem" align="center" gap={SPACING.xs}
+          onMouseEnter={() => onHover([...new Set(group.entityIds)])} onMouseLeave={() => onHover([])}
+          sx={{ minHeight: CONTROL.height.sm, pl: SPACING.sm, pr: SPACING.micro, borderRadius: CONTROL.radius,
+            "&:hover": { bgcolor: "action.hover" } }}>
+          <Text size="small" weight={400} truncate title={summary} sx={{ flex: 1, minWidth: 0, color: "text.primary" }}>{summary}</Text>
+          {group.threadId && group.messageId && <ToolbarIconButton icon={<ChatBubbleOutlineIcon fontSize="small" />}
+            tooltip="View in chat" onClick={() => {
+              if (group.threadId && group.messageId) onFocusMessage(group.threadId, group.messageId);
+            }} />}
+          <ToolbarIconButton icon={<UndoIcon fontSize="small" />} tooltip="Undo" disabled={undoing !== null}
+            onClick={() => void undo(group)} />
+        </FlexRow>;
+      })}
+    </FlexColumn>
   </FlexColumn>;
 }
