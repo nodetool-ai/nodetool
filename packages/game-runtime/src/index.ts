@@ -11,6 +11,7 @@ export * from "./sample3d.js";
 export * from "./script-types3d.js";
 export * from "./prepared-collider3d.js";
 export * from "./spatial3d/layers.js";
+export * from "./spatial3d/materials.js";
 
 export * from "./authoring-identity.js";
 export * from "./authoring-reconcile.js";

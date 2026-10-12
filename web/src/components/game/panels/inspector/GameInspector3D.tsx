@@ -15,6 +15,7 @@ import SchemaFields from "../../inspector/SchemaFields";
 import GameOverrideFields from "../../GameOverrideFields";
 import ScriptParamsEditor from "../../inspector/editors/ScriptParamsEditor";
 import CollisionMatrixEditor from "../../inspector/editors/CollisionMatrixEditor";
+import PhysicsMaterialsEditor from "../../inspector/editors/PhysicsMaterialsEditor";
 import { AddButton, RowAction } from "../../inspector/InspectorParts";
 import { gameSchemaFields } from "../../inspector/schemaForm";
 
@@ -39,6 +40,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
   const scene = document.scenes.find((item) => item.id === sceneId);
   const entity = scene?.entities.find((item) => item.id === entityId);
   const validation = useMemo(() => validateGame3D(document), [document]);
+  const physicsMaterialNames = useMemo(() => Object.keys(document.physicsMaterials ?? {}), [document.physicsMaterials]);
   const applyDocument = (next: GameDocument3D, label: string): void => {
     let ops: GameDocumentOp3D[];
     try {
@@ -73,6 +75,9 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
         }} />}
       <InspectorSection title="Collision layers">
         <CollisionMatrixEditor document={document} onDocument={applyDocument} />
+      </InspectorSection>
+      <InspectorSection title="Physics materials">
+        <PhysicsMaterialsEditor document={document} onDocument={applyDocument} />
       </InspectorSection>
       {validation.diagnostics.map((issue, index) => <Caption key={`${issue.code}:${index}`} color="error">{issue.path.join(".")}: {issue.message}</Caption>)}
       {validation.diagnostics.length > 0 && <ReportBugButton context={{ source: "panel-crash", summary: "3D game validation failed",
@@ -115,7 +120,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
     </FlexRow>
     <GameOverrideFields document={document} sceneId={sceneId} entityId={entity.id} onOps={onOps} />
     <SchemaFields schema={ENTITY_FIELDS} value={components} path="entity" assets={document.assets} componentSections
-      collisionLayers={document.collisionLayers} beforeSections={<InspectorSection title="Transform">
+      collisionLayers={document.collisionLayers} physicsMaterials={physicsMaterialNames} beforeSections={<InspectorSection title="Transform">
         {transformField("position", position)}
         {transformField("rotation", rotation)}
         {transformField("scale", scale)}

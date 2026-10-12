@@ -21,6 +21,8 @@ interface SchemaFieldsProps {
   issues?: readonly GameValidationIssue[];
   assets?: AnyGameDocument["assets"];
   collisionLayers?: readonly string[];
+  /** Names of the document's 3D physics materials, offered by a collider's physicsMaterial field. */
+  physicsMaterials?: readonly string[];
   /** Render this object's nested objects as full-width component sections, as in an engine inspector. */
   componentSections?: boolean;
   /** Text of the menu button that adds an absent optional component section. */
@@ -175,42 +177,67 @@ function QuaternionField({ label, value, trailing, onChange }: { label: string; 
   </FieldRow>;
 }
 
+/** Names a collider field may reference: the document's collision layers and physics materials. */
+interface ColliderReferences {
+  readonly collisionLayers?: readonly string[];
+  readonly physicsMaterials?: readonly string[];
+}
+
+const MATERIAL_FIELDS = ["friction", "restitution", "frictionCombine", "restitutionCombine"];
+
+/** Collider fields a named layer or physics material derives, so the inspector hides them. */
+function derivedColliderField(path: string, record: Record<string, unknown>, key: string): boolean {
+  if (!path.endsWith("collider3d")) return false;
+  return typeof record.layer === "string" && (key === "category" || key === "mask") ||
+    typeof record.physicsMaterial === "string" && MATERIAL_FIELDS.includes(key);
+}
+
 /** The optional fields an object lacks, and the object with one of them added at its default. */
-function objectAdditions(schema: FieldSchema, value: unknown, path: string, collisionLayers?: readonly string[]): { options: { value: string; label: string }[]; add: (key: string) => Record<string, unknown> } {
+function objectAdditions(schema: FieldSchema, value: unknown, path: string, references: ColliderReferences): { options: { value: string; label: string }[]; add: (key: string) => Record<string, unknown> } {
   const record = asRecord(value);
+  const collider = path.endsWith("collider3d");
   const options = Object.entries(schema.properties ?? {})
     .filter(([key, child]) => key !== "kind" && key !== "property" && child.const === undefined && record[key] === undefined &&
-      !(path.endsWith("collider3d") && typeof record.layer === "string" && (key === "category" || key === "mask")) &&
-      !(key === "layer" && path.endsWith("collider3d") && !collisionLayers?.length))
+      !derivedColliderField(path, record, key) &&
+      !(collider && key === "layer" && !references.collisionLayers?.length) &&
+      !(collider && key === "physicsMaterial" && !references.physicsMaterials?.length))
     .map(([key]) => ({ value: key, label: fieldLabel(key) }));
   const add = (key: string): Record<string, unknown> => {
     const child = schema.properties?.[key] ?? {};
-    return withColliderLayer(path, record, key, key === "layer" && path.endsWith("collider3d") ? collisionLayers?.[0] : schemaDefault(child));
+    const initial = collider && key === "layer" ? references.collisionLayers?.[0] :
+      collider && key === "physicsMaterial" ? references.physicsMaterials?.[0] : schemaDefault(child);
+    return withColliderReference(path, record, key, initial);
   };
   return { options, add };
 }
 
 /** The add menu for a group header, when the group holds an object with absent optional fields. */
-function headerAddMenu(title: string, schema: FieldSchema, value: unknown, path: string, collisionLayers: readonly string[] | undefined, onChange: (value: unknown) => void): ReactNode {
+function headerAddMenu(title: string, schema: FieldSchema, value: unknown, path: string, references: ColliderReferences, onChange: (value: unknown) => void): ReactNode {
   const selected = schemaVariant(schema, value);
   if (!isObjectSchema(selected)) return null;
-  const additions = objectAdditions(selected, value, path, collisionLayers);
+  const additions = objectAdditions(selected, value, path, references);
   if (additions.options.length === 0) return null;
   return <InspectorAddMenu variant="icon" label={`Add to ${title}`} options={additions.options} onSelect={(key) => onChange(additions.add(key))} />;
 }
 
 /** Sets one field of a record. Picking a 3D collider layer also resets raw category and
  * mask to their defaults in the same edit, since a layered collider derives them and
- * validation rejects non-default raw bits beside a layer. */
-function withColliderLayer(path: string, record: Record<string, unknown>, key: string, next: unknown): Record<string, unknown> {
-  if (key === "layer" && path.endsWith("collider3d") && typeof next === "string") {
-    return { ...record, layer: next, category: 1, mask: 0xffff };
+ * validation rejects non-default raw bits beside a layer. Picking a physics material
+ * likewise resets inline friction and restitution and drops inline combine rules. */
+function withColliderReference(path: string, record: Record<string, unknown>, key: string, next: unknown): Record<string, unknown> {
+  if (path.endsWith("collider3d") && typeof next === "string") {
+    if (key === "layer") return { ...record, layer: next, category: 1, mask: 0xffff };
+    if (key === "physicsMaterial") {
+      const { frictionCombine: _friction, restitutionCombine: _restitution, ...rest } = record;
+      return { ...rest, physicsMaterial: next, friction: 0.5, restitution: 0 };
+    }
   }
   return { ...record, [key]: next };
 }
 
-export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, componentSections = false, addLabel, beforeSections, trailing, hideAdd = false }: SchemaFieldsProps) {
-  const shared = { issues, assets, collisionLayers };
+export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, physicsMaterials, componentSections = false, addLabel, beforeSections, trailing, hideAdd = false }: SchemaFieldsProps) {
+  const shared = { issues, assets, collisionLayers, physicsMaterials };
+  const references: ColliderReferences = { collisionLayers, physicsMaterials };
   const selected = schemaVariant(schema, value);
   if (selected !== schema) {
     const variants = schema.oneOf ?? schema.anyOf ?? [];
@@ -232,10 +259,9 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
   if (schema.type === "object" || schema.properties) {
     const record = asRecord(value);
     // A const property is a union discriminator; the variant select above already edits it.
-    // A 3D collider on a named layer derives its category and mask, so its raw bits are hidden.
-    const derivedBits = path.endsWith("collider3d") && typeof record.layer === "string";
+    // A 3D collider on a named layer or physics material derives some fields, so they are hidden.
     const properties = Object.entries(schema.properties ?? {}).filter(([key, child]) => key !== "kind" && key !== "property" && child.const === undefined &&
-      !(derivedBits && (key === "category" || key === "mask")));
+      !derivedColliderField(path, record, key));
     const pairs = [
       { label: fieldLabel(path || "value"), keys: ["x", "y", "z"], axes: ["X", "Y", "Z"] },
       // A bare x/y object is named by its own key, such as "Pivot"; x and y beside other fields are a position.
@@ -267,7 +293,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       const remove = (): void => { const copy = { ...record }; delete copy[key]; onChange(copy); };
       const removeAction = optional ? <RowAction icon={<CloseIcon />} label={`Remove ${fieldLabel(key)}`} onClick={remove} /> : undefined;
       const group = isGroupSchema(child);
-      const childChange = (next: unknown): void => onChange(withColliderLayer(path, record, key, next));
+      const childChange = (next: unknown): void => onChange(withColliderReference(path, record, key, next));
       const nested = group && !componentSections;
       const field = <SchemaFields schema={child} value={record[key]} path={label} issuePath={[...issuePath, key]} {...shared}
         trailing={group ? undefined : removeAction} hideAdd={nested} onChange={childChange} />;
@@ -278,12 +304,12 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
           action={optional ? { icon: <CloseIcon />, label: `Remove ${fieldLabel(key)}`, onClick: remove } : undefined}>{field}</InspectorSection>);
       } else {
         groups.push(<FieldGroup key={key} title={fieldLabel(key)} actions={<>
-          {headerAddMenu(fieldLabel(key), child, record[key], label, collisionLayers, childChange)}
+          {headerAddMenu(fieldLabel(key), child, record[key], label, references, childChange)}
           {removeAction}
         </>}>{field}</FieldGroup>);
       }
     }
-    const additions = objectAdditions(schema, record, path, collisionLayers);
+    const additions = objectAdditions(schema, record, path, references);
     const add = (key: string): void => onChange(additions.add(key));
     const addOptions = hideAdd ? [] : additions.options;
     return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>
@@ -329,7 +355,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         const key = typeof asRecord(item).id === "string" ? String(asRecord(item).id) : index;
         if (!group) return <Box key={key} sx={FIELD_WIDTH}>{field}</Box>;
         const title = typeof kind === "string" ? `${index + 1}. ${fieldLabel(kind)}` : `Item ${index + 1}`;
-        return <FieldGroup key={key} title={title} actions={<>{headerAddMenu(title, itemSchema, item, `${path}.${index}`, collisionLayers, itemChange)}{actions}</>}>
+        return <FieldGroup key={key} title={title} actions={<>{headerAddMenu(title, itemSchema, item, `${path}.${index}`, references, itemChange)}{actions}</>}>
           {path.endsWith("tracks") && <svg role="img" aria-label={`${String(asRecord(item).easing ?? "linear")} curve`} width="64" height="40" viewBox="0 0 40 40">
             <polyline points={trackCurve(String(asRecord(item).easing ?? "linear"))} fill="none" stroke="currentColor" strokeWidth="2" />
           </svg>}
@@ -364,10 +390,12 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
     return <NumberField label={degrees ? "Rotation" : fieldLabel(path)} value={typeof value === "number" ? value : 0} schema={schema}
       degrees={degrees} error={error} trailing={trailing} onChange={onChange} />;
   }
-  if (schema.type === "string" && path.endsWith("collider3d.layer")) {
+  const referenceField = path.endsWith("collider3d.layer") ? { label: "Layer", names: collisionLayers } :
+    path.endsWith("collider3d.physicsMaterial") ? { label: "Physics material", names: physicsMaterials } : undefined;
+  if (schema.type === "string" && referenceField) {
     const current = typeof value === "string" ? value : "";
-    const names = collisionLayers?.includes(current) ? collisionLayers : [current, ...(collisionLayers ?? [])];
-    return <FieldRow label="Layer" error={error} trailing={trailing}><InspectorSelect grow label="Layer" value={current}
+    const names = referenceField.names?.includes(current) ? referenceField.names : [current, ...(referenceField.names ?? [])];
+    return <FieldRow label={referenceField.label} error={error} trailing={trailing}><InspectorSelect grow label={referenceField.label} value={current}
       options={names.map((name) => ({ value: name, label: name }))} onChange={onChange} /></FieldRow>;
   }
   if (schema.type === "string") {

@@ -9,6 +9,7 @@ import { GAME_ENGINE_4_UNAVAILABLE, validateGame } from "./validate.js";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 import { validateAnimationGraph3D, validateAnimatorGraph3D } from "./validate-animation-graph3d.js";
 import { collisionLayerIssues3D } from "./spatial3d/layers.js";
+import { physicsMaterialIssues3D } from "./spatial3d/materials.js";
 
 export interface GameValidationResult3D {
   readonly valid: boolean;
@@ -51,6 +52,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
     }
     for (const issue of gameInputBindingIssues(document)) { add("missing_input_binding_target", issue.path, issue.message); }
     for (const issue of collisionLayerIssues3D(document)) { add(issue.code, issue.path, issue.message); }
+    for (const issue of physicsMaterialIssues3D(document)) { add(issue.code, issue.path, issue.message); }
     for (const [slot, asset] of Object.entries(document.assets)) {
       if (asset.mediaKind === "model" || asset.mediaKind === "collider") {
         if (["x", "y", "z"].some((axis) => {
