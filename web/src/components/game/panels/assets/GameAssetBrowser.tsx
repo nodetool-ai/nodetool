@@ -1,12 +1,19 @@
-import { useMemo, useState, type ReactElement } from "react";
+import { useMemo, useState, type ReactElement, type ReactNode } from "react";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import { filterGameAssetCatalog, gameAssetCatalog, gameAssetSiblingRebinds, type AnyGameDocument,
   type GameAssetCatalogEntry, type GameAssetMediaKind, type GameAssetReference } from "@nodetool-ai/protocol";
 import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { trpc, trpcClient } from "../../../../trpc/client";
 import ReportBugButton from "../../../support/ReportBugButton";
-import { Caption, Chip, Dialog, EditorButton, EmptyState, FlexColumn, FlexRow, Label, LoadingSpinner, ScrollArea, SearchInput, SelectField,
-  SelectableListItem, SPACING, TabGroup, Text, TextInput, TruncatedText } from "../../../ui_primitives";
+import { AutoGrid, BORDER_RADIUS, Box, Caption, Chip, CONTROL, Dialog, Divider, EditorButton, FieldDensityContext, FlexColumn, FlexRow,
+  InspectorFieldRow, InspectorSection, LoadingSpinner, ScrollArea, SearchInput, SelectField, SPACING, Text, TextInput,
+  ToggleGroup, ToggleOption, ToolbarIconButton, TruncatedText, TYPOGRAPHY, getSpacingPx, selectableRowStyles,
+  selectableTileStyles } from "../../../ui_primitives";
 import GameAssetThumbnail from "./GameAssetThumbnail";
 import { GAME_ASSET_KIND_FILTERS, candidatesForSlot, panelGenerationKind, shortDigest, type GameAssetBrowserTab,
   type GameAssetPanelGenerationKind, type GameAssetSource } from "./gameAssetBrowserModel";
@@ -29,10 +36,24 @@ interface GenerationDraft {
   readonly preparation?: Readonly<Record<string, unknown>>;
 }
 
+type ViewMode = "grid" | "list";
+
 const TABS: readonly GameAssetBrowserTab[] = ["assets", "prefabs", "scenes"];
+const TAB_LABELS: Readonly<Record<GameAssetBrowserTab, string>> = { assets: "Assets", prefabs: "Prefabs", scenes: "Scenes" };
 const KIND_LABELS: Readonly<Record<GameAssetMediaKind, string>> = {
   image: "Images", audio: "Audio", font: "Fonts", model: "Models", collider: "Colliders", hdri: "HDRIs"
 };
+const KIND_NAMES: Readonly<Record<GameAssetMediaKind, string>> = {
+  image: "Image", audio: "Audio", font: "Font", model: "Model", collider: "Collider", hdri: "HDRI"
+};
+/** Grid tiles stay wide enough for a short slot name under the thumbnail. */
+const TILE_MIN_WIDTH = 88;
+/** The detail pane sits beside the list when the panel is at least this wide, and under it otherwise. */
+const SIDE_BY_SIDE_MIN_WIDTH = 560;
+const STACKED = `@container asset-browser (max-width: ${SIDE_BY_SIDE_MIN_WIDTH - 1}px)`;
+
+/** Renders a flex primitive as a native button, so rows and tiles get keyboard activation for free. */
+const BUTTON_ELEMENT = { component: "button", type: "button" } as const;
 
 function referenceLabel(reference: GameAssetReference): string {
   const where = reference.kind === "entity" ? `${reference.sceneId}/${reference.name ?? reference.entityId}`
@@ -42,22 +63,76 @@ function referenceLabel(reference: GameAssetReference): string {
   return `${where} · ${reference.path}`;
 }
 
+function plural(count: number, one: string, many = `${one}s`): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+/** One compact list row: optional leading media, a label, and right-aligned metadata. */
+function ItemRow({ selected, onClick, ariaLabel, leading, label, meta }: {
+  readonly selected?: boolean;
+  readonly onClick?: () => void;
+  readonly ariaLabel?: string;
+  readonly leading?: ReactNode;
+  readonly label: ReactNode;
+  readonly meta?: ReactNode;
+}): ReactElement {
+  return <FlexRow {...(onClick ? BUTTON_ELEMENT : {})} onClick={onClick}
+    aria-label={ariaLabel} aria-pressed={onClick && selected !== undefined ? selected : undefined}
+    gap={SPACING.sm} align="center" fullWidth
+    sx={(theme) => ({
+      ...(onClick ? selectableRowStyles(theme, { selected }) : {}),
+      minWidth: 0, minHeight: CONTROL.height.sm, px: SPACING.sm, py: SPACING.micro, border: 0, bgcolor: onClick ? undefined : "transparent",
+      color: "text.primary", textAlign: "left", font: "inherit", cursor: onClick ? "pointer" : "default"
+    })}>
+    {leading}
+    <Box sx={{ ...TYPOGRAPHY.sans.label, flex: 1, minWidth: 0 }}><TruncatedText variant="inherit">{label}</TruncatedText></Box>
+    {meta && <FlexRow gap={SPACING.sm} align="center" sx={{ flexShrink: 0, color: "text.secondary", ...TYPOGRAPHY.sans.caption }}>
+      {meta}
+    </FlexRow>}
+  </FlexRow>;
+}
+
 function ReferenceList({ references, onSelectEntity }: {
   readonly references: readonly GameAssetReference[];
   readonly onSelectEntity: (sceneId: string, entityId: string) => void;
 }): ReactElement {
-  if (references.length === 0) { return <Caption>Not used by any entity, scene or prefab.</Caption>; }
-  return <FlexColumn gap={SPACING.micro}>
+  if (references.length === 0) { return <Caption sx={{ px: SPACING.sm }}>Not used by any entity, scene or prefab.</Caption>; }
+  return <FlexColumn gap={SPACING.none}>
     {references.map((reference) => {
       const { sceneId, entityId } = reference;
       const label = referenceLabel(reference);
-      return reference.kind === "entity" && sceneId && entityId
-        ? <SelectableListItem key={label} onClick={() => onSelectEntity(sceneId, entityId)} aria-label={`Select ${label}`}>
-          <TruncatedText>{label}</TruncatedText>
-        </SelectableListItem>
-        : <Caption key={label}>{label}</Caption>;
+      const [where, path] = label.split(" · ");
+      return <ItemRow key={label} label={where} meta={path}
+        onClick={reference.kind === "entity" && sceneId && entityId ? () => onSelectEntity(sceneId, entityId) : undefined}
+        ariaLabel={reference.kind === "entity" && sceneId && entityId ? `Select ${label}` : label} />;
     })}
   </FlexColumn>;
+}
+
+/** The detail pane's subject: preview, name and kind, with the pane's actions under it. */
+function DetailHeader({ preview, title, subtitle, badge }: {
+  readonly preview: ReactNode;
+  readonly title: string;
+  readonly subtitle: string;
+  readonly badge?: ReactNode;
+}): ReactElement {
+  return <FlexRow gap={SPACING.md} align="center" sx={{ minWidth: 0 }}>
+    {preview}
+    <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0, flex: 1 }}>
+      <FlexRow gap={SPACING.sm} align="center" sx={{ minWidth: 0 }}>
+        <Text size="small" weight={600} truncate sx={{ minWidth: 0 }}>{title}</Text>
+        {badge}
+      </FlexRow>
+      <Caption>{subtitle}</Caption>
+    </FlexColumn>
+  </FlexRow>;
+}
+
+function KindIcon({ kind }: { readonly kind: "prefab" | "scene" }): ReactElement {
+  return <FlexRow align="center" justify="center" aria-hidden="true" sx={{ width: getSpacingPx(6), height: getSpacingPx(6), flexShrink: 0,
+    color: "text.secondary", "& svg": { fontSize: TYPOGRAPHY.sans.body.fontSize } }}>
+    {kind === "prefab" ? <AccountTreeOutlinedIcon /> : <LayersOutlinedIcon />}
+  </FlexRow>;
 }
 
 /**
@@ -70,7 +145,10 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<GameAssetMediaKind | "all">("all");
   const [tab, setTab] = useState<GameAssetBrowserTab>("assets");
+  const [view, setView] = useState<ViewMode>("grid");
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedPrefab, setSelectedPrefab] = useState<string | null>(null);
+  const [selectedScene, setSelectedScene] = useState<string | null>(null);
   const [generation, setGeneration] = useState<GenerationDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +157,10 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
   const catalog = useMemo(() => gameAssetCatalog(document), [document]);
   const filtered = useMemo(() => filterGameAssetCatalog(catalog, { query, kind: kind === "all" ? undefined : kind }), [catalog, query, kind]);
   const selected = catalog.assets.find((entry) => entry.slot === selectedSlot) ?? filtered.assets[0] ?? null;
+  const prefab = catalog.prefabs.find((entry) => entry.id === selectedPrefab) ?? filtered.prefabs[0] ?? null;
+  const scene = catalog.scenes.find((entry) => entry.id === selectedScene) ?? filtered.scenes[0] ?? null;
   const counts = { assets: filtered.assets.length, prefabs: filtered.prefabs.length, scenes: filtered.scenes.length };
+  const filtering = query !== "" || kind !== "all";
 
   const run = async (edit: () => Promise<unknown>): Promise<void> => {
     setBusy(true);
@@ -100,13 +181,23 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
   });
 
   const sourceOf = (entry: GameAssetCatalogEntry): GameAssetSource => ({ kind: "asset", assetId: entry.assetId });
-  const bindingOf = (slot: string) => document.assets[slot];
   const boundsOf = (slot: string) => {
-    const binding = bindingOf(slot);
+    const binding = document.assets[slot];
     return binding && "bounds" in binding && binding.mediaKind === "model" ? binding.bounds : undefined;
   };
+  const thumbnailOf = (slot: string, size: "row" | "tile" | "detail"): ReactNode => {
+    const entry = catalog.assets.find((candidate) => candidate.slot === slot);
+    return entry ? <GameAssetThumbnail source={sourceOf(entry)} mediaKind={entry.mediaKind} digest={entry.digest} label={entry.slot}
+      bounds={boundsOf(entry.slot)} size={size} /> : null;
+  };
+  const openAsset = (slot: string): void => { setTab("assets"); setSelectedSlot(slot); };
+  const assetRows = (slots: readonly string[]): ReactElement => slots.length === 0
+    ? <Caption sx={{ px: SPACING.sm }}>No assets.</Caption>
+    : <FlexColumn gap={SPACING.none}>{slots.map((slot) => <ItemRow key={slot} label={slot} leading={thumbnailOf(slot, "row")}
+      meta={(() => { const entry = catalog.assets.find((candidate) => candidate.slot === slot); return entry ? KIND_NAMES[entry.mediaKind] : null; })()}
+      onClick={() => openAsset(slot)} ariaLabel={`Open asset ${slot}`} />)}</FlexColumn>;
 
-  const detail = (entry: GameAssetCatalogEntry): ReactElement => {
+  const assetDetail = (entry: GameAssetCatalogEntry): ReactElement => {
     const request = server?.slot_requests[entry.slot];
     const generationKind = panelGenerationKind(request, entry.mediaKind, dimension);
     const candidates = server ? candidatesForSlot(server.candidates, entry.slot, entry.mediaKind) : [];
@@ -117,113 +208,175 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
         return parent ? gameAssetSiblingRebinds(document.assets, entry.slot, parent) : null;
       })() : null;
     const verb = request?.source === "recorded" ? "Regenerate" : "Generate";
-    return <FlexColumn gap={SPACING.md}>
-      <FlexRow gap={SPACING.md} align="flex-start">
-        <GameAssetThumbnail source={sourceOf(entry)} mediaKind={entry.mediaKind} digest={entry.digest} label={entry.slot}
-          bounds={boundsOf(entry.slot)} size="detail" />
-        <FlexColumn gap={SPACING.xs} sx={{ minWidth: 0 }}>
-          <Label>{entry.slot}</Label>
-          <Caption>{entry.mediaKind} · {shortDigest(entry.digest)}{entry.siblingOf ? ` · frame of ${entry.siblingOf}` : ""}</Caption>
-          {!entry.siblingOf && <FlexRow gap={SPACING.xs} wrap>
-            {generationKind
-              ? <EditorButton disabled={busy} onClick={() => setGeneration({ slot: entry.slot, kind: generationKind,
-                prompt: request?.prompt ?? "", preparation: request?.preparation })}>{verb}</EditorButton>
-              : <EditorButton disabled={busy} onClick={() => onAskAssistant(`Generate a new ${request?.kind ?? entry.mediaKind} asset for the "${entry.slot}" slot with generate_game_asset and install it.${request?.prompt ? ` Prompt: ${request.prompt}` : ""}`)}>
-                Ask the assistant to generate
-              </EditorButton>}
-          </FlexRow>}
+    return <>
+      <FlexColumn gap={SPACING.sm} sx={{ pb: SPACING.md }}>
+        <DetailHeader preview={thumbnailOf(entry.slot, "detail")} title={entry.slot}
+          subtitle={`${KIND_NAMES[entry.mediaKind]} · used ${plural(entry.usedBy.length, "time")}`} />
+        <FlexColumn gap={SPACING.none}>
+          <InspectorFieldRow label="Digest">
+            <Box sx={{ ...TYPOGRAPHY.mono.label, color: "text.primary" }}>{shortDigest(entry.digest)}</Box>
+          </InspectorFieldRow>
+          {entry.siblingOf && <InspectorFieldRow label="Frame of">
+            <ItemRow label={entry.siblingOf} onClick={() => setSelectedSlot(entry.siblingOf ?? null)} ariaLabel={`Open asset ${entry.siblingOf}`} />
+          </InspectorFieldRow>}
+          {request?.prompt && <InspectorFieldRow label="Prompt">
+            <Box sx={{ ...TYPOGRAPHY.sans.label, minWidth: 0 }}><TruncatedText variant="inherit">{request.prompt}</TruncatedText></Box>
+          </InspectorFieldRow>}
         </FlexColumn>
-      </FlexRow>
-      {rebinds && <FlexColumn gap={SPACING.xs}>
-        <Caption role="status">{entry.staleSiblings.length} frame bindings still point at the previous image.</Caption>
-        {rebinds.ops.length > 0 && <EditorButton disabled={busy} onClick={() => onOps([...rebinds.ops])}>Move frames onto this image</EditorButton>}
-        {rebinds.skipped.length > 0 && <Caption>{rebinds.skipped.join(", ")} fall outside this image and stay on the previous one.</Caption>}
-      </FlexColumn>}
-      <FlexColumn gap={SPACING.xs}>
-        <Label>Used by</Label>
-        <ReferenceList references={entry.usedBy} onSelectEntity={onSelectEntity} />
+        {!entry.siblingOf && <FlexRow gap={SPACING.xs}>
+          {generationKind
+            ? <EditorButton variant="outlined" size="small" startIcon={<AutoAwesomeOutlinedIcon fontSize="small" />} disabled={busy} onClick={() => setGeneration({ slot: entry.slot, kind: generationKind,
+              prompt: request?.prompt ?? "", preparation: request?.preparation })}>{verb}</EditorButton>
+            : <EditorButton variant="outlined" size="small" startIcon={<AutoAwesomeOutlinedIcon fontSize="small" />} disabled={busy} onClick={() => onAskAssistant(`Generate a new ${request?.kind ?? entry.mediaKind} asset for the "${entry.slot}" slot with generate_game_asset and install it.${request?.prompt ? ` Prompt: ${request.prompt}` : ""}`)}>
+              Ask the assistant to generate
+            </EditorButton>}
+        </FlexRow>}
+        {rebinds && <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.sm, borderRadius: BORDER_RADIUS.md, bgcolor: "action.hover" }}>
+          <Caption role="status" color="warning">{entry.staleSiblings.length} frame bindings still point at the previous image.</Caption>
+          {rebinds.skipped.length > 0 && <Caption>{rebinds.skipped.join(", ")} fall outside this image and stay on the previous one.</Caption>}
+          {rebinds.ops.length > 0 && <FlexRow><EditorButton variant="outlined" size="small" disabled={busy} onClick={() => onOps([...rebinds.ops])}>
+            Move frames onto this image</EditorButton></FlexRow>}
+        </FlexColumn>}
       </FlexColumn>
-      {!entry.siblingOf && <FlexColumn gap={SPACING.xs}>
-        <Label>Staged candidates</Label>
+      <InspectorSection title={`Used by (${entry.usedBy.length})`}>
+        <ReferenceList references={entry.usedBy} onSelectEntity={onSelectEntity} />
+      </InspectorSection>
+      {!entry.siblingOf && <InspectorSection title={`Staged candidates (${candidates.length})`}>
         {serverLoading
           ? <LoadingSpinner size="small" text="Loading candidates" />
           : candidates.length === 0 || !workspaceId
-          ? <Caption>No staged {entry.mediaKind} files. Generated and staged files appear here.</Caption>
-          : candidates.map((candidate) => {
+          ? <Caption sx={{ px: SPACING.sm }}>No staged {entry.mediaKind} files. Generated and staged files appear here.</Caption>
+          : <FlexColumn gap={SPACING.none}>{candidates.map((candidate) => {
             const current = candidate.digest === entry.digest;
-            return <FlexRow key={candidate.digest} gap={SPACING.sm} align="center">
+            return <FlexRow key={candidate.digest} gap={SPACING.sm} align="center" sx={{ minHeight: CONTROL.height.md, px: SPACING.sm }}>
               <GameAssetThumbnail source={{ kind: "workspace", workspaceId, path: candidate.path }} mediaKind={candidate.media_kind}
                 digest={candidate.digest} label={`Candidate ${shortDigest(candidate.digest)}`} />
               <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
-                <TruncatedText>{candidate.prompt ?? shortDigest(candidate.digest)}</TruncatedText>
+                <Box sx={{ ...TYPOGRAPHY.sans.label, minWidth: 0 }}><TruncatedText variant="inherit">{candidate.prompt ?? shortDigest(candidate.digest)}</TruncatedText></Box>
                 <Caption>{candidate.slot ? `Made for ${candidate.slot}` : "Unrecorded"} · {new Date(candidate.modified_at).toLocaleString()}</Caption>
               </FlexColumn>
               {current ? <Chip compact label="Current" />
-                : <EditorButton disabled={busy} onClick={() => void install(entry.slot, candidate.digest)}>Use</EditorButton>}
+                : <EditorButton variant="outlined" disabled={busy} onClick={() => void install(entry.slot, candidate.digest)}>Use</EditorButton>}
             </FlexRow>;
-          })}
-      </FlexColumn>}
-    </FlexColumn>;
+          })}</FlexColumn>}
+      </InspectorSection>}
+    </>;
   };
 
-  const list = tab === "assets"
-    ? filtered.assets.map((entry) => <SelectableListItem key={entry.slot} selected={entry.slot === selected?.slot}
-      onClick={() => setSelectedSlot(entry.slot)} aria-label={`Asset ${entry.slot}`}>
-      <GameAssetThumbnail source={sourceOf(entry)} mediaKind={entry.mediaKind} digest={entry.digest} label={entry.slot} bounds={boundsOf(entry.slot)} />
-      <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
-        <TruncatedText>{entry.slot}</TruncatedText>
-        <Caption>{entry.mediaKind} · used {entry.usedBy.length}×{entry.staleSiblings.length ? " · frames out of date" : ""}</Caption>
-      </FlexColumn>
-    </SelectableListItem>)
+  const detail: ReactNode = tab === "assets"
+    ? selected && assetDetail(selected)
     : tab === "prefabs"
-      ? filtered.prefabs.map((prefab) => <FlexColumn key={prefab.id} gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-        <Label>{prefab.id}</Label>
-        <Caption>{prefab.entityCount} entities · {prefab.usedBy.length} instances</Caption>
-        <FlexRow gap={SPACING.xs} wrap>{prefab.assets.map((slot) => <Chip key={slot} compact label={slot}
-          onClick={() => { setTab("assets"); setSelectedSlot(slot); }} />)}</FlexRow>
-        <ReferenceList references={prefab.usedBy} onSelectEntity={onSelectEntity} />
-      </FlexColumn>)
-      : filtered.scenes.map((scene) => <FlexColumn key={scene.id} gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-        <FlexRow gap={SPACING.xs} align="center"><Label>{scene.name}</Label>{scene.entry && <Chip compact label="Entry" />}</FlexRow>
-        <Caption>{scene.entityCount} entities · {scene.assets.length} assets</Caption>
-        <FlexRow gap={SPACING.xs} wrap>{scene.assets.map((slot) => <Chip key={slot} compact label={slot}
-          onClick={() => { setTab("assets"); setSelectedSlot(slot); }} />)}</FlexRow>
-      </FlexColumn>);
+      ? prefab && <>
+        <FlexColumn gap={SPACING.sm} sx={{ pb: SPACING.md }}>
+          <DetailHeader preview={<KindIcon kind="prefab" />} title={prefab.id}
+            subtitle={`Prefab · ${plural(prefab.entityCount, "entity", "entities")} · ${plural(prefab.usedBy.length, "instance")}`} />
+        </FlexColumn>
+        <InspectorSection title={`Assets (${prefab.assets.length})`}>{assetRows(prefab.assets)}</InspectorSection>
+        <InspectorSection title={`Instances (${prefab.usedBy.length})`}>
+          <ReferenceList references={prefab.usedBy} onSelectEntity={onSelectEntity} />
+        </InspectorSection>
+      </>
+      : scene && <>
+        <FlexColumn gap={SPACING.sm} sx={{ pb: SPACING.md }}>
+          <DetailHeader preview={<KindIcon kind="scene" />} title={scene.name} badge={scene.entry && <Chip compact label="Entry" />}
+            subtitle={`Scene · ${plural(scene.entityCount, "entity", "entities")} · ${plural(scene.assets.length, "asset")}`} />
+        </FlexColumn>
+        <InspectorSection title={`Assets (${scene.assets.length})`}>{assetRows(scene.assets)}</InspectorSection>
+      </>;
 
-  return <FlexColumn fullHeight sx={{ minHeight: 0 }} aria-label="Asset browser">
-    <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs }}>
-      <SearchInput value={query} onChange={setQuery} placeholder="Search assets, prefabs, scenes" ariaLabel="Search assets" size="small" fullWidth />
-      <SelectField label="Type" hideLabel size="small" value={kind} onChange={(value) => setKind(value as GameAssetMediaKind | "all")}
-        options={[{ value: "all", label: "All types" }, ...GAME_ASSET_KIND_FILTERS[dimension].map((value) => ({ value, label: KIND_LABELS[value] }))]} />
-    </FlexRow>
-    <TabGroup size="small" value={tab} onChange={(value) => setTab(value as GameAssetBrowserTab)}
-      tabs={TABS.map((value) => ({ value, label: `${value[0]?.toUpperCase()}${value.slice(1)} (${counts[value]})` }))} />
-    {error && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md }}>
-      <Caption color="error" role="alert" sx={{ flex: 1, minWidth: 0 }}>{error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: "Game asset browser action failed", errorText: error }} />
-    </FlexRow>}
-    <FlexRow sx={{ flex: 1, minHeight: 0 }}>
-      <ScrollArea thin sx={{ flex: 1, minWidth: 0, px: SPACING.xs }}>
-        {list.length ? list : <EmptyState size="small" title={query || kind !== "all" ? "Nothing matches" : `No ${tab}`}
-          description={query || kind !== "all" ? "Clear the search or the type filter." : undefined} />}
-      </ScrollArea>
-      {tab === "assets" && selected && <ScrollArea thin sx={{ flex: 1.4, minWidth: 0, px: SPACING.md, py: SPACING.xs, borderLeft: 1, borderColor: "divider" }}>
-        {detail(selected)}
-      </ScrollArea>}
-    </FlexRow>
-    <Dialog open={generation !== null} title={generation ? `Generate ${generation.slot}` : ""} onClose={() => setGeneration(null)}
-      showActions confirmText="Generate and install" isLoading={busy} onConfirm={() => {
-        if (!generation || !generation.prompt.trim()) { return; }
-        const draft = generation;
-        setGeneration(null);
-        void generate(draft);
-      }}>
-      <FlexColumn gap={SPACING.sm}>
-        <Text>The result is staged under the game's assets and bound to the slot. Earlier files stay listed as candidates.</Text>
-        <TextInput label="Prompt" multiline rows={5} value={generation?.prompt ?? ""}
-          onChange={(event) => setGeneration((current) => current ? { ...current, prompt: event.target.value } : current)} />
-        {generation?.preparation && <Caption>Preparation: {JSON.stringify(generation.preparation)}</Caption>}
-      </FlexColumn>
-    </Dialog>
-  </FlexColumn>;
+  const assetMeta = (entry: GameAssetCatalogEntry): ReactNode => <>
+    {entry.staleSiblings.length > 0 && <Caption color="warning">Frames out of date</Caption>}
+    <span>{KIND_NAMES[entry.mediaKind]}</span>
+    <span>{entry.usedBy.length}×</span>
+  </>;
+  const items: ReactElement[] = tab === "assets"
+    ? filtered.assets.map((entry) => view === "list"
+      ? <ItemRow key={entry.slot} selected={entry.slot === selected?.slot} onClick={() => setSelectedSlot(entry.slot)}
+        ariaLabel={`Asset ${entry.slot}`} leading={thumbnailOf(entry.slot, "row")} label={entry.slot} meta={assetMeta(entry)} />
+      : <FlexColumn key={entry.slot} {...BUTTON_ELEMENT} aria-label={`Asset ${entry.slot}`} aria-pressed={entry.slot === selected?.slot}
+        title={entry.slot} onClick={() => setSelectedSlot(entry.slot)} gap={SPACING.xs}
+        sx={(theme) => ({ ...selectableTileStyles(theme, { selected: entry.slot === selected?.slot }), minWidth: 0, p: SPACING.xs,
+          bgcolor: "transparent", color: "text.primary", font: "inherit", textAlign: "left", cursor: "pointer" })}>
+        {thumbnailOf(entry.slot, "tile")}
+        <FlexColumn sx={{ minWidth: 0, px: SPACING.micro }}>
+          <Box sx={{ ...TYPOGRAPHY.sans.label, minWidth: 0 }}><TruncatedText variant="inherit">{entry.slot}</TruncatedText></Box>
+          <Caption color={entry.staleSiblings.length > 0 ? "warning" : undefined}>
+            {entry.staleSiblings.length > 0 ? "Frames out of date" : `${KIND_NAMES[entry.mediaKind]} · ${entry.usedBy.length}×`}
+          </Caption>
+        </FlexColumn>
+      </FlexColumn>)
+    : tab === "prefabs"
+      ? filtered.prefabs.map((entry) => <ItemRow key={entry.id} selected={entry.id === prefab?.id} onClick={() => setSelectedPrefab(entry.id)}
+        ariaLabel={`Prefab ${entry.id}`} leading={<KindIcon kind="prefab" />} label={entry.id}
+        meta={<><span>{plural(entry.entityCount, "entity", "entities")}</span><span>{plural(entry.usedBy.length, "instance")}</span></>} />)
+      : filtered.scenes.map((entry) => <ItemRow key={entry.id} selected={entry.id === scene?.id} onClick={() => setSelectedScene(entry.id)}
+        ariaLabel={`Scene ${entry.name}`} leading={<KindIcon kind="scene" />} label={entry.name}
+        meta={<>{entry.entry && <Chip compact label="Entry" />}<span>{plural(entry.entityCount, "entity", "entities")}</span></>} />);
+  const grid = tab === "assets" && view === "grid";
+
+  return <FieldDensityContext.Provider value="compact">
+    <FlexColumn fullHeight aria-label="Asset browser" sx={{ minHeight: 0, containerType: "inline-size", containerName: "asset-browser" }}>
+      <FlexRow role="toolbar" aria-label="Assets toolbar" gap={SPACING.sm} align="center" wrap
+        sx={{ flexShrink: 0, minHeight: CONTROL.height.md, px: SPACING.sm, py: SPACING.micro, borderBottom: 1, borderColor: "divider" }}>
+        <ToggleGroup quiet exclusive size="small" aria-label="Browse" value={tab}
+          onChange={(_event, value: GameAssetBrowserTab | null) => { if (value) { setTab(value); } }} sx={{ flexShrink: 0 }}>
+          {TABS.map((value) => <ToggleOption key={value} value={value} aria-label={`${TAB_LABELS[value]} (${counts[value]})`}
+            sx={{ px: SPACING.sm, gap: SPACING.xs, ...TYPOGRAPHY.sans.label, textTransform: "none" }}>
+            {TAB_LABELS[value]}<Box component="span" sx={{ ...TYPOGRAPHY.sans.caption, color: "text.secondary" }}>{counts[value]}</Box>
+          </ToggleOption>)}
+        </ToggleGroup>
+        <Divider orientation="vertical" flexItem sx={{ [STACKED]: { display: "none" } }} />
+        <FlexRow gap={SPACING.sm} align="center" sx={{ flex: "1 1 auto", minWidth: 0, [STACKED]: { order: 2, flexBasis: "100%" } }}>
+          <SearchInput value={query} onChange={setQuery} placeholder="Search" ariaLabel="Search assets" size="small"
+            sx={{ flex: "1 1 auto", minWidth: 0 }} />
+          <Box sx={{ flexShrink: 0, width: getSpacingPx(30) }}>
+            <SelectField label="Type" hideLabel size="small" value={kind} onChange={(value) => setKind(value as GameAssetMediaKind | "all")}
+              options={[{ value: "all", label: "All types" }, ...GAME_ASSET_KIND_FILTERS[dimension].map((value) => ({ value, label: KIND_LABELS[value] }))]} />
+          </Box>
+        </FlexRow>
+        <FlexRow gap={SPACING.micro} align="center" sx={{ flexShrink: 0, [STACKED]: { order: 1, ml: "auto" } }}>
+          <ToolbarIconButton icon={<ViewListOutlinedIcon fontSize="small" />} tooltip="List view" ariaLabel="List view"
+            active={view === "list"} disabled={tab !== "assets"} onClick={() => setView("list")} />
+          <ToolbarIconButton icon={<GridViewOutlinedIcon fontSize="small" />} tooltip="Grid view" ariaLabel="Grid view"
+            active={view === "grid"} disabled={tab !== "assets"} onClick={() => setView("grid")} />
+        </FlexRow>
+      </FlexRow>
+      {error && <FlexRow gap={SPACING.sm} align="center" sx={{ flexShrink: 0, px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
+        <Caption color="error" role="alert" sx={{ flex: 1, minWidth: 0 }}>{error}</Caption>
+        <ReportBugButton context={{ source: "panel-crash", summary: "Game asset browser action failed", errorText: error }} />
+      </FlexRow>}
+      <FlexRow sx={{ flex: 1, minHeight: 0, alignItems: "stretch", [STACKED]: { flexDirection: "column" } }}>
+        <ScrollArea thin aria-label={`${TAB_LABELS[tab]} list`} sx={{ flex: 1, minWidth: 0, minHeight: 0, p: SPACING.xs }}>
+          {items.length === 0
+            ? <FlexColumn gap={SPACING.micro} align="center" sx={{ py: SPACING.lg, px: SPACING.md, textAlign: "center" }}>
+              <Text size="small" weight={500}>{filtering ? "Nothing matches" : `No ${tab}`}</Text>
+              {filtering && <Caption>Clear the search or the type filter.</Caption>}
+            </FlexColumn>
+            : grid ? <AutoGrid minItemWidth={TILE_MIN_WIDTH} gap={SPACING.xs}>{items}</AutoGrid>
+            : <FlexColumn gap={SPACING.none}>{items}</FlexColumn>}
+        </ScrollArea>
+        {detail && <ScrollArea thin aria-label="Details" sx={{
+          flex: "0 0 42%", minWidth: getSpacingPx(70), maxWidth: getSpacingPx(110), minHeight: 0, px: SPACING.md, py: SPACING.md,
+          borderLeft: 1, borderColor: "divider",
+          [STACKED]: { flex: "0 1 auto", maxHeight: "50%", minWidth: 0, maxWidth: "none", borderLeft: 0, borderTop: 1 }
+        }}>
+          {detail}
+        </ScrollArea>}
+      </FlexRow>
+      <Dialog open={generation !== null} title={generation ? `Generate ${generation.slot}` : ""} onClose={() => setGeneration(null)}
+        showActions confirmText="Generate and install" isLoading={busy} onConfirm={() => {
+          if (!generation || !generation.prompt.trim()) { return; }
+          const draft = generation;
+          setGeneration(null);
+          void generate(draft);
+        }}>
+        <FlexColumn gap={SPACING.sm}>
+          <Text>The result is staged under the game's assets and bound to the slot. Earlier files stay listed as candidates.</Text>
+          <TextInput label="Prompt" multiline rows={5} value={generation?.prompt ?? ""}
+            onChange={(event) => setGeneration((current) => current ? { ...current, prompt: event.target.value } : current)} />
+          {generation?.preparation && <Caption>Preparation: {JSON.stringify(generation.preparation)}</Caption>}
+        </FlexColumn>
+      </Dialog>
+    </FlexColumn>
+  </FieldDensityContext.Provider>;
 }
