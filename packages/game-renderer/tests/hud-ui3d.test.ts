@@ -71,7 +71,9 @@ describe("HUD parity capture", () => {
     const at2D = pixels(image2D);
     const at3D = pixels(image3D);
     // The full health bar, the score panel fill and the pause button fill, sampled where no text draws.
-    for (const [x, y, width, height] of [[16, 41, 180, 11], [364, 18, 20, 36], [210, 236, 10, 32]]) {
+    // 3D captures paint text in Chromium and 2D captures in @napi-rs/canvas, so glyph widths differ and the
+    // centred labels start at different x. The fill samples stay clear of the widest label either one draws.
+    for (const [x, y, width, height] of [[16, 41, 180, 11], [363, 18, 12, 36], [210, 236, 10, 32]]) {
       expect(at3D(x, y, width, height)).toEqual(at2D(x, y, width, height));
     }
     expect(at3D(16 + 170, 46)).toEqual([0xe0, 0x48, 0x48, 255]);
