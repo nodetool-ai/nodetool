@@ -26,7 +26,8 @@ describe("generated game inspector fields", () => {
 
     expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("Player");
     expect(screen.queryByRole("textbox", { name: "New optional field" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add New optional field" }));
+    await user.click(screen.getByRole("button", { name: "Add property" }));
+    await user.click(screen.getByRole("menuitem", { name: "New optional field" }));
     expect(screen.getByRole("textbox", { name: "New optional field" })).toBeInTheDocument();
   });
 

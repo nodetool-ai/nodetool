@@ -154,7 +154,8 @@ describe("3D inspector removal", () => {
     expect(screen.getByRole("button", { name: /^Primitive/ })).toHaveAttribute("aria-expanded", "true");
     await user.click(screen.getByRole("button", { name: "Remove Primitive" }));
     expect(visual(changed.mock.lastCall?.[0])?.primitive).toBeUndefined();
-    expect(screen.getByRole("button", { name: "Add Primitive" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Add component" }));
+    expect(screen.getByRole("menuitem", { name: "Primitive" })).toBeVisible();
   });
 
   it("removes a nested optional value without preserving the old merged value", async () => {
