@@ -30,6 +30,7 @@ import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnosti
 import { openGameDiagnosticSession3D } from "./viewport3d/gameSessionAssets3D";
 import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
 import GameConsolePanel from "./panels/console/GameConsolePanel";
+import AnimationGraphPanel from "./panels/animation/AnimationGraphPanel";
 import { gameValidationConsoleEntries } from "./panels/console/gameConsoleModel";
 import { useGameConsoleFeed } from "./panels/console/useGameConsoleFeed";
 import { gamePlaytestPrompt, gameScriptErrorPrompt, gameSelectionPrompt } from "./gameAssistantPrompt";
@@ -343,6 +344,9 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       { id: "console",
         node: <GameConsolePanel gameId={refId} document={document} liveEntries={consoleValidation}
           onSelectEntity={(entitySceneId, entityId) => { setSceneId(entitySceneId); select(entityId); }} onAskAssistant={assistant.draft} /> },
+      { id: "animation-graph",
+        node: <AnimationGraphPanel document={document} sceneId={activeSceneId} selectedEntityId={selected?.id}
+          inspection={host.playDocument ? host.inspection : null} onOps={onOps} /> },
       { id: "inspector",
         node: <>
         <FlexColumn sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
