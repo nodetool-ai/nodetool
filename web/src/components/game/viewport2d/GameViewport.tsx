@@ -1,12 +1,36 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject, type SetStateAction } from "react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { GameDocument, GameRenderFrame } from "@nodetool-ai/protocol/game.js";
 import { projectedCamera } from "@nodetool-ai/game-renderer";
 
-import { Box, EditorButton, FlexRow, SPACING, Z_INDEX } from "../../ui_primitives";
+import CameraOutlinedIcon from "@mui/icons-material/VideocamOutlined";
+import CropFreeIcon from "@mui/icons-material/CropFree";
+import Grid4x4Icon from "@mui/icons-material/Grid4x4";
+import GridOnIcon from "@mui/icons-material/GridOn";
+import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
+import HighlightAltIcon from "@mui/icons-material/HighlightAlt";
+import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
+import PanToolOutlinedIcon from "@mui/icons-material/PanToolOutlined";
+import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
+import WallpaperIcon from "@mui/icons-material/Wallpaper";
+
+import { Box, Divider, FlexColumn, FlexRow, FONT_SIZE_SANS, SPACING, ToolbarIconButton } from "../../ui_primitives";
+import GamePanelHeader from "../GamePanelHeader";
 import { isMac } from "../../../utils/platform";
 import { useGameCommandHandlers, useGameCommandShortcut } from "../shell/useGameCommands";
 import { selectionDescendants, localTransform, selectionRoots, worldTransforms, hitEntityIcons, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "./viewportGeometry";
+
+type OverlayKey = "selection" | "grid" | "colliders" | "lights" | "backgrounds" | "camera";
+
+const OVERLAY_TOGGLES: readonly { key: OverlayKey; label: string; icon: ReactNode }[] = [
+  { key: "selection", label: "Selection", icon: <HighlightAltIcon fontSize="small" /> },
+  { key: "grid", label: "Grid", icon: <Grid4x4Icon fontSize="small" /> },
+  { key: "colliders", label: "Colliders", icon: <CropFreeIcon fontSize="small" /> },
+  { key: "lights", label: "Lights", icon: <LightModeOutlinedIcon fontSize="small" /> },
+  { key: "backgrounds", label: "Backgrounds", icon: <WallpaperIcon fontSize="small" /> },
+  { key: "camera", label: "Camera", icon: <CameraOutlinedIcon fontSize="small" /> }
+];
+const HEADER_ICON_SX = { fontSize: FONT_SIZE_SANS.body, color: "text.secondary" } as const;
 
 interface GameViewportProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -450,23 +474,32 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
     return () => { window.removeEventListener("blur", cancel); cancel(); };
   }, []);
 
+  const overlayState: Record<OverlayKey, [boolean, Dispatch<SetStateAction<boolean>>]> = {
+    selection: [showSelection, setShowSelection], grid: [showGrid, setShowGrid], colliders: [showColliders, setShowColliders],
+    lights: [showLights, setShowLights], backgrounds: [showBackgrounds, setShowBackgrounds], camera: [showCameraBounds, setShowCameraBounds]
+  };
+
   return (
-    <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "auto", bgcolor: "background.default" }}>
-      <Box ref={stageRef} sx={{ position: "relative", width: "100%", height: "100%" }}>
-        {!playing && <FlexRow gap={SPACING.xs} wrap sx={{ position: "absolute", top: SPACING.xs, left: SPACING.xs, right: SPACING.xs, zIndex: Z_INDEX.raised }}>
-          <EditorButton variant={panTool ? "contained" : "text"} aria-pressed={panTool}
-            title={mac ? "Two-finger scroll or right/middle drag to pan. Pinch or Ctrl+scroll to zoom."
-              : "Right/middle drag to pan. Mouse wheel zooms."}
-            onClick={() => setPanTool((value) => !value)}>Pan</EditorButton>
-          <EditorButton variant={showSelection ? "contained" : "text"} onClick={() => setShowSelection((value) => !value)}>Selection</EditorButton>
-          <EditorButton variant={showGrid ? "contained" : "text"} onClick={() => setShowGrid((value) => !value)}>Grid</EditorButton>
-          <EditorButton variant={snapToGrid ? "contained" : "text"} title={snapShortcut ? `Toggle snapping (${snapShortcut.join("+")})` : "Toggle snapping"}
-            onClick={() => setSnapToGrid((value) => !value)}>Snap</EditorButton>
-          <EditorButton variant={showColliders ? "contained" : "text"} onClick={() => setShowColliders((value) => !value)}>Colliders</EditorButton>
-          <EditorButton variant={showLights ? "contained" : "text"} onClick={() => setShowLights((value) => !value)}>Lights</EditorButton>
-          <EditorButton variant={showBackgrounds ? "contained" : "text"} onClick={() => setShowBackgrounds((value) => !value)}>Backgrounds</EditorButton>
-          <EditorButton variant={showCameraBounds ? "contained" : "text"} onClick={() => setShowCameraBounds((value) => !value)}>Camera</EditorButton>
-        </FlexRow>}
+    <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+      <GamePanelHeader title="Viewport" label={playing ? "Game" : "Scene"}
+        icon={playing ? <SportsEsportsOutlinedIcon sx={HEADER_ICON_SX} /> : <GridViewOutlinedIcon sx={HEADER_ICON_SX} />}>
+        {!playing && <>
+          <ToolbarIconButton icon={<PanToolOutlinedIcon fontSize="small" />} ariaLabel="Pan"
+            tooltip={mac ? "Pan. Two-finger scroll or right/middle drag also pans. Pinch or Ctrl+scroll zooms."
+              : "Pan. Right/middle drag also pans. Mouse wheel zooms."}
+            aria-pressed={panTool} active={panTool} onClick={() => setPanTool((value) => !value)} />
+          <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
+          <ToolbarIconButton icon={<GridOnIcon fontSize="small" />} tooltip="Snap" shortcut={snapShortcut}
+            aria-pressed={snapToGrid} active={snapToGrid} onClick={() => setSnapToGrid((value) => !value)} />
+          <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
+          <FlexRow gap={SPACING.micro} align="center" role="group" aria-label="Overlays">
+            {OVERLAY_TOGGLES.map((toggle) => <ToolbarIconButton key={toggle.label} icon={toggle.icon} tooltip={toggle.label}
+              aria-pressed={overlayState[toggle.key][0]} active={overlayState[toggle.key][0]}
+              onClick={() => overlayState[toggle.key][1]((value) => !value)} />)}
+          </FlexRow>
+        </>}
+      </GamePanelHeader>
+      <Box ref={stageRef} sx={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", bgcolor: "background.default" }}>
         <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label="Game viewport" role="group" tabIndex={0}
           onKeyDown={(event) => {
             if (!playing && event.code === "Space") { event.preventDefault(); spaceHeldRef.current = true; }
@@ -501,6 +534,6 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
           sx={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", touchAction: "none",
             cursor: isPanning ? "grabbing" : panTool ? "grab" : undefined }} />}
       </Box>
-    </Box>
+    </FlexColumn>
   );
 }

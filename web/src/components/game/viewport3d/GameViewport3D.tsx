@@ -327,6 +327,7 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
         <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
         <ToolbarIconButton icon={<GridOnIcon fontSize="small" />} tooltip="Snap" shortcut={snapShortcut} aria-pressed={snap} active={snap} onClick={() => setSnap((value) => !value)} />
         <ToolbarIconButton icon={<LayersOutlinedIcon fontSize="small" />} tooltip="Overlays" aria-pressed={overlays} active={overlays} onClick={() => setOverlays((value) => !value)} />
+        <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
         <ToolbarIconButton icon={<FlightOutlinedIcon fontSize="small" />} tooltip="Fly camera" aria-pressed={flyMode} active={flyMode} onClick={() => setFlyMode((value) => !value)} />
         <ToolbarIconButton icon={<CenterFocusStrongOutlinedIcon fontSize="small" />} tooltip="Frame selection" shortcut={frameShortcut} onClick={frameSelection} disabled={!selectedId} />
       </>}
