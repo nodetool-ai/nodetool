@@ -1,7 +1,8 @@
 /**
  * The app's server: one process, one port.
  *
- *   POST /api/run           run one of the app's workflows, streamed as SSE
+ *   POST /api/run           run one of the app's workflows or JS scripts,
+ *                           streamed as SSE
  *   POST /api/upload        store a file the user picked, answer its URL
  *   GET  /api/models        models the configured providers offer, by kind
  *   GET  /api/storage/<key> serve stored uploads and run outputs
@@ -107,7 +108,9 @@ async function handleRun(req, res) {
     sendJson(res, 400, { error: "invalid_json" });
     return;
   }
-  if (typeof body?.workflow !== "string") {
+  const workflow = typeof body?.workflow === "string" ? body.workflow : null;
+  const script = typeof body?.script === "string" ? body.script : null;
+  if (!workflow && !script) {
     sendJson(res, 400, { error: "missing_workflow" });
     return;
   }
@@ -125,13 +128,9 @@ async function handleRun(req, res) {
     if (!res.writableEnded) res.write(`data: ${JSON.stringify(message)}\n\n`);
   };
   try {
-    await runner.run({
-      workflowKey: body.workflow,
-      params: body.params,
-      jobId,
-      signal: abort.signal,
-      send
-    });
+    const request = { params: body.params, jobId, signal: abort.signal, send };
+    if (script) await runner.runScript({ ...request, scriptKey: script });
+    else await runner.run({ ...request, workflowKey: workflow });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[run ${jobId}] ${message}`);

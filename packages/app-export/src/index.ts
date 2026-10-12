@@ -13,7 +13,7 @@
  */
 import { readFileSync } from "node:fs";
 import {
-  isScriptOperation,
+  operationTarget,
   serializeApplicationBundle,
   WIDGET_CATALOG,
   type ApplicationBundle
@@ -158,6 +158,14 @@ export function requiredSecretNames(
       visitValue(node.data ?? node.properties, 0);
     }
   }
+  // A script reads only the secrets its document declares.
+  for (const script of bundle.scripts) {
+    const declared: unknown = (script.document as { secrets?: unknown }).secrets;
+    if (!Array.isArray(declared)) continue;
+    for (const key of declared) {
+      if (typeof key === "string" && key) names.add(key);
+    }
+  }
   return [...names].sort();
 }
 
@@ -192,11 +200,11 @@ function collectWidgetTypes(value: unknown, into: Set<string>, depth = 0): void 
 export function exportWarnings(bundle: ApplicationBundle): string[] {
   const warnings: string[] = [];
   const workflowKeys = new Set(bundle.workflows.map((workflow) => workflow.key));
+  const scriptKeys = new Set(bundle.scripts.map((script) => script.key));
   for (const operation of bundle.app.operations) {
-    if (isScriptOperation(operation)) {
-      warnings.push(`Operation "${operation.name}" runs a JS script, which only runs inside NodeTool.`);
-    } else if (!workflowKeys.has(operation.workflowId)) {
-      warnings.push(`Operation "${operation.name}" names a workflow the bundle does not carry.`);
+    const target = operationTarget(operation);
+    if (target.kind === "script" ? !scriptKeys.has(target.scriptId) : !workflowKeys.has(target.workflowId)) {
+      warnings.push(`Operation "${operation.name}" names a ${target.kind} the bundle does not carry.`);
     }
   }
   if (bundle.app.resources.length > 0) {
@@ -230,6 +238,7 @@ function packageJson(name: string, version: string): string {
         typecheck: "tsc --noEmit"
       },
       dependencies: {
+        "@nodetool-ai/agents": nodetool,
         "@nodetool-ai/app-runtime": nodetool,
         "@nodetool-ai/base-nodes": nodetool,
         "@nodetool-ai/execution": nodetool,
@@ -282,8 +291,8 @@ function readme(bundle: ApplicationBundle, warnings: ReadonlyArray<string>): str
     "",
     ...(description ? [description, ""] : []),
     "A NodeTool mini app exported as a standalone project. The UI is a Vite +",
-    "React app; `server/` runs the app's workflows in this process, so no",
-    "NodeTool server is needed.",
+    "React app; `server/` runs the app's workflows and JS scripts in this",
+    "process, so no NodeTool server is needed.",
     "",
     "## Run it",
     "",
@@ -298,14 +307,17 @@ function readme(bundle: ApplicationBundle, warnings: ReadonlyArray<string>): str
     "## How it works",
     "",
     "- `app.bundle.json` is the whole app: the UI document and every workflow",
-    "  graph it runs. Re-export from NodeTool to update it.",
+    "  graph and JS script it runs. Re-export from NodeTool to update it.",
     "- `server/index.mjs` serves the UI and four endpoints: `POST /api/run`",
-    "  streams a workflow run as Server-Sent Events, `POST /api/upload` stores",
-    "  a picked file, `GET /api/storage/<key>` serves uploads and outputs, and",
-    "  `GET /api/models` lists the models of the providers with a key in `.env`.",
-    "  Files are kept in `.nodetool-data/`.",
-    "- `server/runner.mjs` runs a graph from the bundle by its key. The browser",
-    "  cannot send a graph of its own.",
+    "  streams a workflow or script run as Server-Sent Events, `POST /api/upload`",
+    "  stores a picked file, `GET /api/storage/<key>` serves uploads and outputs,",
+    "  and `GET /api/models` lists the models of the providers with a key in",
+    "  `.env`.",
+    "- `server/runner.mjs` runs a graph or script from the bundle by its key.",
+    "  The browser cannot send code of its own.",
+    "- `server/store.mjs` keeps what NodeTool keeps in its database (generated",
+    "  assets, timelines, scripts, storyboards, sketches) as files. Everything",
+    "  lives in `.nodetool-data/`.",
     "- `src/` renders the document. Bindings, run policies, conditions and the",
     "  message fold come from `@nodetool-ai/app-runtime`, the same package the",
     "  NodeTool app uses, so the app behaves as it does there.",

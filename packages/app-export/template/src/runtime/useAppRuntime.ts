@@ -17,9 +17,9 @@ import {
   implicitOperation,
   initialVariableValues,
   isLiveInvocation,
-  isScriptOperation,
   mergeVariables,
   messageToEvents,
+  operationTarget,
   outputVariableTargets,
   resolveOperationParams,
   stateKey,
@@ -31,8 +31,8 @@ import {
   type OperationBinding
 } from "@nodetool-ai/app-runtime";
 import { createRuntimeStore, type RuntimeStore } from "./store";
-import { runWorkflow, type RunMessage } from "./server";
-import { extractWorkflowIO, seedInputValue, type WorkflowIO } from "./workflowIO";
+import { runOperation, type RunMessage, type RunRequest } from "./server";
+import { extractScriptIO, extractWorkflowIO, seedInputValue, type WorkflowIO } from "./workflowIO";
 import { loadPersistedVariables, savePersistedVariables } from "./persistence";
 import { collectModelRefs, type ModelRef } from "./models";
 
@@ -68,6 +68,14 @@ export function useAppRuntime(bundle: ApplicationBundle, instanceKey: string): A
     return map;
   }, [bundle.workflows]);
 
+  const ioByScript = useMemo(() => {
+    const map = new Map<string, WorkflowIO>();
+    for (const script of bundle.scripts) {
+      map.set(script.key, extractScriptIO(script.document));
+    }
+    return map;
+  }, [bundle.scripts]);
+
   const operations = useMemo<OperationBinding[]>(
     () =>
       document.operations.length > 0
@@ -79,14 +87,16 @@ export function useAppRuntime(bundle: ApplicationBundle, instanceKey: string): A
   const ioFor = useCallback(
     (operationId: string): WorkflowIO => {
       const operation = operations.find((op) => op.id === operationId);
-      return (operation && ioByWorkflow.get(operation.workflowId)) || {
-        inputs: [],
-        outputs: [],
-        nodeIds: [],
-        variableNames: []
-      };
+      const target = operation ? operationTarget(operation) : null;
+      const io =
+        target?.kind === "script"
+          ? ioByScript.get(target.scriptId)
+          : target
+            ? ioByWorkflow.get(target.workflowId)
+            : undefined;
+      return io ?? { inputs: [], outputs: [], nodeIds: [], variableNames: [] };
     },
-    [ioByWorkflow, operations]
+    [ioByScript, ioByWorkflow, operations]
   );
 
   const variables = useMemo(
@@ -268,10 +278,6 @@ export function useAppRuntime(bundle: ApplicationBundle, instanceKey: string): A
         failToStart(operations[0]?.id ?? "main", `This app has no operation "${operationId}".`);
         return;
       }
-      if (isScriptOperation(operation)) {
-        failToStart(operation.id, `"${operation.name}" runs a JS script, which only runs inside NodeTool.`);
-        return;
-      }
       const decision = decideRun(store.getState(), operation);
       if (decision.kind === "replace") cancelInvocations(decision.cancel);
       else if (decision.kind === "queue") await waitForSettled(decision.after);
@@ -314,8 +320,11 @@ export function useAppRuntime(bundle: ApplicationBundle, instanceKey: string): A
       }
 
       try {
-        await runWorkflow({
-          workflow: operation.workflowId,
+        const target = operationTarget(operation);
+        const runTarget: RunRequest["target"] =
+          target.kind === "script" ? { script: target.scriptId } : { workflow: target.workflowId };
+        await runOperation({
+          target: runTarget,
           params,
           jobId: invocationId,
           signal: runState.controller.signal,

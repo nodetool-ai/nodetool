@@ -140,7 +140,7 @@ describe("exportWarnings", () => {
     expect(exportWarnings(minimalBundle())).toEqual([]);
   });
 
-  it("names script operations, missing workflows, resources and NodeTool-only widgets", () => {
+  it("names missing workflows and scripts, resources and NodeTool-only widgets", () => {
     const warnings = exportWarnings(
       minimalBundle({
         operations: [
@@ -169,7 +169,7 @@ describe("exportWarnings", () => {
       })
     );
     expect(warnings).toEqual([
-      'Operation "Score" runs a JS script, which only runs inside NodeTool.',
+      'Operation "Score" names a script the bundle does not carry.',
       'Operation "Run" names a workflow the bundle does not carry.',
       "Resource bindings read NodeTool documents, which the exported app has no database for.",
       'Widget type "Mystery" is unknown and renders as a note.',
@@ -207,6 +207,19 @@ describe("requiredSecretNames", () => {
     expect(
       requiredSecretNames(bundle, registry, (provider) => (provider === "openai" ? "OPENAI_API_KEY" : null))
     ).toEqual(["FAL_API_KEY", "OPENAI_API_KEY"]);
+  });
+
+  it("adds the secrets a bundled script declares", () => {
+    const bundle = minimalBundle();
+    bundle.scripts = [
+      {
+        key: "s",
+        name: "S",
+        document: { schemaVersion: 1, code: "", inputs: [], outputs: [], secrets: ["SERP_API_KEY"] } as never
+      }
+    ];
+    const registry = { has: () => false, getMetadata: () => null };
+    expect(requiredSecretNames(bundle, registry, () => null)).toEqual(["SERP_API_KEY"]);
   });
 });
 

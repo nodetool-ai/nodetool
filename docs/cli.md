@@ -601,7 +601,7 @@ nodetool apps export-bundle <application_id> -o my.app.json --released
 #### `nodetool apps export-project <application_id|bundle_file>`
 
 Export an application as a standalone JavaScript project that runs without NodeTool: a Vite + React UI and a Node
-server that runs the app's workflows in process through `@nodetool-ai/execution`. Takes an application id from the local
+server that runs the app's workflows and JS scripts in process, with no database. Takes an application id from the local
 database or an exported `.app.json` bundle. See [`@nodetool-ai/app-export`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-export/README.md) for what
 the project contains.
 
@@ -611,9 +611,9 @@ the project contains.
 - `--released` — export the released snapshot and the graphs it pinned, not the draft.
 - `--force` — write into an output folder that is not empty.
 
-`.env.example` lists the credentials the graphs need. When a graph leaves a model for the person to pick, it also lists
+`.env.example` lists the credentials the graphs and scripts need. When a graph leaves a model for the person to pick, it also lists
 every provider key, commented out. Sample inputs referenced as `package://` are copied under `assets/`. What the
-exported app cannot do (JS script operations, resource documents, editor-only widgets) is printed as warnings and listed
+exported app cannot do (resource documents, editor-only widgets) is printed as warnings and listed
 in the project's README.
 
 ```bash

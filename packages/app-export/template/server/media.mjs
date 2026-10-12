@@ -1,10 +1,11 @@
 /**
  * Rewrites the media inside a run message into URLs the browser can load.
  *
- * A node emits a media ref in one of three shapes: inline bytes (`data`), a
- * `file://` URI inside this server's storage folder, or a URL some provider
- * already hosts. The first two mean nothing to a browser, so inline bytes are
- * written to storage and both become `/api/storage/<key>`. Provider URLs and
+ * A node emits a media ref in one of four shapes: inline bytes (`data`), a
+ * `file://` URI inside this server's storage folder, an `asset://` reference
+ * to a file the local store saved, or a URL some provider already hosts. The
+ * first three mean nothing to a browser, so inline bytes are written to
+ * storage and all three become `/api/storage/<key>`. Provider URLs and
  * `data:` URIs pass through unchanged.
  *
  * Run params go the other way: a file the browser uploaded arrives as
@@ -56,7 +57,7 @@ const bytesOf = (data) => {
   return null;
 };
 
-export function createMediaNormalizer(storage) {
+export function createMediaNormalizer(storage, assetKey = () => null) {
   const storagePrefix = `${pathToFileURL(storage.rootDir).toString()}/`;
 
   const storageUrl = (key) =>
@@ -74,6 +75,12 @@ export function createMediaNormalizer(storage) {
       delete next.data;
     } else if (typeof ref.uri === "string" && ref.uri.startsWith(storagePrefix)) {
       next.uri = storageUrl(decodeURIComponent(ref.uri.slice(storagePrefix.length)));
+    } else if (typeof ref.uri === "string" && ref.uri.startsWith("asset://")) {
+      const key = assetKey(ref.uri);
+      if (key) next.uri = storageUrl(key);
+    } else if (!ref.uri && typeof ref.asset_id === "string") {
+      const key = assetKey(`asset://${ref.asset_id}`);
+      if (key) next.uri = storageUrl(key);
     }
     return next;
   }

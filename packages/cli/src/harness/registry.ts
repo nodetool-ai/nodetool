@@ -1439,6 +1439,7 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: ["app-debug", "app-build", "eval"],
     paths: [
       "packages/app-runtime/",
+      "packages/app-export/",
       "packages/agents/src/app-build/",
       "packages/execution/src/app-debug/",
       "packages/base-nodes/nodetool/examples/apps/",

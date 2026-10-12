@@ -3,7 +3,7 @@
  * Output nodes it displays, and the SetVariable channels it can read. Mirrors
  * the web and mobile readers, so a document binds the same way here.
  */
-import type { BundleGraph } from "@nodetool-ai/app-runtime";
+import type { BundleGraph, BundleJsScriptDocument } from "@nodetool-ai/app-runtime";
 
 export type WorkflowInputKind =
   | "string"
@@ -186,6 +186,59 @@ export function extractWorkflowIO(graph: BundleGraph | undefined): WorkflowIO {
     outputs,
     nodeIds,
     variableNames: [...variableNames].sort((a, b) => a.localeCompare(b))
+  };
+}
+
+/** Script port types (TypeMetadata names) a widget can edit, by the kind it edits. */
+const KIND_BY_PORT_TYPE: Readonly<Record<string, WorkflowInputKind>> = {
+  str: "string",
+  text: "string",
+  int: "integer",
+  float: "float",
+  bool: "boolean",
+  color: "color",
+  image: "image",
+  video: "video",
+  audio: "audio",
+  document: "document",
+  dataframe: "dataframe",
+  model_3d: "model3d",
+  language_model: "language_model",
+  image_model: "image_model",
+  video_model: "video_model",
+  tts_model: "tts_model",
+  asr_model: "asr_model",
+  music_model: "music_model",
+  embedding_model: "embedding_model",
+  "list[image]": "image_list",
+  "list[video]": "video_list",
+  "list[audio]": "audio_list",
+  "list[str]": "text_list"
+};
+
+/**
+ * The bindable surface of a JS script: its declared ports. A script has no
+ * nodes, so each port's name stands in for a node id, the way NodeTool binds
+ * script operations. A port type no widget edits is offered as text.
+ */
+export function extractScriptIO(document: BundleJsScriptDocument | undefined): WorkflowIO {
+  if (!document) return EMPTY_IO;
+  return {
+    inputs: document.inputs.map((port) => ({
+      nodeId: port.name,
+      nodeType: `jsscript.input.${port.type}`,
+      name: port.name,
+      label: port.name,
+      kind: KIND_BY_PORT_TYPE[port.type] ?? "string"
+    })),
+    outputs: document.outputs.map((port) => ({
+      nodeId: port.name,
+      nodeType: `jsscript.output.${port.type}`,
+      name: port.name,
+      label: port.name
+    })),
+    nodeIds: [...document.inputs, ...document.outputs].map((port) => port.name),
+    variableNames: []
   };
 }
 

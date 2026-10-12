@@ -1,5 +1,5 @@
 /**
- * The calls the UI makes to its own server: run a workflow (streamed as
+ * The calls the UI makes to its own server: run a workflow or script (streamed as
  * Server-Sent Events), upload a file a widget picked, and list the models the
  * configured providers offer.
  */
@@ -7,8 +7,8 @@
 export type RunMessage = Record<string, unknown>;
 
 export interface RunRequest {
-  /** The workflow's key in `app.bundle.json`. */
-  workflow: string;
+  /** What to run: a workflow's or a script's key in `app.bundle.json`. */
+  target: { workflow: string } | { script: string };
   params: Record<string, unknown>;
   jobId: string;
   signal: AbortSignal;
@@ -16,12 +16,12 @@ export interface RunRequest {
 }
 
 /** Resolves when the server closes the stream; rejects on a transport error. */
-export async function runWorkflow(request: RunRequest): Promise<void> {
+export async function runOperation(request: RunRequest): Promise<void> {
   const response = await fetch("/api/run", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      workflow: request.workflow,
+      ...request.target,
       params: request.params,
       job_id: request.jobId
     }),
