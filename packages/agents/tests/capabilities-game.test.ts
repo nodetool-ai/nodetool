@@ -564,5 +564,19 @@ describe("spec text the shipped skills rely on", () => {
     );
     expect(player2d).toMatch(/budget\.observe\(\{[^}]*particles:/);
     expect(ops).toContain("The 2D standalone player counts particles");
+    const player3d = readSourceSync(
+      toSourcePath(new URL("../../game-renderer/src/standalone-player3d.ts", import.meta.url)),
+      "utf8"
+    );
+    expect(player3d).toMatch(/budget\.observe\(\{[^}]*particles:/);
+    expect(ops).toContain("The 3D standalone player and 3D capture count live particles");
+    expect(ops).not.toContain("3D players do not count particles");
+  });
+
+  it("edit_native_game names the 3D particle draw style fields", () => {
+    const ops = JSON.stringify(capabilitySpec("edit_native_game")?.inputSchema);
+    for (const text of ["render {kind: billboard}", "{kind: stretched, length?, speedScale?}", "shape: box|sphere|tetrahedron|octahedron", "softness (world units)"]) {
+      expect(ops).toContain(text);
+    }
   });
 });

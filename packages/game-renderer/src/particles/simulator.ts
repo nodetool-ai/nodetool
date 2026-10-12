@@ -36,6 +36,10 @@ export interface ParticleView {
   x: number;
   y: number;
   z: number;
+  /** World-space velocity in units per second, including `speedOverLifetime`. */
+  vx: number;
+  vy: number;
+  vz: number;
   size: number;
   rotation: number;
   r: number;
@@ -223,19 +227,27 @@ export class ParticleSimulator {
       const definition = instance.definition;
       const data = instance.data;
       const view: ParticleView = { entityId: instance.entityId, emitterId: definition.id, emitter: definition,
-        x: 0, y: 0, z: 0, size: 0, rotation: 0, r: 0, g: 0, b: 0, opacity: 0, life: 0 };
+        x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, size: 0, rotation: 0, r: 0, g: 0, b: 0, opacity: 0, life: 0 };
       for (let index = 0; index < instance.count; index += 1) {
         const base = index * STRIDE;
         const life = Math.min(1, data[base + AGE] / data[base + LIFE]);
+        const speed = definition.speedOverLifetime ? evaluateParticleCurve(definition.speedOverLifetime, life) : 1;
         if (definition.space === "local") {
           const point = transformPoint(instance.rotation, instance.position, data[base + PX], data[base + PY], data[base + PZ]);
           view.x = point.x;
           view.y = point.y;
           view.z = point.z;
+          const velocity = rotate(instance.rotation, data[base + VX] * speed, data[base + VY] * speed, data[base + VZ] * speed);
+          view.vx = velocity.x;
+          view.vy = velocity.y;
+          view.vz = velocity.z;
         } else {
           view.x = data[base + PX];
           view.y = data[base + PY];
           view.z = data[base + PZ];
+          view.vx = data[base + VX] * speed;
+          view.vy = data[base + VY] * speed;
+          view.vz = data[base + VZ] * speed;
         }
         view.size = data[base + SIZE] * (definition.sizeOverLifetime ? evaluateParticleCurve(definition.sizeOverLifetime, life) : 1);
         view.rotation = data[base + ROT];

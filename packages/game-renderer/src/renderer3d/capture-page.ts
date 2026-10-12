@@ -1,6 +1,7 @@
 import { BoxHelper } from "three";
 import type { GameRenderFrame3D } from "@nodetool-ai/protocol";
 import { createGameRenderer3D, type GameRendererCapabilities3D, type GameRendererStats3D, type GameProjectedBounds3D } from "./index.js";
+import { gameParticleFieldFromSamples3D, type GameParticleSample3D } from "../particles/particles3d.js";
 
 export interface GameCapturePageInput3D {
   readonly frame: GameRenderFrame3D;
@@ -10,6 +11,8 @@ export interface GameCapturePageInput3D {
   readonly boundsOverlay?: boolean;
   readonly benchmarkFrames?: number;
   readonly camera?: GameRenderFrame3D["camera"];
+  /** Live particles at the captured tick, simulated beside the session by the caller. */
+  readonly particles?: readonly GameParticleSample3D[];
   readonly assets: Readonly<Record<string, { readonly base64: string; readonly digest?: string }>>;
 }
 export interface GameCapturePageReport3D {
@@ -41,7 +44,8 @@ window.captureNativeGame3D = async (input) => {
   try {
     renderer.resize(input.width, input.height);
     renderer.setCameraOverride(input.camera ?? null);
-    let stats = await renderer.render(input.frame, input.interpolation);
+    const particles = input.particles ? gameParticleFieldFromSamples3D(input.particles, input.frame) : undefined;
+    let stats = await renderer.render(input.frame, input.interpolation, particles);
     const helpers: BoxHelper[] = [];
     try {
       if (input.boundsOverlay) {
@@ -53,15 +57,15 @@ window.captureNativeGame3D = async (input) => {
           renderer.getScene().add(helper);
           helpers.push(helper);
         }
-        stats = await renderer.render(input.frame, input.interpolation);
+        stats = await renderer.render(input.frame, input.interpolation, particles);
       }
       if (input.benchmarkFrames) {
         const gl = canvas.getContext("webgl2");
-        for (let index = 0; index < 60; index++) { await renderer.render(input.frame, input.interpolation); gl?.finish(); }
+        for (let index = 0; index < 60; index++) { await renderer.render(input.frame, input.interpolation, particles); gl?.finish(); }
         const samples: number[] = [];
         for (let index = 0; index < input.benchmarkFrames; index++) {
           const started = performance.now();
-          stats = await renderer.render(input.frame, input.interpolation);
+          stats = await renderer.render(input.frame, input.interpolation, particles);
           gl?.finish();
           samples.push(performance.now() - started);
         }

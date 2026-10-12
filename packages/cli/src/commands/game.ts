@@ -258,7 +258,8 @@ function validateCliDocument(value: unknown) {
   if (legacyVersion.success) { return validateGame(value); }
   const result = validateAnyGame(value);
   return { valid: result.valid, document: result.valid ? result.document : undefined, issues: result.diagnostics,
-    diagnostics: result.diagnostics, errors: result.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`) };
+    diagnostics: result.diagnostics, errors: result.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`),
+    warnings: result.valid ? result.warnings : [] };
 }
 
 /** Register native game validation and deterministic simulation commands. */
@@ -281,6 +282,7 @@ export function registerGameCommands(program: Command): void {
               ? "Game document is valid\n"
               : `${report.errors.join("\n")}\n`
           );
+          for (const warning of report.warnings ?? []) { process.stdout.write(`Warning ${warning.path.join(".")}: ${warning.message}\n`); }
         }
         if (!report.valid) process.exitCode = 1;
       } catch (error) {
@@ -662,11 +664,16 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
   const inputs = await readInputs(options.inputs, gameInputFrame3D);
   const session = await createGameSession3D(document, seed, undefined, sessionAssetOptions3D(options.assetsDir));
   try {
-    for (let tick = 0; tick < ticks; tick++) { session.step(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] })); }
+    const { GameParticles3D } = await import("@nodetool-ai/game-renderer");
+    const particles = new GameParticles3D(document.tickRate);
+    for (let tick = 0; tick < ticks; tick++) {
+      const step = session.step(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] }));
+      particles.tick(step.frame, session.takePresentationEvents());
+    }
     const frame = session.frame();
     const stateHash = await hashGameSnapshot3D(session.snapshot());
     const { captureGameFrame3D } = await import("@nodetool-ai/game-renderer/node3d");
-    const captured = await captureGameFrame3D(frame, { stateHash, interpolation: 1,
+    const captured = await captureGameFrame3D(frame, { stateHash, interpolation: 1, particles,
       width: Math.round(document.presentation.hudWidth * scale), height: Math.round(document.presentation.hudHeight * scale),
       resolveAsset: async (slot) => {
         const binding = document.assets[slot];
@@ -677,7 +684,7 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
     await writeFile(path, captured.png);
     const { formatGameFrameBudgetOverrun, gameFrameBudgetOverruns, resolveGameFrameBudgets } = await import("@nodetool-ai/game-renderer");
     const limits = resolveGameFrameBudgets(document.performance?.budgets);
-    const overruns = gameFrameBudgetOverruns({ drawCalls: captured.stats.drawCalls, triangles: captured.stats.triangles }, limits);
+    const overruns = gameFrameBudgetOverruns({ drawCalls: captured.stats.drawCalls, triangles: captured.stats.triangles, particles: particles.count }, limits);
     const report = { dimension: "3d", path, tick: frame.tick, bytes: captured.png.byteLength, state_hash: stateHash,
       capabilities: captured.capabilities, stats: captured.stats, budget: { limits, overruns }, projected_bounds: captured.projectedBounds, diagnostics: [] };
     process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : `Captured tick ${report.tick} to ${report.path}\n`);

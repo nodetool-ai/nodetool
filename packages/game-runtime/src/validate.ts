@@ -1,6 +1,6 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import { scriptParamReferenceIssues } from "./script-params.js";
-import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, gameUiIssues, type GameDocument } from "@nodetool-ai/protocol";
+import { GAME_2D_ENGINE_BY_SCHEMA, gameDocument, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, gameParticleRenderWarnings, gameUiIssues, type GameDocument } from "@nodetool-ai/protocol";
 import { audioMixerReferenceIssues } from "./audio-mixer-references.js";
 
 /**
@@ -14,6 +14,8 @@ export interface GameValidationResult {
   readonly document?: GameDocument;
   readonly issues: readonly GameValidationIssue[];
   readonly errors: readonly string[];
+  /** Findings that do not stop the document from playing, such as 3D-only particle fields. Absent when the document does not parse. */
+  readonly warnings?: readonly GameValidationIssue[];
 }
 
 export interface GameValidationIssue {
@@ -62,6 +64,7 @@ export function validateGame(value: unknown): GameValidationResult {
     } catch (error) { errors.push(`authoring: ${error instanceof Error ? error.message : "Invalid authoring metadata"}`); }
   }
   const issueOverrides = new Map<number, GameValidationIssue>();
+  const warnings: GameValidationIssue[] = [];
   const engineVersion = GAME_2D_ENGINE_BY_SCHEMA[document.schemaVersion];
   if (document.engineVersion !== engineVersion) {
     errors.push(`engineVersion: schema version ${document.schemaVersion} requires engine version ${engineVersion}`);
@@ -268,6 +271,9 @@ export function validateGame(value: unknown): GameValidationResult {
       }
       if (entity.light2d && !scene.lighting) errors.push(`${path}.light2d: requires scene lighting`);
       for (const issue of entity.particles ? gameParticleIssues(entity.particles) : []) errors.push(`${path}.particles.${issue.path.join(".")}: ${issue.message}`);
+      for (const warning of entity.particles ? gameParticleRenderWarnings(entity.particles, "2d") : []) {
+        warnings.push({ path: ["scenes", sceneIndex, "entities", entityIndex, "particles", ...warning.path], message: warning.message });
+      }
       for (const [index, emitter] of (entity.particles?.emitters ?? []).entries()) {
         const assetId = emitter.sprite?.assetId;
         if (assetId !== undefined && document.assets[assetId]?.mediaKind !== "image") {
@@ -329,5 +335,5 @@ export function validateGame(value: unknown): GameValidationResult {
   if (scriptCount > 32) errors.push("Game exceeds the limit of 32 scripted behaviors");
   if (scriptSourceBytes > 64 * 1024) errors.push("Game script source exceeds 64 KiB");
   const issues = errors.map((error, index) => issueOverrides.get(index) ?? issueFromError(error, document));
-  return errors.length === 0 ? { valid: true, document, issues, errors } : { valid: false, issues, errors };
+  return errors.length === 0 ? { valid: true, document, issues, errors, warnings } : { valid: false, issues, errors, warnings };
 }

@@ -417,3 +417,20 @@ it("simulates typed events with payloads and targets and verifies replay from th
     expect(Object.values(session.snapshot().scriptState)).toContainEqual({$lifecycle:1,state:0+10+20+30+40,timers:[]});
   } finally { session.dispose(); }
 });
+
+it("validates a 2D document with 3D-only particle fields and prints the warnings", async () => {
+  const document = createTopDownRoomGame("a".repeat(32));
+  await writeFile(gamePath, JSON.stringify({ ...document, schemaVersion: 2, scenes: document.scenes.map((scene) => ({ ...scene,
+    entities: scene.entities.map((entity) => entity.id === "gem" ? { ...entity, particles: { emitters: [{ id: "glint", softness: 1 }] } } : entity) })) }));
+  const json = new Command();
+  registerGameCommands(json);
+  await json.parseAsync(["node", "nodetool", "game", "validate", gamePath, "--json"]);
+  const report = JSON.parse(output.trim()) as { valid: boolean; warnings: { message: string }[] };
+  expect(report.valid).toBe(true);
+  expect(report.warnings.map((warning) => warning.message)).toEqual(["2D particles ignore softness, which only fades 3D billboards"]);
+  output = "";
+  const text = new Command();
+  registerGameCommands(text);
+  await text.parseAsync(["node", "nodetool", "game", "validate", gamePath]);
+  expect(output).toMatch(/^Game document is valid\nWarning scenes\.0\.entities\.\d+\.particles\.emitters\.0\.softness: 2D particles ignore softness/);
+});
