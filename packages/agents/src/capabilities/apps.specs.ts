@@ -74,9 +74,10 @@ export const debugAppSpec: CapabilitySpec = {
     "costs nothing; use it after every wiring change. A full run executes " +
     "the real workflows and spends real money, so run it to confirm the app " +
     "works, not to explore. Use `interact` to script the user actions to " +
-    "simulate. A long run takes minutes; pass poll=true to get a session id " +
-    "back immediately, then read GET /api/debug/sessions/<id> until it " +
-    "settles.",
+    "simulate. A long run takes minutes; bound it with `timeout_ms`. " +
+    "poll=true returns a session id that only the HTTP API " +
+    "(GET /api/debug/sessions/<id>) can read, so an agent should leave it " +
+    "off and wait for the result.",
   inputSchema: DEBUG_APP_SCHEMA,
   category: "execute",
   userMessage: (params) => {

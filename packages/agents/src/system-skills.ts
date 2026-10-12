@@ -8,9 +8,10 @@
  * seeding migration that then drifts per machine.
  *
  * Nothing imports these files, so they are not a workspace and npm links
- * nothing. Discovery mirrors the sandbox packs (`shippedPackSearchPaths`):
- * `_skills/` beside the bundled `server.mjs`, else `packages/system-skills` on
- * the way up from this module, else `NODETOOL_SYSTEM_SKILLS_DIR`.
+ * nothing. Discovery order: `NODETOOL_SYSTEM_SKILLS_DIR` when set (a set but
+ * missing directory means no system skills, with no fallback), else `_skills/`
+ * beside the bundled `server.mjs`, else `packages/system-skills` on the way up
+ * from this module.
  *
  * Their names are **reserved**: `create_skill` and `update_skill` refuse them,
  * so a user row can never shadow one going forward.

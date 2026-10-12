@@ -202,7 +202,7 @@ close the build→verify loop. Run from source with `npm run dev:nodetool -- <cm
 | `node run <type> --props '{…}'` (`node.ts`) | Single-node harness — instantiate one node, feed a prop bag, print what it emits; `--no-secrets` skips the DB | Isolate one node without authoring a graph |
 | `run <file>` / `workflows run <id>` | Execute a workflow (id, JSON, or DSL `.ts`) | Quick run by id/file |
 | `affected [--base main]` (`affected.ts`) | Map changed files → minimal workspaces to rebuild/test (owning package + downstream + `build:packages` only if a decorator package is hit) | Before reflexively running the full 1–2 min build |
-| `deploy …` (`deploy.ts`) | Docker/SSH/RunPod/GCP/Supabase deployments + remote workflow sync/run, DB rows, vector collections | Self-host / cloud ops |
+| `deploy …` (`deploy.ts`) | Docker deployments (local or over SSH), remote workflow sync/run, and deployment users. GPU workers on Runpod, Vast or Verda use `nodetool worker` (`worker.ts`) | Self-host / cloud ops |
 | `--trace-file` / `--trace-stdout` | OTel span tree (timing, tokens, cost) on any run | Profiling agents/workflows |
 
 The same `validate`/`debug` capabilities are exposed to in-product agents as the

@@ -190,12 +190,13 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         'Operations in order. Each is {"op": <name>, ...arguments}: ' +
         "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
         "duration_seconds?, duration_source?, render_mode?, entity_ids?, " +
-        "location_id?, covered_by?, notes?, end_state?, sound?, index?}, " +
+        "location_id?, covered_by?, notes?, end_state?, sound?, graphics?, " +
+        "production?, scene_id?, index? | after_shot_id?}, " +
         "update_shot {target, ...same fields}, remove_shot {target}, " +
         "reorder_shot {target, index}, move_shot {target, scene_id?, " +
         "position}, duplicate_shot {target}, set_board {brief?, style?, " +
         "aspect_ratio?, entity_ids?, image_model?, video_model?, narration?, " +
-        "music_prompt?}, " +
+        "music_prompt?, motion_design?}, " +
         "set_setup {brief?, genre?, stage?}, update_scene {scene_id, " +
         "slugline?, lighting?}, create_scene {after_scene_id?}, " +
         "merge_scene {scene_id}, set_style {entity_id? | style?}, " +
@@ -208,6 +209,12 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
         "entity and its descriptor becomes the board style); with `style` it " +
         "sets the descriptor alone. Versions are 0-based, oldest first. " +
         "`target` is a shot id, its 0-based index, or its slug. " +
+        "add_shot with after_shot_id inserts right after that shot, in its " +
+        "scene; index places by board position instead. graphics (the " +
+        "shot's semantic graphics intent) and production (its media " +
+        "strategy and protected inputs) take the Storyboard schema's " +
+        "objects; null removes one. set_board motion_design takes the " +
+        "board's motion design object, null to clear it. " +
         "covered_by {shot_id, start_seconds?, end_seconds?} says this shot's " +
         "picture is a window into another shot's clip — how you record a " +
         "generation whose fixed length covers several beats. The covered " +

@@ -75,8 +75,10 @@ export function formatSkillCatalogForPrompt(
       "",
       `${unlisted} more shipped skill${unlisted === 1 ? " is" : "s are"} not listed: brief shapes`,
       "for commercials, trailers, explainers and films, a guide for each image,",
-      "video and audio model line, and one reference for each `nodetool.*`",
-      "namespace. Find one with `list_skills({query})` before work of that",
+      "video and audio model line, one reference for each `nodetool.*`",
+      "namespace, motion craft references (timing, easing, composition,",
+      "colour, and the timeline op reference), and the native game field",
+      "reference. Find one with `list_skills({query})` before work of that",
       "kind, then `load_skill`."
     );
   }

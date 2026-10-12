@@ -3,13 +3,15 @@ name: commercial-beat-sheet
 description: Write a shootable, precisely timed commercial beat sheet and store it as a NodeTool storyboard, with a consistent entity roster behind every shot. Use when someone needs ad structure — hooks, beats, timecodes, VO — rather than a finished render.
 ---
 
-You are a single agent. Your job: take a product brief and produce a complete, shootable commercial beat sheet as a NodeTool storyboard. You do not build a workflow. You do not run a pipeline. You call the storyboard and entity capabilities directly.
+Take a product brief and produce a complete, shootable commercial beat sheet as a NodeTool storyboard. Call the storyboard and entity capabilities directly; build no workflow.
+
+This skill is the ad's structure. Pair it with a job skill for the look: `product-commercial` for a polished product film, `ugc-video` for a phone-shot creator ad. A product page URL that should end as a finished cut is `launch-commercial`; a sound-off animated ad built from the product's real screenshots is `motion-ad`.
 
 ---
 
 ## Role
 
-You are a senior commercial director and advertising dramaturg. You write shootable, precisely timed commercial beat sheets optimized for retention. The first 3 seconds matter most. You escalate one problem. You demonstrate mechanisms, not benefits. You close every loop you open. You never invent brand facts — you write `[CLIENT INPUT NEEDED]` instead. You obey the runtime budget on every word. And you keep the visual language consistent: the can looks the same in beat 2 and beat 8, the protagonist's face reads the same across every shot they appear in, the room is the same room in the open and the close.
+Write as a commercial director: shootable, precisely timed, built for retention. The first 3 seconds matter most. Escalate one problem. Demonstrate mechanisms, not benefits. Close every loop you open. Never invent brand facts — write `[CLIENT INPUT NEEDED]` instead. Obey the runtime budget on every word. Keep the visual language consistent: the can looks the same in beat 2 and beat 8, the protagonist's face reads the same across every shot they appear in, the room is the same room in the open and the close.
 
 ---
 
@@ -34,23 +36,15 @@ Never generate a storyboard before the roster is resolved. Without entities, bea
 
 ---
 
-## Tool contract (shared by every board skill)
+## Tool contract
 
-`explainer-storyboard`, `music-video-treatment`, `trailer-template` and `launch-commercial` build the same board with the same calls and point here for the shapes. Every line below is checked against the capability code, not remembered. `storyboard-core` carries the same contract in full — the browser tool family, entities, timeline, script and models — and is what to `load_skill` for a call this table does not cover.
+The storyboard, entity and render call shapes live in `storyboard-core` § Tool contract: all fifteen `edit_storyboard` ops, every key `set_board` accepts, and which fields each prompt receives. `load_skill` it before the first board call. `explainer-storyboard`, `music-video-treatment`, `trailer-template` and `launch-commercial` build their boards with the same calls. What this skill relies on:
 
-| Call | Returns | The id you want |
-| --- | --- | --- |
-| `create_storyboard` | `{ok, storyboard_id, name, shots, updated_at}` | `.storyboard_id`, never `.id` |
-| `create_entity` | `{entity: {...}}` | the `asset_id` you passed in |
-| `generateImage` | `{asset_id, asset_uri, url, uri, bytes, mime_type}` | `.asset_id` |
-
-- `edit_storyboard` takes five ops: `add_shot`, `update_shot`, `remove_shot`, `reorder_shot`, `set_board`. `set_entities` is accepted only as an alias that resolves to `set_board`.
-- `set_board` takes `{brief?, style?, aspect_ratio?, entity_ids?, image_model?, video_model?}`. Any other key is refused with an error naming the accepted set — nothing is dropped silently. `image_model` / `video_model` take the model object `find_model` returns (or `null`) and become the board's defaults for `render_storyboard_stills` and `render_storyboard_clips`.
-- `add_shot` / `update_shot` take `{action, slug?, camera?, motion?, dialogue?, narration?, duration_seconds?, duration_source?, render_mode?, entity_ids?, location_id?, notes?, index?}`. `target` on an update is a shot id, its 0-based index, or its slug.
-- The render calls take `provider` + `model` and fall back to the board's model. With neither, the call fails and says so — it never picks one. Either set the model on the board once or carry provider + model in variables and pass them on every render call.
-- `render_storyboard_clips` has no duration override. To render a clip longer than the plan, bump `duration_seconds` with `update_shot` first and restore it after.
-- **What the model actually reads.** A still's prompt is `action`, then `<framing> shot`, then the board `style`, comma-joined, with the matched entities' descriptors and one reference image each attached. A clip's prompt is `motion`, then `action` (in `direct` mode also the framing and style, since no still carries the look). Whatever is not in those fields does not reach the generator — the beat sheet's SOUND DESIGN and MUSIC lines have to be written into `action` or `motion` to have any effect on a native-audio model.
-- **The chosen model line has its own prompting skill.** `find_model` returns `prompting_skill` on a route it covers; `load_skill` it before writing `action` and `motion`, because the same beat is worded differently for Seedance (verbs and a sound brief), Kling (a shot list, tagged elements), Hailuo (beats in order, no negatives) or Veo (150–300 characters). The image line for the stills has one too.
+- `create_storyboard` returns the id as `storyboard_id` (and as `id`). `create_entity` returns `{entity}`; the entity's id is the `asset_id` you passed in. `nodetool.media.generateImage` returns `.asset_id`.
+- The render calls take `provider` + `model` and fall back to the board's `image_model` / `video_model`. With neither, the call fails and says so. It never picks one.
+- `render_storyboard_clips` sends the shot's `duration_seconds`, and the model snaps it to the lengths it offers. A beat shorter than the model's shortest clip still buys the whole clip; `storyboard-core` § Fusing shots says when to fuse beats and when to render long and trim.
+- **What the model reads.** The still prompt is `action`, the camera framing, angle and lens, the scene lighting and the board `style`, with the matched entities' descriptors and one reference image each. A keyframe clip prompt is `motion`, `action`, the camera movement and equipment. The beat sheet's SOUND DESIGN and MUSIC lines reach a native-audio model only through `action` or `motion`.
+- **The chosen model line has its own prompting skill.** `find_model` returns `prompting_skill` on a route it covers; `load_skill` it before writing `action` and `motion`, because the same beat is worded differently for Seedance (verbs and a sound brief), Kling (a shot list, tagged elements), Hailuo (beats in order, no negatives) or Veo (a five-element shot description). The image line for the stills has one too.
 
 ---
 
@@ -65,7 +59,7 @@ CORE PAIN:
 USP:
 PROOF ASSETS:
 CTA:
-TOTAL RUNTIME:          [15s / 30s / 60s / 90s / 180s]
+TOTAL RUNTIME:          [15s / 30s / 60s / 90s / 180s, or the user's own]
 PLATFORM:
 TONE:
 ENTITIES:               [characters / locations / props / style]
@@ -218,7 +212,7 @@ The `ENTITIES:` line is the consistency contract: every entity named must exist 
 
 ### 1. Collect the brief
 
-Ask for any missing required field. Confirm the runtime is one of `15`, `30`, `60`, `90`, `180`.
+Ask for any missing required field. Offer `15`, `30`, `60`, `90` or `180` seconds when the user names no runtime; a runtime they name stands.
 
 ### 2. Resolve the entity roster
 
@@ -245,9 +239,9 @@ const board = await create_storyboard({
   name: `${brand} — ${product} (${runtime}s)`,
   brief: fullBriefIncludingEntities,
   style: oneLineToneSummary,
-  aspect_ratio: runtime <= 30 ? "9:16" : "16:9"
+  aspect_ratio: aspectFromPlatform   // the PLATFORM field; 9:16 for vertical feeds, 16:9 otherwise
 });
-const boardId = board.storyboard_id;   // NOT board.id
+const boardId = board.storyboard_id;
 ```
 
 ### 7. Attach the roster and the models
@@ -266,7 +260,7 @@ await edit_storyboard({
 });
 ```
 
-The render pipeline reads that list and applies, per shot, the style and location entities plus every entity named in the shot's text (see the tool contract above), so you do not pass them again.
+The render pipeline reads that list and applies, per shot, the style and location entities plus every entity named in the shot's text (see § Entities), so you do not pass them again.
 
 ### 8. Add one shot per beat
 
@@ -289,7 +283,7 @@ await edit_storyboard({
 HOOK (0:00–0:01.5): In media res failure. ECU of [Protagonist]'s hand trembling over a mechanical keyboard, spilling cheap neon soda. Text: YOUR ENERGY IS BROKEN.
 ```
 
-Write `action` and `motion` the way the chosen model line's prompting skill says (the `prompting_skill` that `find_model` returned in step 7): the still prompt is this text plus the framing and the board style, and the clip prompt is `motion` then `action`, so the generator sees nothing you did not put in these two fields. Put the beat's sound design into `motion` when the video line writes native audio.
+Write `action` and `motion` the way the chosen model line's prompting skill says (the `prompting_skill` that `find_model` returned in step 7). The still prompt is this text plus the camera framing, angle and lens, the scene lighting and the board style; the keyframe clip prompt is `motion`, `action` and the camera movement and equipment. Camera direction goes in `camera`, not repeated in `action`. Put the beat's sound design into `motion` when the video line writes native audio.
 
 On-screen text in `action` is a note for the cut, not a render instruction: supers, captions and the CTA card go on as text clips after assembly (`caption-titles`), because a generator letters unreliably and the copy has to stay editable.
 
@@ -303,7 +297,7 @@ The board's render pipeline applies its `entity_ids` automatically. For a test f
 import { apply_entities } from "@nodetool-ai/sandbox-nodetool/entities";
 
 const seasoned = await apply_entities({
-  text: shotAction.replace(/\[([^\]]+)\]/g, "").trim(),
+  text: shotAction,   // keep the [Entity] names: name matching reads them
   entity_ids: entityIdsForThisShot
 });
 // seasoned.prompt ends with a "Consistency references:" block;
@@ -312,7 +306,7 @@ const seasoned = await apply_entities({
 
 ### 10. Render (only on request)
 
-The default path stops at the planned board. When asked, keyframes first — they cost cents, and you look at them:
+The default path stops at the planned board. When asked, keyframes first — stills cost less than clips, and you look at them before any clip renders. Report the shot count and models; no tool prices a render in advance:
 
 ```js
 import { render_storyboard_stills, render_storyboard_clips } from "@nodetool-ai/sandbox-nodetool/storyboards";
@@ -335,7 +329,7 @@ const timeline = await assemble_storyboard_timeline({
 });
 ```
 
-From here the normal timeline tools take over, and each has a skill: `motion-graphics` for the op contract, `video-audio-continuity` before any clip renders if the spot's sound has to run across the beats, `beat-sync-editing` to put the cuts on the music bed and ramp the hit, `caption-titles` for the supers and the CTA card, `logo-reveal` for the end mark, and `color-motion` for the grade that makes the beats cut together. Load `motion-direction` first if the spot needs one motion language across every beat.
+From here the normal timeline tools take over, and each has a skill: `timeline-edit-ops` for the op contract, `motion-graphics` for the build loop, `video-audio-continuity` before any clip renders if the spot's sound has to run across the beats, `beat-sync-editing` to put the cuts on the music bed and ramp the hit, `caption-titles` for the supers and the CTA card, `logo-reveal` for the end mark, and `color-motion` for the grade that makes the beats cut together. Load `motion-direction` first if the spot needs one motion language across every beat.
 
 ---
 

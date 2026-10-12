@@ -1586,8 +1586,10 @@ export function video(options = {}) {
 
   /**
    * Create the timeline, write the document, validate (with `tier:
-   * "showcase"` when `showcase: true`), and return `{timeline_id, errors,
-   * warnings}`. Never throws after create without naming the timeline id.
+   * "showcase"` when `showcase: true`), and return `{timeline_id, fps, width,
+   * height, durationMs, errors, warnings, code?}`. A validation error throws,
+   * so `errors` is always empty. Never throws after create without naming
+   * the timeline id.
    */
   v.save = async (timelines, { name, showcase = false, ops = [], timeline_id } = {}) => {
     if (!timelines) throw new Error("v.save(nodetool.timelines, {name}) — pass the script's nodetool.timelines.");

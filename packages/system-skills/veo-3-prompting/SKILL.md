@@ -1,6 +1,6 @@
 ---
 name: veo-3-prompting
-description: Prompt Google's Veo 3 video line — the five-element shot/setting/subject/action/dialogue structure, the cinematography vocabulary it reads directly, duration and aspect-ratio tradeoffs, the enhance-prompt and auto-fix preprocessors, and the fixes for visual drift, temporal inconsistency and audio mismatch. Use whenever the model id contains veo3 or veo-3 (fal-ai/veo3.1 and its fast, lite, image-to-video, first-last-frame and reference-to-video routes, fal-ai/veo3/image-to-video, google/veo3.1 on atlascloud, google/veo-3 and google/veo-3.1 on replicate) on generate_video, animate_image or a TextToVideo node.
+description: Prompt Google's Veo 3 video line — the five-element shot/setting/subject/action/dialogue structure, the cinematography vocabulary it reads directly, duration and aspect-ratio tradeoffs, the audio and auto-fix switches per provider, and the fixes for visual drift, temporal inconsistency and audio mismatch. Use whenever the model id contains veo3 or veo-3 (fal-ai/veo3.1 and its fast, lite, image-to-video, first-last-frame and reference-to-video routes, fal-ai/veo3/image-to-video, google/veo3.1 on atlascloud, google/veo-3 and google/veo-3.1 on replicate, kie's veo-3-1, and Gemini's own veo-3.1-generate-preview) on generate_video, animate_image, generate_video_from_references or a TextToVideo node.
 ---
 
 # Veo 3 → a directorial spec, not a description
@@ -12,7 +12,14 @@ sequence. What separates a usable clip from a generic one is writing the prompt
 as a spec rather than a narration.
 
 Reach it with `find_model` for `text_to_video` or `image_to_video`, then
-`generate_video` / `animate_image`.
+`generate_video` / `animate_image`; the reference-to-video routes take
+`generate_video_from_references`. Those forward the prompt, the media, a
+negative prompt (not `animate_image`), the duration, the aspect ratio and the
+resolution. The audio switch, `auto_fix`, the seed and an end frame for the
+first-last-frame routes exist only on the route's own node: find it with
+`search_nodes`, read its fields with `get_node_info`, and run it with
+`run_node`. Each run is a paid generation, so confirm the scope with the
+user before rendering several.
 
 The audio is per clip, so a piece cut from several Veo clips restarts its sound
 at every join. `video-audio-continuity` decides whether the scenes belong in one
@@ -51,9 +58,12 @@ asked for.
 
 **Resolution**: iterate at 720p, deliver at 1080p.
 
-**Audio** is the cost lever. Disabling it cuts the standard model to roughly
-half and the fast variant to about two thirds. Disable it only when a custom
-soundtrack is going on in post.
+**Audio** is the cost lever. `generate_audio` defaults to true on fal and
+Replicate and to false on AtlasCloud's `google/veo3.1/*` and
+`google/veo3.1-fast/*`. The lite routes on AtlasCloud and Replicate and kie's
+`veo-3-1` have no audio switch. fal's guide says disabling it cuts the standard
+model to roughly half the price and the fast variant to about two thirds.
+Disable it only when a custom soundtrack is going on in post.
 
 ## Cinematography vocabulary
 
@@ -81,14 +91,14 @@ thirties with auburn hair pulled back in a loose bun, wearing a charcoal
 peacoat and silver-rimmed glasses" holds identity across frames where "a woman"
 does not.
 
-## Preprocessors
+## Auto fix
 
-**Enhance prompt** (on by default) expands a brief prompt with cinematographic
-terminology before generation. Leave it on while exploring; turn it off when
-you want your wording interpreted exactly as written.
-
-**Auto fix** (on by default) rewrites prompts that trip content policy instead
-of rejecting them, trying to keep the intent.
+`auto_fix` rewrites a prompt that trips content policy instead of rejecting
+it, trying to keep the intent. It defaults to true on fal's text-to-video
+routes (`fal-ai/veo3.1`, `/fast`, `/lite`) and to false on every fal
+image-to-video, first-last-frame, extend and reference route. AtlasCloud, kie
+and Replicate have no such field. Turn it off when your exact wording matters
+more than getting a clip back.
 
 ## Errors and fixes
 
@@ -99,12 +109,15 @@ of rejecting them, trying to keep the intent.
 - **Temporal overloading** — multiple scene transitions inside 8 seconds rarely
   land. Split into discrete prompts.
 - **Unused negative prompt** — use it for "no camera shake", "no lens
-  distortion", "no text overlays".
+  distortion", "no text overlays". The lite routes on AtlasCloud and
+  Replicate, kie's `veo-3-1` and fal's reference-to-video routes have no
+  negative prompt.
 - **Ignored seed** — the seed is how a series holds a look. Record the ones
-  that worked.
-- **Prompt length** — 150 to 300 characters is the working range. Under 100
-  returns generic output; over 400 and the model starts prioritising
-  unpredictably.
+  that worked. kie's `veo-3-1` and fal's reference-to-video routes have none.
+- **Prompt length** — fal's guide puts the working range at 150 to 300
+  characters, with generic output under 100 and unpredictable priorities over
+  400. The fal routes accept far longer prompts, so treat it as a style
+  target, not a limit.
 
 Symptoms map to fixes. Clothing colour shifting or facial features morphing
 means the subject needs more distinctive markers. Objects appearing without

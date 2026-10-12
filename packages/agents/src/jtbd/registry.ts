@@ -42,7 +42,21 @@ import { defineJob, type ErasedJob } from "./run.js";
 const graphWorld = () =>
   createToolLoopBridge({ nodeMetadata: TOOL_LOOP_NODE_CATALOG });
 
-const EXPLAINER_STORYBOARD_PROMPT = `${findSystemSkill("explainer-storyboard")?.content ?? ""}
+/**
+ * A storyboard structure skill plus the storyboard contract it defers to.
+ * The structure skills name their call shapes only by pointing at
+ * `storyboard-core` § Tool contract, and a job's prompt has no `load_skill`,
+ * so the section rides along.
+ */
+function storyboardSkillPrompt(name: string): string {
+  const core = findSystemSkill("storyboard-core")?.content ?? "";
+  const start = core.indexOf("\n## Tool contract");
+  const end = start < 0 ? -1 : core.indexOf("\n## ", start + 1);
+  const contract = start < 0 ? "" : core.slice(start, end < 0 ? undefined : end);
+  return `${findSystemSkill(name)?.content ?? ""}\n${contract}`;
+}
+
+const EXPLAINER_STORYBOARD_PROMPT = `${storyboardSkillPrompt("explainer-storyboard")}
 
 Evaluation adapter: these entities already exist. Call list_entities and reuse
 their ids: Lumen Style, Support Lead, Lumen Dashboard Mock, Glass Funnel. Make
@@ -124,7 +138,7 @@ export const JOBS_TO_BE_DONE: readonly ErasedJob[] = [
     statement: "When I have a product brief, I want a timed commercial board with consistent product references, so I can approve the spot before production.",
     surfaces: ["storyboard"], difficulty: "long-horizon", maxIterations: 16, expectedToolCalls: 10,
     objective: "Create a 30-second vertical commercial for WARP energy drink. Brand: electric, direct, nocturnal. Audience: late-night creators. Core pain: fading focus at midnight. USP: [CLIENT INPUT NEEDED]. CTA: Try WARP. Use Runner, WARP Can, Night Studio, and WARP Style. Plan hook, brand landing, problem, solution, proof, CTA, reiteration, closing. No rendering.",
-    systemPrompt: `${findSystemSkill("commercial-beat-sheet")?.content ?? ""}\nEvaluation adapter: the roster is already approved. Do not stop after list_entities: in this same turn create a board, attach all ids with set_board, and add exact ordered 8 beats: hook, brand-landing, problem, solution, proof, cta, reiteration, closing. Total 30 seconds. Every action names [WARP Style], proof uses [CLIENT INPUT NEEDED], and hook does not name WARP Can.`,
+    systemPrompt: `${storyboardSkillPrompt("commercial-beat-sheet")}\nEvaluation adapter: the roster is already approved. Do not stop after list_entities: in this same turn create a board, attach all ids with set_board, and add exact ordered 8 beats: hook, brand-landing, problem, solution, proof, cta, reiteration, closing. Total 30 seconds. Every action names [WARP Style], proof uses [CLIENT INPUT NEEDED], and hook does not name WARP Can.`,
     createBridge: () => createExplainerStoryboardToolBridge(COMMERCIAL_ENTITIES),
     outcomes: [
       { name: "timed-arc", describe: "Eight ordered beats total 30 seconds.", test: (s) => s.shots.map((x) => x.slug).join(",") === "hook,brand-landing,problem,solution,proof,cta,reiteration,closing" && s.shots.reduce((n, x) => n + x.durationSeconds, 0) === 30 },
@@ -138,7 +152,7 @@ export const JOBS_TO_BE_DONE: readonly ErasedJob[] = [
     surfaces: ["storyboard"], difficulty: "long-horizon",
     objective: "Create a planned music-video board for Nova's synthpop track Neon Tide. BPM 120, 4/4, 0:32. Section map: intro 0:00-0:08, verse 0:08-0:16, chorus 0:16-0:24, outro 0:24-0:32. Performance/narrative ratio 60/40. Use the artist Nova, Drained Pool, Red Phone, and Neon Style. The chorus downbeat is the biggest event. There are no confirmed release facts or lyrics, so use [ARTIST INPUT NEEDED] where needed. Do not render.",
     maxIterations: 14, expectedToolCalls: 8,
-    systemPrompt: `${findSystemSkill("music-video-treatment")?.content ?? ""}\nEvaluation adapter: list and reuse existing entities, create a board, attach all entity ids with set_board, then add exactly intro, verse, chorus, outro in order. Each is 8 seconds (four bars at 120 BPM in 4/4); every action names [Neon Style], chorus names [Nova] and its downbeat event, and outro echoes intro.`,
+    systemPrompt: `${storyboardSkillPrompt("music-video-treatment")}\nEvaluation adapter: list and reuse existing entities, create a board, attach all entity ids with set_board, then add exactly intro, verse, chorus, outro in order. Each is 8 seconds (four bars at 120 BPM in 4/4); every action names [Neon Style], chorus names [Nova] and its downbeat event, and outro echoes intro.`,
     createBridge: () => createExplainerStoryboardToolBridge(MUSIC_VIDEO_ENTITIES),
     outcomes: [
       { name: "bar-grid", describe: "Four four-bar sections total 32 seconds.", test: (s) => s.shots.map((x) => x.slug).join(",") === "intro,verse,chorus,outro" && s.shots.every((x) => x.durationSeconds === 8) },

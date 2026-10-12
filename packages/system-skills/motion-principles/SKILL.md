@@ -1,7 +1,6 @@
 ---
 name: motion-principles
 description: Choose timing, easing, stagger, anticipation, and follow-through for a NodeTool timeline. Use when motion feels stiff, floaty, busy, or late, or when an entrance, transition, or beat-bound animation needs a duration and curve. The op contract lives in timeline-edit-ops; the build loop is motion-graphics.
-featured: true
 ---
 
 # Motion Principles → the numbers before the call
@@ -83,7 +82,7 @@ Overshoot reads as toy-like. Keep `easeOutBack`, `easeOutElastic` and
 | Micro beat: a `flash`, a `pulse` on a small element | 150–250 |
 | Title, lower third, overlay entrance | 300–500 |
 | Hero element, full-frame plate, a `blur` rack | 500–800 |
-| Camera move: `kenBurns`, a slow push | 1500–4000 |
+| Camera move: a slow push or drift | 1500–4000 |
 
 Distance and area scale it. A caption travelling `distance: 0.05` and a
 full-bleed plate travelling `0.5` must not share 400ms — the plate looks
@@ -91,20 +90,34 @@ weightless. Add roughly 30–50% when the travel or the area doubles.
 
 Two limits the engine enforces rather than warns about in prose:
 
-- `in` + `out` must fit the clip with hold left over. A 3000ms title with 500ms
-  each way holds 2000ms. Under about 1000ms of hold the element never settles
-  and reads as a glitch. Over-long windows report `animation_exceeds_clip`.
-- A `loop` cycle longer than the clip shows a fragment. `kenBurns` at its 3000ms
-  default on a 2000ms clip is a drift that stops halfway.
+- `in` + `out` must fit the clip with hold left over. Over-long windows report
+  `animation_exceeds_clip`.
+- A `loop` cycle longer than the clip shows a fragment. `kenBurns` is the
+  exception: it ignores `durationMs` and always spans the whole clip, so the
+  clip's length is its duration. Give a Ken Burns move a clip in the camera-move
+  range above.
+
+## Holds
+
+These are the hold values every other motion skill defers to:
+
+- **Read hold.** Anything meant to be read — a title, a lower third, an end
+  card, a logo — rests at least 1000ms between its `in` settling and its `out`
+  starting, or before the cut. A 3000ms title with 500ms each way holds 2000ms.
+  Under 1000ms the element never settles and reads as a glitch.
+- **Rest between moves.** Two consecutive moves on the same hero or support
+  element leave at least 400ms with that element still. Ambient `loop` motion
+  on the bed does not count against it and keeps running.
 
 ## Stagger is rhythm, and it is clamped
 
 Never reveal a group in one event. On a text clip, `stagger` splits the
 animation per word, grapheme or wrapped line. Which `unit` counts what, and how
-the count changes with the frame, is in `motion-graphics`.
+the count changes with the frame, is in `timeline-edit-ops`.
 
 | Content | `offsetMs` |
 |---|---|
+| A short mark or word revealed per character | 30–50 |
 | A phrase that should arrive with texture | 60–100 |
 | A short punchline landing word by word | 150–250 |
 | More than five words | do not stagger — the reader is waiting on the sentence |
@@ -116,8 +129,9 @@ never the per-unit duration, so the line lands flatter than written and only
 `validate_timeline` says so, as `stagger_compressed`.
 
 For a group of separate clips — three lower-third parts, five icons — stagger by
-giving each clip's `in` animation a `delayMs` 60–80ms apart, and cap the whole
-reveal near 700ms. Past that the tail drags.
+giving each clip's `in` animation a `delayMs` 60–80ms apart, and start the last
+clip no more than about 700ms after the first. Past that the tail drags. This
+step applies to every clip-to-clip build, including logo parts and strokes.
 
 ## The 1/3 rule, in both forms
 
@@ -184,7 +198,7 @@ snaps. For motion that should follow later tempo edits, store `beat` on the
 animation in the full timeline document. Its `index` is one-based, `scope`
 is `clip` or `sequence`, and `offsetMs` can place anticipation before the hit.
 `edit_timeline`'s `animate_clip` input does not author this field; use
-`get_timeline` and `set_timeline_document` as described in `motion-graphics`.
+`get_timeline` and `set_timeline_document` as described in `timeline-edit-ops`.
 
 ```json
 {"id":"impact","role":"emphasis","preset":"pulse","durationMs":240,"beat":{"index":3,"scope":"sequence","offsetMs":-20}}
@@ -233,6 +247,9 @@ stored clip fields written through `set_timeline_document`, not
 | Move in place | `easeInOut`, 300–400ms |
 | Playful landing | `easeOutBack`, 400–600ms |
 | Word stagger | 60–100ms, five words or fewer |
-| Clip-to-clip stagger | 60–80ms `delayMs` steps, whole reveal ≤ 700ms |
+| Character stagger | 30–50ms |
+| Clip-to-clip stagger | 60–80ms `delayMs` steps, last clip starts ≤ 700ms after the first |
+| Read hold | ≥ 1000ms at rest before the `out` or the cut |
+| Rest between moves | ≥ 400ms still between two moves of one element |
 | Continuous loop | `linear` when constant speed is intended |
 | Travel cap | `distance` ≤ 0.35 without a second channel |

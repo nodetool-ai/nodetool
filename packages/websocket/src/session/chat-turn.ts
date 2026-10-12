@@ -14,6 +14,7 @@ import {
   repairOrphanedToolCalls
 } from "../chat-tool-call-repair.js";
 import { attachChatPredictionForwarder } from "../chat-prediction-forwarder.js";
+import { dispatchClientTool } from "./client-tool-gate.js";
 import { admitSpend } from "../credit-gate.js";
 import { isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
 import {
@@ -2342,20 +2343,27 @@ export class ChatTurnHandler {
         }
       } else if (this.deps.clientTools()[toolCall.name]) {
         // Client-side tool — round-trip through the UI via the ToolBridge.
-        await this.session.send({
-          type: "tool_call",
-          thread_id: threadId,
-          tool_call_id: toolCall.id,
-          name: toolCall.name,
-          args: toolCall.args
-        });
-        const clientResult = await this.deps.toolBridge.createWaiter(
-          toolCall.id,
-          300_000,
-          threadId
+        // A tool that spends money passes the turn's permission gate first.
+        toolResult = await dispatchClientTool(
+          this.chatCapabilityRun,
+          toolCall.name,
+          toolCall.args ?? {},
+          async () => {
+            await this.session.send({
+              type: "tool_call",
+              thread_id: threadId,
+              tool_call_id: toolCall.id,
+              name: toolCall.name,
+              args: toolCall.args
+            });
+            const clientResult = await this.deps.toolBridge.createWaiter(
+              toolCall.id,
+              300_000,
+              threadId
+            );
+            return clientResult.result ?? clientResult.content ?? clientResult;
+          }
         );
-        toolResult =
-          clientResult.result ?? clientResult.content ?? clientResult;
       } else {
         toolResult = { error: `Tool "${toolCall.name}" not available` };
       }

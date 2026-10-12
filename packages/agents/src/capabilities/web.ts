@@ -749,7 +749,7 @@ const browser: CapabilityExport = {
     try {
       const hostname = new URL(url).hostname;
       if (isSearchEngine(hostname)) {
-        return "Error: Direct browsing of search engine result pages is disabled. Use google_search instead.";
+        return "Error: Direct browsing of search engine result pages is disabled. Use web_search instead.";
       }
     } catch {
       return `Error: Invalid URL: ${url}`;

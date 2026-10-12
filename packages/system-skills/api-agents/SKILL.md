@@ -10,9 +10,9 @@ this conversation**. It answers with its final message as text.
 
 | Call | Does | Answers |
 | :--- | :--- | :--- |
-| `run(prompt, {description})` | Runs a sub-agent and blocks until it finishes. | The final message of the sub-agent, as text |
+| `run(prompt, {description})` | Runs a sub-agent and blocks until it finishes. | The final message of the sub-agent, as text. Throws when the sub-agent fails. |
 | `start(prompt, {description})` | Starts a sub-agent and returns at once. | `{subtask_id, status: "running"}` |
-| `wait({ids, timeoutMs})` | Blocks until the named sub-agents finish. Omit `ids` to wait for every one this turn started. `timeoutMs` is 1000–900000, default 300000. | Rows `{subtask_id, status, result \| error}`. `status` is `completed`, `failed`, `aborted`, or `running` after a timeout. |
+| `wait({ids, timeoutMs})` | Blocks until the named sub-agents finish. Omit `ids` to wait for every one this turn started. `timeoutMs` defaults to 300000. A code action stops after 600 s, so keep it under that. | Rows `{subtask_id, status, result \| error}`. `status` is `completed`, `failed`, `aborted`, or `running` after a timeout. |
 
 `description` is the 3–7 word label the user sees. Without it the first six
 words of the prompt are used.
@@ -34,7 +34,8 @@ Do not delegate a single tool call. A sub-agent costs real time and money.
 
 ## Patterns
 
-Parallel, blocking — one settled entry per prompt:
+Parallel, blocking — one settled entry per prompt, so a failed child becomes
+an entry instead of a throw:
 
 ```js
 const answers = await nodetool.batch(prompts, (p) => nodetool.agents.run(p),

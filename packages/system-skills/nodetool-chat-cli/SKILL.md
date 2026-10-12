@@ -26,7 +26,7 @@ nodetool chat -p anthropic -m claude-sonnet-4-6
 nodetool chat -p ollama -m qwen-3.5:4b
 
 # Restrict the enabled tools
-nodetool chat --tools google_search,browser,write_file
+nodetool chat --tools web_search,browser,write_file
 
 # Connect to a running server instead of a local provider
 nodetool chat -u ws://localhost:7777/ws
@@ -46,15 +46,17 @@ nodetool chat -u ws://localhost:7777/ws
 | `--tools <list>` | Comma-separated enabled tools |
 | `-u, --url <ws-url>` | Connect to a NodeTool server WebSocket |
 | `--resume [id]` | Resume a saved session in this workspace, latest if no ID is given |
-| `--permission-mode <default|auto|plan>` | Set permissions, interactive default is `default` |
+| `--permission-mode <default|auto|plan>` | Set permissions. Interactive sessions default to `default`, piped input to `auto` |
+| `--cost-cap <usd>` | Ceiling on provider spend for one turn. `0` lifts it. Default from `NODETOOL_AGENT_TURN_COST_CAP_USD` |
+| `--timeout <s>` | Wall-clock limit on one turn, in seconds |
 | `--no-read-only-search` | Disable the read-only `run_search` fan-out primitive |
 | `--trace-file <path>` | Append LLM/agent/workflow spans as JSONL |
 | `--trace-stdout [pretty\|json]` | Stream spans to stdout |
 
 Providers: `anthropic`, `claude_agent_sdk`, `openai`, `codex`, `gemini`, `xai`,
-`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `alibaba`, `gmi`,
-`together`, `openrouter`, `requesty`, `opper`, `api_route`, `huggingface`, `replicate`, `kie`,
-`aki`, `ollama`, `lmstudio`, `mlx`. Any other registered provider id (e.g. `vllm`) also works when
+`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `gmi`, `meta`,
+`alibaba`, `together`, `openrouter`, `requesty`, `opper`, `api_route`, `huggingface`,
+`replicate`, `kie`, `aki`, `ollama`, `lmstudio`, `mlx`, `node_llama_cpp`. Any other registered provider id (e.g. `vllm`) also works when
 passed explicitly.
 
 ## Slash Commands (prefix with `/`)
@@ -109,15 +111,17 @@ Because the agent loop is always active, the chat can:
 
 | Tool | Capability |
 |------|-----------|
-| `google_search` | Web search |
+| `web_search` | Web search |
 | `browser` | Browse and extract web content |
 | `read_file` / `write_file` / `edit_file` | Workspace file ops |
 | `grep` / `glob` | Search files |
-| `screenshot` | Capture a page screenshot |
+| `take_screenshot` | Capture a page screenshot |
 | `find_model` | Pick a model by capability |
 | `generate_image` / `generate_video` / `generate_speech` | Media generation |
 
 Restrict the set with `--tools a,b,c`; inspect the active set with `/tools`.
+`--tools` matches exact names and drops unknown ones without an error, so check
+`/tools` after restricting.
 
 # Global Chat
 
@@ -150,7 +154,7 @@ nodetool chat -p openai -m gpt-5.4
 
 ## Research Task
 ```bash
-nodetool chat --tools google_search,browser,write_file
+nodetool chat --tools web_search,browser,write_file
 > Research the top 5 TypeScript ORMs and write a comparison to comparison.md
 ```
 
@@ -176,5 +180,5 @@ curl -X POST http://localhost:7777/v1/chat/completions \
 - **No provider configured**: store a key first (`nodetool secrets store OPENAI_API_KEY`). The `/model` picker lists models only from configured providers.
 - **Wrong model ID**: switch with `/model <provider>/<id>`; the picker searches every configured provider.
 - **Expecting a shell**: bare commands like `ls` are sent to the model, not run. Use the agent's file tools instead.
-- **Looking for `/agent`**: agent mode is always on; there is no toggle.
-- **Using `/agent`**: the command inspects delegated sub-agent threads; it does not toggle agent mode.
+- **Using `/agent` as a toggle**: agent mode is always on. `/agent` inspects delegated sub-agent threads.
+- **Unattended runs spend without asking**: piped input defaults to `--permission-mode auto`. Set `--cost-cap` and `--timeout` for scripted sessions.
