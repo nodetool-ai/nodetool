@@ -7,32 +7,10 @@
  * reports as all-zero.
  */
 
-import { installGlobal } from "../../../test-utils/doubles";
+import { installPointerEvent } from "../../../test-utils/pointerEvent";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-
-// Polyfill PointerEvent for jsdom (which doesn't support it natively).
-if (typeof window !== "undefined" && !window.PointerEvent) {
-  installGlobal(
-    "PointerEvent",
-    class PointerEvent extends MouseEvent {
-      readonly pointerId: number;
-      readonly pointerType: string;
-      readonly isPrimary: boolean;
-
-      constructor(
-        type: string,
-        params: PointerEventInit & MouseEventInit = {}
-      ) {
-        super(type, params);
-        this.pointerId = params.pointerId ?? 0;
-        this.pointerType = params.pointerType ?? "";
-        this.isPrimary = params.isPrimary ?? false;
-      }
-    }
-  );
-}
 
 // ── Heavy media hooks → no-op mocks ─────────────────────────────────────────
 
@@ -70,11 +48,7 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 
-// jsdom does not implement pointer capture.
-beforeAll(() => {
-  HTMLElement.prototype.setPointerCapture = jest.fn();
-  HTMLElement.prototype.releasePointerCapture = jest.fn();
-});
+beforeAll(installPointerEvent);
 
 const trackA: TimelineTrack = {
   id: "t1",
