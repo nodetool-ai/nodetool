@@ -5,7 +5,7 @@ import type { Command } from "commander";
 import { z } from "zod";
 import { gameEvent, gameInputFrame, type GameEvent, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { gameEvent3D, gameInputFrame3D, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
-import { createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
+import { createMemoryGameSaveStorage, createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, GamePlayerSaves, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { benchmarkNativeGame } from "./game-benchmark.js";
 import { printCommandError } from "../command-errors.js";
 import { registerGameSmokeCommand } from "./game-smoke.js";
@@ -19,6 +19,7 @@ interface SimulateOptions {
   expectWin?: boolean;
   assertions?: string;
   verifyReplay?: boolean;
+  saves?: string;
   json?: boolean;
 }
 
@@ -128,6 +129,39 @@ async function readInputs<Schema extends z.ZodType>(path: string | undefined, sc
     }
     return parsed.data;
   });
+}
+
+const savesFile = z.strictObject({ progress: z.record(z.string(), z.unknown()).optional(), settings: z.record(z.string(), z.unknown()).optional() });
+
+/**
+ * In-memory saves for a headless run, seeded from `--saves`. Script loads read this storage only, so a run is
+ * repeatable. The report lists each slot's data after the run.
+ */
+async function headlessSaves(path: string | undefined) {
+  const storage = createMemoryGameSaveStorage();
+  const errors: string[] = [];
+  const saves = new GamePlayerSaves(storage, { onError: (error, request) => errors.push(`Tick ${request.tick} ${request.kind} ${request.scope}/${request.slot}: ${error.message}`) });
+  const seeded = path ? savesFile.parse(await readDocument(path)) : {};
+  for (const scope of ["progress", "settings"] as const) {
+    for (const [slot, data] of Object.entries(seeded[scope] ?? {})) { await saves.save(scope, slot, data); }
+  }
+  let used = path !== undefined;
+  return {
+    saves,
+    /** Performs a step's requests before the next tick. */
+    async after(requests: Parameters<GamePlayerSaves["handle"]>[0], snapshot: () => unknown): Promise<void> {
+      if (!requests) { return; }
+      used = true;
+      saves.handle(requests, snapshot);
+      await saves.idle();
+    },
+    report() {
+      if (!used) { return undefined; }
+      const entries = storage.entries();
+      const data = (scope: "progress" | "settings") => Object.fromEntries(Object.entries(entries[scope]).map(([slot, record]) => [slot, record.data]));
+      return { progress: data("progress"), settings: data("settings"), errors };
+    }
+  };
 }
 
 async function readAssertions(path: string | undefined, ticks: number): Promise<{ byTick: Map<number, TickAssertion>; tolerance: number } | undefined> {
@@ -283,6 +317,7 @@ export function registerGameCommands(program: Command): void {
     .option("--expect-win", "Fail unless the win condition is reached")
     .option("--assertions <file>", "JSON assertions for scene, entities, and ordered events at selected ticks")
     .option("--verify-replay", "Resume at the midpoint and compare snapshots and events tick by tick")
+    .option("--saves <file>", "JSON {progress?, settings?} of slot data that script loads read. Saves stay in memory")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: SimulateOptions) => {
       try {
@@ -299,6 +334,7 @@ export function registerGameCommands(program: Command): void {
           : nonnegativeInteger(options.expectScore, "expect-score");
         const inputs = await readInputs(options.inputs, gameInputFrame);
         const contract = await readAssertions(options.assertions, ticks);
+        const storage = await headlessSaves(options.saves);
         const session = await createScriptedGameSession(document, seed);
         let resumed: Awaited<ReturnType<typeof createScriptedGameSession>> | undefined;
         try {
@@ -320,8 +356,10 @@ export function registerGameCommands(program: Command): void {
             await startReplay(session.snapshot());
           }
           for (let tick = 0; tick < ticks; tick += 1) {
-            const input = inputs[tick] ?? EMPTY_INPUT;
+            // The replay session steps the same frame, so a delivered load reaches both without storage.
+            const input = storage.saves.withLoaded(inputs[tick] ?? EMPTY_INPUT);
             const result = session.step(input);
+            await storage.after(result.saveRequests, () => session.snapshot());
             events.push(...result.events);
             const assertion = contract?.byTick.get(result.tick);
             const snapshot = assertion || (options.verifyReplay && result.tick >= resumeTick)
@@ -355,6 +393,7 @@ export function registerGameCommands(program: Command): void {
           const report = {
             ticks, seed, snapshot, events, assertions, failures,
             replay,
+            saves: storage.report(),
             ok: Object.values(assertions).every(Boolean)
           };
           if (options.json) {
@@ -567,6 +606,7 @@ async function simulateGame3D(document: GameDocument3D, options: SimulateOptions
   const expectedScore = options.expectScore === undefined ? undefined : nonnegativeInteger(options.expectScore, "expect-score");
   const inputs = await readInputs(options.inputs, gameInputFrame3D);
   const contract = await readAssertions3D(options.assertions, ticks);
+  const storage = await headlessSaves(options.saves);
   const sessionOptions = sessionAssetOptions3D(options.assetsDir);
   const session = await createGameSession3D(document, seed, undefined, sessionOptions);
   let resumed: Awaited<ReturnType<typeof createGameSession3D>> | undefined;
@@ -584,8 +624,9 @@ async function simulateGame3D(document: GameDocument3D, options: SimulateOptions
     if (options.verifyReplay && resumeTick === 0) { await startReplay(session.snapshot()); }
     for (let tick = 0; tick < ticks; tick++) {
       if (tick % 240 === 0) { await new Promise<void>((resolveTick) => setTimeout(resolveTick, 0)); }
-      const input = inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] });
+      const input = storage.saves.withLoaded(inputs[tick] ?? gameInputFrame3D.parse({ pressed: [] }));
       const result = session.step(input);
+      await storage.after(result.saveRequests, () => session.snapshot());
       events.push(...result.events);
       const assertion = contract?.byTick.get(result.tick);
       const snapshot = assertion || options.verifyReplay && result.tick >= resumeTick ? session.snapshot() : undefined;
@@ -602,7 +643,7 @@ async function simulateGame3D(document: GameDocument3D, options: SimulateOptions
       ticks: failures.length === 0, replay: !replayDivergence };
     const report = { dimension: "3d", ticks, seed, snapshot, state_hash: await hashGameSnapshot3D(snapshot), events, assertions, failures,
       replay: options.verifyReplay ? { resumeTick, verified: !replayDivergence, divergence: replayDivergence } : undefined,
-      ok: Object.values(assertions).every(Boolean) };
+      saves: storage.report(), ok: Object.values(assertions).every(Boolean) };
     if (options.json) { process.stdout.write(`${JSON.stringify(report)}\n`); }
     else {
       process.stdout.write(`Tick ${snapshot.tick}: score ${snapshot.score}, won ${snapshot.won}\n`);

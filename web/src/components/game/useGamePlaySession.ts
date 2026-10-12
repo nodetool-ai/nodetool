@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameDocument, GameInputFrame, GameRenderFrame, GameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
-import { createScriptedGameSession, gameScriptLogsOf, type GameSession } from "@nodetool-ai/game-runtime";
+import { createScriptedGameSession, gameScriptLogsOf, type GamePlayerSaves, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { GameAudioPlayer, gameAudioSpatialView2D } from "@nodetool-ai/game-renderer/audio";
 import { attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, GameInput, GameParticles2D, GameUiController, gameUiViewport2D, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
+import { createEditorGameSaves } from "./gameEditorSaves";
 import { GameReplayHistory } from "./gameReplayHistory";
 import { createGameScriptLogChannel } from "./gameScriptLogChannel";
 
@@ -39,6 +40,7 @@ interface UseGamePlaySessionOptions {
 export function useGamePlaySession({ refId, active, document, editorSceneId, name }: UseGamePlaySessionOptions) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<GameSession | null>(null);
+  const savesRef = useRef<GamePlayerSaves | null>(null);
   const particlesRef = useRef<GameParticles2D | null>(null);
   const sessionFailedRef = useRef(false);
   const rendererRef = useRef<GameRenderer | null>(null);
@@ -146,9 +148,13 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const step = useCallback((input: GameInputFrame = EMPTY_INPUT) => {
     const session = sessionRef.current;
     if (!session || sessionFailedRef.current) return;
-    if (playDocument) inputHistoryRef.current.record(input, () => session.snapshot());
+    // Finished save loads ride on the frame, so the recorded history replays them without storage.
+    const saves = savesRef.current;
+    const frame = saves ? saves.withLoaded(input) : input;
+    if (playDocument) inputHistoryRef.current.record(frame, () => session.snapshot());
     try {
-      const result = session.step(input);
+      const result = session.step(frame);
+      saves?.handle(result.saveRequests, () => session.snapshot());
       if (result.scriptLogs) { scriptLogs.publish(result.scriptLogs); }
       particlesRef.current?.tick(result.frame, session.takePresentationEvents());
       result.events.forEach((event) => audioRef.current?.handle(event));
@@ -234,6 +240,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       if (!createdSession) return;
       if (cancelled || sessionGenerationRef.current !== generation) { createdSession.dispose(); return; }
       sessionRef.current = createdSession;
+      savesRef.current = createEditorGameSaves(sessionDocument.id, setError);
       particlesRef.current = new GameParticles2D(sessionDocument.tickRate);
       sessionFailedRef.current = false;
       lastTickRef.current = createdSession.snapshot().tick;
@@ -364,6 +371,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       setScriptError(null);
       disposeSession();
       sessionRef.current = restored;
+      savesRef.current?.clear();
       particlesRef.current = new GameParticles2D(sessionDocument.tickRate);
       sessionFailedRef.current = false;
       audioRef.current?.reset(restored.snapshot());
@@ -383,6 +391,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       catch (cause) { replay.dispose(); throw cause; }
       disposeSession();
       sessionRef.current = replay;
+      savesRef.current?.clear();
       particlesRef.current = new GameParticles2D(playDocument.tickRate);
       sessionFailedRef.current = false;
       audioRef.current?.reset(replay.snapshot());

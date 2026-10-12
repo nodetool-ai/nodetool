@@ -273,6 +273,22 @@ describe("native game capabilities", () => {
     expect(played.state.entities.find((entity) => entity.id === "player")?.x).toBeCloseTo(0.5);
   });
 
+  it("keeps script saves in memory during agent playtests and delivers a load on a later tick", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Saving room" }) as GameReply;
+    // Saves {speed: 6} on tick 0, loads it on tick 1 and moves at the loaded speed from tick 2.
+    const source = "({ state, tick, loaded }) => { const next = state ?? { speed: 0 }; for (const result of loaded ?? []) { next.speed = result.data.speed; }"
+      + " return { state: next, commands: [{ kind: 'setVelocity', x: next.speed, y: 0 },"
+      + " ...(tick === 0 ? [{ kind: 'save', slot: 'main', data: { speed: 6 } }] : []), ...(tick === 1 ? [{ kind: 'load', slot: 'main' }] : [])] }; }";
+    const document = { ...created.document, scenes: created.document.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
+      ? { ...entity, behaviors: [{ kind: "script" as const, source, maxCommands: 8, maxTickMs: 30 }] } : entity) })) };
+    const published = await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision,
+      base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at, document }) as GameReply;
+    const played = await agent.invoke("playtest_native_game", { game_id: created.game.id, revision: published.game.revision,
+      inputs: Array.from({ length: 10 }, () => ({ pressed: [] })) }) as { state: { entities: Array<{ id: string; x: number }> } };
+    expect(played.state.entities.find((entity) => entity.id === "player")?.x).toBeCloseTo(0.8);
+  });
+
   it("builds an immutable standalone player in the owned project workspace", async () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Room" }) as GameReply;

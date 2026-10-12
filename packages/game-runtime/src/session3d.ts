@@ -18,6 +18,7 @@ import {
 } from "@nodetool-ai/protocol";
 import { initialGameplayState, runGameplayTick } from "./gameplay/lifecycle.js";
 import { withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
+import type { GameSaveRequest } from "./script-saves.js";
 import type { GameScriptStats } from "./scripts.js";
 import { prepareGameScripts3D, type GameScriptRunner3D } from "./scripts3d.js";
 import { validateGame3D } from "./validate3d.js";
@@ -52,7 +53,9 @@ export interface GameSession3DOptions {
 }
 
 /** A 3D step result with the script stats and the lines from script `log` commands, which never enter snapshots or replay state. */
-export type GameSessionStepResult3D = GameStepResult3D & { readonly scriptStats?: GameScriptStats; readonly scriptLogs?: readonly GameScriptLogEntry[] };
+export type GameSessionStepResult3D = GameStepResult3D & { readonly scriptStats?: GameScriptStats; readonly scriptLogs?: readonly GameScriptLogEntry[];
+  /** Script `save` and `load` requests this tick, for the host to perform after the step. Never simulation state. */
+  readonly saveRequests?: readonly GameSaveRequest[] };
 
 export interface GameSession3D {
   step(input: GameInputFrame3D): GameSessionStepResult3D;
@@ -471,6 +474,7 @@ export async function createGameSession3D(
       emit: () => {},
       scriptStats: undefined,
       scriptLogs: undefined,
+      scriptSaves: undefined,
       spatialStep: undefined,
       contacts: [],
       result: undefined,
@@ -626,6 +630,7 @@ export async function createGameSession3D(
             systemContext.emit = emit;
             systemContext.scriptStats = undefined;
             systemContext.scriptLogs = undefined;
+            systemContext.scriptSaves = undefined;
             systemContext.spatialStep = undefined;
             systemContext.result = undefined;
             let timings: ReturnType<typeof pipeline.stepTimed> | undefined;
