@@ -5,31 +5,10 @@
  * default timeline store, as the other gesture suites are.
  */
 
-import { installGlobal } from "../../../../test-utils/doubles";
+import { installPointerEvent } from "../../../../test-utils/pointerEvent";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
-
-if (typeof window !== "undefined" && !window.PointerEvent) {
-  installGlobal(
-    "PointerEvent",
-    class PointerEvent extends MouseEvent {
-      readonly pointerId: number;
-      readonly pointerType: string;
-      readonly isPrimary: boolean;
-
-      constructor(
-        type: string,
-        params: PointerEventInit & MouseEventInit = {}
-      ) {
-        super(type, params);
-        this.pointerId = params.pointerId ?? 0;
-        this.pointerType = params.pointerType ?? "";
-        this.isPrimary = params.isPrimary ?? false;
-      }
-    }
-  );
-}
 
 jest.mock("../useClipThumbnails", () =>
   jest
@@ -71,10 +50,7 @@ import {
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
 
-beforeAll(() => {
-  HTMLElement.prototype.setPointerCapture = jest.fn();
-  HTMLElement.prototype.releasePointerCapture = jest.fn();
-});
+beforeAll(installPointerEvent);
 
 const MS_PER_PX = 10;
 
