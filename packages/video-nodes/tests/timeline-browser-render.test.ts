@@ -37,7 +37,9 @@ let clipPath = "";
 beforeAll(async () => {
   directory = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-browser-render-"));
   // A variable-frame-rate source, like the generated clips that made the
-  // Node path slow: 60/1 nominal, about 24 fps on average.
+  // Node path slow: 60/1 nominal, about 24 fps on average. Tagged BT.709 as
+  // those clips are. Untagged, Chrome reads H.264 as BT.709 and ffmpeg as
+  // BT.601, and the two renders differ by the matrix, not the compositor.
   clipPath = path.join(directory, "vfr.mp4");
   await execFfmpeg([
     "-v", "error", "-y",
@@ -46,6 +48,7 @@ beforeAll(async () => {
     "-vf", "select='lt(mod(n\\,5)\\,2)'",
     "-fps_mode", "vfr",
     "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
+    "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
     clipPath
   ]);
 });
