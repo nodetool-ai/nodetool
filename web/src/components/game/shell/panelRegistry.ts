@@ -1,5 +1,6 @@
 import { createElement, type ReactNode } from "react";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import AnimationOutlinedIcon from "@mui/icons-material/AnimationOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CodeOutlinedIcon from "@mui/icons-material/CodeOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
@@ -70,3 +71,4 @@ for (const panel of [
 ] satisfies readonly Omit<GamePanelRegistration, "dimensions">[]) {
   gamePanelRegistry.register({ ...panel, dimensions });
 }
+gamePanelRegistry.register({ id: "animation-graph", title: "Animation", icon: createElement(AnimationOutlinedIcon), dimensions: ["3d"], defaultRegion: "bottom" });
