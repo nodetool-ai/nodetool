@@ -16,8 +16,13 @@ import { useRunWarningStore } from "../../stores/RunWarningStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSearchProviderCalloutStore } from "../../stores/SearchProviderCalloutStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import useMetadataStore from "../../stores/MetadataStore";
 import { selectFrom } from "../../__mocks__/fixtures";
-import type { SettingWithValue, Workflow } from "../../stores/ApiTypes";
+import type {
+  NodeMetadata,
+  SettingWithValue,
+  Workflow
+} from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
 import type { NodeStore, NodeStoreState } from "../../stores/NodeStore";
 import type { WorkflowManagerState } from "../../stores/WorkflowManagerStore";
@@ -268,6 +273,39 @@ describe("useFloatingToolbarActions", () => {
       expect(useSearchProviderCalloutStore.getState().nodes).toEqual([
         { nodeId: "agent-1", nodeTitle: "Agent" }
       ]);
+    });
+
+    it("says which node needs a model when it blocks the run", async () => {
+      useNotificationStore.getState().clearNotifications();
+      useMetadataStore.getState().setMetadata({
+        "nodetool.agents.Agent": {
+          node_type: "nodetool.agents.Agent",
+          title: "Agent",
+          properties: [
+            { name: "model", type: { type: "language_model", type_args: [] } }
+          ]
+        } as unknown as NodeMetadata
+      });
+      mockNodeStoreWith([
+        {
+          ...searchNode,
+          data: { ...searchNode.data, properties: { model: {} } }
+        }
+      ]);
+
+      const { result } = renderHook(() => useFloatingToolbarActions());
+      await act(async () => {
+        await result.current.handleRun();
+      });
+
+      expect(mockRun).not.toHaveBeenCalled();
+      expect(useNotificationStore.getState().notifications).toEqual([
+        expect.objectContaining({
+          type: "warning",
+          content: "Pick a model on Agent before running."
+        })
+      ]);
+      useMetadataStore.getState().setMetadata({});
     });
 
     it("runs normally when the search provider is configured", async () => {
