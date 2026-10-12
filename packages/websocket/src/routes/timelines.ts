@@ -1,15 +1,21 @@
 /**
  * Timeline zip download and upload —
  *   `GET  /api/timelines/:id/export-zip`
+ *   `GET  /api/timelines/:id/export-premiere`
  *   `POST /api/timelines/import-zip`
  *
  * The web app reads and writes sequences over `/trpc/timeline.*`; these are the
- * two non-tRPC doors, because one response is a binary archive and the other
- * request is a multipart upload. Both go through `lib/timeline-bundle.ts`, so a
- * bundle written here imports anywhere.
+ * non-tRPC doors, because the responses are binary archives and the upload is
+ * multipart. The bundle pair goes through `lib/timeline-bundle.ts`, so a bundle
+ * written here imports anywhere. The Premiere export goes through
+ * `lib/timeline-premiere.ts`.
  */
 
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import nodePath from "node:path";
 import type { FastifyPluginAsync } from "fastify";
+import type { InterchangeSequence } from "@nodetool-ai/timeline";
 import {
   Asset,
   TimelineSequence,
@@ -23,10 +29,16 @@ import { createAssetModelInterface } from "../lib/asset-model-interface.js";
 import {
   importTimelineBundle,
   writeTimelineBundle,
-  type BundledTimeline,
-  type FetchedTimelineAsset
+  type BundledTimeline
 } from "../lib/timeline-bundle.js";
-import { streamZip } from "../lib/zip-stream.js";
+import {
+  planPremiereExport,
+  writePremiereExport,
+  type PremiereFetchedAsset,
+  type PremiereMediaInfo
+} from "../lib/timeline-premiere.js";
+import { MediaToolingMissingError, probeDurationMs, probeHasAudio } from "../lib/media.js";
+import { isLocalFileSource, streamZip, type ExportSource } from "../lib/zip-stream.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -46,7 +58,7 @@ function jsonError(status: number, detail: string): Response {
 async function fetchOwnedAsset(
   userId: string,
   assetId: string
-): Promise<FetchedTimelineAsset | null> {
+): Promise<PremiereFetchedAsset | null> {
   const asset = (await Asset.get(assetId)) as Asset | null;
   // Another owner's asset is an absence here, not a refusal: a clip can name an
   // id that is not the caller's, and an export must not copy those bytes out.
@@ -59,7 +71,49 @@ async function fetchOwnedAsset(
   if (!source) {
     return null;
   }
-  return { source, name: asset.name, contentType: asset.content_type };
+  const fetched: PremiereFetchedAsset = {
+    source,
+    name: asset.name,
+    contentType: asset.content_type
+  };
+  if (typeof asset.duration === "number" && asset.duration > 0) {
+    fetched.durationMs = Math.round(asset.duration * 1000);
+  }
+  return fetched;
+}
+
+/**
+ * Duration and audio presence of one export source. Bytes from a store with
+ * no local file are probed from a temporary copy. Without ffprobe both stay
+ * unknown, and the export report says what that left out.
+ */
+async function probeExportSource(
+  source: ExportSource,
+  contentType: string
+): Promise<PremiereMediaInfo> {
+  const isVideo = contentType.startsWith("video/");
+  if (!isVideo && !contentType.startsWith("audio/")) return {};
+  let dir: string | null = null;
+  try {
+    let path: string;
+    if (isLocalFileSource(source)) {
+      path = source.path;
+    } else {
+      dir = await mkdtemp(nodePath.join(tmpdir(), "nodetool-premiere-"));
+      path = nodePath.join(dir, "media");
+      await writeFile(path, source);
+    }
+    const info: PremiereMediaInfo = {};
+    const durationMs = await probeDurationMs(path);
+    if (durationMs !== null) info.durationMs = durationMs;
+    if (isVideo) info.hasAudio = await probeHasAudio(path);
+    return info;
+  } catch (error) {
+    if (error instanceof MediaToolingMissingError) return {};
+    throw error;
+  } finally {
+    if (dir) await rm(dir, { recursive: true, force: true });
+  }
 }
 
 /** The bundle payload for a stored sequence: the wire shape minus db fields. */
@@ -233,6 +287,50 @@ const timelinesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       });
     });
     // A streamed body is still being sent when bridge returns.
+    return reply;
+  });
+
+  app.get("/api/timelines/:id/export-premiere", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, async (request) => {
+      const userId = userIdOf(request);
+      const seq = await TimelineSequence.findById(id);
+      if (!seq || seq.user_id !== userId) {
+        return jsonError(404, "Timeline not found");
+      }
+      const wire = seq.toTimelineSequence();
+      const sequence = {
+        name: wire.name,
+        width: wire.width,
+        height: wire.height,
+        fps: wire.fps,
+        tracks: wire.tracks,
+        clips: wire.clips,
+        markers: wire.markers
+      } as InterchangeSequence;
+      // Probing happens before the first byte goes out, so the headers can
+      // carry the warning count and a failure is still a plain error.
+      const plan = await planPremiereExport({
+        sequence,
+        fetchAsset: (assetId) => fetchOwnedAsset(userId, assetId),
+        probe: probeExportSource
+      });
+      const body = streamZip((writer) =>
+        writePremiereExport(sequence.name, plan, writer)
+      );
+      const safe =
+        (seq.name || "timeline").replace(/[^A-Za-z0-9._-]+/g, "_") ||
+        "timeline";
+      return streamedResponse(body, {
+        status: 200,
+        headers: {
+          "content-type": "application/zip",
+          "content-disposition": `attachment; filename="${safe}-premiere.zip"`,
+          "cache-control": "no-store",
+          "x-nodetool-export-warnings": String(plan.report.warnings.length)
+        }
+      });
+    });
     return reply;
   });
 };

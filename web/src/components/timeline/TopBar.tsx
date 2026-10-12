@@ -15,6 +15,7 @@ import CodeIcon from "@mui/icons-material/Code";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import FolderZipOutlinedIcon from "@mui/icons-material/FolderZipOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import MovieCreationOutlinedIcon from "@mui/icons-material/MovieCreationOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import AspectRatioOutlinedIcon from "@mui/icons-material/AspectRatioOutlined";
@@ -28,6 +29,9 @@ interface TopBarProps {
   isExporting?: boolean;
   onExportBundle?: () => void;
   isExportingBundle?: boolean;
+  /** Downloads a Premiere Pro XML with its media. */
+  onExportPremiere?: () => void;
+  isExportingPremiere?: boolean;
   onSave?: () => void;
   isSaving?: boolean;
   onSaveToAssets?: (anchorEl: HTMLElement) => void;
@@ -72,6 +76,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
     isExporting = false,
     onExportBundle,
     isExportingBundle = false,
+    onExportPremiere,
+    isExportingPremiere = false,
     onSave,
     isSaving = false,
     onSaveToAssets,
@@ -103,7 +109,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
       !!onOpenSettings ||
       !!onAdaptFormat ||
       !!onSaveToAssets ||
-      !!onExportBundle;
+      !!onExportBundle ||
+      !!onExportPremiere;
 
     return (
       <FlexRow align="center" gap={SPACING.micro}>
@@ -219,6 +226,18 @@ export const TopBar: React.FC<TopBarProps> = memo(
                   }
                   disabled={isExportingBundle}
                   onClick={runFromMenu(onExportBundle)}
+                />
+              )}
+              {onExportPremiere && (
+                <MenuItemPrimitive
+                  icon={<MovieCreationOutlinedIcon fontSize="small" />}
+                  label={
+                    isExportingPremiere
+                      ? "Exporting for Premiere…"
+                      : "Export for Premiere Pro"
+                  }
+                  disabled={isExportingPremiere}
+                  onClick={runFromMenu(onExportPremiere)}
                 />
               )}
             </EditorMenu>

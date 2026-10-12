@@ -1,6 +1,7 @@
 /**
  * Client helpers for the timeline archive endpoints:
  *   GET  /api/timelines/:id/export-zip → the document + every referenced asset
+ *   GET  /api/timelines/:id/export-premiere → a Premiere Pro XML + its media
  *   POST /api/timelines/import-zip     → a new timeline from such an archive
  */
 import { restFetch } from "../lib/rest-fetch";
@@ -47,6 +48,31 @@ export async function exportTimelineZip(
     throw new Error(detail || `Export failed (${res.status})`);
   }
   await saveResponseAsFile(res, `${sanitizeName(fallbackName)}.zip`);
+}
+
+/**
+ * Download one timeline as a zip holding a Final Cut Pro 7 XML sequence for
+ * Adobe Premiere Pro and the media it uses. Resolves to how many clips the
+ * export report flags, or null when the server did not say.
+ */
+export async function exportTimelinePremiere(
+  timelineId: string,
+  fallbackName: string
+): Promise<number | null> {
+  const res = await restFetch(
+    `/api/timelines/${encodeURIComponent(timelineId)}/export-premiere`,
+    { method: "GET" }
+  );
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Export failed (${res.status})`);
+  }
+  const warnings = Number.parseInt(
+    res.headers.get("x-nodetool-export-warnings") ?? "",
+    10
+  );
+  await saveResponseAsFile(res, `${sanitizeName(fallbackName)}-premiere.zip`);
+  return Number.isFinite(warnings) ? warnings : null;
 }
 
 /** Upload a timeline zip; the server stores its assets and creates a timeline. */

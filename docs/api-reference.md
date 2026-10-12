@@ -80,6 +80,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/examples/{slug}/scripts/{key}/run` | `POST` | Session auth                | NDJSON with `Accept: application/x-ndjson` | Run a JS script an example bundle carries, without installing the example |
 | Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Session auth                     | streaming                   | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
 | Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Session auth                     | streaming                   | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
+| Timelines | `/api/timelines/{id}/export-premiere` | `GET`          | Session auth                     | streaming                   | One sequence as a Premiere Pro XML (xmeml) plus its media and an export report, as a zip; `404` when the caller does not own it |
 | Timelines | `/api/timelines/import-zip`       | `POST`            | Session auth                     | no                          | Multipart upload of such a zip; stores the assets and creates a new timeline pointing at them |
 | Providers | `/api/fal/credits`                | `GET`             | Session auth                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/fal/pricing`                | `GET`             | Session auth                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
@@ -932,6 +933,15 @@ Asset files are content-addressed, so two clips sharing bytes pack one file.
 ship with the app, so none are packed. `foreign_refs` names ids that mean
 something only on the exporting install (workflows, storyboards, scripts, jobs);
 import carries them through untouched rather than trying to resolve them.
+
+`GET /api/timelines/{id}/export-premiere` writes the same sequence for Adobe
+Premiere Pro. The zip holds `<timeline name>.xml`, a Final Cut Pro 7 XML
+sequence that Premiere imports through **File > Import**, the active asset of
+every exported clip under `media/`, and `export-report.txt`, which lists each
+clip that needs baking or was left out. The XML points at its media with
+relative `media/<file>` paths. The response carries
+`x-nodetool-export-warnings` with the number of report entries, and is named
+`<timeline name>-premiere.zip` by the same rule as above.
 
 `POST /api/timelines/import-zip` reads the zip back as a multipart form. `file`
 is required; `project_id` defaults to `"default"` (no project) and `name`

@@ -52,6 +52,7 @@ jest.mock("../../../hooks/timeline/useTimelineAutosave", () => ({
   useTimelineAutosave: jest.fn()
 }));
 jest.mock("../../../utils/timelineBundle", () => ({
+  exportTimelinePremiere: jest.fn(),
   exportTimelineZip: jest.fn()
 }));
 jest.mock("../../../stores/timeline/TimelineGenerationStore", () => ({
@@ -113,7 +114,10 @@ import {
 } from "../../../hooks/useTimelineSequence";
 import { useWorkflowFreshnessCheck } from "../../../hooks/timeline/useWorkflowFreshnessCheck";
 import { useTimelineAutosave } from "../../../hooks/timeline/useTimelineAutosave";
-import { exportTimelineZip } from "../../../utils/timelineBundle";
+import {
+  exportTimelinePremiere,
+  exportTimelineZip
+} from "../../../utils/timelineBundle";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -166,6 +170,7 @@ beforeEach(() => {
     updatedAt: "2026-01-01T00:00:01Z"
   });
   (exportTimelineZip as jest.Mock).mockResolvedValue(undefined);
+  (exportTimelinePremiere as jest.Mock).mockResolvedValue(0);
   (useTimelines as jest.Mock).mockReturnValue({ data: [] });
   (useCreateTimeline as jest.Mock).mockReturnValue({
     mutate: mockCreateMutate,
@@ -456,6 +461,24 @@ describe("TimelineEditor", () => {
       await waitFor(() =>
         expect(exportTimelineZip).toHaveBeenCalledWith("seq-1", "My Sequence")
       );
+    });
+
+    it("saves pending edits, then downloads the Premiere export", async () => {
+      renderEditor();
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "More timeline actions" })
+      );
+      await userEvent.click(await screen.findByText("Export for Premiere Pro"));
+
+      await waitFor(() =>
+        expect(exportTimelinePremiere).toHaveBeenCalledWith(
+          "seq-1",
+          "My Sequence"
+        )
+      );
+      expect(mockFlushAutosave).toHaveBeenCalledTimes(1);
+      expect(exportTimelineZip).not.toHaveBeenCalled();
     });
 
     it("does not export the project archive when saving fails", async () => {
