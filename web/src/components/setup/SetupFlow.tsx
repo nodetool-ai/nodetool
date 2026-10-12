@@ -870,7 +870,7 @@ export function SetupFlow<Stage extends string>({
                     blocked && step.blockedReason ? blockedReasonId : undefined
                   }
                   aria-keyshortcuts="Meta+Enter Control+Enter"
-                  title={`${primaryText} (\u2318\u21A9 or Ctrl+\u21A9)`}
+                  tooltip={`${primaryText} (\u2318\u21A9 or Ctrl+\u21A9)`}
                   sx={{
                     fontSize: FONT_SIZE_SANS.body,
                     paddingX: narrow ? SPACING.xl : SPACING.xxl,

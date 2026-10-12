@@ -101,6 +101,7 @@ export const menuItemStyles = (theme: Theme): CSSObject => ({
   "& .MuiListItemText-secondary": {
     ...TYPOGRAPHY.sans.caption,
     whiteSpace: "normal",
+    overflowWrap: "anywhere",
     color: theme.vars.palette.text.secondary
   }
 });

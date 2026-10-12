@@ -25,7 +25,6 @@ import { useGenerateLayer } from "../../../hooks/sketch/useGenerateLayer";
 import {
   ToolbarIconButton,
   FlexRow,
-  Toast,
   Tooltip,
   MOTION,
   BORDER_RADIUS,
@@ -35,7 +34,7 @@ import {
   reducedMotion
 } from "../../ui_primitives";
 import { cn } from "../../editor_ui/editorUtils";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
+import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 
 const actionsRowStyles = (theme: Theme) =>
   css({
@@ -159,8 +158,8 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
 
     const duplicateBusyRef = useRef(false);
     const [duplicateBusy, setDuplicateBusy] = useState(false);
-    const [duplicateError, setDuplicateError] = useState<string | null>(null);
-    const [generationError, setGenerationError] = useState<string | null>(null);
+    const reportDuplicateError = useAlertNotifier("error");
+    const reportGenerationError = useAlertNotifier("error");
     // Re-entrancy guard for the run button: a second click before the
     // job state propagates back from the runner would otherwise call
     // generateLayer() twice and the second call gets dropped by the
@@ -185,7 +184,7 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
         setActiveLayer(newLayerId);
       } catch (err) {
         removeLayer(newLayerId);
-        setDuplicateError(
+        reportDuplicateError(
           err instanceof Error ? err.message : "Failed to duplicate layer"
         );
       } finally {
@@ -219,7 +218,7 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
       try {
         await generateLayer();
       } catch (err) {
-        setGenerationError(
+        reportGenerationError(
           err instanceof Error
             ? err.message
             : "Failed to start layer generation"
@@ -234,7 +233,7 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
       try {
         await cancelLayerGeneration();
       } catch (err) {
-        setGenerationError(
+        reportGenerationError(
           err instanceof Error ? err.message : "Failed to cancel generation"
         );
       }
@@ -262,7 +261,6 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
                   ? "Starting…"
                   : "Generate layer from the bound workflow and overrides"
             }
-            delay={TOOLTIP_ENTER_DELAY}
             placement="top"
           >
             <span style={{ display: "inline-flex" }}>
@@ -338,24 +336,6 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
             />
           )}
         </FlexRow>
-
-        <Toast
-          open={duplicateError !== null}
-          message={duplicateError ?? ""}
-          severity="error"
-          onClose={() => setDuplicateError(null)}
-          vertical="top"
-          horizontal="center"
-        />
-
-        <Toast
-          open={generationError !== null}
-          message={generationError ?? ""}
-          severity="error"
-          onClose={() => setGenerationError(null)}
-          vertical="top"
-          horizontal="center"
-        />
       </>
     );
   }

@@ -8,6 +8,8 @@ A skill is a saved set of instructions for one kind of work. It has a name, a on
 
 > **Quick Access:** Click **+** in the workspace tab bar and choose **New skill**, or open the **Skills** panel from the left panel's **More** menu. In chat, type `/` to pick a skill.
 
+![Skill editor with a brand-voice skill: its name, the description agents match against, and the Markdown body](assets/screenshots/skill-editor.png)
+
 ---
 
 ## Two kinds of skill

@@ -622,7 +622,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         className="group-actions nodrag"
         style={actionsStyle}
       >
-        <Tooltip title="Group options" delay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip title="Group options">
           <ToolbarIconButton
             ref={menuButtonRef}
             title=""

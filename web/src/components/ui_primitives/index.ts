@@ -378,9 +378,6 @@ export type { CollapseProps } from "./Collapse";
 export { ListGroup, ListItemRow } from "./ListGroup";
 export type { ListGroupProps, ListItemRowProps } from "./ListGroup";
 
-export { Toast } from "./Toast";
-export type { ToastProps } from "./Toast";
-
 export { TextLink } from "./TextLink";
 export type { TextLinkProps } from "./TextLink";
 

@@ -49,7 +49,18 @@ async function saveScreenshot(
       Array.from(document.images)
         .filter((image) => {
           const style = getComputedStyle(image);
-          return style.visibility !== "hidden" && style.display !== "none";
+          if (style.visibility === "hidden" || style.display === "none") {
+            return false;
+          }
+          // A lazy image below the fold or in a hidden tab never loads, and
+          // it is not in the picture either.
+          const rect = image.getBoundingClientRect();
+          return (
+            rect.width > 0 &&
+            rect.height > 0 &&
+            rect.bottom > 0 &&
+            rect.top < window.innerHeight
+          );
         })
         .every((image) => image.complete && image.naturalWidth > 0),
     undefined,
@@ -81,9 +92,10 @@ async function saveElementScreenshot(
 /**
  * Open the chat composer's control-chip popovers by index. The chat-mode
  * footer renders its chips in a stable order inside `.media-chip-main`:
- *   0 → mode (Chat / Generate Images / …)
- *   1 → language model
- *   2 → permission mode (Plan / Default / Auto)
+ *   0 → add to message (+)
+ *   1 → mode (Chat / Generate Images / …)
+ *   2 → language model
+ * The permission mode (Plan / Default / Auto) has its own trigger class.
  * Throws if the requested chip never appears because the composer is required
  * for these interaction captures.
  */
@@ -95,7 +107,7 @@ async function openComposerChip(
     which === "permission"
       ? ".permission-selector-trigger"
       : ".media-chip-main .media-control-chip";
-  const index = which === "mode" ? 0 : which === "model" ? 1 : 0;
+  const index = which === "mode" ? 1 : which === "model" ? 2 : 0;
   const chip = page.locator(selector).nth(index);
   await chip.waitFor({ state: "visible", timeout: 15000 });
   await chip.click();
@@ -379,6 +391,85 @@ async function seedFirstRunOnboarding(page: Page): Promise<void> {
   });
 }
 
+const REPO_ROOT = path.join(CURRENT_DIR, "../../..");
+
+/**
+ * The Hugging Face logo the model lists render, drawn locally. The real one
+ * is hot-linked from huggingface.co, which a sandboxed or offline capture
+ * cannot reach, and a broken-image glyph in its place fails the image wait.
+ */
+const HF_LOGO_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">' +
+  '<circle cx="16" cy="16" r="14" fill="#FFD21E"/>' +
+  '<circle cx="11" cy="13" r="2" fill="#3A3B45"/>' +
+  '<circle cx="21" cy="13" r="2" fill="#3A3B45"/>' +
+  '<path d="M10 19c2 3.5 10 3.5 12 0" stroke="#3A3B45" stroke-width="2" ' +
+  'fill="none" stroke-linecap="round"/></svg>';
+
+/**
+ * Hot-linked sample photos (the image-compare preview's Before/After pair),
+ * mapped to stills the repository ships: the same coffee shot before and
+ * after a solarize, so the slider shows an edit rather than two unrelated
+ * pictures.
+ */
+const EXTERNAL_IMAGE_STAND_INS: ReadonlyArray<{
+  match: RegExp;
+  file: string;
+}> = [
+  {
+    match: /images\.unsplash\.com\/photo-1503023345310/,
+    file: "marketing/public/templates/samples/coffee.jpg"
+  },
+  {
+    match: /images\.unsplash\.com\/photo-1469474968028/,
+    file: "marketing/public/templates/samples/solarize-a-still.webp"
+  }
+];
+
+/**
+ * Answer the UI's hot-linked images locally, so a capture does not depend on
+ * the network and never shows a broken-image glyph for a third-party logo.
+ * Other external requests pass through untouched.
+ */
+async function stubExternalImages(page: Page): Promise<void> {
+  await page.route(
+    "https://huggingface.co/front/assets/**",
+    async (route) => {
+      await route.fulfill({ contentType: "image/svg+xml", body: HF_LOGO_SVG });
+    }
+  );
+  await page.route("https://images.unsplash.com/**", async (route) => {
+    const standIn = EXTERNAL_IMAGE_STAND_INS.find(({ match }) =>
+      match.test(route.request().url())
+    );
+    if (!standIn) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({ path: path.join(REPO_ROOT, standIn.file) });
+  });
+}
+
+/**
+ * Paint a preview's wrapper with the active color scheme's background. Some
+ * preview wrappers take `theme.palette.background.*`, which is the light
+ * palette's value even while the dark scheme's CSS variables color the text,
+ * so the capture comes out as pale text on white.
+ */
+async function paintSchemeBackground(
+  page: Page,
+  rules: ReadonlyArray<{ selector: string; token: "default" | "paper" }>
+): Promise<void> {
+  await page.addStyleTag({
+    content: rules
+      .map(
+        ({ selector, token }) =>
+          `${selector} { background-color: var(--palette-background-${token}) !important; border-color: var(--palette-divider) !important; }`
+      )
+      .join("\n")
+  });
+}
+
 /**
  * Navigate to a page and wait for the app shell to finish loading.
  *
@@ -395,6 +486,7 @@ async function gotoPage(
   panels?: PanelOverrides
 ): Promise<void> {
   await seedLocalStorage(page, panels);
+  await stubExternalImages(page);
   await page.goto(url);
 
   // Wait for the loading overlay to clear. We check by role/aria-label so the
@@ -421,9 +513,18 @@ async function gotoPage(
 async function waitForImages(page: Page, timeout = 15000): Promise<void> {
   await page.waitForFunction(
     () =>
-      Array.from(document.images).every(
-        (image) => image.complete && image.naturalWidth > 0
-      ),
+      Array.from(document.images)
+        .filter((image) => {
+          // Only images in the viewport: a lazy one off screen never loads.
+          const rect = image.getBoundingClientRect();
+          return (
+            rect.width > 0 &&
+            rect.height > 0 &&
+            rect.bottom > 0 &&
+            rect.top < window.innerHeight
+          );
+        })
+        .every((image) => image.complete && image.naturalWidth > 0),
     undefined,
     { timeout }
   );
@@ -510,23 +611,23 @@ async function waitForScreenshotReady(
     case "collections-explorer.png": {
       await ensureNoVisibleProgress(page);
       if (screenshotName === "models-list.png") {
-        // The screenshot backend has no local model cache, so the manager
-        // intentionally transitions to its first-run guidance. Assert on its
-        // content instead of accepting a blank manager shell.
+        // The manager opens on its Installed tab, which lists the local
+        // models the server knows of (the whisper.cpp files, none downloaded
+        // yet). Assert on a listed model instead of accepting a blank shell.
         await page
-          .getByText("Get started with local models", { exact: true })
+          .getByText("ggml-small.bin", { exact: true })
+          .first()
           .waitFor({ state: "visible", timeout: 15_000 });
         await expect(
-          page.getByText("Recommended models", { exact: true }).first()
+          page.getByText("Model categories", { exact: false }).first()
         ).toBeVisible();
       } else {
-        // Collections are empty in the deterministic screenshot fixture. The
-        // instructional empty state is still meaningful content and catches a
-        // request that never resolves or a route that renders only chrome.
+        // screenshot-docs-seed.ts seeds three collections. Waiting on one
+        // catches a request that never resolves or a route that renders only
+        // chrome.
         await page
-          .getByText("No collections found. Create one to get started.", {
-            exact: true
-          })
+          .getByText("brand-guidelines", { exact: true })
+          .first()
           .waitFor({ state: "visible", timeout: 15_000 });
       }
       break;
@@ -538,15 +639,6 @@ async function waitForScreenshotReady(
       // headless mode but the editor chrome is the documentation surface.
       await page.locator(".sketch-editor, .sketch-editor__body").first().waitFor({ state: "visible", timeout: 15000 });
       await page.getByText(/layers/i).first().waitFor({ state: "visible", timeout: 8000 });
-      await ensureNoVisibleProgress(page);
-      await waitForAnimation(page, 800);
-      break;
-    }
-    case "timeline-editor.png": {
-      // The timeline route mounts a TopBar, a tracks region (with a resize
-      // separator), and a status bar even before the sequence finishes
-      // loading. Wait for the tracks separator as a stable landmark.
-      await page.locator('[aria-label="Resize tracks panel"]').first().waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       break;
@@ -629,19 +721,25 @@ if (process.env.JEST_WORKER_ID) {
     //
     // First launch routes `/` to /dashboard until onboarding is finished. These
     // captures pin that first-run state explicitly (seedFirstRunOnboarding) so
-    // the welcome hero and the checklist render regardless of what the legacy
-    // `onboarding` key says.
+    // the welcome surface and the checklist render regardless of what the
+    // legacy `onboarding` key says.
 
+    // The first-run welcome is the editor home ("What do you want to make?")
+    // with the getting-started checklist above the prompt.
     test("Onboarding – welcome flow", async ({ page }) => {
       test.skip(shouldSkip("onboarding-welcome.png"), "Already captured");
       await seedFirstRunOnboarding(page);
       await gotoPage(page, "/dashboard");
       await page
-        .getByText(/what do you want to make today/i)
+        .getByText("What do you want to make?")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 });
+      await page
+        .locator('[aria-label="Getting started checklist"]')
         .first()
         .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
-      // The four track cards rise in with staggered delays up to 480ms.
+      await waitForImages(page);
       await waitForAnimation(page, 1200);
       await saveScreenshot(page, "onboarding-welcome.png");
     });
@@ -670,19 +768,21 @@ if (process.env.JEST_WORKER_ID) {
         shouldSkip("onboarding-empty-workspace.png"),
         "Already captured"
       );
-      await seedFirstRunOnboarding(page);
-      // No open tabs → WorkspaceShell renders WorkspaceEmptyView.
+      // A returning user's empty workspace: the welcome capture above already
+      // shows the first-run checklist, so this one is the plain surface.
+      await seedFinishedOnboarding(page);
+      // No open tabs → WorkspaceShell renders the editor home in
+      // `.workspace-empty`.
       await seedWorkspaceTabs(page, [], "");
       await gotoPage(page, "/workspace");
-      await page
-        .locator(".workspace-empty")
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 });
-      await page
-        .getByText(/turns a prompt into an image/i)
+      const empty = page.locator(".workspace-empty").first();
+      await empty.waitFor({ state: "visible", timeout: 15000 });
+      await empty
+        .getByText("What do you want to make?")
         .first()
         .waitFor({ state: "visible", timeout: 10000 });
       await ensureNoVisibleProgress(page);
+      await waitForImages(page);
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "onboarding-empty-workspace.png");
     });
@@ -753,10 +853,18 @@ if (process.env.JEST_WORKER_ID) {
     // The model picker opened from the composer's model chip.
     test("Chat – model selector", async ({ page }) => {
       test.skip(shouldSkip("chat-model-selector.png"), "Already captured");
+      await seedChatModel(page);
       await gotoPage(page, "/chat/thread-story");
       await waitForScreenshotReady(page, "global-chat-interface.png");
       await openComposerChip(page, "model");
-      await page.getByText(/select language model/i).first().waitFor({ state: "visible", timeout: 8000 });
+      // The picker's "Select Language Model" title is for assistive tech
+      // only; its search field is the visible landmark.
+      await page
+        .getByPlaceholder("Search language models...")
+        .first()
+        .waitFor({ state: "visible", timeout: 8000 });
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 600);
       await saveScreenshot(page, "chat-model-selector.png");
     });
 
@@ -833,11 +941,45 @@ if (process.env.JEST_WORKER_ID) {
     });
 
     // ── Assets ──────────────────────────────────────────────────────────────
+    /**
+     * The Assets page opened on its Images folder, where the seeded stills
+     * live. The root holds only the flat placeholder files.
+     */
+    async function openImagesFolder(page: Page): Promise<void> {
+      await seedWorkspaceTabs(
+        page,
+        [{ type: "page", ref: "assets", title: "Assets" }],
+        "page:assets"
+      );
+      await gotoPage(page, "/workspace");
+      await page.getByText(/^images$/i).first().click();
+      await page
+        .getByText(/scrapheart_convoy/)
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 });
+      await ensureNoVisibleProgress(page);
+      await waitForImages(page);
+      await waitForAnimation(page, 800);
+    }
+
     test("Assets", async ({ page }) => {
       test.skip(shouldSkip("asset-explorer.png"), "Already captured");
-      await gotoPage(page, "/assets");
-      await waitForScreenshotReady(page, "asset-explorer.png");
+      await openImagesFolder(page);
       await saveScreenshot(page, "asset-explorer.png");
+    });
+
+    test("Assets – viewer", async ({ page }) => {
+      test.skip(shouldSkip("asset-viewer.png"), "Already captured");
+      await openImagesFolder(page);
+      await page.getByText(/scrapheart_convoy/).first().dblclick();
+      // The viewer's close button is the one control it always shows.
+      await page
+        .getByRole("button", { name: /close/i })
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 });
+      await waitForImages(page);
+      await waitForAnimation(page, 1500);
+      await saveScreenshot(page, "asset-viewer.png");
     });
 
     // ── Collections ─────────────────────────────────────────────────────────
@@ -846,6 +988,20 @@ if (process.env.JEST_WORKER_ID) {
       await gotoPage(page, "/collections");
       await waitForScreenshotReady(page, "collections-explorer.png");
       await saveScreenshot(page, "collections-explorer.png");
+    });
+
+    test("Collections – create form", async ({ page }) => {
+      test.skip(shouldSkip("collections-create.png"), "Already captured");
+      await gotoPage(page, "/collections");
+      await page
+        .getByRole("button", { name: "Create Collection" })
+        .first()
+        .click();
+      const name = page.getByLabel(/Collection Name/i).first();
+      await name.waitFor({ state: "visible", timeout: 15000 });
+      await name.fill("product-manuals");
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "collections-create.png");
     });
 
     // ── Models ──────────────────────────────────────────────────────────────
@@ -928,7 +1084,8 @@ if (process.env.JEST_WORKER_ID) {
      * Select a widget on the Design canvas by the text it renders, so the
      * right-hand inspector shows that widget's fields. Puck's own class names
      * are content-hashed, so the canvas is addressed by text and the inspector
-     * by the stable `_Sidebar--right` prefix.
+     * by the stable `_Sidebar--right` prefix. The editor starts with both Puck
+     * sidebars closed, so the inspector is opened from Puck's header toggle.
      */
     async function selectWidget(page: Page, text: string): Promise<void> {
       await openMiniApp(page);
@@ -937,6 +1094,9 @@ if (process.env.JEST_WORKER_ID) {
         .first()
         .waitFor({ state: "visible", timeout: 20000 });
       await waitForAnimation(page, 2000);
+      if (!(await page.locator(RIGHT_SIDEBAR).first().isVisible())) {
+        await page.locator('button[title="Toggle right sidebar"]').first().click();
+      }
       await page
         .getByText(text, { exact: true })
         .first()
@@ -990,9 +1150,21 @@ if (process.env.JEST_WORKER_ID) {
         .first()
         .click({ force: true });
       await waitForAnimation(page, 1000);
-      await expect(
-        page.locator(RIGHT_SIDEBAR).first().getByText(/run workflow/i).first()
-      ).toBeVisible();
+      // The expanded event shows its Action select set to Run workflow. It is
+      // a native <select> whose options carry their text in `label`, so the
+      // check reads that attribute. It sits at the foot of a long inspector,
+      // so scroll it into the picture.
+      const action = page
+        .locator(RIGHT_SIDEBAR)
+        .first()
+        .getByRole("combobox", { name: "Action" })
+        .first();
+      await expect(action.locator("option:checked")).toHaveAttribute(
+        "label",
+        "Run workflow"
+      );
+      await action.scrollIntoViewIfNeeded();
+      await waitForAnimation(page, 600);
       await saveScreenshot(page, "mini-app-button-action.png");
     });
 
@@ -1007,10 +1179,21 @@ if (process.env.JEST_WORKER_ID) {
 
     // ── Timeline editor ────────────────────────────────────────────────────────
     // Backed by the seeded TimelineSequence "tl-demo-promo" (screenshot-server).
+    // The /timeline/:id route now opens the sequence read-only, so the editor
+    // (tracks, clips, inspector) is opened as a workspace tab in edit mode.
     test("Timeline editor", async ({ page }) => {
       test.skip(shouldSkip("timeline-editor.png"), "Already captured");
-      await gotoPage(page, "/timeline/tl-demo-promo");
-      await waitForScreenshotReady(page, "timeline-editor.png");
+      await captureTab(
+        page,
+        { type: "timeline", ref: "tl-demo-promo", title: "Product Promo" },
+        "Intro Shot"
+      );
+      // Park the playhead inside the first clip so the viewer shows a frame.
+      await page
+        .getByTestId("time-ruler")
+        .first()
+        .click({ position: { x: 250, y: 8 } });
+      await waitForAnimation(page, 2000);
       await saveScreenshot(page, "timeline-editor.png");
     });
 
@@ -1025,17 +1208,24 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "settings-dialog.png");
     });
 
+    // API keys live on the Models & Providers tab (APIKeysTab). The tab itself
+    // is captured as settings-providers-test.png, so this one opens a
+    // connected provider's Manage dialog, where a key is entered or replaced.
     test("Settings – API keys tab", async ({ page }) => {
       test.skip(shouldSkip("settings-api-keys.png"), "Already captured");
-      await gotoPage(page, "/settings");
+      await gotoPage(page, "/settings?tab=1");
+      const manage = page.getByRole("button", { name: "Manage", exact: true });
+      await manage.nth(1).waitFor({ state: "visible", timeout: 15000 });
+      // The second card is Anthropic: a plain API key, where OpenAI's dialog
+      // leads with its sign-in option.
+      await manage.nth(1).click();
+      await page
+        .getByRole("dialog")
+        .getByText(/update anthropic/i)
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 });
+      await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 600);
-      const apiKeysTab = page
-        .getByRole("tab")
-        .filter({ hasText: /api.*key|secret/i })
-        .first();
-      await apiKeysTab.waitFor({ state: "visible", timeout: 10000 });
-      await apiKeysTab.click();
-      await waitForAnimation(page, 400);
       await saveScreenshot(page, "settings-api-keys.png");
     });
 
@@ -1178,21 +1368,42 @@ if (process.env.JEST_WORKER_ID) {
 
     test("Editor – tabs bar", async ({ page }) => {
       test.skip(shouldSkip("editor-tabs-bar.png"), "Already captured");
-      await openEditorWithNodes(page);
-      // The header strip with workflow tabs sits at the top of the editor
-      // chrome. We capture a thin strip from the top of the viewport.
-      await assertNoErrorBoundary(page);
-      await ensureNoVisibleProgress(page);
-      await waitForImages(page);
+      // Documents of several kinds share the one tab bar, which is what
+      // docs/user-interface.md says under the picture.
+      await seedWorkspaceTabs(
+        page,
+        [
+          { type: "workflow", ref: "wf-story-generator", title: "Creative Story Generator" },
+          { type: "storyboard", ref: "sb-demo-noir", title: "Harbor Noir" },
+          { type: "timeline", ref: "tl-demo-promo", title: "Product Promo" },
+          { type: "sketch", ref: "sk-demo-portrait", title: "Character Concept" },
+          { type: "chat", ref: "thread-story", title: "Creative story about space explorers" },
+          { type: "page", ref: "settings", title: "Settings" }
+        ],
+        "workflow:wf-story-generator"
+      );
+      await gotoPage(page, "/workspace");
+      await page
+        .waitForFunction(
+          () => document.querySelectorAll(".react-flow__node").length > 0,
+          undefined,
+          { timeout: 15000 }
+        );
       await expect(
-        page.locator('[role="tab"], [data-testid*="tab"]').first()
-      ).toBeVisible();
-      const fullPath = path.join(SCREENSHOT_DIR, "editor-tabs-bar.png");
-      await page.screenshot({
-        path: fullPath,
-        clip: { x: 0, y: 0, width: DESKTOP_VIEWPORT.width, height: 96 }
+        page.locator(".workspace-tabbar").getByRole("tab")
+      ).toHaveCount(6, { timeout: 10000 });
+      await waitForAnimation(page, 800);
+      // Only the bar is in the picture, so only the bar must be settled: the
+      // inactive tabs stay mounted and may still be loading behind it.
+      await assertNoErrorBoundary(page);
+      const tabBar = page.locator(".workspace-tabbar").first();
+      await expect(
+        tabBar.locator('[role="progressbar"], .MuiCircularProgress-root')
+      ).toHaveCount(0);
+      await tabBar.screenshot({
+        path: path.join(SCREENSHOT_DIR, "editor-tabs-bar.png")
       });
-      console.log("  📸 editor-tabs-bar.png (clipped)");
+      console.log("  📸 editor-tabs-bar.png (.workspace-tabbar)");
     });
 
     test("Editor – command menu (Cmd/Ctrl+K)", async ({ page }) => {
@@ -1215,35 +1426,23 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "editor-command-menu.png");
     });
 
-    test("Editor – quick add node (Cmd/Ctrl+Shift+A)", async ({ page }) => {
-      test.skip(shouldSkip("editor-quick-add-node.png"), "Already captured");
-      await openEditorWithNodes(page);
-      await page.keyboard.press("Control+Shift+A");
-      const fallbackKey = "Meta+Shift+A";
-      // Wait for any modal/dialog/role=dialog to appear
-      const dialog = page
-        .locator(
-          '[role="dialog"], .MuiDialog-paper, .MuiPopover-paper, .quick-add-node'
-        )
-        .first();
-      const opened = await dialog
-        .waitFor({ state: "visible", timeout: 5000 })
-        .then(() => true)
-        .catch(() => false);
-      if (!opened) {
-        await page.keyboard.press(fallbackKey);
-        await dialog.waitFor({ state: "visible", timeout: 5000 });
-      }
-      await waitForAnimation(page, 400);
-      await saveScreenshot(page, "editor-quick-add-node.png");
-    });
+    // There is no quick-add-node dialog any more: Ctrl/Cmd+Shift+A is unbound
+    // and Shift+A aligns nodes. Shift+P/G/V/L drop a node at the cursor with
+    // no dialog, and searching for a node is the node menu (Space), captured
+    // as editor-node-menu.png.
 
     // ── Mobile viewport captures ────────────────────────────────────────────
 
     test("Mobile – mini-app runner", async ({ page }) => {
       test.skip(shouldSkip("mobile-mini-app-runner.png"), "Already captured");
       await page.setViewportSize({ width: 375, height: 812 });
-      await gotoPage(page, "/miniapp/wf-story-generator");
+      // A legacy /miniapp/<workflowId> link opens the app bound to that
+      // workflow; the seeded app binds wf-mini-app.
+      await gotoPage(page, "/miniapp/wf-mini-app");
+      await page
+        .getByRole("button", { name: /^run echo$/i })
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 });
       await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "mobile-mini-app-runner.png");
@@ -1297,10 +1496,12 @@ if (process.env.JEST_WORKER_ID) {
       if (!box) throw new Error("Editor canvas has no geometry");
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.keyboard.press(" ");
-      const menu = page
-        .locator('.node-menu, [class*="NodeMenu"], [data-testid="node-menu"]')
-        .first();
-      await menu.waitFor({ state: "visible", timeout: 5000 });
+      // The menu opens with its search field focused.
+      await page
+        .getByRole("searchbox", { name: "Search for nodes..." })
+        .first()
+        .waitFor({ state: "visible", timeout: 5000 });
+      await ensureNoVisibleProgress(page);
       await waitForAnimation(page, 500);
       await saveScreenshot(page, "editor-node-menu.png");
     });
@@ -1332,17 +1533,22 @@ if (process.env.JEST_WORKER_ID) {
       // Click the canvas so the editor has focus before sending the shortcut.
       await page.locator(".react-flow").first().click();
       await page.keyboard.press("Control+F");
-      const dialog = page
-        .locator('[class*="findInWorkflow"], [class*="FindInWorkflow"], [role="dialog"]')
-        .first();
-      const opened = await dialog
+      const findField = page.getByRole("textbox", { name: "Find nodes" }).first();
+      const opened = await findField
         .waitFor({ state: "visible", timeout: 4000 })
         .then(() => true)
         .catch(() => false);
       if (!opened) {
         await page.keyboard.press("Meta+F");
-        await dialog.waitFor({ state: "visible", timeout: 4000 });
+        await findField.waitFor({ state: "visible", timeout: 4000 });
       }
+      // A query shows the bar doing its job: the match count and the
+      // highlighted node, not the empty "Type to search nodes" hint.
+      await findField.fill("agent");
+      await page
+        .getByText(/\d+ of \d+ nodes? found/)
+        .first()
+        .waitFor({ state: "visible", timeout: 4000 });
       await waitForAnimation(page, 400);
       await saveScreenshot(page, "editor-find-in-workflow.png");
     });
@@ -1486,32 +1692,43 @@ if (process.env.JEST_WORKER_ID) {
         .getByText("What do you want to make?")
         .first()
         .waitFor({ state: "visible", timeout: 20000 });
-      // The estimate is read off past projects of the shape being started, and
-      // the two the fixture prices are trailers — so pick that shape to shoot
-      // the surface with the line it exists to show.
+      // A project starts from a skill: a `/name` in the prompt lights that
+      // skill's pill (folded ones included) and shows its description under
+      // the row. The spend estimate ("from N past projects") is read off past
+      // projects whose kind equals the skill's name, and the two fixture
+      // trailers are kind "trailer-template".
       await page
-        .getByRole("button", { name: "Trailer", exact: true })
-        .first()
-        .click();
+        .getByPlaceholder(/30-second launch spot/)
+        .fill(
+          "/trailer-template A 60-second teaser for a desert convoy chase, rust and dust, no dialogue"
+        );
+      await expect(
+        page.locator('[aria-pressed="true"]').filter({ hasText: /trailer template/i })
+      ).toHaveCount(1);
       await page
         .getByText(/from 2 past projects/i)
         .first()
         .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
+      await waitForImages(page);
       await waitForAnimation(page, 600);
       await saveScreenshot(page, "project-new.png");
     });
 
+    // A project tab no longer has an overview of its own (old persisted
+    // project tabs land on the editor home). The project's agent and its
+    // documents now share the chat surface: the thread that built SCRAPHEART
+    // on the left, the active project's documents in the right column.
     test("Projects – overview (agent + documents)", async ({ page }) => {
       test.skip(shouldSkip("project-overview.png"), "Already captured");
       await seedChatModel(page);
-      // The project's own tabs, so the bar shows the group the overview heads.
+      // The project's own tabs, so the bar shows the group the thread heads.
       await seedWorkspaceTabs(
         page,
         [
           {
-            type: "project",
-            ref: "proj-scrapheart",
+            type: "chat",
+            ref: "thread-project-scrapheart",
             title: "SCRAPHEART — Trailer",
             projectId: "proj-scrapheart"
           },
@@ -1534,23 +1751,260 @@ if (process.env.JEST_WORKER_ID) {
             projectId: "proj-scrapheart"
           }
         ],
-        "project:proj-scrapheart",
+        "chat:thread-project-scrapheart",
         "proj-scrapheart"
       );
       await gotoPage(page, "/workspace");
-      // The right column lists the documents; the left replays the thread.
-      await page
-        .getByText("SCRAPHEART — shot board")
-        .first()
-        .waitFor({ state: "visible", timeout: 20000 });
       await page
         .getByText(/six shots, all on long lenses/i)
         .first()
+        .waitFor({ state: "visible", timeout: 20000 });
+      // The right column lists the project's documents.
+      await page
+        .getByText(/SCRAPHEART — shot bo/)
+        .nth(1)
         .waitFor({ state: "visible", timeout: 20000 });
       await ensureNoVisibleProgress(page);
       await waitForImages(page);
       await waitForAnimation(page, 1000);
       await saveScreenshot(page, "project-overview.png");
+    });
+
+    // ── Editors the docs pages describe ────────────────────────────────────
+    //
+    // One capture per document editor that had no picture. The fixtures come
+    // from `screenshot-projects.ts` (SCRAPHEART board, script and cut) and
+    // `screenshot-docs-seed.ts` (3D set, trailer score, JS script, skills,
+    // memories).
+
+    /** Open one workspace tab, wait for `anchor`, settle, and capture. */
+    async function captureTab(
+      page: Page,
+      tab: SeededTab,
+      anchor: string | RegExp,
+      settleMs = 800
+    ): Promise<void> {
+      await seedFinishedOnboarding(page);
+      await seedChatModel(page);
+      await seedWorkspaceTabs(
+        page,
+        [tab],
+        `${tab.type}:${tab.ref}`,
+        tab.projectId ?? null
+      );
+      await gotoPage(page, "/workspace");
+      await page
+        .getByText(anchor)
+        .first()
+        .waitFor({ state: "visible", timeout: 30000 });
+      await ensureNoVisibleProgress(page);
+      await waitForImages(page);
+      await waitForAnimation(page, settleMs);
+    }
+
+    test("3D editor", async ({ page }) => {
+      test.skip(shouldSkip("3d-editor.png"), "Already captured");
+      await captureTab(
+        page,
+        { type: "model3d", ref: "model3d-product-shot", title: "product_shot_set.gltf" },
+        "Plinth",
+        2000
+      );
+      // A selected object fills the inspector with its transform and material.
+      await page.getByText("Product", { exact: true }).first().click();
+      await waitForAnimation(page, 1200);
+      await saveScreenshot(page, "3d-editor.png");
+    });
+
+    test("Audio editor", async ({ page }) => {
+      test.skip(shouldSkip("audio-editor.png"), "Already captured");
+      await captureTab(
+        page,
+        { type: "audio", ref: "audio-trailer-score", title: "trailer_score.mp3" },
+        "Save to audio"
+      );
+      // The waveform is decoded after the toolbar mounts; the duration
+      // readout switches from 0:00.000 once the file has been read.
+      await page
+        .getByText(/\/ 0:24/)
+        .first()
+        .waitFor({ state: "visible", timeout: 60000 });
+      await waitForAnimation(page, 1500);
+      await saveScreenshot(page, "audio-editor.png");
+    });
+
+    test("Script editor", async ({ page }) => {
+      test.skip(shouldSkip("script-editor.png"), "Already captured");
+      await captureTab(
+        page,
+        {
+          type: "script",
+          ref: "script-scrapheart",
+          title: "SCRAPHEART — voiceover",
+          projectId: "proj-scrapheart"
+        },
+        "They said the convoy could not be caught."
+      );
+      await saveScreenshot(page, "script-editor.png");
+    });
+
+    test("Storyboard – shots with stills and clips", async ({ page }) => {
+      test.skip(shouldSkip("storyboard-shots.png"), "Already captured");
+      await captureTab(
+        page,
+        {
+          type: "storyboard",
+          ref: "sb-scrapheart",
+          title: "SCRAPHEART — shot board",
+          projectId: "proj-scrapheart"
+        },
+        "Convoy",
+        1500
+      );
+      await saveScreenshot(page, "storyboard-shots.png");
+    });
+
+    test("Video editor – cut with clips", async ({ page }) => {
+      test.skip(shouldSkip("video-editor-timeline.png"), "Already captured");
+      await captureTab(
+        page,
+        {
+          type: "timeline",
+          ref: "tl-scrapheart",
+          title: "SCRAPHEART — cut v3",
+          projectId: "proj-scrapheart"
+        },
+        "The chain"
+      );
+      // Park the playhead inside the first clip so the viewer shows a frame.
+      await page
+        .getByTestId("time-ruler")
+        .first()
+        .click({ position: { x: 250, y: 8 } });
+      await waitForAnimation(page, 3000);
+      await saveScreenshot(page, "video-editor-timeline.png");
+    });
+
+    test("Timeline – motion design", async ({ page }) => {
+      test.skip(shouldSkip("timeline-motion-design.png"), "Already captured");
+      await captureTab(
+        page,
+        { type: "timeline", ref: "tl-motion-demo", title: "Motion demo" },
+        "Motion Title"
+      );
+      // At 0:00 the title has not faded in yet.
+      await page
+        .getByTestId("time-ruler")
+        .first()
+        .click({ position: { x: 160, y: 8 } });
+      await waitForAnimation(page, 2500);
+      await saveScreenshot(page, "timeline-motion-design.png");
+    });
+
+    test("JS script editor", async ({ page }) => {
+      test.skip(shouldSkip("js-script-editor.png"), "Already captured");
+      await captureTab(
+        page,
+        { type: "jsscript", ref: "js-headline-variants", title: "Headline variants" },
+        "Show in node menu"
+      );
+      await page
+        .locator(".monaco-editor .view-lines")
+        .first()
+        .waitFor({ state: "visible", timeout: 30000 });
+      await waitForAnimation(page, 1000);
+      await saveScreenshot(page, "js-script-editor.png");
+    });
+
+    test("Skill editor", async ({ page }) => {
+      test.skip(shouldSkip("skill-editor.png"), "Already captured");
+      await captureTab(
+        page,
+        { type: "skill", ref: "skill-brand-voice", title: "brand-voice" },
+        "Matched against the agent objective"
+      );
+      await page
+        .locator(".monaco-editor .view-lines")
+        .first()
+        .waitFor({ state: "visible", timeout: 30000 });
+      await waitForAnimation(page, 1000);
+      await saveScreenshot(page, "skill-editor.png");
+    });
+
+    test("Memory page", async ({ page }) => {
+      test.skip(shouldSkip("memory-page.png"), "Already captured");
+      await captureTab(
+        page,
+        { type: "page", ref: "memory", title: "Memory" },
+        "Aurora palette"
+      );
+      await saveScreenshot(page, "memory-page.png");
+    });
+
+    test("Examples page", async ({ page }) => {
+      test.skip(shouldSkip("examples-page.png"), "Already captured");
+      await captureTab(
+        page,
+        { type: "page", ref: "examples", title: "Examples" },
+        "Start from an app",
+        1500
+      );
+      await saveScreenshot(page, "examples-page.png");
+    });
+
+    test("Guided flow – new image", async ({ page }) => {
+      test.skip(shouldSkip("guided-flow.png"), "Already captured");
+      await captureTab(
+        page,
+        { type: "project-new", ref: "new", title: "New project" },
+        "What do you want to make?"
+      );
+      await page.getByText("Image", { exact: true }).first().click();
+      const example = page.getByText(
+        "A ceramic pour-over coffee dripper on a sunlit kitchen counter"
+      );
+      await example.first().waitFor({ state: "visible", timeout: 15000 });
+      await example.first().click();
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "guided-flow.png");
+    });
+
+    test("Game editor", async ({ page }) => {
+      test.skip(shouldSkip("game-editor.png"), "Already captured");
+      // The renderer picks WebGPU when the browser offers it, and headless
+      // Chromium's software adapter draws nothing. Without it the editor
+      // falls back to WebGL, which SwiftShader renders.
+      await page.addInitScript(() => {
+        try {
+          delete (Object.getPrototypeOf(navigator) as { gpu?: unknown }).gpu;
+        } catch {
+          /* ignore */
+        }
+      });
+      const response = await page.request.post(
+        "http://localhost:7777/trpc/games.installExample",
+        { data: { slug: "kindle", projectId: "proj-scrapheart" } }
+      );
+      expect(response.ok()).toBe(true);
+      const body = (await response.json()) as {
+        result: { data: { game: { id: string } } };
+      };
+      await captureTab(
+        page,
+        {
+          type: "game",
+          ref: body.result.data.game.id,
+          title: "Kindle",
+          projectId: "proj-scrapheart"
+        },
+        "Scene tree",
+        4000
+      );
+      // Select the player so the inspector shows a sprite, not the scene.
+      await page.getByPlaceholder("Search entities").first().fill("hero");
+      await page.getByText("hero", { exact: true }).first().click();
+      await waitForAnimation(page, 1500);
+      await saveScreenshot(page, "game-editor.png");
     });
 
     // ── Component-preview captures ─────────────────────────────────────────
@@ -1613,10 +2067,12 @@ if (process.env.JEST_WORKER_ID) {
         preview: "image-compare",
         filename: "image-compare.png",
         ready: async (p) => {
-          await p
-            .locator('img[alt="Before"], img[alt="After"]')
-            .first()
-            .waitFor({ state: "visible", timeout: 12000 });
+          // Both sides, so a pair where only one loaded fails here rather
+          // than as a broken image in the picture.
+          await expect(
+            p.locator('img[alt="Before"], img[alt="After"]')
+          ).toHaveCount(2, { timeout: 12000 });
+          await waitForImages(p, 12000);
           await waitForAnimation(p, 400);
         }
       },
@@ -1624,10 +2080,14 @@ if (process.env.JEST_WORKER_ID) {
         preview: "recommended-models",
         filename: "recommended-models.png",
         ready: async (p) => {
+          // The list shows repo ids, not display names.
           await p
-            .getByText(/Stable Diffusion XL Base|FLUX\.1 Schnell/i)
+            .getByText(/stable-diffusion-xl-base-1\.0|FLUX\.1-schnell/i)
             .first()
             .waitFor({ state: "visible", timeout: 8000 });
+          await paintSchemeBackground(p, [
+            { selector: '[data-preview="recommended-models"]', token: "paper" }
+          ]);
         }
       },
       {
@@ -1659,6 +2119,10 @@ if (process.env.JEST_WORKER_ID) {
             .locator('[data-preview="node-readme"]')
             .first()
             .waitFor({ state: "visible", timeout: 8000 });
+          await paintSchemeBackground(p, [
+            { selector: '[data-preview="node-readme"]', token: "default" },
+            { selector: '[data-preview="node-readme"] > div', token: "paper" }
+          ]);
           await waitForAnimation(p, 400);
         }
       },

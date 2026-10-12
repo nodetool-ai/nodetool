@@ -20,8 +20,8 @@ import { DownloadProgress } from "../DownloadProgress";
 import modelListItemStyles from "./ModelListItem.styles";
 import { ModelListItemActions } from "./ModelListItemActions";
 import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
+  TOOLTIP_ENTER_NEXT_DELAY,
+  TOOLTIP_DESCRIPTION_DELAY
 } from "../../../config/constants";
 import { formatBytes } from "../../../utils/modelFormatting";
 import { getModelUrl } from "../../../utils/providerDisplay";
@@ -200,7 +200,7 @@ const ModelListItem: React.FC<
             </div>
 
             <div className="model-details">
-              <Tooltip title={execution.reason ?? execution.label} delay={400}>
+              <Tooltip title={execution.reason ?? execution.label}>
                 <Chip
                   label={execution.label}
                   compact
@@ -234,7 +234,7 @@ const ModelListItem: React.FC<
               {model.pipeline_tag && (
                 <Tooltip
                   title="View trending models with this tag on HuggingFace"
-                  delay={TOOLTIP_ENTER_DELAY * 2}
+                  delay={TOOLTIP_DESCRIPTION_DELAY}
                   nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
                 >
                   <TextLink
@@ -256,7 +256,6 @@ const ModelListItem: React.FC<
                   title={`Estimated from the model's ${formatBytes(
                     model.size_on_disk ?? 0
                   )} size against your ${fitBudgetGb} GB memory budget (set it under Get Started).`}
-                  delay={400}
                 >
                   <Chip
                     label={FIT_CHIP[fit].label(estimateRequiredGb(model) ?? 0)}

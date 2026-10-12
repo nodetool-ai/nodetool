@@ -21,12 +21,9 @@ import {
   OllamaLink
 } from "../ModelActionsCommon";
 import { UnifiedModel } from "../../../stores/ApiTypes";
-import {
-  TOOLTIP_ENTER_DELAY,
-  TOOLTIP_ENTER_NEXT_DELAY
-} from "../../../config/constants";
 import { isProduction } from "../../../lib/env";
 import { isElectron } from "../../../utils/browser";
+import { TOOLTIP_DESCRIPTION_DELAY } from "../../../config/constants";
 
 interface ModelListItemActionsProps {
   model: UnifiedModel;
@@ -130,8 +127,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
               ? "Show in Explorer"
               : "Downloaded"
           }
-          delay={TOOLTIP_ENTER_DELAY * 2}
-          nextDelay={TOOLTIP_ENTER_NEXT_DELAY}
+          delay={TOOLTIP_DESCRIPTION_DELAY}
         >
           <Chip
             label="Downloaded"

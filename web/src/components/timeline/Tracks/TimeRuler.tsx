@@ -32,7 +32,8 @@ import {
   FONT_SIZE_MONO,
   SPACING,
   TYPOGRAPHY,
-  getSpacingPx
+  getSpacingPx,
+  Tooltip
 } from "../../ui_primitives";
 import { computeBarRulerTicks } from "./tempoGrid";
 
@@ -222,19 +223,20 @@ const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
             style={{ left: contentPx, backgroundColor: m.color || undefined }}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              className="marker-seek"
-              data-testid="timeline-marker"
-              aria-label={`${m.label || "Marker"} at ${formatTimecode(m.timeMs, 500)}`}
-              title={`${m.label || "Marker"} — click to seek`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSeek(m.timeMs);
-              }}
-            >
-              {m.label || "Marker"}
-            </button>
+            <Tooltip title={`${m.label || "Marker"} — click to seek`} describeChild>
+              <button
+                type="button"
+                className="marker-seek"
+                data-testid="timeline-marker"
+                aria-label={`${m.label || "Marker"} at ${formatTimecode(m.timeMs, 500)}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSeek(m.timeMs);
+                }}
+              >
+                {m.label || "Marker"}
+              </button>
+            </Tooltip>
             <button
               type="button"
               className="marker-delete"

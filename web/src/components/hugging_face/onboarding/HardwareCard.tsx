@@ -104,7 +104,7 @@ const HardwareCard: React.FC<HardwareCardProps> = ({
             Your machine
           </Text>
           {profile.tier && (
-            <Tooltip title={TIER_LABELS[profile.tier]} delay={400}>
+            <Tooltip title={TIER_LABELS[profile.tier]}>
               <Chip
                 label={tierName(TIER_LABELS[profile.tier])}
                 compact

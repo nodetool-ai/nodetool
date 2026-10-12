@@ -2,7 +2,6 @@ import { useCallback } from "react";
 
 import { Box, ToolbarIconButton, Tooltip } from "../ui_primitives";
 import type { TooltipProps } from "../ui_primitives";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   PROJECT_LIST_REF,
   useWorkspaceTabsStore
@@ -59,11 +58,7 @@ const ProjectsRailButton = ({
   }, [openTab, onSelect]);
 
   return (
-    <Tooltip
-      title="Projects"
-      placement={tooltipPlacement}
-      delay={TOOLTIP_ENTER_DELAY}
-    >
+    <Tooltip title="Projects" placement={tooltipPlacement}>
       <ToolbarIconButton
         tabIndex={-1}
         ariaLabel="Projects"

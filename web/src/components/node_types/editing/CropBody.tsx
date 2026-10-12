@@ -35,7 +35,8 @@ import { SPACING,
   BORDER_RADIUS,
   NodeSelect,
   NodeMenuItem,
-  type SelectChangeEvent
+  type SelectChangeEvent,
+  Tooltip
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -751,15 +752,16 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
             />
           </div>
         </div>
-        <button
-          type="button"
-          className="reset-btn"
-          onClick={handleReset}
-          aria-label="Reset crop"
-          title="Reset crop"
-        >
-          <RestartAltIcon fontSize="small" />
-        </button>
+        <Tooltip title="Reset crop" describeChild>
+          <button
+            type="button"
+            className="reset-btn"
+            onClick={handleReset}
+            aria-label="Reset crop"
+          >
+            <RestartAltIcon fontSize="small" />
+          </button>
+        </Tooltip>
       </div>
 
       {!isOutputNode && (

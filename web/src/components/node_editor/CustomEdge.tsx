@@ -116,7 +116,7 @@ export function CustomEdge({
       />
       {showLabel && (
         <EdgeLabelRenderer>
-          <Tooltip title={tooltipText} placement="top" arrow delay={300}>
+          <Tooltip title={tooltipText} placement="top">
             <div style={labelStyle} className="nodrag nopan">
               {counter}
             </div>

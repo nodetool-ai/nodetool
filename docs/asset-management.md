@@ -55,15 +55,13 @@ The server rejects a single upload above `NODETOOL_MAX_UPLOAD_BYTES` (1 GiB by d
 
 ### Working with Assets in Workflows
 
-![Drag Asset to Canvas](assets/screenshots/screenshot-placeholder.svg)
-
 Drag any asset from the Asset Explorer onto the workflow canvas. NodeTool adds a constant node for its type, such as `nodetool.constant.Image`, `Video`, `Audio`, `Document`, or `Model3D`. Dragging several selected assets adds one node each. An unsupported type shows an "Unsupported file type" error.
 
 ---
 
 ## Asset Viewers
 
-![Asset Preview](assets/screenshots/screenshot-placeholder.svg)
+![The asset viewer showing a still, with download, edit, compare and info controls and a strip of the folder's other files](assets/screenshots/asset-viewer.png)
 
 NodeTool includes specialized viewers for common file types:
 

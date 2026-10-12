@@ -8,7 +8,7 @@ import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as React
 import { ConfirmDialog, EmptyState, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
-import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
+import { NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -334,8 +334,6 @@ const FavoritesTiles = memo(function FavoritesTiles({
                 </div>
               }
               placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-              enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="favorite-tile"

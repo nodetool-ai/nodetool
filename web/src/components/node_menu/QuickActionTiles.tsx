@@ -9,7 +9,7 @@ import type {
   KeyboardEvent as ReactKeyboardEvent
 } from "react";
 import { Tooltip, Text, thinScrollbarStyles, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
-import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
+import { NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -311,8 +311,6 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 </div>
               }
               placement="top"
-              delay={TOOLTIP_ENTER_DELAY}
-              nextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="quick-tile"
@@ -380,8 +378,6 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 </div>
               }
               placement="top"
-              delay={TOOLTIP_ENTER_DELAY}
-              nextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="quick-tile constant-tile"
