@@ -1188,6 +1188,7 @@ export const PROVIDER_IDS = {
   ATLASCLOUD: "atlascloud",
   HIGGSFIELD: "higgsfield",
   USEAPI: "useapi",
+  VGENV: "vgenv",
   AKI: "aki",
   MESHY: "meshy",
   RODIN: "rodin",

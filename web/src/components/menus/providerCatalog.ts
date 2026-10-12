@@ -398,6 +398,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     }
   },
   {
+    key: "VGENV_API_KEY",
+    providerId: PROVIDER_IDS.VGENV,
+    name: "vgenv",
+    description: "MiniMax H3 text, image, and reference video generation.",
+    section: "media",
+    docsUrl: "https://vgenv.com/developers/docs"
+  },
+  {
     key: "REVE_API_KEY",
     providerId: PROVIDER_IDS.REVE,
     name: "Reve",

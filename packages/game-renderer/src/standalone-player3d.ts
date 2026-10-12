@@ -8,6 +8,8 @@ import { mountTouchControls, touchLayout } from "./touch-controls.js";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "./audio.js";
 import { FixedTickClock } from "./fixed-tick-host.js";
 import { GameFrameBudgetMonitor, gameAudioVoiceCount } from "./frame-budget.js";
+import { attachGameUiPointer, browserGameUiInsets, browserGameUiMeasure, GameUiController } from "./ui/controller.js";
+import { gameUiViewport3D } from "./ui/hud3d.js";
 
 declare global {
   interface Window {
@@ -83,8 +85,15 @@ async function start(): Promise<void> {
     audio.sync(session.snapshot());
   };
   const input = new GameInput3D();
+  // HUD buttons press their input actions on the same input, by pointer, touch or gamepad focus.
+  // A locked pointer has no position, so HUD hits wait until the mouse is released.
+  const hud = new GameUiController(input, browserGameUiMeasure(game.id));
+  const hudViewport = gameUiViewport3D(game);
+  const detachHud = attachGameUiPointer(canvas, hud, () => hudViewport, () => document.pointerLockElement !== canvas);
+  let hudInsets = browserGameUiInsets(canvas, hudViewport);
+  window.addEventListener("resize", () => { hudInsets = browserGameUiInsets(canvas, hudViewport); }, { signal: controller.signal });
   let dragging = false;
-  const release = (): void => { input.release(); dragging = false; };
+  const release = (): void => { hud.release(); input.release(); dragging = false; };
   window.addEventListener("keydown", (event) => {
     input.keyDown(event.code, event.key);
     if (input.handlesKey(game, event.code, event.key)) { event.preventDefault(); }
@@ -107,6 +116,8 @@ async function start(): Promise<void> {
   window.addEventListener("touchstart", enableTouch, { passive: true, signal: controller.signal });
   // A touch that reaches the canvas, outside the touch zones or before they appear, fires on tap and turns the camera on drag.
   canvas.addEventListener("pointerdown", (event) => {
+    // A press on a HUD button stays with the HUD.
+    if (event.defaultPrevented) { return; }
     dragging = true;
     canvas.setPointerCapture(event.pointerId);
     input.mouseDown(event.button);
@@ -128,7 +139,8 @@ async function start(): Promise<void> {
     rendering = true;
     try {
       audio.updateSpatial(gameAudioSpatialView3D(frame, interpolation));
-      const stats = await renderer.render(frame, interpolation);
+      hud.update(frame.ui, hudViewport, hudInsets);
+      const stats = await renderer.render(hud.annotate(frame), interpolation);
       budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, voices: gameAudioVoiceCount(audio.mixerState()) });
     }
     catch (error) { if (renderer.capabilities.deviceStatus !== "lost") { paused = true; } status(error instanceof Error ? error.message : "Rendering failed"); }
@@ -139,7 +151,7 @@ async function start(): Promise<void> {
     if (disposed) { return; }
     if (!paused && !contextPaused && !document.hidden) {
       try {
-        const interpolation = clock.advance(now, () => { input.pollGamepads(browserGamepads()); step(input.sample(game)); });
+        const interpolation = clock.advance(now, () => { input.pollGamepads(hud.pollGamepads(browserGamepads())); step(input.sample(game)); });
         void render(interpolation);
       } catch (error) { paused = true; clock.reset(); status(error instanceof Error ? error.message : "Game script failed"); }
     } else if (contextPaused && renderer.capabilities.deviceStatus === "ready") {
@@ -173,6 +185,7 @@ async function start(): Promise<void> {
     cancelAnimationFrame(animationId);
     controller.abort();
     unmountTouch?.();
+    detachHud();
     session.dispose();
     renderer.dispose();
     audio.dispose();
