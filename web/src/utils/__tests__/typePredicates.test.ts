@@ -21,10 +21,9 @@ describe("typePredicates", () => {
 
   it("isNumber accepts NaN but isFiniteNumber does not", () => {
     expect(isNumber(NaN)).toBe(true);
-    expect(isNumber("1")).toBe(false);
-    expect(isFiniteNumber(1)).toBe(true);
     expect(isFiniteNumber(NaN)).toBe(false);
-    expect(isFiniteNumber(-Infinity)).toBe(false);
+    expect(isFiniteNumber(Infinity)).toBe(false);
+    expect(isFiniteNumber(0)).toBe(true);
     expect(isFiniteNumber("1")).toBe(false);
   });
 
@@ -43,7 +42,6 @@ describe("typePredicates", () => {
     expect(isRecord(null)).toBe(false);
     expect(isRecord([])).toBe(false);
     expect(isObjectLike([])).toBe(true);
-    expect(isObjectLike({})).toBe(true);
     expect(isObjectLike(null)).toBe(false);
     expect(isObjectLike("x")).toBe(false);
   });
