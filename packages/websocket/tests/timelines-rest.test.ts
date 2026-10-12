@@ -1,12 +1,13 @@
 /**
- * REST routes for the timeline zip — `GET /api/timelines/:id/export-zip` and
- * `POST /api/timelines/import-zip`.
+ * REST routes for the timeline zips — `GET /api/timelines/:id/export-zip`,
+ * `GET /api/timelines/:id/export-premiere` and `POST /api/timelines/import-zip`.
  *
  * Run with:
  *   npm run test --workspace=packages/websocket -- timelines-rest
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   Asset,
@@ -165,6 +166,80 @@ describe("timeline zip routes", () => {
     expect(packed).toEqual(VIDEO);
   });
 
+  it("exports a Premiere zip with the xmeml sequence, its media and a report", async () => {
+    const asset = await seedAsset();
+    const seq = await seedTimeline(USER_ID, asset.id);
+
+    const res = await server.inject({
+      url: `/api/timelines/${seq.id}/export-premiere`
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toBe("application/zip");
+    expect(res.headers["content-disposition"]).toBe(
+      'attachment; filename="My_Cut-premiere.zip"'
+    );
+    const entries = unzipSync(new Uint8Array(res.rawPayload));
+    const mediaFile = `media/shot-${asset.id.slice(0, 8)}.mp4`;
+    expect(Object.keys(entries).sort()).toEqual(
+      ["My_Cut.xml", "export-report.txt", mediaFile].sort()
+    );
+    expect(entries[mediaFile]).toEqual(VIDEO);
+    const xml = strFromU8(entries["My_Cut.xml"]);
+    expect(xml).toContain('<xmeml version="4">');
+    expect(xml).toContain(`<pathurl>${mediaFile}</pathurl>`);
+    expect(xml).toContain("<start>0</start><end>60</end>");
+    expect(strFromU8(entries["export-report.txt"])).toContain(
+      "choose File > Import and pick My_Cut.xml"
+    );
+  });
+
+  it("exports a media zip with each clip's file and a clip list", async () => {
+    const asset = await seedAsset();
+    const seq = await seedTimeline(USER_ID, asset.id);
+
+    const res = await server.inject({
+      url: `/api/timelines/${seq.id}/export-media`
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-disposition"]).toBe(
+      'attachment; filename="My_Cut-media.zip"'
+    );
+    expect(res.headers["x-nodetool-export-missing"]).toBe("0");
+    const entries = unzipSync(new Uint8Array(res.rawPayload));
+    const mediaFile = `media/shot-${asset.id.slice(0, 8)}.mp4`;
+    expect(Object.keys(entries).sort()).toEqual(["clips.csv", mediaFile]);
+    expect(entries[mediaFile]).toEqual(VIDEO);
+    expect(strFromU8(entries["clips.csv"])).toBe(
+      `clip,track,media_type,start_s,end_s,in_s,file\nShot 1,V1,video,0.000,2.000,0.000,${mediaFile}\n`
+    );
+  });
+
+  it("counts a clip's unreadable media in the media export", async () => {
+    const seq = await seedTimeline(USER_ID, "gone");
+
+    const res = await server.inject({
+      url: `/api/timelines/${seq.id}/export-media`
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["x-nodetool-export-missing"]).toBe("1");
+    const entries = unzipSync(new Uint8Array(res.rawPayload));
+    expect(Object.keys(entries)).toEqual(["clips.csv"]);
+  });
+
+  it("answers 404 for a Premiere export of someone else's timeline", async () => {
+    const asset = await seedAsset("user-2");
+    const seq = await seedTimeline("user-2", asset.id);
+
+    const res = await server.inject({
+      url: `/api/timelines/${seq.id}/export-premiere`
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
   it("answers 404 for a timeline owned by someone else", async () => {
     const asset = await seedAsset("user-2");
     const seq = await seedTimeline("user-2", asset.id);
@@ -212,6 +287,60 @@ describe("timeline zip routes", () => {
     expect(
       await adapter.retrieve(adapter.uriForKey(`${USER_ID}/${newAssetId}.mp4`))
     ).toEqual(VIDEO);
+  });
+
+  it("imports a Premiere XML zip into a new timeline with its media", async () => {
+    const asset = await seedAsset();
+    const seq = await seedTimeline(USER_ID, asset.id);
+    const exported = await server.inject({
+      url: `/api/timelines/${seq.id}/export-premiere`
+    });
+
+    const { payload, headers } = await multipart(
+      { project_id: "p2" },
+      { name: "cut-premiere.zip", bytes: new Uint8Array(exported.rawPayload) }
+    );
+    const res = await server.inject({
+      method: "POST",
+      url: "/api/timelines/import-zip",
+      payload,
+      headers
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toMatchObject({
+      imported: 1,
+      format: "premiere_xml",
+      missing_clips: 0,
+      warnings: []
+    });
+    expect(body.timeline.name).toBe("My Cut");
+    expect(body.timeline.projectId).toBe("p2");
+    expect(body.timeline.fps).toBe(30);
+    expect(body.timeline.durationMs).toBe(2000);
+    const [clip] = body.timeline.clips;
+    expect(clip).toMatchObject({ name: "Shot 1", mediaType: "video", startMs: 0, durationMs: 2000 });
+    expect(clip.currentAssetId).not.toBe(asset.id);
+    expect(
+      await adapter.retrieve(adapter.uriForKey(`${USER_ID}/${clip.currentAssetId}.mp4`))
+    ).toEqual(VIDEO);
+  });
+
+  it("answers 400 for a zip with neither a bundle nor a Premiere sequence", async () => {
+    const { payload, headers } = await multipart(
+      {},
+      { name: "media.zip", bytes: zipSync({ "notes.txt": strToU8("hi") }) }
+    );
+    const res = await server.inject({
+      method: "POST",
+      url: "/api/timelines/import-zip",
+      payload,
+      headers
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().detail).toContain("neither a NodeTool timeline");
   });
 
   it("defaults the project to `default` when the form omits it", async () => {

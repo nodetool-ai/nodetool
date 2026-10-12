@@ -249,6 +249,23 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
             content: `${result.missing.length} asset(s) were not in the archive`
           });
         }
+        if (result.missing_clips) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: `${result.missing_clips} clip(s) were left out because their media was not in the zip`
+          });
+        }
+        const notCarried = (result.warnings ?? []).filter(
+          (warning) => !warning.includes("their media was not supplied")
+        );
+        if (notCarried.length > 0) {
+          addNotification({
+            type: "info",
+            dismissable: true,
+            content: `Not carried over from Premiere: ${notCarried.join(" ")}`
+          });
+        }
       } catch (error) {
         notifyMutationError("import the timeline", error);
       } finally {
@@ -269,7 +286,10 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
           icon={<AddIcon />}
         />
       </Tooltip>
-      <Tooltip title="Import timeline (.zip)" placement="right-start">
+      <Tooltip
+        title="Import timeline (.zip, or a Premiere XML zipped with its media)"
+        placement="right-start"
+      >
         <ToolbarIconButton
           ariaLabel="Import timeline (.zip)"
           onClick={handleImportClick}
