@@ -90,7 +90,7 @@ function sharedRenderer(): Promise<GameRenderer3D> {
  */
 export function modelThumbnail(source: GameAssetSource, digest: string,
   bounds: Parameters<typeof modelThumbnailFrame>[1], colors: ModelThumbnailColors): Promise<string | null> {
-  return modelThumbnails.get(digest, async () => {
+  return modelThumbnails.get(`${digest}:${colors.background}`, async () => {
     const bytes = await fetchGameAssetBytes(source);
     const job = renderQueue.then(async () => {
       const renderer = await sharedRenderer();

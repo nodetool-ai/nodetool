@@ -570,6 +570,10 @@ export type { InlineEditableTextProps } from "./InlineEditableText";
 // Resize primitives
 export { ResizeHandle } from "./ResizeHandle";
 export type { ResizeHandleProps } from "./ResizeHandle";
+export { DockTabStrip, DOCK_TAB_HEIGHT, DOCK_TAB_DRAG_THRESHOLD, dockTabElementId } from "./DockTabStrip";
+export type { DockTab, DockTabStripProps } from "./DockTabStrip";
+export { DockDropOverlay, dockZoneAt, DOCK_EDGE_FRACTION } from "./DockDropOverlay";
+export type { DockDropOverlayProps, DockRect, DockZone } from "./DockDropOverlay";
 export { ResizableDock } from "./ResizableDock";
 export type { ResizableDockProps } from "./ResizableDock";
 

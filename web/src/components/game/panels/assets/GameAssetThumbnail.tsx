@@ -3,10 +3,10 @@ import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import WallpaperOutlinedIcon from "@mui/icons-material/WallpaperOutlined";
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { GameAssetMediaKind } from "@nodetool-ai/protocol";
 
-import { BORDER_RADIUS, Box, Caption, FlexRow, ResponsiveImage, getSpacingPx } from "../../../ui_primitives";
+import { BORDER_RADIUS, Box, Caption, FlexRow, ResponsiveImage, TYPOGRAPHY, getSpacingPx } from "../../../ui_primitives";
 import { asResolvedMediaUrl } from "../../../../utils/resolveMediaUri";
 import type { GameAssetSource } from "./gameAssetBrowserModel";
 import { audioWaveform, gameAssetLocator, gameFontFamily, modelThumbnail } from "./gameAssetMedia";
@@ -17,10 +17,11 @@ export interface GameAssetThumbnailProps {
   readonly digest: string;
   readonly label: string;
   readonly bounds?: { readonly min: { x: number; y: number; z: number }; readonly max: { x: number; y: number; z: number } };
-  readonly size?: "row" | "detail";
+  readonly size?: "row" | "tile" | "detail";
 }
 
-const SIZE_UNITS = { row: 10, detail: 24 } as const;
+/** Square side in spacing units: a 24px list icon, a 56px-tall grid tile that fills its column, a 64px detail preview. */
+const SIZE_UNITS = { row: 6, tile: 14, detail: 16 } as const;
 
 interface Preview {
   readonly key: string;
@@ -45,8 +46,12 @@ function Waveform({ peaks }: { readonly peaks: readonly number[] }): ReactElemen
  */
 export default function GameAssetThumbnail({ source, mediaKind, digest, label, bounds, size = "row" }: GameAssetThumbnailProps): ReactElement {
   const theme = useTheme();
-  const background = theme.palette.background.default;
-  const light = theme.palette.common.white;
+  // The renderer needs literal colors, so read the active scheme's palette rather than the CSS variables.
+  const { mode, systemMode } = useColorScheme();
+  const colorMode = mode === "dark" || (mode === "system" && systemMode === "dark") ? "dark" : "light";
+  const palette = theme.colorSchemes?.[colorMode]?.palette ?? theme.palette;
+  const background = palette.background.default;
+  const light = palette.common.white;
   const key = `${mediaKind}:${digest}`;
   const [preview, setPreview] = useState<Preview | null>(null);
   // Built-in assets are drawn by the runtime and have no stored bytes to preview.
@@ -65,8 +70,9 @@ export default function GameAssetThumbnail({ source, mediaKind, digest, label, b
   const family = current?.family ?? null;
   const rendered = current?.url ?? null;
   const side = getSpacingPx(SIZE_UNITS[size]);
-  const frame = { width: side, height: side, flexShrink: 0, borderRadius: BORDER_RADIUS.sm, overflow: "hidden",
-    bgcolor: "action.hover", color: "text.secondary" } as const;
+  const frame = { width: size === "tile" ? "100%" : side, height: side, flexShrink: 0, borderRadius: BORDER_RADIUS.sm, overflow: "hidden",
+    bgcolor: "action.hover", color: "text.secondary",
+    "& svg": { fontSize: size === "row" ? TYPOGRAPHY.sans.label.fontSize : TYPOGRAPHY.sans.title.fontSize } } as const;
   if (mediaKind === "image" && !builtin) {
     return <ResponsiveImage locator={gameAssetLocator(source)} alt={label} preferThumbnail loading="lazy" fit="contain" sx={frame} />;
   }

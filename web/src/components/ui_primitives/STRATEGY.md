@@ -87,6 +87,9 @@ Media that is being generated shows `MagicGenerationFill` over its host: the ske
 ### Media (the media-locator rendering boundary)
 `ResponsiveImage` | `VideoPlayer` | `AudioPlayback`
 
+### Docking
+`DockTabStrip` (the tab strip on a docked panel group: tabs name the panels, report drag past a 4 px threshold, close by button, middle click or Delete, and open a menu on right click or Shift+F10) | `DockDropOverlay` with `dockZoneAt` (the drop preview over a group: center adds a tab, an edge splits). The host owns the layout; these primitives only report gestures and draw previews. The game editor's dock is the reference host (`components/game/shell/`).
+
 ### Keyframe editors
 `CurveEditor` (piecewise-linear `{ t, value }` keys) | `GradientEditor` (`{ t, color }` stops). Both edit the particle `*OverLifetime` shapes, keep keys sorted, and are keyboard operable.
 
@@ -180,6 +183,7 @@ Need a container/surface?
 ├── Content card → Card
 ├── Panel with header/footer → Panel
 ├── Title strip of a docked or floating panel → PanelHeader
+├── Tabs of a docked panel group → DockTabStrip (+ DockDropOverlay while dragging)
 ├── Generic surface → Surface
 ├── Modal → Dialog
 ├── Backdrop → Overlay

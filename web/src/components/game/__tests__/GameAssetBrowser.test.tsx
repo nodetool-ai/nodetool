@@ -63,7 +63,7 @@ describe("GameAssetBrowser", () => {
   it("lists assets with their usage and narrows them by search and type", async () => {
     const { user } = setup();
     expect(screen.getByRole("button", { name: "Asset wall" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Assets (5)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Assets (5)" })).toHaveAttribute("aria-pressed", "true");
     await user.type(screen.getByRole("textbox", { name: "Search assets" }), "wall-top");
     await waitFor(() => expect(screen.queryByRole("button", { name: "Asset gem" })).not.toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Asset wall" })).toBeInTheDocument();
@@ -117,12 +117,23 @@ describe("GameAssetBrowser", () => {
       binding: { ...mockDocument.assets["player.frame.0"], digest: mockDocument.assets.player.digest } }]);
   });
 
-  it("shows prefabs and scenes on their own tabs", async () => {
+  it("shows prefabs and scenes in their own lists, with the selected scene's assets", async () => {
     const { user } = setup();
-    await user.click(screen.getByRole("tab", { name: "Scenes (1)" }));
-    expect(screen.getByText("Top-down room")).toBeInTheDocument();
-    expect(screen.getByText("Entry")).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: "Prefabs (0)" }));
+    await user.click(screen.getByRole("button", { name: "Scenes (1)" }));
+    expect(screen.getByRole("button", { name: "Scene Top-down room" })).toHaveAttribute("aria-pressed", "true");
+    const details = screen.getByLabelText("Details");
+    expect(within(details).getByText("Entry")).toBeInTheDocument();
+    await user.click(within(details).getByRole("button", { name: "Open asset wall" }));
+    expect(screen.getByRole("button", { name: "Asset wall" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Prefabs (0)" }));
     expect(screen.getByText("No prefabs")).toBeInTheDocument();
+  });
+
+  it("switches between the grid and the list view", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "List view" }));
+    expect(screen.getByRole("button", { name: "Asset wall" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Grid view" }));
+    expect(screen.getByRole("button", { name: "Asset wall" })).toBeInTheDocument();
   });
 });

@@ -2,6 +2,7 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { test, expect, waitForAppReady } from "./fixtures";
 
+import { dragGameDockTab, saveGameLayout } from "./helpers/gameDock";
 import { observeNativeGameReadiness, settleNativeGameEdit, finishNativeGameReadiness } from "./helpers/nativeGameReadiness";
 
 const PROJECT_ID = "proj-scrapheart";
@@ -126,19 +127,12 @@ for (const dimension of ["2d", "3d"] as const) {
   await input.focus();
   const original = await input.elementHandle();
   if (!original) { throw new Error("Inspector input was not mounted"); }
-  const drag = await page.getByRole("button", { name: "Drag inspector panel" }).boundingBox();
-  const target = await page.getByLabel("New dock group targets").locator('[data-game-dock-region="bottom"]').boundingBox();
-  if (!drag || !target) { throw new Error("Native docking targets have no bounds"); }
-  await page.mouse.move(drag.x + drag.width / 2, drag.y + drag.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
-  await page.mouse.up();
+  await dragGameDockTab(page, "Inspector", '[data-game-dock-edge="bottom"], [data-game-dock-region="bottom"] [data-game-dock-body]');
   await expect(input).toBeFocused();
   expect(await original.evaluate((node) => node.isConnected && node === window.document.activeElement)).toBe(true);
   await expect(input).toHaveValue("Dock focus entity");
   await expect(page.getByRole("region", { name: "Game bottom panels" }).getByRole("textbox", { name: "Name", exact: true })).toBeVisible();
-  await page.getByRole("textbox", { name: "Layout name", exact: true }).fill("Docked inspector");
-  await page.getByRole("button", { name: "Save layout", exact: true }).click();
+  await saveGameLayout(page, "Docked inspector");
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("nodetool.game-layout.v1:user:1") ?? "null").state);
   expect(saved.customLayouts.map((entry: { name: string }) => entry.name)).toContain("Docked inspector");
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -182,13 +176,7 @@ for (const dimension of ["2d", "3d"] as const) {
     await input.focus();
     const focused = await input.elementHandle();
     if (!focused) { throw new Error("Real Monaco input did not mount"); }
-    const drag = await page.getByRole("button", { name: "Drag scripts panel", exact: true }).boundingBox();
-    const target = await page.getByLabel("New dock group targets").locator('[data-game-dock-region="left"]').boundingBox();
-    if (!drag || !target) { throw new Error("Script docking targets have no bounds"); }
-    await page.mouse.move(drag.x + drag.width / 2, drag.y + drag.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
-    await page.mouse.up();
+    await dragGameDockTab(page, "Scripts", '[data-game-dock-edge="left"], [data-game-dock-region="left"] [data-game-dock-body]');
     await expect(input).toBeFocused();
     expect(await focused.evaluate((node) => node.isConnected && node === document.activeElement)).toBe(true);
     expect(await original.evaluate((node) => node === document.querySelector('[data-game-panel="scripts"] .monaco-editor'))).toBe(true);

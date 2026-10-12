@@ -159,3 +159,35 @@ it("still returns a new layout when a transition changes state", () => {
   expect(revealed.regions.right[0].activePanelId).toBe("assistant");
   expect(transitionGamePanelLayout(initial, { type: "resize", region: "left", size: 300 }).sizes.left).toBe(300);
 });
+
+it("places a new group beside its anchor and keeps the moved panel's old group weights", () => {
+  const initial = createGamePanelLayout();
+  const above = transitionGamePanelLayout(initial, {
+    type: "move", panelId: "revisions", region: "left", groupId: "left-revisions", index: 0,
+    anchor: { groupId: "left-main", side: "before" }
+  });
+  expect(above.regions.left.map((entry) => entry.id)).toEqual(["left-revisions", "left-main"]);
+  expect(above.regions.left[1].panels).toEqual(["hierarchy"]);
+  const beside = transitionGamePanelLayout(above, {
+    type: "move", panelId: "scripts", region: "left", groupId: "left-scripts", index: 0,
+    anchor: { groupId: "left-revisions", side: "after" }
+  });
+  expect(beside.regions.left.map((entry) => entry.id)).toEqual(["left-revisions", "left-scripts", "left-main"]);
+  expect(beside.regions.bottom).toEqual([]);
+  const missingAnchor = transitionGamePanelLayout(initial, {
+    type: "move", panelId: "inspector", region: "bottom", groupId: "bottom-inspector", index: 0,
+    anchor: { groupId: "nowhere", side: "before" }
+  });
+  expect(missingAnchor.regions.bottom.map((entry) => entry.id)).toEqual(["bottom-main", "bottom-inspector"]);
+});
+
+it("stores group weights, compares them and rejects out-of-range values", () => {
+  const split = transitionGamePanelLayout(createGamePanelLayout(), {
+    type: "move", panelId: "revisions", region: "left", groupId: "left-revisions", index: 0
+  });
+  const weighted = transitionGamePanelLayout(split, { type: "resizeGroups", region: "left", weights: { "left-main": 1.5, "left-revisions": 0.5 } });
+  expect(weighted.regions.left.map((entry) => entry.weight)).toEqual([1.5, 0.5]);
+  expect(transitionGamePanelLayout(weighted, { type: "resizeGroups", region: "left", weights: { "left-main": 1.5 } })).toBe(weighted);
+  expect(() => transitionGamePanelLayout(weighted, { type: "resizeGroups", region: "left", weights: { "left-main": 0 } })).toThrow();
+  expect(hydrateGamePanelLayout(JSON.parse(JSON.stringify(weighted)))).toEqual(weighted);
+});

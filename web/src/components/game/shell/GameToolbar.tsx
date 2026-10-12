@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
@@ -48,6 +49,8 @@ interface GameToolbarProps {
   onSceneTree: () => void;
   onInspector: () => void;
   onCommandPalette?: () => void;
+  /** The Layout menu, placed with the panel toggles. */
+  layoutMenu?: ReactNode;
 }
 
 const DIVIDER_SX = { width: "1px", alignSelf: "stretch", my: SPACING.sm, bgcolor: "divider", flexShrink: 0 } as const;
@@ -66,7 +69,7 @@ function SaveState({ saveStatus }: { saveStatus: string }) {
 /** Editor title bar: document identity, history, transport controls and panel toggles. */
 export default function GameToolbar({ name, playing, playSession, loading, saving, saveStatus,
   assistantOpen, sceneTreeOpen, inspectorOpen, playHref, canUndo = false, canRedo = false, onUndo, onRedo,
-  onPlay, onStop, onStep, onSave, onLoad, onPublish, onExport, exporting = false, onBuildExecutable, onAssistant, onSceneTree, onInspector, onCommandPalette }: GameToolbarProps) {
+  onPlay, onStop, onStep, onSave, onLoad, onPublish, onExport, exporting = false, onBuildExecutable, onAssistant, onSceneTree, onInspector, onCommandPalette, layoutMenu }: GameToolbarProps) {
   const undoShortcut = useGameCommandShortcut("edit.undo");
   const redoShortcut = useGameCommandShortcut("edit.redo");
   const paletteShortcut = useGameCommandShortcut("editor.commandPalette");
@@ -110,6 +113,7 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
         aria-pressed={assistantOpen} active={assistantOpen} onClick={onAssistant} />
       {onCommandPalette && <ToolbarIconButton icon={<KeyboardCommandKeyIcon fontSize="small" />} tooltip="Commands"
         shortcut={paletteShortcut} onClick={onCommandPalette} />}
+      {layoutMenu}
       <Box sx={DIVIDER_SX} />
       {onExport && <GameExportButton exporting={exporting} onExport={onExport} onBuildExecutable={onBuildExecutable} />}
       <EditorButton variant="contained" disableElevation density="normal" onClick={onPublish} disabled={saving || saveStatus === "saving"}>Publish</EditorButton>

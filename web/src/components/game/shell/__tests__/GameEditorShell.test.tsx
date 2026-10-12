@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { useState, type ComponentProps } from "react";
@@ -186,14 +186,19 @@ it.each(["2d", "3d"] as const)("keeps a late registered %s panel reachable when 
   const registry = createGamePanelRegistry();
   render(<ThemeProvider theme={mockTheme}><Shell dimension={dimension} registry={registry} toolbar={toolbar} status={status}
     panels={[{ id: "late-extension", node: <input aria-label="Extension draft" defaultValue="original" /> }]} /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Default" }));
+  await user.click(screen.getByRole("menuitem", { name: "Save layout as…" }));
   await user.type(screen.getByRole("textbox", { name: "Layout name" }), "Before extension");
-  await user.click(screen.getByRole("button", { name: "Save layout" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   await act(async () => {
     registry.register({ id: "late-extension", title: "Live extension", icon: null, dimensions: [dimension], defaultRegion: "bottom" });
   });
   const input = screen.getByRole("textbox", { name: "Extension draft" });
   await user.type(input, " changed");
-  await user.click(screen.getByRole("button", { name: "Apply layout" }));
+  await user.click(screen.getByRole("button", { name: "Before extension" }));
+  await user.click(screen.getByRole("menuitem", { name: "Before extension" }));
+  await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
   expect(screen.getByRole("tab", { name: "Live extension" })).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "Extension draft" })).toBe(input);
   expect(input).toHaveValue("original changed");
@@ -207,15 +212,19 @@ it.each(["2d", "3d"] as const)("reveals a hidden registered %s panel through the
     panels={[{ id: "extension", node: <input aria-label="Extension draft" defaultValue="original" /> }]} /></ThemeProvider>);
   const input = screen.getByRole("textbox", { name: "Extension draft" });
   await user.type(input, " changed");
-  await user.click(within(screen.getByRole("region", { name: "Game bottom panels" })).getByRole("button", { name: "Hide" }));
+  await user.click(within(screen.getByRole("region", { name: "Game bottom panels" })).getByRole("button", { name: "Close Extension" }));
   expect(screen.queryByRole("textbox", { name: "Extension draft" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Apply layout" }));
+  await user.click(screen.getByRole("button", { name: "Default" }));
+  await user.click(screen.getByRole("menuitem", { name: "Default" }));
+  await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
   expect(screen.queryByRole("textbox", { name: "Extension draft" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("combobox", { name: "Show panel" }));
-  await user.click(screen.getByRole("option", { name: "Extension" }));
+  await user.click(screen.getByRole("button", { name: "Default" }));
+  await user.click(screen.getByRole("menuitem", { name: /^Extension/ }));
+  await user.keyboard("{Escape}");
+  await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
   expect(screen.getByRole("textbox", { name: "Extension draft" })).toBe(input);
   expect(input).toHaveValue("original changed");
-  expect(screen.queryByRole("combobox", { name: "Show panel" })).not.toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Extension" })).toBeInTheDocument();
 });
 
 it("offers only hidden panels registered and available in the current dimension", async () => {
@@ -232,10 +241,10 @@ it("offers only hidden panels registered and available in the current dimension"
   removePanel();
   render(<ThemeProvider theme={mockTheme}><GameEditorShell dimension="2d" registry={registry} layoutStore={store} toolbar={toolbar} status={status}
     panels={["eligible", "unavailable", "other-dimension", "removed"].map((id) => ({ id, visible: id !== "unavailable", node: <span>{id}</span> }))} /></ThemeProvider>);
-  await user.click(screen.getByRole("combobox", { name: "Show panel" }));
-  expect(screen.getByRole("option", { name: "eligible" })).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Default" }));
+  expect(screen.getByRole("menuitem", { name: /^eligible/ })).toBeInTheDocument();
   for (const name of ["unavailable", "other-dimension", "removed"]) {
-    expect(screen.queryByRole("option", { name })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: new RegExp(`^${name}`) })).not.toBeInTheDocument();
   }
 });
 

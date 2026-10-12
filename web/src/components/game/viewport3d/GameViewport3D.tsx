@@ -317,7 +317,7 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
   const hint = host.playDocument ? "WASD, arrows or a gamepad to move. Space to jump. Click to capture the mouse, Esc to release it."
     : flyMode ? "WASD to fly. R/F to rise and descend. Drag to look." : "Drag to orbit. Shift-drag to pan. Scroll to zoom.";
   return <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-    {!playerOnly && <GamePanelHeader title={host.playDocument ? "Game" : "Scene"}
+    {!playerOnly && <GamePanelHeader title="Viewport" label={host.playDocument ? "Game" : "Scene"}
       icon={host.playDocument ? <SportsEsportsOutlinedIcon sx={HEADER_ICON_SX} /> : <GridViewOutlinedIcon sx={HEADER_ICON_SX} />}>
       {editing && <>
         <FlexRow gap={SPACING.micro} align="center" role="group" aria-label="Transform mode">
@@ -327,6 +327,7 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
         <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
         <ToolbarIconButton icon={<GridOnIcon fontSize="small" />} tooltip="Snap" shortcut={snapShortcut} aria-pressed={snap} active={snap} onClick={() => setSnap((value) => !value)} />
         <ToolbarIconButton icon={<LayersOutlinedIcon fontSize="small" />} tooltip="Overlays" aria-pressed={overlays} active={overlays} onClick={() => setOverlays((value) => !value)} />
+        <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
         <ToolbarIconButton icon={<FlightOutlinedIcon fontSize="small" />} tooltip="Fly camera" aria-pressed={flyMode} active={flyMode} onClick={() => setFlyMode((value) => !value)} />
         <ToolbarIconButton icon={<CenterFocusStrongOutlinedIcon fontSize="small" />} tooltip="Frame selection" shortcut={frameShortcut} onClick={frameSelection} disabled={!selectedId} />
       </>}
