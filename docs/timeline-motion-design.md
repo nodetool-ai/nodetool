@@ -5,6 +5,8 @@ authors. These are document examples. The editor does not expose controls for
 every field. The protocol schema and renderer are the source of truth when a
 field is absent here.
 
+![A motion title animating in the timeline viewer, with its motion clips on the track below](assets/screenshots/timeline-motion-design.png)
+
 ## Easing and animation
 
 Animation easing accepts named curves, `cubic-bezier(x1,y1,x2,y2)`, and

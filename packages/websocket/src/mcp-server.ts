@@ -24,7 +24,7 @@ import {
   type JSONRPCRequest,
   type RequestId
 } from "@modelcontextprotocol/sdk/types.js";
-import { Agent } from "undici";
+import { Agent as UndiciAgent } from "undici";
 import { MCP_GUEST_CONTRACT } from "@nodetool-ai/agents";
 import { createLogger } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -314,7 +314,7 @@ const MCP_FORWARDER_HANDSHAKE_TIMEOUT_MS = 10_000;
  * arrive only when the tool finishes. undici's default 300 s headers timeout
  * would fail every call longer than five minutes.
  */
-const noTimeoutDispatcher = new Agent({ headersTimeout: 0, bodyTimeout: 0 });
+const noTimeoutDispatcher = new UndiciAgent({ headersTimeout: 0, bodyTimeout: 0 });
 
 const fetchWithoutTimeouts = (
   url: string | URL,

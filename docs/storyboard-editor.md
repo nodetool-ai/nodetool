@@ -110,6 +110,8 @@ Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** show
 
 Render one shot or the whole board.
 
+![A storyboard with a rendered still or clip on every shot](assets/screenshots/storyboard-shots.png)
+
 | Action | Where | What happens |
 |---|---|---|
 | **Render stills** | Header | Opens a dialog to pick the **Still model**, then renders every shot without a still |
