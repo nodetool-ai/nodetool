@@ -20,6 +20,7 @@ import type {
   JsScriptValidation
 } from "@nodetool-ai/execution/js-script-debug";
 import type { JsScriptBridgeFinalState } from "@nodetool-ai/agents";
+import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { JsScriptInteractionStep } from "./interactions.js";
 import { runInteractionSteps } from "../interaction-script.js";
@@ -65,6 +66,7 @@ export interface JsScriptDebugCore {
     options?: {
       knownSecrets?: readonly string[];
       packDtsSources?: ReadonlyMap<string, string>;
+      sandboxModuleCatalog?: SandboxModuleCatalog | null;
     }
   ) => Promise<JsScriptValidation>;
   buildJsScriptDebugReport: (input: {
@@ -300,9 +302,13 @@ export async function runJsScriptValidate(
 ): Promise<JsScriptValidateResult> {
   const resolved = await resolveJsScriptTarget(ref, deps);
   const core = deps.core ?? (await loadCore());
-  const { discoverPackDtsSources } = await import("../sandbox-catalog.js");
+  const { discoverPackDtsSources, installSandboxCatalog } =
+    await import("../sandbox-catalog.js");
+  // The catalog reports an import no installed pack offers; the type check
+  // leaves those to it.
   const validation = await core.validateJsScriptDoc(resolved.raw, {
-    packDtsSources: discoverPackDtsSources()
+    packDtsSources: discoverPackDtsSources(),
+    sandboxModuleCatalog: installSandboxCatalog()
   });
   return { target: resolved.target, validation };
 }
