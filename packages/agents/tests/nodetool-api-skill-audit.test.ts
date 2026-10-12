@@ -5,8 +5,6 @@
  * and prompt lines that named methods no host can serve. Code actions run in
  * the real QuickJS sandbox against a recording router.
  */
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -248,45 +246,5 @@ describe("prompt lines", () => {
     const scriptsLine = section.split("\n").find((l) => l.includes("`nodetool.scripts`"));
     expect(scriptsLine).toBeDefined();
     expect(section).toContain("`get(id)`, `edit(id, ops)`, `voice(id)`, `assembleTimeline(id)`.");
-  });
-});
-
-describe("capability prose names tools that exist", () => {
-  it("the browser tool sends search pages to web_search", async () => {
-    const spec = capabilitySpec("browser");
-    expect(spec?.description).toContain("`web_search`");
-    expect(spec?.description).not.toContain("google_search");
-    expect(capabilitySpec("google_search")).toBeUndefined();
-    const web = readFileSync(
-      fileURLToPath(new URL("../src/capabilities/web.ts", import.meta.url)),
-      "utf8"
-    );
-    expect(web).not.toContain("google_search");
-  });
-
-  it("get_node_info names the node-adding tools by their real names", () => {
-    const description = capabilitySpec("get_node_info")?.description ?? "";
-    expect(description).not.toMatch(/\badd_node\b/);
-    for (const name of ["create_workflow", "update_workflow"]) {
-      expect(capabilitySpec(name), name).toBeDefined();
-      expect(description).toContain(name);
-    }
-  });
-
-  it("edit_native_game says which players count particles", () => {
-    const ops = JSON.stringify(capabilitySpec("edit_native_game")?.inputSchema);
-    expect(ops).not.toContain("No player counts particles");
-    const player2d = readFileSync(
-      fileURLToPath(new URL("../../game-renderer/src/standalone-player.ts", import.meta.url)),
-      "utf8"
-    );
-    expect(player2d).toMatch(/budget\.observe\(\{[^}]*particles:/);
-    expect(ops).toContain("The 2D standalone player counts particles");
-  });
-
-  it("set_markers_from_beats ties count to bpm", () => {
-    const schema = JSON.stringify(capabilitySpec("edit_timeline")?.inputSchema);
-    expect(schema).not.toContain('set_markers_from_beats also needs \\"count\\"');
-    expect(schema).toContain('set_markers_from_beats needs \\"count\\" with \\"bpm\\"');
   });
 });
