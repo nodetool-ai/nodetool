@@ -102,6 +102,7 @@ logic: a rule belongs in `@nodetool-ai/timeline` or the web exporter.
 `rawFrames.ts` streams a forward clip resampled to the timeline rate
 (`openForwardSourceFrameStream`, `fps=N:round=up`, which keeps in each slot
 the latest frame at or before it, as a player shows). The per-frame seek
-(`openSourceFrameStream`) is only for a time remap, reverse playback, or a
-baked 3D clip. Generated clips often report `r_frame_rate=60/1` at about 24
+(`openSourceFrameStream`) is only for a time remap, reverse playback, a
+baked 3D clip, or a render with motion blur, whose shutter samples fall
+between output frames. Generated clips often report `r_frame_rate=60/1` at about 24
 fps, and seeking those cost about 320 ms a frame.
