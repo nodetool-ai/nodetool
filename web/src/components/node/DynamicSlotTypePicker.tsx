@@ -11,7 +11,6 @@ import {
 } from "../ui_primitives";
 import type { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 import { colorForType } from "../../config/data_types";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   allowedSlotTypes,
   slotTypeKey,
@@ -71,7 +70,6 @@ const DynamicSlotTypePickerImpl: React.FC<DynamicSlotTypePickerProps> = ({
     <>
       <Tooltip
         title={`Slot type for "${propertyName}"`}
-        delay={TOOLTIP_ENTER_DELAY}
       >
         <Chip
           className="dynamic-slot-type-chip"
