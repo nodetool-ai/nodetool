@@ -4,15 +4,13 @@ import { useMemo, useCallback, memo } from "react";
 
 import {
   FlexRow,
+  FlexColumn,
   Box,
   Chip,
-  Stack,
   BORDER_RADIUS,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  type SelectChangeEvent, getSpacingPx, SPACING
+  SelectField,
+  getSpacingPx,
+  SPACING
 } from "../ui_primitives";
 import { formatSettingLabel } from "./settingsLabel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -51,10 +49,19 @@ const SearchProviderSection = memo(function SearchProviderSection({
   }, [config, settingValues]);
 
   const handleProviderChange = useCallback(
-    (e: SelectChangeEvent<string>) => {
-      onChange("SERP_PROVIDER", e.target.value);
+    (value: string) => {
+      onChange("SERP_PROVIDER", value);
     },
     [onChange]
+  );
+
+  const providerOptions = useMemo(
+    () =>
+      Object.entries(PROVIDER_CONFIGS).map(([key, cfg]) => ({
+        value: key,
+        label: cfg.label
+      })),
+    []
   );
 
   const handleCredentialChange = useCallback(
@@ -80,27 +87,19 @@ const SearchProviderSection = memo(function SearchProviderSection({
       </Text>
 
       <div className="settings-item large">
-        <FormControl variant="standard" fullWidth sx={{ marginBottom: getSpacingPx(SPACING.xxl) }}>
-          <InputLabel id="provider-select-label">Provider</InputLabel>
-          <Select
-            labelId="provider-select-label"
-            id="provider-select"
-            value={selectedProvider}
-            onChange={handleProviderChange}
-          >
-            {Object.entries(PROVIDER_CONFIGS).map(([key, cfg]) => (
-              <MenuItem key={key} value={key}>
-                {cfg.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <SelectField
+          id="provider-select"
+          label="Provider"
+          value={selectedProvider}
+          onChange={handleProviderChange}
+          options={providerOptions}
+          description={config?.description}
+        />
 
         <FlexRow
           align="center"
           sx={{
             gap: getSpacingPx(SPACING.md),
-            marginBottom: getSpacingPx(SPACING.xl),
             padding: getSpacingPx(SPACING.lg),
             backgroundColor:
               hasAllCredentials ?
@@ -132,74 +131,56 @@ const SearchProviderSection = memo(function SearchProviderSection({
               : "✗ Missing credentials"}
           </Text>
         </FlexRow>
-
-        <Text className="description">{config?.description}</Text>
       </div>
 
       {config && (
-        <div
-          style={{
-            marginTop: getSpacingPx(SPACING.xxl),
-            padding: getSpacingPx(SPACING.xl),
-            backgroundColor: theme.vars.palette.c_overlay_subtle,
-            borderLeft: `4px solid ${theme.palette.primary.main}`,
-            borderRadius: BORDER_RADIUS.sm
-          }}
-        >
-          <Stack spacing={1.5}>
-            {config.credentialFields.map((field) => {
-              const value = settingValues[field] || "";
-              const isFilled = value.trim().length > 0;
+        <FlexColumn gap={SPACING.lg} className="settings-item large">
+        {config.credentialFields.map((field) => {
+          const value = settingValues[field] || "";
+          const isFilled = value.trim().length > 0;
 
-              return (
-                <Box key={field}>
-                  <TextInput
-                    type="password"
-                    autoComplete="off"
-                    id={`${field.toLowerCase()}-input`}
-                    label={formatSettingLabel(field)}
-                    value={value}
-                    onChange={(
-                      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-                    ) => {
-                      handleCredentialChange(field, e.target.value);
-                    }}
-                    variant="standard"
-                    size="small"
-                    onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
-                    sx={{
-                      "& .MuiInput-root": {
-                        color: isFilled ? theme.palette.success.main : undefined
-                      }
-                    }}
-                  />
-                  {isFilled && (
-                    <Chip
-                      icon={<CheckCircleIcon />}
-                      label="Configured"
-                      size="small"
-                      sx={{
-                        marginTop: getSpacingPx(SPACING.md),
-                        height: "24px",
-                        backgroundColor: theme.palette.success.light,
-                        color: theme.palette.success.dark
-                      }}
-                    />
-                  )}
-                </Box>
-              );
-            })}
-
-            <Box sx={{ marginTop: getSpacingPx(SPACING.xl) }}>
-              <ExternalLink
-                href={config.getApiKeyUrl}
-                tooltipText={`Visit ${config.label} to get your credentials`}
-              >
-                {config.getApiKeyLabel}
-              </ExternalLink>
+          return (
+            <Box key={field}>
+              <TextInput
+                type="password"
+                autoComplete="off"
+                id={`${field.toLowerCase()}-input`}
+                label={formatSettingLabel(field)}
+                value={value}
+                onChange={(
+                  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                ) => {
+                  handleCredentialChange(field, e.target.value);
+                }}
+                size="small"
+                onKeyDown={(e: React.KeyboardEvent) => e.stopPropagation()}
+              />
+              {isFilled && (
+                <Chip
+                  icon={<CheckCircleIcon />}
+                  label="Configured"
+                  size="small"
+                  sx={{
+                    marginTop: getSpacingPx(SPACING.md),
+                    height: "24px",
+                    backgroundColor: theme.palette.success.light,
+                    color: theme.palette.success.dark
+                  }}
+                />
+              )}
             </Box>
-          </Stack>
-        </div>
+          );
+        })}
+
+        <Box>
+          <ExternalLink
+            href={config.getApiKeyUrl}
+            tooltipText={`Visit ${config.label} to get your credentials`}
+          >
+            {config.getApiKeyLabel}
+          </ExternalLink>
+        </Box>
+        </FlexColumn>
       )}
     </div>
   );

@@ -794,6 +794,8 @@ function FileBrowserDialog({
 
           {isEditingPath ? (
             <TextInput
+              label="Folder path"
+              hideLabel
               size="small"
               fullWidth
               value={pathInputValue}
@@ -861,14 +863,18 @@ function FileBrowserDialog({
               backgroundColor: theme.vars.palette.background.default
             }}
           >
-            <FlexRow align="center" gap={SPACING.xs}>
+            <FlexRow align="flex-start" gap={SPACING.xs}>
               <TextInput
+                label="New folder name"
+                hideLabel
                 size="small"
                 autoFocus
                 value={newFolderName}
                 placeholder="New folder name"
                 onChange={handleNewFolderChange}
                 onKeyDown={handleNewFolderKeyDown}
+                helperText={`Creates a folder in ${currentPath}`}
+                errorMessage={newFolderError || undefined}
                 sx={{ flex: 1 }}
               />
               <EditorButton
@@ -887,9 +893,6 @@ function FileBrowserDialog({
                 Cancel
               </EditorButton>
             </FlexRow>
-            <Caption color={newFolderError ? "error" : "secondary"}>
-              {newFolderError || `Creates a folder in ${currentPath}`}
-            </Caption>
           </FlexColumn>
         )}
 

@@ -14,7 +14,6 @@ import {
   MOTION,
   SearchInput,
   SPACING,
-  TYPOGRAPHY,
   getSpacingPx
 } from "../ui_primitives";
 import {
@@ -210,17 +209,8 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
         anchorEl={anchorRef.current}
         onClose={close}
         paperSx={{
-          p: SPACING.xs,
           width: getSpacingPx(80),
           maxWidth: `calc(100vw - ${getSpacingPx(SPACING.xxxl)})`,
-          "& .MuiMenu-list": { py: SPACING.none },
-          "& .MuiMenu-list .menu-item-primitive.MuiMenuItem-root": {
-            minHeight: `${CONTROL.height.md}px`,
-            px: SPACING.md,
-            py: SPACING.xs
-          },
-          "& .search-input-wrapper .search-input .MuiInputBase-input":
-            TYPOGRAPHY.sans.label,
           "& .project-menu-item .MuiListItemText-primary": {
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -234,7 +224,6 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
             icon={<AddRoundedIcon />}
             onClick={openNewProject}
             color="primary"
-            dense
             dividerAfter
           />
         )}
@@ -244,12 +233,11 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
           placeholder="Search projects"
           ariaLabel="Search projects"
           fullWidth
-          sx={{ my: SPACING.xs }}
+          sx={{ my: SPACING.xs, px: SPACING.xs, boxSizing: "border-box" }}
         />
         <MenuItemPrimitive
           label="Personal"
           className="project-menu-item"
-          dense
           selected={
             activeProjectId === resolvedPersonalId ||
             activeProjectId === null ||
@@ -258,12 +246,12 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
           onClick={selectPersonal}
         />
         {isPending && (
-          <Caption sx={{ px: SPACING.md, py: SPACING.sm }}>
+          <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
             Loading projects…
           </Caption>
         )}
         {error && (
-          <Caption color="error" sx={{ px: SPACING.md, py: SPACING.sm }}>
+          <Caption color="error" sx={{ px: SPACING.lg, py: SPACING.sm }}>
             Could not load projects
           </Caption>
         )}
@@ -272,13 +260,12 @@ const ProjectSelector = ({ inline = false }: ProjectSelectorProps) => {
             key={project.id}
             label={project.name}
             className="project-menu-item"
-            dense
             selected={project.id === activeProjectId}
             onClick={() => selectProject(project)}
           />
         ))}
         {!isPending && !error && visibleProjects.length === 0 && (
-          <Caption sx={{ px: SPACING.md, py: SPACING.sm }}>
+          <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
             {needle ? "No matching projects" : "No named projects yet"}
           </Caption>
         )}

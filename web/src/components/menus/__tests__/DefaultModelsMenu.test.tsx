@@ -57,7 +57,7 @@ describe("DefaultModelsMenu", () => {
   it("renders a Code Generation row that falls back to the chat model", () => {
     const { container } = renderMenu();
 
-    expect(screen.getByText("Code Generation")).toBeInTheDocument();
+    expect(screen.getByText("Code generation")).toBeInTheDocument();
 
     const row = container.querySelector("#default-model-code_model");
     const select = row?.querySelector("[data-testid='language-model-select']");
@@ -97,8 +97,8 @@ describe("DefaultModelsMenu", () => {
     });
     renderMenu();
 
-    expect(screen.getByText("Upscale Model")).toBeInTheDocument();
-    expect(screen.getByText("Remove Background Model")).toBeInTheDocument();
+    expect(screen.getByText("Upscale model")).toBeInTheDocument();
+    expect(screen.getByText("Remove background model")).toBeInTheDocument();
     const upscale = document.getElementById("default-model-image_model:upscale");
     const cutout = document.getElementById("default-model-image_model:remove_background");
     expect(upscale?.querySelector("[data-task='upscale']")).toHaveAttribute("data-value", "clarity");

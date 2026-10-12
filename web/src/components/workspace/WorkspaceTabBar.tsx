@@ -794,11 +794,9 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         open={homeMenuPosition !== null}
         position={homeMenuPosition}
         onClose={() => setHomeMenuPosition(null)}
-        compact
       >
         <MenuItemPrimitive
           label="Rename"
-          compact
           onClick={() => {
             setHomeMenuPosition(null);
             setEditingHome(true);

@@ -51,6 +51,7 @@ export * from "./recordedVoiceReplacement.js";
 export * from "./lipSyncRequest.js";
 export * from "./production.js";
 export * from "./interchange.js";
+export * from "./interchangeImport.js";
 export * from "./snap.js";
 export * from "./beats.js";
 export * from "./staleSet.js";

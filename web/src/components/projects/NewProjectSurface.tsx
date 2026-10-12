@@ -48,8 +48,8 @@ import {
   Label,
   InspectorSelect,
   MenuItemPrimitive,
+  ContextMenu,
   MOTION,
-  Popover,
   ResponsiveImage,
   ScrollArea,
   CONTROL,
@@ -2451,57 +2451,52 @@ const NewProjectSurface = ({
         requireToolSupport
       />
 
-      <Popover
+      <ContextMenu
         open={submenu !== null}
         anchorEl={submenu?.element ?? null}
         onClose={() => setSubmenu(null)}
-        placement="top-left"
-        maxWidth={SUBMENU_MAX_WIDTH}
+        anchorOrigin={{ vertical: "top", horizontal: "left" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
         maxHeight="50vh"
+        paperSx={{ width: SUBMENU_WIDTH, maxWidth: SUBMENU_MAX_WIDTH }}
       >
-        <FlexColumn sx={{ width: SUBMENU_WIDTH, py: SPACING.micro }}>
-          {submenu?.kind === "texts" &&
-            TEXT_FILE_TEMPLATES.map((template) => (
-              <MenuItemPrimitive
-                key={template.filename}
-                label={template.label}
-                compact
-                disabled={creating !== null}
-                onClick={() => {
-                  void createTextFile(template);
-                }}
-              />
-            ))}
-          {submenu?.kind === "storyboards" && (
-            <>
-              <MenuItemPrimitive
-                label="Blank storyboard"
-                compact
-                dividerAfter
-                disabled={creating !== null}
-                onClick={() => {
-                  void createBlankStoryboard();
-                }}
-              />
-              {!examplesLoading &&
-                (exampleData ?? []).map((example) => (
-                  <MenuItemPrimitive
-                    key={example.slug}
-                    label={example.name}
-                    secondary={`${example.shotCount} shot${
-                      example.shotCount === 1 ? "" : "s"
-                    }, already rendered`}
-                    compact
-                    disabled={creating !== null}
-                    onClick={() => {
-                      void installStoryboardExample(example.slug, example.name);
-                    }}
-                  />
-                ))}
-            </>
-          )}
-        </FlexColumn>
-      </Popover>
+        {submenu?.kind === "texts" &&
+          TEXT_FILE_TEMPLATES.map((template) => (
+            <MenuItemPrimitive
+              key={template.filename}
+              label={template.label}
+              disabled={creating !== null}
+              onClick={() => {
+                void createTextFile(template);
+              }}
+            />
+          ))}
+        {submenu?.kind === "storyboards" && (
+          <MenuItemPrimitive
+            label="Blank storyboard"
+            dividerAfter
+            disabled={creating !== null}
+            onClick={() => {
+              void createBlankStoryboard();
+            }}
+          />
+        )}
+        {submenu?.kind === "storyboards" &&
+          !examplesLoading &&
+          (exampleData ?? []).map((example) => (
+            <MenuItemPrimitive
+              key={example.slug}
+              label={example.name}
+              secondary={`${example.shotCount} shot${
+                example.shotCount === 1 ? "" : "s"
+              }, already rendered`}
+              disabled={creating !== null}
+              onClick={() => {
+                void installStoryboardExample(example.slug, example.name);
+              }}
+            />
+          ))}
+      </ContextMenu>
     </ScrollArea>
   );
 };

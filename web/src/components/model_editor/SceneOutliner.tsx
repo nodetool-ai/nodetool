@@ -523,7 +523,6 @@ const SceneOutliner = ({
         open={menu !== null}
         position={menu}
         onClose={() => setMenu(null)}
-        compact
         minWidth={200}
       >
         <MenuItemPrimitive

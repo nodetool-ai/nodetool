@@ -34,6 +34,28 @@ describe("TopBar project archive action", () => {
     expect(onExportBundle).toHaveBeenCalledTimes(1);
   });
 
+  it("offers the Premiere Pro export in the overflow menu", async () => {
+    const onExportPremiere = jest.fn();
+    renderTopBar({ onExportPremiere });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "More timeline actions" })
+    );
+    await userEvent.click(await screen.findByText("Export for Premiere Pro"));
+    expect(onExportPremiere).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers the media export in the overflow menu", async () => {
+    const onExportMedia = jest.fn();
+    renderTopBar({ onExportMedia });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "More timeline actions" })
+    );
+    await userEvent.click(await screen.findByText("Export media (.zip)"));
+    expect(onExportMedia).toHaveBeenCalledTimes(1);
+  });
+
   it("shows the busy label while the archive is being prepared", async () => {
     renderTopBar({ onExportBundle: jest.fn(), isExportingBundle: true });
     await userEvent.click(

@@ -82,7 +82,7 @@ describe("OutputContextMenu dynamic output deletion", () => {
     const user = userEvent.setup();
     renderMenu();
 
-    await user.click(screen.getByRole("button", { name: /delete output/i }));
+    await user.click(screen.getByRole("menuitem", { name: /delete output/i }));
 
     // Only the edge leaving node-1's "score" handle is removed.
     expect(mockDeleteEdges).toHaveBeenCalledWith(["edge-a"]);
@@ -96,7 +96,7 @@ describe("OutputContextMenu dynamic output deletion", () => {
     mockMenuState.handleId = "static_out";
     renderMenu();
     expect(
-      screen.queryByRole("button", { name: /delete output/i })
+      screen.queryByRole("menuitem", { name: /delete output/i })
     ).not.toBeInTheDocument();
   });
 });
@@ -161,7 +161,7 @@ describe("OutputContextMenu image quick actions", () => {
     const user = userEvent.setup();
     renderMenu();
 
-    await user.click(screen.getByRole("button", { name: label }));
+    await user.click(screen.getByRole("menuitem", { name: label }));
 
     expect(createNode).toHaveBeenCalledWith(
       expect.objectContaining({ node_type: nodeType }),
@@ -185,7 +185,7 @@ describe("OutputContextMenu image quick actions", () => {
     mockMenuState.type = { type: "str" };
     renderMenu();
     expect(
-      screen.queryByRole("button", { name: "Upscale" })
+      screen.queryByRole("menuitem", { name: "Upscale" })
     ).not.toBeInTheDocument();
   });
 });
@@ -230,8 +230,8 @@ describe("OutputContextMenu node creation", () => {
     renderMenu();
 
     const quickAction = screen
-      .getAllByRole("button", { name: "Reroute" })
-      .find((button) => button.classList.contains("create-reroute-node"));
+      .getAllByRole("menuitem", { name: "Reroute" })
+      .find((item) => item.classList.contains("create-reroute-node"));
     if (!quickAction) {
       throw new Error("Reroute quick action is missing");
     }

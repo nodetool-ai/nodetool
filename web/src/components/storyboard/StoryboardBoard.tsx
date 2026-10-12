@@ -1318,29 +1318,26 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   />
                   <FormGrid stackBelow={FORM_STACK_BELOW}>
                     <FormSection label="Screenplay">
-                      <FormField label="Title">
-                        <TextInput
-                          value={title}
-                          placeholder="Untitled film"
-                          onChange={(e) => setTitle(boardId, e.target.value)}
-                        />
-                      </FormField>
-                      <FormField label="Brief">
-                        <TextInput
-                          value={brief}
-                          placeholder="Your film in one or two sentences"
-                          onChange={(e) => setBrief(boardId, e.target.value)}
-                          multiline
-                          rows={3}
-                        />
-                      </FormField>
-                      <FormField label="Style">
-                        <TextInput
-                          value={style}
-                          placeholder="Palette, light, lens, texture"
-                          onChange={(e) => setStyle(boardId, e.target.value)}
-                        />
-                      </FormField>
+                      <TextInput
+                        label="Title"
+                        value={title}
+                        placeholder="Untitled film"
+                        onChange={(e) => setTitle(boardId, e.target.value)}
+                      />
+                      <TextInput
+                        label="Brief"
+                        value={brief}
+                        placeholder="Your film in one or two sentences"
+                        onChange={(e) => setBrief(boardId, e.target.value)}
+                        multiline
+                        minRows={3}
+                      />
+                      <TextInput
+                        label="Style"
+                        value={style}
+                        placeholder="Palette, light, lens, texture"
+                        onChange={(e) => setStyle(boardId, e.target.value)}
+                      />
                       <FormField label="Entities">
                         <StoryboardEntitiesField
                           boardId={boardId}
@@ -1363,22 +1360,18 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                           />
                         </FormField>
                       )}
-                      <FormField label="Aspect ratio">
-                        <SelectField
-                          label="Aspect ratio"
-                          value={aspectRatio}
-                          onChange={(value) => setAspectRatio(boardId, value)}
-                          options={ASPECT_OPTIONS}
-                        />
-                      </FormField>
-                      <FormField label="Shots">
-                        <SelectField
-                          label="Shots"
-                          value={shotCount}
-                          onChange={(value) => setShotCount(Number(value))}
-                          options={SHOT_COUNT_OPTIONS}
-                        />
-                      </FormField>
+                      <SelectField
+                        label="Aspect ratio"
+                        value={aspectRatio}
+                        onChange={(value) => setAspectRatio(boardId, value)}
+                        options={ASPECT_OPTIONS}
+                      />
+                      <SelectField
+                        label="Shots"
+                        value={shotCount}
+                        onChange={(value) => setShotCount(Number(value))}
+                        options={SHOT_COUNT_OPTIONS}
+                      />
                     </FormSection>
                   </FormGrid>
 

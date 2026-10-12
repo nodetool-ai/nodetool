@@ -25,6 +25,16 @@ import type { PaintSurface } from "@nodetool-ai/image-editor/painting.js";
 import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { getCanvasRasterBounds } from "../transform/geometry/layerGeometry";
+import { encodeSketchPsd, type DocumentPixels } from "../psd/sketchPsd";
+
+function canvasPixels(canvas: HTMLCanvasElement | null): DocumentPixels | null {
+  const ctx = canvas?.getContext("2d");
+  if (!canvas || !ctx) {
+    return null;
+  }
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  return { width: canvas.width, height: canvas.height, data };
+}
 
 export interface UseCanvasImperativeHandleParams {
   ref: Ref<SketchCanvasRef> | undefined;
@@ -109,6 +119,17 @@ export function useCanvasImperativeHandle({
       },
       flattenToDataUrl: () => {
         return runtime.flattenToDataUrl(doc);
+      },
+      exportPsd: () => {
+        const composite = canvasPixels(runtime.flattenToCanvas(doc));
+        if (!composite) {
+          return null;
+        }
+        return encodeSketchPsd(doc, {
+          composite,
+          renderLayer: (layerId) =>
+            canvasPixels(runtime.renderLayerToCanvas(doc, layerId))
+        });
       },
       getMaskDataUrl: () => {
         return runtime.getMaskDataUrl(doc);

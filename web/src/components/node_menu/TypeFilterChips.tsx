@@ -8,7 +8,7 @@ import {
   Chip,
   EditorButton,
   Box,
-  EditorMenu,
+  Popover,
   MOTION,
   BORDER_RADIUS,
   FONT_WEIGHT,
@@ -418,25 +418,16 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
           </span>
         </Box>
 
-        <EditorMenu
+        <Popover
           anchorEl={menuAnchor}
           open={menuOpen}
           onClose={handleCloseMenu}
-          paperSx={{
-            borderRadius: BORDER_RADIUS.xxl,
-            backgroundImage: "none",
-            overflow: "visible",
-            border: (muiTheme) =>
-              `1px solid ${muiTheme.vars.palette.divider}`
-          }}
+          placement="bottom-left"
+          paperSx={{ overflow: "visible" }}
         >
           <Box
             className="filter-menu-content"
-            sx={{
-              padding: getSpacingPx(SPACING.xl),
-              backgroundColor: theme.vars.palette.background.paper,
-              fontSize: theme.fontSizeSmaller
-            }}
+            sx={{ padding: getSpacingPx(SPACING.xl) }}
           >
             <Box className="menu-header">
               <Text
@@ -455,7 +446,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 marginBottom: getSpacingPx(SPACING.xs)
               }}
             >
-              Input Type
+              Input type
             </Text>
             <Autocomplete<TypeOption, false, false, false>
               className="filter-select"
@@ -488,14 +479,6 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   sx: {
                     zIndex: (muiTheme) => muiTheme.zIndex.modal + 10
                   }
-                },
-                listbox: {
-                  sx: {
-                    "& .MuiAutocomplete-option": {
-                      minHeight: "30px",
-                      py: SPACING.micro
-                    }
-                  }
                 }
               }}
               sx={{ marginBottom: getSpacingPx(SPACING.xl) }}
@@ -506,7 +489,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 marginBottom: getSpacingPx(SPACING.xs)
               }}
             >
-              Output Type
+              Output type
             </Text>
             <Autocomplete<TypeOption, false, false, false>
               className="filter-select"
@@ -539,19 +522,11 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   sx: {
                     zIndex: (muiTheme) => muiTheme.zIndex.modal + 10
                   }
-                },
-                listbox: {
-                  sx: {
-                    "& .MuiAutocomplete-option": {
-                      minHeight: "30px",
-                      py: SPACING.micro
-                    }
-                  }
                 }
               }}
             />
           </Box>
-        </EditorMenu>
+        </Popover>
       </Box>
     );
   }

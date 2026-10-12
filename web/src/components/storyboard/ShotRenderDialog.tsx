@@ -203,7 +203,7 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
       confirmText={`${verb}${priced ? ` · ~${formatUsd(estimate.cost)}` : ""}`}
       confirmDisabled={!selection || (isClip && needsStill)}
     >
-      <FlexColumn gap={SPACING.md}>
+      <FlexColumn gap={SPACING.lg}>
         <Caption color="secondary">
           {isClip
             ? "Pick the model for this shot's clip. The shot keeps the choice for the next render."
@@ -219,14 +219,12 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
                 onChange={setPickedClip}
               />
             </FormField>
-            <FormField label="Resolution">
-              <SelectField
-                label="Resolution"
-                value={resolution}
-                onChange={setPickedResolution}
-                options={resolutionOptions}
-              />
-            </FormField>
+            <SelectField
+              label="Resolution"
+              value={resolution}
+              onChange={setPickedResolution}
+              options={resolutionOptions}
+            />
           </>
         ) : (
           <FormField label="Still model" sx={modelFieldSx}>

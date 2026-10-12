@@ -14,12 +14,12 @@ import {
   Button,
   Caption,
   Chip,
+  ContextMenu,
   FlexColumn,
   FlexRow,
-  Menu,
+  ListItemText,
   MenuItem,
-  SPACING,
-  Text
+  SPACING
 } from "../ui_primitives";
 
 interface LinkedWorkflowsMenuProps {
@@ -72,17 +72,15 @@ const LinkedWorkflowsMenu = ({
       >
         {`Linked workflows (${links.length})`}
       </Button>
-      <Menu
+      <ContextMenu
         anchorEl={anchorEl}
         open={anchorEl !== null}
         onClose={close}
-        MenuListProps={{ "aria-label": "Linked workflows" }}
+        slotProps={{ list: { "aria-label": "Linked workflows" } }}
       >
         {links.length === 0 && (
           <MenuItem disabled>
-            <Caption color="secondary">
-              This app binds no workflow yet.
-            </Caption>
+            <ListItemText primary="This app binds no workflow yet." />
           </MenuItem>
         )}
         {links.map((link) => {
@@ -93,11 +91,12 @@ const LinkedWorkflowsMenu = ({
               disabled={broken}
               onClick={() => openWorkflow(link)}
             >
-              <FlexColumn gap={SPACING.xs} sx={{ minWidth: 0 }}>
+              <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
                 <FlexRow align="center" gap={SPACING.xs}>
-                  <Text size="small" truncate>
-                    {broken ? "Workflow unavailable" : link.name}
-                  </Text>
+                  <ListItemText
+                    primary={broken ? "Workflow unavailable" : link.name}
+                    slotProps={{ primary: { noWrap: true } }}
+                  />
                   {link.isPinned && (
                     <Chip
                       compact
@@ -119,7 +118,7 @@ const LinkedWorkflowsMenu = ({
             </MenuItem>
           );
         })}
-      </Menu>
+      </ContextMenu>
     </>
   );
 };

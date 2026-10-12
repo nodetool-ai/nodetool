@@ -50,16 +50,6 @@ const Column: React.FC<ColumnProps> = ({
         value={field.data_type}
         onChange={(e) => handleDataTypeChange(index, e.target.value as string)}
         className="mui-select"
-        MenuProps={{
-          anchorOrigin: {
-            vertical: "bottom",
-            horizontal: "left"
-          },
-          transformOrigin: {
-            vertical: "top",
-            horizontal: "left"
-          }
-        }}
       >
         {validDataTypes.map((type) => (
           <NodeMenuItem key={type} value={type}>

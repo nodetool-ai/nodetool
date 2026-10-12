@@ -54,7 +54,11 @@ import { isElectron, isLocalhost } from "../../lib/env";
 import ReportBugButton from "../support/ReportBugButton";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { exportTimelineZip } from "../../utils/timelineBundle";
+import {
+  exportTimelineMedia,
+  exportTimelinePremiere,
+  exportTimelineZip
+} from "../../utils/timelineBundle";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
@@ -142,6 +146,12 @@ const MAX_TRACKS_HEIGHT_PX = 600;
 /** The preview row never shrinks below this while the tracks panel grows. */
 const MIN_PREVIEW_HEIGHT_PX = 160;
 const TRACKS_HEIGHT_STORAGE_KEY = "nodetool.timeline.tracksHeight";
+/** What an archive export's failure notification calls it. */
+const EXPORT_LABEL = {
+  bundle: "Project download",
+  premiere: "Premiere export",
+  media: "Media export"
+} as const;
 
 const clampTracksHeight = (height: number): number =>
   Math.min(MAX_TRACKS_HEIGHT_PX, Math.max(MIN_TRACKS_HEIGHT_PX, height));
@@ -717,33 +727,81 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     [exportVideo, sequence?.name]
   );
 
-  // Whole-project archive: save the visible document before the server packs
-  // it with every referenced asset.
-  const [isExportingBundle, setIsExportingBundle] = useState(false);
-  const handleExportBundle = useCallback(async () => {
-    if (!sequenceId) return;
-    setIsExportingBundle(true);
-    try {
-      const saveResult = await flushAutosave();
-      if (!saveResult.ok) {
-        throw new Error(
-          `Could not save the current timeline. ${saveResult.error}`
-        );
+  // Server-packed archives: the whole project, a Premiere Pro XML with its
+  // media, or the media alone. Each saves the visible document first.
+  const [exportingArchive, setExportingArchive] = useState<
+    "bundle" | "premiere" | "media" | null
+  >(null);
+  const exportArchive = useCallback(
+    async (kind: "bundle" | "premiere" | "media") => {
+      if (!sequenceId) return;
+      setExportingArchive(kind);
+      const notify = useNotificationStore.getState().addNotification;
+      try {
+        const saveResult = await flushAutosave();
+        if (!saveResult.ok) {
+          throw new Error(
+            `Could not save the current timeline. ${saveResult.error}`
+          );
+        }
+        const name = sequence?.name || "timeline";
+        if (kind === "bundle") {
+          await exportTimelineZip(sequenceId, name);
+          return;
+        }
+        if (kind === "media") {
+          const missing = await exportTimelineMedia(sequenceId, name);
+          if (missing) {
+            notify({
+              type: "warning",
+              dismissable: true,
+              content: `Media downloaded. ${missing} ${
+                missing === 1 ? "file was" : "files were"
+              } unavailable and left out.`
+            });
+          }
+          return;
+        }
+        const warnings = await exportTimelinePremiere(sequenceId, name);
+        if (warnings) {
+          notify({
+            type: "warning",
+            dismissable: true,
+            content: `Premiere export downloaded. ${warnings} ${
+              warnings === 1 ? "clip needs" : "clips need"
+            } attention, see export-report.txt in the zip.`
+          });
+        }
+      } catch (error) {
+        notify({
+          type: "error",
+          alert: true,
+          dismissable: true,
+          content: `${EXPORT_LABEL[kind]} failed. ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+      } finally {
+        setExportingArchive(null);
       }
-      await exportTimelineZip(sequenceId, sequence?.name || "timeline");
-    } catch (error) {
-      useNotificationStore.getState().addNotification({
-        type: "error",
-        alert: true,
-        dismissable: true,
-        content: `Project download failed. ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      });
-    } finally {
-      setIsExportingBundle(false);
-    }
-  }, [flushAutosave, sequenceId, sequence?.name]);
+    },
+    [flushAutosave, sequenceId, sequence?.name]
+  );
+  const handleExportBundle = useCallback(
+    () => void exportArchive("bundle"),
+    [exportArchive]
+  );
+  const handleExportPremiere = useCallback(
+    () => void exportArchive("premiere"),
+    [exportArchive]
+  );
+  const isExportingBundle = exportingArchive === "bundle";
+  const isExportingPremiere = exportingArchive === "premiere";
+  const handleExportMedia = useCallback(
+    () => void exportArchive("media"),
+    [exportArchive]
+  );
+  const isExportingMedia = exportingArchive === "media";
 
   // "Save as asset" — anchor the folder chooser to the TopBar button, then
   // render the timeline into a new asset in the chosen folder.
@@ -978,6 +1036,12 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         isExporting={isExporting}
         onExportBundle={sequenceUnavailable ? undefined : handleExportBundle}
         isExportingBundle={isExportingBundle}
+        onExportPremiere={
+          sequenceUnavailable ? undefined : handleExportPremiere
+        }
+        isExportingPremiere={isExportingPremiere}
+        onExportMedia={sequenceUnavailable ? undefined : handleExportMedia}
+        isExportingMedia={isExportingMedia}
         onSave={sequenceUnavailable ? undefined : handleSave}
         isSaving={isSaving}
         onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}
@@ -1004,6 +1068,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       transcriptVisible,
       activitySlot,
       handleExportBundle,
+      handleExportMedia,
+      handleExportPremiere,
       handleExportVideo,
       handleOpenCode,
       handleOpenSettings,
@@ -1013,6 +1079,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       hasCode,
       isExporting,
       isExportingBundle,
+      isExportingMedia,
+      isExportingPremiere,
       isSaving,
       sequenceId,
       sequenceUnavailable

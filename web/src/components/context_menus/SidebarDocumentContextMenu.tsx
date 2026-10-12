@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 
-import { Text, ContextMenu, MenuItem } from "../ui_primitives";
+import { ContextMenu, Divider, ListSubheader } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import {
@@ -62,9 +62,7 @@ const SidebarDocumentContextMenu: React.FC = () => {
       position={menuPosition}
       disableRestoreFocus
     >
-      <MenuItem disabled>
-        <Text>{payload.name}</Text>
-      </MenuItem>
+      <ListSubheader>{payload.name}</ListSubheader>
       {!payload.readOnly && (
         <ContextMenuItem
           onClick={handleRename}
@@ -77,11 +75,12 @@ const SidebarDocumentContextMenu: React.FC = () => {
         label="Duplicate"
         IconComponent={<ContentCopyIcon />}
       />
+      {!payload.readOnly && <Divider />}
       {!payload.readOnly && (
         <ContextMenuItem
           onClick={handleDelete}
           label="Delete"
-          addButtonClassName="delete"
+          destructive
           IconComponent={<DeleteIcon />}
         />
       )}

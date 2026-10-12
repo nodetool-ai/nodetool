@@ -244,7 +244,6 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
                 key={option.value}
                 value={option.value}
                 disabled={option.disabled}
-                sx={valueType}
               >
                 {option.label}
               </MenuItem>
@@ -256,8 +255,9 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
             variant="body2"
             sx={{
               color: theme.palette.text.secondary,
-              mt: 0.5,
-              fontSize: theme.fontSizeSmaller
+              mt: 1,
+              fontSize: theme.fontSizeSmaller,
+              lineHeight: 1.4
             }}
           >
             {description}

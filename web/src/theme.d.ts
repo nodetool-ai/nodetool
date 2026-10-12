@@ -63,8 +63,6 @@ declare module "@mui/material/styles" {
       padXInspector?: string;
       padYInspector?: string;
       controlRadius?: string;
-      menuRadius?: string;
-      menuShadow?: string;
     };
     virtualScroll?: {
       overscan?: {
@@ -106,8 +104,6 @@ declare module "@mui/material/styles" {
       padXInspector: string;
       padYInspector: string;
       controlRadius: string;
-      menuRadius: string;
-      menuShadow: string;
     };
     virtualScroll: {
       overscan: {
@@ -151,8 +147,6 @@ declare module "@mui/material/styles" {
       padXInspector?: string;
       padYInspector?: string;
       controlRadius?: string;
-      menuRadius?: string;
-      menuShadow?: string;
     };
     virtualScroll?: {
       overscan?: {
@@ -193,8 +187,6 @@ declare module "@mui/material/styles" {
       padXInspector: string;
       padYInspector: string;
       controlRadius: string;
-      menuRadius: string;
-      menuShadow: string;
     };
     virtualScroll: {
       overscan: {
@@ -251,8 +243,6 @@ declare module "@mui/material/styles" {
       padXInspector: string;
       padYInspector: string;
       controlRadius: string;
-      menuRadius: string;
-      menuShadow: string;
     };
     virtualScroll: {
       overscan: {

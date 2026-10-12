@@ -1167,7 +1167,6 @@ const ScriptDocumentPane = ({
               onClose={() => setMoreAnchor(null)}
             >
               <MenuItemPrimitive
-                compact
                 icon={<SubtitlesIcon fontSize="small" />}
                 label="Export SRT"
                 disabled={!hasVoicedLine}
