@@ -579,13 +579,13 @@ binding and one button per action with a touch button binding. The 3D player
 also turns the camera by dragging on the right half. Input pressed while play
 is paused is dropped. Player-facing rebinding is not stored yet.
 
-## HUD widget tree (2D)
+## HUD widget tree
 
 `ui` on the document holds HUD widgets drawn in every scene. `ui` on a scene
 holds widgets drawn above them in that scene. Set either with
 `set_ui {scene_id?, ui}`, or `ui: null` to remove it. The op replaces the whole
-tree: `{safeArea?, focusNavigation?, nodes: [node]}`. 3D documents do not take
-a tree yet. Keep their `hud` labels.
+tree: `{safeArea?, focusNavigation?, nodes: [node]}`. 2D and 3D documents
+take the same tree and draw it with the same layout.
 
 Every node has `kind`, `id`, and optionally `parent`, `anchor`, `pivot`,
 `offset`, `width`, `height`, `visible` and `opacity`. `anchor` is a point
@@ -593,12 +593,15 @@ Every node has `kind`, `id`, and optionally `parent`, `anchor`, `pivot`,
 node, so `{x: 1, y: 0}` is the top-right corner. `pivot` is the node's own point
 placed there and defaults to `anchor`. `offset` moves the node in HUD pixels.
 The 2D HUD rectangle is the camera view at `pixelsPerUnit` pixels per unit, so
-a 16 by 9 camera at 32 pixels per unit gives 512 by 288. With `safeArea`
-(default true) root anchors stay inside the device's safe-area insets.
+a 16 by 9 camera at 32 pixels per unit gives 512 by 288. The 3D HUD rectangle
+is `presentation.hudWidth` by `hudHeight`, stretched over the viewport. With
+`safeArea` (default true) root anchors stay inside the device's safe-area
+insets.
 
 - `panel {color?, cornerRadius?}` fills its rectangle and holds children placed
   by their anchors.
-- `image {assetId}` draws an image asset.
+- `image {assetId}` draws an image asset. 3D documents bind no images, so a 3D
+  image node fails validation.
 - `text {text, size?, color?, align?, fontId?}` sizes itself from its text
   unless it has a width.
 - `bar {source?, value?, max?, color?, background?, direction?}` fills
@@ -619,11 +622,11 @@ Scripts change nodes with `{kind: "ui", id, text?, value?, max?, visible?}`.
 `text` applies to text and buttons, `value` and `max` to bars, and `visible`
 to any node. A change lasts until the scene changes and is saved in snapshots.
 A command for a missing node, or a field the node does not have, fails the
-step. An `onDestroy` hook cannot return `ui` commands. Change the HUD from
-another behavior's update.
+step. An `onDestroy` hook may return `ui` commands.
 
 A button press reaches scripts as its action in `pressed` and `justPressed`,
-exactly like a key, so replays and snapshots need nothing extra. With
+exactly like a key, so replays and snapshots need nothing extra. In 3D a click
+on a button reaches the HUD only while the mouse is not captured. With
 `focusNavigation: true`, the gamepad D-pad moves focus between visible buttons
 and button 0 presses the focused one. While the tree shows a button, those
 gamepad buttons drive the HUD instead of the game's bindings. Existing `hud`

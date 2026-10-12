@@ -1,4 +1,4 @@
-import { gameDocument, type GameDocument, type GameUiTree } from "@nodetool-ai/protocol";
+import { gameDocument, gameDocument3D, type GameDocument, type GameDocument3D, type GameUiTree } from "@nodetool-ai/protocol";
 
 /** Health bar, score panel and pause button: the HUD widget acceptance fixture. */
 export const HUD_WIDGETS: GameUiTree = {
@@ -14,6 +14,8 @@ export const HUD_WIDGETS: GameUiTree = {
   ]
 };
 
+const HUD_SCRIPT = "({ tick, justPressed, state }) => { const paused = (state ?? false) !== justPressed.includes('pause'); return { state: paused, commands: [{ kind: 'ui', id: 'score', text: 'Score ' + (tick + 1) * 10 }, { kind: 'ui', id: 'pause', text: paused ? 'Resume' : 'Pause' }] }; }";
+
 /** A 2D game with a 512 by 288 HUD. Its script counts score and toggles the pause button label when pause is pressed. */
 export function hudWidgetsGame2D(): GameDocument {
   return gameDocument.parse({
@@ -24,7 +26,25 @@ export function hudWidgetsGame2D(): GameDocument {
     scenes: [{ id: "main", name: "Main", entities: [
       { id: "camera", transform2d: { x: 0, y: 0 }, camera2d: { width: 16, height: 9 } },
       { id: "player", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "health", maximum: 4 },
-        { kind: "script", maxTickMs: 50, source: "({ tick, justPressed, state }) => { const paused = (state ?? false) !== justPressed.includes('pause'); return { state: paused, commands: [{ kind: 'ui', id: 'score', text: 'Score ' + (tick + 1) * 10 }, { kind: 'ui', id: 'pause', text: paused ? 'Resume' : 'Pause' }] }; }" }] }
+        { kind: "script", maxTickMs: 50, source: HUD_SCRIPT }] }
     ] }]
+  });
+}
+
+/**
+ * The same HUD, health and script in a 3D game whose 512 by 288 HUD rectangle matches the 2D canvas, so a
+ * capture at the HUD size compares pixel for pixel with the 2D capture.
+ */
+export function hudWidgetsGame3D(): GameDocument3D {
+  return gameDocument3D.parse({
+    schemaVersion: 3, engineVersion: "2", dimension: "3d", id: "hud-widgets-3d", revision: "r1", entrySceneId: "main",
+    tickRate: 60, presentation: { aspectRatio: 16 / 9, hudWidth: 512, hudHeight: 288 }, inputActions: ["pause"], assets: {},
+    ui: HUD_WIDGETS,
+    scenes: [{ id: "main", name: "Main", activeCameraId: "camera", environment: { background: "#202838", ambient: { color: "#ffffff", intensity: 0.5 } },
+      entities: [
+        { id: "camera", transform3d: { position: { x: 0, y: 2, z: 6 } }, camera3d: { projection: { kind: "perspective", fov: 60 } } },
+        { id: "player", transform3d: {}, primitive: { kind: "box", dimensions: { x: 1, y: 1, z: 1 }, material: { color: "#47dfb5" } },
+          behaviors: [{ kind: "health", maximum: 4 }, { kind: "script", maxTickMs: 50, source: HUD_SCRIPT }] }
+      ] }]
   });
 }

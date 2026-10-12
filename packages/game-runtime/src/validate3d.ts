@@ -1,6 +1,6 @@
 import { gameAuthoringBaseline } from "./authoring-reconcile.js";
 import {
-  gameDocument3D, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, gameParticleRenderWarnings, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
+  gameDocument3D, gameAudioSourceIssues, gameInputBindingIssues, gameParticleIssues, gameParticleRenderWarnings, gameUiIssues, parseGameDocument, type AnyGameDocument, type GameDiagnostic,
   type GameDocument3D, type GameEntity3D, type GamePrefab3D
 } from "@nodetool-ai/protocol";
 import { GAME_LOCAL_SHADOW_LIGHT_BUDGET_3D, gameScriptParamValueOf } from "@nodetool-ai/protocol";
@@ -56,6 +56,8 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
     for (const issue of gameInputBindingIssues(document)) { add("missing_input_binding_target", issue.path, issue.message); }
     for (const issue of collisionLayerIssues3D(document)) { add(issue.code, issue.path, issue.message); }
     for (const issue of physicsMaterialIssues3D(document)) { add(issue.code, issue.path, issue.message); }
+    // 3D documents bind no image assets, so a 3D HUD image node always reports a missing image.
+    for (const issue of gameUiIssues(document)) { add("invalid_ui", issue.path, issue.message); }
     for (const [slot, asset] of Object.entries(document.assets)) {
       if (asset.mediaKind === "model" || asset.mediaKind === "collider") {
         if (["x", "y", "z"].some((axis) => {

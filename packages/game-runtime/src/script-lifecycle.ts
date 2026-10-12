@@ -118,7 +118,7 @@ export function removedDestroyCall(
 }
 
 /** Commands an `onDestroy` call may return. The entity is gone, so commands that act on it are rejected. */
-const DESTROY_COMMANDS = new Set(["hud", "emit", "spawn", "despawn", "sceneTransition"]);
+const DESTROY_COMMANDS = new Set(["hud", "ui", "emit", "spawn", "despawn", "sceneTransition"]);
 
 export function assertDestroyCommands(commands: readonly { readonly kind: string }[], entityId: string, tick: number): void {
   for (const command of commands) {
