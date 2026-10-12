@@ -71,6 +71,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps | `/api/applications/{id}` | `GET`, `PUT`, `PATCH`, `DELETE` | Session auth | no | Read, update, or delete one app |
 | Apps      | `/api/applications/{id}/released-document` | `GET`    | Session auth                     | no                          | The snapshot a published app should run, with each operation's pinned graph; `null` when nothing is published |
 | Apps      | `/api/applications/{id}/export-bundle` | `GET`        | Session auth                     | no                          | One app and the full graph of every workflow it binds, as a downloadable `ApplicationBundle` |
+| Apps      | `/api/applications/{id}/export-project` | `GET`       | Session auth                     | no                          | One app as a standalone JavaScript project (Vite UI plus a Node server that runs its workflows), as a `.zip` |
 | Apps | `/api/applications/import-bundle` | `POST` | Session auth | no | Create an app, and the workflows it binds, from an `ApplicationBundle` |
 | Apps      | `/api/applications/build`         | `POST`            | Session auth                     | no                          | Build a mini app from a prompt or a pinned spec; returns the `BuildReport`. `poll: true` returns a session id instead |
 | Apps      | `/api/applications/debug`         | `POST`            | Session auth                     | no                          | Simulate a saved app by `application_id`, or a draft posted inline as `document`; returns the compacted debug report |
@@ -1576,6 +1577,24 @@ which answer you want to handle. `released-document` calls it a `200` with a
 
 An id the caller does not own is also a `404`. The CLI wraps the same call as
 `nodetool apps export-bundle <id> [-o file] [--released]`.
+
+### Exporting an App as a Standalone Project
+
+`GET /api/applications/{id}/export-project` returns the app as a JavaScript
+project that runs without NodeTool, zipped under a `<project-name>/` folder.
+`?released=1` exports the released snapshot, as for `export-bundle`.
+
+```bash
+curl "http://localhost:7777/api/applications/<application_id>/export-project" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -O -J
+```
+
+The response is `application/zip` with
+`content-disposition: attachment; filename="<project-name>.zip"`. The project
+layout is described in
+[`@nodetool-ai/app-export`](../packages/app-export/README.md). The CLI
+equivalent is `nodetool apps export-project`.
 
 ### Building an App on the Server
 

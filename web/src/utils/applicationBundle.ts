@@ -1,6 +1,7 @@
 /**
  * Client helpers for the application bundle endpoints:
  *   GET  /api/applications/:id/export-bundle  → download an app + its workflows
+ *   GET  /api/applications/:id/export-project → download it as a standalone JS project (.zip)
  *   POST /api/applications/import-bundle      → create the app and its workflows
  *
  * The workflow equivalents live in `workflowBundle.ts`; an application bundle
@@ -44,6 +45,25 @@ export async function exportApplicationBundle(
     throw new Error(detail || `Export failed (${res.status})`);
   }
   await saveResponseAsFile(res, `${sanitizeBundleName(fallbackName)}.app.json`);
+}
+
+/**
+ * Download one app as a standalone JavaScript project: a zip holding a Vite UI
+ * and a Node server that runs the app's workflows without NodeTool.
+ */
+export async function exportApplicationProject(
+  applicationId: string,
+  fallbackName: string
+): Promise<void> {
+  const res = await restFetch(
+    `/api/applications/${encodeURIComponent(applicationId)}/export-project`,
+    { method: "GET" }
+  );
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Export failed (${res.status})`);
+  }
+  await saveResponseAsFile(res, `${sanitizeBundleName(fallbackName)}.zip`);
 }
 
 /** Upload a bundle file; the server creates the workflows, then the app. */

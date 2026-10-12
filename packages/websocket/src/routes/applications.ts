@@ -13,6 +13,7 @@
  *   DELETE /api/applications/:id                    → { ok: true }
  *   GET    /api/applications/:id/released-document  → ApplicationReleaseResponse | null
  *   GET    /api/applications/:id/export-bundle      → ApplicationBundle (download)
+ *   GET    /api/applications/:id/export-project     → standalone project .zip (download)
  *   POST   /api/applications/import-bundle          → ApplicationResponse
  *   POST   /api/applications/build                  → BuildReport | {session_id}
  *   POST   /api/applications/debug                  → AppDebugSummary | {session_id}
@@ -59,6 +60,7 @@ import {
   type AppDebugDeps,
   type AppDebugRequest
 } from "../lib/app-debug-service.js";
+import { exportApplicationProject } from "../lib/app-project-export.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -259,6 +261,34 @@ const applicationsRoutes: FastifyPluginAsync<RouteOptions> = async (
         `attachment; filename="${fileName}.app.json"`
       );
       return new Response(response.body, { status: response.status, headers });
+    });
+  });
+
+  // The app as a standalone JavaScript project (Vite UI plus a Node server
+  // that runs its workflows in process), zipped under a `<name>/` folder.
+  app.get("/api/applications/:id/export-project", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, async (request) => {
+      const params = new URL(request.url).searchParams;
+      const released =
+        params.get("released") === "1" || params.get("released") === "true";
+      try {
+        const project = await exportApplicationProject(
+          userIdOf(request),
+          id,
+          apiOptions,
+          { released }
+        );
+        return new Response(Buffer.from(project.zip), {
+          status: 200,
+          headers: {
+            "content-type": "application/zip",
+            "content-disposition": `attachment; filename="${project.fileName}"`
+          }
+        });
+      } catch (error) {
+        return respond(() => Promise.reject(error));
+      }
     });
   });
 
