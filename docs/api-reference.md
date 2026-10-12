@@ -80,6 +80,8 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Session auth                     | no                          | Install an example into the caller's library, creating the workflows it binds |
 | Apps      | `/api/applications/examples/{slug}/scripts/{key}/run` | `POST` | Session auth                | NDJSON with `Accept: application/x-ndjson` | Run a JS script an example bundle carries, without installing the example |
 | Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Session auth                     | streaming                   | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
+| Games     | `/api/games/{id}/export-zip`       | `GET`             | Session auth                     | streaming                   | A game's published build as a zip: `target=web` (default) or `target=tauri`; `404` when the caller does not own it |
+| Games     | `/api/games/{id}/build-executable` | `POST`            | Session auth                     | NDJSON                      | Compile the desktop app project with cargo on this machine; `403` on a cloud profile, `503` without cargo |
 | Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Session auth                     | streaming                   | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
 | Timelines | `/api/timelines/{id}/export-premiere` | `GET`          | Session auth                     | streaming                   | One sequence as a Premiere Pro XML (xmeml) plus its media and an export report, as a zip; `404` when the caller does not own it |
 | Timelines | `/api/timelines/{id}/export-media` | `GET`             | Session auth                     | streaming                   | Every clip's media file plus `clips.csv`, as a zip; `404` when the caller does not own it |
@@ -1785,6 +1787,59 @@ nothing rewrites the refs, and there is no import route that reads it back. A
 board the caller does not own is a `404` with
 `{"detail": "Storyboard not found"}`, the same answer as an id that does not
 exist.
+
+### Exporting a Game
+
+The editor reads and writes games over `/trpc/games.*`. Two routes sit outside
+tRPC because their bodies are not JSON. Both build the game's published
+revision, the same build the agent's `build_native_game` capability makes (see
+[Game Editor](game-editor.md)).
+
+`GET /api/games/{id}/export-zip` streams the build as a zip. Reach for it to
+hand a playable game to someone without a NodeTool account.
+
+```bash
+curl "http://localhost:7777/api/games/<game_id>/export-zip?target=web" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -O -J
+```
+
+| Query | Values | Effect |
+|-------|--------|--------|
+| `target` | `web` (default), `tauri` | `web` is the static web player, `tauri` is the desktop app project |
+| `revision` | 32-character hex revision id | Build that revision instead of the published one |
+
+Any other query parameter is rejected. The response is `application/zip` with
+`cache-control: no-store` and the file name `game-<first 12 characters of the
+game id>-web.zip` (`-desktop.zip` for `tauri`). Every entry sits under a `web/`
+or `desktop/` folder. A game the caller does not own, or a missing revision, is
+a `404` with `{"detail": "Game not found"}` or `{"detail": "Game revision not
+found"}`. A build that cannot run is a `422` with `detail`.
+
+`POST /api/games/{id}/build-executable` builds the desktop project and compiles
+it with cargo on the server's machine. It streams cargo's output as
+newline-delimited JSON (`application/x-ndjson`), and closing the request stops
+cargo.
+
+```bash
+curl -N -X POST "http://localhost:7777/api/games/<game_id>/build-executable" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{"type":"status","message":"Compiling My Game with cargo","project_path":"/path/to/workspace/game-builds/..."}
+{"type":"log","line":"   Compiling tauri v2..."}
+{"type":"done","binary_path":".../bin/my-game","project_path":"..."}
+```
+
+A failed build ends the stream with `{"type":"error","detail":"..."}`, which
+adds `runtime_package` when a runtime package such as `rust` is missing. Before
+the stream starts, the route answers `403` when the cloud profile is active
+(`NODETOOL_NODE_PROFILE=cloud`, or `NODE_ENV=production` with the profile
+unset), `503` with `runtime_package: "rust"` when cargo is not installed, `404`
+for a game the caller does not own, and `422` when the workspace is not on this
+machine's disk. All games share one cargo target directory, so only the first
+build compiles Tauri itself.
 
 ### What This Server Supports
 
