@@ -50,6 +50,27 @@ describe("runtimeConfig", () => {
     expect(isAuthRequired()).toBe(true);
   });
 
+  it("reads the cloud profile flag, defaulting to false", async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ authMode: "supabase", cloudProfile: true })
+    );
+    const { loadRuntimeConfig, isCloudProfile } = await import(
+      "../runtimeConfig"
+    );
+    expect(isCloudProfile()).toBe(false);
+    await loadRuntimeConfig();
+    expect(isCloudProfile()).toBe(true);
+  });
+
+  it("treats a backend without the flag as not cloud", async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ authMode: "supabase" }));
+    const { loadRuntimeConfig, isCloudProfile } = await import(
+      "../runtimeConfig"
+    );
+    await loadRuntimeConfig();
+    expect(isCloudProfile()).toBe(false);
+  });
+
   it("falls back to local defaults when the endpoint is unavailable", async () => {
     mockFetch.mockResolvedValue(jsonResponse(null, false));
 

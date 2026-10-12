@@ -125,7 +125,7 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
     >
       <FilterRow label="I want to">
         {MODEL_GOALS.map((goal) => (
-          <Tooltip key={goal.id} title={goal.description} delay={400}>
+          <Tooltip key={goal.id} title={goal.description}>
             <Chip
               label={goal.label}
               compact

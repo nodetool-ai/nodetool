@@ -44,7 +44,6 @@ import { displayCombo } from "./shortcuts";
 import {
   Caption,
   Divider,
-  EditorMenuItem,
   FlexColumn,
   FlexRow,
   TabGroup,
@@ -128,32 +127,26 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const editorRef = useRef<SketchEditorHandle>(null);
   const exportMenuItems = useCallback(
     (close: () => void) => [
-      <EditorMenuItem
+      <MenuItemPrimitive
         key="export-psd"
+        label="Export PSD"
+        icon={<LayersOutlinedIcon fontSize="small" />}
         onClick={() => {
           close();
           editorRef.current?.exportPsd();
         }}
         data-testid="sketch-export-psd"
-      >
-        <ListItemIcon>
-          <LayersOutlinedIcon fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Export PSD</ListItemText>
-      </EditorMenuItem>,
-      <EditorMenuItem
+      />,
+      <MenuItemPrimitive
         key="import-psd"
+        label="Import PSD…"
+        icon={<FileUploadOutlinedIcon fontSize="small" />}
         onClick={() => {
           close();
           editorRef.current?.importPsd();
         }}
         data-testid="sketch-import-psd"
-      >
-        <ListItemIcon>
-          <FileUploadOutlinedIcon fontSize="small" />
-        </ListItemIcon>
-        <ListItemText>Import PSD…</ListItemText>
-      </EditorMenuItem>
+      />
     ],
     []
   );

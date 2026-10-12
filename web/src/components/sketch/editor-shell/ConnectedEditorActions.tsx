@@ -17,22 +17,15 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
-import CheckIcon from "@mui/icons-material/Check";
-import { useTheme } from "@mui/material/styles";
 
 import {
-  Box,
   Divider,
   EditorButton,
   EditorMenu,
-  EditorMenuItem,
   FlexRow,
   IconButton,
-  ListItemIcon,
-  ListItemText,
-  Tooltip,
-  MENU_ICON_SIZE,
-  menuShortcutStyles
+  MenuItemPrimitive,
+  Tooltip
 } from "../../ui_primitives";
 import { useSketchStore, SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX } from "../state";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
@@ -41,8 +34,7 @@ import { ConnectedGeneratePopover } from "./ConnectedGeneratePopover";
 import { displayCombo } from "../shortcuts";
 import type { SketchActionId } from "../shortcuts";
 
-interface ViewToggleItemProps
-  extends Omit<React.ComponentProps<typeof EditorMenuItem>, "onClick"> {
+interface ViewToggleItemProps {
   label: string;
   checked: boolean;
   actionId: SketchActionId;
@@ -56,39 +48,16 @@ const ViewToggleItem: React.FC<ViewToggleItemProps> = ({
   checked,
   actionId,
   onClick,
-  testId,
-  ...menuItemProps
+  testId
 }) => (
-  <EditorMenuItem
-    {...menuItemProps}
+  <MenuItemPrimitive
+    label={label}
+    checkable="checkbox"
+    checked={checked}
+    shortcut={displayCombo(actionId)}
     onClick={onClick}
-    role="menuitemcheckbox"
-    aria-checked={checked}
     data-testid={testId}
-  >
-    <ListItemIcon>
-      <CheckIcon sx={{ visibility: checked ? "visible" : "hidden" }} />
-    </ListItemIcon>
-    <ListItemText>{label}</ListItemText>
-    <ShortcutLabel>{displayCombo(actionId)}</ShortcutLabel>
-  </EditorMenuItem>
-);
-
-/** The shortcut at the end of a hand-built row, in the shared menu style. */
-const ShortcutLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const theme = useTheme();
-  return (
-    <Box component="span" className="shortcut" sx={menuShortcutStyles(theme)}>
-      {children}
-    </Box>
-  );
-};
-
-/** Keeps an icon-less row's label on the same edge as its iconned siblings. */
-const IconSpacer: React.FC = () => (
-  <ListItemIcon>
-    <Box component="span" sx={{ width: MENU_ICON_SIZE, height: MENU_ICON_SIZE }} />
-  </ListItemIcon>
+  />
 );
 
 export interface ConnectedEditorActionsProps {
@@ -249,22 +218,18 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         paperSx={{ minWidth: 220 }}
       >
-        <EditorMenuItem onClick={handleFit} data-testid="sketch-fit-view">
-          <ListItemIcon>
-            <FitScreenIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Fit to viewport</ListItemText>
-        </EditorMenuItem>
-
-        <EditorMenuItem
+        <MenuItemPrimitive
+          label="Fit to viewport"
+          icon={<FitScreenIcon fontSize="small" />}
+          onClick={handleFit}
+          data-testid="sketch-fit-view"
+        />
+        <MenuItemPrimitive
+          label="Hide panels"
+          icon={<ViewSidebarOutlinedIcon fontSize="small" />}
           onClick={handleHidePanels}
           data-testid="sketch-hide-panels"
-        >
-          <ListItemIcon>
-            <ViewSidebarOutlinedIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Hide panels</ListItemText>
-        </EditorMenuItem>
+        />
 
         <Divider key="view-divider" />
         <ViewToggleItem
@@ -297,17 +262,15 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
           }}
           testId="sketch-toggle-snap"
         />
-        <EditorMenuItem
+        <MenuItemPrimitive
+          label="Clear guides"
           onClick={() => {
             closeMenu();
             useSketchStore.getState().clearGuides();
           }}
           disabled={!hasGuides}
           data-testid="sketch-clear-guides"
-        >
-          <IconSpacer />
-          <ListItemText>Clear guides</ListItemText>
-        </EditorMenuItem>
+        />
 
         {menuItems ? <Divider key="host-divider" /> : null}
         {menuItems?.(closeMenu)}

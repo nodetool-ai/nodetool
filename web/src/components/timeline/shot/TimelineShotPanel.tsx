@@ -165,7 +165,7 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
               startIcon={<OpenInNewOutlinedIcon />}
               onClick={link?.open}
               disabled={!link}
-              title="Open this shot on its storyboard"
+              tooltip="Open this shot on its storyboard"
             >
               Open on board
             </EditorButton>
@@ -174,7 +174,7 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
               startIcon={<LinkOffOutlinedIcon />}
               onClick={handleUnlink}
               disabled={clip.locked}
-              title="Stop this clip following the shot. Its footage stays."
+              tooltip="Stop this clip following the shot. Its footage stays."
             >
               Unlink
             </EditorButton>
@@ -202,7 +202,7 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
               onClick={openRender}
               disabled={generating}
               data-testid="timeline-shot-new-take"
-              title={
+              tooltip={
                 needsStill
                   ? "This shot animates a still. Render the still first."
                   : "Render another take of this shot"

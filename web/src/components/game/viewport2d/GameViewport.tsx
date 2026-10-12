@@ -455,12 +455,12 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
       <Box ref={stageRef} sx={{ position: "relative", width: "100%", height: "100%" }}>
         {!playing && <FlexRow gap={SPACING.xs} wrap sx={{ position: "absolute", top: SPACING.xs, left: SPACING.xs, right: SPACING.xs, zIndex: Z_INDEX.raised }}>
           <EditorButton variant={panTool ? "contained" : "text"} aria-pressed={panTool}
-            title={mac ? "Two-finger scroll or right/middle drag to pan. Pinch or Ctrl+scroll to zoom."
+            tooltip={mac ? "Two-finger scroll or right/middle drag to pan. Pinch or Ctrl+scroll to zoom."
               : "Right/middle drag to pan. Mouse wheel zooms."}
             onClick={() => setPanTool((value) => !value)}>Pan</EditorButton>
           <EditorButton variant={showSelection ? "contained" : "text"} onClick={() => setShowSelection((value) => !value)}>Selection</EditorButton>
           <EditorButton variant={showGrid ? "contained" : "text"} onClick={() => setShowGrid((value) => !value)}>Grid</EditorButton>
-          <EditorButton variant={snapToGrid ? "contained" : "text"} title={snapShortcut ? `Toggle snapping (${snapShortcut.join("+")})` : "Toggle snapping"}
+          <EditorButton variant={snapToGrid ? "contained" : "text"} tooltip="Toggle snapping" shortcut={snapShortcut}
             onClick={() => setSnapToGrid((value) => !value)}>Snap</EditorButton>
           <EditorButton variant={showColliders ? "contained" : "text"} onClick={() => setShowColliders((value) => !value)}>Colliders</EditorButton>
           <EditorButton variant={showLights ? "contained" : "text"} onClick={() => setShowLights((value) => !value)}>Lights</EditorButton>

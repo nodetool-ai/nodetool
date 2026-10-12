@@ -308,7 +308,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
           onDoubleClick={handleTitleDoubleClick}
         >
           {showCodeBadge && (
-            <Tooltip title={codeBadgeTooltip} placement="top" delay={400}>
+            <Tooltip title={codeBadgeTooltip} placement="top">
               <span className="code-badge">C</span>
             </Tooltip>
           )}

@@ -419,7 +419,7 @@ describe("extension tRPC router", () => {
       path: "/build/ext",
       exists: true
     });
-    const caller = createCaller({} as never);
+    const caller = createCaller({ userId: "u1" } as never);
     const res = await caller.status();
     expect(res).toEqual({
       connected: true,
@@ -431,12 +431,17 @@ describe("extension tRPC router", () => {
   it("reflects a disconnected extension and missing build", async () => {
     mocks.isBridgeAvailable.mockResolvedValue(false);
     mocks.resolveExtensionDist.mockReturnValue({ path: "", exists: false });
-    const caller = createCaller({} as never);
+    const caller = createCaller({ userId: "u1" } as never);
     const res = await caller.status();
     expect(res).toEqual({
       connected: false,
       distPath: "",
       distExists: false
     });
+  });
+
+  it("refuses an unauthenticated caller", async () => {
+    const caller = createCaller({} as never);
+    await expect(caller.status()).rejects.toThrow("Authentication required");
   });
 });

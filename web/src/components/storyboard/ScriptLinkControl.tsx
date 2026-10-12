@@ -62,7 +62,7 @@ const ScriptLinkControlInner = ({
         startIcon={<DescriptionOutlinedIcon fontSize="small" />}
         onClick={scriptId ? onOpen : onExtract}
         disabled={disabled || extracting || (!scriptId && !hasShots)}
-        title={
+        tooltip={
           scriptId
             ? "Open the script this board's words come from"
             : "Project this board's dialogue and narration into a script"

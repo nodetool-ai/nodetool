@@ -773,7 +773,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
               <EditorButton
                 onClick={handleRegenerate}
                 disabled={generating || durationInvalid}
-                title={
+                tooltip={
                   generating ? "This shot is already rendering" : undefined
                 }
               >

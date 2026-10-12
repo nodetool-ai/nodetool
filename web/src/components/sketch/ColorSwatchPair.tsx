@@ -23,7 +23,7 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import { colorToHex6 } from "./types";
-import { SKETCH_TOOLTIP_DELAY_MS, colorSwatchSx } from "./sketchStyles";
+import { colorSwatchSx } from "./sketchStyles";
 import ColorPickerPopover from "./ColorPickerPopover";
 
 /** Square edge (px) — matches colorSwatchSx. */
@@ -89,10 +89,8 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         }}
       >
         <Tooltip
-          title="Background Color"
+          title="Background color"
           placement="right"
-          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
         >
           <Container
             className="color-swatch-pair__bg"
@@ -115,10 +113,8 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         </Tooltip>
 
         <Tooltip
-          title="Foreground Color"
+          title="Foreground color"
           placement="right"
-          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
         >
           <Container
             className="color-swatch-pair__fg"
@@ -150,30 +146,28 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         sx={{ width: `${STACK}px` }}
       >
         <Tooltip
-          title="Swap Colors (X)"
+          title="Swap colors"
+          shortcut={["X"]}
           placement="right"
-          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
         >
           <EditorButton
             density="compact"
             onClick={onSwapColors}
-            aria-label="Swap Colors (X)"
+            aria-label="Swap colors"
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: BORDER_RADIUS.sm }}
           >
             <SwapHorizIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
           </EditorButton>
         </Tooltip>
         <Tooltip
-          title="Reset to B/W (D)"
+          title="Reset to black and white"
+          shortcut={["D"]}
           placement="right"
-          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
         >
           <EditorButton
             density="compact"
             onClick={onResetColors}
-            aria-label="Reset to black and white (D)"
+            aria-label="Reset to black and white"
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: BORDER_RADIUS.sm }}
           >
             <Text

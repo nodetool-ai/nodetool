@@ -1,11 +1,8 @@
 import React, { memo } from "react";
-import CheckIcon from "@mui/icons-material/Check";
 import {
   ContextMenu,
-  ListItemIcon,
-  ListItemText,
   ListSubheader,
-  MenuItem
+  MenuItemPrimitive
 } from "../../ui_primitives";
 
 export interface MediaOption<T extends string | number> {
@@ -55,28 +52,19 @@ function MediaOptionMenuInternal<T extends string | number>({
       {options.map((opt) => {
         const selected = opt.id === value;
         return (
-          <MenuItem
+          <MenuItemPrimitive
             key={String(opt.id)}
-            role="menuitemradio"
-            aria-checked={selected}
-            selected={selected}
+            label={opt.label}
+            secondary={opt.description}
+            icon={opt.icon}
+            checkable="radio"
+            checked={selected}
             disabled={opt.disabled}
             onClick={() => {
-              if (opt.disabled) {
-                return;
-              }
               onChange(opt.id);
               onClose();
             }}
-          >
-            {opt.icon && <ListItemIcon>{opt.icon}</ListItemIcon>}
-            <ListItemText primary={opt.label} secondary={opt.description} />
-            {selected && (
-              <ListItemIcon>
-                <CheckIcon fontSize="small" />
-              </ListItemIcon>
-            )}
-          </MenuItem>
+          />
         );
       })}
     </ContextMenu>

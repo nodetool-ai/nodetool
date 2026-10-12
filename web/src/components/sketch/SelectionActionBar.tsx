@@ -36,13 +36,11 @@ import {
   MOTION,
   reducedMotion,
   TextInput,
-  Toast,
   Tooltip,
   Box
 } from "../ui_primitives";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../stores/ApiTypes";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { getRememberedModel } from "../../stores/lastModelStore";
@@ -56,6 +54,7 @@ import { getSelectionBounds } from "./selection";
 import type { Point } from "./types";
 import { SKETCH_Z_INDEX } from "./sketchStyles";
 import { RefineSelectionPopover } from "./tool-settings-panels/refine-selection";
+import { useAlertNotifier } from "../../hooks/useAlertNotifier";
 
 /** Gap in CSS px between the selection edge and the bar. */
 const BAR_GAP = 12;
@@ -154,7 +153,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   const [model, setModel] = useState(seed.model);
   const [provider, setProvider] = useState(seed.provider);
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const reportError = useAlertNotifier("warning");
 
   // start() resolves as soon as the RPC is sent — the actual generation runs
   // for seconds afterwards and only surfaces through the binding status. Track
@@ -225,16 +224,16 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         setJobLayerId(null);
         switch (result.reason) {
           case "no-selection":
-            setError("Make a selection first.");
+            reportError("Make a selection first.");
             break;
           case "no-document":
-            setError("No image document is open.");
+            reportError("No image document is open.");
             break;
           case "no-canvas":
-            setError("Canvas is not ready yet.");
+            reportError("Canvas is not ready yet.");
             break;
           case "error":
-            setError(result.message ?? "Generation failed.");
+            reportError(result.message ?? "Generation failed.");
             break;
         }
         return;
@@ -243,11 +242,11 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
       await start(result.layerId);
       setPrompt("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Generation failed.");
+      reportError(e instanceof Error ? e.message : "Generation failed.");
     } finally {
       setGenerating(false);
     }
-  }, [inpaintHere, start, prompt, provider, model, mode]);
+  }, [inpaintHere, start, prompt, provider, model, mode, reportError]);
 
   const handleRemove = useCallback(() => {
     if (clearActiveLayer) {
@@ -415,7 +414,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         <FlexRow gap={0} sx={{ flexShrink: 0, mr: 0.5 }}>
           <Tooltip
             title="Edit — transform the whole frame from your prompt (image-to-image, no mask)."
-            delay={TOOLTIP_ENTER_DELAY}
             placement={placeAbove ? "top" : "bottom"}
           >
             <EditorButton
@@ -429,7 +427,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           </Tooltip>
           <Tooltip
             title="Inpaint — regenerate only the selected region, using the selection as a mask."
-            delay={TOOLTIP_ENTER_DELAY}
             placement={placeAbove ? "top" : "bottom"}
           >
             <EditorButton
@@ -489,7 +486,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               ? "Inpaint — regenerate the selected region using your prompt and the selection as a mask."
               : "Edit — transform the whole frame from your prompt."
           }
-          delay={TOOLTIP_ENTER_DELAY}
           placement={placeAbove ? "top" : "bottom"}
         >
           <span>
@@ -514,7 +510,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
 
         <Tooltip
           title="Remove — clear the selected pixels from the active layer."
-          delay={TOOLTIP_ENTER_DELAY}
           placement={placeAbove ? "top" : "bottom"}
         >
           <span>
@@ -537,7 +532,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         {mode === "inpaint" && (
           <Tooltip
             title="Refine mask — feather, smooth, grow / shrink, or border the selection used for inpainting."
-            delay={TOOLTIP_ENTER_DELAY}
             placement={placeAbove ? "top" : "bottom"}
           >
             <EditorButton
@@ -574,15 +568,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           onConvertSelectionToBorder={convertSelectionToBorderOutline}
         />
       )}
-
-      <Toast
-        open={error !== null}
-        message={error ?? ""}
-        severity="warning"
-        onClose={() => setError(null)}
-        vertical="top"
-        horizontal="center"
-      />
     </>
   );
 };

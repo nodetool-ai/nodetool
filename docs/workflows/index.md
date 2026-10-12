@@ -26,6 +26,8 @@ page itself.
 > shipped skill for each kind of project.
 {: .callout-tip}
 
+![Examples page on the Apps tab, with tabs for workflows, storyboards, timelines, sketches, 3D models and games]({{ '/assets/screenshots/examples-page.png' | relative_url }})
+
 ## Apps
 
 **Add to your apps** installs the app and the workflows it runs. The apps fall

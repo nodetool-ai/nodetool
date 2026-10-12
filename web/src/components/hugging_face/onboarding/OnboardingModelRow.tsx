@@ -74,7 +74,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
               <Chip label="Popular" compact color="primary" variant="outlined" />
             )}
             {engine && (
-              <Tooltip title={engine.description} delay={400}>
+              <Tooltip title={engine.description}>
                 <Chip label={engine.name} compact variant="outlined" />
               </Tooltip>
             )}
