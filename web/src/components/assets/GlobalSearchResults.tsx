@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
-import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
+import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS, getSpacingPx, SPACING, EmptyState } from "../ui_primitives";
 import FolderIcon from "@mui/icons-material/Folder";
 import NavigateIcon from "@mui/icons-material/NavigateNext";
 import { AssetWithPath } from "../../stores/ApiTypes";
@@ -407,7 +407,11 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                 <Text>Searching…</Text>
               </div>
             ) : (
-              <Text>No assets found matching your search.</Text>
+              <EmptyState
+                size="small"
+                variant="no-results"
+                title="No assets found matching your search"
+              />
             )}
           </div>
         </div>

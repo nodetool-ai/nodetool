@@ -10,7 +10,8 @@ import {
   LoadingSpinner,
   ScrollArea,
   SPACING,
-  Text
+  Text,
+  EmptyState
 } from "../../ui_primitives";
 import { trpc } from "../../../trpc/client";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
@@ -62,13 +63,13 @@ const ProjectDocumentsSidebar = ({ projectId, active }: ProjectDocumentsSidebarP
       </FlexColumn>
       <ScrollArea sx={{ flex: 1, minHeight: 0, p: SPACING.sm }}>
         {!projectId ? (
-          <Caption color="muted">No project selected.</Caption>
+          <EmptyState size="small" title="No project selected" />
         ) : isPending ? (
           <LoadingSpinner />
         ) : error ? (
           <Caption color="error">{error.message}</Caption>
         ) : documents.length === 0 ? (
-          <Caption color="muted">No documents in this project yet.</Caption>
+          <EmptyState size="small" title="No documents in this project yet" />
         ) : (
           <FlexColumn gap={SPACING.xs}>
             {documents.map((document) => (

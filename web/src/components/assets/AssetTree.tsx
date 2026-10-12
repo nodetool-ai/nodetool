@@ -13,7 +13,8 @@ import {
   ListItemIcon,
   ListItemText,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  EmptyState
 } from "../ui_primitives";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
@@ -283,7 +284,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
       {renderAssetTree(assetTree)}
     </Box>
   ) : (
-    <Text>No assets found</Text>
+    <EmptyState size="small" title="No assets found" />
   );
 };
 
