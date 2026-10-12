@@ -335,7 +335,9 @@ one the host granted.
   filesystem the process can reach. Both switches exist because `lib.http` and
   `lib.os` nodes always had that reach and a Code node replacing one must match
   it; both default to the restrictive value, and the graph migration sets the
-  filesystem switch only on nodes rewritten from such a node.
+  filesystem switch only on nodes rewritten from such a node. The cloud profile
+  ignores both switches (`isHostAccessEnabled` in `packages/agents`), because
+  on a shared server they would reach the operator's disk and network.
 - **Cancellation.** Once the abort signal fires, every subsequent bridge call
   fails fast and the guest unwinds. A purely CPU-bound loop still runs to its
   execution timeout — QuickJS's wrapper exposes no interrupt input — but

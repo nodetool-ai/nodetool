@@ -845,6 +845,7 @@ import { ContextMenu, MenuItemPrimitive } from "../ui_primitives";
 | Secondary line | `secondary`, in caption type and `text.secondary` |
 | Shortcut | `shortcut`, right-aligned in `TYPOGRAPHY.mono.caption` and `text.secondary` |
 | Submenu | `hasSubmenu` draws the chevron at the end of the row |
+| Choices | `checkable="radio"` for one option of a group: the picked row is `selected` and shows a check at the end. `checkable="checkbox"` for a toggle: a check shows when `checked`. Both set `role` and `aria-checked` |
 | Destructive | `color="error"` for delete and remove, last in the menu after a divider |
 | Groups | `Divider` between groups (4px above and below). A titled group uses `ListSubheader`, which the menu renders as `EYEBROW` in `text.secondary` on the label edge |
 | Disabled | `disabled`. Say why in `tooltip` when it is not obvious |

@@ -1,5 +1,12 @@
 import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import PageSurface from "../PageSurface";
+
+const mockIsCloudProfile = jest.fn(() => false);
+jest.mock("../../../lib/runtimeConfig", () => ({
+  isCloudProfile: () => mockIsCloudProfile()
+}));
 
 jest.mock("../../assets/AssetExplorer", () => ({
   __esModule: true,
@@ -25,7 +32,7 @@ jest.mock("../../costs/CostsDashboard", () => ({
 }));
 jest.mock("../../hugging_face/model_list/ModelsPage", () => ({
   __esModule: true,
-  default: () => null
+  default: () => <div>models page</div>
 }));
 jest.mock("../../packages/PackagesPage", () => ({
   __esModule: true,
@@ -55,6 +62,25 @@ describe("PageSurface", () => {
     render(<PageSurface pageKey="settings" />);
     const pane = await screen.findByLabelText("Settings");
     expect(pane).toHaveStyle({ overflow: "hidden", height: "100%" });
+  });
+
+  it("shows the Model Manager outside the cloud", async () => {
+    mockIsCloudProfile.mockReturnValue(false);
+    render(<PageSurface pageKey="models" />);
+    expect(await screen.findByText("models page")).toBeInTheDocument();
+  });
+
+  it("replaces the Model Manager with a notice in the cloud", async () => {
+    mockIsCloudProfile.mockReturnValue(true);
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <PageSurface pageKey="models" />
+      </ThemeProvider>
+    );
+    expect(
+      screen.getByText("Model Manager is not available on this server")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("models page")).not.toBeInTheDocument();
   });
 
   it("lets document-length pages scroll the tab surface", async () => {
