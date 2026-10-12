@@ -411,6 +411,19 @@ export function verifyBackendBundle(bundleDir) {
     summary.push("sandbox worker entry staged");
   }
 
+  // 2c. The Chrome extension's native messaging host. Chrome launches it as
+  //     its own process, and installNativeHost looks for it next to
+  //     server.mjs. Missing, the app cannot connect the extension.
+  if (!existsSync(path.join(bundleDir, "native-host-bin.js"))) {
+    errors.push(
+      "native-host-bin.js is not staged — the app could not register the " +
+        "Chrome extension's native host. Check buildNativeHostBundle in " +
+        "bundle-backend.mjs."
+    );
+  } else {
+    summary.push("native host entry staged");
+  }
+
   // 3. webgpu dawn binaries, on every profile. The GPU compositor loads
   //    `webgpu` through a variable-specifier dynamic import esbuild can't see,
   //    so nothing else fails the build when it's missing from _modules/.

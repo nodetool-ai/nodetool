@@ -21,6 +21,7 @@
  *   <out>/package.json        — { "type": "module" }
  *   <out>/js-sandbox-worker/worker-entry.js
  *                             — QuickJS sandbox worker thread entry
+ *   <out>/native-host-bin.js  — Chrome extension native messaging host
  *   <out>/db-migrate.mjs      — bundled migration runner (--with-migrate only)
  */
 
@@ -44,6 +45,14 @@ const ENTRY_POINT = path.join(
   "websocket",
   "dist",
   "server.js"
+);
+const NATIVE_HOST_ENTRY_POINT = path.join(
+  ROOT_DIR,
+  "packages",
+  "browser",
+  "dist",
+  "extension",
+  "native-host-bin.js"
 );
 const MIGRATE_ENTRY_POINT = path.join(__dirname, "db-migrate.mjs");
 const SANDBOX_WORKER_ENTRY_POINT = path.join(
@@ -1068,6 +1077,36 @@ async function buildSandboxWorkerBundle() {
 }
 
 /**
+ * Bundle the Chrome extension's native messaging host into
+ * <out>/native-host-bin.js.
+ *
+ * Chrome launches the host as its own process, so it cannot live inside
+ * server.mjs. `installNativeHost` looks for it next to its own
+ * import.meta.url, which in the packaged app is server.mjs, so the file name
+ * and location are part of the contract. The host uses only Node built-ins.
+ */
+async function buildNativeHostBundle() {
+  console.log("\nBundling native messaging host (native-host-bin.js)...");
+  if (!fs.existsSync(NATIVE_HOST_ENTRY_POINT)) {
+    throw new Error(
+      `Native host entry point not found: ${NATIVE_HOST_ENTRY_POINT}\n` +
+        "Run 'npm run build:packages' first."
+    );
+  }
+  await esbuild.build({
+    entryPoints: [NATIVE_HOST_ENTRY_POINT],
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node20",
+    outfile: path.join(BUNDLE_DIR, "native-host-bin.js"),
+    sourcemap: "external",
+    logLevel: "warning",
+  });
+  console.log("  Wrote native-host-bin.js");
+}
+
+/**
  * Install the optional runtime packages into `<out>/optional-node` for the
  * server profile, at the versions the workspace resolved. npm lays them out
  * nested, so each keeps the transitive versions it was published against.
@@ -1499,6 +1538,7 @@ async function main() {
   // --- Sandbox worker entry (always: the sandbox falls back to running
   //     in-process without it, which blocks the event loop for a whole run) ---
   await buildSandboxWorkerBundle();
+  await buildNativeHostBundle();
 
   // --- Migration runner entry (opt-in) ---
   if (OPTIONS.withMigrate) {
