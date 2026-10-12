@@ -58,28 +58,30 @@ describe("DockTabStrip", () => {
   it("closes a tab from its button, a middle click or Delete, but not one marked unclosable", async () => {
     const user = userEvent.setup();
     const { onClose } = renderStrip();
-    await user.click(screen.getByRole("button", { name: "Close Revisions" }));
-    expect(onClose).toHaveBeenLastCalledWith("revisions");
-    fireEvent(screen.getByRole("tab", { name: "Hierarchy" }), new MouseEvent("auxclick", { bubbles: true, button: 1 }));
+    await user.click(screen.getByRole("button", { name: "Close Hierarchy" }));
     expect(onClose).toHaveBeenLastCalledWith("hierarchy");
+    fireEvent(screen.getByRole("tab", { name: "Revisions" }), new MouseEvent("auxclick", { bubbles: true, button: 1 }));
+    expect(onClose).toHaveBeenLastCalledWith("revisions");
     expect(screen.queryByRole("button", { name: "Close Assets" })).not.toBeInTheDocument();
     screen.getByRole("tab", { name: "Hierarchy" }).focus();
     await user.keyboard("{Delete}");
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
-  it("starts a drag only after the pointer passes the threshold", () => {
+  it("starts a drag only after the pointer passes the threshold", async () => {
+    const user = userEvent.setup();
     const { onTabDragStart, onActivate } = renderStrip();
     const tab = screen.getByRole("tab", { name: "Revisions" });
-    fireEvent.pointerDown(tab, { button: 0, pointerId: 1, clientX: 10, clientY: 10 });
+    await user.pointer({ keys: "[MouseLeft>]", target: tab, coords: { clientX: 10, clientY: 10 } });
     expect(onActivate).toHaveBeenLastCalledWith("revisions");
-    fireEvent.pointerMove(tab, { pointerId: 1, clientX: 12, clientY: 11 });
+    await user.pointer({ target: tab, coords: { clientX: 12, clientY: 11 } });
     expect(onTabDragStart).not.toHaveBeenCalled();
-    fireEvent.pointerMove(tab, { pointerId: 1, clientX: 30, clientY: 10 });
+    await user.pointer({ target: tab, coords: { clientX: 30, clientY: 10 } });
     expect(onTabDragStart).toHaveBeenCalledTimes(1);
     expect(onTabDragStart.mock.calls[0]?.[0]).toBe("revisions");
-    fireEvent.pointerMove(tab, { pointerId: 1, clientX: 60, clientY: 10 });
+    await user.pointer({ target: tab, coords: { clientX: 60, clientY: 10 } });
     expect(onTabDragStart).toHaveBeenCalledTimes(1);
+    await user.pointer({ keys: "[/MouseLeft]", target: tab });
   });
 
   it("opens the tab menu on right click and from the keyboard", async () => {
