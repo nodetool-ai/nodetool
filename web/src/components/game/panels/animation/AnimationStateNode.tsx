@@ -17,9 +17,7 @@ function AnimationStateNode({ data, selected }: NodeProps<AnimationStateFlowNode
   const live = data.live === "current" ? palette.success.main : data.live === "previous" ? palette.warning.main : null;
   const border = live ?? (selected ? palette.primary.main : palette.divider);
   const status = data.live === "current" ? "playing" : data.live === "previous" ? "blending out" : null;
-  return <Box data-testid={`animation-state-${data.stateId}`} data-live={data.live ?? undefined}
-    aria-label={`${data.any ? "Any state" : `State ${data.stateId}`}${data.initial ? ", initial" : ""}${status ? `, ${status}` : ""}`}
-    sx={{
+  return <Box data-testid={`animation-state-${data.stateId}`} data-live={data.live ?? undefined} sx={{
       width: NODE_WIDTH, borderRadius: theme.rounded.node, overflow: "hidden",
       backgroundColor: data.any ? palette.c_node_bg_group : palette.c_node_bg,
       border: `1px ${data.live === "previous" ? "dashed" : "solid"} ${border}`,

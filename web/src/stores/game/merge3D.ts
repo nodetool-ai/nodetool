@@ -9,6 +9,11 @@ const assetUnit = z.object({ slot: z.string(), binding: gameAssetBinding3D });
 const prefabUnit = z.object({ id: z.string(), prefab: gamePrefab3D });
 const animationGraphUnit = z.object({ id: z.string(), graph: gameAnimationGraph3D });
 
+function referencedAnimationGraphs(doc: GameDocument3D): Set<string> {
+  const entities = [...doc.scenes.flatMap((scene) => scene.entities), ...Object.values(doc.prefabs).flatMap((prefab) => prefab.entities)];
+  return new Set(entities.flatMap((entity) => entity.animator3d?.graph === undefined ? [] : [entity.animator3d.graph]));
+}
+
 export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
   collections: [
     {
@@ -51,10 +56,16 @@ export const gameMergeAdapter3D: DocumentMergeAdapter<GameDocument3D> = {
     {
       kind: "animationGraph",
       read: (doc) => Object.entries(doc.animationGraphs ?? {}).map(([id, graph]) => ({ id, graph })),
+      // Entities merge first, so a merged animator may name a graph the server deleted. The draft's copy of that graph is
+      // kept, because dropping it would leave a dangling animator3d.graph that fails validation.
       write: (doc, values) => {
-        const { animationGraphs: _previous, ...rest } = doc;
-        const graphs = animationGraphUnit.array().parse(values);
-        return graphs.length === 0 ? rest : { ...rest, animationGraphs: Object.fromEntries(graphs.map((item) => [item.id, item.graph])) };
+        const { animationGraphs: previous, ...rest } = doc;
+        const graphs = Object.fromEntries(animationGraphUnit.array().parse(values).map((item) => [item.id, item.graph]));
+        for (const graphId of referencedAnimationGraphs(doc)) {
+          const kept = previous?.[graphId];
+          if (!Object.hasOwn(graphs, graphId) && kept) { graphs[graphId] = kept; }
+        }
+        return Object.keys(graphs).length === 0 ? rest : { ...rest, animationGraphs: graphs };
       },
       unitId: (value) => animationGraphUnit.parse(value).id,
       unitLabel: (value) => `animation graph ${animationGraphUnit.parse(value).id}`

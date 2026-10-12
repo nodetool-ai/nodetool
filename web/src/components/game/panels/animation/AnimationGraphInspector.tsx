@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import type { GameAnimationCondition3D, GameAnimationGraph3D, GameAnimationGraphNode3D, GameAnimationMotion3D, GameAnimationTransition3D } from "@nodetool-ai/protocol";
 
@@ -11,8 +11,8 @@ import {
   renameAnimationParameter, setAnimationParameterDefault, setAnimationParameterKind, uniqueAnimationName, type AnimationParameterKind
 } from "./animationGraphEdits";
 
-/** Applies a graph edit. It throws an `AnimationGraphEditError` when the edit is refused. */
-export type AnimationGraphCommit = (edit: (graph: GameAnimationGraph3D) => GameAnimationGraph3D, label: string) => void;
+/** Applies a graph edit and returns whether it was applied. The edit may throw an `AnimationGraphEditError` to refuse itself. */
+export type AnimationGraphCommit = (edit: (graph: GameAnimationGraph3D) => GameAnimationGraph3D, label: string) => boolean;
 
 const KIND_OPTIONS = [{ value: "float", label: "Float" }, { value: "bool", label: "Bool" }, { value: "trigger", label: "Trigger" }] as const;
 const OP_LABELS: Readonly<Record<string, string>> = {
@@ -53,10 +53,12 @@ interface ParameterListProps {
   readonly graph: GameAnimationGraph3D;
   readonly live: Readonly<Record<string, number | boolean>> | null;
   readonly commit: AnimationGraphCommit;
+  /** Called after a rename was applied. */
+  readonly onRenamed: (from: string, to: string) => void;
 }
 
 /** The graph's parameters with their kinds and defaults, and their live values while a session plays. */
-export function AnimationParameterList({ graph, live, commit }: ParameterListProps) {
+export function AnimationParameterList({ graph, live, commit, onRenamed }: ParameterListProps) {
   const add = (kind: AnimationParameterKind): void => {
     const name = uniqueAnimationName(Object.keys(graph.parameters), kind === "float" ? "speed" : kind === "bool" ? "flag" : "trigger");
     commit((current) => addAnimationParameter(current, name, kind), "Add Animation Parameter");
@@ -70,7 +72,9 @@ export function AnimationParameterList({ graph, live, commit }: ParameterListPro
           onClick={() => commit((current) => removeAnimationParameter(current, name), "Remove Animation Parameter")} />}>
         <InspectorFieldRow label="Name">
           <InspectorValueInput grow ariaLabel={`Parameter ${name} name`} value={name}
-            onCommit={(raw) => commit((current) => renameAnimationParameter(current, name, raw), "Rename Animation Parameter")} />
+            onCommit={(raw) => {
+              if (raw.trim() !== name && commit((current) => renameAnimationParameter(current, name, raw), "Rename Animation Parameter")) { onRenamed(name, raw.trim()); }
+            }} />
         </InspectorFieldRow>
         <InspectorFieldRow label="Kind">
           <InspectorSelect grow label={`Parameter ${name} kind`} value={parameter.kind} options={KIND_OPTIONS}
@@ -90,6 +94,23 @@ export function AnimationParameterList({ graph, live, commit }: ParameterListPro
   </FlexColumn>;
 }
 
+interface TransitionAdderProps {
+  readonly label: string;
+  readonly targets: readonly string[];
+  readonly onAdd: (to: string) => void;
+}
+
+/** Keyboard path for adding a transition: pick the target state, then add. */
+export function AnimationTransitionAdder({ label, targets, onAdd }: TransitionAdderProps) {
+  const [target, setTarget] = useState("");
+  const value = targets.includes(target) ? target : targets[0];
+  if (value === undefined) { return null; }
+  return <InspectorFieldRow label={label}>
+    <InspectorSelect grow label={label} value={value} options={targets.map((id) => ({ value: id, label: id }))} onChange={setTarget} />
+    <EditorButton variant="outlined" aria-label={`${label} ${value}`} onClick={() => onAdd(value)}>Add</EditorButton>
+  </InspectorFieldRow>;
+}
+
 interface StateInspectorProps {
   readonly graph: GameAnimationGraph3D;
   readonly stateId: string;
@@ -101,6 +122,8 @@ interface StateInspectorProps {
   readonly onMakeInitial: () => void;
   readonly onRemove: () => void;
   readonly onError: (message: string) => void;
+  readonly transitionTargets: readonly string[];
+  readonly onAddTransition: (to: string) => void;
 }
 
 function floatOptions(graph: GameAnimationGraph3D, current: string): { value: string; label: string }[] {
@@ -157,7 +180,7 @@ function BlendPoints({ graph, motion, clips, onChange }: {
 }
 
 /** Name, motion, speed and looping of one state. */
-export function AnimationStateInspector({ graph, stateId, node, initial, clips, onRename, onChange, onMakeInitial, onRemove, onError }: StateInspectorProps) {
+export function AnimationStateInspector({ graph, stateId, node, initial, clips, onRename, onChange, onMakeInitial, onRemove, onError, transitionTargets, onAddTransition }: StateInspectorProps) {
   const motion = node.motion;
   return <FlexColumn gap={SPACING.xs}>
     <InspectorFieldRow label="Name">
@@ -175,6 +198,7 @@ export function AnimationStateInspector({ graph, stateId, node, initial, clips, 
       : <BlendPoints graph={graph} motion={motion} clips={clips} onChange={(next) => onChange({ ...node, motion: next }, "Change Animation Blend")} />}
     <NumberRow label="Speed" value={node.speed} onCommit={(speed) => onChange({ ...node, speed: speed ?? 1 }, "Change Animation State")} />
     <InspectorToggleRow label="Loop" checked={node.loop} onChange={(loop) => onChange({ ...node, loop }, "Change Animation State")} />
+    <AnimationTransitionAdder label="Transition to" onAdd={onAddTransition} targets={transitionTargets} />
     <FlexRow gap={SPACING.xs} wrap sx={{ pt: SPACING.xs }}>
       <EditorButton variant="outlined" disabled={initial} onClick={onMakeInitial}>{initial ? "Initial state" : "Make initial"}</EditorButton>
       <EditorButton variant="outlined" color="error" onClick={onRemove}>Remove state</EditorButton>

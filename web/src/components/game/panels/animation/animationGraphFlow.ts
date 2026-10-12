@@ -127,14 +127,16 @@ export function animationGraphNodes(layer: GameAnimationLayer3D, positions: Read
   const nodes: AnimationStateFlowNode[] = [];
   if (showAny || layer.transitions.some((transition) => transition.from === ANY_ANIMATION_STATE)) {
     nodes.push({ id: ANY_ANIMATION_STATE, type: ANIMATION_STATE_NODE_TYPE, position: positions[ANY_ANIMATION_STATE] ?? fallback[ANY_ANIMATION_STATE],
-      selected: false, deletable: false,
+      selected: false, deletable: false, ariaLabel: "Any state",
       data: { stateId: ANY_ANIMATION_STATE, motion: "Any state", initial: false, any: true, live: null } });
   }
   for (const [stateId, node] of Object.entries(layer.states)) {
+    const liveRole = live?.state === stateId ? "current" : live?.previousState === stateId ? "previous" : null;
+    const status = liveRole === "current" ? ", playing" : liveRole === "previous" ? ", blending out" : "";
     nodes.push({ id: stateId, type: ANIMATION_STATE_NODE_TYPE, position: positions[stateId] ?? fallback[stateId],
       selected: selection?.kind === "state" && selection.stateId === stateId,
-      data: { stateId, motion: animationMotionLabel(node.motion), initial: layer.initialState === stateId, any: false,
-        live: live?.state === stateId ? "current" : live?.previousState === stateId ? "previous" : null } });
+      ariaLabel: `State ${stateId}${layer.initialState === stateId ? ", initial" : ""}${status}`,
+      data: { stateId, motion: animationMotionLabel(node.motion), initial: layer.initialState === stateId, any: false, live: liveRole } });
   }
   return nodes;
 }
@@ -150,7 +152,9 @@ export function animationGraphEdges(layer: GameAnimationLayer3D, live: Animation
     const from = positions[transition.from];
     const to = positions[transition.to];
     const backward = transition.from !== ANY_ANIMATION_STATE && from !== undefined && to !== undefined && to.x <= from.x;
-    return { id: `transition-${index}`, source: transition.from, target: transition.to, label: animationTransitionLabel(transition),
+    const label = animationTransitionLabel(transition);
+    return { id: `transition-${index}`, source: transition.from, target: transition.to, label,
+      ariaLabel: `Transition from ${transition.from === ANY_ANIMATION_STATE ? "any state" : transition.from} to ${transition.to}${label ? ` when ${label}` : ""}`,
       sourceHandle: backward ? ANIMATION_HANDLE.backOut : ANIMATION_HANDLE.out, targetHandle: backward ? ANIMATION_HANDLE.backIn : ANIMATION_HANDLE.in,
       selected: selection?.kind === "transition" && selection.index === index, animated: firing,
       data: { index }, className: firing ? "animation-transition-live" : undefined };

@@ -78,7 +78,8 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const scriptError = diagnostics.error ?? hostScriptError;
   useGameConsoleFeed(refId, { runtimeError: host.error, scriptError: hostScriptError, diagnosticError: diagnostics.error, tick: host.inspection?.tick ?? 0,
     scriptLogs: host.scriptLogs });
-  const consoleValidation = useMemo(() => gameValidationConsoleEntries(validateGame3D(document).diagnostics, document), [document]);
+  const diagnostics3D = useMemo(() => validateGame3D(document).diagnostics, [document]);
+  const consoleValidation = useMemo(() => gameValidationConsoleEntries(diagnostics3D, document), [diagnostics3D, document]);
   const conflicts = useDocumentConflicts("game", refId);
   const queries = trpc.useUtils();
   const { data: revisions } = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
@@ -345,7 +346,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
         node: <GameConsolePanel gameId={refId} document={document} liveEntries={consoleValidation}
           onSelectEntity={(entitySceneId, entityId) => { setSceneId(entitySceneId); select(entityId); }} onAskAssistant={assistant.draft} /> },
       { id: "animation-graph",
-        node: <AnimationGraphPanel document={document} sceneId={activeSceneId} selectedEntityId={selected?.id}
+        node: <AnimationGraphPanel document={document} diagnostics={diagnostics3D} sceneId={activeSceneId} selectedEntityId={selected?.id}
           inspection={host.playDocument ? host.inspection : null} onOps={onOps} /> },
       { id: "inspector",
         node: <>

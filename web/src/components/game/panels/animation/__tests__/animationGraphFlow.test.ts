@@ -55,10 +55,12 @@ describe("live animation state", () => {
       ["*", null, false], ["idle", "previous", false], ["run", "current", false], ["jump", null, true], ["orphan", null, false]
     ]);
     expect(nodes.find((node) => node.id === "idle")?.data.initial).toBe(true);
+    expect(nodes.map((node) => node.ariaLabel)).toEqual(["Any state", "State idle, initial, blending out", "State run, playing", "State jump", "State orphan"]);
     const edges = animationGraphEdges(layer, live, { kind: "transition", index: 2 }, layoutAnimationStates(layer));
     expect(edges.map((edge) => [edge.id, edge.animated, edge.selected])).toEqual([
       ["transition-0", true, false], ["transition-1", false, false], ["transition-2", false, true]
     ]);
+    expect(edges[2].ariaLabel).toBe("Transition from any state to jump when jump fired");
     expect(animationGraphEdges(layer, { state: "run", blending: false }, null, {}).every((edge) => !edge.animated)).toBe(true);
     expect(animationGraphNodes(layer, {}, null, null, false).every((node) => node.data.live === null)).toBe(true);
   });

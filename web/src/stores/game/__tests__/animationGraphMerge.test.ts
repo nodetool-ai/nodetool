@@ -38,3 +38,18 @@ it("drops the animationGraphs field when a merge removes the last graph", () => 
   expect(merged.conflicts).toEqual([]);
   expect("animationGraphs" in merged.doc).toBe(false);
 });
+
+it("keeps a graph the server deleted while the draft newly assigned it to an animator", () => {
+  const base = withGraphs({ locomotion: graph("idle") });
+  const draft = structuredClone(base);
+  const visual = draft.scenes[0].entities.find((entity) => entity.id === "player-visual");
+  if (!visual) { throw new Error("Fixture visual missing"); }
+  visual.animator3d = { clips: { idle: "clip:0" }, playbackRate: 1, loop: true, transitionTicks: 6, graph: "locomotion" };
+  const server = createNative3DGame("animation-graph-merge");
+  const merged = mergeByUnits(base, draft, server, gameMergeAdapter3D, { mergeWithoutOps: true });
+  expect(merged.doc.animationGraphs).toEqual({ locomotion: graph("idle") });
+  expect(merged.doc.scenes[0].entities.find((entity) => entity.id === "player-visual")?.animator3d?.graph).toBe("locomotion");
+  expect("animationGraphs" in merged.nextBase).toBe(false);
+  const unreferenced = mergeByUnits(base, base, server, gameMergeAdapter3D, { mergeWithoutOps: true });
+  expect("animationGraphs" in unreferenced.doc).toBe(false);
+});
