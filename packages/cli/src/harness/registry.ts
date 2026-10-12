@@ -1798,7 +1798,9 @@ export const SURFACES: SurfaceEntry[] = [
       "demo/scripts/render-tutorials.ts",
       "demo/scripts/render-marketing.ts",
       "demo/scripts/encode-hero.mjs",
-      "demo/scripts/vibe-track.ts"
+      "demo/scripts/vibe-track.ts",
+      "demo/scripts/build-pattern-cast-media.mjs",
+      "demo/webpack-stubs/"
     ]
   },
   {

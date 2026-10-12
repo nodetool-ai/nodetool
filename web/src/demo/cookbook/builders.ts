@@ -13,7 +13,7 @@
  */
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { edge, meta, node, out, prop, type GraphNode } from "../castHelpers";
-import type { CastViewport } from "../castTypes";
+import { CAST_ASSET_SCHEME, type CastAsset, type CastViewport } from "../castTypes";
 import type { Edge, NodeMetadata, Workflow } from "../../stores/ApiTypes";
 
 /** Assemble a synthetic Workflow from nodes/edges (positions are real). */
@@ -239,3 +239,26 @@ export const simpleMeta = (
     input_fields: opts.inputs ?? [],
     is_streaming_output: opts.streaming ?? false,
   });
+
+const CONTENT_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  webm: "video/webm",
+  mp3: "audio/mpeg",
+};
+
+/**
+ * The asset manifest for files in demo/public/casts/<cast id>/, keyed by file
+ * name. demo/scripts/build-pattern-cast-media.mjs writes those files.
+ */
+export const castAssets = (files: string[]): CastAsset[] =>
+  files.map((file) => ({
+    key: file,
+    file,
+    contentType: CONTENT_TYPES[file.split(".").pop() ?? ""] ?? "application/octet-stream",
+  }));
+
+/** A media ref to one manifest file, resolved by the player at load time. */
+export const assetRef = (type: "image" | "video" | "audio", file: string) =>
+  type === "video"
+    ? { type, uri: `${CAST_ASSET_SCHEME}${file}`, metadata: { format: "webm" } }
+    : { type, uri: `${CAST_ASSET_SCHEME}${file}` };
