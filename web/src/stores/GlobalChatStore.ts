@@ -59,7 +59,11 @@ import {
   type ThreadRuntime
 } from "../core/chat/threadRuntime";
 import { isObjectLike, isString } from "../utils/typePredicates";
-import { creationProjectId } from "./WorkspaceTabsStore";
+import {
+  creationProjectId,
+  tabId,
+  useWorkspaceTabsStore
+} from "./WorkspaceTabsStore";
 import useAuth from "./useAuth";
 
 // Include additional runtime statuses used during message streaming
@@ -1463,6 +1467,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
       deleteThread: async (threadId: string) => {
         try {
           await trpcClient.threads.delete.mutate({ id: threadId });
+          // An open tab for the deleted thread would recreate it as an empty
+          // "New conversation" on the next load.
+          useWorkspaceTabsStore.getState().closeTab(tabId("chat", threadId));
 
           // Update local state
           set((state) => {
