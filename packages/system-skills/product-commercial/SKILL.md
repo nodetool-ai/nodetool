@@ -1,11 +1,13 @@
 ---
 name: product-commercial
-description: "Direct a polished product film or brand commercial in NodeTool. For phone-shot creator ads, use ugc-video."
+description: "Direct the look of a polished product film or brand commercial in NodeTool. For the ad's beat structure pair with commercial-beat-sheet, for a finished spot from a product page use launch-commercial, and for phone-shot creator ads use ugc-video."
 ---
 
 **Load `/storyboard-core` first.** It carries the loop, the tool contract,
 the entity rules and the gating this skill assumes. Everything below is what is
-different about a camera-grade product film.
+different about a camera-grade product film. This skill sets the look; an ad's
+hook, beats and timecodes come from `/commercial-beat-sheet`, which composes with
+it on the same board.
 
 ## What makes this job type its own
 
@@ -30,8 +32,8 @@ user's retry and spending limits. With no retries authorized, report the defect
 and follow the remaining requested stages without claiming the label is readable.
 
 Given several angles (front, three-quarter, back, top), tag the best single hero angle
-as the entity and keep the rest as plain assets — only the first reference image rides
-into the prompt.
+as the entity and keep the rest as plain assets. An entity is one image asset, so it
+carries one reference into the prompt.
 
 ## The look goes in the board style, once
 
@@ -68,8 +70,8 @@ Macro glass, mist and specular highlights are where `keyframe` mode pays — the
 is cheap and you can judge the light before spending on motion. Keep the default.
 
 Switch a shot to `render_mode: "direct"` only for heavy motion the first frame would
-stiffen: a fast orbit, liquid pouring, an explosive reveal. Then the framing and style
-have to go into the action text, since no still carries them in.
+stiffen: a fast orbit, liquid pouring, an explosive reveal. The direct clip prompt
+carries the camera fields, the scene lighting and the board style itself.
 
 ## Briefs
 

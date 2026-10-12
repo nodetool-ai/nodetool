@@ -66,6 +66,34 @@ describe("DemoEngine", () => {
     expect(result?.uri?.startsWith("data:image/svg+xml")).toBe(true);
   });
 
+  it("resolves pinned asset references in node properties", () => {
+    // An input node's own value (an Image Input's photo) is part of the graph,
+    // not of any event, and must reach the canvas as a host URL too.
+    const cast = {
+      ...sampleCast,
+      assets: [{ key: "photo.jpg", file: "photo.jpg", contentType: "image/jpeg" }],
+      workflow: {
+        ...sampleCast.workflow,
+        graph: {
+          ...sampleCast.workflow.graph,
+          nodes: sampleCast.workflow.graph.nodes.map((n, i) =>
+            i === 0
+              ? { ...n, data: { ...(n.data as Record<string, unknown>), value: { type: "image", uri: "cast-asset://photo.jpg" } } }
+              : n
+          ),
+        },
+      },
+    };
+    const withAsset = new DemoEngine(cast, { resolveAssetUrl });
+    try {
+      const first = withAsset.nodeStore.getState().nodes[0];
+      const props = first.data.properties as { value?: { uri?: string } };
+      expect(props.value?.uri).toBe("/demo-assets/photo.jpg");
+    } finally {
+      withAsset.dispose();
+    }
+  });
+
   it("stamps a stable, event-driven completed duration (no badge wiggle)", () => {
     // The gen node runs at t=200 and completes at t=2050, so its duration is
     // fixed at 1850ms regardless of when — or how many times — a frame replays

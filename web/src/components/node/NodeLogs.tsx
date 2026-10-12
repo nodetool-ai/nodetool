@@ -145,27 +145,21 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
             <Chip
               size="small"
               label="Info"
-              variant={
-                selectedSeverities.includes("info") ? "filled" : "outlined"
-              }
+              active={selectedSeverities.includes("info")}
               onClick={toggleInfoSeverity}
             />
             <Chip
               size="small"
               label="Warnings"
               color="warning"
-              variant={
-                selectedSeverities.includes("warning") ? "filled" : "outlined"
-              }
+              active={selectedSeverities.includes("warning")}
               onClick={toggleWarningSeverity}
             />
             <Chip
               size="small"
               label="Errors"
               color="error"
-              variant={
-                selectedSeverities.includes("error") ? "filled" : "outlined"
-              }
+              active={selectedSeverities.includes("error")}
               onClick={toggleErrorSeverity}
             />
           </FlexRow>

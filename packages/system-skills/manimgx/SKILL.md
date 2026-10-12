@@ -14,12 +14,18 @@ a program.
 
 | Node | Takes | Gives |
 | :--- | :--- | :--- |
-| `nodetool.manimgx.InspectScene` | `code`, `scene_name`, `times` | `ok`, `problems`, `report`, `storyboard`, `duration` |
-| `nodetool.manimgx.RenderScene` | `code`, `scene_name`, `width`, `height`, `fps`, `preset`, `crf` | `video`, `storyboard`, `report`, `subtitles`, `duration` |
-| `nodetool.manimgx.GenerateScene` | `prompt`, `model`, `max_attempts` | `video`, `code`, `storyboard`, `report`, `attempts` |
+| `nodetool.manimgx.InspectScene` | `code`, `scene_name`, `times`, `timeout` | `ok`, `problems`, `report`, `storyboard`, `duration` |
+| `nodetool.manimgx.RenderScene` | `code`, `scene_name`, `width`, `height`, `fps`, `preset`, `crf`, `timeout` | `video`, `storyboard`, `report`, `subtitles`, `duration` |
+| `nodetool.manimgx.GenerateScene` | `prompt`, `model`, `max_attempts`, `send_storyboard`, `width`, `height`, `fps`, `timeout` | `video`, `code`, `storyboard`, `report`, `attempts` |
+
+`timeout` is the limit in seconds for each ManimGX run (default 300).
 
 `GenerateScene` runs the whole loop below inside one node with a language
-model. Write the scene yourself when you can see the storyboard and fix it.
+model, for up to `max_attempts` rounds (default 3, at most 8). Each round is a
+paid model call, and `send_storyboard` (on by default) sends the storyboard
+pictures to it, which needs a vision model. Confirm the model with the user
+before running it. Write the scene yourself when you can see the storyboard and
+fix it.
 
 ## The loop
 
@@ -63,8 +69,12 @@ from nodetool_inputs import inputs
 
 Numbers, strings, lists and dicts arrive as JSON. Image, audio and video
 inputs arrive as file paths: `m.ImageMobject(inputs["logo"])` for an image,
-`self.add_sound(inputs["voice"])` for audio. A scene reads no other files and
-reaches no network.
+`self.add_sound(inputs["voice"])` for audio.
+
+A scene is Python that runs as the server user, with that user's file and
+network access. Only its environment is restricted, so it never sees the
+server's secrets. Treat scene code as trusted code: do not run a scene from a
+source the user has not vouched for.
 
 ## Authoring
 

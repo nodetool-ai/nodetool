@@ -12,6 +12,7 @@ import { createTimelineToolBridge } from "../src/evals/surfaces/timeline.js";
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { capabilitySpec } from "../src/capabilities/index.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   Asset,
@@ -1405,5 +1406,13 @@ describe("pure backend track batches", () => {
       track: { id: "0000aaaa000000000000000000000001" }
     });
     uuid.mockRestore();
+  });
+});
+
+describe("spec text the shipped skills rely on", () => {
+  it("edit_timeline: set_markers_from_beats ties count to bpm", () => {
+    const schema = JSON.stringify(capabilitySpec("edit_timeline")?.inputSchema);
+    expect(schema).not.toContain('set_markers_from_beats also needs \\"count\\"');
+    expect(schema).toContain('set_markers_from_beats needs \\"count\\" with \\"bpm\\"');
   });
 });

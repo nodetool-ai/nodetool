@@ -81,7 +81,7 @@ const JsScriptPortsEditor = ({
           readOnly ? undefined : (
             <EditorButton
               density="compact"
-              startIcon={<AddIcon fontSize="small" />}
+              startIcon={<AddIcon />}
               onClick={add}
             >
               Add

@@ -21,12 +21,12 @@ import {
   MOTION,
   Text,
   ToolbarIconButton,
-  FONT_SIZE_SANS,
   SPACING,
   Z_INDEX,
   getSpacingPx,
   AudioPlayback,
-  VideoPlayer
+  VideoPlayer,
+  Chip
 } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
@@ -124,18 +124,6 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: 8,
       flexWrap: "wrap"
-    },
-
-    ".media-meta-chip": {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 4,
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-      borderRadius: BORDER_RADIUS.pill,
-      background: theme.vars.palette.c_overlay_subtle,
-      color: theme.vars.palette.text.secondary,
-      fontSize: FONT_SIZE_SANS.caption,
-      "& svg": { fontSize: 14, opacity: 0.75 }
     },
 
     ".media-grid": {
@@ -347,63 +335,72 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
         </FlexColumn>
         <FlexRow className="media-output-meta" align="center">
           {gen?.model && (
-            <span className="media-meta-chip">
-              <AutoAwesomeIcon fontSize="small" />
-              {gen.model}
-            </span>
+            <Chip
+              compact
+              icon={<AutoAwesomeIcon />}
+              label={gen.model}
+            />
           )}
           {gen?.resolution && (
-            <span className="media-meta-chip">
-              <TvIcon fontSize="small" />
-              {gen.resolution}
-            </span>
+            <Chip
+              compact
+              icon={<TvIcon />}
+              label={gen.resolution}
+            />
           )}
           {gen?.aspect_ratio && (
-            <span className="media-meta-chip">
-              <AspectRatioIcon fontSize="small" />
-              {gen.aspect_ratio}
-            </span>
+            <Chip
+              compact
+              icon={<AspectRatioIcon />}
+              label={gen.aspect_ratio}
+            />
           )}
           {(gen?.mode === "image" || gen?.mode === "image_edit") &&
             gen.variations != null && (
-              <span className="media-meta-chip">
-                <AppsIcon fontSize="small" />
-                {gen.variations}
-              </span>
+              <Chip
+                compact
+                icon={<AppsIcon />}
+                label={gen.variations}
+              />
             )}
           {(gen?.mode === "video" || gen?.mode === "image_to_video") &&
             gen.duration != null && (
-              <span className="media-meta-chip">
-                <AccessTimeIcon fontSize="small" />
-                {gen.duration}s
-              </span>
+              <Chip
+                compact
+                icon={<AccessTimeIcon />}
+                label={`${gen.duration}s`}
+              />
             )}
           {gen?.mode === "image_edit" &&
             gen.strength != null && (
-              <span className="media-meta-chip">
-                <TuneIcon fontSize="small" />
-                {gen.strength.toFixed(2)}
-              </span>
+              <Chip
+                compact
+                icon={<TuneIcon />}
+                label={gen.strength.toFixed(2)}
+              />
             )}
           {(gen?.mode === "image_edit" ||
             gen?.mode === "image_to_video") &&
             gen.num_inference_steps != null && (
-              <span className="media-meta-chip">
-                <LayersIcon fontSize="small" />
-                {gen.num_inference_steps} steps
-              </span>
+              <Chip
+                compact
+                icon={<LayersIcon />}
+                label={`${gen.num_inference_steps} steps`}
+              />
             )}
           {gen?.mode === "audio" && gen.voice && (
-            <span className="media-meta-chip">
-              <RecordVoiceOverIcon fontSize="small" />
-              {gen.voice}
-            </span>
+            <Chip
+              compact
+              icon={<RecordVoiceOverIcon />}
+              label={gen.voice}
+            />
           )}
           {gen?.mode === "audio" && gen.speed != null && (
-            <span className="media-meta-chip">
-              <SpeedIcon fontSize="small" />
-              {gen.speed}x
-            </span>
+            <Chip
+              compact
+              icon={<SpeedIcon />}
+              label={`${gen.speed}x`}
+            />
           )}
           {!isPending && isCanvasAvailable && mediaContents.length > 1 && (
             <ToolbarIconButton

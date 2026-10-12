@@ -33,7 +33,7 @@ import {
   type VoiceBinding
 } from "../../stores/script/ScriptStore";
 import { useEntities } from "../../serverState/useEntities";
-import { getEntityKindChipSx } from "../entities/entityKind";
+import { ENTITY_KIND_COLOR } from "../entities/entityKind";
 import ScriptSpeakerAvatar from "./ScriptSpeakerAvatar";
 
 interface ScriptCastPanelProps {
@@ -171,7 +171,8 @@ const SpeakerCard = ({
                 label={linkedEntity.kind}
                 compact
                 variant="outlined"
-                sx={{ ...getEntityKindChipSx(linkedEntity.kind), flexShrink: 0 }}
+                color={ENTITY_KIND_COLOR[linkedEntity.kind]}
+                sx={{ flexShrink: 0 }}
               />
             )}
           </FlexRow>
@@ -236,7 +237,7 @@ const SpeakerCard = ({
               size="small"
               variant="text"
               color="error"
-              startIcon={<DeleteOutlineIcon fontSize="small" />}
+              startIcon={<DeleteOutlineIcon />}
               onClick={() => removeSpeaker(scriptId, speaker.id)}
             >
               Remove speaker
@@ -300,7 +301,7 @@ const ScriptCastPanel = ({
           <EditorButton
             size="small"
             variant="text"
-            startIcon={<PersonAddIcon fontSize="small" />}
+            startIcon={<PersonAddIcon />}
             onClick={onAdd}
           >
             Add

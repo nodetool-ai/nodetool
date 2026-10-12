@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useState, type FC } from "react"
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { BORDER_RADIUS, SPACING, getSpacingPx, EditorButton } from "../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "../../utils/isEqual";
 import { getIsElectronDetails } from "../../utils/browser";
@@ -57,24 +57,6 @@ const warningStyles = (theme: Theme) =>
       },
     },
 
-    ".install-btn": {
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.common.white,
-      backgroundColor: theme.vars.palette.primary.main,
-      border: "none",
-      borderRadius: BORDER_RADIUS.sm,
-      padding: `${theme.spacing(1)} ${theme.spacing(3)}`,
-      cursor: "pointer",
-      marginTop: getSpacingPx(SPACING.micro),
-      "&:hover": {
-        backgroundColor: theme.vars.palette.primary.dark,
-      },
-      "&:disabled": {
-        opacity: 0.6,
-        cursor: "default",
-      },
-    },
   });
 
 interface NodeDependencyWarningProps {
@@ -152,14 +134,14 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
         Requires {runtimeNames}
       </div>
       {isElectron ? (
-        <button
-          type="button"
-          className="install-btn"
+        <EditorButton
+          variant="contained"
           onClick={handleInstall}
           disabled={installing}
+          sx={{ alignSelf: "flex-start", mt: SPACING.micro }}
         >
           {installing ? "Installing..." : `Install ${runtimeNames}`}
-        </button>
+        </EditorButton>
       ) : (
         <div className="warning-text">
           Install it on the machine running the NodeTool server to use this

@@ -41,7 +41,9 @@ is a wiring failure the app surface cannot work around.
    (`ui_app_add_operation`). An app with several modes has several operations,
    each with its own state.
 4. **Read the bindable surface.** `ui_app_get_binding_targets` lists the inputs,
-   outputs, node settings and variables that exist. Bindings point at node
+   outputs, node settings and variables that exist. It covers the workflows
+   the app's operations name; to bind a workflow the app does not use yet,
+   pass it in `edit_app {workflow_ids: [...]}`. Bindings point at node
    **ids**, so a rename in the graph editor never breaks the app. Never invent a
    binding string.
 5. **Place and wire the widgets.** `ui_app_add_component` /
@@ -53,9 +55,12 @@ is a wiring failure the app surface cannot work around.
    instant, and the only thing that catches a binding pointing at nothing. Run
    it after every edit pass.
 7. **Run it.** `debug_app {application_id, interact: [...]}` executes the real
-   workflows and spends real money. Run it to confirm the app works, not to
-   explore. A long run takes minutes: pass `poll: true` for a session id and
-   read `GET /api/debug/sessions/<id>` until it settles.
+   workflows and spends real money. `run` defaults to `true`, so a bare
+   `debug_app {application_id}` also runs them. Confirm with the user before a
+   run that calls paid models, and run it to confirm the app works, not to
+   explore. A long run takes minutes: raise `timeout_ms`. `poll: true` returns
+   a session id that only the HTTP API (`GET /api/debug/sessions/<id>`) reads,
+   and no agent tool does.
 8. **Report** the app id, its operations, and the verdict. Do not claim an app
    works on a `run: false` check alone.
 
@@ -203,10 +208,14 @@ silently hides a widget.
 
 ### Widgets
 
+The lists below are the full registry. `ui_app_list_component_types` returns
+each widget's fields.
+
 **Show something:** Heading, Text, Markdown (the right choice for streamed
 prose), Image, Audio, Video, Sketch, Timeline, Storyboard, Storyboard Preview,
 JSON, Table, Output, Progress, Agent Activity (an agent's text and tool calls,
-live), Gallery, Image Compare.
+live), Alert, Code, List, Key/Value, Stat, Download, 3D Model, Chart, PDF,
+Gallery, Image Compare.
 
 Sketch, Timeline, and the two storyboard widgets take a document reference,
 such as `{type: "sketch", id}`, which is what the nodes producing them emit.
@@ -215,9 +224,11 @@ with clips in shot order and stills for shots without a clip. Binding a
 reference to Image or Video shows nothing: a reference is not a media URL.
 
 **Take input:** Workflow Form, Workflow Input, Text Input, Number Input, Slider,
-Switch, Select, Image Input, Sketch Pad, Audio Input, Audio Recorder, Video
-Input, Camera Capture, Document Input, Color Input, Resource Picker, Resource
-Gallery, Storyboard Scenes.
+Switch, Select, Radio Group, Checkbox Group, Date Input, Choice Cards, Guided
+Steps, Approval, Image Input, Sketch Pad, Audio Input, Audio Recorder, Video
+Input, Camera Capture, Document Input, Color Input, Data Table Input, File Path
+Input, Folder Path Input, 3D Model Input, Image Size Input, Media List Input,
+Resource Picker, Resource Gallery, Storyboard Scenes.
 
 A Workflow Form renders every input of one operation in graph order, so an Input
 node added later shows up with no app edit. Place inputs one by one when the
@@ -232,7 +243,7 @@ settled reply into the conversation variable, which only happens when `binding`
 is a variable and `streamBinding` is an output.
 
 **Buttons and layout:** Button, Panel, Columns (`left` and `right` slots),
-Divider.
+Tabs, Accordion, Spacer, Divider.
 
 Panel, Columns and Accordion take `visibleWhen`, so one condition shows or
 hides a whole group, such as one step of a Guided Steps flow. Panel's
@@ -248,12 +259,13 @@ its content. A Button with `fullWidth: false` fits its label, and `align:
 
 ```ts
 interface ApplicationDocument {
-  schemaVersion: number;      // 3
+  schemaVersion: number;      // 4, or 5 when `recipe` is set
   ui: PuckData;               // { root, content, zones }
   operations: OperationBinding[];
   resources: ResourceBinding[];
   variables: VariableDeclaration[];
   theme?: { id: string };
+  recipe?: RecipeManifest;    // only on a curated Recipe
 }
 ```
 

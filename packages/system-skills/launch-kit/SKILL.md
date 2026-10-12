@@ -20,13 +20,16 @@ a kit ends up looking like two kits.
 
 Use phases as progress checkpoints. Continue within the authorized deliverables
 and budget. Pause for a user-requested review or a missing decision that changes
-the output or spending scope. Do not reconfirm authorization already given.
+the output or spending scope. Do not reconfirm authorization already given. When
+the brief does not fix the deliverable counts (frames, clips, cuts), confirm them
+with the user before the first clip pass.
 
 ### A — Cast and lock
 
 1. Product entity from the flat: save the asset, `create_entity {kind: "prop"}` with a
    descriptor of geometry and finish. Keep the other angles (three-quarter, back, top,
-   on-figure) as plain assets — only the first reference image rides into a prompt.
+   on-figure) as plain assets. An entity is one image asset, so it carries one
+   reference into a prompt.
 2. Character entity from the on-body photo. Descriptor is face, hair and build, with
    **no wardrobe** — wardrobe belongs in shot text so the same person can change
    outfits across the kit.
@@ -46,8 +49,8 @@ Produce the requested number and mix of stills. Use take selection when the user
 reserved that choice. A stills-only request ends here. Otherwise continue to the
 authorized video deliverables with the selected frames.
 
-Vary the crop in `camera.framing` and repeat it in `action`, since only framing reaches
-the still prompt. Give product-only frames an explicit `entity_ids` naming the product
+Vary the crop in `camera.framing`; the still prompt reads it, with the angle and lens,
+so it needs no repeat in `action`. Give product-only frames an explicit `entity_ids` naming the product
 alone, so the model's descriptor does not season a frame she is not in.
 
 Report the selected asset ids and continue within the requested scope.
@@ -60,6 +63,9 @@ the look consistent.
 
 A separate board per aspect ratio — `aspect_ratio` is a board field, not a shot field,
 so one board cannot serve 9:16 and 16:9. Same entities, same style, same models on each.
+To animate an approved phase-B still on the new board without re-rendering it,
+`edit_storyboard` → `{op: "add_keyframe_version", target, asset_id}` attaches it as the
+shot's selected still. It only fits when that still was framed for the new ratio.
 
 Report clip asset ids. Continue if the requested kit includes a longer film.
 

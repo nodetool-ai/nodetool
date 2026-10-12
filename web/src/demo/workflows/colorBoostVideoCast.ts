@@ -3,15 +3,14 @@
  *
  *   Video → For Each Frame → Exposure → Saturation/Vibrance → Frame To Video
  *
- * Grade a clip frame by frame — lift exposure and boost saturation, then
- * reassemble. Fully synthetic — a tiny inline clip and a graded still stand in
- * for the run, so it replays with no backend.
+ * Grade a clip frame by frame: lift exposure, boost saturation, then
+ * reassemble. Fully synthetic: the dim clip, its graded frames, and the graded
+ * clip come from the T-minus 30 example timeline
+ * (demo/public/casts/workflow-color-boost-video).
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, meta, out, prop } from "../castHelpers";
-import { SAMPLE_VIDEO_WEBM_DATA_URI } from "../assets/sampleMedia";
-import { VIDEO_STILL_IMAGE_DATA_URI } from "../assets/cookbookImages";
-import { cookbookWorkflow, edge, fitViewport, node } from "../cookbook/builders";
+import { assetRef, castAssets, cookbookWorkflow, edge, fitViewport, node } from "../cookbook/builders";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 
 const VIDEO_CONST = "nodetool.constant.Video";
@@ -24,9 +23,10 @@ const WF = "wf-workflow-color-boost-video";
 const JOB = "workflow-color-boost-video-job";
 const m = castMessages(WF, JOB);
 
-const video = { type: "video", uri: SAMPLE_VIDEO_WEBM_DATA_URI, metadata: { format: "webm" } };
-const graded = { type: "video", uri: SAMPLE_VIDEO_WEBM_DATA_URI, metadata: { format: "webm" } };
-const frame = { type: "image", uri: VIDEO_STILL_IMAGE_DATA_URI };
+const video = assetRef("video", "clip.webm");
+const exposed = assetRef("image", "exposed.jpg");
+const boosted = assetRef("image", "graded.jpg");
+const graded = assetRef("video", "graded.webm");
 
 const nodes = [
   node("clip", VIDEO_CONST, 0, 170, 300, "Video", { value: video }),
@@ -55,22 +55,22 @@ const events: CastEvent[] = [
   m.nodeUpdate(2100, "frames", "For Each Frame", FOR_EACH_FRAME, "running"),
   m.edgeUpdate(2300, "e2", "active"),
   m.edgeUpdate(2350, "e5", "active"),
-  ...m.progress("frames", 6, 2500, 900),
+  ...m.progress("frames", 27, 2500, 900),
 
   m.nodeUpdate(3600, "exposure", "Exposure", EXPOSURE, "running"),
-  ...m.progress("exposure", 6, 3800, 1800),
-  m.nodeUpdate(6000, "exposure", "Exposure", EXPOSURE, "completed", { output: frame }),
+  ...m.progress("exposure", 55, 3800, 1800),
+  m.nodeUpdate(6000, "exposure", "Exposure", EXPOSURE, "completed", { output: exposed }),
   m.edgeUpdate(6200, "e2", "completed"),
   m.edgeUpdate(6400, "e3", "active"),
 
   m.nodeUpdate(7000, "saturation", "Saturation / Vibrance", SATURATION, "running"),
-  ...m.progress("saturation", 6, 7200, 1800),
-  m.nodeUpdate(9400, "saturation", "Saturation / Vibrance", SATURATION, "completed", { output: frame }),
+  ...m.progress("saturation", 55, 7200, 1800),
+  m.nodeUpdate(9400, "saturation", "Saturation / Vibrance", SATURATION, "completed", { output: boosted }),
   m.edgeUpdate(9600, "e3", "completed"),
   m.edgeUpdate(9800, "e4", "active"),
 
   m.nodeUpdate(10400, "assemble", "Frame To Video", FRAME_TO_VIDEO, "running"),
-  ...m.progress("assemble", 10, 10600, 3000),
+  ...m.progress("assemble", 91, 10600, 3000),
   m.nodeUpdate(14000, "assemble", "Frame To Video", FRAME_TO_VIDEO, "completed", { output: graded }),
   m.edgeUpdate(14100, "e4", "completed"),
   m.edgeUpdate(14200, "e5", "completed"),
@@ -139,7 +139,7 @@ export const colorBoostVideoCast: DemoCast = {
   version: CAST_VERSION,
   id: "workflow-color-boost-video",
   name: "Color Boost Video",
-  description: "Grade a clip frame by frame — exposure and saturation — then reassemble.",
+  description: "Grade a clip frame by frame for exposure and saturation, then reassemble.",
   createdAt: new Date(0).toISOString(),
   durationMs: 17000,
   fps: 30,
@@ -159,6 +159,6 @@ export const colorBoostVideoCast: DemoCast = {
     [PREVIEW_NODE_TYPE]: previewVideoMeta(),
   },
   events,
-  assets: [],
+  assets: castAssets(["clip.webm", "exposed.jpg", "graded.jpg", "graded.webm"]),
   viewport: fitViewport(nodes),
 };

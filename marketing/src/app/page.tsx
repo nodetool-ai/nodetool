@@ -8,6 +8,7 @@ import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
 import OwnershipSection from "../components/OwnershipSection";
+import SubscriptionSection from "../components/SubscriptionSection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import SurfaceShowcase from "../components/SurfaceShowcase";
 import TimelineShowcase from "../components/TimelineShowcase";
@@ -210,6 +211,10 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* The plan the reader already pays for, right under the hero: the
+            cheapest way in (NARRATIVE.md § Cost, once) */}
+        <SubscriptionSection className="mt-20" />
 
         {/* What the reader controls once the agent has built something: the
             seven editors, each over a loop of the real thing (#surface-<id>) */}

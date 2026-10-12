@@ -303,8 +303,15 @@ function retargetPlatformPackages(
     if (!Array.isArray(cpu) || npmFieldAdmits(cpu, arch)) continue;
     if (!npmFieldAdmits(pkg.json.os, platform)) continue;
 
+    // The platform token follows a hyphen (@img/sharp-darwin-arm64) or a
+    // scope's slash (@esbuild/darwin-arm64).
     const counterpart = cpu
-      .map((fromArch) => pkg.name.replace(`-${platform}-${fromArch}`, `-${platform}-${arch}`))
+      .map((fromArch) =>
+        pkg.name.replace(
+          new RegExp(`([-/])${platform}-${fromArch}$`),
+          `$1${platform}-${arch}`
+        )
+      )
       .find((name) => name !== pkg.name && optionalNames.has(name));
     if (!counterpart) {
       throw new Error(

@@ -14,7 +14,7 @@ import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 import { useEntities } from "../../serverState/useEntities";
 import ImageRefPreview from "../node/ImageRefPreview";
 import { filterEntities } from "./filterEntities";
-import { ENTITY_KIND_ICON, getEntityKindChipSx } from "./entityKind";
+import { ENTITY_KIND_ICON, ENTITY_KIND_COLOR } from "./entityKind";
 import {
   AutoGrid,
   Box,
@@ -116,7 +116,7 @@ const EntityPickCard: React.FC<{
             label={entity.kind}
             compact
             variant="outlined"
-            sx={getEntityKindChipSx(entity.kind)}
+            color={ENTITY_KIND_COLOR[entity.kind]}
           />
         </FlexRow>
       </FlexColumn>

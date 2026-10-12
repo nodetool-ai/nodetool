@@ -60,7 +60,7 @@ const StoryboardLinkControlInner = ({
       <EditorButton
         size="small"
         variant="text"
-        startIcon={<DashboardOutlinedIcon fontSize="small" />}
+        startIcon={<DashboardOutlinedIcon />}
         onClick={storyboardId ? onOpen : onDerive}
         disabled={deriving}
         tooltip={

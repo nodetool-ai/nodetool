@@ -1,40 +1,33 @@
 ---
 name: api-collections
-description: "Call nodetool.collections from a code action: index text chunks into the vector store, search them semantically or with hybrid keyword search, and query a named knowledge collection. Load before the first call into nodetool.collections."
+description: "Call nodetool.collections from a code action: list the user's knowledge collections and run a semantic search in one of them. Indexing is not available from code; build it with nodetool-rag-indexing. Load before the first call into nodetool.collections."
 ---
 
 # nodetool.collections
 
-The vector store behind retrieval. A collection indexes document chunks with
-embeddings for semantic or hybrid search. It is not an asset folder. How to
-chunk, what metadata to keep and how to build a RAG workflow is
-`nodetool-rag-indexing`.
+The vector store behind retrieval. A collection holds document chunks with
+embeddings for semantic search. It is not an asset folder. How to chunk, index
+and build a RAG workflow is `nodetool-rag-indexing`.
 
 | Call | Does |
 | :--- | :--- |
 | `list()` | Lists the collections the user has. |
 | `query(collection, query, {n_results})` | Semantic search in one named collection. `n_results` defaults to 5. |
-| `index(text, sourceId, {metadata})` | Indexes one chunk. Indexing the same `sourceId` again updates it. |
-| `indexBatch(chunks, {base_metadata})` | Indexes many chunks: `[{text, source_id, metadata?}]`. `base_metadata` is added to each. |
-| `search(text, {n_results})` | Semantic search across all collections. `n_results` defaults to 10. |
-| `hybridSearch(text, {n_results, k_constant, min_keyword_length})` | Semantic plus keyword search, fused by reciprocal rank. `n_results` is per collection, default 5. `k_constant` defaults to 60. |
+
+`index`, `indexBatch`, `search` and `hybridSearch` also exist on
+`nodetool.collections`, but their tools are on no tool belt this product
+ships, so each one throws "not in this toolbelt". Do not plan on them. To add
+documents to a collection, build an indexing workflow as `nodetool-rag-indexing`
+describes and run it with `nodetool.workflows.run`.
 
 ## Rules
 
 - Call `list()` first when you do not know the collection name.
-- Give each chunk a stable `source_id`, such as `"<file>#<chunk-number>"`, so a
-  second indexing pass updates chunks instead of adding copies.
-- Put what you filter or cite by in `metadata`: the source file, the page, the
-  title, the URL.
-- Use `hybridSearch` when the query has exact names, codes or rare words that
-  embeddings miss.
-- Index in batches with `indexBatch`, not one `index` call for each chunk.
+- An empty result from a collection the user just made usually means nothing
+  was indexed yet. Say so instead of retrying the query.
 
 ```js
-const text = (await nodetool.documents.extractText("manual.pdf")).text;
-const chunks = text.match(/[\s\S]{1,1200}/g).map((t, i) => ({
-  text: t, source_id: `manual.pdf#${i}`, metadata: { file: "manual.pdf" }
-}));
-await nodetool.collections.indexBatch(chunks);
-const hits = await nodetool.collections.hybridSearch("reset the device");
+const { collections } = await nodetool.collections.list();
+const hits = await nodetool.collections.query("manuals", "reset the device",
+  { n_results: 8 });
 ```

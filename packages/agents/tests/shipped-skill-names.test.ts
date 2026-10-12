@@ -16,6 +16,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { UNIFIED_COMMAND_TYPES } from "@nodetool-ai/protocol";
 import { ANIMATION_PRESETS, STAGGER_UNITS } from "@nodetool-ai/timeline";
 
 import { listCapabilitySpecs } from "../src/capabilities/index.js";
@@ -38,7 +39,8 @@ const SKILL_NAMES = [
   "motion-background",
   "motion-curves",
   "caption-titles",
-  "video-audio-continuity"
+  "video-audio-continuity",
+  "timeline-edit-ops"
 ] as const;
 
 function skillPath(name: string): string {
@@ -108,38 +110,104 @@ function editTimelineOps(): Set<string> {
   return new Set(names);
 }
 
+/**
+ * Suffixes that make a token read as a tool name in the all-skills pass: the
+ * search and capture families (`web_search`, `image_search`,
+ * `take_screenshot`) carry no verb prefix, which is how a retired
+ * `google_search` went unchecked. The strict motion pass leaves them off,
+ * since a field such as `reference_images` is not a call there.
+ */
+const CALL_SUFFIXES = ["_search", "_screenshot", "_news", "_images"];
+
 /** Snake_case tokens anywhere in the skill that read like a call. */
-function skillCallNames(markdown: string): string[] {
+function skillCallNames(
+  markdown: string,
+  options: { suffixes?: boolean } = {}
+): string[] {
   const found = new Set<string>();
   for (const match of markdown.matchAll(/\b([a-z][a-z0-9_]*)\b/g)) {
     const name = match[1] as string;
     if (PLAIN_WORDS.has(name)) continue;
-    if (!CALL_PREFIXES.some((prefix) => name.startsWith(prefix))) continue;
+    const prefixed = CALL_PREFIXES.some((prefix) => name.startsWith(prefix));
+    const suffixed =
+      options.suffixes === true &&
+      CALL_SUFFIXES.some((suffix) => name.endsWith(suffix) && name !== suffix);
+    if (!prefixed && !suffixed) continue;
     found.add(name);
   }
   return [...found].sort();
 }
 
+/** Property keys whose descriptions declare an op list in prose. */
+const OP_LIST_FIELDS = new Set(["ops", "steps", "operations"]);
+
+const WORD = /\b([a-z][a-z0-9_]*)\b/g;
+
 /**
- * Every snake_case token the registry itself writes: capability names, and the
- * op and field names their schema descriptions spell out. A call that survives
- * a rename somewhere in the registry's own text is a call that still exists;
- * one that appears nowhere in it is a spelling no model can use.
+ * Walk a JSON schema and collect what it declares: property keys, enum and
+ * const strings, and every word of an op-list field's description.
+ */
+function schemaVocabulary(schema: unknown, into: Set<string>, opList = false): void {
+  if (Array.isArray(schema)) {
+    for (const item of schema) schemaVocabulary(item, into, opList);
+    return;
+  }
+  if (typeof schema !== "object" || schema === null) return;
+  const node = schema as Record<string, unknown>;
+  if (opList && typeof node["description"] === "string") {
+    for (const match of node["description"].matchAll(WORD)) {
+      into.add(match[1] as string);
+    }
+  }
+  for (const value of [...(Array.isArray(node["enum"]) ? node["enum"] : []), node["const"]]) {
+    if (typeof value === "string") into.add(value);
+  }
+  const properties = node["properties"];
+  if (typeof properties === "object" && properties !== null) {
+    for (const [key, child] of Object.entries(properties)) {
+      into.add(key);
+      schemaVocabulary(child, into, OP_LIST_FIELDS.has(key));
+    }
+  }
+  for (const key of ["items", "anyOf", "oneOf", "allOf", "additionalProperties"]) {
+    if (key in node) schemaVocabulary(node[key], into, opList);
+  }
+}
+
+/**
+ * What a skill may name: capability names, the keys and enum values their
+ * input schemas declare, and the op names that op-list fields (`ops`,
+ * `steps`) spell out in prose, since `edit_sketch`, `edit_model3d`,
+ * `edit_timeline` and `edit_storyboard` have no enum to compare against.
  *
- * The strict test above checks the motion skills against the two registries
- * exactly. This is the wider net the surface skills need: they name ops from
- * `edit_sketch`, `edit_model3d` and `edit_timeline`, which declare their op
- * lists in prose rather than an enum, so there is no list to compare against.
+ * A word that appears only in some spec's free prose is not vocabulary. This
+ * net used to take every word of every spec, so a retired name a description
+ * still mentioned (`browser`'s "use `google_search` instead") counted as a
+ * tool that exists.
  */
 function registryVocabulary(): Set<string> {
-  const vocabulary = new Set<string>(editTimelineOps());
+  // WebSocket commands are a protocol the API reference teaches, not tools.
+  const vocabulary = new Set<string>([...editTimelineOps(), ...UNIFIED_COMMAND_TYPES]);
   for (const spec of listCapabilitySpecs()) {
     vocabulary.add(spec.name);
-    for (const match of JSON.stringify(spec).matchAll(/\b([a-z][a-z0-9_]*)\b/g)) {
-      vocabulary.add(match[1] as string);
+    schemaVocabulary(spec.inputSchema, vocabulary);
+    // A tool that takes an op list may name its ops in its own description
+    // (`edit_native_game`'s `set_document`) rather than on the field.
+    const properties = (spec.inputSchema as { properties?: Record<string, unknown> }).properties ?? {};
+    if (Object.keys(properties).some((key) => OP_LIST_FIELDS.has(key))) {
+      for (const match of spec.description.matchAll(WORD)) {
+        vocabulary.add(match[1] as string);
+      }
     }
   }
   return vocabulary;
+}
+
+/** The skill's call-shaped names that are neither registered nor exempt. */
+function unregisteredNames(markdown: string, vocabulary: Set<string>): string[] {
+  return skillCallNames(markdown, { suffixes: true }).filter(
+    (name) => !vocabulary.has(name) && !NOT_A_BACKEND_CALL.has(name)
+  );
 }
 
 /**
@@ -161,8 +229,8 @@ const NOT_A_BACKEND_CALL = new Set([
   // A browser tool (`ui_storyboard_set_screenplay`). The `ui_` family is
   // registered in the web client, which this package cannot import.
   "set_screenplay",
-  // WebSocket protocol message names in the API reference, not tools.
-  "run_job",
+  // A WebSocket message type in the API reference (the command names come
+  // from `UNIFIED_COMMAND_TYPES`).
   "run_job_request",
   // Named to say it does not exist: settings refuse a secret and there is no
   // `set_secret`. A test that demanded it exist would demand the bug back.
@@ -170,7 +238,10 @@ const NOT_A_BACKEND_CALL = new Set([
   // ManimGX Scene methods in the manimgx skill's Python examples. A scene
   // calls them, not a model, and they belong to Manim's API.
   "add_sound",
-  "set_camera_orientation"
+  "set_camera_orientation",
+  // A chat tool the websocket package registers
+  // (`packages/websocket/src/agent/run-node-tool.ts`), outside this registry.
+  "run_node"
 ]);
 
 /** Every shipped skill, so a new one is covered without being listed. */
@@ -192,15 +263,27 @@ describe("every shipped skill", () => {
 
   for (const skill of skills) {
     it(`${skill} names calls the registry still spells that way`, () => {
-      const named = skillCallNames(readFileSync(skillPath(skill), "utf8"));
-      const missing = named.filter(
-        (name) => !vocabulary.has(name) && !NOT_A_BACKEND_CALL.has(name)
+      const missing = unregisteredNames(
+        readFileSync(skillPath(skill), "utf8"),
+        vocabulary
       );
       expect(missing, "named in the skill but absent from the registry").toEqual(
         []
       );
     });
   }
+
+  // The tightening is what this pins: a retired tool name a spec description
+  // still mentions is not a tool, and a skill that names it must fail.
+  it("refuses a retired tool name even where a description mentions it", () => {
+    const prose = listCapabilitySpecs().some((spec) =>
+      spec.description.includes("google_search")
+    );
+    expect(vocabulary.has("google_search"), `in prose: ${prose}`).toBe(false);
+    expect(
+      unregisteredNames("Search with `google_search`, then `take_screenshot`.", vocabulary)
+    ).toEqual(["google_search"]);
+  });
 
   // The filter is what pins the test: one that matched nothing would pass every
   // skill in silence.

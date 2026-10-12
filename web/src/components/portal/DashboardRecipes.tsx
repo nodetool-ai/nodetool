@@ -11,14 +11,12 @@ import {
   BORDER_RADIUS,
   EmptyState,
   LoadingSpinner,
-  MOTION,
   SPACING,
   TYPOGRAPHY,
-  focusRing,
   getSpacingPx,
-  reducedMotion,
   selectableRowStyles,
-  Tooltip
+  Tooltip,
+  EditorButton
 } from "../ui_primitives";
 import { useSectionWrap, DashboardSectionHeader } from "./dashboardChrome";
 
@@ -104,23 +102,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       [theme.breakpoints.down("sm")]: { display: "none" }
     },
-    ".rcp-add": {
-      flexShrink: 0,
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      borderRadius: BORDER_RADIUS.pill,
-      border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
-      background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
-      color: theme.vars.palette.primary.main,
-      ...TYPOGRAPHY.sans.caption,
-      cursor: "pointer",
-      transition: MOTION.background,
-      ...reducedMotion({ transition: MOTION.none }),
-      "&:hover": {
-        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.22)`
-      },
-      "&:focus-visible": focusRing(theme, 2),
-      "&:disabled": { cursor: "wait", opacity: 0.6 }
-    },
+    ".rcp-add": { flexShrink: 0 },
     // The header button sits in a row; the one under the open chain sits in a
     // column, where a stretched button would read as a banner.
     ".rcp-add.inline": { alignSelf: "flex-start" },
@@ -297,14 +279,14 @@ const RecipeAppRow = memo(function RecipeAppRow({
           ))}
         </span>
       </span>
-      <button
-        type="button"
+      <EditorButton
+        variant="outlined"
         className="rcp-add"
         disabled={installing}
         onClick={() => onInstall(app.slug)}
       >
         {installing ? "Installing…" : "Install app"}
-      </button>
+      </EditorButton>
     </div>
   );
 });
@@ -351,14 +333,14 @@ const RecipeCard = memo(function RecipeCard({
           </span>
         </button>
         {primaryApp && (
-          <button
-            type="button"
+          <EditorButton
+            variant="outlined"
             className="rcp-add"
             disabled={installingPrimary}
             onClick={() => void installApp(primaryApp.slug)}
           >
             {installingPrimary ? "Installing…" : `Install ${primaryApp.name}`}
-          </button>
+          </EditorButton>
         )}
       </div>
 
@@ -391,8 +373,8 @@ const RecipeCard = memo(function RecipeCard({
               onOpen={openStep}
             />
           ))}
-          <button
-            type="button"
+          <EditorButton
+            variant="outlined"
             className="rcp-add inline"
             disabled={adding}
             onClick={() => void addRecipe(recipe)}
@@ -400,7 +382,7 @@ const RecipeCard = memo(function RecipeCard({
             {adding
               ? "Adding…"
               : `Add all ${recipe.steps.length} as workflows`}
-          </button>
+          </EditorButton>
           {recipe.caveats.map((caveat) => (
             <p key={caveat} className="rcp-caveat">
               {caveat}

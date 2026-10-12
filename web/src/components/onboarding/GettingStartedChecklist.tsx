@@ -12,7 +12,8 @@ import {
   CONTROL,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  EditorButton
 } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
@@ -81,18 +82,9 @@ const styles = (theme: Theme) =>
     },
     ".checklist-dismiss": {
       marginLeft: 0,
-      background: "none",
-      border: "none",
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      borderRadius: BORDER_RADIUS.md,
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.disabled,
-      cursor: "pointer",
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        background: theme.vars.palette.action.hover
-      }
+      color: theme.vars.palette.text.disabled
     },
+
 
     // Phones: the pills wrapped into a ragged centered cloud. Stack the open
     // steps as full-width rows under a label/dismiss header, and drop the
@@ -237,14 +229,15 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
               {step.done && step.doneLabel ? step.doneLabel : step.label}
             </button>
           ))}
-          <button
-            type="button"
+          <EditorButton
+            variant="text"
+            color="inherit"
             className="checklist-dismiss"
             onClick={dismiss}
             aria-label="Dismiss getting started checklist"
           >
             Dismiss
-          </button>
+          </EditorButton>
         </div>
       </div>
     </section>

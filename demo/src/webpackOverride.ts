@@ -84,7 +84,13 @@ const EMPTIED = [
   "constants",
   "tty",
   "readline",
+  // Pulled in by @opentelemetry/instrumentation-undici, which the browser
+  // render never starts.
+  "diagnostics_channel",
 ];
+
+/** Replaces Vite `?worker` imports, which webpack cannot build. */
+const VITE_WORKER_STUB = path.join(DEMO_STUBS, "vite-worker-stub.js");
 
 /** Server-only specifiers to resolve to an empty module if they appear. */
 const IGNORE = [
@@ -197,6 +203,11 @@ export const webpackOverride: WebpackOverrideFn = (config) => {
       // resolve `node:fs` → `fs` → stub, etc.
       new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
         resource.request = resource.request.replace(/^node:/, "");
+      }),
+      // Monaco's language workers load through Vite's `?worker` query (see
+      // webpack-stubs/vite-worker-stub.js).
+      new webpack.NormalModuleReplacementPlugin(/\?worker$/, (resource) => {
+        resource.request = VITE_WORKER_STUB;
       }),
     ],
     module: {

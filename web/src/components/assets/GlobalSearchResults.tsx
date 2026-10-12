@@ -539,7 +539,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                           className="global-search-navigate-btn folder-navigate-btn"
                           density="compact"
                           variant="text"
-                          startIcon={<NavigateIcon fontSize="small" />}
+                          startIcon={<NavigateIcon />}
                           onClick={(e) => {
                             e.stopPropagation();
                             onNavigateToFolder(

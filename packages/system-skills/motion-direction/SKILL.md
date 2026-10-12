@@ -1,7 +1,6 @@
 ---
 name: motion-direction
-description: Set the motion language for a piece before anything is animated — one easing family, one timing unit, one transition family, one stagger rhythm — and audit a timeline against it. Use when starting a title pass or a whole cut, when animation feels busy, cheap or inconsistent across shots, or when turning a brand or brief into motion rules an agent can follow. Not for individual clip mechanics — that is motion-graphics.
-featured: true
+description: Set the motion language for a piece before anything is animated — one easing family, one timing unit, one transition family, one stagger rhythm — and audit a timeline against it. Use when starting a title pass or a whole cut, when animation feels busy, cheap or inconsistent across shots, or when turning a brand or brief into motion rules an agent can follow. Not for individual clip mechanics — that is timeline-edit-ops.
 ---
 
 # Motion Direction → the rules everything else obeys
@@ -10,8 +9,9 @@ Direction is the judgment layer above craft. It turns a brief into a short set o
 motion rules, so every shot reads as one hand. Most of the work is subtraction:
 deciding what does not move.
 
-`motion-principles` gives the numbers. This decides which numbers the whole
-piece is allowed to use.
+`motion-principles` gives the numbers and owns them: where this page and it
+disagree, it wins. This decides which of its numbers the whole piece is
+allowed to use.
 
 ## The one rule
 
@@ -22,17 +22,17 @@ in doubt, repeat rather than invent.
 ## The motion-language spec
 
 Fill every row once, at the top of the job, and state it back to the user before
-you animate. The rows guide the timeline document; `motion-graphics` owns the
-tool calls.
+you animate. The rows guide the timeline document; `timeline-edit-ops` owns
+the tool calls.
 
 | Row | Pick one | Example |
 |---|---|---|
-| Easing family | The `easing` string for roughly nine moves in ten | `cubic-bezier(0.22,1,0.36,1)` |
+| Easing family | One entrance `easing` and one exit `easing` | `cubic-bezier(0.16,1,0.3,1)` in, `cubic-bezier(0.7,0,0.84,0)` out |
 | Base timing unit | The atomic `durationMs`; everything else is a multiple | 400 — micro 200, hero 800 |
 | Transition family | Which cut style this piece uses | `crossfade` only, hard cuts elsewhere |
 | Stagger rhythm | One `offsetMs` and one `from` | 80ms, `from: "start"` |
 | Motion intensity | The travel, scale and overshoot budget | `distance` ≤ 0.15, `overshoot` ≤ 1.05 |
-| Hold discipline | Minimum stillness between moves | ≥ 400ms with nothing animating |
+| Hold discipline | The read hold and the rest between moves | `motion-principles` § Holds: ≥ 1000ms read hold, ≥ 400ms rest |
 | Type family and weights | One bundled family and a weight for each text tier | `Inter` 800 for the hero, 400 for support |
 | Space and focus | One camera path and a depth plan, if the piece needs 2.5D | Hero at `depthPx: 0`, background farther away |
 | Shutter and texture | Which layers blur, echo, or step | Hero blur on the impact, background held |
@@ -79,8 +79,10 @@ plan below maps directly onto the API — reach for one of these before a bare
 Plan every showcase scene across all four before writing the hero's
 animation. Read the pack documentation
 (`nodetool.packs.docs("@nodetool-ai/sandbox-timeline")`) for every method's
-signature. Budget for a generated still or music bed in a showcase unless the
-user sets a cost limit.
+signature. A generated still or music bed can lift a showcase, but generation
+costs money. Build from the user's assets and the pack's own vocabulary by
+default. Propose a generated asset, with how many and what for, and generate
+it only after the user agrees.
 
 After saving a showcase, call
 `validate_timeline` with `{"timeline_id":"<id>","tier":"showcase"}`, or
@@ -128,12 +130,17 @@ usual cause of "inconsistent".
 The named preset that fills the spec's easing, timing and intensity rows. Pick
 one per project and hand it to every later step by name.
 
-| Personality | `durationMs` | `easing` | Overshoot | Presets it lives on |
-|---|---|---|---|---|
-| **Playful** | 150–300 | `easeOutBack` or `cubic-bezier(0.34,1.56,0.64,1)` | `overshoot` 1.1–1.2 | `pop`, `bounce`, `squash`, `float` |
-| **Premium** | 350–600 | `cubic-bezier(0.4,0,0.2,1)` | none | `fade`, `blur`, `kenBurns`, `breathe` |
-| **Corporate** | 200–400 | `cubic-bezier(0.2,0,0,1)` | `overshoot` ≤ 1.03 | `fade`, `slide`, `wipe` |
-| **Energetic** | 100–250 | `easeOut` with short windows | `overshoot` 1.15–1.3 | `pop`, `flash`, `shake`, `spin` |
+| Personality | Entrance `durationMs` | Entrance `easing` | Exit `easing` | Overshoot | Presets it lives on |
+|---|---|---|---|---|---|
+| **Playful** | 400–600 | `easeOutBack` or `cubic-bezier(0.34,1.56,0.64,1)` | `easeIn` | `overshoot` 1.1–1.2 | `pop`, `bounce`, `squash`, `float` |
+| **Premium** | 400–600 | `cubic-bezier(0.16,1,0.3,1)` | `easeIn` | none | `fade`, `blur`, `kenBurns`, `breathe` |
+| **Corporate** | 300–400 | `easeOut` | `cubic-bezier(0.7,0,0.84,0)` | `overshoot` ≤ 1.03 | `fade`, `slide`, `wipe` |
+| **Energetic** | 150–250 | `easeOut` | `cubic-bezier(0.7,0,0.84,0)` | `overshoot` 1.15–1.3 | `pop`, `flash`, `shake`, `spin` |
+
+The entrance ranges come from `motion-principles`: its playful landing for
+Playful, its title and hero entrances for Premium and Corporate, and its micro
+beat for Energetic. Exits run shorter than entrances, as its quick reference
+gives.
 
 Premium sits calm-soft, Corporate calm-sharp, Playful kinetic-soft, Energetic
 kinetic-sharp. Default to Corporate for product and Playful for lifestyle.
@@ -215,7 +222,7 @@ later turn — to animate it:
 
 For a repeated title or logo system, inspect `list_compositions` before
 building bare clips. `title-slam`, `word-cards`, and `logo-sting` are starting
-rigs when their timing matches the brief. `motion-graphics` owns the tool
+rigs when their timing matches the brief. `timeline-edit-ops` owns the tool
 contract. `set_clip_params` does not accept the new camera, layout, link,
 repeat, echo, step, or per-clip blur fields; author those through the full
 document with `set_timeline_document` after reading it with `get_timeline`.
@@ -229,7 +236,10 @@ every clip against the spec. A miss is a direction defect, not a preference.
 - Every `durationMs` a multiple of the base unit.
 - Only the chosen transition types on the cut.
 - One text stagger rhythm, and one `offset_ms` order for cross-clip builds.
-- Hold discipline respected: no two moves stacked with no rest between them.
+- Hold discipline respected: every read hold and every rest between moves meets
+  `motion-principles` § Holds. A still hero is not a still frame: the Texture
+  bed keeps moving through the holds, so a static bed is still a finding in
+  the `motion-graphics` review pass.
 - Exactly one hero animating at any instant.
 - One font family, and it is a bundled one — `Inter`, `Space Grotesk`,
   `Bebas Neue`, `Playfair Display`, `Lora`, `JetBrains Mono`. Anything else

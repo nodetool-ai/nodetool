@@ -10,7 +10,10 @@ import {
   Tooltip,
   InlineEditableText,
   MOTION,
-  BORDER_RADIUS, getSpacingPx, SPACING
+  BORDER_RADIUS,
+  getSpacingPx,
+  SPACING,
+  EditorButton
 } from "../ui_primitives";
 import type { TemplateVariable, VariableSyntax } from "./templateVariables";
 
@@ -306,14 +309,13 @@ const EditorVariablesPanel = ({
               />
             </div>
           ) : (
-            <button
-              type="button"
-              className="variable-add"
+            <EditorButton
+              variant="text"
+              startIcon={<AddIcon />}
               onClick={() => setAddOpen(true)}
             >
-              <AddIcon />
               Add
-            </button>
+            </EditorButton>
           ))}
       </div>
     </div>

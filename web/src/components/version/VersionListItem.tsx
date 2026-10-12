@@ -127,13 +127,6 @@ const VersionListItem = React.memo(function VersionListItem({
             label={getSaveTypeLabel(version.save_type)}
             compact
             variant="outlined"
-            size="small"
-            sx={{
-              height: "16px",
-              fontSize: "var(--fontSizeSmaller)",
-              opacity: 0.7,
-              "& .MuiChip-label": { px: 0.5 }
-            }}
           />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: getSpacingPx(SPACING.xs) }}>

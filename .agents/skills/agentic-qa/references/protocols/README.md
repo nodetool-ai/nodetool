@@ -56,11 +56,15 @@ not a reason to hint at it.
 | `chat` | Ask the assistant and find the answer again | P1 | empty | [chat.md](chat.md#chat) |
 | `ask-file` | Ask the assistant about a file | P2 | empty | [chat.md](chat.md#ask-file) |
 | `chat-threads` | Keep two conversations apart | P2 | empty | [chat.md](chat.md#chat-threads) |
+| `chat-find` | Find an old conversation and continue it | P2 | seeded-demo | [chat.md](chat.md#chat-find) |
+| `model-switch` | Switch the assistant to another provider | P2 | empty | [chat.md](chat.md#model-switch) |
+| `chat-delete` | Delete one of two conversations | P2 | empty | [chat.md](chat.md#chat-delete) |
 | `automation` | Build something that changes a sentence | P1 | empty | [workflows.md](workflows.md#automation) |
 | `automation-keep` | Run it again after leaving | P1 | empty | [workflows.md](workflows.md#automation-keep) |
 | `app` | Use a ready-made tool | P1 | empty | [workflows.md](workflows.md#app) |
 | `past-result` | Find an earlier result without rerunning | P2 | empty | [workflows.md](workflows.md#past-result) |
-| `run-failure` | Recover from a run that fails | P2 | needs a fixture | [workflows.md](workflows.md#run-failure) |
+| `run-failure` | Recover from a run that fails | P2 | failing-run | [workflows.md](workflows.md#run-failure) |
+| `example-edit` | Make your own version of an example | P2 | empty | [workflows.md](workflows.md#example-edit) |
 | `image` | Create a picture and find it again | P1 | empty | [library.md](library.md#image) |
 | `image-reuse` | Make a changed version of a generated picture | P2 | empty | [library.md](library.md#image-reuse) |
 | `photo` | Change a photo of your own | P2 | empty | [library.md](library.md#photo) |
@@ -70,12 +74,13 @@ not a reason to hint at it.
 | `undo-delete` | Delete something and try to get it back | P2 | empty | [library.md](library.md#undo-delete) |
 | `copy-edit` | Copy something and change only the copy | P2 | empty | [library.md](library.md#copy-edit) |
 | `projects` | Keep a new piece of work separate | P2 | empty | [library.md](library.md#projects) |
+| `upload-many` | Put three photos in one place | P2 | empty | [library.md](library.md#upload-many) |
 | `build-app` | Make a small tool of your own | P2 | empty | [creative.md](creative.md#build-app) |
 | `sketch` | Draw something and open it again | P2 | empty | [creative.md](creative.md#sketch) |
 | `storyboard` | Plan a video scene by scene | P2 | empty | [creative.md](creative.md#storyboard) |
 | `timeline` | Put two photos into a short video | P2 | empty | [creative.md](creative.md#timeline) |
 | `game` | Make a small game and play it | P3 | empty | [creative.md](creative.md#game) |
-| `voice-script` | Have a script read aloud | P3 | real providers only | [creative.md](creative.md#voice-script) |
+| `voice-script` | Have a script read aloud | P3 | empty | [creative.md](creative.md#voice-script) |
 
 ## Not covered
 

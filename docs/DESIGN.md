@@ -1011,7 +1011,7 @@ import { FormField, FormSection, LabeledSwitch, SelectField, TextInput } from ".
 
 ## 14. Controls
 
-Buttons, tooltips, notifications and the other small controls every surface shares.
+Buttons, tooltips, notifications, chips and the other small controls every surface shares.
 
 ### Tooltips
 
@@ -1069,6 +1069,56 @@ reportError(err instanceof Error ? err.message : "Failed to generate");
 | Timeout | Leave `timeout` out. The store sizes it from the message length (3s to 12s). `0` keeps a notification until it is dismissed, and job completions use `NOTIFICATION_TIMEOUT_JOB_COMPLETED` |
 | Repeats | Pass a `dedupeKey` (with `replaceExisting` for a value that changes, such as progress) instead of stacking the same message |
 | Inline errors | An error about a form or a dialog stays inline as an `AlertBanner` in that surface, not in the stack |
+
+### Chips and pills
+
+A chip is a short tag, count or filter. Draw it with the `Chip` primitive. The
+theme's `MuiChip` override sets its height, radius, text and tone tints, so a
+call site picks props and adds only layout through `sx`, such as a margin or
+`flexShrink`.
+
+```tsx
+import { Chip } from "../ui_primitives";
+
+<Chip label="Installed" compact color="success" />
+<Chip label="Images" compact active={format === "image"} onClick={pickImages} />
+<Chip label={shot.slug} compact accent={BOARD_COLOR} onClick={openShot} />
+```
+
+| Part | Rule |
+|---|---|
+| Shape | Outlined pill, 28px tall, 24px with `compact`. Never set `height`, `borderRadius`, `fontSize` or label padding on a chip |
+| Tone | `color` picks a palette tone: text in the main colour, border at 50%, fill at 12%, as `StatusPill` draws it. A neutral chip is `text.secondary` on a `divider` border. A surface's own colour (a storyboard link, an entity kind, a type) goes in `accent`, never in `sx` |
+| Selected | A filter or toggle chip passes `active`. Selected takes its tone (primary when none is given) and unselected stays neutral. A clickable chip gets `aria-pressed` from it, so do not pass one |
+| Text | Sentence case, a few words. Values such as a type name or a hex colour may use `TYPOGRAPHY.mono.caption` |
+| Not a chip | A count or a value with no border is `Text`. A render state on a thumbnail is `StatusPill`. A command is a button, even when it is pill-shaped |
+| Hand-built | Do not build a pill from a `Box`, `span` or `button` with `BORDER_RADIUS.pill`. Use `Chip` with `icon` for a leading dot, spinner or icon |
+
+### Buttons
+
+A command is a button. Draw a text command with `EditorButton`, an icon-only
+command with `ToolbarIconButton`, and a close, delete, copy or similar action
+with its semantic button (`CloseButton`, `DeleteButton`, `CopyButton`). The
+theme's `MuiButton` override sets text size and icon size per button size, so
+a call site picks props and adds only layout through `sx`.
+
+```tsx
+import { CloseButton, EditorButton } from "../ui_primitives";
+
+<EditorButton variant="contained" onClick={install}>Install</EditorButton>
+<EditorButton variant="outlined" startIcon={<AddIcon />} onClick={add}>Add</EditorButton>
+<EditorButton variant="text" color="inherit" onClick={dismiss}>Dismiss</EditorButton>
+<CloseButton onClick={onClose} tooltip="Close documentation" />
+```
+
+| Part | Rule |
+|---|---|
+| Emphasis | `contained` for the one primary action in a view, `outlined` for secondary actions, `text` for tertiary ones such as Dismiss or Back. A muted tertiary action adds `color="inherit"` |
+| Size | `density` (24px compact, 28px normal) or `size` (28, 32, 36px). Never set `height`, `padding`, `borderRadius` or `fontSize` on a button |
+| Icons | `startIcon` and `endIcon` take a bare icon. The theme sizes it at 16, 18 or 20px for small, medium and large, so never pass `fontSize` to the icon |
+| Tooltip | Pass `tooltip` to the button instead of wrapping it in `Tooltip` |
+| Native button | Only for a tile, card or swatch whose whole surface is the hit target. It keeps a visible focus ring and `type="button"` |
+| Not a button | A tag or filter is a `Chip`. A command stays a button even when it is pill-shaped |
 
 ---
 

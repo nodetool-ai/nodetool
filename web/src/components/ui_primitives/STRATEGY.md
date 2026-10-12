@@ -198,6 +198,7 @@ Need feedback?
 ├── Warning/error → AlertBanner / WarningBanner
 ├── Temporary message → useNotificationStore().addNotification (or useAlertNotifier)
 ├── Status dot/badge → StatusIndicator / NotificationBadge
+├── Tag, count or filter pill → Chip (`active` for a selected filter)
 └── Render state on a thumbnail or card → StatusPill
 
 Need a menu/nav?

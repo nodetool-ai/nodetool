@@ -1171,7 +1171,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     {undoRedo}
                     <EditorButton
                       variant="outlined"
-                      startIcon={<AddIcon fontSize="small" />}
+                      startIcon={<AddIcon />}
                       onClick={handleAddShot}
                       disabled={directing}
                     >
@@ -1186,7 +1186,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     </EditorButton>
                     <EditorButton
                       variant={settingsVisible ? "contained" : "outlined"}
-                      startIcon={<TuneIcon fontSize="small" />}
+                      startIcon={<TuneIcon />}
                       onClick={toggleSettings}
                       aria-expanded={settingsVisible}
                       aria-controls={settingsPanelId}
@@ -1195,7 +1195,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     </EditorButton>
                     <EditorButton
                       variant={oneTakeOpen ? "contained" : "outlined"}
-                      startIcon={<MovieOutlinedIcon fontSize="small" />}
+                      startIcon={<MovieOutlinedIcon />}
                       onClick={toggleOneTake}
                       aria-expanded={oneTakeOpen}
                       aria-controls={oneTakePanelId}
@@ -1205,7 +1205,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     {onToggleAssistant && (
                       <EditorButton
                         variant={assistantOpen ? "contained" : "outlined"}
-                        startIcon={<AutoAwesomeIcon fontSize="small" />}
+                        startIcon={<AutoAwesomeIcon />}
                         onClick={onToggleAssistant}
                         aria-pressed={assistantOpen}
                       >

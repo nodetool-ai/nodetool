@@ -11,7 +11,7 @@ import React, { useCallback, useMemo } from "react";
 import { Chip, FlexRow, SPACING } from "../../ui_primitives";
 import {
   ENTITY_KIND_ICON,
-  getEntityKindChipSx
+  ENTITY_KIND_COLOR
 } from "../../entities/entityKind";
 import { useEntities } from "../../../serverState/useEntities";
 import {
@@ -43,7 +43,7 @@ const MentionedEntityChip: React.FC<{
       label={name}
       title={descriptor || `${name} · ${kind}`}
       onDelete={handleDelete}
-      sx={getEntityKindChipSx(kind)}
+      color={ENTITY_KIND_COLOR[kind]}
     />
   );
 };

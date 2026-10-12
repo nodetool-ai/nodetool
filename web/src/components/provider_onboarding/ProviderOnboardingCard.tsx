@@ -440,7 +440,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                   window.open(provider.keyUrl, "_blank", "noopener,noreferrer")
                 }
               >
-                Get a {provider.name} key
+                Get a key from {provider.name}
               </EditorButton>
               <Caption size="smaller" >
                 {provider.costHint}

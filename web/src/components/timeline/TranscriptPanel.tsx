@@ -150,7 +150,7 @@ export const TranscriptPanel: React.FC = memo(() => {
             {fillerCount > 0 ? (
               <EditorButton
                 size="small"
-                startIcon={<CleaningServicesIcon fontSize="small" />}
+                startIcon={<CleaningServicesIcon />}
                 onClick={removeFillers}
               >
                 {`Remove fillers (${fillerCount})`}

@@ -487,6 +487,89 @@ export interface TrackCompressorEffect {
   kneeDb: number;
 }
 
+// ── Clip audio effects ──────────────────────────────────────────────────────
+
+/**
+ * Real-time audio effects on one clip, run in array order after the clip's
+ * volume and fades and before its track's chain. The four track DSP types
+ * apply as they do on a track. Echo and reverb ring past the clip's end, so
+ * they only make sense where a clip's sound has its own tail. Every host
+ * mixes them: the preview and the browser export through `AudioGraph`, the
+ * server render through ffmpeg. Must also exist on the protocol zod schema or
+ * PATCH strips it.
+ */
+export type ClipAudioEffect =
+  | TrackGainEffect
+  | TrackEq3Effect
+  | TrackFilterEffect
+  | TrackCompressorEffect
+  | ClipEchoEffect
+  | ClipReverbEffect
+  | ClipDistortionEffect;
+
+export interface ClipEchoEffect {
+  id: string;
+  type: "echo";
+  enabled: boolean;
+  /** Time between repeats in milliseconds, 20..2000. Default 350. */
+  delayMs: number;
+  /** Level of each repeat relative to the one before, 0..0.9. Default 0.4. */
+  feedback: number;
+  /** Wet level, 0..1. The dry signal is `1 - mix`. Default 0.35. */
+  mix: number;
+}
+
+export interface ClipReverbEffect {
+  id: string;
+  type: "reverb";
+  enabled: boolean;
+  /** Seconds for the tail to fall 60 dB, 0.2..8. Default 2. */
+  decaySec: number;
+  /** Wet level, 0..1. The dry signal is `1 - mix`. Default 0.3. */
+  mix: number;
+}
+
+export interface ClipDistortionEffect {
+  id: string;
+  type: "distortion";
+  enabled: boolean;
+  /** Gain into a tanh soft clipper, 0..40 dB. Default 12. */
+  driveDb: number;
+  /** Level after the clipper, -24..6 dB. Default -3. */
+  outputDb: number;
+}
+
+/** Seconds a clip effect keeps sounding after its input stops. */
+export function clipAudioEffectTailSec(effect: ClipAudioEffect): number {
+  switch (effect.type) {
+    case "echo": {
+      const delaySec = effect.delayMs / 1000;
+      const feedback = Math.min(0.95, Math.max(0, effect.feedback));
+      if (feedback <= 0.001) return delaySec;
+      // Repeats until one falls below -60 dB.
+      return Math.min(20, delaySec * (Math.log(0.001) / Math.log(feedback) + 1));
+    }
+    case "reverb":
+      return effect.decaySec;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * How long a clip's enabled audio effects ring after its sound stops, in
+ * seconds. The tails add up, because each effect feeds the next.
+ */
+export function clipAudioTailSec(
+  effects: readonly ClipAudioEffect[] | undefined
+): number {
+  let tail = 0;
+  for (const effect of effects ?? []) {
+    if (effect.enabled) tail += clipAudioEffectTailSec(effect);
+  }
+  return tail;
+}
+
 // ── Video track effects ─────────────────────────────────────────────────────
 
 export interface TrackColorCorrectionEffect {
@@ -1040,6 +1123,11 @@ export interface TimelineClip {
    * the masks and the effects all apply to the cropped frame.
    */
   crop?: ClipCrop;
+  /**
+   * Real-time audio effects on an audio, midi or sounding video clip, in
+   * order. See {@link ClipAudioEffect}.
+   */
+  audioEffects?: ClipAudioEffect[];
   /**
    * GPU effects applied to this clip in order. On an `adjustment` clip they
    * run on the composite of the layers beneath it instead of on its own

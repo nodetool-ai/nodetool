@@ -5,14 +5,23 @@ description: Prompt Alibaba's Qwen-Image line for the typography work it is buil
 
 # Qwen-Image → the model you reach for when the image has words in it
 
-Qwen-Image renders text other image models garble: twelve scripts natively,
-legible down to roughly 10 px, long layout instructions honoured. That is the
+Qwen-Image renders text other image models garble. Runware's guide claims
+twelve scripts natively, legible down to roughly 10 px, and long layout
+instructions honoured. That is the
 reason to pick it, and the prompt should spend its length on the copy and the
 layout rather than on adjectives.
 
 Reach it with `find_model` for `text_to_image` or `image_to_image`, then
-`generate_image` / `edit_image`. Prompts run to 5000 characters; the negative
-prompt caps at 500.
+`generate_image` / `edit_image`. `generate_image` forwards only the prompt, a
+negative prompt, the size and a quality string, and `edit_image` only the
+images, the prompt, a negative prompt, a target size and a strength. The
+expansion flag, guidance and step count exist only on the route's own node:
+find it with `search_nodes`, read its fields with `get_node_info`, and run it
+with `run_node`.
+
+On Qwen-Image-3 (`alibaba/qwen-image-3/*`) prompts run to 5000 characters; the
+negative prompt caps at 500. `fal-ai/qwen-image-2/edit` and the
+`qwen-image-max` routes cap the prompt at 800.
 
 ## Quote the copy
 
@@ -45,15 +54,21 @@ corrected and re-timed.
 ## Turn prompt expansion off for typography
 
 On the hosted tiers — Qwen-Image-2, Max and 3 — `enable_prompt_expansion`
-defaults to true and runs an LLM over your prompt first. It helps a three-word
+defaults to true and runs an LLM over your prompt first. AtlasCloud's
+`qwen-image-3.0` and `qwen-image-3.0-pro` routes spell it `prompt_extend`, also
+true by default. It helps a three-word
 prompt and ruins a typographic one: it edits the strings you quoted and adds
 signage you did not ask for. Set it false whenever exact copy matters.
 
 The open-weight checkpoints (`fal-ai/qwen-image`, the `qwen-image-edit-*`
-releases) have no such flag and take your prompt as written. What they expose
-instead is `guidance_scale`, `num_inference_steps` and LoRAs — raise guidance
-when the layout is being loosely interpreted, and leave the step count alone
-until the prompt is settled.
+releases) have no such flag and take your prompt as written. On fal they expose
+`guidance_scale` and `num_inference_steps` instead, and LoRA variants — raise
+guidance when the layout is being loosely interpreted, and leave the step
+count alone until the prompt is settled. Replicate's `qwen/qwen-image` and
+`qwen/qwen-image-2512` call the dial `guidance`, and `qwen/qwen-image` adds an
+`enhance_prompt` rewrite that is off by default. Several Replicate edit routes
+(`qwen/qwen-image-edit`, `qwen/qwen-image-edit-plus`,
+`qwen/qwen-image-edit-2511`) expose neither dial.
 
 ## Layout is relative, not metric
 
@@ -93,7 +108,7 @@ instruction shape: what comes from which image, what must not move.
 
 | What went wrong | What to change |
 | :--- | :--- |
-| The text is close to yours but not yours | Quote it, and set `enable_prompt_expansion` false |
+| The text is close to yours but not yours | Quote it, and set `enable_prompt_expansion` (or `prompt_extend`) false |
 | Invented words in the margins | Add "no other text" |
 | Non-Latin script renders as garbage | Paste the characters instead of describing them |
 | Small type is illegible | Render nearer the pixel ceiling, or use a taller canvas |

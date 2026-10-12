@@ -66,7 +66,7 @@ then pass it on. Credentials and provider setup are
 const model = await nodetool.models.pick("text_to_image");
 const shot = await nodetool.media.generateImage("a red fox in snow", model);
 
-// A node property wants the typed ref.
+// A node property wants the typed ref. wf = await nodetool.workflows.open(id).
 const tts = await nodetool.models.pick("text_to_speech");
 wf.node("speech_1").set({ model: tts.ref });
 

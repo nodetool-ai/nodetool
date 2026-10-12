@@ -54,7 +54,7 @@ export const sampleDuration = (sample: AudioSample): number =>
 export const secondsToFrame = (sample: AudioSample, seconds: number): number =>
   Math.round(seconds * sample.sampleRate);
 
-interface FrameRange {
+export interface FrameRange {
   start: number;
   end: number;
 }
@@ -67,7 +67,7 @@ const clampFrame = (sample: AudioSample, frame: number): number =>
  * non-empty frame range, or the whole sample when no range is given. Returns
  * `null` when the range collapses to nothing.
  */
-const resolveRange = (
+export const resolveRange = (
   sample: AudioSample,
   startSec?: number,
   endSec?: number
@@ -219,6 +219,69 @@ export const reverseRange = (
     }
     return out;
   });
+};
+
+/** Copy frames `[start, end)` into a new sample. */
+export const sliceFrames = (
+  sample: AudioSample,
+  range: FrameRange
+): AudioSample =>
+  mapChannels(sample, (channel) => channel.slice(range.start, range.end));
+
+/** Read a channel of `source` for output channel `c`, reusing the last one. */
+const channelFor = (source: AudioSample, c: number): Float32Array =>
+  source.channels[Math.min(c, source.channels.length - 1)];
+
+/**
+ * Replace frames `[start, end)` with `replacement`, which may be shorter or
+ * longer than the range (speed changes). The rest of the sample shifts.
+ */
+export const spliceFrames = (
+  sample: AudioSample,
+  range: FrameRange,
+  replacement: AudioSample
+): AudioSample => {
+  const inserted = numFrames(replacement);
+  const total = numFrames(sample) - (range.end - range.start) + inserted;
+  return makeAudioSample(
+    sample.sampleRate,
+    sample.channels.map((channel, c) => {
+      const out = new Float32Array(total);
+      out.set(channel.subarray(0, range.start), 0);
+      out.set(channelFor(replacement, c), range.start);
+      out.set(channel.subarray(range.end), range.start + inserted);
+      return out;
+    })
+  );
+};
+
+/**
+ * Write an effect's output over the sample starting at `range.start`. Frames
+ * inside the range are replaced. Frames past the range end are a tail (reverb,
+ * echo) and are mixed onto the audio that follows; a tail that runs past the
+ * end of the sample lengthens it.
+ */
+export const overlayFrames = (
+  sample: AudioSample,
+  range: FrameRange,
+  processed: AudioSample
+): AudioSample => {
+  const written = numFrames(processed);
+  const total = Math.max(numFrames(sample), range.start + written);
+  const replaced = Math.min(written, range.end - range.start);
+  return makeAudioSample(
+    sample.sampleRate,
+    sample.channels.map((channel, c) => {
+      const out = new Float32Array(total);
+      out.set(channel, 0);
+      const wet = channelFor(processed, c);
+      out.set(wet.subarray(0, replaced), range.start);
+      for (let i = replaced; i < written; i += 1) {
+        out[range.start + i] += wet[i];
+      }
+      return out;
+    })
+  );
 };
 
 // ---------------------------------------------------------------------------

@@ -112,7 +112,7 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
  */
 const TOOL_ENABLED_PLANNING_SECTIONS = `
 ## Step Instructions (tools)
-- Reference available tools by name, e.g. "Use google_search to find recent NLP advances."
+- Reference available tools by name, e.g. "Use web_search to find recent NLP advances."
 
 ## Models & Media (use the right tools)
 - Before generating media, call \`find_model\` once for the relevant capability

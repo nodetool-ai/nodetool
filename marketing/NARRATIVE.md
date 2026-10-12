@@ -74,7 +74,7 @@ claims, not next to them. On the homepage they are one strip of links to
 
 ## Order of the page
 
-Hero → the editors, framed as control over the project → finished films with
+Hero → **use the AI plan you already pay for** → the editors, framed as control over the project → finished films with
 their editable timelines → ad library → example storyboards → **the agent
 builds the project** (a brief, then a board, takes, and a cut that opens) →
 **every model, your keys** → recipes for related
@@ -237,6 +237,13 @@ calculator on `/pricing`.
 - **Current and future pricing are different facts.** Current Cloud alpha access
   is free. Future Cloud pricing has not been announced. Do not promise a plan,
   price, or billing model before the deployment owner confirms it.
+- **Subscriptions.** A reader who already pays for ChatGPT, Claude, or Gemini
+  can run NodeTool on that plan, which is the cheapest way in. The homepage
+  says so right under the hero, and `/studio`, `/pricing`, `/agents`, and
+  `/node-based-workflows` repeat the same section (`SubscriptionSection`).
+  State the limits with the claim: subscriptions run in Studio, and Gemini and
+  ChatGPT image generation also need the NodeTool Chrome extension. Claude
+  plans run chat and the agent only. Video comes from Gemini.
 - **Local models.** True for language and image models, and for a filmmaker
   making video mostly not: open-weight video needs hardware they do not have. On
   the film page, ownership is keys, project file, and source. Local inference is

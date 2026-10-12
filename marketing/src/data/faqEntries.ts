@@ -112,6 +112,15 @@ const seeds: FaqSeed[] = [
     surfaces: ["agents", "cloud", "comparison", "developers", "models", "pricing", "studio"],
   },
   {
+    slug: "use-chatgpt-claude-gemini-subscription",
+    question: "Can I use my ChatGPT, Claude, or Gemini subscription?",
+    answerMd:
+      "Yes, in Studio. Sign in with ChatGPT or Claude, and the agent runs on that subscription instead of an API key. With the [NodeTool Chrome extension](https://docs.nodetool.ai/chrome-extension), NodeTool also uses the ChatGPT or Gemini tab you are signed in to: ChatGPT generates images, and Gemini runs chat, images, and video. Those runs count against your plan's limits, so you get no pay-per-call bill for them. Every run shows up in your ChatGPT or Gemini history.",
+    category: "byok",
+    relatedRoute: "/pricing",
+    surfaces: ["landing", "agents", "pricing", "studio"],
+  },
+  {
     slug: "how-much-does-nodetool-cost",
     question: "How much does NodeTool cost?",
     answerMd:

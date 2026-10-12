@@ -307,6 +307,49 @@ export const trackEffect = z.discriminatedUnion("type", [
 ]);
 export type TrackEffect = z.infer<typeof trackEffect>;
 
+/** `ClipEchoEffect` in `@nodetool-ai/timeline`. */
+export const clipEchoEffect = z.object({
+  id: z.string(),
+  type: z.literal("echo"),
+  enabled: z.boolean(),
+  delayMs: z.number().min(1).max(5000),
+  feedback: z.number().min(0).max(0.95),
+  mix: z.number().min(0).max(1)
+});
+
+/** `ClipReverbEffect` in `@nodetool-ai/timeline`. */
+export const clipReverbEffect = z.object({
+  id: z.string(),
+  type: z.literal("reverb"),
+  enabled: z.boolean(),
+  decaySec: z.number().min(0.05).max(20),
+  mix: z.number().min(0).max(1)
+});
+
+/** `ClipDistortionEffect` in `@nodetool-ai/timeline`. */
+export const clipDistortionEffect = z.object({
+  id: z.string(),
+  type: z.literal("distortion"),
+  enabled: z.boolean(),
+  driveDb: z.number().min(0).max(60),
+  outputDb: z.number().min(-60).max(24)
+});
+
+/**
+ * One real-time audio effect on a clip: the audio track DSP types plus echo,
+ * reverb and distortion. See `ClipAudioEffect` in `@nodetool-ai/timeline`.
+ */
+export const clipAudioEffect = z.discriminatedUnion("type", [
+  trackGainEffect,
+  trackEq3Effect,
+  trackFilterEffect,
+  trackCompressorEffect,
+  clipEchoEffect,
+  clipReverbEffect,
+  clipDistortionEffect
+]);
+export type ClipAudioEffect = z.infer<typeof clipAudioEffect>;
+
 // ── MIDI ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -1696,6 +1739,8 @@ export const timelineClip = z.object({
   fadeOutMs: z.number().optional(),
   fadeInShape: clipFadeShapeEnum.optional(),
   fadeOutShape: clipFadeShapeEnum.optional(),
+  /** Without this field Zod strips a clip's audio effects on every PATCH. */
+  audioEffects: z.array(clipAudioEffect).optional(),
   transform: clipTransform.optional(),
   layout: clipLayout.optional(),
   flexItem: clipFlexItem.optional(),

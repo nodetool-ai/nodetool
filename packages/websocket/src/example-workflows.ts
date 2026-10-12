@@ -145,7 +145,7 @@ function loadExampleGraphFromPythonPackage(
     pkg.sourceFolder,
     "nodetool",
     "examples",
-    packageName
+    pkg.name
   );
   return loadExampleGraphFromDir(examplesDir, exampleRef);
 }

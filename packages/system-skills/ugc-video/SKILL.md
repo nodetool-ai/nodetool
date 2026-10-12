@@ -1,11 +1,12 @@
 ---
 name: ugc-video
-description: "Direct phone-shot creator videos, UGC ads, testimonials, or vlogs in NodeTool. For polished product films, use product-commercial."
+description: "Direct phone-shot creator videos, UGC ads, testimonials, or vlogs in NodeTool. For polished product films, use product-commercial; for an ad's beat structure, pair with commercial-beat-sheet."
 ---
 
 **Load `/storyboard-core` first.** It carries the loop, the tool contract,
 the entity rules and the gating this skill assumes. Everything below is what is
-different about a phone-shot piece with a person in it.
+different about a phone-shot piece with a person in it. For a UGC ad, this skill
+sets the look and `/commercial-beat-sheet` sets the hook, beats and timecodes.
 
 ## What makes this job type its own
 
@@ -58,8 +59,8 @@ happening physically, and a verdict to camera.
 - A talent-free end card (pack hero, logo card) needs its own `entity_ids` naming the
   product alone — otherwise the character's descriptor seasons a shot she is not in.
 - Native-audio video models are weakest on their image path. For a shot whose spoken
-  line has to look synced, set `render_mode: "direct"` and put the framing and style
-  into the action text, since no still carries them in.
+  line has to look synced, set `render_mode: "direct"`. A direct clip prompt already
+  carries the camera fields and the board style.
 
 ## Wardrobe and state
 
@@ -112,8 +113,8 @@ Seven shots, then stop.
          cyclorama, copy space right. Set entity_ids on this shot to the
          product alone.
 
-After I pick a face from the stills, move the Nova entity onto that crop before
-any clip renders.
+After I pick a face from the stills, select that still with select_version and
+move the Nova entity onto that crop before any clip renders.
 ```
 
 ### Pinterest-fail comedy, 30s 16:9

@@ -29,7 +29,6 @@ import {
   Text,
   ToolbarIconButton,
   Tooltip,
-  BORDER_RADIUS,
   SPACING,
   type StatusType
 } from "../ui_primitives";
@@ -97,7 +96,7 @@ const ScriptLineEntry = ({
         compact
         label={speaker?.name ?? "Narrator"}
         variant="outlined"
-        sx={{ borderRadius: BORDER_RADIUS.sm, flexShrink: 0 }}
+        sx={{ flexShrink: 0 }}
       />
       <Text size="small" sx={{ flex: 1, minWidth: 0 }} lineClamp={2}>
         {line.text}

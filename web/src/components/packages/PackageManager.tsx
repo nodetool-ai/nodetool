@@ -17,7 +17,6 @@ import {
   useState,
   type MouseEvent
 } from "react";
-import { useTheme } from "@mui/material/styles";
 
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 
@@ -84,42 +83,18 @@ const saveCategory = (cat: PMCategory) => {
  * "Installed"). "Always on" / "Not installed" stay neutral.
  */
 const BadgeChip = ({ badge }: { badge: PMRow["badge"] }) => {
-  const theme = useTheme();
   if (!badge) return null;
   const styles: Record<
     Exclude<PMRow["badge"], null>,
-    { label: string; bg: string; fg: string }
+    { label: string; color: "default" | "success" | "warning" }
   > = {
-    alwaysOn: {
-      label: "Always on",
-      bg: theme.vars.palette.action.selected,
-      fg: theme.vars.palette.text.secondary
-    },
-    installed: {
-      label: "Installed",
-      bg: `rgba(${theme.vars.palette.success.mainChannel} / 0.14)`,
-      fg: theme.vars.palette.success.main
-    },
-    update: {
-      label: "Update available",
-      bg: `rgba(${theme.vars.palette.warning.mainChannel} / 0.16)`,
-      fg: theme.vars.palette.warning.main
-    },
-    notInstalled: {
-      label: "Not installed",
-      bg: theme.vars.palette.action.hover,
-      fg: theme.vars.palette.text.secondary
-    }
+    alwaysOn: { label: "Always on", color: "default" },
+    installed: { label: "Installed", color: "success" },
+    update: { label: "Update available", color: "warning" },
+    notInstalled: { label: "Not installed", color: "default" }
   };
   const s = styles[badge];
-  return (
-    <Chip
-      label={s.label}
-      compact
-      variant="filled"
-      sx={{ backgroundColor: s.bg, color: s.fg, fontWeight: 500 }}
-    />
-  );
+  return <Chip label={s.label} compact variant="outlined" color={s.color} />;
 };
 
 const RowActions = ({ row }: { row: PMRow }) => {

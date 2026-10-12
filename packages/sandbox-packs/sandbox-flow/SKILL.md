@@ -22,6 +22,12 @@ const r = await concat({ a: "hello ", b: "world" });
 return r.output;
 ```
 
+These examples are chat code actions, where `return` is the action's result.
+In a Code node or a JS script document, `return` is control flow only: hand a
+value on with `await output(name, value)` or stream it with `emit`. A script
+document that returns its outputs fails, and a Code node accepts that old
+contract only with a deprecation warning.
+
 ## Two imports, both required
 
 1. `import { … } from "@nodetool-ai/sandbox-flow/<namespace>";` — the nodes.
@@ -49,7 +55,7 @@ import "@nodetool-ai/sandbox-nodetool/flow";
 import { agent } from "@nodetool-ai/sandbox-flow/nodetool.agents";
 
 let text = "";
-for await (const chunk of agent.stream({ objective: "Summarize the file" })) {
+for await (const chunk of agent.stream({ prompt: "Summarize the file" })) {
   text += chunk.chunk ?? "";
   if (text.length > 2000) break; // closes the stream; the node stops
 }

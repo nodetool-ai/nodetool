@@ -41,7 +41,7 @@ import type {
 } from "../stores/ApiTypes";
 
 import type { CastEvent, DemoCast } from "./castTypes";
-import { resolveAssetUrls } from "./assetSubstitution";
+import { resolveAssetUrls, resolveAssetUrlsIn } from "./assetSubstitution";
 import { isString } from "../utils/typePredicates";
 
 /**
@@ -153,7 +153,10 @@ export class DemoEngine {
   private appliedIndex = 0;
 
   constructor(cast: DemoCast, opts: DemoEngineOptions) {
-    this.workflow = cast.workflow;
+    // Input and constant nodes hold pinned media in their own properties, so
+    // the graph needs the same asset rewrite as the event timeline below.
+    const workflow = resolveAssetUrlsIn(cast.workflow, cast.assets, opts.resolveAssetUrl);
+    this.workflow = workflow;
     this.durationMs = cast.durationMs;
     this.fps = cast.fps ?? 30;
 
@@ -162,7 +165,7 @@ export class DemoEngine {
     seedCastMetadata(cast.metadata);
     seedDemoAuth();
     seedDemoSecrets();
-    this.nodeStore = createNodeStore(cast.workflow);
+    this.nodeStore = createNodeStore(workflow);
     this.pristineNodes = clone(this.nodeStore.getState().nodes);
     this.pristineEdges = clone(this.nodeStore.getState().edges);
 

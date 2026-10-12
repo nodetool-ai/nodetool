@@ -188,26 +188,168 @@ export const COOKBOOK: TutorialEntry[] = [
     ],
   }),
 
-  entry("style-transfer", {
-    castId: "cookbook-style-transfer",
-    title: "Style Transfer",
-    subtitle: "Pattern 8 · Advanced Image Processing",
-    replayWindowMs: 16500,
+  entry("brief-to-cut", {
+    castId: "cookbook-brief-to-cut",
+    title: "Brief to Cut",
+    subtitle: "Pattern 1 · A rendered film from one line",
+    replayWindowMs: 17600,
     steps: [
-      { atMs: 1300, label: "Two images", focus: "content", zoom: 1.7 },
-      { atMs: 5100, label: "Describe content", focus: "describe", zoom: 1.8 },
-      { atMs: 7900, label: "Restyle", focus: "transfer", zoom: 1.8 },
+      { atMs: 1300, label: "Write the screenplay", focus: "director", zoom: 1.6 },
+      { atMs: 4800, label: "Film the shots in order", focus: "chain", zoom: 1.5 },
+      { atMs: 9700, label: "Render the cut", focus: "render", zoom: 1.4 },
     ],
     captions: [
-      { fromMs: 1400, toMs: 4900, text: "A content image and a style image — Fit normalizes the content first." },
-      { fromMs: 5100, toMs: 7700, text: "Image To Text captions the content so the model knows what it's drawing." },
-      { fromMs: 7900, toMs: 14000, text: "An image-to-image model re-renders it in the reference style." },
+      { fromMs: 1400, toMs: 4600, text: "The Director turns a one-line brief into a screenplay, and Shot Batch splits it into shots." },
+      { fromMs: 4800, toMs: 9500, text: "Shot Chain films each shot from the last frame of the one before, so the cut holds together." },
+      { fromMs: 9700, toMs: 17000, text: "The clips land on a timeline, and Render Timeline writes the film." },
     ],
-    outroTitle: "Reshape images",
+    outroTitle: "Brief to cut, unattended",
     outroPoints: [
-      "Preserve structure, change style",
-      "Img2Img keeps the composition",
-      "Caption-guided generation",
+      "One brief, one rendered film",
+      "Each shot continues the last",
+      "Re-run it for every new brief",
+    ],
+  }),
+
+  entry("entity-cast", {
+    castId: "cookbook-entity-cast",
+    title: "One Cast Across Many Assets",
+    subtitle: "Pattern 3 · The same product in every frame",
+    replayWindowMs: 13100,
+    steps: [
+      { atMs: 1300, label: "A brief and an entity", focus: "apply", zoom: 1.2 },
+      { atMs: 2300, label: "Season every prompt", focus: "apply", zoom: 1.6 },
+      { atMs: 4000, label: "Render each asset", focus: "image", zoom: 1.5 },
+      { atMs: 10000, label: "The set", focus: "output", zoom: 1.5 },
+    ],
+    captions: [
+      { fromMs: 1400, toMs: 2200, text: "An entity holds the product's descriptor and reference image." },
+      { fromMs: 2400, toMs: 3900, text: "Apply Entities pastes that descriptor into every prompt the List Generator streams." },
+      { fromMs: 4000, toMs: 9800, text: "Each prompt renders with the same shoe, so the set reads as one campaign." },
+      { fromMs: 10000, toMs: 12800, text: "Collect gathers the four assets." },
+    ],
+    outroTitle: "One cast, thirty frames",
+    outroPoints: [
+      "Describe the product once",
+      "Every prompt gets the same words",
+      "Image nodes take entities directly too",
+    ],
+  }),
+
+  entry("script-voice", {
+    castId: "cookbook-script-voice",
+    title: "Script to Voiced Cut",
+    subtitle: "Pattern 4 · A cut and captions from one script",
+    replayWindowMs: 14300,
+    steps: [
+      { atMs: 1200, label: "Voice each line", focus: "voice", zoom: 1.7 },
+      { atMs: 5600, label: "Write the subtitles", focus: "subtitles", zoom: 1.3 },
+      { atMs: 6500, label: "Render the cut", focus: "render", zoom: 1.4 },
+    ],
+    captions: [
+      { fromMs: 1300, toMs: 5400, text: "Voice Script records a take for every line, in that line's own voice." },
+      { fromMs: 5600, toMs: 6400, text: "Script To Subtitles writes an SRT from the takes' timings." },
+      { fromMs: 6500, toMs: 14000, text: "Script To Timeline places the takes, and the cut renders." },
+    ],
+    outroTitle: "The script is the source",
+    outroPoints: [
+      "Edit a line, re-voice only that line",
+      "Cut and captions stay in sync",
+      "One voiced master per language",
+    ],
+  }),
+
+  entry("sketch-variants", {
+    castId: "cookbook-sketch-variants",
+    title: "Sketch as the Control Input",
+    subtitle: "Pattern 5 · One composition, three styles",
+    replayWindowMs: 12300,
+    steps: [
+      { atMs: 1300, label: "A sketch", focus: "render", zoom: 1.4 },
+      { atMs: 3300, label: "One run per style", focus: "restyle", zoom: 1.6 },
+      { atMs: 9200, label: "The variants", focus: "output", zoom: 1.6 },
+    ],
+    captions: [
+      { fromMs: 1400, toMs: 3200, text: "Render Sketch flattens the sketch into the image every run starts from." },
+      { fromMs: 3400, toMs: 8600, text: "For Each hands over one style at a time, and Image To Image keeps the composition." },
+      { fromMs: 9200, toMs: 12000, text: "Collect gathers the three renders into one output." },
+    ],
+    outroTitle: "One composition, many looks",
+    outroPoints: [
+      "Paint the composition once",
+      "Add a style to add a variant",
+      "Send the mask for a local edit",
+    ],
+  }),
+
+  entry("variant-fan-out", {
+    castId: "cookbook-variant-fan-out",
+    title: "Variant Fan-Out",
+    subtitle: "Pattern 6 · One brief, a gallery out",
+    replayWindowMs: 14700,
+    steps: [
+      { atMs: 1300, label: "Set a direction", focus: "director", zoom: 1.6 },
+      { atMs: 4300, label: "State the count", focus: "ask", zoom: 1.6 },
+      { atMs: 5600, label: "Render each prompt", focus: "poster", zoom: 1.3 },
+      { atMs: 11600, label: "The gallery", focus: "output", zoom: 1.5 },
+    ],
+    captions: [
+      { fromMs: 1400, toMs: 4100, text: "An Agent turns the brief into one art direction." },
+      { fromMs: 4300, toMs: 5500, text: "A Prompt node puts the count in the request. List Generator has no count setting." },
+      { fromMs: 5700, toMs: 11200, text: "List Generator streams four prompts, and each one renders as soon as it arrives." },
+      { fromMs: 11600, toMs: 14500, text: "Collect gathers the four posters into one gallery." },
+    ],
+    outroTitle: "One brief, a gallery out",
+    outroPoints: [
+      "Variety to pick from",
+      "Images render while prompts stream",
+      "Change the count, not the graph",
+    ],
+  }),
+
+  entry("derivatives", {
+    castId: "cookbook-derivatives",
+    title: "Derivatives from a Finished Cut",
+    subtitle: "Pattern 7 · One master, many deliverables",
+    replayWindowMs: 16000,
+    steps: [
+      { atMs: 1100, label: "Copy from the transcript", focus: "agent", zoom: 1.4 },
+      { atMs: 5100, label: "Retarget to 9:16", focus: "render", zoom: 1.4 },
+      { atMs: 7500, label: "Caption the vertical cut", focus: "subtitles", zoom: 1.3 },
+    ],
+    captions: [
+      { fromMs: 1200, toMs: 4900, text: "Transcript reads the cut's own lines, and an Agent writes a title, notes, and a post." },
+      { fromMs: 5100, toMs: 7400, text: "Retarget Timeline derives a 9:16 timeline from the approved cut and renders it." },
+      { fromMs: 7500, toMs: 15500, text: "Transcribe gives the timings, and Add Subtitles burns the captions in." },
+    ],
+    outroTitle: "Every shape from one master",
+    outroPoints: [
+      "Copy comes from the cut itself",
+      "Retargeting keeps every trim",
+      "Re-run after an edit to rebuild all",
+    ],
+  }),
+
+  entry("code-glue", {
+    castId: "cookbook-code-glue",
+    title: "Code Node Glue",
+    subtitle: "Pattern 8 · Deterministic steps in JavaScript",
+    replayWindowMs: 9000,
+    steps: [
+      { atMs: 1000, label: "Transcribe the clip", focus: "asr", zoom: 1.6 },
+      { atMs: 4100, label: "Slugify in code", focus: "code", zoom: 1.6 },
+      { atMs: 5000, label: "The file name", focus: "output", zoom: 1.7 },
+    ],
+    captions: [
+      { fromMs: 1100, toMs: 3900, text: "Extract Audio and speech recognition turn the clip's narration into text." },
+      { fromMs: 4100, toMs: 4900, text: "One Code node turns the text into a slug. No model needed." },
+      { fromMs: 5000, toMs: 8800, text: "The same input always gives the same file name." },
+    ],
+    outroTitle: "Code for the exact parts",
+    outroPoints: [
+      "Names, ordering, dedupe, packaging",
+      "Runs in the QuickJS sandbox",
+      "Validate a body before the run",
     ],
   }),
 
@@ -303,26 +445,28 @@ export const COOKBOOK: TutorialEntry[] = [
     ],
   }),
 
-  entry("storyboard-to-video", {
-    castId: "cookbook-storyboard-to-video",
-    title: "Storyboard to Video",
-    subtitle: "Pattern 13 · Storyboard to Video",
-    replayWindowMs: 15500,
+  entry("shot-fan-out", {
+    castId: "cookbook-shot-fan-out",
+    title: "Shot Fan-Out",
+    subtitle: "Pattern 2 · Brief to cut through stills",
+    replayWindowMs: 19000,
     steps: [
-      { atMs: 1300, label: "Story + scenes", focus: "scene2", zoom: 1.5 },
-      { atMs: 2800, label: "Fill transitions", focus: "sora", zoom: 1.8 },
-      { atMs: 12100, label: "The film", focus: "output", zoom: 1.9 },
+      { atMs: 1300, label: "Write the shots", focus: "director", zoom: 1.6 },
+      { atMs: 4500, label: "A still per shot", focus: "still", zoom: 1.5 },
+      { atMs: 6000, label: "A clip per still", focus: "clip", zoom: 1.5 },
+      { atMs: 11300, label: "Cut the film", focus: "render", zoom: 1.6 },
     ],
     captions: [
-      { fromMs: 1400, toMs: 2600, text: "A story prompt plus up to three keyframe scenes." },
-      { fromMs: 2800, toMs: 11000, text: "A keyframe video model fills smooth transitions between the scenes." },
-      { fromMs: 12100, toMs: 15000, text: "One coherent video, assembled from your storyboard." },
+      { fromMs: 1400, toMs: 4300, text: "The Director turns a one-line brief into a three-shot screenplay." },
+      { fromMs: 4500, toMs: 5900, text: "Screenplay Shots streams one prompt per shot, and each prompt becomes a still." },
+      { fromMs: 6000, toMs: 11000, text: "Each still is animated while the next shot's still renders." },
+      { fromMs: 11300, toMs: 18500, text: "Collect gathers the clips, and the timeline renders them as one cut." },
     ],
-    outroTitle: "Storyboards become film",
+    outroTitle: "Brief to cut, shot by shot",
     outroPoints: [
-      "1–3 keyframes per clip",
-      "Smooth, narrative transitions",
-      "Pre-visualize a scene fast",
+      "A still costs less than a clip",
+      "Check the stills after an unattended run",
+      "Later shots render while earlier ones animate",
     ],
   }),
 ];

@@ -22,7 +22,7 @@ a `"provider/model_id"` string.
 | `editImage(inputFile, prompt, model, opts)` | `reference_files`, `strength`, `target_width`, `target_height`, `negative_prompt`, `output_file`, `background` | `image_to_image` |
 | `generateVideo(prompt, model, opts)` | `duration_seconds`, `aspect_ratio`, `resolution`, `num_frames`, `negative_prompt`, `output_file`, `background` | `text_to_video` |
 | `animateImage(inputFile, model, opts)` | `prompt`, `duration_seconds`, `aspect_ratio`, `resolution`, `num_frames`, `output_file`, `background` | `image_to_video` |
-| `videoFromReferences(referenceFiles, model, opts)` | `prompt`, `use_reference_video_audio`, `duration_seconds`, `aspect_ratio`, `resolution`, `output_file`, `background` | `reference_to_video` |
+| `videoFromReferences(referenceFiles, model, opts)` | `prompt`, `use_reference_video_audio`, `negative_prompt`, `num_frames`, `duration_seconds`, `aspect_ratio`, `resolution`, `output_file`, `background` | `reference_to_video` |
 | `speak(text, model, opts)` | `voice`, `speed`, `output_file`, `background` | `text_to_speech` |
 | `generateMusic(prompt, model, opts)` | `lyrics`, `duration_seconds`, `output_file`, `background` | `text_to_music` |
 | `transcribe(inputFile, model, opts)` | `language`, `prompt` | `automatic_speech_recognition` |
@@ -47,18 +47,25 @@ A generation answers with `asset_id`, `asset_uri` (`asset://…`),
 
 ### Background generations
 
-`background: true` returns at once with
+`background` is the async flag on every generation call, not a transparent
+background. `background: true` returns at once with
 `{generation_id, status: "running", background: true}`. Collect the result
 with `nodetool.generations.wait(receipt)`. A run can have 16 open at most.
-Start several, then wait for all of them in the same action:
+Each one is billed, so confirm the count and the cost with the user before
+you fan out paid video. Start several, then wait for all of them in the same
+action:
 
 ```js
 const model = await nodetool.models.pick("text_to_video");
 const receipts = await Promise.all(prompts.map((p) =>
   nodetool.media.generateVideo(p, model, { background: true })));
 const done = await Promise.all(receipts.map((r) =>
-  nodetool.generations.wait(r, { timeout_seconds: 900 })));
+  nodetool.generations.wait(r, { timeout_seconds: 480 })));
 ```
+
+A code action stops after 600 s. Keep each wait under that budget. A wait
+that times out answers the current record, so wait again in the next action
+for any that are still `running`.
 
 ## Handles and saving
 
@@ -90,8 +97,8 @@ vision model), not the model that made the picture.
 | Call | Does |
 | :--- | :--- |
 | `ffmpeg(args, {inputs, output_file, timeout_seconds})` | Runs ffmpeg in the workspace with no shell. `args` is the argv after the binary. Paths are workspace-relative, and URLs are refused. `inputs` stages assets first as `{"a.mp4": "asset://…"}` (8 files at most). `output_file` is saved as an asset. The default timeout is 180 s, the maximum 600 s. |
-| `ffprobe(path, {inputs, timeout_seconds})` | Reads the format and streams. `path` may be an `asset://` URI. The answer has a `summary` with `duration_seconds`, `width`, `height` and `has_audio` as real numbers and booleans. |
-| `downloadVideo(url, outputFile, {format, timeout_seconds})` | Downloads a public video with yt-dlp, up to 2 GiB. |
+| `ffprobe(path, {inputs, timeout_seconds})` | Reads the format and streams. `path` may be an `asset://` URI. The answer has a `summary` with `duration_seconds`, `width`, `height` and `has_audio` as real numbers and booleans. The default timeout is 30 s, the maximum 120 s. |
+| `downloadVideo(url, outputFile, {format, timeout_seconds})` | Downloads a public video with yt-dlp, up to 2 GiB. The default timeout is 300 s. |
 
 ```js
 // Concatenate two assets in one call.

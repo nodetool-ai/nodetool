@@ -146,7 +146,7 @@ const JsScriptRunConsole = ({
         <EditorButton
           density="compact"
           variant="contained"
-          startIcon={<PlayArrowIcon fontSize="small" />}
+          startIcon={<PlayArrowIcon />}
           disabled={running || readOnly}
           onClick={() => setDialogOpen(true)}
         >
@@ -154,7 +154,7 @@ const JsScriptRunConsole = ({
         </EditorButton>
         <EditorButton
           density="compact"
-          startIcon={<ScienceOutlinedIcon fontSize="small" />}
+          startIcon={<ScienceOutlinedIcon />}
           disabled={running || readOnly || tests.length === 0}
           onClick={onTest}
         >

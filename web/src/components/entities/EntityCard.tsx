@@ -21,7 +21,7 @@ import {
   SPACING
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
-import { getEntityKindChipSx } from "./entityKind";
+import { ENTITY_KIND_COLOR } from "./entityKind";
 
 interface EntityCardProps {
   entity: Entity;
@@ -83,7 +83,8 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
             label={entity.kind}
             compact
             variant="outlined"
-            sx={{ ...getEntityKindChipSx(entity.kind), flexShrink: 0 }}
+            color={ENTITY_KIND_COLOR[entity.kind]}
+            sx={{ flexShrink: 0 }}
           />
         </FlexRow>
 

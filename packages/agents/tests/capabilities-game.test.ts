@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync as readSourceSync } from "node:fs";
+import { fileURLToPath as toSourcePath } from "node:url";
+import { capabilitySpec } from "../src/capabilities/index.js";
 import { Asset, Game, ModelObserver, Prediction, Project, Workspace, initTestDb } from "@nodetool-ai/models";
 import { InMemoryStorageAdapter, assetObjectKey } from "@nodetool-ai/storage";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
@@ -532,5 +535,18 @@ describe("native game capabilities", () => {
     const packaged = JSON.parse(await readFile(join(directory, built.build_path, "game.json"), "utf8")) as GameDocument;
     expect(packaged.revision).toBe(published.game.revision);
     expect(packaged.assets.player?.assetId).toMatch(/^\.\/assets\/[a-f0-9]{64}\.png$/);
+  });
+});
+
+describe("spec text the shipped skills rely on", () => {
+  it("edit_native_game says which players count particles", () => {
+    const ops = JSON.stringify(capabilitySpec("edit_native_game")?.inputSchema);
+    expect(ops).not.toContain("No player counts particles");
+    const player2d = readSourceSync(
+      toSourcePath(new URL("../../game-renderer/src/standalone-player.ts", import.meta.url)),
+      "utf8"
+    );
+    expect(player2d).toMatch(/budget\.observe\(\{[^}]*particles:/);
+    expect(ops).toContain("The 2D standalone player counts particles");
   });
 });
