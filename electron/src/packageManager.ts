@@ -448,7 +448,7 @@ async function fetchLatestVersionFromSimpleIndex(
   packageName: string
 ): Promise<string | null> {
   try {
-    const normalized = canonicalizePackageName(packageName).replace(/-/g, "-");
+    const normalized = canonicalizePackageName(packageName);
     const url = `${PYPI_SIMPLE_INDEX_URL}/${normalized}/`;
     const html = await httpsGet(url);
 

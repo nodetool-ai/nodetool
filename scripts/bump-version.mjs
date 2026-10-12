@@ -17,7 +17,7 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, relative } from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { parseArgs } from "node:util";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -96,33 +96,35 @@ function updateConstantsTs(version) {
   return true;
 }
 
-function git(args) {
-  execSync(`git ${args}`, { cwd: ROOT, stdio: "inherit" });
+// Arguments go to git as an argv array, never through a shell, so a path or a
+// version string cannot inject shell syntax.
+function git(...args) {
+  execFileSync("git", args, { cwd: ROOT, stdio: "inherit" });
 }
 
 function gitCommitAndTag(version, tag, push) {
   const files = [...PACKAGE_JSONS, CONSTANTS_TS].filter(existsSync);
-  for (const f of files) git(`add ${rel(f)}`);
+  for (const f of files) git("add", rel(f));
 
   try {
-    execSync("git diff --cached --quiet", { cwd: ROOT });
+    execFileSync("git", ["diff", "--cached", "--quiet"], { cwd: ROOT });
     console.log("\nNo changes staged — nothing to commit.");
     return;
   } catch {
     // Non-zero exit means there are staged changes — continue
   }
 
-  git(`commit -m "Bump version to ${version}"`);
+  git("commit", "-m", `Bump version to ${version}`);
   console.log(`\nCommitted version bump to ${version}`);
 
   if (tag) {
     const tagName = `v${version}`;
-    git(`tag -a ${tagName} -m "Release ${tagName}"`);
+    git("tag", "-a", tagName, "-m", `Release ${tagName}`);
     console.log(`Created tag ${tagName}`);
 
     if (push) {
-      git("push origin HEAD");
-      git(`push origin ${tagName}`);
+      git("push", "origin", "HEAD");
+      git("push", "origin", tagName);
       console.log(`Pushed commit and tag ${tagName}`);
     }
   }

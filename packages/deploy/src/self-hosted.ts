@@ -936,7 +936,8 @@ export class DockerDeployer {
     tail?: number;
   }): Promise<string> {
     const follow = opts?.follow ?? false;
-    const tail = opts?.tail ?? 100;
+    // Coerced to an integer: it is interpolated into a remote shell command.
+    const tail = Math.max(0, Math.trunc(Number(opts?.tail ?? 100))) || 0;
     return this.withExecutor(async (ssh) => {
       const containerName = this.containerName();
       const runtime = this.runtimeCommandForShell();

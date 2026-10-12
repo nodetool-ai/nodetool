@@ -75,7 +75,7 @@ export function slugifyProviderName(name: string): string {
   const collapsed = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+    .replace(/^_|_$/g, "");
   if (!collapsed) return "";
   const prefixed = /^[0-9]/.test(collapsed) ? `p${collapsed}` : collapsed;
   return prefixed.slice(0, 32);

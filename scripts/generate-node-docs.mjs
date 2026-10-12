@@ -376,7 +376,7 @@ function generateNodePage(meta) {
   const lines = [];
   lines.push("---");
   lines.push(`layout: page`);
-  lines.push(`title: "${meta.title.replace(/"/g, '\\"')}"`);
+  lines.push(`title: ${JSON.stringify(meta.title)}`);
   lines.push(`node_type: "${meta.nodeType}"`);
   lines.push(`namespace: "${meta.namespace}"`);
   lines.push("---");

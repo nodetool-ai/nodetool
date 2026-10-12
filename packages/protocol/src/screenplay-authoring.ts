@@ -49,7 +49,7 @@ const optionalNumber = (value: unknown): number | undefined => {
 /** Strip a leading/trailing ```json … ``` fence, if present. */
 function stripFences(text: string): string {
   const trimmed = text.trim();
-  const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const match = trimmed.match(/^```(?:json)?([\s\S]*?)```$/i);
   return match ? match[1].trim() : trimmed;
 }
 

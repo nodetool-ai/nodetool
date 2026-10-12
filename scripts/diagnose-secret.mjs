@@ -20,6 +20,7 @@ import { execFileSync } from "node:child_process";
 import {
   pbkdf2Sync,
   createDecipheriv,
+  createHash,
   createHmac,
   timingSafeEqual
 } from "node:crypto";
@@ -75,7 +76,10 @@ if (!masterKey) {
 }
 console.log(`    source: ${source}`);
 console.log(`    length: ${masterKey.length} chars`);
-console.log(`    fingerprint: ${masterKey.slice(0, 6)}…${masterKey.slice(-4)}`);
+// A hash prefix identifies the key across machines without printing any of it.
+console.log(
+  `    fingerprint: sha256:${createHash("sha256").update(masterKey).digest("hex").slice(0, 12)}`
+);
 
 // ---- [3] Fetch rows ----
 console.log(`\n[3] Scanning nodetool_secrets`);
