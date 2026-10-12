@@ -22,17 +22,20 @@ jest.mock("../AudioEditorToolbar", () => ({
   __esModule: true,
   default: ({
     onReverse,
+    onEffect,
     onUndo,
     onSave,
     canUndo
   }: {
     onReverse: () => void;
+    onEffect: (id: string) => void;
     onUndo: () => void;
     onSave: () => void;
     canUndo: boolean;
   }) => (
     <>
       <button onClick={onReverse}>Reverse</button>
+      <button onClick={() => onEffect("invert")}>Invert</button>
       <button onClick={onUndo} disabled={!canUndo}>
         Undo
       </button>
@@ -90,6 +93,10 @@ it("retains PCM and undo while inactive, suspends audio, and clears dirty only a
     result.rerender(
       <AudioSampleEditor asset={asset} active onClose={() => undefined} />
     );
+    fireEvent.click(screen.getByText("Undo"));
+    expect(screen.getByTestId("sample")).toHaveTextContent("0,0.5,1");
+    fireEvent.click(screen.getByText("Invert"));
+    expect(await screen.findByText("0,-0.5,-1")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Undo"));
     expect(screen.getByTestId("sample")).toHaveTextContent("0,0.5,1");
     expect(mockDecode).toHaveBeenCalledTimes(1);
