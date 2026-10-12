@@ -6,6 +6,8 @@ description: "The agent that builds your workflows, sketches, timelines, and app
 
 Most tasks in NodeTool start with the agent. Describe what you want. The agent plans the steps, connects the nodes, picks models, runs the task, and edits your open document. Every message runs the agent loop, so there is no mode to switch on.
 
+![The chat agent in a conversation](assets/screenshots/global-chat-interface.png)
+
 ## What it can build
 
 | What you ask for | What it works on | Learn more |

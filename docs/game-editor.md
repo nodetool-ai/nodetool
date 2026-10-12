@@ -6,7 +6,7 @@ description: "Build, play, publish, and export 2D and 3D games in NodeTool's bui
 
 Build a game in a workspace tab, play it without leaving the editor, and ask the agent to change it.
 
-![Game Editor with the Kindle example open: the scene tree, the level in the viewport with the hero selected, and the inspector](assets/screenshots/game-editor.png)
+![Game Editor with the Kindle example open: the scene tree, the title scene in the viewport, the asset browser, and the inspector](assets/screenshots/game-editor.png)
 
 > **Quick access:** Click **+ New** in the workspace tab bar and choose **Game** under **Guided flows**. The new game opens as a tab and is playable at once.
 

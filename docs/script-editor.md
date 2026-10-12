@@ -9,6 +9,8 @@ Write the words of a video, give each speaker a voice, and voice every line. A s
 
 > **Quick Access:** Click **+** in the workspace tab bar and choose **New script**, or open a script from the **Scripts** panel.
 
+![Script Editor with a voiceover script: the narrator in the cast column, voiced and stale lines, and the Script Assistant](assets/screenshots/script-editor.png)
+
 ---
 
 ## Where this fits

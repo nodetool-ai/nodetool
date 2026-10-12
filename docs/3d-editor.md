@@ -8,6 +8,8 @@ Build a rough 3D set from boxes, spheres, planes, cylinders, cones, tori, and li
 
 > **Quick access:** Click the **+** button in the workspace tab bar and choose **New 3D model**, or open a `.glb` or `.gltf` asset and switch its tab to edit mode.
 
+![3D Editor with a product-shot set open: the scene list, the viewport with the product selected, and its transform and material in the inspector](assets/screenshots/3d-editor.png)
+
 ---
 
 ## What a 3D model is
