@@ -33,6 +33,7 @@ import {
   FlexColumn,
   FlexRow,
   FormField,
+  FormSection,
   Label,
   Panel,
   ResponsiveImage,
@@ -249,7 +250,7 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
 
         <TextInput
           multiline
-          minRows={4}
+          minRows={1}
           size="small"
           label="Your prompt"
           placeholder="One continuous take, no cuts."
@@ -258,59 +259,66 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
           onChange={handlePromptChange}
         />
 
-        <FlexColumn gap={SPACING.sm} data-testid="one-take-settings">
-          <Label sx={{ color: "text.secondary" }}>Render settings</Label>
-          <FormField label="Video model" sx={modelFieldSx}>
-            <VideoModelSelect
-              value={model?.id ?? ""}
-              provider={model?.provider}
-              task={ONE_TAKE_TASK}
-              onChange={handleModelChange}
-            />
-          </FormField>
-          <FlexRow gap={SPACING.md} wrap>
-            <Box sx={settingSx}>
-              <SelectField
-                label="Duration"
-                size="small"
-                value={pickedValue(oneTake?.duration_seconds, durationOptions)}
-                onChange={handleDurationChange}
-                options={durationOptions}
-                description={scaled ? "Shot windows scale to fit." : undefined}
+        <Box data-testid="one-take-settings">
+          <FormSection label="Render settings">
+            <FormField label="Video model" sx={modelFieldSx}>
+              <VideoModelSelect
+                value={model?.id ?? ""}
+                provider={model?.provider}
+                task={ONE_TAKE_TASK}
+                onChange={handleModelChange}
               />
-            </Box>
-            <Box sx={settingSx}>
-              <SelectField
-                label="Aspect ratio"
-                size="small"
-                value={pickedValue(oneTake?.aspect_ratio, aspectOptions)}
-                onChange={handleAspectChange}
-                options={aspectOptions}
-              />
-            </Box>
-            <Box sx={settingSx}>
-              <SelectField
-                label="Resolution"
-                size="small"
-                value={pickedValue(oneTake?.resolution, resolutionOptions)}
-                onChange={handleResolutionChange}
-                options={resolutionOptions}
-              />
-            </Box>
-          </FlexRow>
-        </FlexColumn>
+            </FormField>
+            <FlexRow gap={SPACING.lg} wrap>
+              <Box sx={settingSx}>
+                <SelectField
+                  label="Duration"
+                  size="small"
+                  value={pickedValue(
+                    oneTake?.duration_seconds,
+                    durationOptions
+                  )}
+                  onChange={handleDurationChange}
+                  options={durationOptions}
+                  description={
+                    scaled ? "Shot windows scale to fit." : undefined
+                  }
+                />
+              </Box>
+              <Box sx={settingSx}>
+                <SelectField
+                  label="Aspect ratio"
+                  size="small"
+                  value={pickedValue(oneTake?.aspect_ratio, aspectOptions)}
+                  onChange={handleAspectChange}
+                  options={aspectOptions}
+                />
+              </Box>
+              <Box sx={settingSx}>
+                <SelectField
+                  label="Resolution"
+                  size="small"
+                  value={pickedValue(oneTake?.resolution, resolutionOptions)}
+                  onChange={handleResolutionChange}
+                  options={resolutionOptions}
+                />
+              </Box>
+            </FlexRow>
+          </FormSection>
+        </Box>
 
         <FlexColumn gap={SPACING.sm}>
-          <FlexRow align="center" gap={SPACING.xs}>
-            <Label sx={{ color: "text.secondary" }}>
-              Compiled from the storyboard
-            </Label>
-            <CopyButton
-              value={compiled.compiled}
-              tooltip="Copy compiled prompt"
-              buttonSize="small"
-            />
-          </FlexRow>
+          <SectionHeader
+            title="Compiled from the storyboard"
+            size="small"
+            action={
+              <CopyButton
+                value={compiled.compiled}
+                tooltip="Copy compiled prompt"
+                buttonSize="small"
+              />
+            }
+          />
           <Box sx={compiledSx} data-testid="one-take-compiled">
             {compiled.compiled || "Add shots to compile the take."}
           </Box>

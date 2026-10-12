@@ -16,6 +16,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  FormField,
   GAP,
   SPACING_PX,
   Text
@@ -154,10 +155,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           {error}
         </AlertBanner>
       ) : null}
-      <FlexColumn gap={GAP.normal}>
-        <Text size="small" component="h3">
-          How many variations?
-        </Text>
+      <FormField label="How many variations?">
         {/* One count out of three, so the cards are radios in a named radio
             group: three chips announcing themselves as independent toggles
             described the wrong control (F26). */}
@@ -175,7 +173,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             </Box>
           ))}
         </FlexRow>
-      </FlexColumn>
+      </FormField>
     </FlexColumn>
   );
 };

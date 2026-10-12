@@ -1,7 +1,8 @@
 /**
  * useExportSyncActions
  *
- * Handles export and output sync: PNG download and deferred image/mask export.
+ * Handles export and output sync: PNG and PSD download and deferred image/mask
+ * export.
  *
  * ## Export sync boundary contract
  *
@@ -15,7 +16,8 @@
  *   so the parent receives the pre-undo snapshot.
  * - **Nudge session end**: Calls `syncSketchOutputsNow()` for immediate sync
  *   (keyboard arrow moves have no pointer-up to defer to).
- * - **Download**: `handleExportPng()` is a one-shot synchronous export.
+ * - **Download**: `handleExportPng()` and `handleExportPsd()` are one-shot
+ *   synchronous exports.
  *
  * This pattern ensures that:
  * 1. `onExportImage` / `onExportMask` callbacks (from SketchNode) are never
@@ -27,6 +29,7 @@
  */
 
 import { useCallback, useRef, type RefObject } from "react";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import type { SketchCanvasRef } from "../SketchCanvas";
 
 export interface PendingExportSync {
@@ -46,6 +49,7 @@ export interface UseExportSyncActionsReturn {
   flushPendingExportSync: () => void;
   syncSketchOutputsNow: () => void;
   handleExportPng: () => void;
+  handleExportPsd: () => void;
 }
 
 export function useExportSyncActions({
@@ -107,10 +111,42 @@ export function useExportSyncActions({
     link.click();
   }, [canvasRef]);
 
+  const handleExportPsd = useCallback(() => {
+    if (!canvasRef.current) {
+      return;
+    }
+    let bytes: Uint8Array<ArrayBuffer> | null;
+    try {
+      bytes = canvasRef.current.exportPsd();
+    } catch (error) {
+      useNotificationStore.getState().addNotification({
+        type: "error",
+        alert: true,
+        content: `PSD export failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      });
+      return;
+    }
+    if (!bytes) {
+      return;
+    }
+    const url = URL.createObjectURL(
+      new Blob([bytes], { type: "image/vnd.adobe.photoshop" })
+    );
+    const link = window.document.createElement("a");
+    link.download = "image-editor-export.psd";
+    link.href = url;
+    link.click();
+    // Revoke after the click has handed the URL to the download.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }, [canvasRef]);
+
   return {
     pendingExportSyncRef,
     flushPendingExportSync,
     syncSketchOutputsNow,
-    handleExportPng
+    handleExportPng,
+    handleExportPsd
   };
 }

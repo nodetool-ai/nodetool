@@ -43,6 +43,7 @@ import { PROJECT_GLYPH } from "../projects/projectIdentity";
 import { navigateTo } from "../../lib/appNavigation";
 import {
   exportApplicationBundle,
+  exportApplicationProject,
   importApplicationBundle
 } from "../../utils/applicationBundle";
 import type { Workflow, WorkflowList } from "../../stores/ApiTypes";
@@ -333,6 +334,19 @@ const AppCommands = memo(function AppCommands() {
     }
   }, [applicationId, applicationName, addNotification]);
 
+  const exportProject = useCallback(async () => {
+    if (!applicationId) return;
+    try {
+      await exportApplicationProject(applicationId, applicationName || "app");
+    } catch (error) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Failed to export app project: ${error instanceof Error ? error.message : "Unknown error"}`
+      });
+    }
+  }, [applicationId, applicationName, addNotification]);
+
   const handleAppBundleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -376,6 +390,11 @@ const AppCommands = memo(function AppCommands() {
         {applicationId && (
           <Command.Item onSelect={() => runCommandAndClose(exportApp)}>
             <FolderZipRoundedIcon /> Export App as Bundle (.app.json)
+          </Command.Item>
+        )}
+        {applicationId && (
+          <Command.Item onSelect={() => runCommandAndClose(exportProject)}>
+            <FolderZipRoundedIcon /> Export App as Standalone Project (.zip)
           </Command.Item>
         )}
         {/* The file picker must open inside the click's user activation, so

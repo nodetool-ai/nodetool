@@ -40,6 +40,7 @@ type RuntimeGroup = "language" | "media" | "ai";
 const RUNTIME_GROUP: Record<string, RuntimeGroup> = {
   python: "language",
   nodejs: "language",
+  rust: "language",
   ffmpeg: "media",
   pandoc: "media",
   pdftotext: "media",

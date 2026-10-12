@@ -22,6 +22,8 @@ import {
   EditorMenuItem,
   ListItemText,
   ListItemIcon,
+  ListSubheader,
+  MenuItemPrimitive,
   ToolbarIconButton,
   activateOnKey
 } from "../ui_primitives";
@@ -349,25 +351,23 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
           onClose={handleClosePicker}
           paperSx={{ minWidth: 300, maxHeight: 420 }}
         >
-          <EditorMenuItem disabled sx={{ opacity: "1 !important" }}>
-            <ListItemText
-              primary={activeProp?.title ?? activeInput ?? ""}
-              secondary={
-                activeProp
-                  ? `Pick which step's output fills this ${formatType(activeProp.type)} field`
-                  : undefined
-              }
-              slotProps={{ primary: { sx: { fontWeight: 600 } } }}
-            />
-          </EditorMenuItem>
+          <ListSubheader
+            title={
+              activeProp
+                ? `Pick which step's output fills this ${formatType(activeProp.type)} field`
+                : undefined
+            }
+          >
+            {activeProp?.title ?? activeInput ?? ""}
+          </ListSubheader>
 
           {activeMapping && (
-            <EditorMenuItem onClick={() => handleSelect(null)}>
-              <ListItemIcon sx={{ minWidth: 32 }}>
-                <LinkOffIcon sx={{ fontSize: 18 }} />
-              </ListItemIcon>
-              <ListItemText primary="Disconnect" secondary="Edit the value manually" />
-            </EditorMenuItem>
+            <MenuItemPrimitive
+              label="Disconnect"
+              secondary="Edit the value manually"
+              icon={<LinkOffIcon />}
+              onClick={() => handleSelect(null)}
+            />
           )}
 
           {compatibleOptions.length === 0 && (
@@ -404,8 +404,8 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                   }
                 />
                 {isSelected && (
-                  <ListItemIcon sx={{ minWidth: "auto", ml: 1 }}>
-                    <CheckIcon sx={{ fontSize: 18, color: secondary }} />
+                  <ListItemIcon>
+                    <CheckIcon />
                   </ListItemIcon>
                 )}
               </EditorMenuItem>
@@ -413,13 +413,11 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
           })}
 
           {incompatibleOptions.length > 0 && (
-            <EditorMenuItem disabled sx={{ opacity: "0.7 !important" }}>
-              <ListItemText
-                secondary={`Not compatible with ${
-                  activeProp ? formatType(activeProp.type) : "this field"
-                }`}
-              />
-            </EditorMenuItem>
+            <ListSubheader>
+              {`Not compatible with ${
+                activeProp ? formatType(activeProp.type) : "this field"
+              }`}
+            </ListSubheader>
           )}
           {incompatibleOptions.map(({ node, step, output }) => (
             <EditorMenuItem key={`${node.id}-${output.name}`} disabled>

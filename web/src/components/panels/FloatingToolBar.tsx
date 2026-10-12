@@ -30,6 +30,8 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
+import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
+import TerminalIcon from "@mui/icons-material/Terminal";
 import { useLocation } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
@@ -50,6 +52,7 @@ import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
 import { useCanvasSideInsets } from "../../hooks/useCanvasSideInsets";
 import { useWorkflowApp } from "../../hooks/useWorkflowApp";
+import { useWorkflowScriptExport } from "../../hooks/useWorkflowScriptExport";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -432,6 +435,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     hasApp,
     isPending: isAppPending
   } = useWorkflowApp();
+  const { convertToJsScript, downloadNodeScript, isExporting } =
+    useWorkflowScriptExport();
   const appActionLabel = hasApp ? "Open app" : "Make app";
   const appActionTooltip = hasApp
     ? "Open the app that runs this workflow"
@@ -976,10 +981,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         onClose={handleCloseActionsMenu}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "bottom", horizontal: "right" }}
-        paperSx={{ minWidth: "220px", maxWidth: "280px" }}
+        paperSx={{ minWidth: 220, maxWidth: 280 }}
       >
         <MenuItemPrimitive
-          label={editorViewMode === "graph" ? "Chain View" : "Graph View"}
+          label={editorViewMode === "graph" ? "Chain view" : "Graph view"}
           icon={
             editorViewMode === "graph" ? (
               <LinearScaleIcon fontSize="small" />
@@ -990,7 +995,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           onClick={runWithClose(handleToggleViewMode)}
         />
         <MenuItemPrimitive
-          label="Instant Update"
+          label="Instant update"
           icon={<BoltIcon fontSize="small" />}
           secondary={instantUpdate ? "On" : "Off"}
           onClick={runWithClose(handleToggleInstantUpdate)}
@@ -1004,7 +1009,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
         {isMobile && editorViewMode === "graph" && (
           <MenuItemPrimitive
-            label="Auto Layout"
+            label="Auto layout"
             icon={<LayoutIcon fontSize="small" />}
             onClick={runWithClose(handleAutoLayout)}
           />
@@ -1023,7 +1028,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           onClick={runWithClose(() => void openWorkflowApp())}
         />
         <MenuItemPrimitive
-          label="Mini Map"
+          label="Mini map"
           icon={<MapIcon fontSize="small" />}
           secondary={isMiniMapVisible ? "Visible" : "Hidden"}
           onClick={runWithClose(handleToggleMiniMap)}
@@ -1032,6 +1037,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           label="Download JSON"
           icon={<DownloadIcon fontSize="small" />}
           onClick={runWithClose(handleDownload)}
+        />
+        <MenuItemPrimitive
+          label="Convert to JS script"
+          icon={<DataObjectOutlinedIcon fontSize="small" />}
+          disabled={isExporting}
+          onClick={runWithClose(() => void convertToJsScript())}
+        />
+        <MenuItemPrimitive
+          label="Download Node.js script"
+          icon={<TerminalIcon fontSize="small" />}
+          disabled={isExporting}
+          onClick={runWithClose(() => void downloadNodeScript())}
         />
         {isMobile && (
           <MenuItemPrimitive

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "name": "Template",
+  "description": "Placeholder replaced by the exported app's bundle.",
+  "app": {
+    "schemaVersion": 5,
+    "ui": { "root": { "props": {} }, "content": [] },
+    "operations": [],
+    "resources": [],
+    "variables": []
+  },
+  "workflows": [],
+  "scripts": []
+}

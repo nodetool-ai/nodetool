@@ -1,150 +1,53 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import React, { ReactElement, ReactNode, memo, useMemo } from "react";
+import React, { ReactElement, ReactNode, memo } from "react";
 
-import {
-  EditorButton,
-  Tooltip,
-  MOTION,
-  BORDER_RADIUS,
-  MenuItem, getSpacingPx, SPACING
-} from "../ui_primitives";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MenuItemPrimitive } from "../ui_primitives";
 
 interface ContextMenuItemProps {
   onClick?: (event?: React.MouseEvent<HTMLElement>) => void;
-  label?: string;
+  /** Sentence-case label */
+  label: string;
   IconComponent?: ReactElement;
+  /** Longer explanation, shown to the right of the row on hover */
   tooltip?: ReactNode;
-  addButtonClassName?: string;
-  controlElement?: ReactElement;
+  disabled?: boolean;
+  /** Delete, remove: renders the row in `error.main` */
+  destructive?: boolean;
+  /** The row opens a submenu */
+  hasSubmenu?: boolean;
+  /** Keyboard shortcut shown at the end of the row */
+  shortcut?: string;
+  /** Class for tests and targeting */
+  className?: string;
 }
 
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      color: theme.vars.palette.grey[0],
-      transition: MOTION.all
-    },
-    "&:hover": {
-      backgroundColor: "var(--palette-grey-800)"
-    },
-    ".MuiMenuItem-root": {
-      padding: 0
-    },
-    svg: {
-      fontSize: theme.fontSizeNormal,
-      transition: MOTION.transform
-    },
-    ul: {
-      paddingLeft: 0,
-      listStyleType: "none"
-    },
-    "li.MuiListSubheader-root": {
-      color: theme.vars.palette.grey[0],
-      fontSize: theme.fontSizeNormal,
-      fontWeight: 500,
-      letterSpacing: "0.3px",
-      textAlign: "left"
-    },
-    "button.action": {
-      display: "flex",
-      alignItems: "center",
-      width: "100%",
-      margin: 0,
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
-      maxWidth: "unset",
-      borderRadius: BORDER_RADIUS.xs,
-      fontFamily: theme.fontFamily1,
-      textTransform: "none",
-      fontSize: theme.fontSizeNormal,
-      fontWeight: 400,
-      letterSpacing: "0.3px",
-      color: "var(--palette-text-primary)",
-      textAlign: "left",
-      justifyContent: "start",
-      position: "relative",
-      transition: MOTION.fast
-    },
-    ".label": {
-      display: "block",
-      paddingLeft: getSpacingPx(SPACING.lg),
-      transition: MOTION.fast
-    },
-    "button.action:hover svg": {
-      transform: "scale(1.2)"
-    },
-    "button.action.disabled": {
-      cursor: "default",
-      opacity: 0.5,
-      color: "var(--palette-text-secondary)"
-    },
-    ".checkbox": {
-      marginLeft: 0
-    },
-    ".checkbox .MuiTypography-root": {
-      margin: `0 0 0 ${getSpacingPx(SPACING.md)}`,
-      fontFamily: theme.fontFamily1
-    },
-    "&:hover button.action.delete svg": {
-      color: theme.vars.palette.c_delete
-    }
-  });
-
+/**
+ * A row of an editor context menu: a `MenuItemPrimitive` with an optional rich
+ * tooltip. Every editor context menu builds its rows from this, so they share
+ * the menu row style from `menuStyles.ts`.
+ */
 const ContextMenuItem = memo(function ContextMenuItem({
   onClick,
   label,
   IconComponent,
   tooltip,
-  addButtonClassName,
-  controlElement
+  disabled = false,
+  destructive = false,
+  hasSubmenu = false,
+  shortcut,
+  className
 }: ContextMenuItemProps) {
-  const theme = useTheme();
-  const itemStyles = useMemo(() => styles(theme), [theme]);
   return (
-    <div className="context-menu-item" css={itemStyles}>
-      {tooltip && (
-        <Tooltip
-          css={itemStyles}
-          title={tooltip}
-          delay={TOOLTIP_ENTER_DELAY}
-          placement={"right"}
-        >
-          <MenuItem>
-            {controlElement ? (
-              React.cloneElement(controlElement as React.ReactElement<{ onClick?: typeof onClick }>, { onClick })
-            ) : (
-              <EditorButton
-                className={`action ${addButtonClassName || ""}`}
-                onClick={onClick}
-                density="normal"
-              >
-                {IconComponent}
-                <span className="label">{label}</span>
-              </EditorButton>
-            )}
-          </MenuItem>
-        </Tooltip>
-      )}
-      {!tooltip && (
-        <MenuItem>
-          {controlElement ? (
-            React.cloneElement(controlElement as React.ReactElement<{ onClick?: typeof onClick }>, { onClick })
-          ) : (
-            <EditorButton
-              className={`action ${addButtonClassName || ""}`}
-              onClick={onClick}
-              density="normal"
-            >
-              {IconComponent}
-              <span className="label">{label}</span>
-            </EditorButton>
-          )}
-        </MenuItem>
-      )}
-    </div>
+    <MenuItemPrimitive
+      label={label}
+      icon={IconComponent}
+      onClick={onClick}
+      disabled={disabled}
+      color={destructive ? "error" : "default"}
+      hasSubmenu={hasSubmenu}
+      shortcut={shortcut}
+      tooltip={tooltip}
+      className={className}
+    />
   );
 });
 

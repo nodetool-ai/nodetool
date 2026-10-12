@@ -673,7 +673,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   );
 
   return (
-    <FlexColumn gap={GAP.spacious}>
+    <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
           Choose your look
@@ -710,48 +710,47 @@ const LookStepInternal: React.FC<LookStepProps> = ({
         />
       </Box>
 
-      <FlexColumn gap={GAP.normal}>
-        <Text size="small" component="h3">
-          Video model
-        </Text>
-        <ModelAvailabilityNote
-          availability={clipModels}
-          kind="video"
-          noCompatible={noCompatibleModel}
-          pickedLabel={pickedModelLabel}
-        />
-        {curatedModelOffered ? (
-          /* The samples are fetched, not shipped, so the preview area is held
-             open from the first paint rather than appearing under the reader. */
-          <PresetTileGrid
-            label="Video model"
-            presets={modelTiles}
-            selectedId={settings.video?.model ?? null}
-            onSelect={handleModel}
-            onAddOwn={() => undefined}
-            addOwnLabel="More models in the editor"
-            addOwnDisabled
-            addOwnDisabledReason="The timeline's inspector offers every configured provider."
-            reservePreview
+      <FormField label="Video model">
+        <FlexColumn gap={GAP.normal}>
+          <ModelAvailabilityNote
+            availability={clipModels}
+            kind="video"
+            noCompatible={noCompatibleModel}
+            pickedLabel={pickedModelLabel}
           />
-        ) : clipModels.reported.length > 0 ? (
-          <FormField
-            label="Video model"
-            helperText="Every model your configured providers render clips with. You can change it in the editor."
-            sx={{ maxWidth: SETUP_FIELD_WIDTH }}
-          >
-            <VideoModelSelect
-              value={settings.video?.model ?? ""}
-              provider={settings.video?.provider}
-              task="text_to_video"
-              onChange={handleReportedModel}
+          {curatedModelOffered ? (
+            /* The samples are fetched, not shipped, so the preview area is
+               held open from the first paint rather than appearing under the
+               reader. */
+            <PresetTileGrid
+              label="Video model"
+              presets={modelTiles}
+              selectedId={settings.video?.model ?? null}
+              onSelect={handleModel}
+              onAddOwn={() => undefined}
+              addOwnLabel="More models in the editor"
+              addOwnDisabled
+              addOwnDisabledReason="The timeline's inspector offers every configured provider."
+              reservePreview
             />
-          </FormField>
-        ) : null}
-      </FlexColumn>
+          ) : clipModels.reported.length > 0 ? (
+            <FormField
+              helperText="Every model your configured providers render clips with. You can change it in the editor."
+              sx={{ maxWidth: SETUP_FIELD_WIDTH }}
+            >
+              <VideoModelSelect
+                value={settings.video?.model ?? ""}
+                provider={settings.video?.provider}
+                task="text_to_video"
+                onChange={handleReportedModel}
+              />
+            </FormField>
+          ) : null}
+        </FlexColumn>
+      </FormField>
 
       {voiceLane ? (
-        <FlexColumn gap={GAP.normal}>
+        <FlexColumn gap={GAP.comfortable}>
           <LabeledSwitch
             label="Voiceover"
             description="Reads each beat's line over its clip"
@@ -792,17 +791,17 @@ const LookStepInternal: React.FC<LookStepProps> = ({
             <FormField
               label="Voice model"
               helperText="Every voice your configured providers read lines with."
+              error={
+                noPresetVoice
+                  ? "This model has no preset voices. Pick another model."
+                  : undefined
+              }
               sx={{ maxWidth: SETUP_FIELD_WIDTH }}
             >
               <TTSModelSelect
                 value={voiceValue}
                 onChange={handleReportedVoice}
               />
-              {noPresetVoice ? (
-                <Caption color="warning" role="status">
-                  This model has no preset voices. Pick another model.
-                </Caption>
-              ) : null}
             </FormField>
           ) : null}
         </FlexColumn>

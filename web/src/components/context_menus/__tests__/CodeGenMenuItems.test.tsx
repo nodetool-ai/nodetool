@@ -97,7 +97,7 @@ describe("OutputContextMenu — Transform this output…", () => {
     renderMenu(<OutputContextMenu />);
 
     await user.click(
-      screen.getByRole("button", { name: /transform this output/i })
+      screen.getByRole("menuitem", { name: /transform this output/i })
     );
 
     expect(mockTransformOutput).toHaveBeenCalledWith(
@@ -114,7 +114,7 @@ describe("OutputContextMenu — Transform this output…", () => {
     mockMenuState.type = null;
     renderMenu(<OutputContextMenu />);
     expect(
-      screen.queryByRole("button", { name: /transform this output/i })
+      screen.queryByRole("menuitem", { name: /transform this output/i })
     ).not.toBeInTheDocument();
   });
 });
@@ -136,7 +136,7 @@ describe("InputContextMenu — Create value with AI…", () => {
     renderMenu(<InputContextMenu />);
 
     await user.click(
-      screen.getByRole("button", { name: /create value with ai/i })
+      screen.getByRole("menuitem", { name: /create value with ai/i })
     );
 
     expect(mockCreateValue).toHaveBeenCalledWith(
@@ -153,7 +153,7 @@ describe("InputContextMenu — Create value with AI…", () => {
     mockMenuState.type = null;
     renderMenu(<InputContextMenu />);
     expect(
-      screen.queryByRole("button", { name: /create value with ai/i })
+      screen.queryByRole("menuitem", { name: /create value with ai/i })
     ).not.toBeInTheDocument();
   });
 });

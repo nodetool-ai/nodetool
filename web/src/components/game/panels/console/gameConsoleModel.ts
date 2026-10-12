@@ -1,5 +1,5 @@
 export type GameConsoleLevel = "error" | "warning" | "log";
-export type GameConsoleSource = "runtime" | "script" | "diagnostic" | "validation";
+export type GameConsoleSource = "runtime" | "script" | "diagnostic" | "validation" | "build";
 
 export const GAME_CONSOLE_LEVELS: readonly GameConsoleLevel[] = ["error", "warning", "log"];
 

@@ -30,6 +30,7 @@
     "@modelcontextprotocol/ext-apps": "^1.7.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@nodetool-ai/agents": "*",
+    "@nodetool-ai/app-export": "*",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/atlascloud-nodes": "*",
     "@nodetool-ai/auth": "*",
@@ -75,6 +76,7 @@
     "fflate": "^0.8.2",
     "msgpackr": "^1.11.2",
     "sharp": "^0.35.3",
+    "undici": "^7.28.0",
     "zod": "^4.0.0",
     "@nodetool-ai/whisper-cpp": "*"
   },

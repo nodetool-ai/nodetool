@@ -553,6 +553,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Runs on the operator's own machine against their own API URL, which is loopback by default."
   },
   {
+    file: "packages/websocket/src/mcp-server.ts",
+    owner: "stdio MCP forwarder",
+    inputSource: "operator",
+    schemes: ["http"],
+    authScope: "local session",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "`nodetool mcp serve` forwards stdio to the local server's /mcp mount. The URL comes from PORT, and the forwarder refuses any host other than 127.0.0.1 or localhost."
+  },
+  {
     file: "packages/deploy/src/admin-client.ts",
     owner: "deploy admin client",
     inputSource: "operator",

@@ -401,7 +401,7 @@ describe("MediaChatComposer", () => {
     renderComposer(onSendMessage);
     await user.click(screen.getByRole("button", { name: "Chat" }));
     await user.click(
-      screen.getByRole("menuitemradio", { name: "Generate Music" })
+      screen.getByRole("menuitemradio", { name: "Generate music" })
     );
     expect(mockUseProvidersByCapability).toHaveBeenLastCalledWith(
       "text_to_music"

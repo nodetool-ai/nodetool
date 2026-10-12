@@ -7,13 +7,11 @@ import {
   Divider,
   ToolbarIconButton,
   EditorMenu,
-  EditorMenuItem,
+  MenuItemPrimitive,
   BORDER_RADIUS,
   CONTROL,
   SHADOW,
-  Toolbar,
-  ListItemIcon,
-  ListItemText
+  Toolbar
 } from "../ui_primitives";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -32,6 +30,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
+import { isMac } from "../../utils/platform";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
 import { openPageTab } from "../workspace/openPageTab";
@@ -244,78 +243,64 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           vertical: "top",
           horizontal: "right",
         }}
-        paperSx={{
-          borderRadius: BORDER_RADIUS.lg,
-          minWidth: 200
-        }}
+        paperSx={{ minWidth: 200 }}
       >
         {isInGroup && (
-          <EditorMenuItem onClick={handleRemoveFromGroup}>
-            <ListItemIcon>
-              <GroupRemoveIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Remove from Group</ListItemText>
-          </EditorMenuItem>
+          <MenuItemPrimitive
+            label="Remove from group"
+            icon={<GroupRemoveIcon />}
+            onClick={handleRemoveFromGroup}
+          />
         )}
 
         {conditions.canConvertToInput && (
-          <EditorMenuItem onClick={handlers.handleConvertToInput}>
-            <ListItemIcon>
-              <SwapHorizIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Convert to Input</ListItemText>
-          </EditorMenuItem>
+          <MenuItemPrimitive
+            label="Convert to input"
+            icon={<SwapHorizIcon />}
+            onClick={handlers.handleConvertToInput}
+          />
         )}
 
         {conditions.canConvertToConstant && (
-          <EditorMenuItem onClick={handlers.handleConvertToConstant}>
-            <ListItemIcon>
-              <SwapHorizIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>Convert to Constant</ListItemText>
-          </EditorMenuItem>
+          <MenuItemPrimitive
+            label="Convert to constant"
+            icon={<SwapHorizIcon />}
+            onClick={handlers.handleConvertToConstant}
+          />
         )}
 
-        <EditorMenuItem onClick={handleToggleComment}>
-          <ListItemIcon>
-            <EditIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>
-            {hasCommentTitle ? "Remove Comment" : "Add Comment"}
-          </ListItemText>
-        </EditorMenuItem>
+        <MenuItemPrimitive
+          label={hasCommentTitle ? "Remove comment" : "Add comment"}
+          icon={<EditIcon />}
+          onClick={handleToggleComment}
+        />
 
-        <EditorMenuItem onClick={handleFindTemplates}>
-          <ListItemIcon>
-            <SearchIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Show Templates</ListItemText>
-        </EditorMenuItem>
+        <MenuItemPrimitive
+          label="Show templates"
+          icon={<SearchIcon />}
+          onClick={handleFindTemplates}
+        />
 
-        <EditorMenuItem onClick={handleSelectAllSameType}>
-          <ListItemIcon>
-            <FilterListIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Select All Same Type</ListItemText>
-        </EditorMenuItem>
+        <MenuItemPrimitive
+          label="Select all of same type"
+          icon={<FilterListIcon />}
+          onClick={handleSelectAllSameType}
+        />
 
-        <EditorMenuItem onClick={handlers.handleCopyMetadataToClipboard}>
-          <ListItemIcon>
-            <DataArrayIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Copy Node as JSON</ListItemText>
-        </EditorMenuItem>
+        <MenuItemPrimitive
+          label="Copy node as JSON"
+          icon={<DataArrayIcon />}
+          onClick={handlers.handleCopyMetadataToClipboard}
+        />
 
-        <Divider />
-
-        <EditorMenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
-          <ListItemIcon sx={{ color: "error.main" }}>
-            <DeleteIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>
-            Delete {getShortcutTooltip("deleteSelected", undefined, "combo")}
-          </ListItemText>
-        </EditorMenuItem>
+        <MenuItemPrimitive
+          label="Delete"
+          icon={<DeleteIcon />}
+          shortcut={isMac() ? "⌫" : "Del"}
+          color="error"
+          dividerBefore
+          onClick={handleDelete}
+        />
       </EditorMenu>
     </>
   );

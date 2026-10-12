@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ContextMenu } from "../ContextMenu";
+import { MENU_MIN_WIDTH } from "../menuStyles";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { MenuItem } from "@mui/material";
@@ -56,12 +57,14 @@ describe("ContextMenu", () => {
     }
   });
 
-  it("renders in compact mode", () => {
+  it("gives the menu the default minimum width", () => {
     renderWithTheme(
-      <ContextMenu open={true} anchorEl={document.body} compact>
-        <MenuItem>Compact item</MenuItem>
+      <ContextMenu open={true} anchorEl={document.body}>
+        <MenuItem>Item</MenuItem>
       </ContextMenu>
     );
-    expect(screen.getByText("Compact item")).toBeInTheDocument();
+    const paper = document.querySelector(".MuiMenu-paper");
+    expect(paper).not.toBeNull();
+    expect(getComputedStyle(asElement(paper)).minWidth).toBe(`${MENU_MIN_WIDTH}px`);
   });
 });

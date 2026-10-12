@@ -12,7 +12,12 @@ import React, { memo, useCallback, useState } from "react";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AddIcon from "@mui/icons-material/Add";
 
-import { ContextMenu, MenuItemPrimitive, ToolbarIconButton } from "../ui_primitives";
+import {
+  ContextMenu,
+  ListSubheader,
+  MenuItemPrimitive,
+  ToolbarIconButton
+} from "../ui_primitives";
 import { useSendMediaToWorkflow } from "../../hooks/useSendMediaToWorkflow";
 import { useInStudio } from "../../studio/StudioContext";
 import type { WorkflowMediaItem } from "../../hooks/handlers/useGenerationToCanvas";
@@ -43,20 +48,14 @@ export const SendToWorkflowMenu: React.FC<SendToWorkflowMenuProps> = memo(
         anchorEl={anchorEl}
         position={position}
         onClose={onClose}
-        compact
         slotProps={{ list: { "aria-label": "Send to workflow" } }}
       >
-        <MenuItemPrimitive
-          label={
-            items.length === 1 ? "Send 1 item to" : `Send ${items.length} items to`
-          }
-          disabled
-          compact
-        />
+        <ListSubheader>
+          {items.length === 1 ? "Send 1 item to" : `Send ${items.length} items to`}
+        </ListSubheader>
         <MenuItemPrimitive
           label="New workflow"
           icon={<AddIcon fontSize="small" />}
-          compact
           dividerAfter={targets.length > 0}
           onClick={() => choose(null)}
         />
@@ -65,7 +64,6 @@ export const SendToWorkflowMenu: React.FC<SendToWorkflowMenuProps> = memo(
             key={target.workflowId}
             label={target.title || "Untitled workflow"}
             icon={<AccountTreeOutlinedIcon fontSize="small" />}
-            compact
             onClick={() => choose(target.workflowId)}
           />
         ))}

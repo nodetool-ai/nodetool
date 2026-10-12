@@ -7,16 +7,14 @@ import {
   Caption,
   LoadingSpinner,
   FlexRow,
-  ListItemText,
-  ListItemIcon,
+  MenuItemPrimitive,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
-import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
 import type { LlamaModelValue } from "../../stores/ApiTypes";
 import ModelSelectButton from "./shared/ModelSelectButton";
-import { EditorMenu, EditorMenuItem } from "../editor_ui";
+import { EditorMenu } from "../editor_ui";
 import { isString } from "../../utils/typePredicates";
 
 interface LlamaModelSelectProps {
@@ -146,29 +144,18 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             </Caption>
           </div>
         ) : sortedModels.length === 0 ? (
-          <EditorMenuItem disabled>
-            <ListItemText primary="No models available" />
-          </EditorMenuItem>
+          <MenuItemPrimitive label="No models available" disabled />
         ) : (
           sortedModels.map((model) => (
-            <EditorMenuItem
+            <MenuItemPrimitive
               key={model.repo_id}
+              label={model.name}
               onClick={handleMenuItemClick(model.repo_id)}
               selected={value === model.repo_id}
-            >
-              {value === model.repo_id && (
-                <ListItemIcon>
-                  <CheckIcon fontSize="small" />
-                </ListItemIcon>
-              )}
-              <ListItemText
-                inset={value !== model.repo_id}
-                primary={model.name}
-              />
-            </EditorMenuItem>
+            />
           ))
         )}
-        <EditorMenuItem onClick={openSetup}>Add providers</EditorMenuItem>
+        <MenuItemPrimitive label="Add providers" dividerBefore onClick={openSetup} />
       </EditorMenu>
     </>
   );

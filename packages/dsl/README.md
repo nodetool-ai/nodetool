@@ -22,6 +22,7 @@ npm install @nodetool-ai/dsl
 | `toKernelGraph` | function | Convert host workflow nodes to kernel descriptors |
 | `run` | function | Execute a workflow and return its outputs |
 | `workflowToDsl` | function | Generate DSL source from a workflow graph (used by `export-dsl`) |
+| `workflowToScript` | function | Generate a JavaScript script that calls each node in order, for the sandbox or for plain Node.js (used by `export-script`) |
 | `OutputHandle`, `Connectable`, `SingleOutput` | type | Typed wiring between node outputs and inputs |
 | `DslNode`, `Workflow`, `WorkflowNode`, `WorkflowEdge` | type | Graph value types |
 | `RunOptions`, `WorkflowResult`, `SecretResolver` | type | Execution configuration and results |

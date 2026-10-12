@@ -68,9 +68,11 @@ animation graphs, input bindings, the HUD tree or performance fields. Load
    only when the user asks. For an explicit `document`, pass the paired
    `draft_updated_at` returned by `get_native_game` as `base_updated_at`. On a
    conflict, read the draft and reconcile edits.
-9. `build_native_game {game_id, revision?}` writes a standalone web player for
-   an owned revision under the project workspace and returns its path, only
-   when the user asks. On a touch screen the 2D player adds a floating stick for
+9. `build_native_game {game_id, revision?, target?}` writes a standalone web
+   player for an owned revision under the project workspace and returns its
+   path, only when the user asks. `target: "tauri"` writes a Tauri desktop app
+   project instead, named after the game. It compiles to installers with
+   `npm run build` where Rust is installed. On a touch screen the 2D player adds a floating stick for
    `left`/`right`/`up`/`down` and one button per other input action, labeled
    with the action name. Installed media must still exist, match its recorded
    digest, and use a supported format.

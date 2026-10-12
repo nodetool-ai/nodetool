@@ -71,8 +71,8 @@ export const gameSpecs: readonly CapabilitySpec[] = [
   },
   {
     name: "build_native_game",
-    description: "Build a standalone web player for an owned immutable game revision under game-builds/<game-id>/<revision> in its project workspace. Assets are verified and bundled without credentials.",
-    inputSchema: { type: "object", properties: { game_id: id, revision }, required: ["game_id"] },
+    description: "Build an owned immutable game revision in its project workspace. target web (default) writes a standalone web player under game-builds/<game-id>/<revision>. target tauri writes a Tauri desktop app project (the web player in dist/ plus a native src-tauri/ shell named after the game) under game-builds/<game-id>/<revision>-tauri-<settings>; it compiles to installers with `npm run build` where Rust is installed. Assets are verified and bundled without credentials.",
+    inputSchema: { type: "object", properties: { game_id: id, revision, target: { type: "string", enum: ["web", "tauri"], description: "web for a static web player, tauri for a desktop app project" } }, required: ["game_id"] },
     category: "write",
     userMessage: () => "Building game"
   },

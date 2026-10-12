@@ -18,7 +18,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  Label,
+  FormField,
   Popover,
   ResponsiveImage,
   ToolbarIconButton,
@@ -137,58 +137,59 @@ const EntityTilesFieldInner: React.FC<EntityTilesFieldProps> = ({
   const chooseRef = useRef<HTMLButtonElement | null>(null);
 
   return (
-    <FlexColumn gap={SPACING.sm} data-testid={testId}>
-      {label && <Label sx={{ color: "text.secondary" }}>{label}</Label>}
-      {entities.length > 0 ? (
-        <FlexRow gap={SPACING.md} wrap>
-          {entities.map((entity) => (
-            <EntityTile
-              key={entity.id}
-              entity={entity}
-              removeLabel={removeLabel(entity.name || "Untitled")}
-              onRemove={readOnly ? undefined : onRemove}
-            />
-          ))}
-        </FlexRow>
-      ) : (
-        <Caption color="secondary">{emptyText}</Caption>
-      )}
-      {!readOnly && (
-        <>
-          <FlexRow gap={SPACING.sm} align="center">
-            <EditorButton
-              ref={chooseRef}
-              variant="outlined"
-              fullWidth
-              endIcon={<ExpandMoreIcon />}
-              onClick={() => setPickerOpen(true)}
-              aria-haspopup="dialog"
-              aria-expanded={pickerOpen}
-              sx={{ justifyContent: "space-between" }}
-            >
-              Choose entities
-            </EditorButton>
-            {extraAction}
-          </FlexRow>
-          <Popover
-            open={pickerOpen}
-            anchorEl={chooseRef.current}
-            onClose={() => setPickerOpen(false)}
-            placement="bottom-left"
-            maxWidth="28rem"
-          >
-            <Box sx={{ p: SPACING.md, width: "28rem", maxWidth: "100%" }}>
-              <EntityPicker
-                onSelect={onPick}
-                selectedIds={selectedIds}
-                height="20rem"
-                autoFocus
+    <FormField label={label} data-testid={testId}>
+      <FlexColumn gap={SPACING.sm}>
+        {entities.length > 0 ? (
+          <FlexRow gap={SPACING.md} wrap>
+            {entities.map((entity) => (
+              <EntityTile
+                key={entity.id}
+                entity={entity}
+                removeLabel={removeLabel(entity.name || "Untitled")}
+                onRemove={readOnly ? undefined : onRemove}
               />
-            </Box>
-          </Popover>
-        </>
-      )}
-    </FlexColumn>
+            ))}
+          </FlexRow>
+        ) : (
+          <Caption color="secondary">{emptyText}</Caption>
+        )}
+        {!readOnly && (
+          <>
+            <FlexRow gap={SPACING.sm} align="center">
+              <EditorButton
+                ref={chooseRef}
+                variant="outlined"
+                fullWidth
+                endIcon={<ExpandMoreIcon />}
+                onClick={() => setPickerOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={pickerOpen}
+                sx={{ justifyContent: "space-between" }}
+              >
+                Choose entities
+              </EditorButton>
+              {extraAction}
+            </FlexRow>
+            <Popover
+              open={pickerOpen}
+              anchorEl={chooseRef.current}
+              onClose={() => setPickerOpen(false)}
+              placement="bottom-left"
+              maxWidth="28rem"
+            >
+              <Box sx={{ p: SPACING.md, width: "28rem", maxWidth: "100%" }}>
+                <EntityPicker
+                  onSelect={onPick}
+                  selectedIds={selectedIds}
+                  height="20rem"
+                  autoFocus
+                />
+              </Box>
+            </Popover>
+          </>
+        )}
+      </FlexColumn>
+    </FormField>
   );
 };
 

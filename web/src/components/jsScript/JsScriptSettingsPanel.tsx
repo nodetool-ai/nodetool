@@ -12,7 +12,6 @@ import {
   FlexColumn,
   LabeledSwitch,
   ScrollArea,
-  Text,
   TextInput,
   SPACING
 } from "../ui_primitives";
@@ -67,23 +66,19 @@ const JsScriptSettingsPanel = ({
   return (
     <ScrollArea>
       <FlexColumn gap={SPACING.lg} padding={2}>
-        <FlexColumn gap={SPACING.xs}>
-          <TextInput
-            label="Description"
-            size="small"
-            multiline
-            minRows={2}
-            value={document.description}
-            placeholder="What this script does"
-            disabled={readOnly}
-            onChange={(event) =>
-              setDescription(scriptId, event.target.value)
-            }
-          />
-          <Text size="small" color="secondary">
-            Agents read this to decide whether to call the script.
-          </Text>
-        </FlexColumn>
+        <TextInput
+          label="Description"
+          size="small"
+          multiline
+          minRows={1}
+          value={document.description}
+          placeholder="What this script does"
+          helperText="Agents read this to decide whether to call the script."
+          disabled={readOnly}
+          onChange={(event) =>
+            setDescription(scriptId, event.target.value)
+          }
+        />
 
         <Divider />
         <FlexColumn data-focus-id="jsscript-ports" gap={SPACING.lg}>
@@ -109,7 +104,7 @@ const JsScriptSettingsPanel = ({
         />
 
         <Divider />
-        <FlexColumn gap={SPACING.xs}>
+        <FlexColumn gap={SPACING.lg}>
           <LabeledSwitch
             label="Show in node menu"
             size="small"

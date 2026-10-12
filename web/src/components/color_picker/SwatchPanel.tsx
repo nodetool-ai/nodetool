@@ -13,6 +13,8 @@ import {
   Box,
   EditorMenu,
   EditorMenuItem,
+  ListItemText,
+  MenuItemPrimitive,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
@@ -312,21 +314,19 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
         >
           {PRESET_PALETTES.map((palette) => (
             <EditorMenuItem key={palette.id} onClick={handleLoadPresetPalette(palette)}>
-              <FlexRow gap={1} align="center">
-                <Text size="small">{palette.name}</Text>
-                <FlexRow gap={0.5}>
-                  {palette.colors.slice(0, 6).map((color, i) => (
-                    <Box
-                      key={`${palette.id}-${color}-${i}`}
-                      sx={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: BORDER_RADIUS.xs,
-                        backgroundColor: color
-                      }}
-                    />
-                  ))}
-                </FlexRow>
+              <ListItemText primary={palette.name} />
+              <FlexRow gap={0.5}>
+                {palette.colors.slice(0, 6).map((color, i) => (
+                  <Box
+                    key={`${palette.id}-${color}-${i}`}
+                    sx={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: BORDER_RADIUS.xs,
+                      backgroundColor: color
+                    }}
+                  />
+                ))}
               </FlexRow>
             </EditorMenuItem>
           ))}
@@ -338,9 +338,12 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
         open={Boolean(swatchMenuAnchor)}
         onClose={handleSwatchMenuClose}
       >
-        <EditorMenuItem onClick={handleDeleteSwatch}>
-          <DeleteIcon sx={{ fontSize: 16, mr: 1 }} /> Delete
-        </EditorMenuItem>
+        <MenuItemPrimitive
+          label="Delete swatch"
+          icon={<DeleteIcon />}
+          color="error"
+          onClick={handleDeleteSwatch}
+        />
       </EditorMenu>
     </FlexColumn>
   );

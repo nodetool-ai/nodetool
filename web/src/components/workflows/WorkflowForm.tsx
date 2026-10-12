@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, FormField, FormSection, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { TextInput, SelectField, AutocompleteTagInput, EditorButton, FormSection, SPACING } from "../ui_primitives";
 import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -37,46 +37,11 @@ const styles = (theme: Theme) =>
       maxWidth: theme.breakpoints.values.sm,
       boxSizing: "border-box"
     },
-    
-    // Section chrome; the field stack and its gaps are FormSection's job.
+
     ".settings-section": {
-      marginBottom: theme.spacing(SPACING.lg),
-      padding: theme.spacing(SPACING.md),
-      backgroundColor: theme.vars.palette.action.hover,
-      borderRadius: BORDER_RADIUS.lg,
-      border: `1px solid ${theme.vars.palette.divider}`
+      marginBottom: theme.spacing(SPACING.xl)
     },
 
-    ".MuiOutlinedInput-root": {
-      backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: BORDER_RADIUS.md,
-      transition: MOTION.all,
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.divider,
-        transition: MOTION.border
-      },
-      "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.text.secondary
-      },
-      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-        borderColor: "var(--palette-primary-main)",
-        borderWidth: "1px"
-      }
-    },
-    
-    // Only the dark-section essentials: brand font + light text for contrast on
-    // the grey[900] field. Size and vertical padding stay at the primitive /
-    // MUI defaults.
-    ".MuiOutlinedInput-input": {
-      fontFamily: theme.fontFamily1,
-      color: theme.vars.palette.text.primary
-    },
-
-    // Run mode select
-    ".MuiSelect-select": {
-      fontFamily: theme.fontFamily1
-    },
-    
     // Close footer, shown only outside a dialog (the side panel).
     ".button-container": {
       display: "flex",
@@ -85,20 +50,6 @@ const styles = (theme: Theme) =>
       paddingTop: theme.spacing(SPACING.lg),
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       justifyContent: "flex-end"
-    },
-
-    ".cancel-button": {
-      backgroundColor: "transparent",
-      color: theme.vars.palette.text.secondary,
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxl)}`, // was 8px 20px
-      fontSize: theme.fontSizeSmall,
-      fontWeight: 500,
-      textTransform: "none",
-      borderRadius: BORDER_RADIUS.md,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
-        color: theme.vars.palette.text.primary
-      }
     }
   });
 
@@ -242,29 +193,27 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
   return (
     <div css={styles(theme)} className="workflow-form">
       <FormSection className="settings-section">
-        <FormField label="Name">
-          <TextInput
-            name="name"
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            value={localWorkflow.name}
-            onChange={handleChange}
-          />
-        </FormField>
+        <TextInput
+          label="Name"
+          name="name"
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          value={localWorkflow.name}
+          onChange={handleChange}
+        />
 
-        <FormField label="Description">
-          <TextInput
-            name="description"
-            value={localWorkflow.description}
-            onChange={handleChange}
-            multiline
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            minRows={2}
-          />
-        </FormField>
+        <TextInput
+          label="Description"
+          name="description"
+          value={localWorkflow.description}
+          onChange={handleChange}
+          multiline
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          minRows={2}
+        />
 
         <AutocompleteTagInput
           label="Tags"
@@ -280,50 +229,39 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
       </FormSection>
 
       <FormSection label="Execution" className="settings-section">
-        <Caption sx={{ display: "block" }}>
-          Configure how this workflow runs and can be triggered
-        </Caption>
-
-        <FormField label="Run mode">
-          <SelectField
-            label="Run mode"
-            value={localWorkflow.run_mode || "workflow"}
-            onChange={(value) => applyChange({ run_mode: value }, true)}
-            options={RUN_MODE_OPTIONS}
-          />
-        </FormField>
+        <SelectField
+          label="Run mode"
+          value={localWorkflow.run_mode || "workflow"}
+          onChange={(value) => applyChange({ run_mode: value }, true)}
+          options={RUN_MODE_OPTIONS}
+          description="How this workflow runs and can be triggered"
+        />
       </FormSection>
 
       <FormSection label="Advanced" className="settings-section">
-        <Caption sx={{ display: "block" }}>
-          Advanced configuration for workspaces and API/tool usage
-        </Caption>
-
         <WorkspaceSelect
+          label="Workspace"
           value={localWorkflow.workspace_id ?? undefined}
           onChange={handleWorkspaceChange}
           helperText="Associate a workspace folder with this workflow for agent access"
         />
 
-        <FormField
+        <TextInput
           label="Tool name"
           helperText="Identifier for API/tool usage. Letters, numbers, underscores only."
-        >
-          <TextInput
-            name="tool_name"
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            value={localWorkflow.tool_name || ""}
-            onChange={handleToolNameChange}
-            placeholder="my_workflow_tool"
-          />
-        </FormField>
+          name="tool_name"
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          value={localWorkflow.tool_name || ""}
+          onChange={handleToolNameChange}
+          placeholder="my_workflow_tool"
+        />
       </FormSection>
 
       {onClose && (
         <div className="button-container">
-          <EditorButton className="cancel-button" onClick={onClose}>
+          <EditorButton variant="text" color="inherit" onClick={onClose}>
             Close
           </EditorButton>
         </div>

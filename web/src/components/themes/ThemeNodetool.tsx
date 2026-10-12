@@ -78,9 +78,6 @@ const ThemeNodetool = createTheme({
     padXInspector: "10px",
     padYInspector: "6px",
     controlRadius: CONTROL.radius,
-    menuRadius: "8px",
-    menuShadow:
-      "0 10px 30px rgba(0 0 0 / calc(0.5 * var(--palette-c_shadow_alpha, 1)))"
   },
   // TanStack Virtual overscan — extra item/row count rendered outside the viewport.
   virtualScroll: {

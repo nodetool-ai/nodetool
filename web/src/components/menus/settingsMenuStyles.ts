@@ -30,7 +30,7 @@ const FIELD_MAX_WIDTH = "34em";
 
 /* ------------------------------------------------------------------ */
 /*  Shared chrome — `.settings-item`, `.settings-section`, `.description`,
- *  input chrome, headings, dividers. Defined once and imported by every
+ *  field width caps, headings, dividers. Defined once and imported by every
  *  settings panel that may render outside the SettingsMenu root (e.g.
  *  RemoteSettingsMenu renders directly in tests).
 /* ------------------------------------------------------------------ */
@@ -97,7 +97,7 @@ export const getSharedSettingsStyles = (theme: Theme): CSSObject => ({
     width: "100%",
     display: "flex",
     flexDirection: "column",
-    gap: getSpacingPx(SPACING.md),
+    gap: getSpacingPx(SPACING.lg),
     // Cap every MUI input on the form tabs to one readable measure.
     ".MuiInputBase-root": {
       maxWidth: FIELD_MAX_WIDTH
@@ -108,44 +108,7 @@ export const getSharedSettingsStyles = (theme: Theme): CSSObject => ({
     },
     ".MuiFormControl-root": {
       width: "100%",
-      minWidth: "unset",
-      margin: 0,
-      padding: `0 ${getSpacingPx(SPACING.sm)}`,
-      "& .MuiInputLabel-root": {
-        position: "relative",
-        transform: "none",
-        marginBottom: `${getSpacingPx(SPACING.md)}`,
-        fontWeight: 600,
-        letterSpacing: "0.01em",
-        color: theme.vars.palette.grey[0],
-        fontSize: theme.fontSizeNormal
-      },
-      "& .MuiInputBase-root": {
-        maxWidth: FIELD_MAX_WIDTH,
-        backgroundColor: theme.vars.palette.background.paper,
-        border: `1px solid ${theme.vars.palette.divider}`,
-        borderRadius: BORDER_RADIUS.sm,
-        margin: 0,
-        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
-        transition: `${MOTION.border}, background-color ${MOTION.normal}`,
-        fontSize: theme.fontSizeNormal,
-        "&:hover": {
-          borderColor: theme.vars.palette.grey[300]
-        },
-        "&.Mui-focused": {
-          borderColor: theme.vars.palette.primary.main
-        },
-        "&::before, &::after": {
-          content: "none"
-        }
-      }
-    },
-    label: {
-      color: theme.vars.palette.grey[0],
-      fontSize: theme.fontSizeNormal,
-      fontWeight: 600,
-      letterSpacing: "0.01em",
-      padding: 0
+      maxWidth: FIELD_MAX_WIDTH
     },
     ".description": {
       color: theme.vars.palette.grey[100],
@@ -301,15 +264,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       flex: "0 1 auto",
       width: "22em",
       maxWidth: "100%",
-      minWidth: "12em",
-      "& .MuiInputBase-root": {
-        minHeight: `${CONTROL.height.lg}px`,
-        backgroundColor: theme.vars.palette.background.paper,
-        borderRadius: BORDER_RADIUS.sm
-      },
-      "& .MuiInputBase-input": {
-        fontSize: theme.fontSizeSmall
-      }
+      minWidth: "12em"
     }
   },
   ".settings-autosave-note": {
@@ -489,17 +444,6 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     alignItems: "center",
     gap: `${getSpacingPx(SPACING.md)}`
   },
-  ".MuiSelect-select": {
-    fontSize: theme.fontSizeNormal,
-    padding: `${SPACING.xs + 0.25}em ${getSpacingPx(SPACING.sm)}`,
-    marginTop: 0,
-    backgroundColor: theme.vars.palette.background.paper,
-    borderRadius: BORDER_RADIUS.lg,
-    transition: `background-color ${MOTION.normal}`,
-    "&:hover": {
-      backgroundColor: theme.vars.palette.background.default
-    }
-  },
   ".MuiSwitch-root": {
     margin: 0
   },
@@ -518,9 +462,10 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   "button.MuiButton-root": {
     borderRadius: BORDER_RADIUS.sm
   },
-  // Blanket body size for Typography, but leave section headings alone so they
-  // can use their larger heading size.
-  ".MuiTypography-root:not(.settings-heading)": {
+  // Blanket body size for Typography, but leave section headings, descriptions
+  // and the form primitives' labels and hints (label elements, body2 hints) at
+  // their own sizes.
+  ".MuiTypography-root:not(.settings-heading):not(.description):not(label):not(.MuiTypography-body2)": {
     fontSize: theme.fontSizeNormal
   },
   ".MuiMenuItem-root": {

@@ -20,6 +20,15 @@ jest.mock("../StoryboardLinkControl", () => ({
   default: () => null
 }));
 
+const mockExportAudio = jest.fn(() => Promise.resolve());
+jest.mock("../../../hooks/script/useScriptAudioExport", () => ({
+  ...jest.requireActual("../../../hooks/script/useScriptAudioExport"),
+  useScriptAudioExport: () => ({
+    exportAudio: mockExportAudio,
+    exporting: null
+  })
+}));
+
 import ScriptDocumentPane from "../ScriptDocumentPane";
 
 const SCRIPT_ID = "script-toolbar";
@@ -99,5 +108,31 @@ describe("ScriptDocumentPane toolbar", () => {
     expect(
       await screen.findByRole("menuitem", { name: "Export SRT" })
     ).toBeEnabled();
+  });
+
+  it("exports the whole script as WAV or MP3 from the overflow menu", async () => {
+    seed(true);
+    mockExportAudio.mockClear();
+    const user = userEvent.setup();
+    renderPane();
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Export MP3" }));
+    expect(mockExportAudio).toHaveBeenCalledWith("mp3");
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Export WAV" }));
+    expect(mockExportAudio).toHaveBeenCalledWith("wav");
+  });
+
+  it("disables audio export until a line is voiced", async () => {
+    seed(false);
+    const user = userEvent.setup();
+    renderPane();
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    expect(
+      await screen.findByRole("menuitem", { name: "Export WAV" })
+    ).toHaveAttribute("aria-disabled", "true");
   });
 });

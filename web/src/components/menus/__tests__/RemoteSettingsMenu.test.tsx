@@ -54,11 +54,16 @@ jest.mock("@mui/material", () => ({
     value,
     onChange,
     children,
+    helperText,
     ...props
-  }: React.ComponentProps<"input"> & { label?: string }) => (
+  }: React.ComponentProps<"input"> & {
+    label?: string;
+    helperText?: React.ReactNode;
+  }) => (
     <div data-testid="TextField">
       {label && <span className="textfield-label">{label}</span>}
       <input {...props} value={value || ""} onChange={onChange} />
+      {helperText && <p>{helperText}</p>}
       {children}
     </div>
   ),
@@ -171,7 +176,7 @@ describe("RemoteSettingsMenu", () => {
       render(<RemoteSettingsMenuComponent />, { wrapper });
 
       await waitFor(() => {
-        // Non-secret setting should be visible (label is title-cased)
+        // Non-secret setting should be visible (label is sentence-cased)
         expect(screen.getByText("Timeout")).toBeInTheDocument();
         expect(screen.getByText("Request timeout in seconds")).toBeInTheDocument();
 

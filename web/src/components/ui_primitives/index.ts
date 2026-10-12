@@ -287,6 +287,16 @@ export {
   selectableTileStyles,
   selectedTileStyles
 } from "./selectionStyles";
+export {
+  MENU_ICON_SIZE,
+  MENU_MIN_WIDTH,
+  menuPaperStyles,
+  menuListStyles,
+  menuGroupHeaderStyles,
+  menuItemStyles,
+  menuItemDestructiveStyles,
+  menuShortcutStyles
+} from "./menuStyles";
 export { ListPanelItem } from "./ListPanelItem";
 export type { ListPanelItemProps } from "./ListPanelItem";
 export { DocumentListPanel } from "./DocumentListPanel";

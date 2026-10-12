@@ -293,6 +293,23 @@ describe("native game capabilities", () => {
     expect(await run("stranger").invoke("build_native_game", { game_id: created.game.id })).toEqual({ error: "Game not found" });
   });
 
+  it("builds a Tauri desktop project named after the game beside the web player", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Room: Escape" }) as GameReply;
+    const result = await agent.invoke("build_native_game", { game_id: created.game.id, target: "tauri" }) as
+      { target: string; build_path: string; entry_path: string; cached: boolean };
+    expect(result).toMatchObject({ target: "tauri", cached: false });
+    expect(result.build_path).toMatch(new RegExp(`^game-builds/${created.game.id}/${created.game.revision}-tauri-[a-f0-9]{12}$`));
+    expect(result.entry_path).toBe(`${result.build_path}/src-tauri/tauri.conf.json`);
+    const config = JSON.parse(await readFile(join(directory, result.entry_path), "utf8")) as { productName: string; identifier: string; build: { frontendDist: string } };
+    expect(config).toMatchObject({ productName: "Room Escape", identifier: "ai.nodetool.game.room-escape", build: { frontendDist: "../dist" } });
+    const builtDocument = JSON.parse(await readFile(join(directory, result.build_path, "dist", "game.json"), "utf8")) as GameDocument;
+    expect(builtDocument.revision).toBe(created.game.revision);
+    expect((await readFile(join(directory, result.build_path, "src-tauri", "icons", "icon.ico"))).subarray(0, 4)).toEqual(Buffer.from([0, 0, 1, 0]));
+    expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "tauri" })).toMatchObject({ cached: true, build_path: result.build_path });
+    expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "electron" })).toEqual({ error: "target must be web or tauri" });
+  });
+
   it("installs a staged asset without replacing scene edits and rejects stale or foreign writes", async () => {
     const storage = new InMemoryStorageAdapter();
     const agent = run(USER, storage);

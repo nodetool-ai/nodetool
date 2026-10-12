@@ -223,6 +223,9 @@ at 24 hours.
   the app on `localhost` is the reason to take one there.
 - `packages/cli/src/nodetool-main.ts` — runs on the operator's machine against their
   own API URL, loopback by default.
+- `packages/websocket/src/mcp-server.ts` — the `nodetool mcp serve` forwarder
+  reaches the local server's `/mcp` mount and refuses any host other than
+  `127.0.0.1` or `localhost`.
 - `packages/deploy/src/admin-client.ts` — the server being deployed.
 
 **Browser-side.** The socket belongs to the viewer's browser, not the server:

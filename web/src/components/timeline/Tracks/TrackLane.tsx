@@ -839,7 +839,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
             : null
         }
         onClose={() => setContextMenuPos(null)}
-        compact
       >
         {/* Text is the one clip you can author outright — no workflow, no
             generation — so it sits at the top level rather than behind the
@@ -849,7 +848,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
             label="Add text"
             icon={<TitleIcon fontSize="small" />}
             onClick={handleAddText}
-            compact
           />
         )}
         {track.type === "midi" ? (
@@ -857,14 +855,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
             label="Add MIDI clip"
             icon={<AddIcon fontSize="small" />}
             onClick={handleAddMidi}
-            compact
           />
         ) : (
           <MenuItemPrimitive
             label="Add generated clip here…"
             icon={<AddIcon fontSize="small" />}
             onClick={handleAddClipFromMenu}
-            compact
           />
         )}
         {menuGap && (
@@ -872,7 +868,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
             label="Close gap"
             icon={<CompressOutlinedIcon fontSize="small" />}
             onClick={handleCloseGap}
-            compact
           />
         )}
       </ContextMenu>
