@@ -116,6 +116,8 @@ export class GamePostProcessor3D {
   private state: ComposerState | null = null;
   private readonly size = new THREE.Vector2();
   private disposed = false;
+  /** Renders straight to the canvas while true, keeping the composer for the next frame. The editor's debug view modes set it. */
+  direct = false;
 
   constructor(private readonly renderer: THREE.WebGLRenderer) {}
 
@@ -151,7 +153,7 @@ export class GamePostProcessor3D {
   }
 
   render(scene: THREE.Scene, camera: THREE.Camera): void {
-    const state = this.state;
+    const state = this.direct ? null : this.state;
     if (!state) {
       this.renderer.clear();
       this.renderer.render(scene, camera);

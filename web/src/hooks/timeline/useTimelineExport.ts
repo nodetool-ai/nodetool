@@ -231,6 +231,10 @@ export function useTimelineExport(): UseTimelineExportResult {
               "in this browser and rendered from the live 3D layer instead."
           });
         }
+        // No sink was passed to the renderer, so the file came back whole.
+        if (bytes === null) {
+          throw new Error("The export produced no file.");
+        }
         await sink(
           bytes,
           mimeType,

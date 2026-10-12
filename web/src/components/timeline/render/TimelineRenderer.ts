@@ -17,6 +17,12 @@
  * `png_sequence` leaves the muxer out: each composited frame is read off the
  * canvas as a PNG and stored in one zip with a `manifest.json`, which is what
  * the server's own `png_sequence` render writes.
+ *
+ * A {@link RenderSink} streams the output instead of returning it: the muxer
+ * writes its chunks (at their byte positions) and a PNG sequence hands over
+ * each frame as it is read. The server's headless render
+ * (`render/headless/renderPage.ts`) uses it so a long render never holds the
+ * file in page memory.
  */
 
 import type {
@@ -35,6 +41,7 @@ import type {
 } from "@nodetool-ai/timeline";
 
 import type { CompositeLayer } from "../preview/gpu/types";
+import type { CompositorBackend } from "../preview/gpu/createCompositor";
 import {
   accumulateBlurSample,
   clipSourceTimeSec,
@@ -88,6 +95,9 @@ import { renderTimelineAudio } from "./renderAudio";
 // are only loaded in the browser when an export actually runs — never at
 // module-eval time, which keeps the editor importable under jsdom.
 
+/** Largest chunk a streamed muxer hands to its {@link RenderSink}. */
+const STREAM_CHUNK_BYTES = 4 * 1024 * 1024;
+
 /** Containers the browser exporter can write. */
 const BROWSER_EXPORT_FORMATS = ["mp4", "webm", "png_sequence"] as const;
 
@@ -104,14 +114,34 @@ export interface RenderProgress {
   ratio: number;
 }
 
+/**
+ * Where a streamed render goes. `write` receives the muxed container in
+ * chunks, each placed at its byte `position` (MP4 and WebM patch their
+ * headers once the length is known, so the positions are not monotonic).
+ * `frame` receives each PNG of a `png_sequence`, in frame order. A rejected
+ * promise fails the render.
+ */
+export interface RenderSink {
+  write(data: Uint8Array, position: number): Promise<void>;
+  frame(index: number, png: Uint8Array): Promise<void>;
+}
+
 interface RenderTimelineOptions {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   mediaTracks?: MediaTrack[];
   camera2d?: TimelineCamera2D | null;
-  /** Sequence resolution in pixels. */
+  /** Output resolution in pixels. */
   width: number;
   height: number;
+  /**
+   * The sequence resolution positions, font sizes and stroke widths are stored
+   * in, when the output is smaller (a draft render). Layers are laid out and
+   * rasterized at this size and the compositor scales them to the output, as
+   * the live preview does at its display size. Default: the output size.
+   */
+  referenceWidth?: number;
+  referenceHeight?: number;
   fps: number;
   /** Total timeline length to render, in milliseconds. */
   durationMs: number;
@@ -143,6 +173,18 @@ interface RenderTimelineOptions {
    * every layer is seeked, rasterized and composited once per sample.
    */
   motionBlur?: MotionBlurOptions;
+  /**
+   * Allow the WebGPU compositor. Default true. The server's headless render
+   * turns it off when the browser cannot read a WebGPU canvas back.
+   */
+  webgpu?: boolean;
+  /**
+   * Mix the audio tracks into the file. Default true. The server's headless
+   * render turns it off and mixes with ffmpeg, as its other render paths do.
+   */
+  includeAudio?: boolean;
+  /** Stream the output here instead of returning it in {@link RenderResult}. */
+  sink?: RenderSink;
   signal?: AbortSignal;
   onProgress?: (progress: RenderProgress) => void;
 }
@@ -151,8 +193,9 @@ export interface RenderResult {
   /**
    * The encoded file. A `png_sequence` zip comes back as a `Blob` assembled
    * from per-frame parts, so the whole archive is never one contiguous buffer.
+   * Null when the render streamed into a {@link RenderSink}.
    */
-  bytes: Uint8Array | Blob;
+  bytes: Uint8Array | Blob | null;
   mimeType: string;
   /** File extension the bytes should be saved under, without the dot. */
   extension: string;
@@ -162,6 +205,8 @@ export interface RenderResult {
    * holds the proxy rather than the baked picture.
    */
   degradations: BakeUndecodable[];
+  /** The compositor that drew the frames. */
+  backend: CompositorBackend;
 }
 
 /** What a `png_sequence` zip carries next to its frames. */
@@ -292,6 +337,9 @@ export async function renderTimeline(
   const width = Math.max(2, Math.floor(opts.width / 2) * 2);
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
+  const scaled = opts.referenceWidth !== undefined || opts.referenceHeight !== undefined;
+  const refWidth = opts.referenceWidth ?? width;
+  const refHeight = opts.referenceHeight ?? height;
 
   // Resolve each asset url at most once across the whole render. Cached by
   // the in-flight promise (not the resolved value) so the per-frame layer
@@ -314,6 +362,7 @@ export async function renderTimeline(
   const [
     {
       BufferTarget,
+      StreamTarget,
       CanvasSource,
       Mp4OutputFormat,
       WebMOutputFormat,
@@ -362,10 +411,14 @@ export async function renderTimeline(
   // blank, so the frame loop fails the export on the first one rather than
   // encoding the remaining frames from a dead device.
   let gpuFailure: PreviewFailure | null = null;
-  const { compositor, backend, init } = await createCompositor(canvas, (failure) => {
-    logPreviewFailure(failure);
-    gpuFailure ??= failure;
-  });
+  const { compositor, backend, init } = await createCompositor(
+    canvas,
+    (failure) => {
+      logPreviewFailure(failure);
+      gpuFailure ??= failure;
+    },
+    { webgpu: opts.webgpu }
+  );
   const throwIfGpuFailed = (): void => {
     if (gpuFailure) {
       throw new Error(`Export renderer failed: ${previewFailureText(gpuFailure)}`, {
@@ -383,11 +436,12 @@ export async function renderTimeline(
   // Canvas 2D does not.
   const windowedRasters = backend === "webgpu";
   const frameWindow = (window: RasterWindow | undefined): FrameSourceWindow | undefined =>
-    window && { x: window.x, y: window.y, frameWidth: width, frameHeight: height };
+    window && { x: window.x, y: window.y, frameWidth: refWidth, frameHeight: refHeight };
   const captionRasterizer = new CaptionRasterizer();
   const textRasterizer = new TextRasterizer();
   const shapeRasterizer = new ShapeRasterizer();
   const loadImage = makeImageLoader();
+  const { sink } = opts;
   /** The muxer once built, so the `finally` can cancel it if it never finalized. */
   let activeMuxer: { state: string; cancel: () => Promise<void> } | null = null;
 
@@ -396,6 +450,7 @@ export async function renderTimeline(
       throw new Error(init.reason ?? "Timeline compositor unavailable");
     }
     compositor.resize(width, height);
+    if (scaled) compositor.setReferenceSize(refWidth, refHeight);
     compositor.setAlpha(opts.alpha === true);
 
     const isSequence = format === "png_sequence";
@@ -405,7 +460,16 @@ export async function renderTimeline(
       : new Output({
           format:
             format === "webm" ? new WebMOutputFormat() : new Mp4OutputFormat(),
-          target: new BufferTarget()
+          target: sink
+            ? new StreamTarget(
+                new WritableStream({
+                  write: (chunk) => sink.write(chunk.data, chunk.position)
+                }),
+                // Bounded batches: one request per few megabytes rather than
+                // one per encoded packet, and never the whole file at once.
+                { chunked: true, chunkSize: STREAM_CHUNK_BYTES }
+              )
+            : new BufferTarget()
         });
     activeMuxer = muxer;
 
@@ -426,7 +490,7 @@ export async function renderTimeline(
     // Mix the audio down before encoding video so the soundtrack is ready to
     // hand to the muxer in one shot.
     onProgress?.({ phase: "audio", frame: 0, totalFrames, ratio: 0 });
-    const audioBuffer = muxer
+    const audioBuffer = muxer && opts.includeAudio !== false
       ? await renderTimelineAudio({
           clips,
           tracks,
@@ -457,8 +521,8 @@ export async function renderTimeline(
       audioSource.close();
     }
 
-    /** Streaming zip, built only on the `png_sequence` path. */
-    const pngZip = isSequence ? await createPngZipWriter() : null;
+    /** Streaming zip, built only on the `png_sequence` path without a sink. */
+    const pngZip = isSequence && !sink ? await createPngZipWriter() : null;
 
     // Video/overlay clips release their pooled source as soon as
     // their fixed time range has fully passed. Each clip is a single
@@ -480,8 +544,8 @@ export async function renderTimeline(
     // Motion-design animations resolve against the sequence resolution (px),
     // matching the live preview. The compile cache lives for the whole render.
     const animCanvas = {
-      width: opts.width,
-      height: opts.height,
+      width: opts.referenceWidth ?? opts.width,
+      height: opts.referenceHeight ?? opts.height,
       measureText: textMeasurer()
     };
     const animCache = createAnimationCompileCache();
@@ -493,8 +557,8 @@ export async function renderTimeline(
     const liveBakeHash = (clip: TimelineClip): string =>
       computeModel3DBakeHash(clip, {
         fps,
-        width: opts.width,
-        height: opts.height
+        width: animCanvas.width,
+        height: animCanvas.height
       });
 
     // An alpha bake this browser cannot decode is checked once, before the
@@ -551,8 +615,8 @@ export async function renderTimeline(
           if (layer.kind === "caption" && layer.caption) {
             const bitmap = captionRasterizer.rasterize(
               layer.caption,
-              width,
-              height,
+              refWidth,
+              refHeight,
               bitmapFrame
             );
             return bitmap ? { source: bitmap, untransformed: true } : null;
@@ -569,8 +633,8 @@ export async function renderTimeline(
             );
             const bitmap = textRasterizer.rasterize(
               anim.textStyle,
-              width,
-              height,
+              refWidth,
+              refHeight,
               stagger,
               bitmapFrame,
               windowedRasters ? rasterWindowMargin(layer, anim) : undefined
@@ -586,8 +650,8 @@ export async function renderTimeline(
             if (!shapeStyle) return null;
             const bitmap = shapeRasterizer.rasterize(
               shapeStyle,
-              width,
-              height,
+              refWidth,
+              refHeight,
               bitmapFrame,
               windowedRasters ? rasterWindowMargin(layer, anim) : undefined
             );
@@ -725,6 +789,8 @@ export async function renderTimeline(
         await videoSource.add(frame * frameDurationSec, frameDurationSec);
       } else if (pngZip) {
         pngZip.addFrame(frame, await canvasPng(frameCanvas));
+      } else if (sink) {
+        await sink.frame(frame, await canvasPng(frameCanvas));
       }
 
       onProgress?.({
@@ -744,6 +810,15 @@ export async function renderTimeline(
       ratio: 1
     });
 
+    if (!muxer && !pngZip) {
+      return {
+        bytes: null,
+        mimeType: "application/zip",
+        extension: "zip",
+        degradations,
+        backend
+      };
+    }
     if (!muxer) {
       const bytes = pngZip!.finish({
         format: "png_sequence",
@@ -757,13 +832,23 @@ export async function renderTimeline(
         bytes,
         mimeType: "application/zip",
         extension: "zip",
-        degradations
+        degradations,
+        backend
       };
     }
 
     await muxer.finalize();
+    if (sink) {
+      return {
+        bytes: null,
+        mimeType: format === "webm" ? "video/webm" : "video/mp4",
+        extension: format,
+        degradations,
+        backend
+      };
+    }
 
-    const buffer = muxer.target.buffer;
+    const buffer = muxer.target instanceof BufferTarget ? muxer.target.buffer : null;
     if (!buffer) {
       throw new Error("Encoding produced no output");
     }
@@ -771,7 +856,8 @@ export async function renderTimeline(
       bytes: new Uint8Array(buffer),
       mimeType: format === "webm" ? "video/webm" : "video/mp4",
       extension: format,
-      degradations
+      degradations,
+      backend
     };
   } finally {
     // Aborted or failed after `start()`: the encoder and its hardware session

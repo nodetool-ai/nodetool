@@ -112,3 +112,48 @@ describe("Job.markCancelledIfQueued", () => {
     expect((await Job.get<Job>("theirs"))?.status).toBe("queued");
   });
 });
+
+describe("Job.saveIfActive", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  it("writes a settling run's state while the row is active", async () => {
+    await create("finishing", "running");
+    const job = await Job.get<Job>("finishing");
+    job!.markCompleted();
+    job!.metadata_json = { outputs: { video: "asset-1" } };
+
+    expect(await job!.saveIfActive()).toBe(true);
+
+    const row = await Job.get<Job>("finishing");
+    expect(row?.status).toBe("completed");
+    expect(row?.metadata_json).toEqual({ outputs: { video: "asset-1" } });
+  });
+
+  it("never turns a cancelled run into a completed one", async () => {
+    await create("stopped", "running");
+    // The run holds its snapshot from before the cancel.
+    const run = await Job.get<Job>("stopped");
+    expect(await Job.markCancelledIfActive("stopped", "1")).toBe(true);
+
+    run!.markCompleted();
+    expect(await run!.saveIfActive()).toBe(false);
+
+    expect((await Job.get<Job>("stopped"))?.status).toBe("cancelled");
+    // The instance now reports the status that stands.
+    expect(run!.status).toBe("cancelled");
+  });
+
+  it("leaves a failed row failed", async () => {
+    await create("failed-first", "running");
+    const run = await Job.get<Job>("failed-first");
+    const other = await Job.get<Job>("failed-first");
+    other!.markFailed("boom");
+    await other!.save();
+
+    run!.markCompleted();
+    expect(await run!.saveIfActive()).toBe(false);
+    expect((await Job.get<Job>("failed-first"))?.status).toBe("failed");
+  });
+});

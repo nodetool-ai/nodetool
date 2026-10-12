@@ -265,6 +265,10 @@ export function getAllMcpCapabilitySpecs(
     "list_jobs",
     "get_job",
     "get_job_logs",
+    // A background run (render_timeline, start_background_job) is only as
+    // controllable as this: without it an agent could start a render it had
+    // no way to stop.
+    "cancel_job",
     "list_runs",
     "get_run",
     "get_run_trace",

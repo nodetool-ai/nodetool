@@ -65,12 +65,15 @@ const trpc = async (procedure, input) =>
  * `nodetool.timeline.RenderTimeline` and assert the job composited it.
  *
  * This is the check that proves the image renders the picture the editor
- * previews. The node falls back to an ffmpeg concatenation when it cannot
- * acquire a WebGPU device, and that fallback is silent apart from a job log:
- * the run still succeeds and still returns an mp4. `render_mode` is what
- * separates the two, so an image that shipped without Dawn — or without the
- * lavapipe Vulkan driver it reaches the CPU through — fails here instead of
- * quietly serving flat cuts in production.
+ * previews. The node renders in the image's Chromium (`render_mode`
+ * "browser"), falls back to the Node compositor when no browser launches
+ * ("composited"), and falls back again to an ffmpeg concatenation when it
+ * cannot acquire a WebGPU device either. That last fallback is silent apart
+ * from a job log: the run still succeeds and still returns an mp4.
+ * `render_mode` is what separates them, so an image that shipped without
+ * Chromium and without Dawn — or without the lavapipe Vulkan driver Dawn
+ * reaches the CPU through — fails here instead of quietly serving flat cuts
+ * in production.
  */
 async function checkTimelineRender() {
   const stamp = Date.now();
@@ -193,12 +196,14 @@ async function checkTimelineRender() {
     // an array even for a single-shot node.
     const video = [run.outputs?.video].flat()[0];
     const mode = video?.metadata?.render_mode;
-    if (mode !== "composited") {
+    if (mode !== "browser" && mode !== "composited") {
       failures.push(
         `RenderTimeline rendered in "${mode ?? "unknown"}" mode, expected ` +
-          `"composited" — the container has no WebGPU device, so the node fell ` +
-          `back to an ffmpeg concatenation. Check that bundle-backend.mjs ` +
-          `staged webgpu and that mesa-vulkan-drivers is installed.`
+          `"browser" or "composited" — the container launched no browser and ` +
+          `has no WebGPU device, so the node fell back to an ffmpeg ` +
+          `concatenation. Check that CHROME_PATH names the image's Chromium, ` +
+          `that bundle-backend.mjs staged webgpu, and that mesa-vulkan-drivers ` +
+          `is installed.`
       );
     }
   } catch (cause) {

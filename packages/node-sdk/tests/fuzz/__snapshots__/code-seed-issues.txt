@@ -43,3 +43,91 @@ stream-input-read warning code_unused_input Inputs "a", "flag", "text" are never
 stream-any warning code_unused_input Inputs "a", "flag", "text" are never read by the code.
 stream-return-contract error code_stream_return_contract The code calls `stream`, so it runs once and its return value is control flow, not outputs. Send every output through `output(name, value)` for a final value, or `emit(name, value)` to stream values as they are produced.
 stream-return-contract warning code_unused_input Inputs "a", "flag", "text" are never read by the code.
+empty-outputs error code_no_return The code is empty, so the output handles "n", "out", "doc" never receive a value.
+empty-one-output error code_no_return The code is empty, so the output handle "n" never receive a value.
+empty-one-connected error code_no_return The code is empty, so the output handle "x" never receive a value.
+empty-two-connected error code_no_return The code is empty, so the output handles "x", "y" never receive a value.
+catalog-imports error code_module The code imports "fs/promises", "node:nope". The sandbox is QuickJS, not Node — it has no builtin modules. Use the sandbox API (fetch, workspace, crypto, media) or a sandbox pack instead.
+catalog-imports error code_module The code imports "nodetool:media", which the sandbox serves only to a generated module facade. Import the pack whose facade uses it.
+catalog-imports error code_package_unavailable resolved @nodetool-ai/sandbox-csv (pack "pack-of-@nodetool-ai/sandbox-csv") Install @nodetool-ai/sandbox-csv to use it.
+catalog-imports error code_package_unavailable resolved @nodetool-ai/sandbox-dates (pack "pack-of-@nodetool-ai/sandbox-dates")
+catalog-imports error code_package_unavailable resolved @nodetool-ai/sandbox-nodetoolx (pack "pack-of-@nodetool-ai/sandbox-nodetoolx")
+catalog-imports warning code_package_mismatch resolved fsx (pack "pack-of-fsx")
+catalog-imports error code_package_unavailable resolved left-pad (pack "pack-of-left-pad")
+catalog-imports warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+catalog-one-import error code_package_unavailable resolved left-pad (pack "pack-of-left-pad")
+catalog-one-import warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+catalog-no-pack-import warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+dynamic-import-only error code_module The code uses `import()`, which the sandbox does not support — the loader denies every dynamic resolution. Import the module with a static `import` at the top of the code.
+dynamic-import-only warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+dynamic-require-only error code_module The code uses `require()`, which the sandbox does not support — the loader denies every dynamic resolution. Import the module with a static `import` at the top of the code.
+dynamic-require-only warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+require-not-called error code_undefined_name The code reads "require", which is neither a sandbox API nor an input of this node — the sandbox throws ReferenceError. Declare it as a dynamic input and read it off `inputs`, or fix the name.
+require-not-called warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+absent-one error code_undefined_name The code reads "btoa", which other JavaScript runtimes have but this sandbox does not — it throws ReferenceError. Use the sandbox equivalent: toBase64/fromBase64 for base64, format.* for Intl, sleep for timers, JSON round-trip for a deep copy, crypto.randomUUID() for uuid, new TextEncoder()/new TextDecoder() for utf8Encode/utf8Decode, and plain fetch() objects instead of Headers/Request/Response.
+absent-one warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+absent-many error code_undefined_name The code reads "atob", "btoa", "structuredClone", which other JavaScript runtimes have but this sandbox does not — they throw ReferenceError. Use the sandbox equivalent: toBase64/fromBase64 for base64, format.* for Intl, sleep for timers, JSON round-trip for a deep copy, crypto.randomUUID() for uuid, new TextEncoder()/new TextDecoder() for utf8Encode/utf8Decode, and plain fetch() objects instead of Headers/Request/Response.
+absent-many warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+bare-input-one error code_undefined_name The code reads "a" as a bare name, but it is an input of this node — inputs arrive on the `inputs` object. Use `inputs.a`.
+bare-input-one warning code_unused_input Inputs "flag", "items", "text" are never read by the code.
+bare-input-many error code_undefined_name The code reads "a", "text" as bare names, but they are inputs of this node — inputs arrive on the `inputs` object. Use `inputs.a`, `inputs.text`.
+bare-input-many warning code_unused_input Inputs "flag", "items" are never read by the code.
+bare-and-unknown error code_undefined_name The code reads "a", "text" as bare names, but they are inputs of this node — inputs arrive on the `inputs` object. Use `inputs.a`, `inputs.text`.
+bare-and-unknown error code_undefined_name The code reads "ghost", which is neither a sandbox API nor an input of this node — the sandbox throws ReferenceError. Declare it as a dynamic input and read it off `inputs`, or fix the name.
+bare-and-unknown warning code_unused_input Inputs "flag", "items" are never read by the code.
+unknown-inputs-many error code_undefined_input The code reads `inputs.p`, `inputs.q`, which are not inputs of this node — the value is undefined at run time. Declare them as dynamic inputs, or fix the name.
+unknown-inputs-many warning code_unused_input Input "items" is never read by the code.
+stream-unknown-one error code_undefined_stream The code takes from "nope", which is not an input of this node — the stream never yields. Declare it as a dynamic input, or fix the name.
+stream-unknown-one warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+stream-unconnected-one warning code_unconnected_stream The code takes from "a", which no incoming edge feeds — the stream completes immediately and yields nothing. Connect an upstream node, or read the node's configured value with `inputs.a`.
+stream-unconnected-one warning code_unused_input Inputs "flag", "items", "text" are never read by the code.
+stream-input-read-many error code_stream_input_read The code reads `inputs.items`, `inputs.text`, which incoming edges feed — in a streaming body `inputs` carries only the node's configured values, never edge data. Use `stream("items")`, `stream("text")`.
+stream-input-read-many warning code_unused_input Inputs "a", "flag" are never read by the code.
+stream-any-connected warning code_unused_input Inputs "a", "flag" are never read by the code.
+stream-return-no-emit-one-input error code_stream_return_contract The code calls `stream`, so it runs once and its return value is control flow, not outputs. Send every output through `output(name, value)` for a final value, or `emit(name, value)` to stream values as they are produced.
+no-return-outputs error code_no_return The code never returns, so the outputs "n", "out", "doc" stay empty. End it with `return { n, out, doc };`.
+no-return-outputs warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+no-return-one-output error code_no_return The code never returns, so the output "n" stays empty. End it with `return { n };`.
+no-return-one-output warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+no-return-connected error code_no_return The code never returns, so the outputs "x", "y" stay empty. End it with `return { x, y };`.
+no-return-connected warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+no-return-no-outputs warning code_no_return The code never returns, so the node produces no output. Return an object — its keys become the node's output handles.
+no-return-no-outputs warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+fall-through-one-output warning code_no_return Execution can reach the end of the code without returning, so the output "n" would be empty on that path.
+fall-through-one-output warning code_unused_input Inputs "a", "items", "text" are never read by the code.
+fall-through-no-outputs warning code_undeclared_output The code returns "n", which is not declared as an output handle, so nothing downstream can read it.
+fall-through-no-outputs warning code_unused_input Inputs "a", "items", "text" are never read by the code.
+non-object-one-output error code_return_shape A return path returns something that is not an object of outputs, so the declared output "n" is never set. Every return must be an object carrying them.
+non-object-one-output warning code_unused_input Inputs "a", "items", "text" are never read by the code.
+non-object-no-outputs warning code_undeclared_output The code returns "n", which is not declared as an output handle, so nothing downstream can read it.
+non-object-no-outputs warning code_unused_input Inputs "a", "items", "text" are never read by the code.
+non-object-twice error code_return_shape A return path returns something that is not an object of outputs, so the declared outputs "n", "out", "doc" are never set. Every return must be an object carrying them.
+non-object-twice warning code_unused_input Inputs "items", "text" are never read by the code.
+missing-one-undeclared-one warning code_missing_output A return path omits the output "out", which downstream nodes read as empty. Emit every output on every return path and branch with nodetool.control.If or nodetool.control.Switch instead.
+missing-one-undeclared-one warning code_undeclared_output The code returns "extra", which is not declared as an output handle, so nothing downstream can read it.
+missing-one-undeclared-one warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+missing-many-undeclared-many warning code_missing_output A return path omits the outputs "doc", "n", "out", which downstream nodes read as empty. Emit every output on every return path and branch with nodetool.control.If or nodetool.control.Switch instead.
+missing-many-undeclared-many warning code_undeclared_output The code returns "yyy", "zzz", which are not declared as an output handle, so nothing downstream can read them.
+missing-many-undeclared-many warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+opaque-return warning code_unused_input Inputs "flag", "items", "text" are never read by the code.
+return-connected-only warning code_undeclared_output The code returns "x", "y", which are not declared as an output handle, so nothing downstream can read them.
+return-connected-only warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+emit-undeclared-many error code_undeclared_output The code sends to "p", "q", which are not outputs of this node — the call throws at run time. Declare them as dynamic outputs, or fix the name.
+emit-undeclared-many warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+emit-missing-one error code_missing_output The code never sends to the output "out", so it stays empty. Call `await output("out", value)` for a final value, or `emit` to stream values as they are produced.
+emit-missing-one warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+emit-connected-only error code_undeclared_output The code sends to "z", which is not an output of this node — the call throws at run time. Declare it as a dynamic output, or fix the name.
+emit-connected-only error code_missing_output The code never sends to the output "y", so it stays empty. Call `await output("y", value)` for a final value, or `emit` to stream values as they are produced.
+emit-connected-only warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+emit-return-ignored warning code_return_ignored The code returns a value, but return values carry no outputs — use `output(name, value)` for a final value or `emit(name, value)` to stream. `return` here only exits the body early.
+emit-return-ignored warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+emit-bare-return warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+emit-undefined-return warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+unused-one-input warning code_unused_input Input "items" is never read by the code.
+syntax-error-with-line error code_syntax The code does not parse as JavaScript (line 2): Unexpected token (2:6)
+syntax-error-no-line error code_syntax The code does not parse as JavaScript: Could not read the code as a function body.
+single-node-builtin error code_module The code imports "fs". The sandbox is QuickJS, not Node — it has no builtin modules. Use the sandbox API (fetch, workspace, crypto, media) or a sandbox pack instead.
+single-node-builtin warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+emit-one-declared-with-connected error code_missing_output The code never sends to the output "n", so it stays empty. Call `await output("n", value)` for a final value, or `emit` to stream values as they are produced.
+emit-one-declared-with-connected warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+emit-return-identifier warning code_return_ignored The code returns a value, but return values carry no outputs — use `output(name, value)` for a final value or `emit(name, value)` to stream. `return` here only exits the body early.

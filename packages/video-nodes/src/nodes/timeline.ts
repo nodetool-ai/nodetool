@@ -2,21 +2,22 @@
  * Timeline nodes — operate on persisted timeline sequences (the video
  * editor's documents) referenced by the `timeline` type.
  *
- * RenderTimeline composites the sequence frame by frame through the same GPU
- * compositor and scene model the editor's preview and its in-browser export
- * use (`@nodetool-ai/timeline/render`), so a workflow render is the picture
- * the user previewed: clip placement, transforms, opacity, blend modes,
- * transitions, animations, effects, captions, text and shapes, across every
- * visual track. ffmpeg decodes clip media into RGBA and encodes the result.
+ * RenderTimeline runs the editor's own exporter in headless Chromium
+ * (`timeline/browserRender.ts`): the compositor, scene model, WebCodecs decode
+ * and mux the Export button uses, so a workflow render is the picture the user
+ * previewed — clip placement, transforms, opacity, blend modes, transitions,
+ * animations, effects, captions, text and shapes, across every visual track —
+ * and variable-frame-rate clips decode at their own timestamps.
  *
- * Compositing needs a WebGPU device, which means the optional `webgpu` (Dawn)
- * package and a working driver. Both profiles ship Dawn (D9,
- * docs/plans/motion-graphics.md), and the Docker image installs lavapipe as its
- * Vulkan driver, so a server render is composited too. A host that still has no
- * adapter falls back to the older ffmpeg rough cut — video/image clips
- * normalized and concatenated in start order — which ignores everything above.
- * The fallback is a `warning` on the job and `metadata.render_mode` on the
- * output says which path ran: "composited" or "rough_cut".
+ * Where no Chromium can be launched, the Node compositor renders instead
+ * (`timeline/compositeRender.ts`): the same scene model and compositor through
+ * Dawn, with ffmpeg decoding clip media into RGBA and encoding the result. It
+ * needs a WebGPU device; a host with no adapter falls back further, to the
+ * ffmpeg rough cut — video/image clips normalized and concatenated in start
+ * order — which ignores everything above. Each fallback is a `warning` on the
+ * job, and `metadata.render_mode` on the output says which path ran:
+ * "browser", "composited" or "rough_cut". `NODETOOL_TIMELINE_RENDERER=node`
+ * skips the browser.
  *
  * `format` picks the container and `alpha` decides whether the frames keep a
  * transparency channel: `webm` (VP9, `yuva420p`), `mov` (ProRes 4444,
@@ -79,6 +80,10 @@ import {
   CompositorUnavailableError,
   renderTimelineComposited
 } from "./timeline/compositeRender.js";
+import {
+  BrowserRenderUnavailableError,
+  renderTimelineInBrowser
+} from "./timeline/browserRender.js";
 import {
   ALPHA_OUTPUT_FORMATS,
   MissingEncoderError,
@@ -1023,6 +1028,14 @@ export async function mixCompositedTimelineAudio(opts: {
   });
 }
 
+/**
+ * Whether `RenderTimeline` tries headless Chromium first. On unless
+ * `NODETOOL_TIMELINE_RENDERER=node` asks for the Node compositor.
+ */
+function browserRendererEnabled(): boolean {
+  return process.env["NODETOOL_TIMELINE_RENDERER"]?.trim().toLowerCase() !== "node";
+}
+
 /** Shortest gap between two `node_progress` posts — four a second. */
 const PROGRESS_INTERVAL_MS = 250;
 
@@ -1255,9 +1268,33 @@ export class RenderTimelineNode extends BaseNode {
       let basePath: string;
       let baseHasAudio: boolean;
       let audioToMix: TimelineClip[];
-      let renderMode: "composited" | "rough_cut";
+      let renderMode: "browser" | "composited" | "rough_cut";
 
-      try {
+      const browserPath = path.join(workDir, `rendered.${output.extension}`);
+      const renderedInBrowser = browserRendererEnabled()
+        ? await this.renderInBrowser(ctx, {
+            sequence: seq,
+            width,
+            height,
+            fps,
+            durationMs,
+            output,
+            bitrate: Math.max(0, Number(this.bitrate) || 0),
+            resolveAssetPath: (assetId) => assets.path(assetId),
+            outPath: browserPath,
+            workDir
+          })
+        : false;
+      if (renderedInBrowser) {
+        basePath = browserPath;
+        renderMode = "browser";
+        // The browser writes picture only: every audible clip is mixed in
+        // below, exactly as for a Node composite.
+        baseHasAudio = false;
+        audioToMix = includeAudio
+          ? [...embeddedAudioClips(seq), ...audioClips]
+          : [];
+      } else try {
         basePath = path.join(workDir, `composited.${output.extension}`);
         const result = await renderTimelineComposited({
           sequence: seq,
@@ -1426,6 +1463,72 @@ export class RenderTimelineNode extends BaseNode {
     if (!encoder || output.format === "mp4") return;
     if (await ffmpegHasEncoder(encoder)) return;
     throw new MissingEncoderError(encoder, output.format);
+  }
+
+  /**
+   * Render in headless Chromium. False when no browser could be launched,
+   * after a warning that the Node compositor renders instead.
+   */
+  private async renderInBrowser(
+    ctx: ProcessingContext,
+    options: Omit<Parameters<typeof renderTimelineInBrowser>[0], "onProgress" | "signal">
+  ): Promise<boolean> {
+    try {
+      const result = await renderTimelineInBrowser({
+        ...options,
+        onProgress: this.progressReporter(ctx),
+        signal: ctx.signal
+      });
+      const compositor =
+        result.backend === "webgpu"
+          ? `the WebGPU compositor (${result.adapter ?? "unknown adapter"})`
+          : result.webgpuUnusable
+            ? `the Canvas 2D compositor (WebGPU could not be read back: ${result.webgpuUnusable})`
+            : "the Canvas 2D compositor (no WebGPU adapter)";
+      const encoding =
+        result.encoding.kind === "png"
+          ? "PNG frames"
+          : `${result.encoding.codec} in ${result.encoding.container}`;
+      this.log(
+        ctx,
+        `Rendered ${result.frames} frames in headless Chromium (${result.browser}) ` +
+          `with ${compositor}, encoded as ${encoding}` +
+          `${result.transcoded ? " and transcoded with ffmpeg" : ""}.`,
+        "info"
+      );
+      for (const family of result.fontsUnavailable) {
+        this.log(
+          ctx,
+          `Font "${family}" could not be resolved from Google Fonts — drawn in the fallback face`,
+          "warning"
+        );
+      }
+      if (result.convertedSources > 0) {
+        this.log(
+          ctx,
+          `This browser cannot decode ${result.convertedSources} of the clips, so they were ` +
+            "converted to VP9 before rendering. Google Chrome decodes them directly.",
+          "warning"
+        );
+      }
+      if (result.degradedBakes > 0) {
+        this.log(
+          ctx,
+          `${result.degradedBakes} baked 3D clip(s) could not be decoded and were drawn from the live 3D layer instead.`,
+          "warning"
+        );
+      }
+      return true;
+    } catch (error) {
+      if (!(error instanceof BrowserRenderUnavailableError)) throw error;
+      this.log(
+        ctx,
+        `${error.message} Rendering with the Node compositor instead, which can ` +
+          "differ from the editor preview and decodes variable-frame-rate clips more slowly.",
+        "warning"
+      );
+      return false;
+    }
   }
 
   /** Post on the node's log channel, where the run has one. */

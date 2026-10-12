@@ -38,6 +38,10 @@ COPY reliability/ reliability/
 COPY scripts/ scripts/
 COPY tsconfig*.json ./
 COPY turbo.json ./
+# video-nodes bundles the headless timeline render page from the web app's
+# exporter (web/src/components/timeline/render), so the sources come along.
+COPY web/src/ web/src/
+COPY web/vite-node-stubs/ web/vite-node-stubs/
 
 RUN npm run build:packages
 
