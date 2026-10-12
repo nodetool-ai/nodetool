@@ -8,9 +8,9 @@ import {
   Box, BORDER_RADIUS, Caption, CONTROL, Divider, EditorButton, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, getSpacingPx, ScrollArea,
   SPACING, Text, TYPOGRAPHY
 } from "../../../ui_primitives";
-import type { GameProfiler } from "./gameProfiler";
+import { GAME_PROFILER_OTHER_ENTITIES, type GameProfileCapture, type GameProfiler } from "./gameProfiler";
 import {
-  downloadGameProfile, formatGameProfileBytes, formatGameProfileMs, gameProfileExport, gameProfileValues, summarizeGameProfile,
+  downloadGameProfile, formatGameProfileBytes, formatGameProfileMs, gameProfileExport, summarizeGameProfile,
   type GameProfileSource, type GameProfileStat
 } from "./gameProfileModel";
 import { useGameProfilerView } from "./useGameProfilerView";
@@ -26,8 +26,8 @@ interface GameProfilerPanelProps {
   readonly document: ProfilerDocument;
 }
 
-/** The graphs show at most this many of the newest samples. */
-const GRAPH_SAMPLES = 600;
+/** The graphs show at most this many of the newest values. */
+const GRAPH_POINTS = 600;
 const SCRIPT_ROWS = 8;
 const NO_VALUE = "—";
 
@@ -35,22 +35,33 @@ function count(value: number): string {
   return Math.round(value).toLocaleString("en-US");
 }
 
+/** The newest recorded values of a column, skipping missing ones. */
+function graphValues(values: Float32Array | undefined): number[] {
+  const result: number[] = [];
+  if (!values) { return result; }
+  for (let index = values.length - 1; index >= 0 && result.length < GRAPH_POINTS; index--) {
+    if (!Number.isNaN(values[index])) { result.push(values[index]); }
+  }
+  return result.reverse();
+}
+
 /** A line graph of the newest values with an optional budget line. Values above the budget draw the budget line in the warning color. */
 function Sparkline({ values, budget, label }: { readonly values: readonly number[]; readonly budget?: number; readonly label: string }): ReactElement {
   const theme = useTheme();
-  const shown = values.slice(-GRAPH_SAMPLES);
-  const top = Math.max(budget ?? 0, ...shown, Number.EPSILON) * 1.1;
-  const width = Math.max(shown.length - 1, 1);
+  let top = Math.max(budget ?? 0, Number.EPSILON);
+  for (const value of values) { top = Math.max(top, value); }
+  top *= 1.1;
+  const width = Math.max(values.length - 1, 1);
   const height = 100;
-  const points = shown.map((value, index) => `${index},${(height - (value / top) * height).toFixed(2)}`).join(" ");
-  const over = budget !== undefined && shown.some((value) => value > budget);
+  const points = values.map((value, index) => `${index},${(height - (value / top) * height).toFixed(2)}`).join(" ");
+  const over = budget !== undefined && values.some((value) => value > budget);
   const budgetY = budget === undefined ? null : height - (budget / top) * height;
   return <Box component="svg" role="img" aria-label={label} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
     sx={{ width: "100%", height: CONTROL.height.xl, flexShrink: 0, borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.hover }}>
     {budgetY !== null && <line x1={0} x2={width} y1={budgetY} y2={budgetY} vectorEffect="non-scaling-stroke" strokeDasharray="4 4"
       stroke={over ? theme.vars.palette.warning.main : theme.vars.palette.text.disabled} strokeWidth={1} />}
-    {shown.length > 1 && <polyline points={points} fill="none" vectorEffect="non-scaling-stroke" strokeWidth={1.5}
+    {values.length > 1 && <polyline points={points} fill="none" vectorEffect="non-scaling-stroke" strokeWidth={1.5}
       stroke={theme.vars.palette.primary.main} />}
   </Box>;
 }
@@ -70,7 +81,7 @@ function Section({ title, children }: { readonly title: string; readonly childre
 }
 
 function msStat(stat: GameProfileStat | null): string {
-  return stat ? `${formatGameProfileMs(stat.avg)} avg · ${formatGameProfileMs(stat.p95)} p95 · ${formatGameProfileMs(stat.max)} max` : NO_VALUE;
+  return stat ? `${formatGameProfileMs(stat.avg)} avg · ${formatGameProfileMs(stat.p95 ?? stat.max)} p95 · ${formatGameProfileMs(stat.max)} max` : NO_VALUE;
 }
 
 function countStat(stat: GameProfileStat | null): string {
@@ -83,44 +94,45 @@ function bytesStat(stat: GameProfileStat | null): string {
 
 /**
  * Frame time, simulation and script CPU time, renderer, physics and audio counts from the running play session.
- * It records while shown and redraws a few times per second. Record captures a profile to export as JSON.
+ * It records while shown and redraws a few times per second. Record captures a profile. Export JSON saves the
+ * capture on screen, or the live window when no capture is shown.
  */
 export default function GameProfilerPanel({ profiler, source, document }: GameProfilerPanelProps): ReactElement {
   const theme = useTheme();
   const root = useRef<HTMLDivElement>(null);
   const { view, refresh } = useGameProfilerView(profiler, root);
-  const [showCapture, setShowCapture] = useState(false);
+  // The capture the user switched away from with Live. A newer capture is shown again.
+  const [liveOver, setLiveOver] = useState<GameProfileCapture | null>(null);
   const capture = view.capture;
-  const viewingCapture = showCapture && capture !== null && !view.capturing;
-  const samples = viewingCapture ? capture.samples : view.samples;
-  const summary = useMemo(() => summarizeGameProfile(samples), [samples]);
-  const frameValues = useMemo(() => gameProfileValues(samples.slice(-GRAPH_SAMPLES), "frameMs"), [samples]);
-  const stepValues = useMemo(() => gameProfileValues(samples.slice(-GRAPH_SAMPLES), "stepMs"), [samples]);
+  const viewingCapture = capture !== null && !view.capturing && liveOver !== capture;
+  const data = viewingCapture ? capture.data : view.live;
+  // A capture's summary is computed once. The live window holds at most 600 ticks and frames.
+  const summary = useMemo(() => data ? summarizeGameProfile(data) : null, [data]);
+  const frameValues = useMemo(() => graphValues(data?.frames.frameMs), [data]);
+  const stepValues = useMemo(() => graphValues(data?.steps.stepMs), [data]);
   const entityNames = useMemo(() => new Map(document.scenes.flatMap((scene) => scene.entities.map((entity) => [entity.id, entity.name] as const))), [document]);
-  const budgetMs = 1000 / source.tickRate;
-  const slowestSystem = Math.max(...summary.systems.map((system) => system.avgMs), Number.EPSILON);
-  const metrics = summary.metrics;
+  const tickBudgetMs = 1000 / source.tickRate;
+  const metrics = summary?.metrics;
+  const slowestSystem = Math.max(...(summary?.systems ?? []).map((system) => system.avgMs), Number.EPSILON);
+  const empty = !summary || summary.ticks + summary.frames === 0;
   const toggleCapture = (): void => {
     if (!profiler) { return; }
-    if (profiler.capturing()) {
-      profiler.stopCapture();
-      setShowCapture(true);
-    } else {
-      profiler.startCapture();
-      setShowCapture(false);
-    }
+    if (profiler.capturing()) { profiler.stopCapture(); }
+    else { profiler.startCapture(); }
     refresh();
   };
-  const exportCapture = (): void => {
-    if (capture) { downloadGameProfile(gameProfileExport(source, capture)); }
+  const exportProfile = (): void => {
+    if (viewingCapture) { downloadGameProfile(gameProfileExport(source, { kind: "capture", capture })); }
+    else if (view.live) { downloadGameProfile(gameProfileExport(source, { kind: "live", data: view.live })); }
   };
   const captureSeconds = capture ? ((capture.endedAt - capture.startedAt) / 1000).toFixed(1) : "0";
+  const status = view.capturing ? "Recording a capture · showing the live window"
+    : viewingCapture ? `Capture · ${captureSeconds} s · ${count(summary?.ticks ?? 0)} ticks${capture.full ? " · stopped when full" : ""}`
+      : `Live · last ${count(summary?.ticks ?? 0)} ticks`;
   return <FlexColumn ref={root} sx={{ height: "100%", minHeight: 0 }}>
     <GamePanelHeader title="Profiler" fill>
       <Caption role="status" data-testid="profiler-status" color="secondary" sx={{ flex: 1, minWidth: 0, pl: SPACING.xs, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {view.capturing ? `Recording a capture · ${count(summary.samples)} ticks in view`
-          : viewingCapture ? `Capture · ${captureSeconds} s · ${count(capture.samples.length)} ticks${capture.truncated ? " · oldest ticks dropped" : ""}`
-            : `Live · last ${count(summary.samples)} ticks`}
+        {status}
       </Caption>
       <EditorButton disabled={!profiler} onClick={toggleCapture}
         startIcon={view.capturing
@@ -129,22 +141,23 @@ export default function GameProfilerPanel({ profiler, source, document }: GamePr
         sx={{ height: CONTROL.height.sm, px: SPACING.sm, "& .MuiButton-startIcon": { mr: SPACING.xs } }}>
         {view.capturing ? "Stop" : "Record"}
       </EditorButton>
-      {viewingCapture && <EditorButton onClick={() => setShowCapture(false)} sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>Live</EditorButton>}
+      {viewingCapture && <EditorButton onClick={() => setLiveOver(capture)} sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>Live</EditorButton>}
       <Divider orientation="vertical" flexItem sx={{ mx: SPACING.xs, my: SPACING.xs }} />
-      <EditorButton disabled={!capture || view.capturing} onClick={exportCapture} sx={{ height: CONTROL.height.sm }}>Export JSON</EditorButton>
-      <EditorButton disabled={!profiler} onClick={() => { profiler?.clear(); setShowCapture(false); refresh(); }}
+      <EditorButton disabled={view.capturing || empty} onClick={exportProfile} sx={{ height: CONTROL.height.sm }}>Export JSON</EditorButton>
+      <EditorButton disabled={!profiler} onClick={() => { profiler?.clear(); refresh(); }}
         sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>Clear</EditorButton>
     </GamePanelHeader>
     <ScrollArea sx={{ flex: 1, minHeight: 0 }}>
-      {summary.samples === 0
+      {empty || !summary || !metrics
         ? <EmptyState variant="no-data" size="small" title="No samples yet"
           description="Press Play. The profiler records each tick while this panel is open." />
         : <Box sx={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${getSpacingPx(SPACING.xxl * 10)}, 1fr))`,
           gap: getSpacingPx(SPACING.lg), p: SPACING.md, alignItems: "start" }}>
           <Section title="Frame time">
-            <Sparkline values={frameValues} budget={budgetMs} label={`Frame time, ${msStat(metrics.frameMs)}, budget ${formatGameProfileMs(budgetMs)}`} />
+            <Sparkline values={frameValues} budget={tickBudgetMs}
+              label={`Frame time per rendered frame, ${msStat(metrics.frameMs)}, tick budget ${formatGameProfileMs(tickBudgetMs)}`} />
             <Row label="Frame">{msStat(metrics.frameMs)}</Row>
-            <Row label="Budget">{formatGameProfileMs(budgetMs)}</Row>
+            <Row label="Tick budget">{formatGameProfileMs(tickBudgetMs)}</Row>
           </Section>
           <Section title="Simulation CPU">
             <Sparkline values={stepValues} label={`Simulation step time, ${msStat(metrics.stepMs)}`} />
@@ -160,10 +173,11 @@ export default function GameProfilerPanel({ profiler, source, document }: GamePr
             {summary.scripts.length === 0
               ? <Caption color="muted">No script ran.</Caption>
               : summary.scripts.slice(0, SCRIPT_ROWS).map((script) =>
-                <Row key={script.entityId} label={entityNames.get(script.entityId) || script.entityId}>
+                <Row key={script.entityId} label={script.entityId === GAME_PROFILER_OTHER_ENTITIES ? "Other entities" : entityNames.get(script.entityId) || script.entityId}>
                   {`${formatGameProfileMs(script.avgMs)} avg · ${formatGameProfileMs(script.maxMs)} max · ${count(script.calls)} calls`}
                 </Row>)}
             {summary.scripts.length > SCRIPT_ROWS && <Caption color="muted">{`${summary.scripts.length - SCRIPT_ROWS} more entities in the export`}</Caption>}
+            {!viewingCapture && summary.scripts.length > 0 && <Caption color="muted">Totals since Play or Clear.</Caption>}
           </Section>
           <Section title="Rendering">
             <Row label="Draw calls">{countStat(metrics.drawCalls)}</Row>

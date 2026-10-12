@@ -1,19 +1,19 @@
 import { useEffect, useState, type RefObject } from "react";
 
-import type { GameProfileCapture, GameProfiler, GameProfileSample } from "./gameProfiler";
+import type { GameProfileCapture, GameProfileData, GameProfiler } from "./gameProfiler";
 
 export interface GameProfilerView {
-  readonly samples: readonly GameProfileSample[];
+  readonly live: GameProfileData | null;
   readonly capture: GameProfileCapture | null;
   readonly capturing: boolean;
 }
 
-const EMPTY_VIEW: GameProfilerView = { samples: [], capture: null, capturing: false };
+const EMPTY_VIEW: GameProfilerView = { live: null, capture: null, capturing: false };
 /** Four redraws per second keep the graphs readable without re-rendering the editor once per tick. */
 export const GAME_PROFILER_REFRESH_MS = 250;
 
 function readView(profiler: GameProfiler): GameProfilerView {
-  return { samples: profiler.samples(), capture: profiler.capture(), capturing: profiler.capturing() };
+  return { live: profiler.live(), capture: profiler.capture(), capturing: profiler.capturing() };
 }
 
 /** The dock keeps background tabs mounted inside a `hidden` container, so a panel is shown only outside one. */

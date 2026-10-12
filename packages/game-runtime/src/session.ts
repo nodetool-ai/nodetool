@@ -32,7 +32,11 @@ import { statefulGameSystem } from "./systems/pipeline.js";
 import { create2DSystemPipeline } from "./systems/tick2d.js";
 
 export interface GameSessionOptions {
-  readonly recordTimings?: boolean;
+  /**
+   * Reports system timings and physics counts on step results. A function is read before each step, so a
+   * profiler can turn reporting on and off without a new session. Reporting never changes simulation results.
+   */
+  readonly recordTimings?: boolean | (() => boolean);
 }
 
 /** Physics counts for one tick, reported only with `recordTimings`. They never enter snapshots, events or replay state. */
@@ -554,8 +558,9 @@ function createGameSessionWithRunner(
         let timings: GameStepTimings | undefined;
         // A tick that fails after its scripts ran still reports what they logged.
         try {
-          timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
-          if (!options.recordTimings) { pipeline.step(systemContext); }
+          const timed = typeof options.recordTimings === "function" ? options.recordTimings() : options.recordTimings === true;
+          timings = timed ? pipeline.stepTimed(systemContext) : undefined;
+          if (!timed) { pipeline.step(systemContext); }
         } catch (error) { throw withGameScriptLogs(error, systemContext.scriptLogs); }
         const result = readStepResult2D(systemContext);
         if (!timings) { return result; }

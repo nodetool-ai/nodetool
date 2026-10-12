@@ -1,8 +1,12 @@
-import type { GameProfileCapture, GameProfileSample } from "./gameProfiler";
+import {
+  GAME_PROFILE_FRAME_METRICS, GAME_PROFILE_STEP_METRICS, type GameProfileCapture, type GameProfileData, type GameProfileFrameMetric,
+  type GameProfileStepMetric
+} from "./gameProfiler";
 
 export interface GameProfileStat {
   readonly avg: number;
-  readonly p95: number;
+  /** Absent for counts, whose panel rows show only the newest and largest value. */
+  readonly p95?: number;
   readonly max: number;
   readonly last: number;
   readonly count: number;
@@ -22,13 +26,14 @@ export interface GameProfileScriptStat {
   readonly calls: number;
 }
 
-export type GameProfileMetric = "frameMs" | "stepMs" | "scriptMs" | "drawCalls" | "triangles" | "textureBytes" | "geometryBytes" | "bodies" | "contacts" | "voices";
+export type GameProfileMetric = Exclude<GameProfileStepMetric, "tick"> | GameProfileFrameMetric;
 
-export const GAME_PROFILE_METRICS: readonly GameProfileMetric[] =
-  ["frameMs", "stepMs", "scriptMs", "drawCalls", "triangles", "textureBytes", "geometryBytes", "bodies", "contacts", "voices"];
+/** Metrics measured in milliseconds, which get a 95th percentile. */
+const TIME_METRICS: ReadonlySet<GameProfileMetric> = new Set(["frameMs", "stepMs", "scriptMs"]);
 
 export interface GameProfileSummary {
-  readonly samples: number;
+  readonly ticks: number;
+  readonly frames: number;
   readonly firstTick: number | null;
   readonly lastTick: number | null;
   readonly metrics: Readonly<Record<GameProfileMetric, GameProfileStat | null>>;
@@ -38,56 +43,58 @@ export interface GameProfileSummary {
   readonly scripts: readonly GameProfileScriptStat[];
 }
 
-/** Statistics over the samples that reported a value. Null when none did. */
-export function gameProfileStat(values: readonly number[]): GameProfileStat | null {
-  if (values.length === 0) { return null; }
-  const sorted = [...values].sort((left, right) => left - right);
-  const total = values.reduce((sum, value) => sum + value, 0);
-  return { avg: total / values.length, p95: sorted[Math.ceil(sorted.length * 0.95) - 1], max: sorted[sorted.length - 1],
-    last: values[values.length - 1], count: values.length };
-}
-
-export function gameProfileValues(samples: readonly GameProfileSample[], metric: GameProfileMetric): number[] {
-  const values: number[] = [];
-  for (const sample of samples) {
-    const value = sample[metric];
-    if (value !== undefined) { values.push(value); }
+/** Statistics over the values that are not NaN. Null when there are none. One pass, plus a typed sort for `p95`. */
+export function gameProfileStat(values: Float32Array, percentile = true): GameProfileStat | null {
+  let total = 0;
+  let max = Number.NEGATIVE_INFINITY;
+  let last = Number.NaN;
+  let count = 0;
+  for (let index = 0; index < values.length; index++) {
+    const value = values[index];
+    if (Number.isNaN(value)) { continue; }
+    total += value;
+    if (value > max) { max = value; }
+    last = value;
+    count += 1;
   }
-  return values;
+  if (count === 0) { return null; }
+  const stat = { avg: total / count, max, last, count };
+  if (!percentile) { return stat; }
+  const sorted = new Float32Array(count);
+  let next = 0;
+  for (let index = 0; index < values.length; index++) {
+    if (!Number.isNaN(values[index])) { sorted[next++] = values[index]; }
+  }
+  sorted.sort();
+  return { ...stat, p95: sorted[Math.ceil(count * 0.95) - 1] };
 }
 
-export function summarizeGameProfile(samples: readonly GameProfileSample[]): GameProfileSummary {
-  const metrics = Object.fromEntries(GAME_PROFILE_METRICS.map((metric) => [metric, gameProfileStat(gameProfileValues(samples, metric))])) as
+function column(data: GameProfileData, metric: GameProfileMetric): Float32Array {
+  return metric in data.steps ? data.steps[metric as GameProfileStepMetric] : data.frames[metric as GameProfileFrameMetric];
+}
+
+export const GAME_PROFILE_METRICS: readonly GameProfileMetric[] = [
+  ...GAME_PROFILE_STEP_METRICS.filter((metric): metric is Exclude<GameProfileStepMetric, "tick"> => metric !== "tick"),
+  ...GAME_PROFILE_FRAME_METRICS
+];
+
+/** Linear in the recorded ticks and frames. A full capture summarizes in a few milliseconds. */
+export function summarizeGameProfile(data: GameProfileData): GameProfileSummary {
+  const metrics = Object.fromEntries(GAME_PROFILE_METRICS.map((metric) => [metric, gameProfileStat(column(data, metric), TIME_METRICS.has(metric))])) as
     Record<GameProfileMetric, GameProfileStat | null>;
-  const systems = new Map<string, { total: number; max: number; count: number }>();
-  const scripts = new Map<string, { total: number; max: number; calls: number }>();
-  let scriptTicks = 0;
-  for (const sample of samples) {
-    for (const timing of sample.systems ?? []) {
-      const entry = systems.get(timing.system) ?? { total: 0, max: 0, count: 0 };
-      entry.total += timing.durationMs;
-      entry.max = Math.max(entry.max, timing.durationMs);
-      entry.count += 1;
-      systems.set(timing.system, entry);
-    }
-    if (!sample.scriptsByEntity) { continue; }
-    scriptTicks += 1;
-    for (const [entityId, stats] of Object.entries(sample.scriptsByEntity)) {
-      const entry = scripts.get(entityId) ?? { total: 0, max: 0, calls: 0 };
-      entry.total += stats.durationMs;
-      entry.max = Math.max(entry.max, stats.durationMs);
-      entry.calls += stats.calls;
-      scripts.set(entityId, entry);
-    }
-  }
+  const ticks = data.steps.tick;
   return {
-    samples: samples.length,
-    firstTick: samples[0]?.tick ?? null,
-    lastTick: samples[samples.length - 1]?.tick ?? null,
+    ticks: ticks.length,
+    frames: data.frames.drawCalls.length,
+    firstTick: ticks.length > 0 ? ticks[0] : null,
+    lastTick: ticks.length > 0 ? ticks[ticks.length - 1] : null,
     metrics,
-    systems: [...systems].map(([system, entry]) => ({ system, avgMs: entry.total / entry.count, maxMs: entry.max })),
-    scripts: [...scripts].map(([entityId, entry]) => ({ entityId, avgMs: entry.total / scriptTicks, maxMs: entry.max, calls: entry.calls }))
-      .sort((left, right) => right.avgMs - left.avgMs || left.entityId.localeCompare(right.entityId))
+    systems: data.systems.flatMap(({ system, values }) => {
+      const stat = gameProfileStat(values, false);
+      return stat ? [{ system, avgMs: stat.avg, maxMs: stat.max }] : [];
+    }),
+    scripts: data.scripts.map((script) => ({ entityId: script.entityId, avgMs: data.scriptTicks > 0 ? script.totalMs / data.scriptTicks : 0,
+      maxMs: script.maxMs, calls: script.calls }))
   };
 }
 
@@ -100,33 +107,64 @@ export interface GameProfileSource {
   readonly tickRate: number;
 }
 
+/** A column as JSON numbers rounded to 0.1 µs or 0.0001 of a count, with null for a missing value. */
+type GameProfileColumnJson = readonly (number | null)[];
+
 export interface GameProfileExport {
   readonly format: typeof GAME_PROFILE_FORMAT;
   readonly version: 1;
   readonly game: GameProfileSource;
-  /** ISO times of the capture, or of the export for a live window. */
-  readonly startedAt: string;
-  readonly endedAt: string;
-  readonly truncated: boolean;
+  /** "capture" for a recorded capture, "live" for the live window. */
+  readonly source: "capture" | "live";
+  readonly startedAt: string | null;
+  readonly endedAt: string | null;
+  /** True when a capture filled its buffers and stopped by itself. */
+  readonly full: boolean;
   readonly summary: GameProfileSummary;
-  readonly samples: readonly GameProfileSample[];
+  /** One entry per simulation step. */
+  readonly steps: Readonly<Record<GameProfileStepMetric, GameProfileColumnJson>>;
+  /** CPU time per system, one entry per simulation step. */
+  readonly systems: Readonly<Record<string, GameProfileColumnJson>>;
+  /** One entry per rendered frame. */
+  readonly frames: Readonly<Record<GameProfileFrameMetric, GameProfileColumnJson>>;
+  /** Script time per entity, totalled over the profile rather than stored per tick. */
+  readonly scripts: GameProfileData["scripts"];
 }
 
-export function gameProfileExport(source: GameProfileSource, capture: GameProfileCapture): GameProfileExport {
-  return { format: GAME_PROFILE_FORMAT, version: 1, game: source, startedAt: new Date(capture.startedAt).toISOString(),
-    endedAt: new Date(capture.endedAt).toISOString(), truncated: capture.truncated, summary: summarizeGameProfile(capture.samples),
-    samples: capture.samples };
+function columnJson(values: Float32Array): GameProfileColumnJson {
+  return Array.from(values, (value) => Number.isNaN(value) ? null : Math.round(value * 10_000) / 10_000);
 }
 
-/** A file name from the game's name and the capture's start, with characters that are unsafe in file names replaced. */
+function isoTime(time: number | null): string | null {
+  return time === null ? null : new Date(time).toISOString();
+}
+
+export function gameProfileExport(game: GameProfileSource, profile: { readonly kind: "capture"; readonly capture: GameProfileCapture } |
+  { readonly kind: "live"; readonly data: GameProfileData }): GameProfileExport {
+  const data = profile.kind === "capture" ? profile.capture.data : profile.data;
+  return {
+    format: GAME_PROFILE_FORMAT, version: 1, game, source: profile.kind,
+    startedAt: isoTime(profile.kind === "capture" ? profile.capture.startedAt : data.startedAt),
+    endedAt: isoTime(profile.kind === "capture" ? profile.capture.endedAt : data.endedAt),
+    full: profile.kind === "capture" && profile.capture.full,
+    summary: summarizeGameProfile(data),
+    steps: Object.fromEntries(GAME_PROFILE_STEP_METRICS.map((key) => [key, columnJson(data.steps[key])])) as Record<GameProfileStepMetric, GameProfileColumnJson>,
+    systems: Object.fromEntries(data.systems.map(({ system, values }) => [system, columnJson(values)])),
+    frames: Object.fromEntries(GAME_PROFILE_FRAME_METRICS.map((key) => [key, columnJson(data.frames[key])])) as Record<GameProfileFrameMetric, GameProfileColumnJson>,
+    scripts: data.scripts
+  };
+}
+
+/** A file name from the game's name and the profile's start, with characters that are unsafe in file names replaced. */
 export function gameProfileFileName(profile: GameProfileExport): string {
   const name = profile.game.name.trim().replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "game";
-  return `${name}-profile-${profile.startedAt.replace(/[:.]/g, "-")}.json`;
+  const time = (profile.startedAt ?? profile.endedAt ?? new Date().toISOString()).replace(/[:.]/g, "-");
+  return `${name}-${profile.source === "live" ? "live-profile" : "profile"}-${time}.json`;
 }
 
-/** Saves the profile as a JSON download. */
+/** Saves the profile as compact JSON. */
 export function downloadGameProfile(profile: GameProfileExport): void {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(profile, null, 2)], { type: "application/json" }));
+  const url = URL.createObjectURL(new Blob([JSON.stringify(profile)], { type: "application/json" }));
   const link = document.createElement("a");
   link.href = url;
   link.download = gameProfileFileName(profile);

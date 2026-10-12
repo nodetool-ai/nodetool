@@ -42,7 +42,11 @@ import { stepAnimation3D } from "./systems/animation3d.js";
 import { stepPresentation3D, readStepResult3D } from "./systems/presentation3d.js";
 
 export interface GameSession3DOptions {
-  readonly recordTimings?: boolean;
+  /**
+   * Reports system timings and physics counts on step results. A function is read before each step, so a
+   * profiler can turn reporting on and off without a new session. Reporting never changes simulation results.
+   */
+  readonly recordTimings?: boolean | (() => boolean);
   readonly signal?: AbortSignal;
   readonly eventSink?: (event: GameEvent3D) => void;
   readonly resolveCollider?: (
@@ -621,8 +625,9 @@ export async function createGameSession3D(
             let timings: ReturnType<typeof pipeline.stepTimed> | undefined;
             // A tick that fails after its scripts ran still reports what they logged.
             try {
-              timings = options.recordTimings ? pipeline.stepTimed(systemContext) : undefined;
-              if (!options.recordTimings) { pipeline.step(systemContext); }
+              const timed = typeof options.recordTimings === "function" ? options.recordTimings() : options.recordTimings === true;
+              timings = timed ? pipeline.stepTimed(systemContext) : undefined;
+              if (!timed) { pipeline.step(systemContext); }
             } catch (error) { throw withGameScriptLogs(error, systemContext.scriptLogs); }
             const result = readStepResult3D(systemContext);
             if (!timings) { return result; }

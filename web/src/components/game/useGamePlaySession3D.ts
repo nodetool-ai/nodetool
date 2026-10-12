@@ -199,8 +199,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     const initialize = async (): Promise<void> => {
       if (!rendererRef.current) { setBackend("Initializing"); }
       setError(null);
-      // Timings and physics counts feed the profiler. They stay out of snapshots and replay.
-      const options: GameSession3DOptions = { ...gameSessionOptions3D(current, controller.signal, assetBytesRef.current), recordTimings: true };
+      // Steps report timings and physics counts only while the profiler records. Neither enters snapshots or replay.
+      const options: GameSession3DOptions = { ...gameSessionOptions3D(current, controller.signal, assetBytesRef.current), recordTimings: profiler.recording };
       sessionOptionsRef.current = options;
       session = await createGameSession3D(current, 1, undefined, options);
       controller.signal.throwIfAborted();
@@ -265,7 +265,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       inputRef.current.release();
 
     };
-  }, [sessionDocument, effectiveEditorSceneId, display]);
+  }, [sessionDocument, effectiveEditorSceneId, display, profiler]);
 
 
 
@@ -305,7 +305,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
 
   const beginPlay = (): void => {
     if (playDocument && sessionFailedRef.current) { return; }
-    if (!playDocument) { historyRef.current.clear(); setPlayDocument(structuredClone(document)); }
+    if (!playDocument) { historyRef.current.clear(); profiler.clearLive(); setPlayDocument(structuredClone(document)); }
     inputRef.current.release();
     setPlaying((value) => !value);
     canvasRef.current?.focus();

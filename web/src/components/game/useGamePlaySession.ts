@@ -28,8 +28,6 @@ export function scriptFailure(message: string, tick: number): ScriptFailure {
 }
 
 export const EMPTY_INPUT: GameInputFrame = { pressed: [], justPressed: [] };
-/** Editor sessions report system timings and physics counts for the profiler. Both stay out of snapshots and replay. */
-const PROFILED_SESSION = { recordTimings: true } as const;
 
 interface UseGamePlaySessionOptions {
   refId: string;
@@ -60,6 +58,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const assetBindingsRef = useRef<GameDocument["assets"] | null>(null);
   const [scriptLogs] = useState(createGameScriptLogChannel);
   const [profiler] = useState(() => createGameProfiler());
+  // Steps report system timings and physics counts only while the profiler records. Neither enters snapshots or replay.
+  const [sessionOptions] = useState(() => ({ recordTimings: profiler.recording }));
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument | null>(null);
   const [renderDocument, setRenderDocument] = useState<GameDocument | null>(null);
@@ -239,7 +239,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       fontsKeyRef.current = fontKey;
       if (fonts.diagnostics.length > 0) setError(fonts.diagnostics.join("; "));
     };
-    void prepareFonts().then(() => cancelled ? null : createScriptedGameSession(sessionDocument, 1, undefined, undefined, PROFILED_SESSION)).then(async (createdSession) => {
+    void prepareFonts().then(() => cancelled ? null : createScriptedGameSession(sessionDocument, 1, undefined, undefined, sessionOptions)).then(async (createdSession) => {
       if (!createdSession) return;
       if (cancelled || sessionGenerationRef.current !== generation) { createdSession.dispose(); return; }
       sessionRef.current = createdSession;
@@ -278,7 +278,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       disposeSession();
 
     };
-  }, [name, disposeSession, sessionDocument, refId, setTitle, showCurrentFrame]);
+  }, [name, disposeSession, sessionDocument, refId, setTitle, showCurrentFrame, sessionOptions]);
 
   useEffect(() => () => {
     rendererRef.current = null;
@@ -339,6 +339,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (!document) return;
     if (!playing && !playDocument) {
       inputHistoryRef.current.clear();
+      profiler.clearLive();
       setScriptError(null);
       setPlayDocument(document);
     }
@@ -366,7 +367,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       const parsed = gameSnapshot.safeParse(JSON.parse(raw) as unknown);
       if (!parsed.success) { setError("Saved game data is invalid"); return; }
       const generation = ++sessionGenerationRef.current;
-      const restored = await createScriptedGameSession(sessionDocument, 1, parsed.data, undefined, PROFILED_SESSION);
+      const restored = await createScriptedGameSession(sessionDocument, 1, parsed.data, undefined, sessionOptions);
       if (sessionGenerationRef.current !== generation) { restored.dispose(); return; }
       setPlaying(false);
       inputHistoryRef.current.clear(parsed.data);
@@ -386,7 +387,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     try {
       const generation = ++sessionGenerationRef.current;
       const history = inputHistoryRef.current.replay();
-      const replay = await createScriptedGameSession(playDocument, 1, history.snapshot, undefined, PROFILED_SESSION);
+      const replay = await createScriptedGameSession(playDocument, 1, history.snapshot, undefined, sessionOptions);
       if (sessionGenerationRef.current !== generation) { replay.dispose(); return; }
       try { for (const input of history.inputs.slice(0, -1)) { replay.step(input); } }
       catch (cause) { replay.dispose(); throw cause; }

@@ -45,7 +45,7 @@ it("asks for a play session until samples arrive, then shows every metric group"
   expect(screen.getByText("No samples yet")).toBeInTheDocument();
   act(() => { jest.advanceTimersByTime(GAME_PROFILER_REFRESH_MS); });
   expect(screen.getByTestId("profiler-status")).toHaveTextContent("Live · last 30 ticks");
-  expect(screen.getByRole("img", { name: /^Frame time, 16\.0 ms avg/ })).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: /^Frame time per rendered frame, 16\.0 ms avg.*tick budget 16\.7 ms$/ })).toBeInTheDocument();
   expect(screen.getByRole("img", { name: /^Simulation step time, 1\.60 ms avg/ })).toBeInTheDocument();
   const simulation = within(screen.getByRole("region", { name: "Simulation CPU" }));
   expect(simulation.getByText("scripts")).toBeInTheDocument();
@@ -69,7 +69,10 @@ it("records a capture, shows it after stopping and exports it as JSON", async ()
   const profiler = createGameProfiler();
   renderPanel(profiler);
   expect(screen.getByRole("button", { name: "Export JSON" })).toBeDisabled();
-  act(() => { recordTicks(profiler, 1, 5); });
+  act(() => {
+    recordTicks(profiler, 1, 5);
+    jest.advanceTimersByTime(GAME_PROFILER_REFRESH_MS);
+  });
   await user.click(screen.getByRole("button", { name: "Record" }));
   expect(profiler.capturing()).toBe(true);
   expect(screen.getByTestId("profiler-status")).toHaveTextContent("Recording a capture");
@@ -89,10 +92,17 @@ it("records a capture, shows it after stopping and exports it as JSON", async ()
   expect(downloadGameProfile).toHaveBeenCalledTimes(1);
   const profile = jest.mocked(downloadGameProfile).mock.calls[0][0];
   expect(profile.game).toEqual(source);
-  expect(profile.samples.map((sample) => sample.tick)).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
-  expect(profile.summary.scripts[0]).toMatchObject({ entityId: "player", calls: 12 });
+  expect(profile.source).toBe("capture");
+  expect(profile.steps.tick).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  expect(profile.scripts[0]).toMatchObject({ entityId: "player", calls: 12 });
   await user.click(screen.getByRole("button", { name: "Live" }));
   expect(screen.getByTestId("profiler-status")).toHaveTextContent("Live · last 57 ticks");
+  // Without a capture on screen, Export saves the live window.
+  await user.click(screen.getByRole("button", { name: "Export JSON" }));
+  const live = jest.mocked(downloadGameProfile).mock.calls[1][0];
+  expect(live.source).toBe("live");
+  expect(live.steps.tick).toHaveLength(57);
+  expect(live.steps.tick[0]).toBe(1);
   await user.click(screen.getByRole("button", { name: "Clear" }));
   expect(screen.getByText("No samples yet")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Export JSON" })).toBeDisabled();
@@ -106,6 +116,7 @@ it("labels the metrics a 2D renderer does not report and stops recording when cl
     profiler.recordStep({ tick: 1 });
     jest.advanceTimersByTime(GAME_PROFILER_REFRESH_MS);
   });
+  expect(screen.getByRole("button", { name: "Export JSON" })).toBeEnabled();
   const rendering = within(screen.getByRole("region", { name: "Rendering" }));
   expect(rendering.getByText("Triangles").parentElement).toHaveTextContent("Not reported in 2D");
   expect(rendering.getByText("Draw calls").parentElement).toHaveTextContent("9 now · 9 max");
@@ -136,7 +147,7 @@ it("neither records nor re-renders while it sits in a background dock tab", () =
       recordTicks(profiler, 1, 30);
       jest.advanceTimersByTime(GAME_PROFILER_REFRESH_MS * 4);
     });
-    expect(profiler.samples()).toEqual([]);
+    expect(profiler.live().steps.tick).toHaveLength(0);
     expect(commits).not.toHaveBeenCalled();
     host.hidden = false;
     act(() => { jest.advanceTimersByTime(GAME_PROFILER_REFRESH_MS); });

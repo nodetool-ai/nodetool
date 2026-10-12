@@ -1,93 +1,117 @@
-import { createGameProfiler, GameProfileRingBuffer } from "../gameProfiler";
+import {
+  createGameProfiler, GAME_PROFILER_CAPTURE_BYTE_LIMIT, GAME_PROFILER_CAPTURE_FRAMES, GAME_PROFILER_CAPTURE_TICKS, GAME_PROFILER_MAX_SCRIPT_ENTITIES,
+  GAME_PROFILER_OTHER_ENTITIES, GameProfileBuffer, type GameProfilerStep
+} from "../gameProfiler";
 
-describe("GameProfileRingBuffer", () => {
-  it("keeps the newest items in order and counts the ones it overwrote", () => {
-    const buffer = new GameProfileRingBuffer<number>(3);
-    expect(buffer.toArray()).toEqual([]);
-    buffer.push(1);
-    buffer.push(2);
-    expect(buffer.toArray()).toEqual([1, 2]);
-    expect(buffer.overwritten).toBe(0);
-    for (const value of [3, 4, 5]) { buffer.push(value); }
-    expect(buffer.toArray()).toEqual([3, 4, 5]);
-    expect(buffer.size).toBe(3);
-    expect(buffer.overwritten).toBe(2);
-    buffer.clear();
-    expect(buffer.toArray()).toEqual([]);
-    expect(buffer.overwritten).toBe(0);
-    buffer.push(6);
-    expect(buffer.toArray()).toEqual([6]);
+const timings = { systems: [{ system: "scripts", durationMs: 1.5 }, { system: "physics", durationMs: 0.5 }], totalMs: 2.5 };
+
+function scriptStep(tick: number, entities: number): GameProfilerStep {
+  const byEntity: Record<string, { durationMs: number; calls: number }> = {};
+  for (let entity = 0; entity < entities; entity++) {
+    byEntity[`entity-${entity.toString().padStart(30, "0")}`] = { durationMs: (entity % 7) / 100, calls: 1 };
+  }
+  return { tick, timings, scriptStats: { durationMs: 1, calls: entities, commands: entities, byEntity }, physics: { bodies: 30, contacts: 3 }, voices: 2 };
+}
+
+describe("GameProfileBuffer", () => {
+  it("keeps the newest rows in order when it overwrites", () => {
+    const buffer = new GameProfileBuffer(3, 3, true);
+    for (const tick of [1, 2, 3, 4, 5]) { buffer.addStep({ tick, timings }, tick); }
+    const data = buffer.data();
+    expect(Array.from(data.steps.tick)).toEqual([3, 4, 5]);
+    expect(Array.from(data.steps.stepMs)).toEqual([2.5, 2.5, 2.5]);
+    expect(data.systems.map(({ system, values }) => [system, Array.from(values)])).toEqual([["scripts", [1.5, 1.5, 1.5]], ["physics", [0.5, 0.5, 0.5]]]);
+    expect(Array.from(data.steps.bodies).every(Number.isNaN)).toBe(true);
+    expect(data.startedAt).toBe(1);
+    expect(data.endedAt).toBe(5);
   });
 
-  it("stays linear and bounded across many pushes", () => {
-    const buffer = new GameProfileRingBuffer<number>(600);
-    for (let value = 0; value < 200_000; value++) { buffer.push(value); }
-    const items = buffer.toArray();
-    expect(items).toHaveLength(600);
-    expect(items[0]).toBe(199_400);
-    expect(items[599]).toBe(199_999);
+  it("stops accepting rows when it does not overwrite and is full", () => {
+    const buffer = new GameProfileBuffer(2, 2, false);
+    expect(buffer.addStep({ tick: 1 }, 0)).toBe(true);
+    expect(buffer.addStep({ tick: 2 }, 0)).toBe(true);
+    expect(buffer.full).toBe(true);
+    expect(buffer.addStep({ tick: 3 }, 0)).toBe(false);
+    expect(Array.from(buffer.data().steps.tick)).toEqual([1, 2]);
   });
 
-  it("rejects a capacity that is not a positive integer", () => {
-    expect(() => new GameProfileRingBuffer(0)).toThrow("positive integer");
-    expect(() => new GameProfileRingBuffer(1.5)).toThrow("positive integer");
+  it("keeps a full capture under its byte limit with any number of scripted entities", () => {
+    expect(GameProfileBuffer.maxBytes(GAME_PROFILER_CAPTURE_TICKS, GAME_PROFILER_CAPTURE_FRAMES)).toBeLessThanOrEqual(GAME_PROFILER_CAPTURE_BYTE_LIMIT);
+    const buffer = new GameProfileBuffer(GAME_PROFILER_CAPTURE_TICKS, GAME_PROFILER_CAPTURE_FRAMES, false);
+    const entities = GAME_PROFILER_MAX_SCRIPT_ENTITIES + 500;
+    const wide = scriptStep(0, entities);
+    buffer.addStep(wide, 0);
+    const before = buffer.bytes();
+    for (let tick = 1; tick < GAME_PROFILER_CAPTURE_TICKS; tick++) { buffer.addStep({ ...wide, tick }, tick); }
+    expect(buffer.full).toBe(true);
+    // Memory is fixed by the capacities: recording more ticks for the same entities adds nothing.
+    expect(buffer.bytes()).toBe(before);
+    expect(buffer.bytes()).toBeLessThanOrEqual(GAME_PROFILER_CAPTURE_BYTE_LIMIT);
+    const scripts = buffer.data().scripts;
+    expect(scripts).toHaveLength(GAME_PROFILER_MAX_SCRIPT_ENTITIES + 1);
+    expect(scripts.at(-1)).toMatchObject({ entityId: GAME_PROFILER_OTHER_ENTITIES, calls: 500 * GAME_PROFILER_CAPTURE_TICKS });
+  });
+
+  it("rejects capacities that are not positive integers", () => {
+    expect(() => new GameProfileBuffer(0, 1, true)).toThrow("positive integers");
+    expect(() => new GameProfileBuffer(1, 1.5, true)).toThrow("positive integers");
   });
 });
 
 describe("createGameProfiler", () => {
-  const timings = { systems: [{ system: "scripts", durationMs: 1.5 }, { system: "physics", durationMs: 0.5 }], totalMs: 2.5 };
-
   it("records nothing until a view attaches", () => {
     const profiler = createGameProfiler();
     profiler.recordRender({ drawCalls: 4, textureBytes: 64 }, 0);
     profiler.recordStep({ tick: 1, timings });
     expect(profiler.recording()).toBe(false);
-    expect(profiler.samples()).toEqual([]);
+    expect(profiler.live().steps.tick).toHaveLength(0);
     expect(profiler.version()).toBe(0);
     const detach = profiler.attach();
     profiler.recordStep({ tick: 2, timings });
-    expect(profiler.samples()).toHaveLength(1);
+    expect(profiler.live().steps.tick).toHaveLength(1);
     detach();
     detach();
     expect(profiler.recording()).toBe(false);
   });
 
-  it("merges the latest renderer stats and frame time into each step sample", () => {
+  it("records one frame time per rendered frame, apart from the steps", () => {
     const profiler = createGameProfiler();
     profiler.attach();
     profiler.recordRender({ drawCalls: 3, textureBytes: 1024, triangles: 12, geometryBytes: 2048 }, 1000);
-    profiler.recordStep({ tick: 1, timings, physics: { bodies: 5, contacts: 2 }, voices: 1,
-      scriptStats: { durationMs: 1.2, calls: 3, commands: 4, byEntity: { player: { durationMs: 1.2, calls: 3 } } } });
-    profiler.recordRender({ drawCalls: 4, textureBytes: 1024, triangles: 16, geometryBytes: 2048 }, 1016);
-    profiler.recordStep({ tick: 2 });
+    // Two catch-up steps after one frame record no frame time of their own.
+    profiler.recordStep({ tick: 1, timings, physics: { bodies: 5, contacts: 2 }, voices: 1 });
+    profiler.recordStep({ tick: 2, timings });
+    profiler.recordRender({ drawCalls: 4, textureBytes: 1024 }, 1016);
+    // A frame with no step in between is still a frame.
+    profiler.recordRender({ drawCalls: 4, textureBytes: 1024 }, 1024);
     // A gap longer than a second is a pause, not a slow frame.
     profiler.recordRender({ drawCalls: 4, textureBytes: 1024 }, 5000);
-    profiler.recordStep({ tick: 3 });
-    const [first, second, third] = profiler.samples();
-    expect(first).toEqual({ tick: 1, stepMs: 2.5, systems: timings.systems, scriptMs: 1.2, scriptCalls: 3,
-      scriptsByEntity: { player: { durationMs: 1.2, calls: 3 } }, drawCalls: 3, textureBytes: 1024, triangles: 12, geometryBytes: 2048,
-      bodies: 5, contacts: 2, voices: 1 });
-    expect(second).toEqual({ tick: 2, frameMs: 16, drawCalls: 4, textureBytes: 1024, triangles: 16, geometryBytes: 2048 });
-    expect(third).toEqual({ tick: 3, drawCalls: 4, textureBytes: 1024 });
+    const data = profiler.live();
+    expect(Array.from(data.frames.frameMs)).toEqual([Number.NaN, 16, 8, Number.NaN]);
+    expect(Array.from(data.frames.drawCalls)).toEqual([3, 4, 4, 4]);
+    expect(Array.from(data.steps.tick)).toEqual([1, 2]);
+    expect(Array.from(data.steps.bodies)).toEqual([5, Number.NaN]);
   });
 
-  it("keeps a bounded live window and a separate capture", () => {
-    const profiler = createGameProfiler(2, 3);
+  it("keeps a bounded live window, a separate capture and stops a full capture by itself", () => {
+    const profiler = createGameProfiler(2, 3, 10);
     profiler.attach();
     profiler.recordStep({ tick: 1 });
     profiler.startCapture(10_000);
     expect(profiler.capturing()).toBe(true);
-    for (const tick of [2, 3, 4, 5]) { profiler.recordStep({ tick }); }
-    expect(profiler.samples().map((sample) => sample.tick)).toEqual([4, 5]);
-    const capture = profiler.stopCapture(12_500);
-    expect(capture).toEqual({ startedAt: 10_000, endedAt: 12_500, truncated: true,
-      samples: [{ tick: 3 }, { tick: 4 }, { tick: 5 }] });
-    expect(profiler.capture()).toBe(capture);
+    for (const tick of [2, 3, 4]) { profiler.recordStep({ tick }); }
+    expect(Array.from(profiler.live().steps.tick)).toEqual([3, 4]);
+    expect(profiler.capturing()).toBe(true);
+    profiler.recordStep({ tick: 5 }, 12_500);
     expect(profiler.capturing()).toBe(false);
-    profiler.recordStep({ tick: 6 });
-    expect(profiler.capture()?.samples).toHaveLength(3);
+    const capture = profiler.capture();
+    expect(capture).toMatchObject({ startedAt: 10_000, endedAt: 12_500, full: true });
+    expect(Array.from(capture?.data.steps.tick ?? [])).toEqual([2, 3, 4]);
+    expect(profiler.stopCapture()).toBe(capture);
+    profiler.clearLive();
+    expect(profiler.live().steps.tick).toHaveLength(0);
+    expect(profiler.capture()).toBe(capture);
     profiler.clear();
-    expect(profiler.samples()).toEqual([]);
     expect(profiler.capture()).toBeNull();
   });
 
@@ -95,7 +119,7 @@ describe("createGameProfiler", () => {
     const profiler = createGameProfiler();
     profiler.startCapture(0);
     profiler.recordStep({ tick: 1 });
-    expect(profiler.stopCapture(100)?.samples).toEqual([{ tick: 1 }]);
+    expect(Array.from(profiler.stopCapture(100)?.data.steps.tick ?? [])).toEqual([1]);
     expect(profiler.recording()).toBe(false);
   });
 });

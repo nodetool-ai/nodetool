@@ -1,8 +1,8 @@
-import { gameDocument3D } from "@nodetool-ai/protocol";
+import { gameDocument, gameDocument3D } from "@nodetool-ai/protocol";
 import { expect, it } from "vitest";
 import { createTopDownRoomGame } from "../src/sample.js";
 import { createNative3DGame } from "../src/sample3d.js";
-import { createGameSession } from "../src/session.js";
+import { createGameSession, createScriptedGameSession } from "../src/session.js";
 import { createGameSession3D } from "../src/session3d.js";
 import { stepPresentation3D } from "../src/systems/presentation3d.js";
 import { stepPresentation2D } from "../src/systems/presentation2d.js";
@@ -207,6 +207,66 @@ it("reports physics counts with timings without changing the simulation", async 
     flatPlain.dispose();
     spatialTimed.dispose();
     spatialPlain.dispose();
+  }
+});
+it("keeps scripted sessions and their replay identical with timings on, off or toggled per tick", async () => {
+  const base = createTopDownRoomGame("timed-scripts");
+  const flatDocument = gameDocument.parse({ ...base, schemaVersion: 4, engineVersion: "3",
+    scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => entity.id === "player"
+      ? { ...entity, behaviors: [...entity.behaviors, { kind: "script", maxCommands: 8, maxTickMs: 30,
+        source: "({tick, random}) => ({ state: { roll: random() }, commands: tick % 10 === 0 ? [{kind:'setProp',key:'count',value:tick}] : [] })" }] }
+      : entity) })) });
+  const sessions = {
+    "2d": (snapshot: unknown, recordTimings?: boolean | (() => boolean)) => createScriptedGameSession(flatDocument, 1,
+      snapshot as Parameters<typeof createScriptedGameSession>[2], undefined, { recordTimings }),
+    "3d": (snapshot: unknown, recordTimings?: boolean | (() => boolean)) => createGameSession3D(createNative3DGame("timed-scripts-3d"), 1,
+      snapshot as Parameters<typeof createGameSession3D>[2], { recordTimings })
+  };
+  const inputs = {
+    "2d": Array.from({ length: 120 }, (_, tick) => ({ pressed: tick % 40 < 20 ? ["right"] : ["down"], justPressed: [] })),
+    "3d": Array.from({ length: 120 }, (_, tick) => ({ ...spatialInput, axes: { moveX: tick % 40 < 20 ? 0.4 : -0.4 } }))
+  };
+  for (const dimension of ["2d", "3d"] as const) {
+    const create = sessions[dimension];
+    let on = false;
+    const plain = await create(undefined);
+    const timed = await create(undefined, true);
+    const toggled = await create(undefined, () => { on = !on; return on; });
+    let checkpoint: unknown;
+    let scriptTicks = 0;
+    try {
+      for (let tick = 0; tick < 120; tick++) {
+        const input = inputs[dimension][tick] as never;
+        const reference = plain.step(input);
+        const always = timed.step(input);
+        const alternating = toggled.step(input);
+        expect(reference).not.toHaveProperty("timings");
+        expect(always.timings).toBeDefined();
+        expect(Boolean(alternating.timings)).toBe(tick % 2 === 0);
+        expect(always.events).toEqual(reference.events);
+        expect(alternating.events).toEqual(reference.events);
+        expect(always.frame).toEqual(reference.frame);
+        if (always.scriptStats) { scriptTicks += 1; }
+        if (tick === 59) { checkpoint = structuredClone(plain.snapshot()); }
+      }
+      expect(scriptTicks).toBeGreaterThan(0);
+      const expected = JSON.stringify(plain.snapshot());
+      expect(JSON.stringify(timed.snapshot())).toBe(expected);
+      expect(JSON.stringify(toggled.snapshot())).toBe(expected);
+      for (const recordTimings of [false, true]) {
+        const replay = await create(checkpoint, recordTimings);
+        try {
+          for (let tick = 60; tick < 120; tick++) { replay.step(inputs[dimension][tick] as never); }
+          expect(JSON.stringify(replay.snapshot())).toBe(expected);
+        } finally {
+          replay.dispose();
+        }
+      }
+    } finally {
+      plain.dispose();
+      timed.dispose();
+      toggled.dispose();
+    }
   }
 });
 it("drains presentation events independently from deterministic snapshots", () => {
