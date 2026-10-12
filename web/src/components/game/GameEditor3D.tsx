@@ -32,6 +32,7 @@ import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
 import GameConsolePanel from "./panels/console/GameConsolePanel";
 import { gameValidationConsoleEntries } from "./panels/console/gameConsoleModel";
 import { useGameConsoleFeed } from "./panels/console/useGameConsoleFeed";
+import GameProfilerPanel from "./panels/profiler/GameProfilerPanel";
 import { gamePlaytestPrompt, gameScriptErrorPrompt, gameSelectionPrompt } from "./gameAssistantPrompt";
 import GameViewport3D, { type GameViewportAction3D } from "./viewport3d/GameViewport3D";
 import { scriptFailure } from "./useGamePlaySession";
@@ -343,6 +344,9 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       { id: "console",
         node: <GameConsolePanel gameId={refId} document={document} liveEntries={consoleValidation}
           onSelectEntity={(entitySceneId, entityId) => { setSceneId(entitySceneId); select(entityId); }} onAskAssistant={assistant.draft} /> },
+      { id: "profiler",
+        node: <GameProfilerPanel profiler={host.profiler} document={document}
+          source={{ gameId: refId, name, dimension: "3d", tickRate: document.tickRate }} /> },
       { id: "inspector",
         node: <>
         <FlexColumn sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>

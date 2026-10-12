@@ -170,6 +170,45 @@ it("returns the actual system order and timings only when enabled", async () => 
     untimed.dispose();
   }
 });
+it("reports physics counts with timings without changing the simulation", async () => {
+  const touching = (events: readonly { readonly kind: string; readonly phase?: string }[]): number =>
+    events.filter((event) => event.kind === "contact" && event.phase !== "exit").length;
+  const flatDocument = createTopDownRoomGame("physics-flat");
+  const spatialDocument = createNative3DGame("physics-spatial");
+  const flatTimed = createGameSession(flatDocument, 3, undefined, undefined, { recordTimings: true });
+  const flatPlain = createGameSession(flatDocument, 3);
+  const spatialTimed = await createGameSession3D(spatialDocument, 3, undefined, { recordTimings: true });
+  const spatialPlain = await createGameSession3D(spatialDocument, 3);
+  try {
+    let flatContacts = 0;
+    let spatialContacts = 0;
+    for (let tick = 0; tick < 120; tick++) {
+      const flat = flatTimed.step(flatInput);
+      const flatReference = flatPlain.step(flatInput);
+      expect(flatReference).not.toHaveProperty("physics");
+      expect(flat.events).toEqual(flatReference.events);
+      expect(flat.physics?.contacts).toBe(touching(flat.events));
+      expect(flat.physics?.bodies).toBeGreaterThan(0);
+      flatContacts += flat.physics?.contacts ?? 0;
+      const spatial = spatialTimed.step(spatialInput);
+      const spatialReference = spatialPlain.step(spatialInput);
+      expect(spatialReference).not.toHaveProperty("physics");
+      expect(spatial.events).toEqual(spatialReference.events);
+      expect(spatial.physics?.contacts).toBe(touching(spatial.events));
+      expect(spatial.physics?.bodies).toBeGreaterThan(0);
+      spatialContacts += spatial.physics?.contacts ?? 0;
+    }
+    expect(flatContacts).toBeGreaterThan(0);
+    expect(spatialContacts).toBeGreaterThan(0);
+    expect(JSON.stringify(flatTimed.snapshot())).toBe(JSON.stringify(flatPlain.snapshot()));
+    expect(JSON.stringify(spatialTimed.snapshot())).toBe(JSON.stringify(spatialPlain.snapshot()));
+  } finally {
+    flatTimed.dispose();
+    flatPlain.dispose();
+    spatialTimed.dispose();
+    spatialPlain.dispose();
+  }
+});
 it("drains presentation events independently from deterministic snapshots", () => {
   const session = createGameSession(createTopDownRoomGame("events"), 3);
   try {
