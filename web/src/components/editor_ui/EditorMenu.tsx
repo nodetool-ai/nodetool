@@ -2,8 +2,8 @@
 /**
  * EditorMenu
  *
- * A Menu primitive for editor/node UI that applies consistent styling
- * via slotProps/sx and is safe for portal rendering (no reliance on global CSS).
+ * A Menu for editor/node UI. The theme styles every MUI menu surface and row
+ * (see `menuStyles.ts`), so this only tags the slots with the editor classes.
  */
 
 import { memo } from "react";
@@ -84,24 +84,13 @@ export interface EditorMenuItemProps extends Omit<MenuItemProps, "dense"> {
 
 export const EditorMenuItem = memo(function EditorMenuItem({
   dense = true,
-  sx,
   ...props
 }: EditorMenuItemProps) {
   return (
     <MenuItem
       dense={dense}
-      className={cn(editorUiClasses.menuItem, props.className)}
-      sx={{
-        // Tighten default MUI spacing in list items
-        "& .MuiListItemText-root": {
-          margin: 0
-        },
-        "& .MuiListItemIcon-root": {
-          minWidth: 24
-        },
-        ...sx
-      }}
       {...props}
+      className={cn(editorUiClasses.menuItem, props.className)}
     />
   );
 });

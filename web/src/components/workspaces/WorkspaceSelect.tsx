@@ -15,7 +15,9 @@ import {
   getSpacingPx,
   FormControl,
   Select,
-  MenuItem
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -89,14 +91,6 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       fontStyle: "italic",
       fontSize: "var(--fontSizeNormal)"
-    },
-    ".create-option": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(1),
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeNormal)",
-      fontWeight: 400
     },
     ".default-badge": {
       color: theme.vars.palette.text.disabled,
@@ -265,69 +259,9 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
             size="small"
             renderValue={renderSelectedValue}
             MenuProps={{
-              PaperProps: {
-                sx: {
-                  maxWidth: "min(600px, calc(100vw - 32px))",
-                  backgroundColor: theme.vars.palette.background.paper,
-                  border: `1px solid ${theme.vars.palette.divider}`,
-                  borderRadius: BORDER_RADIUS.md,
-                  mt: 0.5,
-                  "& .workspace-option": {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: getSpacingPx(SPACING.lg),
-                    width: "100%",
-                    overflow: "hidden"
-                  },
-                  "& .workspace-icon": {
-                    color: theme.vars.palette.text.secondary,
-                    fontSize: "var(--fontSizeBig)",
-                    flexShrink: 0,
-                    opacity: 0.7
-                  },
-                  "& .workspace-path": {
-                    fontSize: "var(--fontSizeNormal)",
-                    fontWeight: 400,
-                    color: theme.vars.palette.text.secondary,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    fontFamily: "var(--fontFamily2)"
-                  },
-                  "& .none-option": {
-                    color: theme.vars.palette.text.disabled,
-                    fontStyle: "italic",
-                    fontSize: "var(--fontSizeNormal)"
-                  },
-                  "& .create-option": {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: getSpacingPx(SPACING.md),
-                    color: theme.vars.palette.text.secondary,
-                    fontSize: "var(--fontSizeNormal)",
-                    fontWeight: 400
-                  },
-                  "& .default-badge": {
-                    color: theme.vars.palette.text.disabled,
-                    fontSize: "var(--fontSizeNormal)",
-                    marginLeft: getSpacingPx(SPACING.xs),
-                    verticalAlign: "middle",
-                    opacity: 0.6
-                  },
-                  "& .MuiMenuItem-root": {
-                    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
-                    borderRadius: BORDER_RADIUS.sm,
-                    margin: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
-                    "&:hover": {
-                      backgroundColor: theme.vars.palette.action.hover
-                    },
-                    "&.Mui-selected": {
-                      backgroundColor: theme.vars.palette.action.selected,
-                      "&:hover": {
-                        backgroundColor: theme.vars.palette.action.hover
-                      }
-                    }
-                  }
+              slotProps: {
+                paper: {
+                  sx: { maxWidth: "min(600px, calc(100vw - 32px))" }
                 }
               }
             }}
@@ -335,9 +269,8 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
             <Box
               role="note"
               sx={{
-                px: 2,
-                pt: 1,
-                pb: 1,
+                px: SPACING.lg,
+                py: SPACING.md,
                 pointerEvents: "none"
               }}
             >
@@ -357,30 +290,35 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 left on Default uses your default workspace.
               </Caption>
             </Box>
-            <Divider sx={{ mb: 0.5 }} />
+            <Divider />
             <MenuItem value="">
-              <span className="none-option">Default workspace</span>
+              <ListItemText primary="Default workspace" />
             </MenuItem>
             {workspaces.map((workspace) => (
               <MenuItem key={workspace.id} value={workspace.id}>
-                <div className="workspace-option">
-                  <FolderIcon className="workspace-icon" />
-                  <span className="workspace-path" title={workspace.path}>
-                    {workspace.path}
-                    {workspace.is_default && (
-                      <StarIcon className="default-badge" />
-                    )}
-                  </span>
-                </div>
+                <ListItemIcon>
+                  <FolderIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary={workspace.path}
+                  title={workspace.path}
+                  slotProps={{ primary: { noWrap: true } }}
+                  sx={{ minWidth: 0 }}
+                />
+                {workspace.is_default && (
+                  <ListItemIcon>
+                    <StarIcon />
+                  </ListItemIcon>
+                )}
               </MenuItem>
             ))}
-            {canManage && <Divider sx={{ my: 0.5 }} />}
+            {canManage && <Divider />}
             {canManage && (
               <MenuItem value={CREATE_NEW_VALUE}>
-                <span className="create-option">
-                  <AddIcon fontSize="small" />
-                  Create New Workspace
-                </span>
+                <ListItemIcon>
+                  <AddIcon />
+                </ListItemIcon>
+                <ListItemText primary="Create new workspace" />
               </MenuItem>
             )}
           </Select>

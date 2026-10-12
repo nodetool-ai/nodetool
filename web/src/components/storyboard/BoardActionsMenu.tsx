@@ -78,13 +78,11 @@ const BoardActionsMenu: React.FC<BoardActionsMenuProps> = ({
         slotProps={{ list: { "aria-label": "Board actions" } }}
       >
         <MenuItemPrimitive
-          compact
           label="Change style…"
           icon={<PaletteOutlinedIcon fontSize="small" />}
           onClick={changeStyle}
         />
         <MenuItemPrimitive
-          compact
           label={downloading ? "Preparing ZIP…" : "Download ZIP"}
           icon={<DownloadIcon fontSize="small" />}
           disabled={!hasShots || downloading}
@@ -92,7 +90,6 @@ const BoardActionsMenu: React.FC<BoardActionsMenuProps> = ({
         />
         {!inStudio && (
           <MenuItemPrimitive
-            compact
             label="Send to workflow…"
             secondary={
               workflowMedia.length === 0

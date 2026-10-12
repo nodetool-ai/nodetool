@@ -6,10 +6,12 @@ import type { Theme } from "@mui/material/styles";
 import {
   Caption,
   Popover,
+  EYEBROW,
   MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  menuPaperStyles
 } from "../../ui_primitives";
 import type { AspectRatioOption } from "../../../stores/MediaGenerationStore";
 
@@ -28,21 +30,21 @@ const styles = (theme: Theme) =>
     minWidth: 480,
     maxWidth: "100%",
     ".aspect-header": {
-      color: theme.vars.palette.grey[400],
-      textTransform: "uppercase",
-      letterSpacing: 1,
-      marginBottom: 8
+      ...EYEBROW,
+      display: "block",
+      color: theme.vars.palette.text.secondary,
+      marginBottom: getSpacingPx(SPACING.md)
     },
     ".aspect-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(6, minmax(70px, 1fr))",
-      gap: 8
+      gap: getSpacingPx(SPACING.md)
     },
     ".aspect-option": {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: 6,
+      gap: getSpacingPx(SPACING.sm),
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}`,
       background: "transparent",
       border: "none",
@@ -144,16 +146,11 @@ const MediaAspectRatioMenu: React.FC<MediaAspectRatioMenuProps> = ({
       anchorEl={anchorEl}
       onClose={onClose}
       placement="top-center"
-      paperSx={{
-        backgroundColor: theme.vars.palette.grey[900],
-        border: `1px solid ${theme.vars.palette.grey[800]}`,
-        borderRadius: BORDER_RADIUS.md,
-        boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
-      }}
+      paperSx={menuPaperStyles(theme)}
     >
       <div css={cssStyles} role="dialog" aria-label="Aspect ratio">
         <Caption className="aspect-header" size="small">
-          Aspect Ratio
+          Aspect ratio
         </Caption>
         <div className="aspect-grid">
           {options.map((opt) => {

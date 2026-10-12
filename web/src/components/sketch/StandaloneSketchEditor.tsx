@@ -203,7 +203,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
     };
 
     // Document actions live in the tool bar's overflow menu so the editor
-    // chrome stays one slim row. "Save as Asset" opens a folder popover
+    // chrome stays one slim row. "Save as asset" opens a folder popover
     // anchored to its own menu item, so it leaves the menu open and closes
     // both once a folder is chosen.
     const documentMenuItems = (close: () => void) => [
@@ -234,7 +234,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
           <AddPhotoAlternateOutlinedIcon fontSize="small" />
         </ListItemIcon>
         <ListItemText>
-          {savingAsAsset ? "Saving…" : "Save as Asset"}
+          {savingAsAsset ? "Saving…" : "Save as asset"}
         </ListItemText>
       </EditorMenuItem>,
       <EditorMenuItem

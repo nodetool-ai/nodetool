@@ -162,7 +162,7 @@ describe("SketchLayersPanel merge selected affordances", () => {
     // Merge actions now live in the layer right-click context menu (the bottom
     // toolbar was trimmed to a single-row essential set).
     fireEvent.contextMenu(screen.getByText("Layer 3"));
-    await user.click(screen.getByRole("menuitem", { name: "Merge Selected" }));
+    await user.click(screen.getByRole("menuitem", { name: "Merge selected" }));
 
     expect(props.onMergeSelectedLayers).toHaveBeenCalledTimes(1);
   });
@@ -183,7 +183,7 @@ describe("SketchLayersPanel merge selected affordances", () => {
 
     fireEvent.contextMenu(screen.getByText("Layer 2"));
 
-    expect(screen.getByRole("menuitem", { name: "Merge Selected" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Merge selected" })).toBeInTheDocument();
   });
 });
 

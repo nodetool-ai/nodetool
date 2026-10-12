@@ -1,6 +1,12 @@
 import type { Components, Theme } from "@mui/material/styles";
 import { editorUiClasses } from "../../../constants/editorUiClasses";
-import { SPACING, getSpacingPx } from "../../ui_primitives";
+import {
+  SPACING,
+  getSpacingPx,
+  menuItemStyles,
+  menuListStyles,
+  menuPaperStyles
+} from "../../ui_primitives";
 
 /**
  * Editor controls theme slice
@@ -152,55 +158,25 @@ export const editorControlsComponents: Components<Theme> = {
 
   MuiPaper: {
     styleOverrides: {
-      root: ({ theme }) => {
-        const editor = theme.editor;
-        return {
-          // Remove MUI dark-mode elevation gradient overlay for a flat, Linear-like look.
-          backgroundImage: "none",
-          [`&.${editorUiClasses.menuPaper}`]: {
-            backgroundColor: theme.vars.palette.Paper.overlay,
-            border: `1px solid ${theme.vars.palette.divider}`,
-            borderRadius: editor.menuRadius,
-            boxShadow: editor.menuShadow,
-            overflow: "hidden"
-          }
-        };
-      }
+      root: () => ({
+        // Remove MUI dark-mode elevation gradient overlay for a flat, Linear-like look.
+        backgroundImage: "none"
+      })
     }
   },
 
+  // Every menu, context menu and select dropdown shares one surface and one
+  // row style. See "Menus" in docs/DESIGN.md.
   MuiMenu: {
     styleOverrides: {
-      list: () => ({
-        [`&.${editorUiClasses.menuList}`]: {
-          padding: 0
-        }
-      })
+      paper: ({ theme }) => menuPaperStyles(theme),
+      list: ({ theme }) => menuListStyles(theme)
     }
   },
 
   MuiMenuItem: {
     styleOverrides: {
-      root: ({ theme }) => ({
-        [`&.${editorUiClasses.menuItem}`]: {
-          fontWeight: 400,
-          fontSize: theme.fontSizeSmaller,
-          padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-          transition: theme.transitions.create(["background-color"], {
-            duration: theme.transitions.duration.shortest
-          }),
-          "&:hover": {
-            backgroundColor: theme.vars.palette.action.selected
-          },
-          "&.Mui-selected": {
-            backgroundColor: theme.vars.palette.action.selected,
-            color: theme.vars.palette.primary.main
-          },
-          "&.Mui-selected:hover": {
-            backgroundColor: theme.vars.palette.action.selected
-          }
-        }
-      })
+      root: ({ theme }) => menuItemStyles(theme)
     }
   },
 

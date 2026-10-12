@@ -100,7 +100,7 @@ const addStringInputToSubgraph = async (page: Page): Promise<void> => {
 
   await page
     .locator(".pane-context-menu")
-    .getByText("Add Input Node", { exact: false })
+    .getByText("Add input node", { exact: false })
     .first()
     .click();
   await page
@@ -111,10 +111,10 @@ const addStringInputToSubgraph = async (page: Page): Promise<void> => {
 };
 
 const clickAddSubgraph = async (page: Page): Promise<void> => {
-  // Locate the "Add Subgraph" item by visible text within the open pane menu.
+  // Locate the "Add subgraph" item by visible text within the open pane menu.
   const item = page
     .locator(".pane-context-menu")
-    .getByText("Add Subgraph", { exact: true });
+    .getByText("Add subgraph", { exact: true });
   await item.first().click();
 };
 

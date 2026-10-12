@@ -1,10 +1,6 @@
 import React, { useCallback } from "react";
 
-import {
-  Text,
-  ContextMenu,
-  MenuItem
-} from "../ui_primitives";
+import { ContextMenu, Divider, ListSubheader } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { Workflow } from "../../stores/ApiTypes";
@@ -80,9 +76,7 @@ const WorkflowContextMenu: React.FC = () => {
       onContextMenu={(event) => event.preventDefault()}
       position={menuPosition}
     >
-      <MenuItem disabled>
-        <Text>{payload.name}</Text>
-      </MenuItem>
+      <ListSubheader>{payload.name}</ListSubheader>
       <ContextMenuItem
         onClick={handleToggleFavorite}
         label={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -97,14 +91,15 @@ const WorkflowContextMenu: React.FC = () => {
       {onOpenAsApp && (
         <ContextMenuItem
           onClick={handleOpenAsApp}
-          label="Open as App"
+          label="Open as app"
           IconComponent={<StarIcon />}
         />
       )}
+      <Divider />
       <ContextMenuItem
         onClick={handleDelete}
         label="Delete"
-        addButtonClassName="delete"
+        destructive
         IconComponent={<DeleteIcon />}
       />
     </ContextMenu>

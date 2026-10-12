@@ -244,7 +244,6 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
                 key={option.value}
                 value={option.value}
                 disabled={option.disabled}
-                sx={valueType}
               >
                 {option.label}
               </MenuItem>

@@ -61,7 +61,7 @@ const ModelFiltersBar: React.FC = () => {
       {/* Type dropdown (multi) */}
       <ToolbarIconButton
         icon={<CategoryIcon fontSize="small" />}
-        tooltip={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by Type"}
+        tooltip={selectedTypes.length ? `Type: ${selectedTypes.join(", ")}` : "Filter by type"}
         onClick={(e) => setTypeAnchor(e.currentTarget)}
         size="small"
         active={selectedTypes.length > 0 || openType}
@@ -90,7 +90,7 @@ const ModelFiltersBar: React.FC = () => {
       {/* Size dropdown (single) */}
       <ToolbarIconButton
         icon={<StraightenIcon fontSize="small" />}
-        tooltip={sizeBucket ? `Size: ${sizeBucket}` : "Filter by Size"}
+        tooltip={sizeBucket ? `Size: ${sizeBucket}` : "Filter by size"}
         onClick={(e) => setSizeAnchor(e.currentTarget)}
         size="small"
         active={!!sizeBucket || openSize}

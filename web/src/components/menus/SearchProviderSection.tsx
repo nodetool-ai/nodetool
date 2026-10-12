@@ -8,11 +8,9 @@ import {
   Chip,
   Stack,
   BORDER_RADIUS,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  type SelectChangeEvent, getSpacingPx, SPACING
+  SelectField,
+  getSpacingPx,
+  SPACING
 } from "../ui_primitives";
 import { formatSettingLabel } from "./settingsLabel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -51,10 +49,19 @@ const SearchProviderSection = memo(function SearchProviderSection({
   }, [config, settingValues]);
 
   const handleProviderChange = useCallback(
-    (e: SelectChangeEvent<string>) => {
-      onChange("SERP_PROVIDER", e.target.value);
+    (value: string) => {
+      onChange("SERP_PROVIDER", value);
     },
     [onChange]
+  );
+
+  const providerOptions = useMemo(
+    () =>
+      Object.entries(PROVIDER_CONFIGS).map(([key, cfg]) => ({
+        value: key,
+        label: cfg.label
+      })),
+    []
   );
 
   const handleCredentialChange = useCallback(
@@ -80,21 +87,16 @@ const SearchProviderSection = memo(function SearchProviderSection({
       </Text>
 
       <div className="settings-item large">
-        <FormControl variant="standard" fullWidth sx={{ marginBottom: getSpacingPx(SPACING.xxl) }}>
-          <InputLabel id="provider-select-label">Provider</InputLabel>
-          <Select
-            labelId="provider-select-label"
+        <Box sx={{ mb: SPACING.xxl }}>
+          <SelectField
             id="provider-select"
+            label="Provider"
+            variant="standard"
             value={selectedProvider}
             onChange={handleProviderChange}
-          >
-            {Object.entries(PROVIDER_CONFIGS).map(([key, cfg]) => (
-              <MenuItem key={key} value={key}>
-                {cfg.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            options={providerOptions}
+          />
+        </Box>
 
         <FlexRow
           align="center"

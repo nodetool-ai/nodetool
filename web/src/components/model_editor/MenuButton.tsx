@@ -12,8 +12,8 @@ interface MenuButtonProps {
 
 /** A compact button that opens a menu below itself. */
 export const MenuButton = ({ label, icon, tooltip, children }: MenuButtonProps) => {
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
-  const close = useCallback(() => setPosition(null), []);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const close = useCallback(() => setAnchorEl(null), []);
   return (
     <>
       <Tooltip title={tooltip}>
@@ -23,16 +23,19 @@ export const MenuButton = ({ label, icon, tooltip, children }: MenuButtonProps) 
           startIcon={icon}
           endIcon={<ExpandMoreIcon />}
           aria-haspopup="menu"
-          aria-expanded={position !== null}
-          onClick={(e: MouseEvent<HTMLElement>) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            setPosition({ x: rect.left, y: rect.bottom + 4 });
-          }}
+          aria-expanded={anchorEl !== null}
+          onClick={(e: MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget)}
         >
           {label}
         </EditorButton>
       </Tooltip>
-      <ContextMenu open={position !== null} position={position} onClose={close} compact minWidth={200}>
+      <ContextMenu
+        open={anchorEl !== null}
+        anchorEl={anchorEl}
+        onClose={close}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+      >
         {children(close)}
       </ContextMenu>
     </>

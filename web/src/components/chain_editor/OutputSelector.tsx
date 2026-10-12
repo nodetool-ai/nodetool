@@ -87,8 +87,8 @@ export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function
               secondary={formatType(o.type)}
             />
             {o.name === selectedOutput && (
-              <ListItemIcon sx={{ minWidth: "auto", ml: 1 }}>
-                <CheckIcon sx={{ fontSize: 18, color: theme.vars.palette.primary.main }} />
+              <ListItemIcon>
+                <CheckIcon />
               </ListItemIcon>
             )}
           </EditorMenuItem>
