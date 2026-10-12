@@ -85,7 +85,7 @@ function normalizeBillingUnit(creditUnit: string): string {
 }
 
 /** A slug-like token already looks like a model id (lowercase, no spaces, has a separator). */
-const KIE_SLUG_LIKE = /^[a-z0-9]+([._/-][a-z0-9.]+)+$/;
+const KIE_SLUG_LIKE = /^[a-z0-9]+[._/-][a-z0-9.]+(?:[_/-][a-z0-9.]+)*$/;
 
 /** Lowercase, strip non-alphanumerics — collapses kie's slug variants to a comparable key. */
 export function normalizeKieModelId(id: string): string {
