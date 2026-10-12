@@ -1,9 +1,17 @@
-import { useId, useMemo, useState, type ReactElement } from "react";
+import { useId, useMemo, useState, type ReactElement, type ReactNode } from "react";
+import { useTheme, type Theme } from "@mui/material/styles";
 import { useStore } from "zustand";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import ErrorRoundedIcon from "@mui/icons-material/ErrorRounded";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 
 import { getGameConsoleStore } from "../../../../stores/game/GameConsoleStore";
 import GamePanelHeader from "../../GamePanelHeader";
-import { Box, Caption, Chip, EditorButton, EmptyState, FlexColumn, FlexRow, ScrollArea, SearchInput, SPACING, TextLink } from "../../../ui_primitives";
+import {
+  Box, BORDER_RADIUS, Caption, CONTROL, Divider, EditorButton, FieldDensityContext, FlexColumn, FlexRow, FONT_SIZE_SANS, ScrollArea,
+  SearchInput, SPACING, TextLink, Tooltip, ToolbarIconButton, TYPOGRAPHY
+} from "../../../ui_primitives";
 import { gameConsolePrompt } from "../../gameAssistantPrompt";
 import {
   countGameConsoleLevels, filterGameConsoleGroups, GAME_CONSOLE_LEVELS, gameConsoleEntityScene,
@@ -24,12 +32,27 @@ interface GameConsolePanelProps {
   readonly onAskAssistant: (prompt: string) => void;
 }
 
-const LEVEL_LABEL: Readonly<Record<GameConsoleLevel, { readonly one: string; readonly many: string; readonly color: "error" | "warning" | "muted" }>> = {
-  error: { one: "Error", many: "Errors", color: "error" },
-  warning: { one: "Warning", many: "Warnings", color: "warning" },
-  log: { one: "Log", many: "Logs", color: "muted" }
+const LEVEL_LABEL: Readonly<Record<GameConsoleLevel, { readonly one: string; readonly many: string }>> = {
+  error: { one: "Error", many: "Errors" },
+  warning: { one: "Warning", many: "Warnings" },
+  log: { one: "Log", many: "Logs" }
 };
 const NO_ENTRIES: readonly GameConsoleEntry[] = [];
+
+function levelColor(theme: Theme, level: GameConsoleLevel): string {
+  if (level === "error") { return theme.vars.palette.error.main; }
+  if (level === "warning") { return theme.vars.palette.warning.main; }
+  return theme.vars.palette.text.secondary;
+}
+
+function LevelIcon({ level, color }: { readonly level: GameConsoleLevel; readonly color: string }): ReactNode {
+  const sx = { fontSize: FONT_SIZE_SANS.body, color, flexShrink: 0 };
+  if (level === "error") { return <ErrorRoundedIcon aria-hidden sx={sx} />; }
+  if (level === "warning") { return <WarningRoundedIcon aria-hidden sx={sx} />; }
+  return <InfoOutlinedIcon aria-hidden sx={sx} />;
+}
+
+/** Width of the search field in the toolbar: seven control heights, on the 4px grid. */
 
 function tickLabel(group: GameConsoleGroup): string | null {
   if (group.tick === undefined) { return null; }
@@ -38,6 +61,7 @@ function tickLabel(group: GameConsoleGroup): string | null {
 
 /** Errors, warnings and script log lines from the play session, with filters, entity links and an assistant hand-off per line. */
 export default function GameConsolePanel({ gameId, document, liveEntries = NO_ENTRIES, onSelectEntity, onAskAssistant }: GameConsolePanelProps): ReactElement {
+  const theme = useTheme();
   const store = getGameConsoleStore(gameId);
   const lineId = useId();
   const stored = useStore(store, (state) => state.groups);
@@ -59,35 +83,70 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
     });
   };
   return <FlexColumn sx={{ height: "100%", minHeight: 0 }}>
-    <GamePanelHeader title="Console">
-      <EditorButton disabled={stored.length === 0} onClick={() => store.getState().clear()}>Clear</EditorButton>
+    <GamePanelHeader title="Console" fill>
+      <FieldDensityContext.Provider value="compact">
+        <SearchInput value={query} onChange={setQuery} placeholder="Filter" ariaLabel="Filter console" size="small"
+          sx={{ flex: 1, minWidth: 0 }} />
+      </FieldDensityContext.Provider>
+      <Divider orientation="vertical" flexItem sx={{ mx: SPACING.xs, my: SPACING.xs }} />
+      {GAME_CONSOLE_LEVELS.map((level) => {
+        const on = levels.has(level);
+        return <Tooltip key={level} title={on ? `Hide ${LEVEL_LABEL[level].many.toLowerCase()}` : `Show ${LEVEL_LABEL[level].many.toLowerCase()}`}>
+          <EditorButton aria-pressed={on} aria-label={`${LEVEL_LABEL[level].many} ${counts[level]}`} onClick={() => toggle(level)}
+            startIcon={<LevelIcon level={level} color={on ? levelColor(theme, level) : theme.vars.palette.text.disabled} />}
+            sx={{
+              height: CONTROL.height.sm, px: SPACING.sm, gap: SPACING.xs, color: on ? "text.primary" : "text.disabled",
+              backgroundColor: on ? theme.vars.palette.action.selected : "transparent", fontVariantNumeric: "tabular-nums",
+              "& .MuiButton-startIcon": { m: 0 },
+              "&:hover": { backgroundColor: on ? theme.vars.palette.action.selected : theme.vars.palette.action.hover }
+            }}>{counts[level]}</EditorButton>
+        </Tooltip>;
+      })}
+      <Divider orientation="vertical" flexItem sx={{ mx: SPACING.xs, my: SPACING.xs }} />
+      <EditorButton disabled={stored.length === 0} onClick={() => store.getState().clear()}
+        sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>Clear</EditorButton>
     </GamePanelHeader>
-    <FlexRow gap={SPACING.xs} align="center" wrap sx={{ flexShrink: 0, px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-      {GAME_CONSOLE_LEVELS.map((level) => <Chip key={level} compact active={levels.has(level)} aria-pressed={levels.has(level)}
-        color={levels.has(level) ? (level === "log" ? "default" : level) : "default"}
-        label={`${LEVEL_LABEL[level].many} ${counts[level]}`} onClick={() => toggle(level)} />)}
-      <SearchInput value={query} onChange={setQuery} placeholder="Filter messages and entities" ariaLabel="Filter console" size="small" sx={{ flex: 1, minWidth: 0 }} />
-    </FlexRow>
     <ScrollArea role="log" aria-label="Console" sx={{ flex: 1, minHeight: 0 }}>
       {visible.length === 0
-        ? <EmptyState title={groups.length === 0 ? "No console output" : "No lines match the filters"}
-          description={groups.length === 0 ? "Script errors, warnings and log lines appear here while the game plays." : undefined} />
+        ? <FlexColumn align="center" gap={SPACING.micro} sx={{ px: SPACING.lg, py: SPACING.xl, textAlign: "center" }}>
+          <Caption size="small" color="secondary">{groups.length === 0 ? "No console output" : "No lines match the filters"}</Caption>
+          {groups.length === 0 && <Caption color="muted">Script errors, warnings and log lines appear here while the game plays.</Caption>}
+        </FlexColumn>
         : <Box component="ul" aria-label="Console lines" sx={{ listStyle: "none", m: 0, p: 0 }}>
           {visible.map((group) => {
             const name = group.entityId ? entityNames.get(group.entityId) : undefined;
             const sceneId = group.entityId ? gameConsoleEntityScene(document, group.entityId, group.sceneId) : undefined;
             const ticks = tickLabel(group);
             return <FlexRow key={group.id} component="li" gap={SPACING.sm} align="flex-start" data-level={group.level}
-              sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-              <Caption color={LEVEL_LABEL[group.level].color} sx={{ flexShrink: 0 }}>{LEVEL_LABEL[group.level].one}</Caption>
-              {ticks && <Caption color="muted" sx={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{ticks}</Caption>}
-              <Caption id={`${lineId}-${group.id}`} sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{group.message}</Caption>
-              {group.count > 1 && <Chip compact label={`×${group.count}`} aria-label={`Repeated ${group.count} times`} />}
-              {group.entityId && (sceneId
-                ? <TextLink asButton onClick={() => onSelectEntity(sceneId, group.entityId ?? "")} aria-label={`Select ${name || group.entityId}`}>
-                  <Caption component="span" color="inherit">{name || group.entityId}</Caption></TextLink>
-                : <Caption color="muted">{group.entityId}</Caption>)}
-              <EditorButton aria-describedby={`${lineId}-${group.id}`} onClick={() => onAskAssistant(gameConsolePrompt(group, name))}>Ask the assistant</EditorButton>
+              sx={{
+                minHeight: CONTROL.height.sm, boxSizing: "border-box", px: SPACING.md, py: SPACING.xs,
+                borderBottom: `1px solid ${theme.vars.palette.divider}`,
+                "&:hover": { backgroundColor: theme.vars.palette.action.hover },
+                "& .console-ask": { opacity: 0 },
+                "&:hover .console-ask, &:focus-within .console-ask": { opacity: 1 }
+              }}>
+              <Box component="span" role="img" aria-label={LEVEL_LABEL[group.level].one}
+                sx={{ display: "flex", alignItems: "center", height: "1.5em", ...TYPOGRAPHY.mono.code }}>
+                <LevelIcon level={group.level} color={levelColor(theme, group.level)} />
+              </Box>
+              <Box component="span" id={`${lineId}-${group.id}`} sx={{
+                ...TYPOGRAPHY.mono.code, flex: 1, minWidth: 0, color: "text.primary", overflowWrap: "anywhere", whiteSpace: "pre-wrap"
+              }}>{group.message}</Box>
+              <FlexRow gap={SPACING.sm} align="center" sx={{ flexShrink: 0, minHeight: "1.5em", ...TYPOGRAPHY.mono.code }}>
+                {group.count > 1 && <Caption component="span" color="secondary" aria-label={`Repeated ${group.count} times`} sx={{
+                  px: SPACING.xs, borderRadius: BORDER_RADIUS.pill, backgroundColor: theme.vars.palette.action.selected,
+                  fontVariantNumeric: "tabular-nums"
+                }}>{`×${group.count}`}</Caption>}
+                {group.entityId && (sceneId
+                  ? <TextLink asButton onClick={() => onSelectEntity(sceneId, group.entityId ?? "")} aria-label={`Select ${name || group.entityId}`}>
+                    <Caption component="span" color="inherit">{name || group.entityId}</Caption></TextLink>
+                  : <Caption component="span" color="muted">{group.entityId}</Caption>)}
+                {ticks && <Caption component="span" color="muted" sx={{ fontVariantNumeric: "tabular-nums" }}>{ticks}</Caption>}
+                <ToolbarIconButton className="console-ask" icon={<AutoAwesomeOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />}
+                  tooltip="Ask the assistant" aria-describedby={`${lineId}-${group.id}`}
+                  onClick={() => onAskAssistant(gameConsolePrompt(group, name))}
+                  sx={{ p: SPACING.micro, my: -SPACING.micro }} />
+              </FlexRow>
             </FlexRow>;
           })}
         </Box>}

@@ -135,7 +135,7 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
               onTabDragStart(current.id, event.nativeEvent);
             }}
             onClick={(event: React.MouseEvent<HTMLDivElement>) => {
-              if (!dragged.current) { event.currentTarget.focus(); }
+              if (!dragged.current) { event.currentTarget.focus(); onActivate(tab.id); }
               dragged.current = false;
             }}
             onPointerUp={() => { press.current = null; }}

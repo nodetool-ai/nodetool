@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { useState, type ComponentProps } from "react";
@@ -190,6 +190,7 @@ it.each(["2d", "3d"] as const)("keeps a late registered %s panel reachable when 
   await user.click(screen.getByRole("menuitem", { name: "Save layout as…" }));
   await user.type(screen.getByRole("textbox", { name: "Layout name" }), "Before extension");
   await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   await act(async () => {
     registry.register({ id: "late-extension", title: "Live extension", icon: null, dimensions: [dimension], defaultRegion: "bottom" });
   });
@@ -197,6 +198,7 @@ it.each(["2d", "3d"] as const)("keeps a late registered %s panel reachable when 
   await user.type(input, " changed");
   await user.click(screen.getByRole("button", { name: "Before extension" }));
   await user.click(screen.getByRole("menuitem", { name: "Before extension" }));
+  await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
   expect(screen.getByRole("tab", { name: "Live extension" })).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "Extension draft" })).toBe(input);
   expect(input).toHaveValue("original changed");
@@ -214,9 +216,12 @@ it.each(["2d", "3d"] as const)("reveals a hidden registered %s panel through the
   expect(screen.queryByRole("textbox", { name: "Extension draft" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Default" }));
   await user.click(screen.getByRole("menuitem", { name: "Default" }));
+  await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
   expect(screen.queryByRole("textbox", { name: "Extension draft" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Default" }));
   await user.click(screen.getByRole("menuitem", { name: /^Extension/ }));
+  await user.keyboard("{Escape}");
+  await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
   expect(screen.getByRole("textbox", { name: "Extension draft" })).toBe(input);
   expect(input).toHaveValue("original changed");
   expect(screen.getByRole("tab", { name: "Extension" })).toBeInTheDocument();

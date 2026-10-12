@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from "react";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { useStore, type StoreApi } from "zustand";
@@ -37,6 +37,7 @@ it("saves, selects, renames and deletes a named copy without replacing built-in 
   await user.click(screen.getByRole("menuitem", { name: "Save layout as…" }));
   await user.type(screen.getByRole("textbox", { name: "Layout name" }), "My game layout");
   await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   const saved = store.getState().layout;
   await user.click(screen.getByRole("button", { name: "My game layout" }));
   await user.click(screen.getByRole("menuitem", { name: "Wide" }));
@@ -50,6 +51,7 @@ it("saves, selects, renames and deletes a named copy without replacing built-in 
   const name = screen.getByRole("textbox", { name: "Layout name" });
   await user.clear(name);
   await user.type(name, "Renamed layout{Enter}");
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   expect(store.getState().customLayouts.map((entry) => entry.name)).toEqual(["Renamed layout"]);
   await user.click(screen.getByRole("button", { name: "Renamed layout" }));
   await user.click(screen.getByRole("menuitem", { name: "Delete layout" }));
@@ -73,8 +75,8 @@ it("moves, reorders and closes panels from the tab menu by keyboard", async () =
   rightTabs.getByRole("tab", { name: "Scripts" }).focus();
   await user.keyboard("{Shift>}{F10}{/Shift}");
   await user.click(screen.getByRole("menuitem", { name: "Move tab left" }));
-  const right = store.getState().layout.regions.right[0].panels;
-  expect(right.indexOf("scripts")).toBe(right.length - 2);
+  // The assistant starts hidden, so the only shown tab left of Scripts is Inspector.
+  expect(store.getState().layout.regions.right[0].panels).toEqual(["scripts", "inspector", "assistant"]);
   rightTabs.getByRole("tab", { name: "Scripts" }).focus();
   await user.keyboard("{Delete}");
   expect(store.getState().layout.hidden).toContain("scripts");
