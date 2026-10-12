@@ -146,7 +146,8 @@ it(`${GRAPH} reports the same issues, messages included, for every seed graph`, 
     validateGraph(seed.graph, registry, {
       sandboxModuleCatalog: null
     }).issues.map(
-      (issue) => `${seed.id} ${issue.severity} ${issue.code} ${issue.message}`
+      (issue) =>
+        `${seed.id} ${issue.nodeId ?? "-"} ${issue.severity} ${issue.code} ${issue.message}`
     )
   );
   expect(lines.length).toBeGreaterThan(0);

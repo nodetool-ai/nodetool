@@ -6,7 +6,7 @@
  * a seed that changes when another package ships a workflow would move the
  * mutation score for reasons that have nothing to do with the validator.
  *
- * Between them the four graphs reach every branch class the validator has:
+ * Between them the graphs reach every branch class the validator has:
  * kernel-shape and ReactFlow-shape nodes, declared and dynamic slots, a Code
  * node body, a model reference, and a control edge.
  */
@@ -258,6 +258,81 @@ export const SEED_GRAPHS: readonly SeedGraph[] = [
           targetHandle: "value"
         }
       ]
+    }
+  },
+  {
+    id: "asset-values",
+    graph: {
+      nodes: [
+        {
+          id: "asset-null",
+          type: "nodetool.image.Crop",
+          properties: { image: null }
+        },
+        {
+          id: "asset-empty-object",
+          type: "nodetool.image.Crop",
+          properties: { image: {} }
+        },
+        {
+          id: "asset-blank-fields",
+          type: "nodetool.image.Crop",
+          properties: {
+            image: { uri: "", asset_id: "", temp_id: "", data: "" }
+          }
+        },
+        {
+          id: "asset-empty-data-array",
+          type: "nodetool.image.Crop",
+          properties: { image: { data: [] } }
+        },
+        {
+          id: "asset-null-data",
+          type: "nodetool.image.Crop",
+          properties: { image: { data: null } }
+        },
+        {
+          id: "asset-uri",
+          type: "nodetool.image.Crop",
+          properties: { image: { uri: "file:///a.png" } }
+        },
+        {
+          id: "asset-asset-id",
+          type: "nodetool.image.Crop",
+          properties: { image: { asset_id: "abc" } }
+        },
+        {
+          id: "asset-temp-id",
+          type: "nodetool.image.Crop",
+          properties: { image: { temp_id: "tmp" } }
+        },
+        {
+          id: "asset-string-data",
+          type: "nodetool.image.Crop",
+          properties: { image: { data: "AAAA" } }
+        },
+        {
+          id: "asset-array-data",
+          type: "nodetool.image.Crop",
+          properties: { image: { data: [1, 2] } }
+        },
+        {
+          id: "asset-bare-string",
+          type: "nodetool.image.Crop",
+          properties: { image: "file:///a.png" }
+        },
+        {
+          id: "asset-number",
+          type: "nodetool.image.Crop",
+          properties: { image: 7 }
+        },
+        {
+          id: "asset-array",
+          type: "nodetool.image.Crop",
+          properties: { image: [] }
+        }
+      ],
+      edges: []
     }
   },
   {
