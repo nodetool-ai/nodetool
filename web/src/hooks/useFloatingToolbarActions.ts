@@ -201,6 +201,12 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       if (missing.length > 0) {
         const first = missing[0];
         showModelCallout(missing);
+        // The call-out sits in the inspector, which may be closed, so the
+        // blocked run also says why on its own.
+        addNotification({
+          type: "warning",
+          content: `Pick a model on ${first.nodeTitle} before running.`
+        });
         const target = nodeStore
           .getState()
           .nodes.find((n) => n.id === first.nodeId);
@@ -328,7 +334,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     try {
       await saveWorkflow(w);
       addNotification({
-        content: `Workflow ${w.name} saved`,
+        content: `Workflow "${w.name}" saved`,
         type: "success",
         alert: true
       });

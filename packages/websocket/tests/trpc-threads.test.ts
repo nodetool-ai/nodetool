@@ -22,6 +22,10 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     Memory: {
       ...actual.Memory,
       deleteByThread: vi.fn().mockResolvedValue(0)
+    },
+    Project: {
+      ...actual.Project,
+      migrateToPersonal: vi.fn()
     }
   };
 });

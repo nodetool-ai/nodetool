@@ -301,6 +301,9 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   }
 
   if (resource_type === "workflow") {
+    // The Home documents strip reads projects.documentPage. Without this a
+    // saved workflow was missing from it until a reload.
+    invalidateProjectViews();
     invalidateDocumentIndex();
   }
 

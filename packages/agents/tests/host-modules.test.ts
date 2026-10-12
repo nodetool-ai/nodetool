@@ -6,6 +6,7 @@
  * refusals, and the trust rule that keeps host execution first-party.
  */
 import { describe, it, expect } from "vitest";
+import { createRequire } from "node:module";
 import { Workbook } from "exceljs";
 import { zipSync, strToU8 } from "fflate";
 import {
@@ -1044,7 +1045,34 @@ describe("@nodetool-ai/sandbox-pptx", () => {
     return Buffer.from(archive).toString("base64");
   }
 
-  it("extracts full text from all slides", async () => {
+  // office-text-extractor is an optional root dependency: its xlsx tarball
+  // comes from cdn.sheetjs.com, which some proxies block, and npm then skips it.
+  const hasExtractor = (() => {
+    try {
+      createRequire(import.meta.url).resolve("office-text-extractor");
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  it.runIf(!hasExtractor)(
+    "names the missing package when office-text-extractor is absent",
+    async () => {
+      const result = await run(
+        `import { extractText } from "@nodetool-ai/sandbox-pptx";
+         try { await extractText(fromBase64("${pptxBase64()}")); return "no throw"; }
+         catch (e) { return e.message; }`,
+        "pptx"
+      );
+      expect(result.success).toBe(true);
+      expect(result.result).toMatch(
+        /optional "office-text-extractor" package is not installed/
+      );
+    }
+  );
+
+  it.runIf(hasExtractor)("extracts full text from all slides", async () => {
     const b64 = pptxBase64();
     const result = await run(
       `import { extractText } from "@nodetool-ai/sandbox-pptx";

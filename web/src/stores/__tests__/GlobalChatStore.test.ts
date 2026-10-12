@@ -74,6 +74,7 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
 import { pack } from "msgpackr";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
+import { tabId, useWorkspaceTabsStore } from "../WorkspaceTabsStore";
 import { trpcClient } from "../../trpc/client";
 import useAuth from "../useAuth";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
@@ -624,6 +625,22 @@ describe("GlobalChatStore", () => {
     const state = store.getState();
     expect(state.currentThreadId).toBe("id-1");
     expect(Object.keys(state.threads)).toEqual(["id-1"]);
+  });
+
+  it("deleteThread closes the deleted thread's tab", async () => {
+    const first = await store.getState().createNewThread();
+    useWorkspaceTabsStore
+      .getState()
+      .openTab({ type: "chat", ref: first, title: "Chat" });
+    expect(
+      useWorkspaceTabsStore.getState().tabs.some((tab) => tab.id === tabId("chat", first))
+    ).toBe(true);
+
+    await store.getState().deleteThread(first);
+
+    expect(
+      useWorkspaceTabsStore.getState().tabs.some((tab) => tab.id === tabId("chat", first))
+    ).toBe(false);
   });
 
   describe("WebSocket Connection", () => {
