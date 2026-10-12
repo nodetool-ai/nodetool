@@ -118,6 +118,8 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
               if (event.button === 1) { event.preventDefault(); return; }
               if (event.button !== 0) { return; }
               press.current = { id: tab.id, pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+              // Capture, so the press keeps reporting moves after the pointer leaves the tab.
+              if (onTabDragStart) { event.currentTarget.setPointerCapture?.(event.pointerId); }
               onActivate(tab.id);
             }}
             onPointerMove={(event: React.PointerEvent<HTMLDivElement>) => {
